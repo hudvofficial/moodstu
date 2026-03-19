@@ -139,7 +139,6 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
             onChange={(e) => updateField("full_name", e.target.value)}
             placeholder="Nguyễn Văn A"
             className="input-base"
-            autoFocus
           />
         </FormField>
 

@@ -24,7 +24,8 @@
 | A | Foundation & Infrastructure | ✅ Done | `modal-portal.tsx`, `hooks/useEscape.ts`, `unified-modal.tsx` |
 | B | Mobile UX (Bottom Sheet + Swipe) | ✅ Done | `unified-modal.tsx`, `hooks/useSwipeDismiss.ts`, `pages.css` |
 | C | API Enhancement (Size + Footer + A11y) | ✅ Done | `unified-modal.tsx` |
-| **D** | **Performance Fix** | ⬜ Pending | `unified-modal.tsx` |
+| D | Performance Fix (partial) | ✅ Done | `unified-modal.tsx` |
+| **E** | **Nuclear Perf Fix** | ⬜ Pending | `unified-modal.tsx`, `pages.css`, `CustomerFormModal.tsx` |
 
 ## 🚨 Phase D — Performance Fix (MỚI)
 

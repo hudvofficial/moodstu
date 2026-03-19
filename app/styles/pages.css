@@ -305,11 +305,18 @@
 .animate-backdrop-in { animation: backdrop-fade-in 0.2s ease-out both; }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(100%); }
+  from { opacity: 1; transform: translateY(100%); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-up { animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* F/N2: Desktop modal — match V1 modalContent (scale + translateY) */
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-modal-in { animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* Modal close animation — mobile bottom sheet */
 @keyframes slide-down {
@@ -318,12 +325,12 @@
 }
 .animate-slide-down { animation: slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* Modal close animation — desktop center */
+/* F: Desktop modal close — match V1 modalContentOut */
 @keyframes modal-out {
-  from { opacity: 1; transform: scale(1); }
-  to   { opacity: 0; transform: scale(0.97); }
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.97) translateY(8px); }
 }
-.animate-modal-out { animation: modal-out 0.2s ease-in both; }
+.animate-modal-out { animation: modal-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
 
 /* Branded skeleton shimmer (earth-tone) */
 @keyframes shimmer {

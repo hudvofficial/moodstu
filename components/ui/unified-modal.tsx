@@ -77,25 +77,19 @@ export function UnifiedModal({
     }, CLOSE_DURATION);
   }, [isClosing, onClose]);
 
-  // A3+D3: Scroll lock + scrollbar compensation (prevent page shift on Windows)
+  // F2: Scroll lock — V1 pattern (V1 CÓ scroll lock VÀ mượt, Phase E xóa sai)
   React.useEffect(() => {
     if (!isOpen) return;
     const scrollY = window.scrollY;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
     return () => {
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
       window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
 
-  // D1: Auto-focus REMOVED — consumers use autoFocus prop on their inputs
   // C3: Tab cycling handler kept below for accessibility
 
   // C3: Tab cycling handler
@@ -129,12 +123,12 @@ export function UnifiedModal({
     if (closeOnBackdrop) handleClose();
   }, [closeOnBackdrop, handleClose]);
 
-  // B2: Animation classes dùng V2 CSS system (pages.css)
+  // B2+E/N2: Animation classes — ultra-fast for instant feel
   const contentAnimation = isSwiping
     ? ""
     : isClosing
       ? "animate-slide-down lg:animate-modal-out"
-      : "animate-slide-up lg:card-entrance";
+      : "animate-slide-up lg:animate-modal-in";
 
   const backdropAnimation = isClosing
     ? "opacity-0 transition-opacity duration-200"
@@ -160,7 +154,7 @@ export function UnifiedModal({
       >
         {/* Backdrop */}
         <div
-          className={cn("absolute inset-0 bg-black/40 backdrop-blur-[2px]", backdropAnimation)}
+          className={cn("absolute inset-0 bg-black/60", backdropAnimation)}
           style={backdropOpacity !== undefined ? { opacity: backdropOpacity } : undefined}
           onClick={handleBackdropClick}
         />
@@ -180,7 +174,6 @@ export function UnifiedModal({
             maxWidth: MAX_WIDTH_MAP[size],
             marginLeft: "auto",
             marginRight: "auto",
-            animationDuration: "200ms", // D2: match original V2 speed (was 300ms)
             ...swipeStyle,
           }}
         >
