@@ -86,8 +86,8 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 bg-bg-card shadow-(--shadow-sidebar) print:hidden transition-transform duration-300 ease-in-out",
-        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0",
+        "sticky top-0 z-40 bg-bg-card shadow-(--shadow-sidebar) print:hidden transition-[transform,margin] duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "-translate-y-full -mb-16 lg:translate-y-0 lg:mb-0",
         isFullpageForm && "max-lg:hidden",
         className
       )}
