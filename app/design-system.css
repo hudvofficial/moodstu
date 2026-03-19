@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════
+   Mood Studio V2 — Design System (Index)
+   SSOT cho typography, layout, cards, animations
+
+   Kiến trúc: @theme tokens → CSS classes → Components
+   File này là INDEX — chỉ chứa @import.
+   Sửa nội dung → vào file tương ứng trong app/styles/
+
+   Load order quan trọng:
+   1. utilities  (scrollbar, :root additions)
+   2. typography (text scales)
+   3. components (cards, buttons, dropdowns)
+   4. forms      (@layer base phải đặt sau utilities)
+   5. select     (Radix Select — dùng biến từ forms)
+   6. pages      (detail grid, animations, badges)
+   ═══════════════════════════════════════════ */
+
+@import "./styles/utilities.css";
+@import "./styles/typography.css";
+@import "./styles/components.css";
+@import "./styles/forms.css";
+@import "./styles/select.css";
+@import "./styles/pages.css";

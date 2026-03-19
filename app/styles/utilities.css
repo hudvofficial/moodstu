@@ -1,0 +1,123 @@
+/* ═══════════════════════════════════════════
+   utilities.css — Scrollbar, modal backdrop, mobile responsive,
+                   overdue/inset indicators, dark mode prep
+   Part of: Mood Studio Design System
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. SCROLLBAR
+   ══════════════════════════════════════ */
+
+/* Utility: hide scrollbar but keep scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari */
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ══════════════════════════════════════
+   2. MODAL BACKDROP
+   ══════════════════════════════════════ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity 200ms ease-out;
+  backdrop-filter: none;
+}
+
+/* ══════════════════════════════════════
+   3. MOBILE HEADER
+   Token: height = 56px (h-14)
+   ══════════════════════════════════════ */
+
+:root {
+  --header-mobile-h: 3.5rem; /* 56px = h-14 */
+}
+
+.mobile-header-spacer {
+  padding-top: var(--header-mobile-h);
+}
+
+@media (min-width: 1024px) {
+  .mobile-header-spacer {
+    padding-top: 0;
+  }
+}
+
+/* ══════════════════════════════════════
+   4. MOBILE RESPONSIVE OVERRIDES
+   Compact layout cho màn hình < 1024px
+   Desktop giữ nguyên — chỉ mobile bị override
+   ══════════════════════════════════════ */
+
+@media (max-width: 1023px) {
+  /* Cards — compact padding */
+  .stats-card {
+    padding: var(--spacing-sm);
+  }
+
+  /* Icon box — nhỏ hơn */
+  .icon-box {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ══════════════════════════════════════
+   5. INSET INDICATORS
+   Left accent bar for row state
+   ══════════════════════════════════════ */
+
+.overdue-indicator {
+  box-shadow: inset 2px 0 0 var(--color-error);
+}
+
+.inset-success {
+  box-shadow: inset 3px 0 0 var(--color-success, #22c55e);
+}
+
+.inset-warning {
+  box-shadow: inset 3px 0 0 var(--color-interactive, #ea580c);
+}
+
+/* ══════════════════════════════════════
+   6. DARK MODE PREP (uncomment khi cần)
+   ══════════════════════════════════════ */
+
+/*
+.dark {
+  --color-bg-base: #1A1612;
+  --color-bg-card: #241E18;
+  --color-bg-sidebar: #1E1914;
+  --color-bg-hover: #2E2620;
+  --color-bg-input: #2A231C;
+  --color-text-primary: #F0EBE4;
+  --color-text-secondary: #A69580;
+  --color-text-muted: #7A6B5A;
+  --color-border: #3A3028;
+  --color-border-light: #2E2620;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.dark .badge-success { background: rgba(76,175,80,0.15); color: #81c784; }
+.dark .badge-warning { background: rgba(255,152,0,0.15); color: #ffb74d; }
+.dark .badge-error   { background: rgba(244,67,54,0.15); color: #ef9a9a; }
+.dark .badge-info    { background: rgba(33,150,243,0.15); color: #64b5f6; }
+*/

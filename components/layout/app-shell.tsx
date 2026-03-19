@@ -1,0 +1,94 @@
+"use client";
+
+import * as React from "react";
+import { usePathname } from "next/navigation";
+import { Sidebar } from "./sidebar";
+import { Header } from "./header";
+import { BottomNav } from "./bottom-nav";
+import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { Role } from "@/types/roles";
+import { X } from "lucide-react";
+
+// Routes that hide Header + BottomNav (form takes over)
+const FULLPAGE_PATTERNS = [
+  /^\/contracts\/create$/,
+  /^\/contracts\/[^/]+\/edit$/,
+];
+
+interface AppShellProps {
+  children: React.ReactNode;
+  role: Role;
+  userName?: string;
+}
+
+export function AppShell({ children, role, userName }: AppShellProps) {
+  const pathname = usePathname();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  // Fullpage mode: hide Header + BottomNav, form handles its own chrome
+  const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
+
+  // Close mobile menu on route change or screen resize
+  React.useEffect(() => {
+    if (!isMobile) setIsMobileMenuOpen(false);
+  }, [isMobile]);
+
+  return (
+    <div className="flex h-screen bg-bg-base overflow-hidden">
+      {/* 1. Sidebar (Desktop & Tablet) */}
+      <Sidebar 
+        role={role}
+        userName={userName}
+        className={cn(
+          "hidden lg:flex",
+          isTablet && "w-20"
+        )} 
+      />
+
+      {/* 2. Mobile Drawer (Sidebar on Mobile) */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-100 lg:hidden animate-in fade-in duration-300">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-dark/60 backdrop-blur-sm" 
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Content */}
+          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-bg-card shadow-2xl animate-in slide-in-from-left duration-500">
+            <div className="absolute top-4 right-4 z-50">
+               <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 bg-bg-hover rounded-full text-text-muted hover:text-dark transition-colors"
+               >
+                 <X className="w-5 h-5" />
+               </button>
+            </div>
+            <Sidebar role={role} userName={userName} className="w-full h-full" />
+          </div>
+        </div>
+      )}
+
+      {/* 3. Main Wrapper */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        {!isFullpage && <Header />}
+        
+        <main
+          id="main-scroll"
+          className={cn(
+          "flex-1 overflow-y-auto scroll-smooth",
+          isFullpage
+            ? "" // FullpageFormShell handles its own padding
+            : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
+          "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
+        )}>
+           {children}
+        </main>
+
+        {!isFullpage && <BottomNav />}
+      </div>
+    </div>
+  );
+}

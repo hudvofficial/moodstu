@@ -1,0 +1,45 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4: Define custom theme values (colors, fonts, spacing, etc.)",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs",
+          "url": "https://tailwindcss.com/docs/theme"
+        }
+      ]
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4: Specify source files for class detection.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs",
+          "url": "https://tailwindcss.com/docs/functions-and-directives"
+        }
+      ]
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4: Define custom utilities.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs",
+          "url": "https://tailwindcss.com/docs/functions-and-directives"
+        }
+      ]
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind CSS v4: Define custom variants.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs",
+          "url": "https://tailwindcss.com/docs/functions-and-directives"
+        }
+      ]
+    }
+  ]
+}

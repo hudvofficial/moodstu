@@ -1,0 +1,98 @@
+{
+  "meta": {
+    "schema_version": "1.1.0",
+    "awf_version": "4.0.2",
+    "last_updated": "2026-03-19T00:15:00+07:00"
+  },
+  "project": {
+    "name": "Mood Studio V2",
+    "description": "Hệ thống quản lý Studio áo cưới chuyên nghiệp - Version 2 redesign",
+    "type": "web_app",
+    "status": "implementation_phase",
+    "created_at": "2026-03-15T13:25:32+07:00",
+    "stitch_project_id": "3342062284752503492"
+  },
+  "tech_stack": {
+    "frontend": "Next.js 14 + React 19 + Tailwind CSS v4",
+    "backend": "Supabase (PostgreSQL + Auth + RLS + Server Actions)",
+    "ai": "Gemini Pro (Moodie AI assistant)",
+    "hosting": "Vercel",
+    "v1_codebase": "C:\\Users\\Admin\\Desktop\\Ai\\0Moodstudio\\webapp",
+    "api_pattern": "Server Actions with withAuth() higher-order logic for atomic mutations"
+  },
+  "database_schema": {
+    "summary": "Core: contracts, contract_items, customers, leads. Support: printing_orders, inventory_reservations, inventory_items, contract_notes (NEW), transaction_categories, studio_info, labs.",
+    "new_tables": [
+      {
+        "name": "contract_notes",
+        "description": "Chat-style timeline for contract comments",
+        "columns": ["id", "contract_id", "content", "created_by", "created_at"]
+      }
+    ]
+  },
+  "api_endpoints": [
+    {
+      "type": "Server Action",
+      "path": "app/actions/payment-actions.ts",
+      "actions": ["createPaymentReceipt", "getTransactionCategories"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/printing-actions.ts",
+      "actions": ["getLabs", "createPrintingOrder", "updatePrintOrderStatus", "updateReservationStatus"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/inventory-actions.ts",
+      "actions": ["getAvailableItems", "addInventoryReservation"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/note-actions.ts",
+      "actions": ["getContractNotes", "addContractNote", "deleteContractNote"]
+    }
+  ],
+  "design_system": {
+    "description": "Earth-tone luxury palette — Stripe-inspired, Apple HIG compliant",
+    "ssot_file": "plans/stitch-master-brief.md",
+    "colors": {
+      "primary": "#8b5e3c",
+      "page_bg": "#FAF7F2",
+      "accent": "#c9a96e",
+      "neutral_brown": "#8b7355",
+      "sidebar_bg": "#f5efe6",
+      "background_light": "#f7f7f6",
+      "background_dark": "#1d1815",
+      "cards": "#FFFFFF",
+      "success": "emerald-100/800",
+      "danger": "red-100/800",
+      "warning": "amber-100/800",
+      "info": "blue-100/800",
+      "bride": "#EC4899",
+      "groom": "#3B82F6"
+    },
+    "typography": { "font": "Inter", "size": "14px body, 12px caption" },
+    "components": {
+      "UnifiedModal": "Standard modal wrapper for all CRUD forms",
+      "StatusSelect": "Interactive status dropdown with color-coded logic",
+      "toast-utils": "Centralized notification system"
+    }
+  },
+  "decisions": [
+    {
+      "date": "2026-03-18",
+      "decision": "All mutations MUST go through Server Actions (withAuth). No direct client-side Supabase writes in V2 detail components.",
+      "reason": "Security, atomic transactions, and better SSR/Server Component alignment."
+    },
+    {
+      "date": "2026-03-18",
+      "decision": "Use revalidateContractCaches(contractId) as the standard invalidation pattern after mutations.",
+      "reason": "Ensures all SWR tags (detail, items, payments, etc.) are refreshed consistently."
+    },
+    {
+      "date": "2026-03-19",
+      "decision": "Inventory Return logic: Marking a reservation as 'returned' automatically updates its inventory_item to 'available'.",
+      "reason": "V2 automated inventory management — reduces manual status updates."
+    }
+  ]
+}

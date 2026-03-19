@@ -1,0 +1,147 @@
+/* ═══════════════════════════════════════════
+   typography.css — Text scales, progress, section headers
+   Part of: Mood Studio Design System
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. TYPOGRAPHY — Text scales
+   Đúng design-specs.md + responsive clamp()
+   ══════════════════════════════════════ */
+
+.text-display {
+  font-size: clamp(28px, 4vw, var(--font-size-display));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.text-h1 {
+  font-size: clamp(22px, 3vw, var(--font-size-h1));
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.text-h2 {
+  font-size: clamp(18px, 2.5vw, var(--font-size-h2));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.text-h3 {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.text-body {
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.text-body-sm {
+  font-size: var(--font-size-body-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.text-caption {
+  font-size: var(--font-size-caption);
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.text-label {
+  font-size: var(--font-size-label);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+}
+
+/* Overline label — Stitch: text-xs uppercase tracking-wider */
+/* Dùng cho: "TỔNG CỘNG", "MÃ HĐ", section labels */
+.text-overline {
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  color: var(--color-text-muted);
+}
+
+/* Large amount — Stitch: text-3xl font-bold */
+/* Dùng cho: financial figures "25.000.000 ₫" */
+.text-amount {
+  font-size: clamp(24px, 3.5vw, 30px);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+/* ══════════════════════════════════════
+   2. PROGRESS BARS
+   ══════════════════════════════════════ */
+
+/* Progress bar — Stitch: h-2 bg-slate-100 rounded-full */
+.progress-track {
+  height: 8px;
+  background: var(--color-bg-hover);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 9999px;
+  transition: width 700ms ease-out;
+}
+
+.progress-fill-interactive {
+  height: 100%;
+  background: var(--color-interactive);
+  border-radius: 9999px;
+  transition: width 700ms ease-out;
+}
+
+/* ══════════════════════════════════════
+   3. SECTION HEADERS
+   ══════════════════════════════════════ */
+
+/* Section Header — Gold Accent Bar (Stitch Create Contract aligned) */
+/* Dùng cho: form section headings với gold bar bên trái */
+.section-header-gold {
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--color-accent);
+}
+
+/* Section Header Row — title + inline search + action button */
+/* Dùng cho: S2 Khách hàng (title + search + tạo KH mới) */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Search container inline — cạnh title, giới hạn width */
+/* Giữ search + action sát nhau, không stretch full width */
+.section-search-inline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1 1 0%;
+  max-width: 28rem; /* max-w-md — match Stitch L122 */
+  margin-left: 32px; /* ml-8 — Stitch L122 */
+}

@@ -1,0 +1,246 @@
+/* ═══════════════════════════════════════════
+   forms.css — Inputs, labels, validation, form utilities
+   Part of: Mood Studio Design System
+
+   QUAN TRỌNG: @layer base phải được giữ nguyên thứ tự cascade.
+   Unlayered rules phải đặt SAU @layer block.
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. LABEL
+   ══════════════════════════════════════ */
+
+.label-base {
+  display: block;
+  font-size: var(--font-size-label);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+  margin-left: 4px;
+}
+
+/* ══════════════════════════════════════
+   2. INPUT BASE (@layer base)
+   Longhand padding → cho phép Tailwind pl- pr- override
+   ══════════════════════════════════════ */
+
+@layer base {
+  .input-base {
+    width: 100%;
+    /* Longhand: cho phép Tailwind pl- pr- override từng phía */
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: var(--spacing-base);
+    padding-right: var(--spacing-base);
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    font-size: var(--font-size-body-sm);
+    color: var(--color-text-primary);
+    outline: none;
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+
+  .input-base::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .input-base:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 94, 60, 0.1);
+  }
+
+  .input-base:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Input selected state — V1 pattern: border highlight + bg tint */
+  /* Dùng khi customer / item đã được chọn từ dropdown */
+  .input-selected {
+    border-color: var(--color-interactive);
+    background: rgba(207, 103, 23, 0.05); /* interactive/5 */
+    color: var(--color-interactive);
+    font-weight: 600;
+  }
+
+  /* Input with suffix (cm, kg, etc.) — shared utility */
+  .input-with-suffix {
+    position: relative;
+  }
+
+  .input-suffix-field {
+    padding-right: 40px;
+  }
+
+  .input-suffix {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--font-size-caption);
+    color: var(--color-text-muted);
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+/* ── Radix Select trigger focus override ──────────────────────────
+   PHẢI nằm NGOÀI @layer base.
+   Unlayered > @layer bất kể specificity → đây là cách duy nhất đáng tin.
+   Áp dụng cho: SelectGrouped, SelectForm, SelectStatus khi dùng input-base
+────────────────────────────────────────────────────────────────── */
+.input-base[data-state="open"],
+.input-base[data-state="open"]:focus {
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════
+   3. SEARCH INPUT
+   Header/toolbar variant (no border, subtle bg)
+   ══════════════════════════════════════ */
+
+.search-input {
+  width: 100%;
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: var(--spacing-base);
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-bg-input);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.search-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════
+   4. ICON BUTTON + KBD
+   ══════════════════════════════════════ */
+
+/* Icon button — header/toolbar (40x40 square, subtle bg) */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-bg-input);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, transform 100ms ease-out;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-hover);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* Keyboard shortcut badge (⌘K) */
+.kbd-badge {
+  font-size: var(--font-size-tiny);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* ══════════════════════════════════════
+   5. SELECT TRIGGER
+   ══════════════════════════════════════ */
+
+/* Select trigger — extends .input-base behavior */
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* ══════════════════════════════════════
+   6. VALIDATION STATES
+   ══════════════════════════════════════ */
+
+/* Input error state */
+.input-error {
+  border-color: var(--color-error) !important;
+}
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1) !important;
+}
+
+/* Error text — form validation messages */
+.error-text {
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  color: var(--color-error);
+  margin-top: 4px;
+  margin-left: 4px;
+}
+
+/* Warning text — dedup/soft warnings (V1 phone check pattern) */
+.warning-text {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-caption);
+  color: var(--color-warning);
+}
+
+/* ══════════════════════════════════════
+   7. FORM LAYOUT UTILS
+   ══════════════════════════════════════ */
+
+/* Form 2-column grid — responsive, reusable across all modals */
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .form-grid-2col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Form actions — modal footer buttons (right-aligned) */
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+/* Form section heading — "1. Khách hàng", "2. Thông tin", etc. */
+.form-section-heading {
+  font-size: var(--font-size-h3);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+/* Form total line — "Thành tiền: 5.000.000 ₫" */
+.form-total {
+  text-align: right;
+  font-size: var(--font-size-body-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}

@@ -1,0 +1,49 @@
+{
+  "updated_at": "2026-03-19T15:35:00+07:00",
+  "working_on": {
+    "feature": "Customer Form Bug Fix (CustomerFormModal.tsx)",
+    "task": "Phase A — Chưa thực hiện do tool ghi file lỗi trong session trước",
+    "status": "blocked — chờ /code từ user",
+    "files": [
+      "components/contracts/form/modals/CustomerFormModal.tsx"
+    ],
+    "blockers": ["CustomerFormModal.tsx: tất cả thay đổi Phase A chưa được ghi vào file thực tế"],
+    "notes": "crm.ts B5+B6 (bride_name/groom_name INSERT) ĐÃ được ghi đúng. CustomerFormModal.tsx vẫn ở trạng thái GỐC — cần /code lại toàn bộ Phase A + cleanup."
+  },
+  "recent_changes": [
+    {
+      "timestamp": "2026-03-19T15:00:00+07:00",
+      "type": "bugfix",
+      "description": "B5+B6: Thêm bride_name và groom_name vào INSERT và UPDATE phone-dedup trong createCustomer()",
+      "files": ["app/actions/crm.ts"],
+      "verified": true
+    }
+  ],
+  "decisions_made": [
+    {
+      "decision": "Xóa DatePicker 'Ngày cưới' khỏi CustomerFormModal",
+      "reason": "V1 không có field này trong quick-create modal. User đã duyệt."
+    },
+    {
+      "decision": "Xóa field 'Nguồn' khỏi CustomerFormModal",
+      "reason": "V1 không có, không hiển thị đâu cả, sai ngữ cảnh quick-create. Chờ user confirm."
+    }
+  ],
+  "pending_tasks": [
+    {
+      "task": "CustomerFormModal.tsx: Toàn bộ Phase A fixes cần /code lại",
+      "priority": "critical",
+      "notes": "F1: Đổi label 'Họ và tên *' → 'Tên khách hàng *'. F2: Xóa block Nguồn + DatePicker (lines 199-214). F3: Xóa import DatePicker. Couple fields giữ conditional như hiện tại."
+    },
+    {
+      "task": "Confirm với user: có xóa field 'Nguồn' không?",
+      "priority": "high",
+      "notes": "User hỏi nhưng chưa confirm 'xoá' hay 'giữ'"
+    },
+    {
+      "task": "B7: onCreated trong CustomerFormModal.tsx — kiểm tra đã pass bride/groom chưa",
+      "priority": "medium",
+      "notes": "Line 110-111 có vẻ đúng rồi nhưng chưa verify kỹ"
+    }
+  ]
+}

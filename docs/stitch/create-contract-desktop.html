@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mood Studio - Tạo hợp đồng mới</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#8b5e3c",
+                        "accent-gold": "#C9A96E",
+                        "label-text": "#8B7355",
+                        "background-light": "#f7f7f6",
+                        "background-dark": "#1d1815",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem",
+                        "modal": "14px",
+                        "input": "6px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            .material-symbols-outlined {
+                font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        .section-header {
+            @apply flex items-center mb-5 border-l-[4px] border-accent-gold pl-4;
+        }
+        .section-title {
+            @apply text-[15px] font-semibold text-slate-800 dark:text-slate-200;
+        }
+        .input-label {
+            @apply text-[13px] font-medium text-label-text mb-1.5 block;
+        }
+        .form-input {
+            @apply w-full h-[44px] px-4 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-input text-[14px] focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all;
+        }
+        .form-select {
+            @apply appearance-none w-full h-[44px] px-4 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-input text-[14px] focus:ring-1 focus:ring-primary focus:border-primary outline-none;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+<div class="bg-white dark:bg-zinc-900 w-full max-w-[1024px] rounded-modal shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+<header class="flex items-center justify-between px-8 py-5 border-b border-slate-100 dark:border-zinc-800">
+<h1 class="text-[18px] font-semibold text-slate-900 dark:text-white">Tạo hợp đồng mới</h1>
+<button class="text-slate-400 hover:text-slate-600 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-10">
+<section>
+<div class="section-header">
+<h2 class="section-title text-slate-800">1. Hợp đồng &amp; Khách hàng</h2>
+</div>
+<div class="grid grid-cols-4 gap-4 mb-6">
+<div>
+<label class="input-label">Mã hợp đồng</label>
+<input class="form-input bg-slate-50 text-slate-500 font-medium" disabled="" type="text" value="HD-20231024-001"/>
+</div>
+<div>
+<label class="input-label">Ngày tạo</label>
+<input class="form-input" type="date" value="2023-10-24"/>
+</div>
+<div class="relative">
+<label class="input-label">Loại dịch vụ</label>
+<select class="form-select">
+<option>Chụp ảnh cưới</option>
+<option>Phóng sự cưới</option>
+<option>Gói Baby</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+<div class="relative">
+<label class="input-label">Trạng thái</label>
+<select class="form-select">
+<option>Đang tư vấn</option>
+<option>Đã ký kết</option>
+<option>Đang thực hiện</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div class="relative">
+<label class="input-label">Tìm kiếm khách hàng</label>
+<span class="material-symbols-outlined absolute left-3 top-[38px] text-slate-400 text-[20px]">search</span>
+<input class="form-input pl-10" placeholder="Nhập tên hoặc số điện thoại..." type="text"/>
+</div>
+<div>
+<label class="input-label">Địa chỉ</label>
+<input class="form-input" placeholder="Nhập địa chỉ khách hàng" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div class="p-5 border border-pink-100 bg-pink-50/30 rounded-xl space-y-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-pink-500">female</span>
+<span class="text-[14px] font-semibold text-pink-700">Thông tin Cô dâu</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="input-label !text-pink-800/60">Họ và tên</label>
+<input class="form-input border-pink-200" placeholder="Tên cô dâu" type="text"/>
+</div>
+<div>
+<label class="input-label !text-pink-800/60">Số điện thoại</label>
+<input class="form-input border-pink-200" placeholder="09xxxxxxx" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<div>
+<label class="input-label !text-pink-800/60">Chiều cao (cm)</label>
+<input class="form-input border-pink-200" type="text"/>
+</div>
+<div>
+<label class="input-label !text-pink-800/60">Cân nặng (kg)</label>
+<input class="form-input border-pink-200" type="text"/>
+</div>
+<div>
+<label class="input-label !text-pink-800/60">Size giày</label>
+<input class="form-input border-pink-200" type="text"/>
+</div>
+</div>
+</div>
+<div class="p-5 border border-blue-100 bg-blue-50/30 rounded-xl space-y-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-blue-500">male</span>
+<span class="text-[14px] font-semibold text-blue-700">Thông tin Chú rể</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="input-label !text-blue-800/60">Họ và tên</label>
+<input class="form-input border-blue-200" placeholder="Tên chú rể" type="text"/>
+</div>
+<div>
+<label class="input-label !text-blue-800/60">Số điện thoại</label>
+<input class="form-input border-blue-200" placeholder="09xxxxxxx" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<div>
+<label class="input-label !text-blue-800/60">Chiều cao (cm)</label>
+<input class="form-input border-blue-200" type="text"/>
+</div>
+<div>
+<label class="input-label !text-blue-800/60">Cân nặng (kg)</label>
+<input class="form-input border-blue-200" type="text"/>
+</div>
+<div>
+<label class="input-label !text-blue-800/60">Size giày</label>
+<input class="form-input border-blue-200" type="text"/>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mt-6">
+<div>
+<label class="input-label">Ngày sự kiện (Ngày cưới)</label>
+<input class="form-input" type="date"/>
+</div>
+<div>
+<label class="input-label">Ngày trả sản phẩm</label>
+<input class="form-input" type="date"/>
+</div>
+</div>
+</section>
+<section>
+<div class="section-header">
+<h2 class="section-title">2. Dịch vụ &amp; Sản phẩm</h2>
+</div>
+<div class="grid grid-cols-3 gap-4 mb-6">
+<div class="relative">
+<label class="input-label">Nhóm dịch vụ</label>
+<select class="form-select">
+<option>Chụp ảnh (Photography)</option>
+<option>Quay phim (Videography)</option>
+<option>Trang phục &amp; Makeup</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+<div class="relative">
+<label class="input-label">Loại dịch vụ</label>
+<select class="form-select">
+<option>Chụp Album Studio</option>
+<option>Chụp Ngoại cảnh</option>
+<option>Chụp Phóng sự</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+<div class="relative">
+<label class="input-label">Gói sản phẩm</label>
+<select class="form-select">
+<option>Gói Luxury (20tr)</option>
+<option>Gói Basic (12tr)</option>
+<option>Gói Signature (35tr)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="overflow-hidden border border-slate-200 rounded-lg">
+<table class="w-full text-left text-[14px]">
+<thead class="bg-slate-50 border-b border-slate-200">
+<tr>
+<th class="px-4 py-3 font-semibold text-slate-600 w-12 text-center">#</th>
+<th class="px-4 py-3 font-semibold text-slate-600">Loại</th>
+<th class="px-4 py-3 font-semibold text-slate-600">Tên sản phẩm/dịch vụ</th>
+<th class="px-4 py-3 font-semibold text-slate-600 w-20">SL</th>
+<th class="px-4 py-3 font-semibold text-slate-600 text-right">Đơn giá</th>
+<th class="px-4 py-3 font-semibold text-slate-600 text-right">Thành tiền</th>
+<th class="px-4 py-3 font-semibold text-slate-600 w-12"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr>
+<td class="px-4 py-3 text-center text-slate-500">1</td>
+<td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-[12px]">Gói</span></td>
+<td class="px-4 py-3 font-medium">Gói Luxury Wedding Album Studio</td>
+<td class="px-4 py-3 text-center">1</td>
+<td class="px-4 py-3 text-right">20.000.000</td>
+<td class="px-4 py-3 text-right font-semibold">20.000.000</td>
+<td class="px-4 py-3 text-center">
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</td>
+</tr>
+<tr>
+<td class="px-4 py-3 text-center text-slate-500">2</td>
+<td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-100 rounded text-[12px]">Lẻ</span></td>
+<td class="px-4 py-3 font-medium">Extra: In thêm ảnh 60x90</td>
+<td class="px-4 py-3 text-center">2</td>
+<td class="px-4 py-3 text-right">1.500.000</td>
+<td class="px-4 py-3 text-right font-semibold">3.000.000</td>
+<td class="px-4 py-3 text-center">
+<button class="text-slate-400 hover:text-red-500"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-4 flex flex-col items-end space-y-3 bg-slate-50/50 p-6 rounded-lg">
+<div class="flex justify-between w-full max-w-xs text-[14px]">
+<span class="text-slate-500">Tổng tạm tính:</span>
+<span class="font-medium">23.000.000 VND</span>
+</div>
+<div class="flex justify-between items-center w-full max-w-xs gap-4">
+<span class="text-slate-500 text-[14px]">Chi phí phát sinh:</span>
+<input class="form-input h-[36px] w-32 text-right" type="text" value="0"/>
+</div>
+<div class="flex justify-between items-center w-full max-w-xs gap-4">
+<div class="flex items-center gap-2">
+<span class="text-slate-500 text-[14px]">Giảm giá:</span>
+<div class="flex border rounded-md overflow-hidden text-[11px] font-bold">
+<button class="px-2 py-1 bg-primary text-white">VNĐ</button>
+<button class="px-2 py-1 bg-white text-slate-400">%</button>
+</div>
+</div>
+<input class="form-input h-[36px] w-32 text-right" type="text" value="1.000.000"/>
+</div>
+<div class="flex justify-between items-center w-full max-w-xs gap-4">
+<span class="text-slate-500 text-[14px]">Voucher:</span>
+<input class="form-input h-[36px] w-32" placeholder="Nhập mã" type="text"/>
+</div>
+<div class="flex justify-between w-full max-w-xs pt-3 border-t border-slate-200 mt-2">
+<span class="text-[15px] font-bold text-slate-800 uppercase">Tổng cộng:</span>
+<span class="text-[18px] font-bold text-primary">22.000.000 VND</span>
+</div>
+</div>
+</section>
+<section>
+<div class="section-header">
+<h2 class="section-title">3. Thanh toán &amp; Cọc</h2>
+</div>
+<div class="grid grid-cols-3 gap-6">
+<div>
+<label class="input-label">Số tiền đặt cọc</label>
+<div class="relative">
+<input class="form-input pr-12 font-semibold" type="text" value="5.000.000"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-slate-400">VND</span>
+</div>
+</div>
+<div class="relative">
+<label class="input-label">Phương thức thanh toán</label>
+<select class="form-select">
+<option>Chuyển khoản ngân hàng</option>
+<option>Tiền mặt</option>
+<option>Quẹt thẻ</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+<div class="relative">
+<label class="input-label">Giai đoạn thanh toán</label>
+<select class="form-select">
+<option>Cọc lần 1 (Ký hợp đồng)</option>
+<option>Thanh toán lần 2 (Ngày chụp)</option>
+<option>Hoàn tất (Nhận ảnh)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[38px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
+<p class="text-[13px] text-primary italic">Còn lại cần thanh toán: <span class="font-bold underline">17.000.000 VND</span></p>
+</div>
+</section>
+<section>
+<div class="section-header">
+<h2 class="section-title">4. Giao việc &amp; Tiến độ</h2>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div class="border border-slate-200 rounded-xl p-5 space-y-4 hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start">
+<div class="flex flex-col gap-1">
+<span class="bg-primary/10 text-primary text-[11px] font-bold px-2 py-0.5 rounded uppercase w-fit">Photography</span>
+<h3 class="text-[14px] font-semibold">Chụp ảnh tại Studio</h3>
+</div>
+<span class="text-[12px] px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full font-medium border border-yellow-100">Chờ thực hiện</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="input-label">Bắt đầu</label>
+<input class="form-input" type="time" value="08:00"/>
+</div>
+<div>
+<label class="input-label">Kết thúc</label>
+<input class="form-input" type="time" value="12:00"/>
+</div>
+</div>
+<div>
+<label class="input-label">Nhân sự thực hiện</label>
+<div class="relative">
+<select class="form-select">
+<option>Nguyễn Photographer A</option>
+<option>Trần Photographer B</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-[12px] text-slate-400 pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<div>
+<label class="input-label">Địa điểm</label>
+<input class="form-input" placeholder="Tên Studio hoặc địa chỉ" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="input-label">Hạn chót (Deadline)</label>
+<input class="form-input" type="date"/>
+</div>
+<div>
+<label class="input-label">Chi phí dự kiến</label>
+<input class="form-input" placeholder="VNĐ" type="text"/>
+</div>
+</div>
+<div>
+<label class="input-label">Ghi chú công việc</label>
+<textarea class="w-full p-3 bg-white border border-slate-200 rounded-input text-[13px] outline-none focus:ring-1 focus:ring-primary h-20" placeholder="Lưu ý về thiết bị, concept..."></textarea>
+</div>
+</div>
+<div class="border border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-8 bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-primary group-hover:border-primary transition-all mb-3">
+<span class="material-symbols-outlined">add</span>
+</div>
+<span class="text-[14px] font-medium text-slate-500 group-hover:text-primary transition-colors">Thêm đầu mục công việc mới</span>
+<p class="text-[12px] text-slate-400 mt-1">Phân bổ nhân sự, thời gian &amp; địa điểm</p>
+</div>
+</div>
+</section>
+</div>
+<footer class="px-8 py-5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900">
+<button class="px-6 py-2.5 text-[14px] font-semibold text-slate-500 border border-slate-200 rounded-input hover:bg-slate-50 transition-colors">
+                Huỷ
+            </button>
+<div class="flex items-center gap-3">
+<button class="px-6 py-2.5 text-[14px] font-semibold text-primary hover:bg-primary/5 rounded-input transition-colors">
+                    Lưu bản nháp
+                </button>
+<button class="bg-primary hover:bg-primary/90 text-white px-10 py-2.5 rounded-input text-[14px] font-semibold transition-all shadow-md shadow-primary/20">
+                    Tạo hợp đồng
+                </button>
+</div>
+</footer>
+</div>
+</div>
+
+</body></html>

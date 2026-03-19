@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════
+   components.css — Cards, badges, buttons, dropdowns
+   Part of: Mood Studio Design System
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. ACCENT CARDS
+   ══════════════════════════════════════ */
+
+/* Accent Card System — reusable card with left border accent */
+/* Kế thừa V1: border-left-4, earth-tone hóa cho V2, SSOT tokens */
+.accent-card {
+  padding: 20px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Variants — chỉ đổi border-left color */
+.accent-card-rose   { border-left: 3px solid #e88ca0; }
+.accent-card-sky    { border-left: 3px solid #7db4d4; }
+.accent-card-gold   { border-left: 3px solid var(--color-accent); }
+.accent-card-green  { border-left: 3px solid #6dba82; }
+.accent-card-orange { border-left: 3px solid var(--color-interactive); }
+
+/* Accent icon + text colors — no inline Tailwind needed */
+.accent-icon-rose { color: #e88ca0; }
+.accent-text-rose { color: #c0566d; }
+.accent-icon-sky  { color: #7db4d4; }
+.accent-text-sky  { color: #4a8aaf; }
+
+/* ══════════════════════════════════════
+   2. GROUPED DROPDOWN COLORS
+   gold = Moodstudio (brand primary), rose = Photo, sky = Media
+   ══════════════════════════════════════ */
+
+.group-header-gold {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: #8b6914;
+  border-left-color: var(--color-accent);
+}
+.group-option-gold { border-left-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
+
+.group-header-rose {
+  background: color-mix(in srgb, #e88ca0 12%, transparent);
+  color: #c0566d;
+  border-left-color: #e88ca0;
+}
+.group-option-rose { border-left-color: color-mix(in srgb, #e88ca0 40%, transparent); }
+
+.group-header-sky {
+  background: color-mix(in srgb, #7db4d4 12%, transparent);
+  color: #4a8aaf;
+  border-left-color: #7db4d4;
+}
+.group-option-sky { border-left-color: color-mix(in srgb, #7db4d4 40%, transparent); }
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .group-header-gold { background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: #d4b45c; }
+  .group-header-rose { background: color-mix(in srgb, #e88ca0 15%, transparent); color: #f0a0b2; }
+  .group-header-sky  { background: color-mix(in srgb, #7db4d4 15%, transparent); color: #92c8e4; }
+}
+
+/* ══════════════════════════════════════
+   3. SEARCH DROPDOWN
+   Customer search dropdown, reusable cho mọi search+create
+   ══════════════════════════════════════ */
+
+/* Sticky header phân nhóm kết quả ("Khách hàng cũ", etc.) */
+.dropdown-section-label {
+  position: sticky;
+  top: 0;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Sticky bottom — hành động tạo mới (V1 pattern) */
+.dropdown-create-action {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-interactive);
+  font-weight: 600;
+  font-size: var(--font-size-body-sm);
+  transition: background 150ms ease;
+  text-align: left;
+}
+.dropdown-create-action:hover {
+  background: var(--color-interactive-light);
+}
+
+/* Icon tròn trong create action */
+.dropdown-create-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: rgba(207, 103, 23, 0.1); /* interactive/10 */
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════
+   4. BUTTONS
+   ══════════════════════════════════════ */
+
+/* CTA Button — Stitch: bg-primary text-white font-bold rounded-lg */
+/* Dùng cho: "Thu tiền", "Thêm", full-width actions */
+.btn-cta {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: var(--font-size-body-sm);
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: opacity 150ms ease, transform 100ms ease;
+}
+.btn-cta:hover {
+  opacity: 0.9;
+}
+.btn-cta:active {
+  transform: scale(0.98);
+}
+
+/* Outline Button — Stitch: border border-slate-200 rounded-lg */
+/* Dùng cho: "Sửa", "In hợp đồng", secondary actions */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.btn-outline:hover {
+  background: var(--color-bg-hover);
+}
+
+/* ══════════════════════════════════════
+   5. LAYOUT UTILITIES
+   ══════════════════════════════════════ */
+
+.main-container {
+  width: 100%;
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+}
+
+@media (min-width: 1024px) {
+  .main-container {
+    padding: var(--spacing-sm) var(--spacing-xl) var(--spacing-xl);
+    gap: var(--spacing-xl);
+  }
+}
+
+/* ══════════════════════════════════════
+   6. TABLE + TAG
+   ══════════════════════════════════════ */
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-body-sm);
+  font-weight: 700;
+  color: var(--color-primary);
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.table-header {
+  font-size: var(--font-size-micro);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.tag-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-micro);
+  font-weight: 700;
+  background: rgba(201, 169, 110, 0.12);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
