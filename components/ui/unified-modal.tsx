@@ -77,29 +77,26 @@ export function UnifiedModal({
     }, CLOSE_DURATION);
   }, [isClosing, onClose]);
 
-  // A3: Scroll lock — save scrollY, lock html+body, restore (iOS bounce fix)
+  // A3+D3: Scroll lock + scrollbar compensation (prevent page shift on Windows)
   React.useEffect(() => {
     if (!isOpen) return;
     const scrollY = window.scrollY;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
     return () => {
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
       window.scrollTo(0, scrollY);
     };
   }, [isOpen]);
 
-  // C3: Focus trap — auto-focus first element on open
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const el = dialogRef.current;
-    if (!el) return;
-    const firstFocusable = el.querySelector<HTMLElement>(
-      "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])"
-    );
-    firstFocusable?.focus();
-  }, [isOpen]);
+  // D1: Auto-focus REMOVED — consumers use autoFocus prop on their inputs
+  // C3: Tab cycling handler kept below for accessibility
 
   // C3: Tab cycling handler
   const handleTabKey = React.useCallback((e: React.KeyboardEvent) => {
@@ -180,11 +177,10 @@ export function UnifiedModal({
             className
           )}
           style={{
-            // Inline style đảm bảo width chính xác (Tailwind không scan SIZE_MAP dynamic)
             maxWidth: MAX_WIDTH_MAP[size],
-            // Căn giữa ngang trên desktop (bổ sung cho lg:items-center)
             marginLeft: "auto",
             marginRight: "auto",
+            animationDuration: "200ms", // D2: match original V2 speed (was 300ms)
             ...swipeStyle,
           }}
         >
