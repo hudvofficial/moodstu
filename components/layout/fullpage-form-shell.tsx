@@ -45,8 +45,8 @@ export function FullpageFormShell({
     <div className={cn("flex flex-col", className)}>
       {/* ── Sticky Header — hides on scroll down (mobile only) ── */}
       <header className={cn(
-        "sticky top-0 z-50 bg-bg-card/80 backdrop-blur-md border-b border-border-light transition-[transform,margin] duration-300 ease-in-out",
-        isVisible ? "translate-y-0" : "-translate-y-full -mb-16 lg:translate-y-0 lg:mb-0"
+        "sticky top-0 z-50 bg-bg-card/80 backdrop-blur-md border-b border-border-light transition-transform duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0"
       )}>
         <div className="px-2 lg:px-8 h-16 flex items-center justify-between">
           {breadcrumb}
