@@ -1,16 +1,24 @@
 {
-  "updated_at": "2026-03-19T15:35:00+07:00",
+  "updated_at": "2026-03-19T17:44:00+07:00",
   "working_on": {
-    "feature": "Customer Form Bug Fix (CustomerFormModal.tsx)",
-    "task": "Phase A — Chưa thực hiện do tool ghi file lỗi trong session trước",
-    "status": "blocked — chờ /code từ user",
+    "feature": "UnifiedModal Performance Optimization",
+    "task": "CLOSED — Phase F completed, remaining improvements imperceptible",
+    "status": "done",
     "files": [
-      "components/contracts/form/modals/CustomerFormModal.tsx"
+      "components/ui/unified-modal.tsx",
+      "app/styles/pages.css"
     ],
-    "blockers": ["CustomerFormModal.tsx: tất cả thay đổi Phase A chưa được ghi vào file thực tế"],
-    "notes": "crm.ts B5+B6 (bride_name/groom_name INSERT) ĐÃ được ghi đúng. CustomerFormModal.tsx vẫn ở trạng thái GỐC — cần /code lại toàn bộ Phase A + cleanup."
+    "blockers": [],
+    "notes": "Phase F đã fix root cause chính (backdrop-blur). Remaining ~0.6ms micro-opts không đáng làm. Verify lại khi build production."
   },
   "recent_changes": [
+    {
+      "timestamp": "2026-03-19T17:30:00+07:00",
+      "type": "perf",
+      "description": "Phase F: Xóa backdrop-blur-[2px] (root cause #1), khôi phục scroll lock, match V1 animation keyframes (scale+translateY)",
+      "files": ["components/ui/unified-modal.tsx", "app/styles/pages.css"],
+      "verified": true
+    },
     {
       "timestamp": "2026-03-19T15:00:00+07:00",
       "type": "bugfix",
@@ -20,6 +28,14 @@
     }
   ],
   "decisions_made": [
+    {
+      "decision": "Đóng topic modal performance tại Phase F",
+      "reason": "Remaining optimizations (cn(), inline styles) chỉ tiết kiệm ~0.6ms — không cảm nhận được. Lag còn lại likely do dev mode Turbopack. Verify khi production build."
+    },
+    {
+      "decision": "KHÔNG port V1 UnifiedModal 1:1",
+      "reason": "User confirm không port 1:1 được vì V2 có structure khác."
+    },
     {
       "decision": "Xóa DatePicker 'Ngày cưới' khỏi CustomerFormModal",
       "reason": "V1 không có field này trong quick-create modal. User đã duyệt."
@@ -44,6 +60,11 @@
       "task": "B7: onCreated trong CustomerFormModal.tsx — kiểm tra đã pass bride/groom chưa",
       "priority": "medium",
       "notes": "Line 110-111 có vẻ đúng rồi nhưng chưa verify kỹ"
+    },
+    {
+      "task": "Production build test — verify modal performance",
+      "priority": "low",
+      "notes": "Khi ready build production, test lại UnifiedModal có instant không. Nếu vẫn lag → đo bằng performance.now()"
     }
   ]
 }

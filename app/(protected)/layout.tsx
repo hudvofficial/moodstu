@@ -16,8 +16,8 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  // Mock role detection for now, will be replaced by DB check later
-  const role = (user.user_metadata?.role as Role) || "admin";
+  // Role detection — FAIL-CLOSED: thiếu role → employee (mức thấp nhất)
+  const role = (user.user_metadata?.role as Role) || "employee";
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
 
   return (
