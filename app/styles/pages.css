@@ -8,25 +8,39 @@
    Grid 2 cột dùng cho các trang detail (contract, CRM, etc.)
    ══════════════════════════════════════ */
 
+/* Mobile-first: 1 cột stack */
 .detail-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-lg, 24px);
   margin-top: var(--spacing-lg, 24px);
 }
 
 .detail-main {
-  grid-column: span 8 / span 8;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg, 24px);
 }
 
 .detail-sidebar {
-  grid-column: span 4 / span 4;
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: var(--spacing-lg, 24px);
+}
+
+/* Desktop: grid 12 cột (≥1024px) */
+@media (min-width: 1024px) {
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .detail-main {
+    grid-column: span 8 / span 8;
+  }
+  .detail-sidebar {
+    display: flex;
+    grid-column: span 4 / span 4;
+  }
 }
 
 /* ══════════════════════════════════════

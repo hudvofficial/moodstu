@@ -1,17 +1,34 @@
 {
-  "updated_at": "2026-03-19T17:44:00+07:00",
+  "updated_at": "2026-03-19T20:20:00+07:00",
   "working_on": {
-    "feature": "UnifiedModal Performance Optimization",
-    "task": "CLOSED — Phase F completed, remaining improvements imperceptible",
-    "status": "done",
+    "feature": "Global Scroll-Hide Header",
+    "task": "Context-based scroll tracking for AppShell and FullpageFormShell",
+    "status": "implementing",
     "files": [
-      "components/ui/unified-modal.tsx",
-      "app/styles/pages.css"
+      "components/layout/app-shell.tsx",
+      "components/layout/fullpage-form-shell.tsx",
+      "components/layout/header.tsx",
+      "hooks/use-scroll-direction.ts",
+      "contexts/scroll-container.tsx"
     ],
     "blockers": [],
-    "notes": "Phase F đã fix root cause chính (backdrop-blur). Remaining ~0.6ms micro-opts không đáng làm. Verify lại khi build production."
+    "notes": "Đã giải quyết vấn đề window.scrollY = 0 bằng cách dùng ScrollContainerContext. Header hiện đã ẩn/hiện đúng trên mobile. Cần fix khoảng trống layout khi ẩn."
   },
   "recent_changes": [
+    {
+      "timestamp": "2026-03-19T20:15:00+07:00",
+      "type": "architecture",
+      "description": "Refactor useScrollDirection hook to support explicit containerRef. Introduced ScrollContainerContext to share main scroll ref from AppShell.",
+      "files": ["hooks/use-scroll-direction.ts", "contexts/scroll-container.tsx", "components/layout/app-shell.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-19T20:00:00+07:00",
+      "type": "feature",
+      "description": "Implemented mobile scroll-hide behavior for FullpageFormShell header and Global Header across all pages.",
+      "files": ["components/layout/fullpage-form-shell.tsx", "components/layout/header.tsx"],
+      "verified": true
+    },
     {
       "timestamp": "2026-03-19T17:30:00+07:00",
       "type": "perf",
@@ -46,6 +63,11 @@
     }
   ],
   "pending_tasks": [
+    {
+      "task": "Fix empty gap: Thêm negative margin (-mb-16) khi header ẩn để content lấp đầy UI mobile",
+      "priority": "high",
+      "notes": "Cần sửa Header.tsx và FullpageFormShell.tsx. translate-y-full không tự co layout space."
+    },
     {
       "task": "CustomerFormModal.tsx: Toàn bộ Phase A fixes cần /code lại",
       "priority": "critical",

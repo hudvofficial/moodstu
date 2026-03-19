@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getModuleFromPath } from "@/lib/navigation";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
+import { useScrollContainer } from "@/contexts/scroll-container";
 import { Search, X } from "lucide-react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import NotificationBell from "@/components/layout/NotificationBell";
@@ -24,7 +25,8 @@ export function Header({ className }: HeaderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentModule = getModuleFromPath(pathname);
-  const { isVisible } = useScrollDirection({ threshold: 60 });
+  const scrollRef = useScrollContainer();
+  const { isVisible } = useScrollDirection({ threshold: 60, containerRef: scrollRef });
 
   // Stitch SSOT: detail pages have NO global header — breadcrumb + h2 replaces it
   const isDetailPage = DETAIL_PAGE_RE.test(pathname);
@@ -78,11 +80,15 @@ export function Header({ className }: HeaderProps) {
 
   if (isDetailPage) return null;
 
+  // Create/edit fullpage forms have their own shell header on mobile
+  const isFullpageForm = pathname.endsWith('/create');
+
   return (
     <header
       className={cn(
         "sticky top-0 z-40 bg-bg-card shadow-(--shadow-sidebar) print:hidden transition-transform duration-300 ease-in-out",
         isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0",
+        isFullpageForm && "max-lg:hidden",
         className
       )}
     >

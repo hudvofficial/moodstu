@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-19T00:15:00+07:00"
+    "last_updated": "2026-03-19T20:20:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -74,6 +74,7 @@
     "typography": { "font": "Inter", "size": "14px body, 12px caption" },
     "components": {
       "UnifiedModal": "Standard modal wrapper for all CRUD forms",
+      "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
       "StatusSelect": "Interactive status dropdown with color-coded logic",
       "toast-utils": "Centralized notification system"
     }
@@ -93,6 +94,11 @@
       "date": "2026-03-19",
       "decision": "Inventory Return logic: Marking a reservation as 'returned' automatically updates its inventory_item to 'available'.",
       "reason": "V2 automated inventory management — reduces manual status updates."
+    },
+    {
+      "date": "2026-03-19",
+      "decision": "Use ScrollContainerContext for all scroll-based logic instead of window.scrollY.",
+      "reason": "AppShell root is overflow-hidden, window.scrollY is always 0. Real scroll happens in #main-scroll."
     }
   ]
 }

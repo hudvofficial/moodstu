@@ -6,6 +6,7 @@ import type { ServiceType } from "@/types/contract";
 import DatePicker from "@/components/ui/date-picker";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Fingerprint } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // ContractInfoSection — Top fields of the contract form
@@ -41,7 +42,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, i
         1. Thông tin hợp đồng
       </h3>
 
-      {/* Row 1: Transaction type + Service type + Contract date */}
+      {/* All fields: 2 cols mobile, 3 cols desktop */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <SimpleSelect
           label="Loại giao dịch"
@@ -63,10 +64,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, i
           label="Ngày hợp đồng"
           placeholder="Chọn ngày"
         />
-      </div>
 
-      {/* Row 2: Work date + Delivery date (conditional) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DatePicker
           value={formData.work_date}
           onChange={(v) => updateField("work_date", v)}
@@ -94,16 +92,18 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, i
         </Field>
       </div>
 
-      {/* Contract code (edit mode: read-only) */}
-      {isEditMode && formData.contract_code && (
-        <Field label="Mã hợp đồng">
-          <input
-            type="text"
-            value={formData.contract_code}
-            readOnly
-            className="input-base opacity-50 cursor-not-allowed"
-          />
-        </Field>
+      {/* Contract code — mobile: always show, desktop: edit mode only */}
+      {formData.contract_code && (
+        <div className={isEditMode ? "" : "lg:hidden"}>
+          <Field label="Mã hợp đồng">
+            <div className="flex items-center gap-2 py-2">
+              <Fingerprint className="h-4 w-4 text-interactive shrink-0" />
+              <span className="text-body font-bold text-interactive tracking-wider">
+                {formData.contract_code}
+              </span>
+            </div>
+          </Field>
+        </div>
       )}
 
       {/* Description */}

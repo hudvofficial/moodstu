@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
+import { useScrollContainer } from "@/contexts/scroll-container";
 
 interface FullpageFormShellProps {
   /** Left: breadcrumb/back button */
@@ -36,10 +38,16 @@ export function FullpageFormShell({
   rightPanel,
   className,
 }: FullpageFormShellProps) {
+  const scrollRef = useScrollContainer();
+  const { isVisible } = useScrollDirection({ threshold: 60, containerRef: scrollRef });
+
   return (
     <div className={cn("flex flex-col", className)}>
-      {/* ── Sticky Header ── */}
-      <header className="sticky top-0 z-50 bg-bg-card/80 backdrop-blur-md border-b border-border-light">
+      {/* ── Sticky Header — hides on scroll down (mobile only) ── */}
+      <header className={cn(
+        "sticky top-0 z-50 bg-bg-card/80 backdrop-blur-md border-b border-border-light transition-transform duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0"
+      )}>
         <div className="px-2 lg:px-8 h-16 flex items-center justify-between">
           {breadcrumb}
           {headerRight && (
@@ -52,7 +60,7 @@ export function FullpageFormShell({
 
       {/* ── Scrollable Body ── */}
       <div className="flex-1">
-        <div className="px-2 py-4 lg:px-8 lg:py-6">
+        <div className="px-2 py-2 lg:px-8 lg:py-6">
           {rightPanel ? (
             /* Two-column mode — same 8/4 grid as detail page */
             <div className="detail-grid">

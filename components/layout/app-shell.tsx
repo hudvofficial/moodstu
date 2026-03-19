@@ -9,6 +9,7 @@ import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Role } from "@/types/roles";
 import { X } from "lucide-react";
+import { ScrollContainerProvider } from "@/contexts/scroll-container";
 
 // Routes that hide Header + BottomNav (form takes over)
 const FULLPAGE_PATTERNS = [
@@ -30,6 +31,9 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
   const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
+
+  // Ref to the main scroll container — shared via context
+  const mainRef = React.useRef<HTMLElement>(null);
 
   // Close mobile menu on route change or screen resize
   React.useEffect(() => {
@@ -73,21 +77,24 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
       {/* 3. Main Wrapper */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        {!isFullpage && <Header />}
-        
-        <main
-          id="main-scroll"
-          className={cn(
-          "flex-1 overflow-y-auto scroll-smooth",
-          isFullpage
-            ? "" // FullpageFormShell handles its own padding
-            : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
-          "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
-        )}>
-           {children}
-        </main>
+        <ScrollContainerProvider value={mainRef}>
+          {!isFullpage && <Header />}
+          
+          <main
+            ref={mainRef}
+            id="main-scroll"
+            className={cn(
+            "flex-1 overflow-y-auto scroll-smooth",
+            isFullpage
+              ? "" // FullpageFormShell handles its own padding
+              : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
+            "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
+          )}>
+              {children}
+          </main>
 
-        {!isFullpage && <BottomNav />}
+          {!isFullpage && <BottomNav />}
+        </ScrollContainerProvider>
       </div>
     </div>
   );

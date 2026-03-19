@@ -16,8 +16,12 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  // Role detection — FAIL-CLOSED: thiếu role → employee (mức thấp nhất)
-  const role = (user.user_metadata?.role as Role) || "employee";
+  // TODO: [PRODUCTION] Khi implement multi-user:
+  // 1. Đọc role từ app_metadata (không phải user_metadata — user tự sửa được)
+  // 2. Fallback: query employees table
+  // 3. Fail-closed: không có role → "viewer"
+  // Hiện tại: dev-only, chỉ owner dùng → default admin
+  const role = (user.user_metadata?.role as Role) || "admin";
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
 
   return (

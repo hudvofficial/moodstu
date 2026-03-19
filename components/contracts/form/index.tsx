@@ -91,16 +91,21 @@ export default function ContractForm({ mode, contractId }: Props) {
         </span>
       </nav>
 
-      {/* Mobile: icon-only back — giống top-action-bar.tsx */}
-      <Link href="/contracts" className="lg:hidden btn-icon shrink-0 -ml-2">
-        <ArrowLeft size={20} />
-      </Link>
+      {/* Mobile: ← + title inline */}
+      <div className="lg:hidden flex items-center gap-2">
+        <Link href="/contracts" className="btn-icon shrink-0 -ml-2">
+          <ArrowLeft size={20} />
+        </Link>
+        <span className="text-body font-semibold text-text-primary truncate">
+          {mode === "create" ? "Tạo hợp đồng mới" : "Sửa hợp đồng"}
+        </span>
+      </div>
     </>
   );
 
   /** Right slot: contract code badge */
   const headerRight = badgeCode ? (
-    <div className="flex items-center gap-2 rounded-md bg-interactive/10 text-interactive px-3 py-1.5 border border-interactive/20 shrink-0">
+    <div className="max-lg:hidden flex items-center gap-2 rounded-md bg-interactive/10 text-interactive px-3 py-1.5 border border-interactive/20 shrink-0">
       <Fingerprint className="h-3.5 w-3.5" />
       <span className="text-caption font-bold tracking-wider">
         {badgeCode}
@@ -143,8 +148,8 @@ export default function ContractForm({ mode, contractId }: Props) {
         headerRight={headerRight}
         rightPanel={rightPanel}
       >
-        {/* Title */}
-        <div className="space-y-1">
+        {/* Title — desktop only (mobile shows in header) */}
+        <div className="max-lg:hidden space-y-1">
           <h2 className="text-h2">
             {mode === "create" ? "Tạo hợp đồng" : "Sửa hợp đồng"}
           </h2>
@@ -177,6 +182,17 @@ export default function ContractForm({ mode, contractId }: Props) {
           items={form.items}
           error={form.errors.items}
         />
+
+        {/* Section 4+5: Mobile inline — desktop shows in rightPanel sidebar */}
+        <div className="lg:hidden space-y-4">
+          <ContractFinancialSummary
+            financials={form.financials}
+            isEditMode={mode === "edit"}
+          />
+          {form.shouldShowPaymentSection && (
+            <ContractPaymentSection financials={form.financials} />
+          )}
+        </div>
 
         {/* Section 6: Notes */}
         <section className="card-base p-6 space-y-4">
