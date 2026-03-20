@@ -3,20 +3,24 @@
 /**
  * 📅 DrawerEventTimeline — 4-stage vertical stepper for contract events
  *
- * Shows: NGÀY CHỤP → NGÀY TỔ CHỨC → HẬU KỲ → GIAO SẢN PHẨM
+ * Shows: ngay_chup → ngay_to_chuc → hau_ky → giao_san_pham
  * Each with date, location, and status badge.
  * Data: contract_events[] from getContractById() join.
+ *
+ * SSOT: All display labels from types/contract-constants.ts
  */
 
 import { Calendar, MapPin, CheckCircle, Clock, Circle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { EVENT_TYPE_MAP, TASK_STATUS_MAP } from "@/types/contract-constants";
+import type { EventType, TaskStatus } from "@/types/contract";
 
 // ─── TYPES ───────────────────────────────────────
 
 interface ContractEvent {
   id: string;
   event_type: string;
-  title?: string;
+  title: string | null;
   event_date: string | null;
   end_date?: string | null;
   location: string | null;
@@ -28,45 +32,13 @@ interface DrawerEventTimelineProps {
   events: ContractEvent[];
 }
 
-// ─── CONSTANTS ───────────────────────────────────
-
-const EVENT_ORDER = [
-  "NGÀY CHỤP",
-  "NGÀY TỔ CHỨC",
-  "HẬU KỲ",
-  "GIAO SẢN PHẨM",
-] as const;
-
-const EVENT_CONFIG: Record<
-  string,
-  { label: string; icon: string; color: string }
-> = {
-  "NGÀY CHỤP": { label: "Ngày Chụp", icon: "📸", color: "text-blue-600" },
-  "NGÀY TỔ CHỨC": { label: "Ngày Tổ Chức", icon: "💒", color: "text-purple-600" },
-  "HẬU KỲ": { label: "Hậu Kỳ", icon: "✏️", color: "text-amber-600" },
-  "GIAO SẢN PHẨM": { label: "Giao Sản Phẩm", icon: "📦", color: "text-green-600" },
-};
+// ─── STATUS ICON (uses TaskStatus from SSOT) ─────
 
 function getStatusIcon(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return <CheckCircle className="w-4 h-4 text-success" />;
-    case "IN_PROGRESS":
-      return <Clock className="w-4 h-4 text-warning" />;
-    default:
-      return <Circle className="w-4 h-4 text-text-muted" />;
-  }
-}
-
-function getStatusLabel(status: string): string {
-  switch (status) {
-    case "COMPLETED":
-      return "Hoàn thành";
-    case "IN_PROGRESS":
-      return "Đang thực hiện";
-    default:
-      return "Chờ";
-  }
+  const s = status as TaskStatus;
+  if (s === "hoan_thanh") return <CheckCircle className="w-4 h-4 text-success" />;
+  if (s === "dang_lam") return <Clock className="w-4 h-4 text-warning" />;
+  return <Circle className="w-4 h-4 text-text-muted" />;
 }
 
 // ─── COMPONENT ───────────────────────────────────
@@ -85,11 +57,11 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
     );
   }
 
-  // Sort events by EVENT_ORDER
+  // Sort events by order from SSOT constants
   const sortedEvents = [...events].sort((a, b) => {
-    const idxA = EVENT_ORDER.indexOf(a.event_type as typeof EVENT_ORDER[number]);
-    const idxB = EVENT_ORDER.indexOf(b.event_type as typeof EVENT_ORDER[number]);
-    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    const orderA = EVENT_TYPE_MAP[a.event_type as EventType]?.order ?? 99;
+    const orderB = EVENT_TYPE_MAP[b.event_type as EventType]?.order ?? 99;
+    return orderA - orderB;
   });
 
   return (
@@ -100,11 +72,14 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
 
       <div className="flex flex-col">
         {sortedEvents.map((event, idx) => {
-          const config = EVENT_CONFIG[event.event_type] || {
+          const config = EVENT_TYPE_MAP[event.event_type as EventType] || {
             label: event.title || event.event_type,
             icon: "📋",
             color: "text-text-secondary",
+            order: 99,
           };
+          const statusInfo = TASK_STATUS_MAP[event.status as TaskStatus];
+          const statusLabel = statusInfo?.label || "Chờ";
           const isLast = idx === sortedEvents.length - 1;
 
           return (
@@ -125,7 +100,7 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
                     {config.label}
                   </span>
                   <span className="text-tiny text-text-muted ml-auto">
-                    {getStatusLabel(event.status)}
+                    {statusLabel}
                   </span>
                 </div>
 
@@ -155,3 +130,4 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
     </section>
   );
 }
+

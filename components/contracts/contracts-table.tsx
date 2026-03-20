@@ -52,7 +52,7 @@ function getStatusVariant(status: ContractStatus): "info" | "warning" | "success
 interface ContractsTableProps {
   contracts: Record<string, unknown>[];
   customerMap: Record<string, { id: string; full_name: string; phone?: string }>;
-  onView: (id: string) => void;
+  onView: (contract: Record<string, unknown>) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onHover?: (id: string) => void;
@@ -106,7 +106,7 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
             return (
               <tr
                 key={id}
-                onClick={() => onView(id)}
+                onClick={() => onView(c)}
                 onMouseEnter={() => onHover?.(id)}
                 className={`hover:bg-bg-hover transition-colors group cursor-pointer h-14 ${isCancelled ? "opacity-50" : ""}`}
               >
@@ -191,7 +191,7 @@ function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps)
         return (
           <button
             key={id}
-            onClick={() => onView(id)}
+            onClick={() => onView(c)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)} ${isCancelled ? "opacity-50" : ""}`}
           >
             {/* Row 1: Mã HĐ + Status badge */}

@@ -5,6 +5,7 @@ import { Search, Plus, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getAvailableServices } from "@/app/actions/contract-queries";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { ItemType } from "@/types/contract";
 
@@ -126,10 +127,10 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
             <input type="number" min={1} value={editQty} onChange={(e) => setEditQty(Number(e.target.value) || 1)} className="input-base" />
           </Field>
           <Field label="Đơn giá">
-            <input type="number" min={0} value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value) || 0)} className="input-base" />
+            <CurrencyInput value={editPrice} onChange={setEditPrice} />
           </Field>
           <Field label="Giảm">
-            <input type="number" min={0} value={editDiscount} onChange={(e) => setEditDiscount(Number(e.target.value) || 0)} className="input-base" />
+            <CurrencyInput value={editDiscount} onChange={setEditDiscount} />
           </Field>
         </div>
         <Field label="Ghi chú">

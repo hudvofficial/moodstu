@@ -58,7 +58,7 @@ export default function PrintOrdersBlock({ orders, contractId }: Props) {
                   </p>
                   <StatusSelect
                     current={order.status || "cho_xu_ly"}
-                    options={PRINT_ORDER_STATUS_OPTIONS}
+                    options={[...PRINT_ORDER_STATUS_OPTIONS]}
                     onUpdate={async (newStatus) => {
                       const result = await updatePrintOrderStatus(order.id, newStatus, contractId);
                       if (result.success) {

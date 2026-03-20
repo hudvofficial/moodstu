@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials";
 
 // ═══════════════════════════════════════════
@@ -76,18 +77,26 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
           </div>
           <div className="flex items-center gap-1">
             <span className="text-body-sm text-text-muted">−</span>
-            <input
-              type="number"
-              min={0}
-              max={discountType === "percent" ? 100 : undefined}
-              value={discount || ""}
-              onChange={(e) => updateDiscount(Number(e.target.value) || 0)}
-              placeholder="0"
-              className="input-base w-32 px-2 py-1 text-right"
-            />
-            <span className="text-body-sm text-text-muted">
-              {discountType === "percent" ? "%" : CURRENCY_SYMBOL}
-            </span>
+            {discountType === "fixed" ? (
+              <CurrencyInput
+                value={discount}
+                onChange={updateDiscount}
+                className="w-40 py-1"
+              />
+            ) : (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={discount || ""}
+                  onChange={(e) => updateDiscount(Number(e.target.value) || 0)}
+                  placeholder="0"
+                  className="input-base w-32 px-2 py-1 text-right"
+                />
+                <span className="text-body-sm text-text-muted">%</span>
+              </>
+            )}
           </div>
         </div>
 

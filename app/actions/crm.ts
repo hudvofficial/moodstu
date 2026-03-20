@@ -116,12 +116,7 @@ export async function createCustomer(
   }
 
   return withAuth(async (supabase, userId) => {
-    // Resolve employee ID from auth user ID (FK requires employees.id)
-    const { data: emp } = await supabase
-      .from("employees")
-      .select("id")
-      .eq("auth_user_id", userId)
-      .single();
+    // FK now points to auth.users(id) directly
 
     // [V1 PORT] Phone dedup guard (contract.service.ts:56-80)
     // If phone matches existing customer → update & reuse instead of creating duplicate
@@ -181,7 +176,7 @@ export async function createCustomer(
         source: data.source || null,
         notes: data.notes?.trim() || null,
         tags: data.tags || null,
-        created_by: emp?.id || null,
+        created_by: userId,
       })
       .select("id")
       .single();
@@ -295,7 +290,7 @@ export async function getLeads(params: {
 
     let query = supabase
       .from("crm_leads")
-      .select("*, employees:assigned_to(id, full_name)", { count: "exact" })
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -327,12 +322,7 @@ export async function createLead(
   }
 
   return withAuth(async (supabase, userId) => {
-    // Resolve employee ID from auth user ID (FK requires employees.id)
-    const { data: emp } = await supabase
-      .from("employees")
-      .select("id")
-      .eq("auth_user_id", userId)
-      .single();
+    // FK now points to auth.users(id) directly
 
     // Duplicate phone check
     if (data.phone?.trim()) {
@@ -364,7 +354,7 @@ export async function createLead(
         next_contact_date: data.next_contact_date || null,
         assigned_to: data.assigned_to || null,
         contact_date: data.contact_date || new Date().toISOString().split("T")[0],
-        created_by: emp?.id || null,
+        created_by: userId,
         deal_value: data.deal_value || 0,
         tags: data.tags || [],
         score: data.score || 0,
@@ -431,10 +421,7 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("crm_leads")
-      .select(`
-        *,
-        employees (id, full_name)
-      `)
+      .select(`*`)
       .eq("id", id)
       .is("deleted_at", null)
       .single();

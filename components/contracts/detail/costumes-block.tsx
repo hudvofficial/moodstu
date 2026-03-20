@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Shirt } from "lucide-react";
 import type { InventoryReservation } from "@/types/contract";
 import StatusSelect, { RESERVATION_STATUS_OPTIONS } from "@/components/ui/status-select";
@@ -52,9 +53,11 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
               >
                 {/* Thumbnail */}
                 {item?.image_url ? (
-                  <img
+                  <Image
                     src={item.image_url}
                     alt={item.name}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-lg object-cover shrink-0"
                   />
                 ) : (
@@ -85,7 +88,7 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
                 {/* Status dropdown */}
                 <StatusSelect
                   current={r.status || "reserved"}
-                  options={RESERVATION_STATUS_OPTIONS}
+                  options={[...RESERVATION_STATUS_OPTIONS]}
                   onUpdate={async (newStatus) => {
                     const result = await updateReservationStatus(r.id, newStatus, contractId);
                     if (result.success) {

@@ -5,6 +5,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { quickCreateService } from "@/app/actions/contract-queries";
 import { Loader2 } from "lucide-react";
 import { CURRENCY_SYMBOL } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 
 // ═══════════════════════════════════════════
@@ -85,12 +86,9 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
           />
           <div>
             <label className="label-base">Giá bán ({CURRENCY_SYMBOL})</label>
-            <input
-              type="number"
-              min={0}
+            <CurrencyInput
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value) || 0)}
-              className="input-base"
+              onChange={setPrice}
             />
           </div>
         </div>

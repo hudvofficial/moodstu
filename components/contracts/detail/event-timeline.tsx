@@ -1,26 +1,18 @@
 import { CalendarDays, MapPin, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { ContractEvent, WorkTask, TaskStatus } from "@/types/contract";
+import { getEventTypeLabel } from "@/types/contract-constants";
+import type { ContractEvent, WorkTask, TaskStatus, EventType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // EventTimeline — Event cards with task count
-// Phase 04c: Read-only event display
-// V1 Ref: EventTimeline.tsx + EventSection.tsx
+// SSOT: Display labels from types/contract-constants.ts
 // ═══════════════════════════════════════════
 
 interface Props {
   events: ContractEvent[];
   tasks: WorkTask[];
 }
-
-// ─── Event type display ───────────────────────
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  ngay_chup: "Ngày Chụp",
-  ngay_to_chuc: "Ngày Tổ Chức",
-  hau_ky: "Hậu Kỳ",
-  giao_san_pham: "Giao Sản Phẩm",
-};
 
 // ─── Status config ────────────────────────────
 const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; variant: "warning" | "info" | "success" | "error" }> = {
@@ -97,7 +89,7 @@ export default function EventTimeline({ events, tasks }: Props) {
                 <div className="min-w-0 flex-1">
                   <p className="text-body-sm font-semibold text-text-primary truncate">
                     {event.title ||
-                      EVENT_TYPE_LABELS[event.event_type] ||
+                      getEventTypeLabel(event.event_type as EventType) ||
                       event.event_type}
                   </p>
                   <div className="flex items-center gap-3 mt-1">

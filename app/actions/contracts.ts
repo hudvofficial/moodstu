@@ -34,7 +34,7 @@ export async function getContracts(filters: ContractFilters) {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // V2 select: base fields + FK join customers + tasks
+    // V2 select: base fields + ALL drawer data (0ms drawer pattern)
     let query = supabase
       .from("contracts")
       .select(
@@ -43,9 +43,13 @@ export async function getContracts(filters: ContractFilters) {
          total_amount, discount_amount, paid_amount,
          remaining_amount, status, payment_status,
          updated_at, created_at,
-         customers (id, customer_code, full_name, phone),
-         work_tasks (id, work_type, status, deadline),
-         contract_checklists (id, event_stage, category, item_name, is_completed)`,
+         customers (id, customer_code, full_name, phone, address),
+         work_tasks (id, work_type, assigned_to, status, deadline,
+                     start_date, completion_date, cost, notes),
+         contract_checklists (id, event_stage, category, item_name, is_completed),
+         contract_events (id, event_type, title, event_date, end_date, location, status, notes),
+         payment_plans (id, stage_name, amount, due_date, status),
+         contract_notes (id, content, created_by, created_at)`,
         { count: "estimated" }
       )
       .is("deleted_at", null)
@@ -220,8 +224,7 @@ export async function getContractById(id: string) {
         ),
         work_tasks (
           id, work_type, assigned_to, status, deadline,
-          start_date, completion_date, cost, notes,
-          employees:assigned_to (id, full_name)
+          start_date, completion_date, cost, notes
         ),
         contract_checklists (
           id, event_stage, category, item_name, is_completed, created_at, updated_at
@@ -275,8 +278,7 @@ export async function getContractById(id: string) {
       supabase
         .from("audit_logs")
         .select(`
-          id, action, table_name, old_data, new_data, created_at,
-          employees:employee_id (id, full_name)
+          id, action, table_name, old_data, new_data, created_at
         `)
         .eq("table_name", "contracts")
         .eq("record_id", id)
@@ -297,6 +299,55 @@ export async function getContractById(id: string) {
       reservations: reservations || [],
       printOrders: printOrders || [],
       auditLogs: auditLogs || [],
+      paymentPlans: paymentPlans || [],
+    };
+  });
+}
+
+// ─── getContractDrawerExtra ──────────────
+// Lightweight fetch for drawer's lazy-loaded sections.
+// Only fetches: events, checklists, work_tasks, payment_plans.
+// Skips: payments, reservations, printOrders, auditLogs (heavy, not shown in drawer).
+export async function getContractDrawerExtra(id: string) {
+  return withAuth(async (supabase) => {
+    const [
+      { data: events },
+      { data: checklists },
+      { data: workTasks },
+      { data: paymentPlans },
+    ] = await Promise.all([
+      supabase
+        .from("contract_events")
+        .select("id, event_type, title, event_date, end_date, location, status, notes")
+        .eq("contract_id", id)
+        .order("event_date", { ascending: true }),
+
+      supabase
+        .from("contract_checklists")
+        .select("id, event_stage, category, item_name, is_completed, created_at, updated_at")
+        .eq("contract_id", id)
+        .order("created_at", { ascending: true }),
+
+      supabase
+        .from("work_tasks")
+        .select(`
+          id, work_type, assigned_to, status, deadline,
+          start_date, completion_date, cost, notes
+        `)
+        .eq("contract_id", id)
+        .order("deadline", { ascending: true }),
+
+      supabase
+        .from("payment_plans")
+        .select("*")
+        .eq("contract_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    return {
+      events: events || [],
+      checklists: checklists || [],
+      workTasks: workTasks || [],
       paymentPlans: paymentPlans || [],
     };
   });

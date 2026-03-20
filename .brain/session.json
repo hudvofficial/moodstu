@@ -1,92 +1,64 @@
 {
-  "updated_at": "2026-03-19T20:20:00+07:00",
+  "updated_at": "2026-03-20T13:48:00+07:00",
   "working_on": {
-    "feature": "Global Scroll-Hide Header",
-    "task": "Context-based scroll tracking for AppShell and FullpageFormShell",
+    "feature": "Contract Detail Enhancement",
+    "task": "Mocking events and tasks for testing full detail view",
     "status": "implementing",
     "files": [
-      "components/layout/app-shell.tsx",
-      "components/layout/fullpage-form-shell.tsx",
-      "components/layout/header.tsx",
-      "hooks/use-scroll-direction.ts",
-      "contexts/scroll-container.tsx"
+      "components/contracts/detail/contract-detail-client.tsx",
+      "components/contracts/detail/event-timeline.tsx"
     ],
     "blockers": [],
-    "notes": "Đã giải quyết vấn đề window.scrollY = 0 bằng cách dùng ScrollContainerContext. Header hiện đã ẩn/hiện đúng trên mobile. Cần fix khoảng trống layout khi ẩn."
+    "notes": "Đã sửa xong UI Drawer và Compact Header. Đang thực hiện mock data event để gửi sếp xem báo cáo."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-19T20:15:00+07:00",
+      "timestamp": "2026-03-20T13:45:00+07:00",
+      "type": "ui",
+      "description": "Compact Header for Create Contract page. Removed redundant desktop title/desc block to save ~80px vertical space.",
+      "files": ["components/contracts/form/index.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-20T13:30:00+07:00",
+      "type": "ui",
+      "description": "Apple-style Segmented Control for Contract Drawer tabs. Improved background contrast and active tab elevation (shadow-md).",
+      "files": ["components/contracts/contract-drawer.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-19T20:20:00+07:00",
       "type": "architecture",
-      "description": "Refactor useScrollDirection hook to support explicit containerRef. Introduced ScrollContainerContext to share main scroll ref from AppShell.",
+      "description": "Refactor useScrollDirection hook to support explicit containerRef. Introduced ScrollContainerContext.",
       "files": ["hooks/use-scroll-direction.ts", "contexts/scroll-container.tsx", "components/layout/app-shell.tsx"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-19T20:00:00+07:00",
-      "type": "feature",
-      "description": "Implemented mobile scroll-hide behavior for FullpageFormShell header and Global Header across all pages.",
-      "files": ["components/layout/fullpage-form-shell.tsx", "components/layout/header.tsx"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-19T17:30:00+07:00",
-      "type": "perf",
-      "description": "Phase F: Xóa backdrop-blur-[2px] (root cause #1), khôi phục scroll lock, match V1 animation keyframes (scale+translateY)",
-      "files": ["components/ui/unified-modal.tsx", "app/styles/pages.css"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-19T15:00:00+07:00",
-      "type": "bugfix",
-      "description": "B5+B6: Thêm bride_name và groom_name vào INSERT và UPDATE phone-dedup trong createCustomer()",
-      "files": ["app/actions/crm.ts"],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "Đóng topic modal performance tại Phase F",
-      "reason": "Remaining optimizations (cn(), inline styles) chỉ tiết kiệm ~0.6ms — không cảm nhận được. Lag còn lại likely do dev mode Turbopack. Verify khi production build."
+      "decision": "Xóa block title+desc ở Desktop page /create",
+      "reason": "Breadcrumb đã đủ context, tiết kiệm không gian dọc cho form."
     },
     {
-      "decision": "KHÔNG port V1 UnifiedModal 1:1",
-      "reason": "User confirm không port 1:1 được vì V2 có structure khác."
-    },
-    {
-      "decision": "Xóa DatePicker 'Ngày cưới' khỏi CustomerFormModal",
-      "reason": "V1 không có field này trong quick-create modal. User đã duyệt."
-    },
-    {
-      "decision": "Xóa field 'Nguồn' khỏi CustomerFormModal",
-      "reason": "V1 không có, không hiển thị đâu cả, sai ngữ cảnh quick-create. Chờ user confirm."
+      "decision": "Dùng shadow-md cho active tab trong drawer",
+      "reason": "Tạo độ nổi bật (elevation) mà không cần viền border thô cứng (user preferred)."
     }
   ],
   "pending_tasks": [
     {
-      "task": "Fix empty gap: Thêm negative margin (-mb-16) khi header ẩn để content lấp đầy UI mobile",
+      "task": "Mock data events & tasks cho hợp đồng cụ thể",
       "priority": "high",
-      "notes": "Cần sửa Header.tsx và FullpageFormShell.tsx. translate-y-full không tự co layout space."
+      "notes": "Dùng Supabase execute_sql để tạo data cho user báo cáo sếp."
     },
     {
-      "task": "CustomerFormModal.tsx: Toàn bộ Phase A fixes cần /code lại",
+      "task": "Fix empty gap: Thêm negative margin (-mb-16) khi header ẩn",
+      "priority": "high",
+      "notes": "Cần sửa Header.tsx và FullpageFormShell.tsx."
+    },
+    {
+      "task": "CustomerFormModal.tsx: Phase A fixes",
       "priority": "critical",
-      "notes": "F1: Đổi label 'Họ và tên *' → 'Tên khách hàng *'. F2: Xóa block Nguồn + DatePicker (lines 199-214). F3: Xóa import DatePicker. Couple fields giữ conditional như hiện tại."
-    },
-    {
-      "task": "Confirm với user: có xóa field 'Nguồn' không?",
-      "priority": "high",
-      "notes": "User hỏi nhưng chưa confirm 'xoá' hay 'giữ'"
-    },
-    {
-      "task": "B7: onCreated trong CustomerFormModal.tsx — kiểm tra đã pass bride/groom chưa",
-      "priority": "medium",
-      "notes": "Line 110-111 có vẻ đúng rồi nhưng chưa verify kỹ"
-    },
-    {
-      "task": "Production build test — verify modal performance",
-      "priority": "low",
-      "notes": "Khi ready build production, test lại UnifiedModal có instant không. Nếu vẫn lag → đo bằng performance.now()"
+      "notes": "Label 'Tên khách hàng *', xóa block Nguồn + DatePicker."
     }
   ]
 }

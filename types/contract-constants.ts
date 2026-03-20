@@ -3,13 +3,21 @@
  *
  * Maps snake_case DB ENUMs → Vietnamese display labels.
  * THIS IS THE DISPLAY LAYER — DB stores snake_case, UI shows Vietnamese.
+ * THIS FILE IS THE SSOT — All components import from here, NO local hardcode.
  *
  * @see Lesson #65: V2 DB ENUM snake_case → map to Vietnamese at display layer
  */
 
-import type { ContractStatus, ServiceType, PaymentStatus } from "./contract";
+import type {
+  ContractStatus,
+  ServiceType,
+  PaymentStatus,
+  EventType,
+  WorkType,
+  TaskStatus,
+} from "./contract";
 
-// ─── STATUS DISPLAY MAP (snake_case → Vietnamese) ────────
+// ─── CONTRACT STATUS MAP (snake_case → Vietnamese) ───────
 
 export const CONTRACT_STATUS_MAP: Record<
   ContractStatus,
@@ -21,7 +29,7 @@ export const CONTRACT_STATUS_MAP: Record<
   da_huy: { label: "Đã hủy", variant: "error" },
 };
 
-// ─── PAYMENT STATUS DISPLAY MAP ──────────────────────────
+// ─── PAYMENT STATUS MAP ──────────────────────────────────
 
 export const PAYMENT_STATUS_MAP: Record<PaymentStatus, string> = {
   chua_thanh_toan: "Chưa thanh toán",
@@ -31,7 +39,7 @@ export const PAYMENT_STATUS_MAP: Record<PaymentStatus, string> = {
   hoan_tien: "Hoàn tiền",
 };
 
-// ─── SERVICE TYPE DISPLAY MAP (snake_case → Vietnamese) ──
+// ─── SERVICE TYPE MAP (snake_case → Vietnamese) ──────────
 
 export const SERVICE_TYPE_MAP: Record<
   ServiceType,
@@ -51,7 +59,52 @@ export const SERVICE_TYPE_MAP: Record<
   khac: { label: "Khác", icon: "MoreHorizontal" },
 };
 
-// ─── HELPER: Get display label ───────────────────────────
+// ─── EVENT TYPE MAP (match DB event_type_enum) ───────────
+// Used by: drawer-event-timeline, detail/event-timeline
+
+export const EVENT_TYPE_MAP: Record<
+  EventType,
+  { label: string; icon: string; color: string; order: number }
+> = {
+  ngay_chup: { label: "Ngày Chụp", icon: "📸", color: "text-blue-600", order: 1 },
+  ngay_to_chuc: { label: "Ngày Tổ Chức", icon: "💒", color: "text-purple-600", order: 2 },
+  hau_ky: { label: "Hậu Kỳ", icon: "✏️", color: "text-amber-600", order: 3 },
+  giao_san_pham: { label: "Giao Sản Phẩm", icon: "📦", color: "text-green-600", order: 4 },
+};
+
+// ─── WORK TYPE MAP (match DB work_type_enum) ─────────────
+// Used by: drawer-assignments, detail/task views
+
+export const WORK_TYPE_MAP: Record<WorkType, string> = {
+  concept: "Concept",
+  kich_ban: "Kịch bản",
+  chup_anh: "Chụp ảnh",
+  quay_phim: "Quay phim",
+  makeup: "Trang điểm",
+  tro_ly: "Trợ lý",
+  cameraman: "Cameraman",
+  hau_ky_anh: "Hậu kỳ Ảnh",
+  dung_phim: "Dựng phim",
+  retouch: "Retouch",
+  premiere: "Premiere",
+  bien_tap: "Biên tập",
+  khac: "Khác",
+};
+
+// ─── TASK STATUS MAP (match DB task_status_enum) ─────────
+// Used by: drawer-assignments, drawer-checklist, event-timeline
+
+export const TASK_STATUS_MAP: Record<
+  TaskStatus,
+  { label: string; variant: "info" | "warning" | "success" | "error" | "muted" }
+> = {
+  chua_lam: { label: "Chờ", variant: "muted" },
+  dang_lam: { label: "Đang làm", variant: "warning" },
+  hoan_thanh: { label: "Xong", variant: "success" },
+  da_huy: { label: "Hủy", variant: "error" },
+};
+
+// ─── HELPER: Get display labels ──────────────────────────
 
 export function getStatusLabel(status: ContractStatus): string {
   return CONTRACT_STATUS_MAP[status]?.label || status;
@@ -63,4 +116,16 @@ export function getServiceLabel(type: ServiceType): string {
 
 export function getPaymentStatusLabel(status: PaymentStatus): string {
   return PAYMENT_STATUS_MAP[status] || status;
+}
+
+export function getEventTypeLabel(type: EventType): string {
+  return EVENT_TYPE_MAP[type]?.label || type;
+}
+
+export function getWorkTypeLabel(type: WorkType): string {
+  return WORK_TYPE_MAP[type] || type;
+}
+
+export function getTaskStatusLabel(status: TaskStatus): string {
+  return TASK_STATUS_MAP[status]?.label || status;
 }

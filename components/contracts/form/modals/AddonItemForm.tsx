@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { AddonCategory } from "@/types/addon-history";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -107,11 +108,11 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
         </div>
         <div>
           <label className="label-base">Đơn giá</label>
-          <input type="number" min={0} value={price} onChange={(e) => setPrice(Number(e.target.value) || 0)} className="input-base" />
+          <CurrencyInput value={price} onChange={setPrice} />
         </div>
         <div>
           <label className="label-base">Giảm giá</label>
-          <input type="number" min={0} value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} className="input-base" />
+          <CurrencyInput value={discount} onChange={setDiscount} />
         </div>
       </div>
 

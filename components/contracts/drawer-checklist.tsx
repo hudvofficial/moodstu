@@ -7,7 +7,7 @@
  * Optimistic UI: checkbox updates instantly, syncs in background.
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { toast } from "sonner";
@@ -48,6 +48,12 @@ function getCatStyle(category: string) {
 export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   const [items, setItems] = useState(initialItems);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+
+  // Sync state when props change (SWR revalidation, drawer reopen)
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
 
   // Stats
   const total = items.length;
@@ -80,9 +86,15 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
     });
   }, []);
 
-  // Toggle item (optimistic)
+  // Toggle item (optimistic + race condition lock)
   const handleToggle = useCallback(async (item: ChecklistItem) => {
+    // Prevent double-click race condition
+    if (pendingIds.has(item.id)) return;
+
     const newVal = !item.is_completed;
+
+    // Lock item
+    setPendingIds((prev) => new Set(prev).add(item.id));
 
     // Optimistic update
     setItems((prev) =>
@@ -109,8 +121,15 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
         )
       );
       toast.error("Lỗi kết nối");
+    } finally {
+      // Unlock item
+      setPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
     }
-  }, []);
+  }, [pendingIds]);
 
   if (total === 0) {
     return (
@@ -181,7 +200,9 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                   {catItems.map((item) => (
                     <label
                       key={item.id}
-                      className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-hover/20 transition-colors"
+                      className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-hover/20 transition-colors ${
+                        pendingIds.has(item.id) ? "opacity-50 cursor-wait" : ""
+                      }`}
                     >
                       {item.is_completed ? (
                         <CheckSquare

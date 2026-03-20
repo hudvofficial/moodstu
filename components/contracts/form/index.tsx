@@ -148,24 +148,11 @@ export default function ContractForm({ mode, contractId }: Props) {
         headerRight={headerRight}
         rightPanel={rightPanel}
       >
-        {/* Title — desktop only (mobile shows in header) */}
-        <div className="max-lg:hidden space-y-1">
-          <h2 className="text-h2">
-            {mode === "create" ? "Tạo hợp đồng" : "Sửa hợp đồng"}
-          </h2>
-          <p className="text-body-sm text-text-secondary">
-            {mode === "create"
-              ? "Điền thông tin để tạo hợp đồng mới"
-              : "Chỉnh sửa thông tin hợp đồng"}
-          </p>
-        </div>
-
         {/* Section 1: Contract Info */}
         <ContractInfoSection
           formData={form.formData}
           updateField={form.updateField}
           showDeliveryDate={form.shouldShowDeliveryDate}
-          isEditMode={mode === "edit"}
         />
 
         {/* Section 2: Customer */}

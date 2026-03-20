@@ -18,6 +18,8 @@ interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  /** Optional badge rendered next to the title (e.g. status badge) */
+  titleBadge?: ReactNode;
   /** Optional element rendered at the right side of header (e.g. print button) */
   headerRight?: ReactNode;
   children: ReactNode;
@@ -52,6 +54,7 @@ export function Drawer({
   isOpen,
   onClose,
   title,
+  titleBadge,
   headerRight,
   children,
   width = "480px",
@@ -97,13 +100,16 @@ export function Drawer({
       <aside
         ref={panelRef}
         tabIndex={-1}
-        className="hidden lg:flex flex-col fixed right-0 top-0 h-full bg-bg-card shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
-        style={{ width }}
+        className="hidden lg:flex flex-col fixed right-0 top-0 h-full bg-bg-base shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
+        style={{ width, outline: 'none' }}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 shrink-0">
-            <h2 className="text-h3">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-border">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <h2 className="text-h3 truncate">{title}</h2>
+              {titleBadge}
+            </div>
             <div className="flex items-center gap-1">
               {headerRight}
               <button
@@ -118,13 +124,13 @@ export function Drawer({
         )}
 
         {/* Content — scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6">{children}</div>
       </aside>
 
       {/* ── Mobile: Bottom sheet ── */}
       <aside
-        className="lg:hidden flex flex-col fixed bottom-0 left-0 right-0 bg-bg-card rounded-t-2xl shadow-md z-10 animate-slide-in-up outline-none"
-        style={{ height: "85vh" }}
+        className="lg:hidden flex flex-col fixed bottom-0 left-0 right-0 bg-bg-base shadow-md rounded-t-2xl z-10 animate-slide-in-up outline-none"
+        style={{ height: '85vh', outline: 'none' }}
         tabIndex={-1}
       >
         {/* Drag handle */}
@@ -134,8 +140,11 @@ export function Drawer({
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-            <h2 className="text-h3">{title}</h2>
+          <div className="flex items-center justify-between px-5 pb-3 shrink-0 border-b border-border">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-h3 truncate">{title}</h2>
+              {titleBadge}
+            </div>
             <div className="flex items-center gap-1">
               {headerRight}
               <button
@@ -150,7 +159,7 @@ export function Drawer({
         )}
 
         {/* Content — scrollable */}
-        <div className="flex-1 overflow-y-auto px-5 pb-6">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-6">{children}</div>
       </aside>
     </div>,
     document.body

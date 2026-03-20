@@ -5,10 +5,14 @@
  *
  * Shows who is assigned to what work type, grouped by event.
  * Data: work_tasks[] from getContractById() join (includes employees).
+ *
+ * SSOT: All display labels from types/contract-constants.ts
  */
 
 import { UserCircle, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { WORK_TYPE_MAP, TASK_STATUS_MAP } from "@/types/contract-constants";
+import type { WorkType, TaskStatus } from "@/types/contract";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -29,46 +33,26 @@ interface DrawerAssignmentsProps {
   tasks: WorkTask[];
 }
 
-// ─── CONSTANTS ───────────────────────────────────
+// ─── STATUS BADGE STYLES ─────────────────────────
 
-const WORK_TYPE_LABELS: Record<string, string> = {
-  PHOTO: "Chụp ảnh",
-  VIDEO: "Quay phim",
-  MAKEUP: "Trang điểm",
-  ASSISTANT: "Trợ lý",
-  CAMERAMAN: "Quay phim",
-  POST_PHOTO: "Hậu kỳ Ảnh",
-  POST_VIDEO: "Dựng phim",
-  RETOUCH: "Retouch",
-  PREMIERE: "Premiere",
-  EDITOR: "Biên tập",
-  PRE_CONCEPT: "Concept",
-  PRE_SCRIPT: "Kịch bản",
-  OTHER: "Khác",
-};
-
-function getWorkLabel(workType: string): string {
-  return WORK_TYPE_LABELS[workType] || workType;
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  hoan_thanh: "bg-success/10 text-success",
-  dang_lam: "bg-warning/10 text-warning",
-  chua_lam: "bg-text-muted/10 text-text-muted",
-  da_huy: "bg-error/10 text-error",
+const VARIANT_STYLES: Record<string, string> = {
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  error: "bg-error/10 text-error",
+  muted: "bg-text-muted/10 text-text-muted",
 };
 
 function getStatusStyle(status: string): string {
-  return STATUS_STYLES[status] || STATUS_STYLES.chua_lam;
+  const info = TASK_STATUS_MAP[status as TaskStatus];
+  return VARIANT_STYLES[info?.variant || "muted"] || VARIANT_STYLES.muted;
 }
 
 function getStatusText(status: string): string {
-  switch (status) {
-    case "hoan_thanh": return "Xong";
-    case "dang_lam": return "Đang làm";
-    case "da_huy": return "Hủy";
-    default: return "Chờ";
-  }
+  return TASK_STATUS_MAP[status as TaskStatus]?.label || "Chờ";
+}
+
+function getWorkLabel(workType: string): string {
+  return WORK_TYPE_MAP[workType as WorkType] || workType;
 }
 
 // ─── COMPONENT ───────────────────────────────────

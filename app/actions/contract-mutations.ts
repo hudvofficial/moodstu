@@ -226,7 +226,9 @@ export async function submitContract(rawData: unknown) {
 
     // ── Auto-generate checklists (CREATE only, non-blocking) ──
     if (!data.existingContractId && contractId && data.formData.service_type) {
-      generateChecklists(contractId, data.formData.service_type).catch(() => {});
+      generateChecklists(contractId, data.formData.service_type).catch((err) => {
+        console.error("[submitContract] Auto-generate checklists failed:", err);
+      });
     }
 
     revalidatePath("/contracts");

@@ -17,7 +17,7 @@ import { useContracts, useContractStats, prefetchContract } from "@/lib/hooks/us
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
-import { ContractDrawer } from "@/components/contracts/contract-drawer";
+import { ContractDrawer, type ContractListItem } from "@/components/contracts/contract-drawer";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
@@ -101,12 +101,34 @@ function ContractsListInner() {
     return tab;
   });
 
-  // ── Drawer state ──
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const isDrawerOpen = selectedId !== null;
+  // ── Drawer state (0ms Full Inline pattern) ──
+  const [selectedContract, setSelectedContract] = useState<ContractListItem | null>(null);
+  const isDrawerOpen = selectedContract !== null;
 
   // Handlers
-  const handleView = (id: string) => setSelectedId(id);
+  const handleView = (contractRecord: Record<string, unknown>) => {
+    // Build ContractListItem from Record — ALL data for 0ms drawer
+    const item: ContractListItem = {
+      id: (contractRecord.id as string) || "",
+      contract_code: (contractRecord.contract_code as string) || null,
+      status: (contractRecord.status as ContractListItem["status"]) || null,
+      service_type: (contractRecord.service_type as string) || null,
+      work_date: (contractRecord.work_date as string) || null,
+      contract_date: (contractRecord.contract_date as string) || null,
+      total_amount: Number(contractRecord.total_amount) || 0,
+      paid_amount: Number(contractRecord.paid_amount) || 0,
+      remaining_amount: Number(contractRecord.remaining_amount) || 0,
+      customer_id: (contractRecord.customer_id as string) || null,
+      customers: contractRecord.customers as ContractListItem["customers"] ?? null,
+      // Drawer sections (from list query JOINs)
+      contract_events: (contractRecord.contract_events as Record<string, unknown>[]) || [],
+      contract_checklists: (contractRecord.contract_checklists as Record<string, unknown>[]) || [],
+      work_tasks: (contractRecord.work_tasks as Record<string, unknown>[]) || [],
+      payment_plans: (contractRecord.payment_plans as Record<string, unknown>[]) || [],
+      contract_notes: (contractRecord.contract_notes as ContractListItem["contract_notes"]) || [],
+    };
+    setSelectedContract(item);
+  };
   const handleHover = (id: string) => prefetchContract(id);
   const handleEdit = (id: string) => router.push(`/contracts/${id}/edit`);
   const handleDelete = (id: string) => void id; // TODO: Phase 05
@@ -277,9 +299,9 @@ function ContractsListInner() {
 
       {/* ── Contract Drawer ── */}
       <ContractDrawer
-        contractId={selectedId}
+        contract={selectedContract}
         isOpen={isDrawerOpen}
-        onClose={() => setSelectedId(null)}
+        onClose={() => setSelectedContract(null)}
       />
     </>
   );

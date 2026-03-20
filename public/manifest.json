@@ -1,0 +1,24 @@
+{
+  "name": "Mood Studio",
+  "short_name": "Mood Studio",
+  "description": "Wedding Studio Management - Quản lý studio cưới",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#2E5C46",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

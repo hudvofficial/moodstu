@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { DollarSign } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createPaymentReceipt, getTransactionCategories } from "@/app/actions/payment-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
+import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import type { PaymentPlan } from "@/types/contract";
 import { SimpleSelect } from "@/components/ui/simple-select";
 
@@ -41,7 +42,7 @@ export default function PaymentReceiptForm({
   const isFullyPaid = remainingAmount <= 0;
 
   // ── Form state ──
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -74,13 +75,13 @@ export default function PaymentReceiptForm({
     if (unpaidPlans.length > 0 && !selectedPlanId) {
       const firstUnpaid = unpaidPlans[0];
       setSelectedPlanId(firstUnpaid.id);
-      setAmount(String(firstUnpaid.amount));
+      setAmount(firstUnpaid.amount);
     }
   }, [isOpen, unpaidPlans, selectedPlanId]);
 
   // ── Reset form ──
   const resetForm = useCallback(() => {
-    setAmount("");
+    setAmount(0);
     setPaymentDate(new Date().toISOString().split("T")[0]);
     setMethod("tien_mat");
     setSelectedPlanId(null);
@@ -94,20 +95,20 @@ export default function PaymentReceiptForm({
     (planId: string) => {
       if (planId === "custom") {
         setSelectedPlanId(null);
-        setAmount("");
+        setAmount(0);
         return;
       }
       setSelectedPlanId(planId);
       const plan = paymentPlans.find((p) => p.id === planId);
-      if (plan) setAmount(String(plan.amount));
+      if (plan) setAmount(plan.amount);
     },
     [paymentPlans]
   );
 
   // ── Submit ──
   const handleSubmit = useCallback(async () => {
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    const numAmount = amount;
+    if (numAmount <= 0) {
       toast("Vui lòng nhập số tiền hợp lệ", "warning");
       return;
     }
@@ -161,27 +162,16 @@ export default function PaymentReceiptForm({
       description={contractCode}
     >
       <div className="space-y-4">
-        {/* Amount */}
         <div>
           <label className="label-base mb-1 block">Số tiền *</label>
-          <div className="relative">
-            <DollarSign
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-            />
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              className="input-base w-full pl-9"
-              min={0}
-              autoFocus
-            />
-          </div>
+          <CurrencyInput
+            value={amount}
+            onChange={setAmount}
+            autoFocus
+          />
           {remainingAmount > 0 && (
             <p className="text-xs text-text-muted mt-1">
-              Còn lại: {new Intl.NumberFormat("vi-VN").format(remainingAmount)}đ
+              Còn lại: {formatCurrency(remainingAmount)} {CURRENCY_SYMBOL}
             </p>
           )}
         </div>
@@ -205,7 +195,7 @@ export default function PaymentReceiptForm({
             options={[
               ...paymentPlans.map((plan) => ({
                 value: plan.id,
-                label: `${plan.status === "paid" ? "✅ " : ""}${plan.stage_name} — ${new Intl.NumberFormat("vi-VN").format(plan.amount)}đ`,
+                label: `${plan.status === "paid" ? "✅ " : ""}${plan.stage_name} — ${formatCurrency(plan.amount)} ${CURRENCY_SYMBOL}`,
               })),
               { value: "custom", label: "Thanh toán khác / Phát sinh" },
             ]}
@@ -285,7 +275,7 @@ export default function PaymentReceiptForm({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || !amount}
+            disabled={loading || amount <= 0}
             className="btn-primary flex-1 disabled:opacity-50"
             style={{ background: themeColor }}
           >

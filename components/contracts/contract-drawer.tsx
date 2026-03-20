@@ -3,16 +3,15 @@
 /**
  * 📋 ContractDrawer — Quick preview from contract list
  *
- * Uses useContractDetail() SWR hook (reuses getContractById server action).
- * Displays: header, customer info, financials, payment timeline, footer nav.
+ * ⚡ 0ms Drawer — ALL data comes from list query (no separate fetch needed)
+ * Pattern: V1-style data passing with V2 architecture
+ * List query JOINs: customers, work_tasks, checklists, events, payment_plans
  */
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User,
   Phone,
-  CalendarCheck,
-  Calendar,
   MapPin,
   Printer,
   ExternalLink,
@@ -26,7 +25,6 @@ import { DrawerEventTimeline } from "@/components/contracts/drawer-event-timelin
 import { DrawerAssignments } from "@/components/contracts/drawer-assignments";
 import { DrawerNotes } from "@/components/contracts/drawer-notes";
 import { DrawerChecklist } from "@/components/contracts/drawer-checklist";
-import { useContractDetail } from "@/lib/hooks/use-contracts";
 import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
 import {
   getStatusLabel,
@@ -37,8 +35,34 @@ import type { ContractStatus, ServiceType } from "@/types/contract";
 
 // ─── TYPES ───────────────────────────────────────
 
+/** Full contract data available from list query (0ms — no fetch needed) */
+export interface ContractListItem {
+  id: string;
+  contract_code: string | null;
+  status: ContractStatus | null;
+  service_type: string | null;
+  work_date: string | null;
+  contract_date: string | null;
+  total_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  customer_id: string | null;
+  customers?: {
+    id: string;
+    full_name: string;
+    phone?: string | null;
+    address?: string | null;
+  } | null;
+  // Drawer sections (from list query JOINs)
+  contract_events?: Record<string, unknown>[];
+  contract_checklists?: Record<string, unknown>[];
+  work_tasks?: Record<string, unknown>[];
+  payment_plans?: Record<string, unknown>[];
+  contract_notes?: { id: string; content: string; created_by: string; created_at: string }[];
+}
+
 interface ContractDrawerProps {
-  contractId: string | null;
+  contract: ContractListItem | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -55,304 +79,207 @@ function getStatusVariant(
   return CONTRACT_STATUS_MAP[status]?.variant || "info";
 }
 
-// ─── SKELETON ────────────────────────────────────
-
-function DrawerSkeleton() {
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="skeleton skeleton-title w-48" />
-      <div className="skeleton skeleton-text w-full" />
-      <div className="skeleton skeleton-text w-3/4" />
-      <div className="skeleton h-2 w-full rounded-full mt-2" />
-      <div className="skeleton skeleton-text w-2/3 mt-4" />
-      <div className="skeleton skeleton-text w-full" />
-      <div className="skeleton skeleton-text w-full" />
-    </div>
-  );
-}
-
 // ─── MAIN COMPONENT ─────────────────────────────
 
 export function ContractDrawer({
-  contractId,
+  contract,
   isOpen,
   onClose,
 }: ContractDrawerProps) {
   const router = useRouter();
-  const { contract, paymentPlans, isLoading } =
-    useContractDetail(contractId);
-
-  const c = contract as Record<string, unknown> | null;
+  const contractId = contract?.id || null;
 
   // ── Drawer title: Mã HĐ ──
-  const contractCode = (c?.contract_code as string) || "...";
+  const contractCode = contract?.contract_code || "...";
 
-  // Header right: print button
+  // Status badge for header
+  const status = contract?.status || "cho_xu_ly";
+  const titleBadge = (
+    <Badge variant={getStatusVariant(status)}>
+      {getStatusLabel(status)}
+    </Badge>
+  );
+
+  // Header right: edit + print
   const headerRight = contractId ? (
-    <a
-      href={`/contracts/${contractId}/print`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="p-1.5 rounded-lg hover:bg-hover transition-colors"
-      title="In hợp đồng"
-    >
-      <Printer className="w-4 h-4 text-text-secondary" />
-    </a>
+    <>
+      <button
+        onClick={() => {
+          onClose();
+          router.push(`/contracts/${contractId}/edit`);
+        }}
+        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+        title="Sửa hợp đồng"
+      >
+        <Pencil className="w-4 h-4 text-text-secondary" />
+      </button>
+      <a
+        href={`/contracts/${contractId}/print`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+        title="In hợp đồng"
+      >
+        <Printer className="w-4 h-4 text-text-secondary" />
+      </a>
+    </>
   ) : null;
 
+  if (!contract || !isOpen) return null;
+
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={contractCode} headerRight={headerRight}>
-      {isLoading || !c ? (
-        <DrawerSkeleton />
-      ) : (
-        <DrawerContent
-          contract={c}
-          contractId={contractId!}
-          paymentPlans={paymentPlans as Record<string, unknown>[]}
-          onViewDetail={() => {
-            onClose();
-            router.push(`/contracts/${contractId}`);
-          }}
-          onEdit={() => {
-            onClose();
-            router.push(`/contracts/${contractId}/edit`);
-          }}
-        />
-      )}
+    <Drawer isOpen={isOpen} onClose={onClose} title={contractCode} titleBadge={titleBadge} headerRight={headerRight}>
+      <DrawerContent
+        contract={contract}
+        onViewDetail={() => {
+          onClose();
+          router.push(`/contracts/${contractId}`);
+        }}
+      />
     </Drawer>
   );
 }
 
-// ─── CONTENT (split to keep main < 250 LOC) ─────
+// ─── CONTENT ─────────────────────────────────────
 
 function DrawerContent({
   contract: c,
-  contractId,
-  paymentPlans,
   onViewDetail,
-  onEdit,
 }: {
-  contract: Record<string, unknown>;
-  contractId: string;
-  paymentPlans: Record<string, unknown>[];
+  contract: ContractListItem;
   onViewDetail: () => void;
-  onEdit: () => void;
 }) {
-  const status = (c.status as ContractStatus) || "cho_xu_ly";
-  const totalAmount = Number(c.total_amount) || 0;
-  const paidAmount = Number(c.paid_amount) || 0;
-  const remainingAmount = Number(c.remaining_amount) || 0;
+  const totalAmount = c.total_amount || 0;
+  const paidAmount = c.paid_amount || 0;
+  const remainingAmount = c.remaining_amount || 0;
   const paidPct =
     totalAmount > 0 ? Math.min(100, Math.round((paidAmount / totalAmount) * 100)) : 0;
   const isFullyPaid = remainingAmount === 0 && totalAmount > 0;
 
-  // Customer info from FK join
-  const customer = c.customers as {
-    full_name?: string;
-    phone?: string;
-    address?: string;
-  } | null;
+  const customer = c.customers;
+  const workDate = c.work_date;
 
-  // Date fields
-  const workDate = c.work_date as string | null;
-  const dressReturnDate = c.dress_return_date as string | null;
-
-  // Events from FK join
-  const contractEvents = (c.contract_events || []) as Array<{
-    id: string;
-    event_type: string;
-    title?: string;
-    event_date: string | null;
-    end_date?: string | null;
-    location: string | null;
-    status: string;
-    notes?: string | null;
-  }>;
-
-  // Work tasks from FK join
-  const workTasks = (c.work_tasks || []) as Array<{
-    id: string;
-    work_type: string;
-    assigned_to: string | null;
-    status: string;
-    deadline: string | null;
-    start_date?: string | null;
-    completion_date?: string | null;
-    cost: number;
-    notes: string | null;
-    employees?: { id: string; full_name: string } | null;
-  }>;
-
-  // Checklists from FK join
-  const checklists = (c.contract_checklists || []) as Array<{
-    id: string;
-    event_stage: string | null;
-    category: string;
-    item_name: string;
-    is_completed: boolean;
-  }>;
+  // All drawer sections from list data (0ms)
+  const events = c.contract_events || [];
+  const checklists = c.contract_checklists || [];
+  const workTasks = c.work_tasks || [];
+  const paymentPlans = c.payment_plans || [];
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ── Status badge ── */}
-      <div>
-        <Badge variant={getStatusVariant(status)} dot>
-          {getStatusLabel(status)}
-        </Badge>
-      </div>
 
-      {/* ── Section: Khách hàng ── */}
+      {/* ── Section: Khách hàng (V1-inspired avatar + pills) ── */}
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-          Khách hàng
-        </h4>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2.5">
-            <User className="w-4 h-4 text-text-muted shrink-0" />
-            <span className="text-body-sm font-medium text-text-main">
+        {/* Avatar row: clickable → detail */}
+        <button onClick={onViewDetail} className="flex items-center gap-3 group w-full text-left">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+            {(customer?.full_name || "K")[0].toUpperCase()}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <h3 className="text-body-sm font-bold text-text-main group-hover:text-primary truncate">
               {customer?.full_name || "Chưa có"}
-            </span>
-          </div>
-          {customer?.phone && (
-            <div className="flex items-center gap-2.5">
-              <Phone className="w-4 h-4 text-text-muted shrink-0" />
-              <span className="text-body-sm text-text-secondary">
-                {customer.phone}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-2.5">
-            <CalendarCheck className="w-4 h-4 text-text-muted shrink-0" />
-            <span className="text-body-sm text-text-secondary">
-              {getServiceLabel(
-                (c.service_type as ServiceType) || "studio"
+            </h3>
+            <div className="flex items-center gap-3 text-tiny text-text-muted">
+              {customer?.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  {customer.phone}
+                </span>
               )}
+              {customer?.address && (
+                <span className="flex items-center gap-1 truncate">
+                  <MapPin className="w-3 h-3" />
+                  {customer.address}
+                </span>
+              )}
+            </div>
+          </div>
+        </button>
+
+        {/* Pill cards: Service + Work date (V1-style side by side) */}
+        <div className="flex gap-2 mt-3">
+          <div className="flex-1 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+            <span className="text-tiny font-bold text-primary/70 uppercase block">Dịch vụ</span>
+            <span className="text-body-sm font-bold text-primary truncate block">
+              {getServiceLabel((c.service_type || "studio") as ServiceType)}
             </span>
           </div>
-          {customer?.address && (
-            <div className="flex items-center gap-2.5">
-              <MapPin className="w-4 h-4 text-text-muted shrink-0" />
-              <span className="text-body-sm text-text-secondary truncate">
-                {customer.address}
-              </span>
-            </div>
-          )}
-          {workDate && (
-            <div className="flex items-center gap-2.5">
-              <Calendar className="w-4 h-4 text-text-muted shrink-0" />
-              <span className="text-body-sm text-text-secondary">
-                Ngày làm: {formatDate(workDate)}
-              </span>
-            </div>
-          )}
-          {dressReturnDate && (
-            <div className="flex items-center gap-2.5">
-              <CalendarCheck className="w-4 h-4 text-text-muted shrink-0" />
-              <span className="text-body-sm text-text-secondary">
-                Trả đồ: {formatDate(dressReturnDate)}
-              </span>
-            </div>
-          )}
+          <div className="flex-1 px-3 py-2 rounded-lg bg-warning/5 border border-warning/10">
+            <span className="text-tiny font-bold text-warning/70 uppercase block">Ngày làm</span>
+            <span className="text-body-sm font-bold text-text-main truncate block">
+              {workDate ? formatDate(workDate) : "—"}
+            </span>
+          </div>
         </div>
       </section>
 
-      {/* ── Section: Tài chính ── */}
+      {/* ── Section: Thanh toán (Finance + Payment Schedule merged) ── */}
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-          Tài chính
-        </h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
+            Thanh toán
+          </h4>
+          <span className={`text-caption font-black ${isFullyPaid ? "text-success" : "text-primary"}`}>
+            {paidPct}%
+          </span>
+        </div>
 
-        {/* Amount grid */}
-        <div className="grid grid-cols-3 gap-3 mb-3">
-          <div>
-            <p className="text-tiny text-text-muted">Tổng</p>
-            <p className="text-body-sm font-bold text-text-main">
+        {/* Amount grid with dividers (matching mockup) */}
+        <div className="flex items-stretch mb-3">
+          <div className="flex-1 text-center">
+            <span className="text-tiny font-bold text-text-muted uppercase block">Tổng</span>
+            <span className="text-body-sm font-black text-text-main block">
               {fmt(totalAmount)}
-            </p>
+            </span>
           </div>
-          <div>
-            <p className="text-tiny text-text-muted">Đã thu</p>
-            <p className="text-body-sm font-bold text-success">
+          <div className="w-px bg-border/50 my-1" />
+          <div className="flex-1 text-center">
+            <span className="text-tiny font-bold text-text-muted uppercase block">Đã thu</span>
+            <span className="text-body-sm font-black text-success block">
               {fmt(paidAmount)}
-            </p>
+            </span>
           </div>
-          <div>
-            <p className="text-tiny text-text-muted">Còn lại</p>
-            <p
-              className={`text-body-sm font-bold ${
-                isFullyPaid ? "text-success" : "text-error"
-              }`}
-            >
+          <div className="w-px bg-border/50 my-1" />
+          <div className="flex-1 text-center">
+            <span className="text-tiny font-bold text-text-muted uppercase block">Còn lại</span>
+            <span className={`text-body-sm font-black block ${isFullyPaid ? "text-success" : "text-error"}`}>
               {fmt(remainingAmount)}
-            </p>
+            </span>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="h-2 rounded-full bg-border/30 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-border/30 overflow-hidden mb-3">
           <div
-            className={`h-full rounded-full transition-all ${
-              isFullyPaid ? "bg-success" : "bg-primary"
-            }`}
+            className={`h-full rounded-full transition-all duration-700 ${isFullyPaid ? "bg-success" : "bg-primary"}`}
             style={{ width: `${paidPct}%` }}
           />
         </div>
-        <p className="text-tiny text-text-muted mt-1 text-right">
-          {paidPct}% đã thanh toán
-        </p>
-      </section>
 
-      {/* ── Section: Event Timeline ── */}
-      <DrawerEventTimeline events={contractEvents} />
-
-      {/* ── Section: Checklist ── */}
-      <DrawerChecklist items={checklists} />
-
-      {/* ── Section: Timeline thanh toán ── */}
-      <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-          Lịch thanh toán
-        </h4>
-
-        {paymentPlans.length === 0 ? (
-          <p className="text-body-sm text-text-muted italic">
-            Chưa có lịch thanh toán
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2.5">
+        {/* Payment schedule inline (merged from separate section) */}
+        {paymentPlans.length > 0 && (
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-dashed border-border/50">
             {paymentPlans.map((plan) => {
-              const planId = plan.id as string;
-              const label = (plan.label as string) || "Đợt thanh toán";
-              const amount = Number(plan.amount) || 0;
-              const isPaid = (plan.status as string) === "paid";
-              const dueDate = plan.due_date as string | null;
-
+              const p = plan as Record<string, unknown>;
+              const isPaid = p.status === "paid";
               return (
-                <div key={planId} className="flex items-start gap-2.5">
+                <div key={String(p.id)} className="flex items-center gap-2">
                   {isPaid ? (
-                    <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                    <CheckCircle className="w-3.5 h-3.5 text-success shrink-0" />
                   ) : (
-                    <Circle className="w-4 h-4 text-text-muted shrink-0 mt-0.5" />
+                    <Circle className="w-3.5 h-3.5 text-text-muted shrink-0" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-body-sm font-medium ${
-                          isPaid ? "text-text-muted line-through" : "text-text-main"
-                        }`}
-                      >
-                        {label}
-                      </span>
-                      <span className="text-body-sm font-semibold text-text-main">
-                        {fmt(amount)}
-                      </span>
-                    </div>
-                    {dueDate && (
-                      <p className="text-tiny text-text-muted">
-                        {isPaid ? "Đã thu" : "Hạn"}: {formatDate(dueDate)}
-                      </p>
-                    )}
-                  </div>
+                  <span className={`text-tiny font-medium flex-1 ${isPaid ? "text-text-muted line-through" : "text-text-main"}`}>
+                    {(p.stage_name as string) || "Đợt"}
+                  </span>
+                  <span className="text-tiny font-bold text-text-main">
+                    {fmt(Number(p.amount) || 0)}
+                  </span>
+                  {typeof p.due_date === "string" && p.due_date && !isPaid && (
+                    <span className="text-tiny text-text-muted">
+                      ({formatDate(p.due_date)})
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -360,23 +287,80 @@ function DrawerContent({
         )}
       </section>
 
-      {/* ── Section: Nhân sự phân công ── */}
-      <DrawerAssignments tasks={workTasks} />
+      {/* ── Section: Operations Tabs (Events / Checklist / Nhân sự) ── */}
+      <OperationsTabs
+        events={events}
+        checklists={checklists}
+        workTasks={workTasks}
+      />
 
-      {/* ── Section: Ghi chú ── */}
-      {contractId && <DrawerNotes contractId={contractId} />}
+      {/* ── Section: Ghi chú (instant from list data) ── */}
+      {c.id && <DrawerNotes contractId={c.id} initialNotes={c.contract_notes} />}
 
-      {/* ── Footer: Action buttons ── */}
-      <div className="flex gap-3 pt-2">
-        <button onClick={onViewDetail} className="btn btn-primary flex-1 gap-2">
+      {/* ── Footer: Action button ── */}
+      <div className="pt-2">
+        <button onClick={onViewDetail} className="btn btn-primary w-full gap-2">
           <ExternalLink className="w-4 h-4" />
-          Xem chi tiết
-        </button>
-        <button onClick={onEdit} className="btn btn-secondary flex-1 gap-2">
-          <Pencil className="w-4 h-4" />
-          Sửa
+          Xem chi tiết hồ sơ
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── OPERATIONS TABS ─────────────────────────────
+
+const TABS = [
+  { key: "events", label: "📅 Sự kiện" },
+  { key: "checklist", label: "✅ Checklist" },
+  { key: "staff", label: "👥 Nhân sự" },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
+
+function OperationsTabs({
+  events,
+  checklists,
+  workTasks,
+}: {
+  events: Record<string, unknown>[];
+  checklists: Record<string, unknown>[];
+  workTasks: Record<string, unknown>[];
+}) {
+  const [activeTab, setActiveTab] = useState<TabKey>("events");
+
+  return (
+    <div>
+      {/* Tab buttons */}
+      <div className="flex gap-1 mb-3 bg-neutral-100/60 rounded-xl p-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex-1 py-2 px-3 rounded-lg text-body-sm font-semibold transition-all ${
+              activeTab === tab.key
+                ? "bg-bg-base text-text-main shadow-md"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === "events" && (
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        <DrawerEventTimeline events={events as any[]} />
+      )}
+      {activeTab === "checklist" && (
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        <DrawerChecklist items={checklists as any[]} />
+      )}
+      {activeTab === "staff" && (
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        <DrawerAssignments tasks={workTasks as any[]} />
+      )}
     </div>
   );
 }

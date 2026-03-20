@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-19T20:20:00+07:00"
+    "last_updated": "2026-03-20T13:48:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -76,29 +76,25 @@
       "UnifiedModal": "Standard modal wrapper for all CRUD forms",
       "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
       "StatusSelect": "Interactive status dropdown with color-coded logic",
-      "toast-utils": "Centralized notification system"
+      "toast-utils": "Centralized notification system",
+      "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views"
     }
   },
   "decisions": [
+    {
+      "date": "2026-03-20",
+      "decision": "Compact Create Header: breadcrumb > title+desc block on desktop.",
+      "reason": "Saves vertical space and reduces redundancy."
+    },
     {
       "date": "2026-03-18",
       "decision": "All mutations MUST go through Server Actions (withAuth). No direct client-side Supabase writes in V2 detail components.",
       "reason": "Security, atomic transactions, and better SSR/Server Component alignment."
     },
     {
-      "date": "2026-03-18",
-      "decision": "Use revalidateContractCaches(contractId) as the standard invalidation pattern after mutations.",
-      "reason": "Ensures all SWR tags (detail, items, payments, etc.) are refreshed consistently."
-    },
-    {
-      "date": "2026-03-19",
-      "decision": "Inventory Return logic: Marking a reservation as 'returned' automatically updates its inventory_item to 'available'.",
-      "reason": "V2 automated inventory management — reduces manual status updates."
-    },
-    {
       "date": "2026-03-19",
       "decision": "Use ScrollContainerContext for all scroll-based logic instead of window.scrollY.",
-      "reason": "AppShell root is overflow-hidden, window.scrollY is always 0. Real scroll happens in #main-scroll."
+      "reason": "AppShell root is overflow-hidden, window.scrollY is always 0."
     }
   ]
 }

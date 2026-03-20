@@ -4,15 +4,13 @@
  * 📝 DrawerNotes — Quick notes view with add capability
  *
  * Shows recent notes (3 max) + input for adding new ones.
- * Uses existing server actions from note-actions.ts.
+ * Uses SWR for caching + optimistic add via mutate().
  */
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { MessageSquare, Send } from "lucide-react";
-import {
-  getContractNotes,
-  addContractNote,
-} from "@/app/actions/note-actions";
+import { addContractNote } from "@/app/actions/note-actions";
+import { useContractNotes } from "@/lib/hooks/use-contract-notes";
 import { toast } from "sonner";
 
 // ─── TYPES ───────────────────────────────────────
@@ -26,6 +24,7 @@ interface Note {
 
 interface DrawerNotesProps {
   contractId: string;
+  initialNotes?: { id: string; content: string; created_by: string; created_at: string }[];
 }
 
 // ─── HELPERS ─────────────────────────────────────
@@ -44,32 +43,22 @@ function formatTime(dateStr: string) {
 
 const MAX_VISIBLE = 3;
 
-export function DrawerNotes({ contractId }: DrawerNotesProps) {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
+export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
+  const { notes, isLoading: loading, mutate } = useContractNotes(contractId, initialNotes);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch notes on mount
-  useEffect(() => {
-    if (!contractId) return;
-    setLoading(true);
-    getContractNotes(contractId)
-      .then((result) => {
-        if (result.success && result.data) {
-          setNotes(result.data as Note[]);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [contractId]);
+  const [optimisticNotes, setOptimisticNotes] = useState<Note[]>([]);
+
+  // Combine server notes + optimistic
+  const allNotes = [...notes, ...optimisticNotes];
 
   const handleSend = useCallback(async () => {
     const trimmed = input.trim();
     if (!trimmed || sending) return;
 
-    // Optimistic add
+    // Optimistic add via local state
     const tempId = `temp-${Date.now()}`;
     const optimistic: Note = {
       id: tempId,
@@ -78,24 +67,27 @@ export function DrawerNotes({ contractId }: DrawerNotesProps) {
       created_at: new Date().toISOString(),
     };
 
-    setNotes((prev) => [...prev, optimistic]);
+    setOptimisticNotes((prev) => [...prev, optimistic]);
     setInput("");
     setSending(true);
 
     try {
       const res = await addContractNote(contractId, trimmed);
       if (!res.success) {
-        setNotes((prev) => prev.filter((n) => n.id !== tempId));
         toast.error("Lỗi khi gửi ghi chú");
       }
+      // Revalidate from server to get real data
+      await mutate();
+      setOptimisticNotes([]);
     } catch {
-      setNotes((prev) => prev.filter((n) => n.id !== tempId));
       toast.error("Lỗi kết nối!");
+      await mutate();
+      setOptimisticNotes([]);
     } finally {
       setSending(false);
       inputRef.current?.focus();
     }
-  }, [input, sending, contractId]);
+  }, [input, sending, contractId, mutate]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -104,14 +96,14 @@ export function DrawerNotes({ contractId }: DrawerNotesProps) {
     }
   };
 
-  const recentNotes = notes.slice(-MAX_VISIBLE);
-  const hiddenCount = notes.length - MAX_VISIBLE;
+  const recentNotes = allNotes.slice(-MAX_VISIBLE);
+  const hiddenCount = allNotes.length - MAX_VISIBLE;
 
   return (
     <section className="card-base p-4">
       <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
         <MessageSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
-        Ghi chú ({notes.length})
+        Ghi chú ({allNotes.length})
       </h4>
 
       {loading ? (
@@ -121,7 +113,7 @@ export function DrawerNotes({ contractId }: DrawerNotesProps) {
         </div>
       ) : (
         <>
-          {notes.length === 0 ? (
+          {allNotes.length === 0 ? (
             <p className="text-body-sm text-text-muted italic mb-3">
               Chưa có ghi chú
             </p>

@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Shirt, Search } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
@@ -169,10 +171,11 @@ export default function InventoryReservationForm({
               >
                 {/* Thumbnail */}
                 {item.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={item.image_url}
                     alt={item.name}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-lg object-cover shrink-0"
                   />
                 ) : (

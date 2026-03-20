@@ -6,11 +6,21 @@
  */
 
 import useSWR, { mutate } from "swr";
-import type { ContractFilters, ContractStats } from "@/types/contract";
+import type {
+  ContractFilters,
+  ContractStats,
+  Contract,
+  Payment,
+  PaymentPlan,
+  InventoryReservation,
+  PrintingOrder,
+  AuditLogEntry,
+} from "@/types/contract";
 import {
   getContracts,
   getContractStats,
   getContractById,
+  getContractDrawerExtra,
 } from "@/app/actions/contracts";
 
 // ─── Cache Key Factory ──────────────────────────────────
@@ -20,6 +30,7 @@ const contractKeys = {
     ["contracts", JSON.stringify(filters)] as const,
   stats: () => ["contract-stats"] as const,
   detail: (id: string) => ["contract", id] as const,
+  drawerExtra: (id: string) => ["contract-drawer-extra", id] as const,
 };
 
 // ─── useContracts ───────────────────────────────────────
@@ -87,13 +98,13 @@ export function useContractDetail(id: string | null) {
       if (!id) return null;
       const result = await getContractById(id);
       if (!result.success) throw new Error(result.error);
-      return result.data as {
-        contract: Record<string, unknown>;
-        payments: Record<string, unknown>[];
-        paymentPlans: Record<string, unknown>[];
-        reservations: Record<string, unknown>[];
-        printOrders: Record<string, unknown>[];
-        auditLogs: Record<string, unknown>[];
+      return result.data as unknown as {
+        contract: Contract;
+        payments: Payment[];
+        paymentPlans: PaymentPlan[];
+        reservations: InventoryReservation[];
+        printOrders: PrintingOrder[];
+        auditLogs: AuditLogEntry[];
       };
     },
     {
@@ -114,12 +125,46 @@ export function useContractDetail(id: string | null) {
   };
 }
 
+// ─── useContractDrawerExtra ─────────────────────────────
+// Lazy-loads drawer sections: events, checklists, tasks, payment plans.
+// Called AFTER drawer opens with instant partial data from list.
+
+export function useContractDrawerExtra(id: string | null) {
+  const { data, error, isLoading } = useSWR(
+    id ? contractKeys.drawerExtra(id) : null,
+    async () => {
+      if (!id) return null;
+      const result = await getContractDrawerExtra(id);
+      if (!result.success) throw new Error(result.error);
+      return result.data as {
+        events: Record<string, unknown>[];
+        checklists: Record<string, unknown>[];
+        workTasks: Record<string, unknown>[];
+        paymentPlans: PaymentPlan[];
+      };
+    },
+    {
+      revalidateOnFocus: false,
+    }
+  );
+
+  return {
+    events: data?.events || [],
+    checklists: data?.checklists || [],
+    workTasks: data?.workTasks || [],
+    paymentPlans: data?.paymentPlans || [],
+    isLoadingExtra: isLoading,
+    error,
+  };
+}
+
 // ─── Revalidation Helpers (ref: mcoffe lib/swr.ts) ──────
 
 /** Invalidate all contract-related SWR caches after mutation */
 export async function revalidateContractCaches(contractId?: string) {
   await Promise.all([
     contractId ? mutate(contractKeys.detail(contractId)) : Promise.resolve(),
+    contractId ? mutate(contractKeys.drawerExtra(contractId)) : Promise.resolve(),
     mutate((key: unknown) => {
       if (!Array.isArray(key)) return false;
       return key[0] === "contracts";
@@ -128,10 +173,10 @@ export async function revalidateContractCaches(contractId?: string) {
   ]);
 }
 
-/** Pre-warm SWR cache — call on hover for instant navigation */
+/** Pre-warm SWR cache for drawer — lightweight action (4 queries vs 6) */
 export function prefetchContract(id: string) {
-  const key = contractKeys.detail(id);
-  mutate(key, getContractById(id).then(r => r.success ? r.data : undefined), {
+  const key = contractKeys.drawerExtra(id);
+  mutate(key, getContractDrawerExtra(id).then(r => r.success ? r.data : undefined), {
     revalidate: false,
   });
 }

@@ -32,10 +32,9 @@ interface Props {
   formData: ContractFormData;
   updateField: <K extends keyof ContractFormData>(field: K, value: ContractFormData[K]) => void;
   showDeliveryDate: boolean;
-  isEditMode: boolean;
 }
 
-export function ContractInfoSection({ formData, updateField, showDeliveryDate, isEditMode }: Props) {
+export function ContractInfoSection({ formData, updateField, showDeliveryDate }: Props) {
   return (
     <section className="card-base border-l-4 border-accent p-6 space-y-4">
       <h3 className="form-section-heading">
@@ -92,9 +91,9 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, i
         </Field>
       </div>
 
-      {/* Contract code — mobile: always show, desktop: edit mode only */}
+      {/* Contract code — mobile only (desktop header badge already shows it) */}
       {formData.contract_code && (
-        <div className={isEditMode ? "" : "lg:hidden"}>
+        <div className="lg:hidden">
           <Field label="Mã hợp đồng">
             <div className="flex items-center gap-2 py-2">
               <Fingerprint className="h-4 w-4 text-interactive shrink-0" />
