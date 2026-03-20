@@ -96,7 +96,7 @@ export default function ContractForm({ mode, contractId }: Props) {
         <Link href="/contracts" className="btn-icon shrink-0 -ml-2">
           <ArrowLeft size={20} />
         </Link>
-        <span className="text-body font-semibold text-text-primary truncate">
+        <span className="text-base font-semibold text-text-primary truncate">
           {mode === "create" ? "Tạo hợp đồng mới" : "Sửa hợp đồng"}
         </span>
       </div>
@@ -105,7 +105,7 @@ export default function ContractForm({ mode, contractId }: Props) {
 
   /** Right slot: contract code badge */
   const headerRight = badgeCode ? (
-    <div className="max-lg:hidden flex items-center gap-2 rounded-md bg-interactive/10 text-interactive px-3 py-1.5 border border-interactive/20 shrink-0">
+    <div className="flex items-center gap-2 rounded-md bg-interactive/10 text-interactive px-3 py-1.5 border border-interactive/20 shrink-0">
       <Fingerprint className="h-3.5 w-3.5" />
       <span className="text-caption font-bold tracking-wider">
         {badgeCode}

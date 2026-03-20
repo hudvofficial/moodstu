@@ -346,6 +346,20 @@
 }
 .animate-modal-out { animation: modal-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
 
+/* Drawer — desktop slide from right */
+@keyframes drawer-slide-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-right { animation: drawer-slide-right 0.2s ease-out both; }
+
+/* Drawer — mobile bottom sheet slide up */
+@keyframes drawer-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-slide-in-up { animation: drawer-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
 /* Branded skeleton shimmer (earth-tone) */
 @keyframes shimmer {
   0%   { background-position: 200% 0; }

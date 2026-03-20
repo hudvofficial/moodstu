@@ -85,43 +85,41 @@ export function FormActions({
       )}
 
       {/* Fixed footer — hidden on desktop (right panel handles it) */}
-      <footer className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card shadow-[0_-2px_8px_rgba(0,0,0,0.06)] py-4 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        {/* Mobile layout */}
-        <div className="flex flex-col gap-3">
+      <footer className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card shadow-[0_-2px_8px_rgba(0,0,0,0.06)] py-3 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {/* Mobile: 3 buttons in 1 row */}
+        <div className="flex items-center gap-2">
+          {/* Hủy */}
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="btn btn-ghost flex-1 h-11 text-sm text-text-secondary border border-border-default"
+          >
+            Hủy
+          </button>
+
+          {/* Lưu nháp */}
+          {!isEditMode && onSaveDraft && (
+            <button
+              type="button"
+              onClick={onSaveDraft}
+              disabled={isSubmitting}
+              className="btn flex-1 h-11 text-sm text-interactive border border-interactive/30 hover:bg-interactive/5"
+            >
+              Lưu nháp
+            </button>
+          )}
+
+          {/* CTA chính */}
           <button
             type="button"
             onClick={onSubmit}
             disabled={isSubmitting}
-            className="btn btn-interactive w-full h-12 text-body font-semibold shadow-lg"
+            className="btn btn-interactive flex-1 h-11 text-sm font-semibold shadow-sm"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEditMode ? "Cập nhật hợp đồng" : "Tạo hợp đồng"}
+            {isEditMode ? "Cập nhật" : "Tạo HĐ"}
           </button>
-
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="btn btn-ghost text-text-secondary text-body-sm"
-            >
-              Hủy
-            </button>
-
-            {!isEditMode && onSaveDraft && (
-              <>
-                <span className="text-text-muted">·</span>
-                <button
-                  type="button"
-                  onClick={onSaveDraft}
-                  disabled={isSubmitting}
-                  className="btn text-interactive text-body-sm border border-interactive/20 px-3 py-1 rounded-radius-sm"
-                >
-                  Lưu bản nháp
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </footer>
     </>

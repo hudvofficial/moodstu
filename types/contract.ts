@@ -90,6 +90,7 @@ export interface Contract {
   contract_items?: ContractItem[];
   contract_events?: ContractEvent[];
   work_tasks?: WorkTask[];
+  contract_checklists?: ContractChecklist[];
 }
 
 /** Contract item from `contract_items` table */
@@ -147,6 +148,18 @@ export interface WorkTask {
   updated_at: string;
   // Joined
   employees?: { id: string; full_name: string } | null;
+}
+
+/** Contract checklist from `contract_checklists` table */
+export interface ContractChecklist {
+  id: string;
+  contract_id?: string;
+  event_stage: string | null;
+  category: string;
+  item_name: string;
+  is_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** Payment from `payments` table */

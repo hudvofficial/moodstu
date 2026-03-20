@@ -55,6 +55,7 @@ interface ContractsTableProps {
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onHover?: (id: string) => void;
 }
 
 // ─── TYPE HELPERS (safe accessors for Record) ────
@@ -74,7 +75,7 @@ function getArr(obj: Record<string, unknown>, key: string): Record<string, unkno
 
 // ─── DESKTOP TABLE ───────────────────────────────
 
-function DesktopTable({ contracts, customerMap, onView }: ContractsTableProps) {
+function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTableProps) {
   return (
     <div className="hidden lg:block card-base overflow-x-auto">
       <table className="w-full text-left border-collapse">
@@ -106,6 +107,7 @@ function DesktopTable({ contracts, customerMap, onView }: ContractsTableProps) {
               <tr
                 key={id}
                 onClick={() => onView(id)}
+                onMouseEnter={() => onHover?.(id)}
                 className={`hover:bg-bg-hover transition-colors group cursor-pointer h-14 ${isCancelled ? "opacity-50" : ""}`}
               >
                 <td className="px-4 whitespace-nowrap">
@@ -142,7 +144,7 @@ function DesktopTable({ contracts, customerMap, onView }: ContractsTableProps) {
                   )}
                 </td>
                 <td className="px-4 text-center">
-                  <MissingInfoBadge items={[]} />
+                  <MissingInfoBadge items={(getArr(c, "contract_checklists") as { id: string; contract_id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean; created_at: string; updated_at: string }[])} />
                 </td>
                 <td className="px-4">
                   <ProgressBadge tasks={getArr(c, "work_tasks") as { id: string; work_type: string; status: string; deadline: string | null }[]} />

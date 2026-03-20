@@ -26,6 +26,7 @@ import ActivityLog from "./activity-log";
 import FilesDrivePlaceholder from "./files-drive-placeholder";
 import QuickActionsGrid from "./quick-actions-grid";
 import ChecklistBlock from "./checklist-block";
+import ContractChecklistManager from "./checklist-manager";
 import MobileBottomBar from "./mobile-bottom-bar";
 import MobileTabNav from "./mobile-tab-nav";
 import PaymentReceiptForm from "./payment-receipt-form";
@@ -264,6 +265,11 @@ export default function ContractDetailClient({
               {/* Checklist (Stitch: after File/Drive) */}
               <ChecklistBlock tasks={contract.work_tasks || []} />
 
+              {/* Chuẩn bị (checklist từ templates) */}
+              <ContractChecklistManager
+                initialChecklists={(contract.contract_checklists || []) as { id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean }[]}
+              />
+
               {/* Hoạt động gần đây */}
               <ActivityLog logs={auditLogs} />
             </div>
@@ -327,6 +333,11 @@ export default function ContractDetailClient({
             <div id="section-checklist">
               <ChecklistBlock tasks={contract.work_tasks || []} />
             </div>
+
+            {/* 6b. Chuẩn bị (checklist từ templates) */}
+            <ContractChecklistManager
+              initialChecklists={(contract.contract_checklists || []) as { id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean }[]}
+            />
 
             {/* 7. Thao tác nhanh (Stitch 249-277) */}
             <div id="section-actions">

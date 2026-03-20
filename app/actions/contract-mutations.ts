@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
+import { generateChecklists } from "@/app/actions/checklist-actions";
 import type { ContractStatus } from "@/types/contract";
 
 // ═══════════════════════════════════════════
@@ -221,6 +222,11 @@ export async function submitContract(rawData: unknown) {
       });
       if (payError)
         throw new Error(`Lỗi tạo phiếu thu: ${payError.message}`);
+    }
+
+    // ── Auto-generate checklists (CREATE only, non-blocking) ──
+    if (!data.existingContractId && contractId && data.formData.service_type) {
+      generateChecklists(contractId, data.formData.service_type).catch(() => {});
     }
 
     revalidatePath("/contracts");

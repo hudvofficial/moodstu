@@ -44,7 +44,8 @@ export async function getContracts(filters: ContractFilters) {
          remaining_amount, status, payment_status,
          updated_at, created_at,
          customers (id, customer_code, full_name, phone),
-         work_tasks (id, work_type, status, deadline)`,
+         work_tasks (id, work_type, status, deadline),
+         contract_checklists (id, event_stage, category, item_name, is_completed)`,
         { count: "estimated" }
       )
       .is("deleted_at", null)
@@ -221,6 +222,9 @@ export async function getContractById(id: string) {
           id, work_type, assigned_to, status, deadline,
           start_date, completion_date, cost, notes,
           employees:assigned_to (id, full_name)
+        ),
+        contract_checklists (
+          id, event_stage, category, item_name, is_completed, created_at, updated_at
         )`
       )
       .eq("id", id)

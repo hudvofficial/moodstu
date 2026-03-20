@@ -13,10 +13,11 @@ import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
-import { useContracts, useContractStats } from "@/lib/hooks/use-contracts";
+import { useContracts, useContractStats, prefetchContract } from "@/lib/hooks/use-contracts";
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
+import { ContractDrawer } from "@/components/contracts/contract-drawer";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
@@ -100,8 +101,13 @@ function ContractsListInner() {
     return tab;
   });
 
+  // ── Drawer state ──
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isDrawerOpen = selectedId !== null;
+
   // Handlers
-  const handleView = (id: string) => router.push(`/contracts/${id}`);
+  const handleView = (id: string) => setSelectedId(id);
+  const handleHover = (id: string) => prefetchContract(id);
   const handleEdit = (id: string) => router.push(`/contracts/${id}/edit`);
   const handleDelete = (id: string) => void id; // TODO: Phase 05
 
@@ -119,7 +125,8 @@ function ContractsListInner() {
     }
   }
 
-  return (
+    return (
+    <>
     <div className="main-container gap-3! pt-3!">
       {/* ── Stats Bar ── */}
       <div className="lg:hidden">
@@ -248,6 +255,7 @@ function ContractsListInner() {
             onView={handleView}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onHover={handleHover}
           />
 
           {/* ── Pagination ── */}
@@ -266,6 +274,14 @@ function ContractsListInner() {
         </>
       )}
     </div>
+
+      {/* ── Contract Drawer ── */}
+      <ContractDrawer
+        contractId={selectedId}
+        isOpen={isDrawerOpen}
+        onClose={() => setSelectedId(null)}
+      />
+    </>
   );
 }
 

@@ -108,7 +108,7 @@ export function ContractCustomerSection({
               )}
               <input
                 type="text"
-                value={customer.selectedCustomer?.full_name ?? customer.searchQuery}
+                value={customer.searchQuery}
                 onChange={(e) => customer.setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm khách hàng..."
                 readOnly={!!customer.selectedCustomer}
@@ -197,10 +197,10 @@ export function ContractCustomerSection({
             <button
               type="button"
               onClick={customer.openCreateCustomer}
-              className="flex items-center gap-1.5 text-interactive text-sm font-semibold hover:underline whitespace-nowrap"
+              className="flex items-center gap-1.5 text-interactive text-sm font-semibold hover:underline whitespace-nowrap shrink-0"
             >
               <UserPlus className="h-4 w-4" />
-              Tạo khách hàng mới
+              <span className="max-lg:hidden">Tạo khách hàng mới</span>
             </button>
           )}
         </div>

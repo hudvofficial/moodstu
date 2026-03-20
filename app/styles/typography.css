@@ -136,12 +136,20 @@
 }
 
 /* Search container inline — cạnh title, giới hạn width */
-/* Giữ search + action sát nhau, không stretch full width */
+/* Mobile: margin nhỏ, full flex. Desktop: margin lớn + max-width */
 .section-search-inline {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 1 1 0%;
-  max-width: 28rem; /* max-w-md — match Stitch L122 */
-  margin-left: 32px; /* ml-8 — Stitch L122 */
+  min-width: 0;
+  margin-left: 12px;
+}
+
+@media (min-width: 1024px) {
+  .section-search-inline {
+    gap: 16px;
+    max-width: 28rem; /* max-w-md — match Stitch L122 */
+    margin-left: 32px; /* ml-8 — Stitch L122 */
+  }
 }
