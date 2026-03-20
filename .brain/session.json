@@ -1,64 +1,88 @@
 {
-  "updated_at": "2026-03-20T13:48:00+07:00",
+  "updated_at": "2026-03-20T15:15:00+07:00",
   "working_on": {
-    "feature": "Contract Detail Enhancement",
-    "task": "Mocking events and tasks for testing full detail view",
-    "status": "implementing",
+    "feature": "Contract Module Polish",
+    "task": "CustomerFormModal bugfix — ALL DONE",
+    "status": "completed",
     "files": [
-      "components/contracts/detail/contract-detail-client.tsx",
-      "components/contracts/detail/event-timeline.tsx"
+      "components/contracts/form/modals/CustomerFormModal.tsx"
     ],
     "blockers": [],
-    "notes": "Đã sửa xong UI Drawer và Compact Header. Đang thực hiện mock data event để gửi sếp xem báo cáo."
+    "notes": "Tất cả 10 bugs (B1-B10) đã fix. B10 (debounce phone check 500ms) là fix cuối cùng. Verified trên browser."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-20T13:45:00+07:00",
-      "type": "ui",
-      "description": "Compact Header for Create Contract page. Removed redundant desktop title/desc block to save ~80px vertical space.",
-      "files": ["components/contracts/form/index.tsx"],
+      "timestamp": "2026-03-20T15:00:00+07:00",
+      "type": "bugfix",
+      "description": "B10: Phone dedup check — thêm debounce 500ms bằng useRef+setTimeout. Tránh spam API mỗi keystroke.",
+      "files": ["components/contracts/form/modals/CustomerFormModal.tsx"],
       "verified": true
     },
     {
-      "timestamp": "2026-03-20T13:30:00+07:00",
-      "type": "ui",
-      "description": "Apple-style Segmented Control for Contract Drawer tabs. Improved background contrast and active tab elevation (shadow-md).",
-      "files": ["components/contracts/contract-drawer.tsx"],
+      "timestamp": "2026-03-20T14:50:00+07:00",
+      "type": "audit",
+      "description": "CustomerFormModal full audit: B1-B9 đã fix trước đó. createCustomer (crm.ts) đã có bride_name/groom_name insert. showCoupleFields logic đúng (studio=true).",
+      "files": [
+        "components/contracts/form/modals/CustomerFormModal.tsx",
+        "app/actions/crm.ts",
+        "types/crm.ts",
+        "types/contract-form.ts"
+      ],
       "verified": true
     },
     {
-      "timestamp": "2026-03-19T20:20:00+07:00",
-      "type": "architecture",
-      "description": "Refactor useScrollDirection hook to support explicit containerRef. Introduced ScrollContainerContext.",
-      "files": ["hooks/use-scroll-direction.ts", "contexts/scroll-container.tsx", "components/layout/app-shell.tsx"],
+      "timestamp": "2026-03-20T14:28:00+07:00",
+      "type": "plan-update",
+      "description": "Mock Contract Events plan (260320-1400): Cập nhật status tất cả 8 phases → Done. DB confirmed: 4 events, 9 tasks, 10 checklists, 3 payment_plans, 2 reservations, 3 notes.",
+      "files": ["plans/260320-1400-mock-contract-events/plan.md"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-20T14:16:00+07:00",
+      "type": "data",
+      "description": "Full mock data cho HĐ-0003: 4 events + 9 tasks + 10 checklists + 3 payment_plans + 2 reservations + 3 notes + delivery_date",
+      "files": [],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "Xóa block title+desc ở Desktop page /create",
-      "reason": "Breadcrumb đã đủ context, tiết kiệm không gian dọc cho form."
+      "decision": "CustomerFormModal B5+B6 đã fix sẵn trong crm.ts (line 173-175, 142-143)",
+      "reason": "Code đã có bride_name/groom_name trong cả INSERT lẫn phone-dedup UPDATE path."
     },
     {
-      "decision": "Dùng shadow-md cho active tab trong drawer",
-      "reason": "Tạo độ nổi bật (elevation) mà không cần viền border thô cứng (user preferred)."
+      "decision": "showCoupleFields default = true (khi service_type = studio)",
+      "reason": "WEDDING_SERVICE_TYPES = [studio, ngay_cuoi, combo]. Default service = studio → couple fields hiện mặc định là ĐÚNG."
+    },
+    {
+      "decision": "Debounce phone check 500ms bằng useRef+setTimeout",
+      "reason": "Pattern React chuẩn, không cần thêm dependency (lodash/usehooks-ts). Đơn giản, hiệu quả."
     }
   ],
   "pending_tasks": [
     {
-      "task": "Mock data events & tasks cho hợp đồng cụ thể",
-      "priority": "high",
-      "notes": "Dùng Supabase execute_sql để tạo data cho user báo cáo sếp."
+      "task": "Fix empty gap: Header ẩn để lại khoảng trống trên /contracts/create",
+      "priority": "low",
+      "notes": "Cần sửa Header.tsx hoặc FullpageFormShell.tsx. Cosmetic issue."
+    }
+  ],
+  "completed_plans": [
+    {
+      "plan": "260320-1400-mock-contract-events",
+      "status": "complete",
+      "summary": "Full mock data cho HĐ-0003 (Combo 68M, Lê Thị Y Linh). 8/8 phases done."
     },
     {
-      "task": "Fix empty gap: Thêm negative margin (-mb-16) khi header ẩn",
-      "priority": "high",
-      "notes": "Cần sửa Header.tsx và FullpageFormShell.tsx."
-    },
+      "plan": "260319-1452-customer-form-bugfix",
+      "status": "complete",
+      "summary": "CustomerFormModal 10 bugs (B1-B10) all fixed. Phase A (UI) + Phase B (data) + B10 (debounce)."
+    }
+  ],
+  "errors_encountered": [
     {
-      "task": "CustomerFormModal.tsx: Phase A fixes",
-      "priority": "critical",
-      "notes": "Label 'Tên khách hàng *', xóa block Nguồn + DatePicker."
+      "error": "Agent terminated due to error — context window quá dài",
+      "solution": "Mở conversation mới + /recap. Session dài > 20 messages + nhiều browser subagent = dễ crash.",
+      "resolved": true
     }
   ]
 }

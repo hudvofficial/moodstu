@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createCustomer } from "@/app/actions/crm";
 import { searchCustomers } from "@/app/actions/contract-queries";
@@ -51,6 +51,7 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [phoneDupWarning, setPhoneDupWarning] = useState("");
+  const phoneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateField = useCallback(
     <K extends keyof CustomerFormData>(field: K, value: CustomerFormData[K]) => {
@@ -149,7 +150,11 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
             value={form.phone}
             onChange={(e) => {
               updateField("phone", e.target.value);
-              checkPhoneDuplicate(e.target.value);
+              // B10: Debounce 500ms — tránh spam API mỗi keystroke
+              if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
+              phoneDebounceRef.current = setTimeout(() => {
+                checkPhoneDuplicate(e.target.value);
+              }, 500);
             }}
             placeholder="0901234567"
             className="input-base"
