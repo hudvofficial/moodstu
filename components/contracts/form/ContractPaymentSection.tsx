@@ -4,6 +4,11 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials";
+import {
+  PAYMENT_METHOD_MAP,
+  PAYMENT_STAGE_MAP,
+  PAYMENT_STATUS_MAP,
+} from "@/types/contract-constants";
 
 // ═══════════════════════════════════════════
 // ContractPaymentSection — CREATE mode only
@@ -11,24 +16,16 @@ import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials"
 // Hidden on edit (V1-proven UX)
 // ═══════════════════════════════════════════
 
-const PAYMENT_METHODS = [
-  { value: "tien_mat", label: "Tiền mặt" },
-  { value: "chuyen_khoan", label: "Chuyển khoản" },
-];
+// ─── Options from SSOT ────────────────────────
+const PAYMENT_METHODS = Object.entries(PAYMENT_METHOD_MAP).map(([value, label]) => ({ value, label }));
+const PAYMENT_STAGES = Object.entries(PAYMENT_STAGE_MAP).map(([value, label]) => ({ value, label }));
 
-const PAYMENT_STAGES = [
-  { value: "dat_coc", label: "Đặt cọc" },
-  { value: "thanh_toan_dot_1", label: "Thanh toán đợt 1" },
-  { value: "thanh_toan_dot_2", label: "Thanh toán đợt 2" },
-  { value: "tat_toan", label: "Tất toán" },
-];
-
-// Status badge config
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  chua_thanh_toan: { label: "Chưa thanh toán", className: "bg-text-muted/10 text-text-secondary" },
-  da_coc: { label: "Đã cọc", className: "bg-warning/10 text-warning" },
-  thanh_toan_mot_phan: { label: "Thanh toán một phần", className: "bg-info/10 text-info" },
-  da_thanh_toan: { label: "Đã thanh toán", className: "bg-success/10 text-success" },
+// Status badge config — labels from SSOT, styling local
+const STATUS_STYLES: Record<string, string> = {
+  chua_thanh_toan: "bg-text-muted/10 text-text-secondary",
+  da_coc: "bg-warning/10 text-warning",
+  thanh_toan_mot_phan: "bg-info/10 text-info",
+  da_thanh_toan: "bg-success/10 text-success",
 };
 
 interface Props {
@@ -43,7 +40,8 @@ export function ContractPaymentSection({ financials }: Props) {
     updatePaymentForm,
   } = financials;
 
-  const statusConfig = STATUS_CONFIG[paymentStatus] || STATUS_CONFIG.chua_thanh_toan;
+  const statusLabel = PAYMENT_STATUS_MAP[paymentStatus] || paymentStatus;
+  const statusStyle = STATUS_STYLES[paymentStatus] || STATUS_STYLES.chua_thanh_toan;
 
   return (
     <section>
@@ -52,8 +50,8 @@ export function ContractPaymentSection({ financials }: Props) {
           <h3 className="form-section-heading">
             5. Thanh toán ban đầu
           </h3>
-          <span className={`badge ${statusConfig.className}`}>
-            {statusConfig.label}
+          <span className={`badge ${statusStyle}`}>
+            {statusLabel}
           </span>
         </div>
 

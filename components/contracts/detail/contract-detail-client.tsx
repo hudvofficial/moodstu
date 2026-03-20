@@ -223,6 +223,10 @@ export default function ContractDetailClient({
                   customer={contract.customers || null}
                   notes={contract.notes}
                   embedded
+                  brideName={contract.bride_name}
+                  groomName={contract.groom_name}
+                  bridePhone={contract.bride_phone}
+                  groomPhone={contract.groom_phone}
                 />
               </div>
 
@@ -233,7 +237,7 @@ export default function ContractDetailClient({
               />
 
               {/* Thao tác nhanh (Stitch: main column, after events) */}
-              <QuickActionsGrid />
+              <QuickActionsGrid onAction={handleQuickAction} />
 
               {/* Service Details */}
               <ServiceDetailsBlock
@@ -254,6 +258,7 @@ export default function ContractDetailClient({
                 paidAmount={contract.paid_amount}
                 remainingAmount={contract.remaining_amount}
                 payments={payments}
+                onPaymentClick={() => setShowPaymentForm(true)}
               />
 
               {/* In ấn */}
@@ -272,6 +277,9 @@ export default function ContractDetailClient({
 
               {/* Hoạt động gần đây */}
               <ActivityLog logs={auditLogs} />
+
+              {/* Ghi chú (Phase 07B — match mobile) */}
+              <NotesTimeline contractId={contract.id} />
             </div>
           </div>
         </div>
@@ -294,6 +302,8 @@ export default function ContractDetailClient({
               totalAmount={contract.total_amount}
               paidAmount={contract.paid_amount}
               remainingAmount={contract.remaining_amount}
+              payments={payments}
+              onPaymentClick={() => setShowPaymentForm(true)}
             />
 
             {/* 3. WorkflowStepper (Stitch 103-137) */}
@@ -348,6 +358,19 @@ export default function ContractDetailClient({
             <div id="section-notes">
               <NotesTimeline contractId={contract.id} />
             </div>
+
+            {/* 9. Chi tiết dịch vụ (match desktop) */}
+            <ServiceDetailsBlock
+              items={contract.contract_items || []}
+              totalAmount={contract.total_amount}
+              discountAmount={contract.discount_amount}
+            />
+
+            {/* 10. Trang phục (match desktop) */}
+            <CostumesBlock reservations={reservations} contractId={contract.id} />
+
+            {/* 11. Hoạt động gần đây (match desktop) */}
+            <ActivityLog logs={auditLogs} />
           </div>
         </div>
       </div>
@@ -357,6 +380,7 @@ export default function ContractDetailClient({
         contractId={contract.id}
         isCancelled={isCancelled}
         remainingAmount={contract.remaining_amount}
+        onPaymentClick={() => setShowPaymentForm(true)}
       />
 
       {/* ── Quick Action Modals ── */}

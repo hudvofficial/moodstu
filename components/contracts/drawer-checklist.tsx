@@ -134,11 +134,11 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   if (total === 0) {
     return (
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-2 uppercase tracking-wide">
+        <h4 className="text-caption font-semibold text-text-secondary mb-2">
           <CheckSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
-          Checklist
+          Chuẩn bị
         </h4>
-        <p className="text-body-sm text-text-muted italic">Chưa có checklist</p>
+        <p className="text-body-sm text-text-muted italic">Chưa có checklist chuẩn bị</p>
       </section>
     );
   }
@@ -147,9 +147,9 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
     <section className="card-base p-4">
       {/* Header + Progress */}
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
+        <h4 className="text-caption font-semibold text-text-secondary">
           <CheckSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
-          Checklist
+          Chuẩn bị
         </h4>
         <span className={`text-tiny font-bold ${pct === 100 ? "text-success" : "text-text-muted"}`}>
           {done}/{total} ({pct}%)
@@ -186,11 +186,13 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                 ) : (
                   <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
                 )}
-                <span className={`text-tiny font-bold uppercase ${style.text}`}>
+                <span className={`text-tiny font-bold ${style.text}`}>
                   {cat}
                 </span>
-                <span className="text-tiny text-text-muted ml-auto">
-                  {catDone}/{catItems.length}
+                <span className={`text-tiny ml-auto font-bold ${
+                  catDone === catItems.length ? "text-success" : "text-text-muted"
+                }`}>
+                  {catDone === catItems.length ? "✓ " : ""}{catDone}/{catItems.length}
                 </span>
               </button>
 

@@ -278,7 +278,8 @@ export async function getContractById(id: string) {
       supabase
         .from("audit_logs")
         .select(`
-          id, action, table_name, old_data, new_data, created_at
+          id, action, table_name, old_data, new_data, created_at,
+          employees:user_id(id, full_name)
         `)
         .eq("table_name", "contracts")
         .eq("record_id", id)

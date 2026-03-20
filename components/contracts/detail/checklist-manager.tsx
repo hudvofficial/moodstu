@@ -14,6 +14,8 @@ import { useState, useCallback, useMemo } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { toast } from "sonner";
+import { getEventTypeLabel } from "@/types/contract-constants";
+import type { EventType } from "@/types/contract";
 
 // ─── TYPES ───────────────────────────────────
 
@@ -27,10 +29,10 @@ interface ChecklistItem {
 
 // ─── CATEGORY STYLES ─────────────────────────
 
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; accent: string }> = {
-  "lễ tân": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", accent: "bg-amber-500" },
-  "makeup": { bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200", accent: "bg-pink-500" },
-  "photo":  { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", accent: "bg-blue-500" },
+const CATEGORY_STYLES: Record<string, { bg: string; text: string; accent: string }> = {
+  "lễ tân": { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-500" },
+  "makeup": { bg: "bg-pink-50", text: "text-pink-700", accent: "bg-pink-500" },
+  "photo":  { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-500" },
 };
 
 function getCategoryStyle(category: string) {
@@ -39,12 +41,14 @@ function getCategoryStyle(category: string) {
   );
   return key
     ? CATEGORY_STYLES[key]
-    : { bg: "bg-bg-hover", text: "text-text-secondary", border: "border-border", accent: "bg-text-muted" };
+    : { bg: "bg-bg-hover", text: "text-text-secondary", accent: "bg-text-muted" };
 }
 
 // ─── STAGE SORT ──────────────────────────────
 
 const STAGE_ORDER = ["chụp", "ảnh", "phóng", "ăn hỏi", "hỏi", "lễ", "cưới"];
+
+
 
 function sortStages(stages: string[]) {
   return [...stages].sort((a, b) => {
@@ -130,10 +134,10 @@ export default function ContractChecklistManager({
     const allDone = catDone === catItems.length;
 
     return (
-      <div key={category} className={`rounded-xl border ${style.border} overflow-hidden`}>
+      <div key={category} className="rounded-xl shadow-xs overflow-hidden">
         {/* Category header */}
         <div className={`flex items-center justify-between px-3 py-2 ${style.bg}`}>
-          <span className={`text-tiny font-bold uppercase tracking-widest ${style.text}`}>
+          <span className={`text-tiny font-bold ${style.text}`}>
             {category}
           </span>
           <span className={`text-tiny font-bold ${allDone ? "text-success" : style.text} opacity-80`}>
@@ -146,10 +150,10 @@ export default function ContractChecklistManager({
           {catItems.map((item) => (
             <label
               key={item.id}
-              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all group border ${
+              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all group ${
                 item.is_completed
-                  ? "bg-bg-hover/30 border-transparent opacity-60"
-                  : "bg-bg-card border-border hover:border-primary/30"
+                  ? "bg-bg-hover/30 opacity-60"
+                  : "bg-bg-card shadow-xs hover:shadow-sm"
               }`}
             >
               {/* Accent bar */}
@@ -239,7 +243,7 @@ export default function ContractChecklistManager({
                       : "text-text-muted hover:text-text-secondary"
                 }`}
               >
-                <div className="truncate">{stage}</div>
+                <div className="truncate">{getEventTypeLabel(stage as EventType)}</div>
                 <div className={`text-tiny ${sp.pct === 100 ? "text-success" : ""}`}>
                   {sp.done}/{sp.total}
                 </div>
@@ -282,8 +286,8 @@ export default function ContractChecklistManager({
               onClick={() => setActiveStage(activeStage === stage ? null : stage)}
               className="w-full flex items-center justify-between py-2 text-left"
             >
-              <span className="text-caption font-bold text-text-secondary uppercase tracking-wider">
-                {stage}
+              <span className="text-caption font-bold text-text-secondary">
+                {getEventTypeLabel(stage as EventType)}
               </span>
               {activeStage === stage ? (
                 <ChevronUp size={14} className="text-text-muted" />

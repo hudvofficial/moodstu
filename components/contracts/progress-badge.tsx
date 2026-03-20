@@ -16,6 +16,8 @@
 import { useRef, useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { isDone, IN_PROGRESS_STATUS, CANCELLED_STATUS } from "@/constants/work-statuses";
+import { getWorkTypeLabel, getTaskStatusLabel } from "@/types/contract-constants";
+import type { WorkType, TaskStatus } from "@/types/contract";
 // V2 DB uses work_tasks table — define inline for backward compat
 interface WorkProgressTask {
   id: string;
@@ -31,36 +33,11 @@ interface WorkProgressTask {
 
 // ─── CONSTANTS (V2 snake_case enums) ────────────────────
 
-const WORK_TYPE_LABELS: Record<string, string> = {
-  concept:    "Concept",
-  kich_ban:   "Kịch bản",
-  chup_anh:   "Chụp ảnh",
-  quay_phim:  "Quay phim",
-  makeup:     "Makeup",
-  tro_ly:     "Trợ lý",
-  cameraman:  "Cameraman",
-  hau_ky_anh: "Hậu kỳ ảnh",
-  dung_phim:  "Dựng phim",
-  retouch:    "Retouch",
-  premiere:   "Premiere",
-  bien_tap:   "Biên tập",
-  khac:       "Khác",
-};
-
-const TASK_STATUS_LABELS: Record<string, string> = {
-  chua_lam:   "Chưa làm",
-  dang_lam:   "Đang làm",
-  hoan_thanh: "Hoàn thành",
-  da_huy:     "Đã hủy",
-};
-
 const PRE_PRODUCTION = ["concept", "kich_ban"];
 const ON_SET = ["chup_anh", "quay_phim", "makeup", "tro_ly", "cameraman"];
 const POST_PRODUCTION = ["hau_ky_anh", "dung_phim", "retouch", "premiere", "bien_tap"];
 
-function getLabel(workType: string): string {
-  return WORK_TYPE_LABELS[workType] || workType;
-}
+
 
 // ─── PROGRESS CALC ──────────────────────────────────────
 
@@ -182,7 +159,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
             </span>
           ) : progress.nextTask ? (
             <span className={`text-tiny font-medium truncate max-w-[90px] ${textColor}`}>
-              → {getLabel(progress.nextTask.work_type)}
+              → {getWorkTypeLabel(progress.nextTask.work_type as WorkType)}
             </span>
           ) : (
             <span className="text-tiny text-text-muted">Chờ phân công</span>
@@ -219,7 +196,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
                               }`}
                             />
                             <span className={`truncate ${taskDone ? "text-text-muted line-through" : "text-text-main"}`}>
-                              {getLabel(t.work_type)}
+                              {getWorkTypeLabel(t.work_type as WorkType)}
                             </span>
                           </div>
                           <span
@@ -231,7 +208,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
                                   : "bg-warning/10 text-warning"
                             }`}
                           >
-                            {TASK_STATUS_LABELS[t.status] || t.status}
+                            {getTaskStatusLabel(t.status as TaskStatus)}
                           </span>
                         </li>
                       );

@@ -6,6 +6,7 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { UseContractItemsReturn } from "./hooks/useContractItems";
 import type { ContractItemFormData } from "@/types/contract-form";
+import { getItemTypeLabel } from "@/types/contract-constants";
 
 // ═══════════════════════════════════════════
 // ContractItemsSection — Items Table + Add Buttons
@@ -13,11 +14,11 @@ import type { ContractItemFormData } from "@/types/contract-form";
 // ═══════════════════════════════════════════
 
 // ── Item type badge config ──
-const TYPE_BADGES: Record<string, { label: string; className: string }> = {
-  dich_vu: { label: "Dịch vụ", className: "bg-info/10 text-info" },
-  san_pham: { label: "Sản phẩm", className: "bg-text-muted/10 text-text-secondary" },
-  trang_phuc: { label: "Trang phục", className: "bg-accent/10 text-accent" },
-  phat_sinh: { label: "Phát sinh", className: "bg-warning/10 text-warning" },
+const TYPE_BADGE_STYLES: Record<string, string> = {
+  dich_vu: "bg-info/10 text-info",
+  san_pham: "bg-text-muted/10 text-text-secondary",
+  trang_phuc: "bg-accent/10 text-accent",
+  phat_sinh: "bg-warning/10 text-warning",
 };
 
 interface Props {
@@ -150,7 +151,7 @@ function DesktopRow({
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const badge = TYPE_BADGES[item.type] || TYPE_BADGES.dich_vu;
+  const badgeClass = TYPE_BADGE_STYLES[item.type] || TYPE_BADGE_STYLES.dich_vu;
   return (
     <tr className="hover:bg-bg-hover/50 transition-colors">
       <td className="px-4 py-2.5">
@@ -158,8 +159,8 @@ function DesktopRow({
         {item.notes && <p className="text-caption text-text-muted truncate">{item.notes}</p>}
       </td>
       <td className="px-3 py-2.5">
-        <span className={`badge ${badge.className}`}>
-          {badge.label}
+        <span className={`badge ${badgeClass}`}>
+          {getItemTypeLabel(item.type)}
         </span>
       </td>
       <td className="px-3 py-2.5 text-center">{item.quantity}</td>
@@ -193,14 +194,14 @@ function MobileCard({
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const badge = TYPE_BADGES[item.type] || TYPE_BADGES.dich_vu;
+  const badgeClass = TYPE_BADGE_STYLES[item.type] || TYPE_BADGE_STYLES.dich_vu;
   return (
     <div className="card-base flex items-center justify-between p-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="text-body-sm font-medium text-text-primary truncate">{item.item_name}</p>
-          <span className={`badge shrink-0 ${badge.className}`}>
-            {badge.label}
+          <span className={`badge shrink-0 ${badgeClass}`}>
+            {getItemTypeLabel(item.type)}
           </span>
         </div>
         <p className="mt-0.5 text-caption text-text-secondary">

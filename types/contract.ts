@@ -41,7 +41,7 @@ export type PaymentStatus =
   | "hoan_tien";
 
 // ─── EVENT TYPES (match DB event_type_enum) ──────────────
-export type EventType = "ngay_chup" | "ngay_to_chuc" | "hau_ky" | "giao_san_pham";
+export type EventType = "chuan_bi" | "ngay_chup" | "ngay_to_chuc" | "hau_ky" | "giao_san_pham";
 
 // ─── ITEM & PAYMENT TYPES (match DB enums) ───────────────
 export type ItemType = "dich_vu" | "san_pham" | "trang_phuc" | "phat_sinh";
@@ -76,6 +76,11 @@ export interface Contract {
   remaining_amount: number;
   description: string | null;
   notes: string | null;
+  // Bride / Groom info (wedding contracts)
+  bride_name: string | null;
+  groom_name: string | null;
+  bride_phone: string | null;
+  groom_phone: string | null;
   cancel_reason: string | null;
   cancelled_at: string | null;
   cancelled_by: string | null;

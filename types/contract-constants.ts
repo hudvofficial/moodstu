@@ -66,6 +66,7 @@ export const EVENT_TYPE_MAP: Record<
   EventType,
   { label: string; icon: string; color: string; order: number }
 > = {
+  chuan_bi: { label: "Chuẩn Bị", icon: "📋", color: "text-teal-600", order: 0 },
   ngay_chup: { label: "Ngày Chụp", icon: "📸", color: "text-blue-600", order: 1 },
   ngay_to_chuc: { label: "Ngày Tổ Chức", icon: "💒", color: "text-purple-600", order: 2 },
   hau_ky: { label: "Hậu Kỳ", icon: "✏️", color: "text-amber-600", order: 3 },
@@ -128,4 +129,44 @@ export function getWorkTypeLabel(type: WorkType): string {
 
 export function getTaskStatusLabel(status: TaskStatus): string {
   return TASK_STATUS_MAP[status]?.label || status;
+}
+
+// ─── PAYMENT METHOD MAP ──────────────────────────────
+// Used by: financial-dashboard, payment-history, ContractPaymentSection
+
+export const PAYMENT_METHOD_MAP: Record<string, string> = {
+  tien_mat: "Tiền mặt",
+  chuyen_khoan: "Chuyển khoản",
+};
+
+export function getPaymentMethodLabel(method: string): string {
+  return PAYMENT_METHOD_MAP[method] || method;
+}
+
+// ─── PAYMENT STAGE MAP ───────────────────────────────
+// Used by: ContractPaymentSection
+
+export const PAYMENT_STAGE_MAP: Record<string, string> = {
+  dat_coc: "Đặt cọc",
+  thanh_toan_dot_1: "Thanh toán đợt 1",
+  thanh_toan_dot_2: "Thanh toán đợt 2",
+  tat_toan: "Tất toán",
+};
+
+export function getPaymentStageLabel(stage: string): string {
+  return PAYMENT_STAGE_MAP[stage] || stage;
+}
+
+// ─── ITEM TYPE MAP ───────────────────────────────────
+// Used by: service-details-block, ContractItemsSection
+
+export const ITEM_TYPE_MAP: Record<string, string> = {
+  dich_vu: "Dịch vụ",
+  san_pham: "Sản phẩm",
+  trang_phuc: "Trang phục",
+  phat_sinh: "Phát sinh",
+};
+
+export function getItemTypeLabel(type: string): string {
+  return ITEM_TYPE_MAP[type] || type;
 }

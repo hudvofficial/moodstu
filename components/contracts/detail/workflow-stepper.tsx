@@ -1,68 +1,103 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
-import type { Contract, ContractEvent } from "@/types/contract";
+import type { Contract, ContractEvent, EventType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
-// WorkflowStepper — 6-step horizontal progress
-// Phase 04d: Stitch design — circular stepper
-// Maps contract status + events → visual progress
+// WorkflowStepper — Pure Event-Driven
+// Reads contract_events → auto-generates steps
+// 0 code change when adding new package types
 // ═══════════════════════════════════════════
 
-const STEPS = [
-  { key: "ky_hd", label: "Ký HĐ" },
-  { key: "chup_ngoai", label: "Chụp ngoại" },
-  { key: "chup_studio", label: "Chụp studio" },
-  { key: "chinh_sua", label: "Chỉnh sửa" },
-  { key: "in_an", label: "In ấn" },
-  { key: "hoan_tat", label: "Hoàn tất" },
-] as const;
+// Sort priority for events on the same date
+const EVENT_TYPE_PRIORITY: Record<EventType, number> = {
+  chuan_bi: 1,
+  ngay_chup: 2,
+  ngay_to_chuc: 3,
+  hau_ky: 4,
+  giao_san_pham: 5,
+};
+
+// Fallback labels when event.title is null
+const FALLBACK_LABELS: Record<EventType, string> = {
+  chuan_bi: "Chuẩn bị",
+  ngay_chup: "Chụp / Quay",
+  ngay_to_chuc: "Ngày cưới",
+  hau_ky: "Hậu kỳ",
+  giao_san_pham: "Giao SP",
+};
+
+interface StepData {
+  label: string;
+  status: "completed" | "current" | "pending";
+}
+
+function buildSteps(contract: Contract, events: ContractEvent[]): StepData[] {
+  // Step 1: Ký HĐ — always present, always completed
+  const steps: StepData[] = [{ label: "Ký HĐ", status: "completed" }];
+
+  if (events.length === 0) return steps;
+
+  // Sort events by date, then by type priority
+  const sorted = [...events].sort((a, b) => {
+    const dateA = new Date(a.event_date).getTime();
+    const dateB = new Date(b.event_date).getTime();
+    if (dateA !== dateB) return dateA - dateB;
+    return (EVENT_TYPE_PRIORITY[a.event_type] ?? 99) - (EVENT_TYPE_PRIORITY[b.event_type] ?? 99);
+  });
+
+  let foundCurrent = false;
+
+  for (const event of sorted) {
+    const label = event.title || FALLBACK_LABELS[event.event_type] || "Sự kiện";
+
+    let status: StepData["status"];
+    if (event.status === "hoan_thanh") {
+      status = "completed";
+    } else if (!foundCurrent) {
+      status = "current";
+      foundCurrent = true;
+    } else {
+      status = "pending";
+    }
+
+    steps.push({ label, status });
+  }
+
+  return steps;
+}
 
 interface Props {
   contract: Contract;
   events: ContractEvent[];
 }
 
-function getCurrentStep(
-  status: string,
-  events: ContractEvent[]
-): number {
-  // Map contract status to step index
-  if (status === "hoan_thanh") return 5;
-  if (status === "da_huy") return -1;
-
-  // Check events to determine progress
-  const completedEvents = events.filter(
-    (e) => e.status === "hoan_thanh"
-  );
-  const totalEvents = events.length;
-
-  if (totalEvents === 0) return 0; // Just signed
-  if (completedEvents.length === totalEvents && totalEvents >= 2) return 3;
-  if (completedEvents.length > 0) return Math.min(completedEvents.length, 2);
-
-  return 0;
-}
-
 export default function WorkflowStepper({ contract, events }: Props) {
-  const currentStep = getCurrentStep(contract.status, events);
   const isCancelled = contract.status === "da_huy";
+  const steps = buildSteps(contract, events);
+
+  // Find current step index for progress calculations
+  const currentIdx = isCancelled
+    ? -1
+    : steps.findIndex((s) => s.status === "current");
+  const activeIdx = currentIdx === -1 && !isCancelled ? steps.length - 1 : currentIdx;
+  const manySteps = steps.length > 7;
 
   return (
     <div className="card-base p-4 lg:p-5">
       {/* Desktop: Horizontal stepper */}
       <div className="max-lg:hidden">
         <div className="flex items-center justify-between">
-          {STEPS.map((step, i) => {
-            const isCompleted = !isCancelled && i <= currentStep;
-            const isCurrent = !isCancelled && i === currentStep;
+          {steps.map((step, i) => {
+            const isCompleted = !isCancelled && step.status === "completed";
+            const isCurrent = !isCancelled && step.status === "current";
 
             return (
-              <div key={step.key} className="flex items-center flex-1 last:flex-none">
+              <div key={`d-${i}`} className="flex items-center flex-1 last:flex-none">
                 {/* Step circle + label */}
                 <div className="flex flex-col items-center gap-1.5">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+                    className={`${manySteps ? "w-7 h-7" : "w-8 h-8"} rounded-full flex items-center justify-center text-xs font-bold
                       transition-colors duration-300
                       ${isCompleted
                         ? "bg-emerald-500 text-white"
@@ -74,13 +109,13 @@ export default function WorkflowStepper({ contract, events }: Props) {
                     `}
                   >
                     {isCompleted ? (
-                      <CheckCircle2 size={16} />
+                      <CheckCircle2 size={manySteps ? 14 : 16} />
                     ) : (
                       i + 1
                     )}
                   </div>
                   <span
-                    className={`text-caption font-medium whitespace-nowrap
+                    className={`text-caption font-medium text-center max-w-[80px] leading-tight line-clamp-2
                       ${isCompleted ? "text-emerald-700" : "text-text-muted"}`}
                   >
                     {step.label}
@@ -88,11 +123,11 @@ export default function WorkflowStepper({ contract, events }: Props) {
                 </div>
 
                 {/* Connector line (not on last item) */}
-                {i < STEPS.length - 1 && (
+                {i < steps.length - 1 && (
                   <div className="flex-1 mx-2 mb-5">
                     <div
                       className={`h-0.5 rounded-full transition-colors duration-300
-                        ${!isCancelled && i < currentStep
+                        ${!isCancelled && step.status === "completed"
                           ? "bg-emerald-400"
                           : "bg-bg-hover"
                         }
@@ -106,9 +141,9 @@ export default function WorkflowStepper({ contract, events }: Props) {
         </div>
       </div>
 
-      {/* Mobile: Dots stepper — Stitch lines 103-137 */}
+      {/* Mobile: Dots stepper */}
       <div className="lg:hidden">
-        {/* Header: "Tiến độ thực hiện" + "Bước X/6" */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-caption font-bold uppercase tracking-widest">
             Tiến độ thực hiện
@@ -116,38 +151,38 @@ export default function WorkflowStepper({ contract, events }: Props) {
           <span className="text-caption font-bold text-interactive">
             {isCancelled
               ? "Đã hủy"
-              : `Bước ${Math.min(currentStep + 1, STEPS.length)}/${STEPS.length}`}
+              : `Bước ${Math.min(activeIdx + 1, steps.length)}/${steps.length}`}
           </span>
         </div>
 
-        {/* 6 dots horizontal with connecting line */}
+        {/* Dots with connecting line */}
         <div className="relative flex items-start justify-between px-1">
           {/* Background line */}
           <div className="absolute top-[7px] left-4 right-4 h-[2px] bg-bg-hover" />
-          {/* Filled line */}
+          {/* Filled progress line */}
           <div
             className="absolute top-[7px] left-4 h-[2px] bg-interactive transition-all duration-500"
             style={{
               width: isCancelled
                 ? "0%"
-                : `${Math.max(0, (currentStep / (STEPS.length - 1)) * 100)}%`,
+                : `${Math.max(0, (activeIdx / (steps.length - 1)) * 100)}%`,
               maxWidth: "calc(100% - 2rem)",
             }}
           />
 
-          {STEPS.map((step, i) => {
-            const isCompleted = !isCancelled && i < currentStep;
-            const isCurrent = !isCancelled && i === currentStep;
-            const isPending = isCancelled || i > currentStep;
+          {steps.map((step, i) => {
+            const isCompleted = !isCancelled && step.status === "completed";
+            const isCurrent = !isCancelled && step.status === "current";
+            const isPending = isCancelled || step.status === "pending";
 
             return (
               <div
-                key={step.key}
+                key={`m-${i}`}
                 className="relative z-10 flex flex-col items-center gap-1.5"
-                style={{ width: "3rem" }}
+                style={{ width: manySteps ? "2rem" : "3rem" }}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-full transition-all duration-300
+                  className={`${manySteps ? "w-2.5 h-2.5" : "w-3.5 h-3.5"} rounded-full transition-all duration-300
                     ${isCompleted
                       ? "bg-interactive"
                       : isCurrent
@@ -157,18 +192,20 @@ export default function WorkflowStepper({ contract, events }: Props) {
                           : "bg-slate-200"
                     }`}
                 />
-                <span
-                  className={`text-center leading-tight transition-colors
-                    ${isCompleted
-                      ? "text-interactive font-bold"
-                      : isCurrent
+                {/* Show label: always for ≤7 steps, only current for 8+ steps */}
+                {(!manySteps || isCurrent) && (
+                  <span
+                    className={`text-tiny text-center leading-tight transition-colors
+                      ${isCompleted
                         ? "text-interactive font-bold"
-                        : "text-text-muted font-medium"
-                    }`}
-                  style={{ fontSize: "9px" }}
-                >
-                  {step.label}
-                </span>
+                        : isCurrent
+                          ? "text-interactive font-bold"
+                          : "text-text-muted font-medium"
+                      }`}
+                  >
+                    {step.label}
+                  </span>
+                )}
               </div>
             );
           })}

@@ -20,6 +20,7 @@ interface Note {
   content: string;
   created_by: string | null;
   created_at: string;
+  employees?: { full_name: string } | null;
 }
 
 export default function NotesTimeline({ contractId }: Props) {
@@ -34,7 +35,7 @@ export default function NotesTimeline({ contractId }: Props) {
     if (!expanded) return;
     getContractNotes(contractId).then((result) => {
       if (result.success && result.data) {
-        setNotes(result.data as Note[]);
+        setNotes(result.data as unknown as Note[]);
       }
     });
   }, [expanded, contractId]);
@@ -57,6 +58,7 @@ export default function NotesTimeline({ contractId }: Props) {
       content: newNote.trim(),
       created_by: null,
       created_at: new Date().toISOString(),
+      employees: { full_name: "Bạn" },
     };
     setNotes((prev) => [...prev, tempNote]);
     setNewNote("");
@@ -66,7 +68,7 @@ export default function NotesTimeline({ contractId }: Props) {
       if (result.success && result.data) {
         // Replace temp with real
         setNotes((prev) =>
-          prev.map((n) => (n.id === tempId ? (result.data as Note) : n))
+          prev.map((n) => (n.id === tempId ? (result.data as unknown as Note) : n))
         );
       } else {
         // Rollback
@@ -92,7 +94,7 @@ export default function NotesTimeline({ contractId }: Props) {
         // Refetch on error
         const refetch = await getContractNotes(contractId);
         if (refetch.success && refetch.data) {
-          setNotes(refetch.data as Note[]);
+          setNotes(refetch.data as unknown as Note[]);
         }
       }
     },
@@ -164,6 +166,12 @@ export default function NotesTimeline({ contractId }: Props) {
                     )}
                   </div>
                   <p className="text-xs text-text-muted mt-1">
+                    {note.employees?.full_name && (
+                      <span className="font-medium text-text-secondary">
+                        {note.employees.full_name}
+                        {" · "}
+                      </span>
+                    )}
                     {new Date(note.created_at).toLocaleString("vi-VN", {
                       day: "2-digit",
                       month: "2-digit",

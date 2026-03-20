@@ -1,4 +1,4 @@
-// Icons removed — Stitch: text-only buttons
+import Link from "next/link";
 
 // ═══════════════════════════════════════════
 // MobileBottomBar — Sticky 2-button bar for mobile
@@ -10,13 +10,14 @@ interface Props {
   contractId: string;
   isCancelled: boolean;
   remainingAmount: number;
+  onPaymentClick?: () => void;
 }
 
 export default function MobileBottomBar({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  contractId: _contractId,
+  contractId,
   isCancelled,
   remainingAmount,
+  onPaymentClick,
 }: Props) {
   if (isCancelled) return null;
 
@@ -28,8 +29,9 @@ export default function MobileBottomBar({
                   px-4 pt-3 pb-8 safe-bottom"
     >
       <div className="flex gap-3 max-w-[375px] mx-auto">
-        {/* Sửa HĐ — outline style, text-only */}
-        <button
+        {/* Sửa HĐ — Link to edit page */}
+        <Link
+          href={`/contracts/${contractId}/edit`}
           className="flex-1 h-12 flex items-center justify-center
                      rounded-xl shadow-xs
                      text-text-primary
@@ -37,11 +39,12 @@ export default function MobileBottomBar({
                      active:scale-[0.98] transition-all"
         >
           Sửa
-        </button>
+        </Link>
 
-        {/* Thu tiền — primary, text-only */}
+        {/* Thu tiền — opens payment form */}
         {remainingAmount > 0 && (
           <button
+            onClick={onPaymentClick}
             className="flex-1 h-12 flex items-center justify-center
                        rounded-xl
                        bg-interactive text-white

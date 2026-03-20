@@ -1,9 +1,10 @@
-import { User, Phone, Mail, MapPin, Heart } from "lucide-react";
+import { User, Phone, Mail, MapPin, Heart, Users } from "lucide-react";
 import type { Customer } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // CustomerInfoBlock — Customer details card
 // Phase 04b: Avatar, name, phone, email, address
+// Phase C1: Bride/Groom info
 // V1 Ref: details/CustomerInfoBlock.tsx (port logic)
 // ═══════════════════════════════════════════
 
@@ -11,9 +12,13 @@ interface Props {
   customer: Customer | null;
   notes: string | null;
   embedded?: boolean;
+  brideName?: string | null;
+  groomName?: string | null;
+  bridePhone?: string | null;
+  groomPhone?: string | null;
 }
 
-export default function CustomerInfoBlock({ customer, notes, embedded }: Props) {
+export default function CustomerInfoBlock({ customer, notes, embedded, brideName, groomName, bridePhone, groomPhone }: Props) {
   if (!customer) return null;
 
   // Avatar initial letter
@@ -104,6 +109,38 @@ export default function CustomerInfoBlock({ customer, notes, embedded }: Props) 
           </ContactRow>
         )}
       </div>
+
+      {/* Bride / Groom Section */}
+      {(brideName || groomName) && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Users size={14} className="text-primary" />
+            <p className="text-caption font-bold uppercase tracking-wider">Cô dâu & Chú rể</p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {brideName && (
+              <ContactRow icon={<Heart size={14} />} label="Cô dâu">
+                <p className="text-body-sm font-semibold text-text-primary">{brideName}</p>
+                {bridePhone && (
+                  <a href={`tel:${bridePhone}`} className="text-caption text-primary hover:underline">
+                    {bridePhone}
+                  </a>
+                )}
+              </ContactRow>
+            )}
+            {groomName && (
+              <ContactRow icon={<Heart size={14} />} label="Chú rể">
+                <p className="text-body-sm font-semibold text-text-primary">{groomName}</p>
+                {groomPhone && (
+                  <a href={`tel:${groomPhone}`} className="text-caption text-primary hover:underline">
+                    {groomPhone}
+                  </a>
+                )}
+              </ContactRow>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Notes */}
       {notes && (

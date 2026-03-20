@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Banknote } from "lucide-react";
 import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
 import type { Payment } from "@/types/contract";
+import { getPaymentMethodLabel } from "@/types/contract-constants";
 
 // ═══════════════════════════════════════════
 // Financial Dashboard — Unified finance card
@@ -8,18 +9,14 @@ import type { Payment } from "@/types/contract";
 // Structure: h3 → overline → amount → progress → payments → CTA
 // ═══════════════════════════════════════════
 
-const METHOD_LABELS: Record<string, string> = {
-  tien_mat: "Tiền mặt",
-  chuyen_khoan: "Chuyển khoản",
-  the: "Thẻ",
-  khac: "Khác",
-};
+
 
 interface Props {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
   payments?: Payment[];
+  onPaymentClick?: () => void;
 }
 
 export default function FinancialDashboard({
@@ -27,6 +24,7 @@ export default function FinancialDashboard({
   paidAmount,
   remainingAmount,
   payments = [],
+  onPaymentClick,
 }: Props) {
   const progress =
     totalAmount > 0
@@ -89,9 +87,44 @@ export default function FinancialDashboard({
           </div>
         </div>
 
+        {/* Payment Items — compact list */}
+        {sortedPayments.length > 0 && (
+          <div className="space-y-3 pt-1">
+            {sortedPayments.map((payment, index) => {
+              const isRefund = payment.amount < 0;
+              return (
+                <div key={payment.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {isRefund ? (
+                      <Clock size={18} className="text-amber-500 shrink-0" />
+                    ) : (
+                      <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-body-sm font-medium text-text-primary">
+                        {payment.notes || payment.payment_stage || `Đợt ${index + 1}`}
+                      </p>
+                      <p className="text-caption">
+                        {formatDate(payment.payment_date)}
+                        {payment.payment_method && (
+                          <> · {getPaymentMethodLabel(payment.payment_method)}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-body-sm font-semibold text-text-primary shrink-0">
+                    {formatCurrency(Math.abs(payment.amount))} {CURRENCY_SYMBOL}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* CTA — full width, h-12 */}
         {remainingAmount > 0 && (
           <button
+            onClick={onPaymentClick}
             className="btn btn-interactive w-full h-12 text-[15px]"
           >
             <Banknote size={20} />
@@ -155,7 +188,7 @@ export default function FinancialDashboard({
                       <p className="text-caption">
                         {formatDate(payment.payment_date)}
                         {payment.payment_method && (
-                          <> · {METHOD_LABELS[payment.payment_method] || payment.payment_method}</>
+                          <> · {getPaymentMethodLabel(payment.payment_method)}</>
                         )}
                       </p>
                     </div>
@@ -171,7 +204,7 @@ export default function FinancialDashboard({
 
         {/* CTA */}
         {remainingAmount > 0 && (
-          <button className="btn-cta">
+          <button onClick={onPaymentClick} className="btn-cta">
             Thu tiền
           </button>
         )}

@@ -20,6 +20,7 @@ interface Note {
   content: string;
   created_by: string;
   created_at: string;
+  employees?: { full_name: string } | null;
 }
 
 interface DrawerNotesProps {

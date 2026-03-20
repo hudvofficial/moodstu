@@ -2,6 +2,7 @@ import { List, Package, Shirt, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { ContractItem, ItemType } from "@/types/contract";
+import { getItemTypeLabel } from "@/types/contract-constants";
 
 // ═══════════════════════════════════════════
 // ServiceDetailsBlock — Service/product table
@@ -16,11 +17,11 @@ interface Props {
 }
 
 // ─── Item type display map ────────────────────
-const ITEM_TYPE_MAP: Record<ItemType, { label: string; variant: "info" | "warning" | "accent" | "error" }> = {
-  dich_vu: { label: "Dịch vụ", variant: "info" },
-  san_pham: { label: "Sản phẩm", variant: "warning" },
-  trang_phuc: { label: "Trang phục", variant: "accent" },
-  phat_sinh: { label: "Phát sinh", variant: "error" },
+const ITEM_TYPE_VARIANT: Record<ItemType, "info" | "warning" | "accent" | "error"> = {
+  dich_vu: "info",
+  san_pham: "warning",
+  trang_phuc: "accent",
+  phat_sinh: "error",
 };
 
 function getItemIcon(type: ItemType) {
@@ -80,10 +81,8 @@ export default function ServiceDetailsBlock({
               </thead>
               <tbody>
                 {items.map((item, idx) => {
-                  const typeInfo = ITEM_TYPE_MAP[item.type] || {
-                    label: item.type,
-                    variant: "neutral" as const,
-                  };
+                  const variant = ITEM_TYPE_VARIANT[item.type] || "info";
+                  const typeLabel = getItemTypeLabel(item.type);
                   return (
                     <tr
                       key={item.id}
@@ -111,8 +110,8 @@ export default function ServiceDetailsBlock({
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Badge variant={typeInfo.variant}>
-                          {typeInfo.label}
+                        <Badge variant={variant}>
+                          {typeLabel}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-center text-body-sm font-medium">
@@ -134,18 +133,16 @@ export default function ServiceDetailsBlock({
           {/* ═══ Mobile Cards ═══ */}
           <div className="lg:hidden px-4 pb-2 space-y-2">
             {items.map((item) => {
-              const typeInfo = ITEM_TYPE_MAP[item.type] || {
-                label: item.type,
-                variant: "neutral" as const,
-              };
+              const variant = ITEM_TYPE_VARIANT[item.type] || "info";
+              const typeLabel = getItemTypeLabel(item.type);
               return (
                 <div key={item.id} className="p-3 rounded-xl bg-bg-hover/40">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p className="text-body-sm font-semibold text-text-primary flex-1 min-w-0 truncate">
                       {item.item_name}
                     </p>
-                    <Badge variant={typeInfo.variant}>
-                      {typeInfo.label}
+                    <Badge variant={variant}>
+                      {typeLabel}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-caption">

@@ -3,33 +3,18 @@
 import { useState } from "react";
 import { CheckSquare, Circle, CheckCircle2, Clock } from "lucide-react";
 import type { WorkTask } from "@/types/contract";
+import { getWorkTypeLabel } from "@/types/contract-constants";
 
 // ═══════════════════════════════════════════
 // ChecklistBlock — Work tasks as checklist
 // Phase 04f: work_tasks grouped by status
 // ═══════════════════════════════════════════
 
-const STATUS_CONFIG: Record<string, { icon: typeof Circle; color: string; label: string }> = {
-  chua_lam: { icon: Circle, color: "text-text-muted", label: "Chưa làm" },
-  dang_lam: { icon: Clock, color: "text-amber-500", label: "Đang làm" },
-  hoan_thanh: { icon: CheckCircle2, color: "text-emerald-500", label: "Hoàn thành" },
-  da_huy: { icon: Circle, color: "text-red-400", label: "Đã hủy" },
-};
-
-const WORK_TYPE_LABELS: Record<string, string> = {
-  concept: "Concept",
-  kich_ban: "Kịch bản",
-  chup_anh: "Chụp ảnh",
-  quay_phim: "Quay phim",
-  makeup: "Makeup",
-  tro_ly: "Trợ lý",
-  cameraman: "Cameraman",
-  chinh_sua_anh: "Chỉnh sửa ảnh",
-  chinh_sua_phim: "Chỉnh sửa phim",
-  thiet_ke: "Thiết kế",
-  in_an: "In ấn",
-  giao_hang: "Giao hàng",
-  khac: "Khác",
+const STATUS_ICON_CONFIG: Record<string, { icon: typeof Circle; color: string }> = {
+  chua_lam: { icon: Circle, color: "text-text-muted" },
+  dang_lam: { icon: Clock, color: "text-amber-500" },
+  hoan_thanh: { icon: CheckCircle2, color: "text-emerald-500" },
+  da_huy: { icon: Circle, color: "text-red-400" },
 };
 
 type TabKey = "all" | "pending" | "done";
@@ -109,8 +94,8 @@ export default function ChecklistBlock({ tasks }: Props) {
       ) : (
         <div className="space-y-1">
           {filtered.map((task) => {
-            const config = STATUS_CONFIG[task.status] || STATUS_CONFIG.chua_lam;
-            const StatusIcon = config.icon;
+            const iconCfg = STATUS_ICON_CONFIG[task.status] || STATUS_ICON_CONFIG.chua_lam;
+            const StatusIcon = iconCfg.icon;
 
             return (
               <div
@@ -119,13 +104,13 @@ export default function ChecklistBlock({ tasks }: Props) {
                   ${task.status === "hoan_thanh" ? "opacity-60" : ""}
                   hover:bg-bg-hover transition-colors`}
               >
-                <StatusIcon size={16} className={`shrink-0 ${config.color}`} />
+                <StatusIcon size={16} className={`shrink-0 ${iconCfg.color}`} />
                 <div className="min-w-0 flex-1">
                   <p
                     className={`text-body-sm text-text-primary truncate
                       ${task.status === "hoan_thanh" ? "line-through" : ""}`}
                   >
-                    {WORK_TYPE_LABELS[task.work_type] || task.work_type}
+                    {getWorkTypeLabel(task.work_type as import("@/types/contract").WorkType)}
                   </p>
                   {task.employees?.full_name && (
                     <p className="text-caption text-text-muted">
