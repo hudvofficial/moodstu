@@ -16,6 +16,7 @@ import type {
   WorkType,
   TaskStatus,
 } from "./contract";
+import { ON_SET_EVENT_TYPES } from "./contract";
 
 // ─── CONTRACT STATUS MAP (snake_case → Vietnamese) ───────
 
@@ -169,4 +170,13 @@ export const ITEM_TYPE_MAP: Record<string, string> = {
 
 export function getItemTypeLabel(type: string): string {
   return ITEM_TYPE_MAP[type] || type;
+}
+
+// ─── ON-SET EVENT HELPER (V1 business logic) ─────────
+// On-set events (chụp, tổ chức) → use event_date (đi hiện trường)
+// Non-on-set events (hậu kỳ, giao SP) → use deadline (nội bộ)
+// Used by: event-timeline, drawer-event-timeline
+
+export function isOnSetEvent(eventType: EventType): boolean {
+  return ON_SET_EVENT_TYPES.includes(eventType);
 }

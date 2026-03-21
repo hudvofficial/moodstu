@@ -1,44 +1,99 @@
-import { CalendarDays, MapPin, CheckCircle2, Clock, XCircle } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import {
+  CalendarDays, Camera, Church, Pencil, Package,
+  MapPin, AlertTriangle, ClipboardList,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { getEventTypeLabel } from "@/types/contract-constants";
-import type { ContractEvent, WorkTask, TaskStatus, EventType } from "@/types/contract";
+import {
+  getEventTypeLabel, isOnSetEvent,
+} from "@/types/contract-constants";
+import EventTaskModal from "@/components/contracts/detail/event-task-modal";
+import type { ContractEvent, WorkTask, EventType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
-// EventTimeline — Event cards with task count
-// SSOT: Display labels from types/contract-constants.ts
+// EventTimeline — V2 Horizontal Grid Cards
+// Layout: auto-fill grid (2 cols mobile, 4 cols desktop)
+// Click card → EventTaskModal (no inline expand)
+// SSOT: tokens only, Lucide icons only
 // ═══════════════════════════════════════════
 
 interface Props {
   events: ContractEvent[];
   tasks: WorkTask[];
+  onRefresh?: () => void;
 }
 
-// ─── Status config ────────────────────────────
-const STATUS_CONFIG: Record<TaskStatus, { icon: React.ReactNode; variant: "warning" | "info" | "success" | "error" }> = {
-  chua_lam: {
-    icon: <Clock size={14} />,
-    variant: "warning",
-  },
-  dang_lam: {
-    icon: <Clock size={14} />,
-    variant: "info",
-  },
-  hoan_thanh: {
-    icon: <CheckCircle2 size={14} />,
-    variant: "success",
-  },
-  da_huy: {
-    icon: <XCircle size={14} />,
-    variant: "error",
-  },
+// ─── Lucide Icon Mapping (SSOT: replaces emoji) ──────
+const EVENT_ICON_MAP: Record<string, typeof CalendarDays> = {
+  chuan_bi: ClipboardList,
+  ngay_chup: Camera,
+  ngay_to_chuc: Church,
+  hau_ky: Pencil,
+  giao_san_pham: Package,
 };
 
-export default function EventTimeline({ events, tasks }: Props) {
-  // Sort events by date ascending
-  const sorted = [...events].sort(
-    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+function getEventIcon(eventType: string) {
+  return EVENT_ICON_MAP[eventType] || CalendarDays;
+}
+
+// ─── Helpers (from V1/V2) ──────────────────────────────
+function formatTime(t: string | null) {
+  if (!t) return null;
+  return t.slice(0, 5);
+}
+
+function getDisplayDate(event: ContractEvent): string | null {
+  if (isOnSetEvent(event.event_type)) {
+    return event.event_date ? formatDate(event.event_date) : null;
+  }
+  return event.deadline ? formatDate(event.deadline) : null;
+}
+
+function getDaysOverdue(event: ContractEvent): number | null {
+  if (event.status === "hoan_thanh" || event.status === "da_huy") return null;
+  const dateStr = isOnSetEvent(event.event_type)
+    ? event.event_date
+    : event.deadline;
+  if (!dateStr) return null;
+  const diff = Math.floor(
+    (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24)
   );
+  return diff > 0 ? diff : null;
+}
+
+// ─── Card Style Resolver ──────────────────────────────
+function getCardStyles(event: ContractEvent, isActive: boolean) {
+  if (event.status === "hoan_thanh") {
+    return "border-l-success bg-success/5";
+  }
+  if (isActive || event.status === "dang_lam") {
+    return "border-l-primary bg-interactive-light border-primary/30";
+  }
+  return "border-l-border-primary bg-bg-card hover:bg-bg-hover/60";
+}
+
+// ─── Main Component ──────────────────────────────────
+export default function EventTimeline({ events, tasks, onRefresh }: Props) {
+  const [modalEvent, setModalEvent] = useState<ContractEvent | null>(null);
+
+  // Sort by sort_order (V1 business logic), fallback to date
+  const sorted = [...events].sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+  });
+
+  // Auto-highlight: first non-complete event = active
+  const activeEventId = sorted.find(
+    (e) => e.status !== "hoan_thanh" && e.status !== "da_huy"
+  )?.id ?? null;
+
+  // Overall progress
+  const completedCount = sorted.filter(
+    (e) => e.status === "hoan_thanh"
+  ).length;
 
   if (sorted.length === 0) {
     return (
@@ -67,71 +122,144 @@ export default function EventTimeline({ events, tasks }: Props) {
             Lịch trình sự kiện
           </h3>
         </div>
-        <Badge variant="neutral">{sorted.length} sự kiện</Badge>
+        <Badge variant="neutral">
+          {completedCount}/{sorted.length} sự kiện xong
+        </Badge>
       </div>
 
-      {/* Event Cards */}
-      <div className="space-y-3">
+      {/* Grid Cards — auto-fill: 2 cols mobile, 4 cols desktop */}
+      <div
+        className="grid gap-2 lg:gap-3"
+        style={{
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+        }}
+      >
         {sorted.map((event) => {
-          // Count tasks for this event
           const eventTasks = tasks.filter((t) => t.event_id === event.id);
           const doneTasks = eventTasks.filter(
             (t) => t.status === "hoan_thanh"
           ).length;
-          const statusInfo = STATUS_CONFIG[event.status] || STATUS_CONFIG.chua_lam;
+          const inProgressTasks = eventTasks.filter(
+            (t) => t.status === "dang_lam"
+          ).length;
+          const isActive = event.id === activeEventId;
+          const overdueDays = getDaysOverdue(event);
+          const displayDate = getDisplayDate(event);
+          const isOnSet = isOnSetEvent(event.event_type);
+          const Icon = getEventIcon(event.event_type);
 
           return (
             <div
               key={event.id}
-              className="p-3 rounded-xl bg-bg-hover/40 hover:bg-bg-hover transition-colors"
+              className={`
+                border-l-[3px] rounded-xl p-3 cursor-pointer
+                transition-all duration-200 hover:shadow-sm
+                ${getCardStyles(event, isActive)}
+              `}
+              onClick={() => setModalEvent(event)}
             >
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-body-sm font-semibold text-text-primary truncate">
-                    {event.title ||
-                      getEventTypeLabel(event.event_type as EventType) ||
-                      event.event_type}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-caption flex items-center gap-1">
-                      <CalendarDays size={12} />
-                      {formatDate(event.event_date)}
-                    </span>
-                    {event.location && (
-                      <span className="text-caption flex items-center gap-1 truncate">
-                        <MapPin size={12} />
-                        {event.location}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status badge */}
-                <Badge variant={statusInfo.variant}>
-                  {statusInfo.icon}
-                </Badge>
+              {/* Status badge */}
+              <div className="flex items-center justify-between mb-1.5">
+                {event.status === "hoan_thanh" ? (
+                  <Badge variant="success">XONG</Badge>
+                ) : isActive || event.status === "dang_lam" ? (
+                  <Badge variant="warning">ĐANG LÀM</Badge>
+                ) : (
+                  <span className="h-5" />
+                )}
+                {overdueDays && (
+                  <Badge variant="error">
+                    <AlertTriangle size={10} />
+                    Trễ {overdueDays}d
+                  </Badge>
+                )}
               </div>
 
-              {/* Task count */}
+              {/* Icon + Title */}
+              <div className="flex items-start gap-1.5 mb-1.5">
+                <Icon size={14} className="text-text-muted shrink-0 mt-0.5" />
+                <p className="text-body-sm font-semibold text-text-primary line-clamp-2 leading-tight">
+                  {event.title ||
+                    getEventTypeLabel(event.event_type as EventType) ||
+                    event.event_type}
+                </p>
+              </div>
+
+              {/* Date + Location */}
+              {displayDate && (
+                <div className="flex items-center gap-1 mb-1">
+                  <CalendarDays size={11} className="text-text-muted shrink-0" />
+                  <span className="text-caption text-text-muted truncate">
+                    {isOnSet ? "" : "Hạn: "}{displayDate}
+                    {isOnSet && event.start_time && event.end_time && (
+                      <> • {formatTime(event.start_time)}-{formatTime(event.end_time)}</>
+                    )}
+                  </span>
+                </div>
+              )}
+              {event.location && (
+                <div className="flex items-center gap-1 mb-1">
+                  <MapPin size={11} className="text-text-muted shrink-0" />
+                  <span className="text-caption text-text-muted truncate">
+                    {event.location}
+                  </span>
+                </div>
+              )}
+
+              {/* Progress bar — 3 màu: xanh (xong) + vàng (đang làm) + xám (chưa) */}
               {eventTasks.length > 0 && (
-                <div className="mt-2 pt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-bg-card rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{
-                        width: `${eventTasks.length > 0 ? (doneTasks / eventTasks.length) * 100 : 0}%`,
-                      }}
-                    />
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="flex-1 h-1.5 bg-text-muted/20 rounded-full overflow-hidden flex">
+                    {doneTasks > 0 && (
+                      <div
+                        className="h-full bg-success transition-all duration-500"
+                        style={{ width: `${(doneTasks / eventTasks.length) * 100}%` }}
+                      />
+                    )}
+                    {inProgressTasks > 0 && (
+                      <div
+                        className="h-full bg-warning transition-all duration-500"
+                        style={{ width: `${(inProgressTasks / eventTasks.length) * 100}%` }}
+                      />
+                    )}
                   </div>
-                  <span className="text-caption font-bold shrink-0">
+                  <span className="text-caption font-bold text-text-muted shrink-0">
                     {doneTasks}/{eventTasks.length}
                   </span>
                 </div>
+              )}
+
+              {/* Hint khi chưa có task */}
+              {eventTasks.length === 0 && event.status !== "hoan_thanh" && (
+                <p className="text-caption text-text-muted mt-1 italic">
+                  Chưa phân công
+                </p>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* EventTaskModal */}
+      {modalEvent && (
+        <EventTaskModal
+          isOpen={!!modalEvent}
+          event={{
+            id: modalEvent.id,
+            event_type: modalEvent.event_type as EventType,
+            title:
+              modalEvent.title ||
+              getEventTypeLabel(modalEvent.event_type as EventType),
+            event_date: modalEvent.event_date,
+            deadline: modalEvent.deadline,
+            location: modalEvent.location,
+            status: modalEvent.status,
+          }}
+          contractId={modalEvent.contract_id}
+          onClose={() => setModalEvent(null)}
+          onSaved={() => onRefresh?.()}
+        />
+      )}
     </div>
   );
 }

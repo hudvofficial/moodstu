@@ -19,9 +19,11 @@ import type {
 import {
   getContracts,
   getContractStats,
+} from "@/app/actions/contracts";
+import {
   getContractById,
   getContractDrawerExtra,
-} from "@/app/actions/contracts";
+} from "@/app/actions/contract-detail-actions";
 
 // ─── Cache Key Factory ──────────────────────────────────
 

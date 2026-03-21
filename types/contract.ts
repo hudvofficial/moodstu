@@ -43,6 +43,9 @@ export type PaymentStatus =
 // ─── EVENT TYPES (match DB event_type_enum) ──────────────
 export type EventType = "chuan_bi" | "ngay_chup" | "ngay_to_chuc" | "hau_ky" | "giao_san_pham";
 
+/** On-set events use event_date; non-on-set use deadline (V1 pattern) */
+export const ON_SET_EVENT_TYPES: EventType[] = ["ngay_chup", "ngay_to_chuc"];
+
 // ─── ITEM & PAYMENT TYPES (match DB enums) ───────────────
 export type ItemType = "dich_vu" | "san_pham" | "trang_phuc" | "phat_sinh";
 export type ExportType = "xuat_ban" | "xuat_thue" | null;
@@ -131,6 +134,12 @@ export interface ContractEvent {
   location: string | null;
   status: TaskStatus;
   notes: string | null;
+  sort_order: number;
+  deadline: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_manual_date: boolean;
+  phase: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -148,6 +157,8 @@ export interface WorkTask {
   completion_date: string | null;
   cost: number;
   notes: string | null;
+  start_time: string | null; // "09:00" — on-set only, NULL for hậu kỳ
+  end_time: string | null;   // "17:00" — on-set only, NULL for hậu kỳ
   created_by: string | null;
   created_at: string;
   updated_at: string;

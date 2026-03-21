@@ -1,4 +1,4 @@
-import { User, Phone, Mail, MapPin, Heart, Users } from "lucide-react";
+import { User, Phone, Mail, MapPin, Heart } from "lucide-react";
 import type { Customer } from "@/types/contract";
 
 // ═══════════════════════════════════════════
@@ -16,13 +16,41 @@ interface Props {
   groomName?: string | null;
   bridePhone?: string | null;
   groomPhone?: string | null;
+  brideHeight?: number | null;
+  brideWeight?: number | null;
+  brideShoeSize?: number | null;
+  groomHeight?: number | null;
+  groomWeight?: number | null;
+  groomShoeSize?: number | null;
 }
 
-export default function CustomerInfoBlock({ customer, notes, embedded, brideName, groomName, bridePhone, groomPhone }: Props) {
+export default function CustomerInfoBlock({
+  customer, notes, embedded,
+  brideName, groomName, bridePhone, groomPhone,
+  brideHeight, brideWeight, brideShoeSize,
+  groomHeight, groomWeight, groomShoeSize,
+}: Props) {
   if (!customer) return null;
 
   // Avatar initial letter
   const initial = customer.full_name?.charAt(0)?.toUpperCase() || "?";
+
+  // Build Stitch-format: "155cm, 50kg, giày 39"
+  function buildDetailStr(h: number | null | undefined, w: number | null | undefined, s: number | null | undefined): string {
+    const parts: string[] = [];
+    if (h) parts.push(`${h}cm`);
+    if (w) parts.push(`${w}kg`);
+    if (s) parts.push(`giày ${s}`);
+    return parts.join(", ");
+  }
+
+  // Build full bride/groom display: "Tên — 155cm, 50kg, giày 39"
+  function buildPersonStr(name: string | null | undefined, h: number | null | undefined, w: number | null | undefined, s: number | null | undefined): string {
+    const detail = buildDetailStr(h, w, s);
+    if (!name) return detail;
+    if (!detail) return name;
+    return `${name} — ${detail}`;
+  }
 
   return (
     <div className={embedded ? "" : "card-base p-4 lg:p-6"}>
@@ -108,39 +136,34 @@ export default function CustomerInfoBlock({ customer, notes, embedded, brideName
             </p>
           </ContactRow>
         )}
-      </div>
 
-      {/* Bride / Groom Section */}
-      {(brideName || groomName) && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2 mb-3">
-            <Users size={14} className="text-primary" />
-            <p className="text-caption font-bold uppercase tracking-wider">Cô dâu & Chú rể</p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {brideName && (
-              <ContactRow icon={<Heart size={14} />} label="Cô dâu">
-                <p className="text-body-sm font-semibold text-text-primary">{brideName}</p>
-                {bridePhone && (
-                  <a href={`tel:${bridePhone}`} className="text-caption text-primary hover:underline">
-                    {bridePhone}
-                  </a>
-                )}
-              </ContactRow>
+        {/* ── Bride / Groom — Stitch Clean Grid ── */}
+        {brideName && (
+          <ContactRow icon={<Heart size={14} />} label="Cô dâu">
+            <p className="text-body-sm font-medium text-text-primary">
+              {buildPersonStr(brideName, brideHeight, brideWeight, brideShoeSize)}
+            </p>
+            {bridePhone && (
+              <a href={`tel:${bridePhone}`} className="text-body-sm text-primary hover:underline">
+                {bridePhone}
+              </a>
             )}
-            {groomName && (
-              <ContactRow icon={<Heart size={14} />} label="Chú rể">
-                <p className="text-body-sm font-semibold text-text-primary">{groomName}</p>
-                {groomPhone && (
-                  <a href={`tel:${groomPhone}`} className="text-caption text-primary hover:underline">
-                    {groomPhone}
-                  </a>
-                )}
-              </ContactRow>
+          </ContactRow>
+        )}
+
+        {groomName && (
+          <ContactRow icon={<Heart size={14} />} label="Chú rể">
+            <p className="text-body-sm font-medium text-text-primary">
+              {buildPersonStr(groomName, groomHeight, groomWeight, groomShoeSize)}
+            </p>
+            {groomPhone && (
+              <a href={`tel:${groomPhone}`} className="text-body-sm text-primary hover:underline">
+                {groomPhone}
+              </a>
             )}
-          </div>
-        </div>
-      )}
+          </ContactRow>
+        )}
+      </div>
 
       {/* Notes */}
       {notes && (

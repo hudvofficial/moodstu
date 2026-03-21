@@ -65,6 +65,7 @@ export default function ContractDetailClient({
     reservations: liveReservations,
     printOrders: livePrintOrders,
     auditLogs: liveAuditLogs,
+    mutate: refreshContract,
   } = useContractDetail(params.id);
 
   // SWR fallback: use live data if available, else initial server data
@@ -223,10 +224,16 @@ export default function ContractDetailClient({
                   customer={contract.customers || null}
                   notes={contract.notes}
                   embedded
-                  brideName={contract.bride_name}
-                  groomName={contract.groom_name}
-                  bridePhone={contract.bride_phone}
-                  groomPhone={contract.groom_phone}
+                  brideName={contract.customers?.bride_name}
+                  groomName={contract.customers?.groom_name}
+                  bridePhone={contract.customers?.bride_phone}
+                  groomPhone={contract.customers?.groom_phone}
+                  brideHeight={contract.customers?.bride_height}
+                  brideWeight={contract.customers?.bride_weight}
+                  brideShoeSize={contract.customers?.bride_shoe_size}
+                  groomHeight={contract.customers?.groom_height}
+                  groomWeight={contract.customers?.groom_weight}
+                  groomShoeSize={contract.customers?.groom_shoe_size}
                 />
               </div>
 
@@ -234,6 +241,7 @@ export default function ContractDetailClient({
               <EventTimeline
                 events={contract.contract_events || []}
                 tasks={contract.work_tasks || []}
+                onRefresh={() => refreshContract()}
               />
 
               {/* Thao tác nhanh (Stitch: main column, after events) */}
@@ -331,6 +339,7 @@ export default function ContractDetailClient({
               <EventTimeline
                 events={contract.contract_events || []}
                 tasks={contract.work_tasks || []}
+                onRefresh={() => refreshContract()}
               />
             </div>
 

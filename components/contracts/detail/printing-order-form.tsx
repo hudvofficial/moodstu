@@ -29,7 +29,7 @@ interface PrintItem {
 
 interface LabOption {
   id: string;
-  name: string;
+  lab_name: string;
 }
 
 const emptyItem = (): PrintItem => ({
@@ -137,7 +137,7 @@ export default function PrintingOrderForm({
           <SimpleSelect
             value={labId || ""}
             onChange={(v) => setLabId(v || null)}
-            options={labs.map((l) => ({ value: l.id, label: l.name }))}
+            options={labs.map((l) => ({ value: l.id, label: l.lab_name }))}
             label="Xưởng in"
             placeholder="Chọn lab"
           />

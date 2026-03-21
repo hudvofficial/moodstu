@@ -1,4 +1,4 @@
-import { getContractById } from "@/app/actions/contracts";
+import { getContractById } from "@/app/actions/contract-detail-actions";
 import { notFound } from "next/navigation";
 import type {
   Contract,

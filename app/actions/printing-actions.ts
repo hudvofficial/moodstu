@@ -2,10 +2,11 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog, logError } from "@/lib/audit";
 
 // ═══════════════════════════════════════════
-// Printing Actions — Labs + Orders
-// Phase 05B: V1 PrintingOrderForm logic → V2 server actions
+// Printing Actions — Orders + Auto-Expense Pipeline
+// Phase 04: V1 auto-expense on create printing order
 // ═══════════════════════════════════════════
 
 /** Get all active labs */
@@ -13,15 +14,16 @@ export async function getLabs() {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("labs")
-      .select("id, name")
-      .order("name");
+      .select("id, lab_name")
+      .eq("status", "active")
+      .order("lab_name");
 
     if (error) throw new Error(`Lỗi lấy danh sách lab: ${error.message}`);
     return data || [];
   });
 }
 
-/** Create a printing order */
+/** Create a printing order + auto-create expense (V1 pipeline) */
 export async function createPrintingOrder(input: {
   contractId: string;
   labId: string | null;
@@ -63,8 +65,65 @@ export async function createPrintingOrder(input: {
 
     if (error) throw new Error(`Lỗi tạo đơn in: ${error.message}`);
 
+    // ── AUTO-EXPENSE PIPELINE (V1 port) ──────────
+    // When printing order created with cost > 0 → auto-create expense
+    if (totalAmount > 0) {
+      try {
+        // Find "Chi phí in ấn" category
+        const { data: cat } = await supabase
+          .from("transaction_categories")
+          .select("id")
+          .eq("type", "Chi")
+          .ilike("name", "%in ấn%")
+          .limit(1)
+          .single();
+
+        // Get lab name for description
+        let labName = "Lab";
+        if (input.labId) {
+          const { data: lab } = await supabase
+            .from("labs")
+            .select("lab_name")
+            .eq("id", input.labId)
+            .single();
+          labName = lab?.lab_name || "Lab";
+        }
+
+        const itemNames = input.items.map((i) => i.name).join(", ");
+
+        await supabase.from("expenses").insert({
+          expense_date: new Date().toISOString().split("T")[0],
+          payment_method: "chuyen_khoan",
+          category_id: cat?.id || null,
+          amount: totalAmount,
+          description: `[Auto-Print] ${orderCode}: ${itemNames} (${labName})`,
+          recipient: labName,
+          contract_id: input.contractId,
+          created_by: userId,
+        });
+      } catch (expErr) {
+        // Non-blocking: don't fail order creation if expense fails
+        logError({
+          error: expErr,
+          context: "createPrintingOrder.autoExpense",
+          tableName: "expenses",
+          recordId: input.contractId,
+        }).catch(() => {});
+      }
+    }
+
+    // ── Audit log ────────────────────────────────
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "printing_orders",
+      description: `Tạo đơn in ${orderCode} (${totalAmount.toLocaleString("vi-VN")}₫)`,
+      newData: { orderCode, totalAmount, itemCount: input.items.length },
+      source: "server_action",
+    });
+
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${input.contractId}`);
+    revalidatePath("/finance");
     return { orderCode };
   });
 }

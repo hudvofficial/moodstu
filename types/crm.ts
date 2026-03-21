@@ -58,6 +58,14 @@ export interface Customer {
   wedding_date: string | null;
   bride_name: string | null;
   groom_name: string | null;
+  bride_phone: string | null;
+  groom_phone: string | null;
+  bride_height: number | null;
+  bride_weight: number | null;
+  bride_shoe_size: number | null;
+  groom_height: number | null;
+  groom_weight: number | null;
+  groom_shoe_size: number | null;
   avatar_url: string | null;
   source: string | null;
   notes: string | null;
