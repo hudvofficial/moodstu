@@ -33,6 +33,7 @@ import PaymentReceiptForm from "./payment-receipt-form";
 import PrintingOrderForm from "./printing-order-form";
 import InventoryReservationForm from "./inventory-reservation-form";
 import NotesTimeline from "./notes-timeline";
+import AddEventModal from "./add-event-modal";
 
 // ═══════════════════════════════════════════
 // Contract Detail Client — SWR wrapper
@@ -87,6 +88,7 @@ export default function ContractDetailClient({
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showPrintForm, setShowPrintForm] = useState(false);
   const [showCostumeForm, setShowCostumeForm] = useState(false);
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
 
   const handleQuickAction = useCallback((key: string) => {
     switch (key) {
@@ -100,7 +102,7 @@ export default function ContractDetailClient({
         setShowCostumeForm(true);
         break;
       case "event":
-        toast("Tính năng thêm sự kiện đang phát triển", "info");
+        setShowAddEventModal(true);
         break;
       case "drive":
       case "note":
@@ -242,6 +244,7 @@ export default function ContractDetailClient({
                 events={contract.contract_events || []}
                 tasks={contract.work_tasks || []}
                 onRefresh={() => refreshContract()}
+                onAddEvent={() => setShowAddEventModal(true)}
               />
 
               {/* Thao tác nhanh (Stitch: main column, after events) */}
@@ -256,6 +259,9 @@ export default function ContractDetailClient({
 
               {/* Trang phục (Stitch: main column, last section) */}
               <CostumesBlock reservations={reservations} contractId={contract.id} />
+
+              {/* In ấn — gom cùng nhóm tài sản vật lý */}
+              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
             </div>
 
             {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
@@ -267,10 +273,9 @@ export default function ContractDetailClient({
                 remainingAmount={contract.remaining_amount}
                 payments={payments}
                 onPaymentClick={() => setShowPaymentForm(true)}
+                subtotal={contract.total_amount + (contract.discount_amount || 0)}
+                discountAmount={contract.discount_amount}
               />
-
-              {/* In ấn */}
-              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
 
               {/* File & Drive (Stitch: before Checklist) */}
               <FilesDrivePlaceholder />
@@ -340,43 +345,44 @@ export default function ContractDetailClient({
                 events={contract.contract_events || []}
                 tasks={contract.work_tasks || []}
                 onRefresh={() => refreshContract()}
+                onAddEvent={() => setShowAddEventModal(true)}
               />
             </div>
 
-            {/* 5. Đơn hàng in ấn (Stitch 183-207) */}
-            <div id="section-print">
-              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
-            </div>
-
-            {/* 6. Checklist công việc (Stitch 208-247) */}
+            {/* 5. Checklist công việc (Stitch 208-247) */}
             <div id="section-checklist">
               <ChecklistBlock tasks={contract.work_tasks || []} />
             </div>
 
-            {/* 6b. Chuẩn bị (checklist từ templates) */}
+            {/* 5b. Chuẩn bị (checklist từ templates) */}
             <ContractChecklistManager
               initialChecklists={(contract.contract_checklists || []) as { id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean }[]}
             />
 
-            {/* 7. Thao tác nhanh (Stitch 249-277) */}
+            {/* 6. Thao tác nhanh (Stitch 249-277) */}
             <div id="section-actions">
               <QuickActionsGrid onAction={handleQuickAction} />
             </div>
 
-            {/* 8. Ghi chú (Phase 07B) */}
+            {/* 7. Ghi chú (Phase 07B) */}
             <div id="section-notes">
               <NotesTimeline contractId={contract.id} />
             </div>
 
-            {/* 9. Chi tiết dịch vụ (match desktop) */}
+            {/* 8. Chi tiết dịch vụ (match desktop) */}
             <ServiceDetailsBlock
               items={contract.contract_items || []}
               totalAmount={contract.total_amount}
               discountAmount={contract.discount_amount}
             />
 
-            {/* 10. Trang phục (match desktop) */}
+            {/* 9. Trang phục (match desktop) */}
             <CostumesBlock reservations={reservations} contractId={contract.id} />
+
+            {/* 10. Đơn hàng in ấn — gom cùng nhóm tài sản */}
+            <div id="section-print">
+              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
+            </div>
 
             {/* 11. Hoạt động gần đây (match desktop) */}
             <ActivityLog logs={auditLogs} />
@@ -412,6 +418,12 @@ export default function ContractDetailClient({
         onClose={() => setShowCostumeForm(false)}
         contractId={contract.id}
         contractCode={contract.contract_code}
+      />
+      <AddEventModal
+        isOpen={showAddEventModal}
+        contractId={contract.id}
+        onClose={() => setShowAddEventModal(false)}
+        onSaved={() => refreshContract()}
       />
     </div>
   );

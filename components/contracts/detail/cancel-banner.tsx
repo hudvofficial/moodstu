@@ -40,11 +40,11 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
 
   return (
     <div
-      className="flex items-start gap-3 p-4 rounded-2xl
+      className="flex items-start gap-3 p-4 rounded-xl
                  bg-red-50 shadow-sm"
       role="alert"
     >
-      <div className="shrink-0 p-2 rounded-xl bg-red-100">
+      <div className="shrink-0 p-2 rounded-md bg-red-100">
         <AlertTriangle size={20} className="text-red-600" />
       </div>
       <div className="flex-1 min-w-0">

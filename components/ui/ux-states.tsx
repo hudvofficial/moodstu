@@ -51,7 +51,7 @@ export function EmptyState({
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-2xl bg-bg-hover border border-border/50", className)}
+      className={cn("animate-pulse rounded-xl bg-bg-hover border border-border/50", className)}
       {...props}
     />
   );
@@ -59,10 +59,10 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 
 export function SkeletonCard() {
   return (
-    <div className="p-6 bg-bg-card rounded-3xl shadow-sm flex flex-col gap-4">
+    <div className="p-6 bg-bg-card rounded-xl shadow-sm flex flex-col gap-4">
       <div className="flex justify-between items-start">
         <Skeleton className="w-24 h-5" />
-        <Skeleton className="w-16 h-8 rounded-xl" />
+        <Skeleton className="w-16 h-8 rounded-lg" />
       </div>
       <Skeleton className="w-48 h-8" />
       <div className="flex gap-2">

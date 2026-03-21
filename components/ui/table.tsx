@@ -20,7 +20,7 @@ export function TableWrapper({
 }: TableWrapperProps) {
   return (
     <div className={cn(
-      "w-full bg-bg-card rounded-2xl overflow-hidden shadow-sm",
+      "w-full bg-bg-card rounded-xl overflow-hidden shadow-sm",
       containerClassName
     )}>
       <div className="overflow-x-auto scrollbar-hide">

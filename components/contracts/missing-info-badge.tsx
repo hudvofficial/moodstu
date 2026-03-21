@@ -97,7 +97,7 @@ export default function MissingInfoBadge({ items = [] }: { items: ContractCheckl
       </div>
 
       {/* Hover Tooltip — auto-flip */}
-      <div className={`absolute left-1/2 -translate-x-1/2 w-64 max-h-80 overflow-y-auto bg-bg-card rounded-xl shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 p-3 text-left ${
+      <div className={`absolute left-1/2 -translate-x-1/2 w-64 max-h-80 overflow-y-auto bg-bg-card rounded-lg shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 p-3 text-left ${
         flipUp ? "bottom-full mb-2" : "top-full mt-2"
       }`}>
         {sortStages(Object.keys(grouped)).map((stage, si) => (

@@ -74,7 +74,7 @@ export function CustomSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-bg-card rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-bg-card rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           {searchable && (
             <div className="p-3 bg-bg-base/30">
               <div className="relative">
@@ -101,7 +101,7 @@ export function CustomSelect({
                     setSearch("");
                   }}
                   className={cn(
-                    "flex items-center justify-between w-full px-4 py-2.5 rounded-lg text-sm transition-colors mb-0.5 last:mb-0",
+                    "flex items-center justify-between w-full px-4 py-2.5 rounded-md text-sm transition-colors mb-0.5 last:mb-0",
                     value === option.value 
                       ? "bg-primary/10 text-primary font-semibold" 
                       : "text-text-secondary hover:bg-bg-hover"

@@ -1,7 +1,7 @@
 # Plan: Phase 10 — Finance Module Full Port (V2 = V1 + Optimized)
 
 Created: 2026-03-21T12:43
-Status: 🟡 In Progress
+Status: ✅ Done
 
 ## Overview
 
@@ -20,16 +20,16 @@ Mỗi file V2 áp dụng:
 
 | # | Task | V1 Source | V2 File | Status |
 |---|------|-----------|---------|--------|
-| A | Split Expenses | finance.ts (expense fns) + expenses.ts | `expense-actions.ts` | ⬜ |
-| B | Split Receipts | finance.ts (receipt fns) | `receipt-actions.ts` | ⬜ |
-| C | Split Debts + Credit Cards | debts.ts + creditCards.ts | `debt-actions.ts` | ⬜ |
-| D | Split Goals + Budgets | goals.ts + budgets.ts | `goal-budget-actions.ts` | ⬜ |
-| E | Port Investments (NEW) | investments.ts (234 lines) | `investment-actions.ts` | ⬜ |
-| F | Port Salary Adjustments (NEW) | salary-adjustments.ts (153 lines) | `salary-actions.ts` | ⬜ |
-| G | Port Analyze Finance (NEW stub) | analyzeFinance.ts (47 lines) | `analyze-finance-actions.ts` | ⬜ |
+| A | Split Expenses | finance.ts (expense fns) + expenses.ts | `expense-actions.ts` | ✅ Done |
+| B | Split Receipts | finance.ts (receipt fns) | `receipt-actions.ts` | ✅ Done |
+| C | Split Debts + Credit Cards | debts.ts + creditCards.ts | `debt-actions.ts` | ✅ Done |
+| D | Split Goals + Budgets | goals.ts + budgets.ts | `goal-budget-actions.ts` | ✅ Done |
+| E | Port Investments (NEW) | investments.ts (234 lines) | `investment-actions.ts` | ✅ Done |
+| F | Port Salary Adjustments (NEW) | salary-adjustments.ts (153 lines) | `salary-actions.ts` | ✅ Done |
+| G | Port Analyze Finance (NEW stub) | analyzeFinance.ts (47 lines) | `analyze-finance-actions.ts` | ✅ Done |
 | H | DB Migrations cho tables thiếu | — | Supabase migrations | ⬜ |
-| I | Xóa finance-actions.ts gốc | — | — | ⬜ |
-| J | Build verify + lessons update | — | — | ⬜ |
+| I | Xóa finance-actions.ts gốc | — | — | ✅ Done |
+| J | Build verify + lessons update | — | — | ✅ Done |
 
 ## Detail per file
 

@@ -145,7 +145,7 @@ export default function NotesTimeline({ contractId }: Props) {
               notes.map((note) => (
                 <div
                   key={note.id}
-                  className={`group p-3 rounded-xl transition-all ${
+                  className={`group p-3 rounded-md transition-all ${
                     note.id.startsWith("temp-")
                       ? "bg-primary/5 opacity-60"
                       : "bg-bg-hover"
@@ -198,7 +198,7 @@ export default function NotesTimeline({ contractId }: Props) {
             <button
               onClick={handleAdd}
               disabled={!newNote.trim() || loading}
-              className="btn-primary px-3 disabled:opacity-50"
+              className="btn btn-primary px-3 disabled:opacity-50"
             >
               <Send size={16} />
             </button>

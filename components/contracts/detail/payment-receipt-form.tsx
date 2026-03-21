@@ -212,7 +212,7 @@ export default function PaymentReceiptForm({
                 key={m}
                 type="button"
                 onClick={() => setMethod(m)}
-                className={`flex-1 h-10 rounded-xl text-sm font-medium transition-all
+                className={`flex-1 h-10 rounded-md text-sm font-medium transition-all
                   ${method === m
                     ? "text-white shadow-sm"
                     : "bg-bg-hover text-text-secondary hover:bg-bg-secondary"
@@ -269,14 +269,14 @@ export default function PaymentReceiptForm({
         <div className="flex gap-3 pt-2">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn-outline flex-1"
+            className="btn btn-outline flex-1"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || amount <= 0}
-            className="btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary flex-1 disabled:opacity-50"
             style={{ background: themeColor }}
           >
             {loading ? "Đang xử lý..." : isFullyPaid ? "Tạo phát sinh" : "Tạo phiếu thu"}

@@ -43,6 +43,8 @@ interface SelectStatusProps {
   onUpdate: (newStatus: string) => Promise<void>;
   disabled?: boolean;
   size?: "sm" | "md";
+  /** "default" = form input style (width:100%), "compact" = inline pill (auto width) */
+  variant?: "default" | "compact";
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -52,6 +54,7 @@ export function SelectStatus({
   onUpdate,
   disabled = false,
   size = "sm",
+  variant = "default",
 }: SelectStatusProps) {
   const [loading, setLoading] = useState(false);
 
@@ -73,14 +76,23 @@ export function SelectStatus({
   );
 
   // Size classes for trigger
-  const triggerSizeClass =
-    size === "sm"
+  const isCompact = variant === "compact";
+
+  const triggerSizeClass = isCompact
+    ? "text-xs px-2 py-0.5 min-w-0"
+    : size === "sm"
       ? "text-xs px-2 py-1 min-w-[100px]"
       : "text-sm px-3 py-1.5 min-w-[120px]";
 
-  const dotSizeClass = size === "sm" ? "w-1.5 h-1.5" : "w-2 h-2";
+  const dotSizeClass = size === "sm" || isCompact ? "w-1.5 h-1.5" : "w-2 h-2";
 
   const isDisabled = disabled || loading;
+
+  // Compact: pill style (auto width, no input-base)
+  // Default: form style (width 100%, input-base)
+  const triggerBaseClass = isCompact
+    ? "flex items-center gap-1.5 cursor-pointer border border-border rounded-full bg-bg-card hover:bg-bg-hover transition-colors h-7 w-auto shrink-0"
+    : "input-base flex items-center gap-1.5 cursor-pointer";
 
   return (
     <RadixSelect.Root
@@ -90,9 +102,10 @@ export function SelectStatus({
     >
       <RadixSelect.Trigger
         className={[
-          "input-base flex items-center gap-1.5 cursor-pointer",
+          triggerBaseClass,
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          "rounded-lg appearance-none",
+          isCompact ? "rounded-full" : "rounded-md",
+          "appearance-none",
           triggerSizeClass,
         ].join(" ")}
         aria-label="Cập nhật trạng thái"

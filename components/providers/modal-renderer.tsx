@@ -19,7 +19,7 @@ export function GlobalModal() {
       case "CONFIRM_DELETE":
         return (
           <div className="flex flex-col gap-6">
-            <div className="p-4 bg-error/5 border border-error/10 rounded-2xl">
+            <div className="p-4 bg-error/5 border border-error/10 rounded-xl">
               <p className="text-sm text-text-secondary leading-relaxed">
                 {data?.message || "Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa dữ liệu này?"}
               </p>

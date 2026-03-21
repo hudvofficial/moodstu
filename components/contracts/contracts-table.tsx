@@ -155,7 +155,7 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
                   </Badge>
                 </td>
                 <td className="px-4 text-right">
-                  <div className="h-8 w-8 inline-flex items-center justify-center rounded-lg shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
+                  <div className="h-8 w-8 inline-flex items-center justify-center rounded-md shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </td>

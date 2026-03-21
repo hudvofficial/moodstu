@@ -157,7 +157,7 @@ export default function PrintingOrderForm({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="label-base">Sản phẩm in</label>
-            <button onClick={addItem} className="btn-outline text-xs py-1 px-2">
+            <button onClick={addItem} className="btn btn-outline text-xs py-1 px-2">
               <Plus size={12} />
               Thêm
             </button>
@@ -232,14 +232,14 @@ export default function PrintingOrderForm({
         <div className="flex gap-3 pt-2">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn-outline flex-1"
+            className="btn btn-outline flex-1"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary flex-1 disabled:opacity-50"
           >
             {loading ? "Đang xử lý..." : "Tạo đơn in"}
           </button>

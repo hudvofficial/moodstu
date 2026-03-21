@@ -100,7 +100,7 @@ export function ContractsDropdownFilters({
       {/* Advanced Filter toggle — unchanged */}
       <button
         onClick={onToggleAdvanced}
-        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
           isAdvancedOpen
             ? "text-primary bg-primary/10 shadow-sm"
             : "text-primary bg-primary/5 hover:bg-primary/10 shadow-xs"

@@ -60,7 +60,7 @@ export function BottomNav({ className }: BottomNavProps) {
 
           {/* Popup */}
           <div
-            className="absolute bottom-20 right-2 bg-bg-card rounded-2xl shadow-xl border border-border p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="absolute bottom-20 right-2 bg-bg-card rounded-xl shadow-xl border border-border p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {MORE_ITEMS.map((item) => {
@@ -72,7 +72,7 @@ export function BottomNav({ className }: BottomNavProps) {
                   href={item.href}
                   onClick={() => setShowMore(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-text-secondary hover:bg-bg-hover"

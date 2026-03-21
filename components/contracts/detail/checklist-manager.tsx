@@ -134,7 +134,7 @@ export default function ContractChecklistManager({
     const allDone = catDone === catItems.length;
 
     return (
-      <div key={category} className="rounded-xl shadow-xs overflow-hidden">
+      <div key={category} className="rounded-md shadow-xs overflow-hidden">
         {/* Category header */}
         <div className={`flex items-center justify-between px-3 py-2 ${style.bg}`}>
           <span className={`text-tiny font-bold ${style.text}`}>
@@ -150,7 +150,7 @@ export default function ContractChecklistManager({
           {catItems.map((item) => (
             <label
               key={item.id}
-              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all group ${
+              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer transition-all group ${
                 item.is_completed
                   ? "bg-bg-hover/30 opacity-60"
                   : "bg-bg-card shadow-xs hover:shadow-sm"
@@ -227,7 +227,7 @@ export default function ContractChecklistManager({
 
       {/* Stage tabs (nếu nhiều stages) */}
       {hasMultipleStages && (
-        <div className="flex gap-1 mb-4 p-1 bg-bg-hover rounded-xl">
+        <div className="flex gap-1 mb-4 p-1 bg-bg-hover rounded-md">
           {stages.map((stage) => {
             const sp = getStageProgress(groupedByStage[stage]);
             const isActive = activeStage === stage;
@@ -235,7 +235,7 @@ export default function ContractChecklistManager({
               <button
                 key={stage}
                 onClick={() => setActiveStage(stage)}
-                className={`flex-1 py-2 px-3 rounded-lg text-caption font-bold transition-all ${
+                className={`flex-1 py-2 px-3 rounded-md text-caption font-bold transition-all ${
                   isActive
                     ? "bg-bg-card text-text-main shadow-sm"
                     : sp.pct === 100

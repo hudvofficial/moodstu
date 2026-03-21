@@ -83,7 +83,7 @@ export default function PrintContractClient({
         <div className="max-w-4xl mx-auto flex items-center justify-between px-4 h-14">
           <Link
             href={`/contracts/${contract.id}`}
-            className="btn-outline"
+            className="btn btn-outline"
           >
             <ArrowLeft size={16} />
             <span>Quay lại</span>
@@ -92,7 +92,7 @@ export default function PrintContractClient({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="btn-outline"
+              className="btn btn-outline"
             >
               <Printer size={16} />
               <span>In ngay</span>
@@ -100,7 +100,7 @@ export default function PrintContractClient({
             <button
               onClick={handleDownload}
               disabled={!isPdfReady || isGenerating}
-              className="btn-primary disabled:opacity-50"
+              className="btn btn-primary disabled:opacity-50"
             >
               <Download size={16} />
               <span>{isGenerating ? "Đang tạo..." : "Tải PDF (A5)"}</span>

@@ -119,7 +119,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
   // No tasks
   if (!progress) {
     return (
-      <div className="flex items-center justify-center px-3 py-2 rounded-lg min-w-[120px] text-center shadow-xs bg-bg-hover opacity-50">
+      <div className="flex items-center justify-center px-3 py-2 rounded-md min-w-[120px] text-center shadow-xs bg-bg-hover opacity-50">
         <span className="text-tiny font-medium text-text-muted italic">Chưa có task</span>
       </div>
     );
@@ -129,7 +129,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
     <div ref={badgeRef} className="relative group/tooltip inline-block w-full">
       {/* Main Badge */}
       <div
-        className={`flex flex-col gap-1 px-2 py-1.5 rounded-lg min-w-[120px] cursor-help transition-all ${
+        className={`flex flex-col gap-1 px-2 py-1.5 rounded-md min-w-[120px] cursor-help transition-all ${
           progress.pct === 100
             ? "bg-success/10"
             : progress.isOverdue
@@ -171,7 +171,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
       </div>
 
       {/* Hover Tooltip — auto-flip */}
-      <div className={`absolute left-1/2 -translate-x-1/2 w-56 bg-bg-card rounded-xl shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 p-3 text-left ${
+      <div className={`absolute left-1/2 -translate-x-1/2 w-56 bg-bg-card rounded-lg shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 p-3 text-left ${
         flipUp ? "bottom-full mb-2" : "top-full mt-2"
       }`}>
         <div className="space-y-3">

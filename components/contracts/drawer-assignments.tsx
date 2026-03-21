@@ -86,7 +86,7 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
         {visibleTasks.map((task) => (
           <div
             key={task.id}
-            className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-hover/50 transition-colors"
+            className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-hover/50 transition-colors"
           >
             {/* Avatar placeholder */}
             <UserCircle className="w-5 h-5 text-text-muted shrink-0" />

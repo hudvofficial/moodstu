@@ -179,7 +179,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
               {/* Category header */}
               <button
                 onClick={() => toggleExpand(cat)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors hover:bg-hover/30 ${style.bg}`}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-hover/30 ${style.bg}`}
               >
                 {isExpanded ? (
                   <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />

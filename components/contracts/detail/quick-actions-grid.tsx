@@ -40,19 +40,19 @@ export default function QuickActionsGrid({ onAction }: Props) {
               <button
                 key={action.key}
                 onClick={() => onAction?.(action.key)}
-                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl
+                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
                            bg-bg-card shadow-xs
                            transition-all duration-200
-                           active:scale-[0.96] active:bg-bg-hover cursor-pointer"
+                           active:scale-(--scale-press-sm) active:bg-bg-hover cursor-pointer"
               >
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center
+                  className={`w-(--icon-container-sm) h-(--icon-container-sm) rounded-md flex items-center justify-center
                               ${action.bg} ${action.hoverBg}
                              transition-all duration-200`}
                 >
                   <Icon size={20} className={action.text} />
                 </div>
-                <span className="text-xs font-bold text-text-secondary group-hover:text-text-primary transition-colors">
+                <span className="text-caption font-bold text-text-secondary group-hover:text-text-primary transition-colors">
                   {action.label}
                 </span>
               </button>
@@ -73,13 +73,13 @@ export default function QuickActionsGrid({ onAction }: Props) {
               <button
                 key={action.key}
                 onClick={() => onAction?.(action.key)}
-                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl
+                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
                            bg-primary/4 hover:bg-primary/8
                            transition-all duration-200
-                           active:scale-[0.96] cursor-pointer"
+                           active:scale-(--scale-press-sm) cursor-pointer"
               >
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center
+                  className={`w-(--icon-container-md) h-(--icon-container-md) rounded-lg flex items-center justify-center
                               ${action.bg} ${action.hoverBg}
                               group-hover:scale-110 group-hover:shadow-sm
                               transition-all duration-200`}

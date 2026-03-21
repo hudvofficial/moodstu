@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   CalendarDays, Camera, Church, Pencil, Package,
-  MapPin, AlertTriangle, ClipboardList,
+  MapPin, AlertTriangle, ClipboardList, Plus,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ interface Props {
   events: ContractEvent[];
   tasks: WorkTask[];
   onRefresh?: () => void;
+  onAddEvent?: () => void;
 }
 
 // ─── Lucide Icon Mapping (SSOT: replaces emoji) ──────
@@ -76,7 +77,7 @@ function getCardStyles(event: ContractEvent, isActive: boolean) {
 }
 
 // ─── Main Component ──────────────────────────────────
-export default function EventTimeline({ events, tasks, onRefresh }: Props) {
+export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: Props) {
   const [modalEvent, setModalEvent] = useState<ContractEvent | null>(null);
 
   // Sort by sort_order (V1 business logic), fallback to date
@@ -98,11 +99,27 @@ export default function EventTimeline({ events, tasks, onRefresh }: Props) {
   if (sorted.length === 0) {
     return (
       <div className="card-base p-4 lg:p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CalendarDays size={16} className="text-primary" />
-          <h3 className="text-body-sm font-bold text-text-primary">
-            Lịch trình sự kiện
-          </h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-box bg-primary/10">
+              <CalendarDays size={16} className="text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-body-sm font-bold text-text-primary">
+                  Lịch trình sự kiện
+                </h3>
+                <Badge variant="neutral">0 SỰ KIỆN</Badge>
+              </div>
+              <p className="text-caption">Dự án: Mood Studio · {new Date().getFullYear()}</p>
+            </div>
+          </div>
+          {onAddEvent && (
+            <button onClick={onAddEvent} className="btn btn-outline">
+              <Plus size={14} />
+              Thêm lịch
+            </button>
+          )}
         </div>
         <div className="py-6 text-center">
           <CalendarDays size={28} className="mx-auto text-text-muted mb-2" />
@@ -116,15 +133,28 @@ export default function EventTimeline({ events, tasks, onRefresh }: Props) {
     <div className="card-base p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <CalendarDays size={16} className="text-primary" />
-          <h3 className="text-body-sm font-bold text-text-primary">
-            Lịch trình sự kiện
-          </h3>
+        <div className="flex items-center gap-3">
+          <div className="icon-box bg-primary/10">
+            <CalendarDays size={16} className="text-primary" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-body-sm font-bold text-text-primary">
+                Lịch trình sự kiện
+              </h3>
+              <Badge variant="neutral">
+                {sorted.length} SỰ KIỆN
+              </Badge>
+            </div>
+            <p className="text-caption">Dự án: Mood Studio · {new Date().getFullYear()}</p>
+          </div>
         </div>
-        <Badge variant="neutral">
-          {completedCount}/{sorted.length} sự kiện xong
-        </Badge>
+        {onAddEvent && (
+          <button onClick={onAddEvent} className="btn btn-outline">
+            <Plus size={14} />
+            Thêm lịch
+          </button>
+        )}
       </div>
 
       {/* Grid Cards — auto-fill: 2 cols mobile, 4 cols desktop */}
@@ -152,7 +182,7 @@ export default function EventTimeline({ events, tasks, onRefresh }: Props) {
             <div
               key={event.id}
               className={`
-                border-l-[3px] rounded-xl p-3 cursor-pointer
+                border-l-[3px] rounded-md p-3 cursor-pointer
                 transition-all duration-200 hover:shadow-sm
                 ${getCardStyles(event, isActive)}
               `}

@@ -66,7 +66,7 @@ export default function CustomerInfoBlock({
       <div className="flex items-start gap-3 mb-4">
         {/* Avatar */}
         <div
-          className="w-10 h-10 rounded-xl bg-primary/10 text-primary
+          className="w-10 h-10 rounded-md bg-primary/10 text-primary
                      flex items-center justify-center text-body-sm font-bold shrink-0"
         >
           {initial}
@@ -167,7 +167,7 @@ export default function CustomerInfoBlock({
 
       {/* Notes */}
       {notes && (
-        <div className="mt-4 p-3 rounded-xl bg-bg-hover">
+        <div className="mt-4 p-3 rounded-md bg-bg-hover">
           <p className="text-caption font-semibold mb-1">Ghi chú</p>
           <p className="text-body-sm text-text-secondary">{notes}</p>
         </div>

@@ -23,7 +23,7 @@ export function TabsFilter({ tabs, activeTab, onChange, className = "" }: TabsFi
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 bg-elevated p-1 rounded-lg shadow-xs",
+        "inline-flex items-center gap-2 bg-elevated p-1 rounded-md shadow-xs",
         "max-lg:flex max-lg:overflow-x-auto max-lg:scrollbar-hide",
         className
       )}

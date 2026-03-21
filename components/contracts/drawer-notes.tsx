@@ -128,7 +128,7 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
               {recentNotes.map((note) => (
                 <div
                   key={note.id}
-                  className={`rounded-lg px-3 py-2 bg-hover/30 ${
+                  className={`rounded-md px-3 py-2 bg-hover/30 ${
                     note.id.startsWith("temp-") ? "opacity-60" : ""
                   }`}
                 >

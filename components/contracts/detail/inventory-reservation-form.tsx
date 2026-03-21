@@ -163,7 +163,7 @@ export default function InventoryReservationForm({
               <button
                 key={item.id}
                 onClick={() => handleSelect(item)}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left
+                className={`w-full flex items-center gap-3 p-2.5 rounded-md transition-all text-left
                   ${selectedId === item.id
                     ? "bg-primary/10 ring-1 ring-primary"
                     : "bg-bg-hover hover:bg-bg-secondary"
@@ -176,10 +176,10 @@ export default function InventoryReservationForm({
                     alt={item.name}
                     width={40}
                     height={40}
-                    className="w-10 h-10 rounded-lg object-cover shrink-0"
+                    className="w-10 h-10 rounded-md object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                     <Shirt size={16} className="text-primary" />
                   </div>
                 )}
@@ -202,35 +202,35 @@ export default function InventoryReservationForm({
 
         {/* Selected item details */}
         {selectedItem && (
-          <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+          <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
             <p className="text-body-sm font-semibold text-primary mb-2">
               Đã chọn: {selectedItem.name}
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label-base mb-1 block text-xs">Giá thuê</label>
+                <label className="label-base mb-1 block">Giá thuê</label>
                 <input
                   type="number"
                   value={rentalPrice}
                   onChange={(e) => setRentalPrice(e.target.value)}
                   placeholder="0"
-                  className="input-base w-full text-sm"
+                  className="input-base w-full"
                 />
               </div>
               <div>
-                <label className="label-base mb-1 block text-xs">Ngày bắt đầu</label>
+                <label className="label-base mb-1 block">Ngày bắt đầu</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="input-base w-full text-sm"
+                  className="input-base w-full"
                 />
               </div>
             </div>
 
             {/* Addon checkbox */}
-            <label className="flex items-center gap-2 text-sm cursor-pointer mt-3">
+            <label className="flex items-center gap-2 text-body-sm cursor-pointer mt-3">
               <input
                 type="checkbox"
                 checked={isAddon}
@@ -248,7 +248,7 @@ export default function InventoryReservationForm({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ghi chú thêm..."
               rows={2}
-              className="input-base w-full resize-none mt-3 text-sm"
+              className="input-base w-full resize-none mt-3"
             />
           </div>
         )}
@@ -257,14 +257,14 @@ export default function InventoryReservationForm({
         <div className="flex gap-3 pt-2">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn-outline flex-1"
+            className="btn btn-outline flex-1"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selectedId || loading}
-            className="btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary flex-1 disabled:opacity-50"
           >
             {loading ? "Đang xử lý..." : "Đặt trang phục"}
           </button>

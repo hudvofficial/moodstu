@@ -77,11 +77,11 @@ export function CompactStats({ stats }: CompactStatsProps) {
     <>
       {/* ── MOBILE: Stitch Mini Cards — same items as desktop (lg:hidden) ──
        *  Stitch source: flex gap-3 px-4 mb-6, each card min-w-[120px] bg-white
-       *  p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-1
+       *  p-3 rounded-md border border-slate-100 shadow-sm flex flex-col gap-1
        */}
       <div className="lg:hidden flex gap-3 px-2 mb-4 overflow-x-auto scrollbar-hide">
         {mobileItems.map((item) => (
-          <div key={item.label} className="min-w-[160px] bg-bg-card px-5 py-5 rounded-xl shadow-sm flex flex-col gap-2">
+          <div key={item.label} className="min-w-[160px] bg-bg-card px-5 py-5 rounded-lg shadow-sm flex flex-col gap-2">
             <span className="text-[11px] uppercase tracking-wider text-text-secondary font-semibold">{item.label}</span>
             <span className={`text-amount ${item.iconColor}`}>{item.value}</span>
           </div>
@@ -96,7 +96,7 @@ export function CompactStats({ stats }: CompactStatsProps) {
               <div className="w-px h-6 bg-text-muted/20 mr-1" />
             )}
             <div
-              className={`flex items-center justify-center w-9 h-9 rounded-xl ${item.iconBg}`}
+              className={`flex items-center justify-center w-9 h-9 rounded-lg ${item.iconBg}`}
             >
               <item.icon className={`w-4.5 h-4.5 ${item.iconColor}`} />
             </div>

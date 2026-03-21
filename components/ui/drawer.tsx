@@ -114,7 +114,7 @@ export function Drawer({
               {headerRight}
               <button
                 onClick={onClose}
-                className="icon-btn size-8 rounded-lg"
+                className="icon-btn size-8 rounded-md"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -149,7 +149,7 @@ export function Drawer({
               {headerRight}
               <button
                 onClick={onClose}
-                className="icon-btn size-8 rounded-lg"
+                className="icon-btn size-8 rounded-md"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />

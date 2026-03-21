@@ -36,12 +36,12 @@ LAYER 3 — ADVANCED:
 
 | Phase | Layer | Name | Features | Status |
 |-------|-------|------|----------|--------|
-| 01 | 🏗️ Infra | Audit System | F17 | ⬜ Pending |
-| 02 | 🏗️ Infra | Expense Module | F11, F19, F20 | ⬜ Pending |
-| 03 | 🏗️ Infra | Lab Module Full | F6, F7, F8, F9, F10 | ⬜ Pending |
+| 01 | 🏗️ Infra | Audit System | F17 | ✅ Done |
+| 02 | 🏗️ Infra | Expense Module | F11, F19, F20 | ✅ Done |
+| 03 | 🏗️ Infra | Lab Module Full | F6, F7, F8, F9, F10 | ✅ Done |
 | 04 | 🔌 Core | Auto-Expense Pipeline | F5, F12 | ⬜ Pending |
 | 05 | 🔌 Core | Lợi nhuận ròng | F1, F3, F4 | ⬜ Pending |
-| 06 | 🔌 Core | Task RBAC | F16 | ⬜ Pending |
+| 06 | 🔌 Core | Task RBAC | F16 | ✅ Done |
 | 07 | 🔌 Core | Contract Lifecycle Atomic | F13, F14, F15 | ⬜ Pending |
 | 08 | ⭐ Adv | Profit Detail Modal | F2, F21 | ⬜ Pending |
 
@@ -51,7 +51,7 @@ LAYER 3 — ADVANCED:
 
 # Phase 01: Audit System
 Layer: 🏗️ Infrastructure
-Status: ⬜ Pending
+Status: ✅ Done
 Dependencies: None (mọi module cần nó)
 
 ## Objective
@@ -82,7 +82,7 @@ Port hệ thống audit logging từ V1. Mọi mutation trong hệ thống
 
 # Phase 02: Expense Module
 Layer: 🏗️ Infrastructure
-Status: ⬜ Pending
+Status: ✅ Done
 Dependencies: Phase 01 (Audit)
 
 ## Objective
@@ -132,7 +132,7 @@ chi phí cố định hàng tháng. Contract sẽ gọi vào module này.
 
 # Phase 03: Lab Module Full
 Layer: 🏗️ Infrastructure
-Status: ⬜ Pending
+Status: ✅ Done
 Dependencies: Phase 01 (Audit)
 
 ## Objective
@@ -234,7 +234,7 @@ margin = (netProfit / totalAmount) * 100
 
 # Phase 06: Task RBAC
 Layer: 🔌 Contract Core
-Status: ⬜ Pending
+Status: ✅ Done
 Dependencies: Phase 01 (Audit)
 
 ## Objective

@@ -88,7 +88,7 @@ export default function ContractActionsMenu({
         {/* Cancel */}
         <button
           onClick={() => setShowCancel(true)}
-          className="btn-outline text-warning hover:text-warning"
+          className="btn btn-outline text-warning hover:text-warning"
         >
           <Ban size={14} />
           <span className="max-lg:hidden">Huỷ HĐ</span>
@@ -98,7 +98,7 @@ export default function ContractActionsMenu({
         {!hasReceipts && (
           <button
             onClick={() => setShowDelete(true)}
-            className="btn-outline text-error hover:text-error"
+            className="btn btn-outline text-error hover:text-error"
           >
             <Trash2 size={14} />
             <span className="max-lg:hidden">Xoá</span>
@@ -114,7 +114,7 @@ export default function ContractActionsMenu({
         description={`${contractCode} — ${customerName}`}
       >
         {/* Warning */}
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-warning/10 mb-4">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-warning/10 mb-4">
           <AlertTriangle size={20} className="text-warning shrink-0 mt-0.5" />
           <p className="text-body-sm text-text-secondary">
             Công việc chưa hoàn thành, đơn in, lịch thanh toán sẽ <strong>tự động hủy</strong> theo.
@@ -136,14 +136,14 @@ export default function ContractActionsMenu({
         <div className="flex gap-3 mt-6">
           <button
             onClick={() => { setShowCancel(false); setCancelReason(""); }}
-            className="btn-outline flex-1"
+            className="btn btn-outline flex-1"
           >
             Đóng
           </button>
           <button
             onClick={handleCancel}
             disabled={!cancelReason.trim() || loading}
-            className="btn-primary flex-1 bg-warning! hover:bg-warning/90!
+            className="btn btn-primary flex-1 bg-warning! hover:bg-warning/90!
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Đang xử lý..." : "Xác nhận huỷ"}
@@ -159,7 +159,7 @@ export default function ContractActionsMenu({
         description={`${contractCode} — ${customerName}`}
       >
         {/* Danger warning */}
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-error/10 mb-4">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-error/10 mb-4">
           <AlertTriangle size={20} className="text-error shrink-0 mt-0.5" />
           <div className="text-body-sm text-text-secondary">
             <strong className="text-error">Không thể hoàn tác</strong> — toàn bộ dữ liệu hợp đồng,
@@ -184,14 +184,14 @@ export default function ContractActionsMenu({
         <div className="flex gap-3 mt-6">
           <button
             onClick={() => { setShowDelete(false); setConfirmCode(""); }}
-            className="btn-outline flex-1"
+            className="btn btn-outline flex-1"
           >
             Đóng
           </button>
           <button
             onClick={handleDelete}
             disabled={confirmCode !== contractCode || loading}
-            className="btn-primary flex-1 bg-error! hover:bg-error/90!
+            className="btn btn-primary flex-1 bg-error! hover:bg-error/90!
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Đang xử lý..." : "Xoá vĩnh viễn"}

@@ -94,7 +94,7 @@ export default function ServiceDetailsBlock({
                     >
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-lg bg-bg-hover text-text-secondary">
+                          <div className="p-1.5 rounded-md bg-bg-hover text-text-secondary">
                             {getItemIcon(item.type)}
                           </div>
                           <div className="min-w-0">
@@ -136,7 +136,7 @@ export default function ServiceDetailsBlock({
               const variant = ITEM_TYPE_VARIANT[item.type] || "info";
               const typeLabel = getItemTypeLabel(item.type);
               return (
-                <div key={item.id} className="p-3 rounded-xl bg-bg-hover/40">
+                <div key={item.id} className="p-3 rounded-md bg-bg-hover/40">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p className="text-body-sm font-semibold text-text-primary flex-1 min-w-0 truncate">
                       {item.item_name}

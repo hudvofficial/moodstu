@@ -33,7 +33,7 @@ export default function MobileBottomBar({
         <Link
           href={`/contracts/${contractId}/edit`}
           className="flex-1 h-12 flex items-center justify-center
-                     rounded-xl shadow-xs
+                     rounded-md shadow-xs
                      text-text-primary
                      font-bold text-sm
                      active:scale-[0.98] transition-all"
@@ -46,7 +46,7 @@ export default function MobileBottomBar({
           <button
             onClick={onPaymentClick}
             className="flex-1 h-12 flex items-center justify-center
-                       rounded-xl
+                       rounded-md
                        bg-interactive text-white
                        font-bold text-sm
                        shadow-lg shadow-interactive/20

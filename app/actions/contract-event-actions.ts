@@ -2,6 +2,7 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
 import { isOnSetEvent } from "@/types/contract-constants";
 import type { EventType } from "@/types/contract";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -166,4 +167,108 @@ async function recalculateDownstreamDates(
       }
     }
   }
+}
+
+// ─── ADD CONTRACT EVENT (Hybrid Model) ───────────
+// Admin tạo event tùy chỉnh — is_manual_date = true
+// sort_order = MAX(existing) + 1
+export async function addContractEvent(input: {
+  contractId: string;
+  eventType: EventType;
+  title: string;
+  eventDate?: string;
+  deadline?: string;
+  location?: string;
+  notes?: string;
+}) {
+  return withAuth(async (supabase) => {
+    if (!input.contractId) throw new Error("Thiếu contract ID");
+    if (!input.title?.trim()) throw new Error("Tên sự kiện không được để trống");
+
+    // Auto sort_order: max + 1
+    const { data: maxRow } = await supabase
+      .from("contract_events")
+      .select("sort_order")
+      .eq("contract_id", input.contractId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .single();
+
+    const nextOrder = (maxRow?.sort_order ?? 0) + 1;
+    const isOnSet = isOnSetEvent(input.eventType);
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase
+      .from("contract_events")
+      .insert({
+        contract_id: input.contractId,
+        event_type: input.eventType,
+        title: input.title.trim(),
+        event_date: isOnSet ? (input.eventDate || today) : today,
+        deadline: !isOnSet ? (input.deadline || today) : null,
+        location: input.location || null,
+        notes: input.notes || null,
+        sort_order: nextOrder,
+        status: "chua_lam",
+        is_manual_date: true,
+      })
+      .select("id, event_type, title, sort_order")
+      .single();
+
+    if (error) throw new Error(`Lỗi thêm sự kiện: ${error.message}`);
+
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "contract_events",
+      recordId: data?.id,
+      description: `Thêm sự kiện: ${input.title} (${input.eventType})`,
+    });
+
+    revalidatePath("/contracts");
+    return data;
+  });
+}
+
+// ─── DELETE CONTRACT EVENT (Hybrid Model) ────────
+// Chỉ cho xóa event do admin tạo (is_manual_date = true)
+// Cascade: xóa work_tasks liên quan
+export async function deleteContractEvent(eventId: string) {
+  return withAuth(async (supabase) => {
+    if (!eventId) throw new Error("Thiếu event ID");
+
+    // Guard: only delete manual events
+    const { data: evt, error: fetchErr } = await supabase
+      .from("contract_events")
+      .select("id, title, is_manual_date, contract_id")
+      .eq("id", eventId)
+      .single();
+
+    if (fetchErr || !evt) throw new Error("Không tìm thấy sự kiện");
+    if (!evt.is_manual_date) {
+      throw new Error("Không thể xóa sự kiện từ template. Chỉ xóa được sự kiện do admin tạo.");
+    }
+
+    // Cascade: delete related work_tasks first
+    await supabase.from("work_tasks").delete().eq("event_id", eventId);
+
+    // Delete the event
+    const { error } = await supabase
+      .from("contract_events")
+      .delete()
+      .eq("id", eventId);
+
+    if (error) throw new Error(`Lỗi xóa sự kiện: ${error.message}`);
+
+    fireAuditLog({
+      action: "DELETE",
+      tableName: "contract_events",
+      recordId: eventId,
+      description: `Xóa sự kiện: ${evt.title || eventId.substring(0, 8)}`,
+      severity: "WARNING",
+    });
+
+    revalidatePath("/contracts");
+    return null;
+  });
 }

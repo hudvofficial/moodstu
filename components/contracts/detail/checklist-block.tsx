@@ -100,7 +100,7 @@ export default function ChecklistBlock({ tasks }: Props) {
             return (
               <div
                 key={task.id}
-                className={`flex items-center gap-2.5 p-2 rounded-lg
+                className={`flex items-center gap-2.5 p-2 rounded-md
                   ${task.status === "hoan_thanh" ? "opacity-60" : ""}
                   hover:bg-bg-hover transition-colors`}
               >

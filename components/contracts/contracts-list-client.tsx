@@ -154,7 +154,7 @@ function ContractsListInner() {
       <div className="lg:hidden">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
       </div>
-      <div className="hidden lg:flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-2xl shadow-xs">
+      <div className="hidden lg:flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
         <button onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
           <Plus className="w-5 h-5" />
@@ -226,7 +226,7 @@ function ContractsListInner() {
 
       {/* ── Advanced Filters Panel ── */}
       {filters.advanced && (
-        <div className="hidden lg:grid w-full p-4 bg-surface rounded-lg grid-cols-4 gap-4 shadow-sm">
+        <div className="hidden lg:grid w-full p-4 bg-surface rounded-md grid-cols-4 gap-4 shadow-sm">
           <DatePicker
             label="Từ ngày"
             value={localStartDate}

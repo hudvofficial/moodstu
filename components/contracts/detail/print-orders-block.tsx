@@ -50,7 +50,7 @@ export default function PrintOrdersBlock({ orders, contractId }: Props) {
             return (
               <div
                 key={order.id}
-                className="p-2.5 rounded-xl bg-bg-hover"
+                className="p-2.5 rounded-md bg-bg-hover"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-body-sm font-semibold text-text-primary truncate">

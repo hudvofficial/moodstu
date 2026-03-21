@@ -57,7 +57,7 @@ export function UpcomingEventsList() {
             <div
               key={event.id}
               className={cn(
-                "flex items-center gap-3 p-3 rounded-xl",
+                "flex items-center gap-3 p-3 rounded-lg",
                 "bg-bg-base/60 hover:bg-bg-hover transition-colors cursor-pointer"
               )}
             >

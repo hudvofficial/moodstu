@@ -108,7 +108,7 @@ export function ContractDrawer({
           onClose();
           router.push(`/contracts/${contractId}/edit`);
         }}
-        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+        className="p-1.5 rounded-md hover:bg-hover transition-colors"
         title="Sửa hợp đồng"
       >
         <Pencil className="w-4 h-4 text-text-secondary" />
@@ -117,7 +117,7 @@ export function ContractDrawer({
         href={`/contracts/${contractId}/print`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-1.5 rounded-lg hover:bg-hover transition-colors"
+        className="p-1.5 rounded-md hover:bg-hover transition-colors"
         title="In hợp đồng"
       >
         <Printer className="w-4 h-4 text-text-secondary" />
@@ -172,7 +172,7 @@ function DrawerContent({
       <section className="card-base p-4">
         {/* Avatar row: clickable → detail */}
         <button onClick={onViewDetail} className="flex items-center gap-3 group w-full text-left">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
             {(customer?.full_name || "K")[0].toUpperCase()}
           </div>
           <div className="flex flex-col min-w-0">
@@ -198,13 +198,13 @@ function DrawerContent({
 
         {/* Pill cards: Service + Work date (V1-style side by side) */}
         <div className="flex gap-2 mt-3">
-          <div className="flex-1 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+          <div className="flex-1 px-3 py-2 rounded-md bg-primary/5 border border-primary/10">
             <span className="text-tiny font-bold text-primary/70 uppercase block">Dịch vụ</span>
             <span className="text-body-sm font-bold text-primary truncate block">
               {getServiceLabel((c.service_type || "studio") as ServiceType)}
             </span>
           </div>
-          <div className="flex-1 px-3 py-2 rounded-lg bg-warning/5 border border-warning/10">
+          <div className="flex-1 px-3 py-2 rounded-md bg-warning/5 border border-warning/10">
             <span className="text-tiny font-bold text-warning/70 uppercase block">Ngày làm</span>
             <span className="text-body-sm font-bold text-text-main truncate block">
               {workDate ? formatDate(workDate) : "—"}
@@ -332,12 +332,12 @@ function OperationsTabs({
   return (
     <div>
       {/* Tab buttons */}
-      <div className="flex gap-1 mb-3 bg-neutral-100/60 rounded-xl p-1">
+      <div className="flex gap-1 mb-3 bg-neutral-100/60 rounded-lg p-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 px-3 rounded-lg text-body-sm font-semibold transition-all ${
+            className={`flex-1 py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
               activeTab === tab.key
                 ? "bg-bg-base text-text-main shadow-md"
                 : "text-text-muted hover:text-text-secondary"

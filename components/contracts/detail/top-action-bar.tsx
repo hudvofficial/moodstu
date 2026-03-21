@@ -149,7 +149,7 @@ export default function TopActionBar({
             {!isCancelled && (
               <Link
                 href={`/contracts/${contractId}/edit`}
-                className="btn-outline"
+                className="btn btn-outline"
               >
                 <Pencil size={14} />
                 <span>Sửa</span>
@@ -161,7 +161,7 @@ export default function TopActionBar({
               href={`/contracts/${contractId}/print`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-outline"
+              className="btn btn-outline"
             >
               <Printer size={14} />
               <span>In hợp đồng</span>
@@ -172,7 +172,7 @@ export default function TopActionBar({
               href={`/contracts/${contractId}/print?isExportMode=true`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-outline"
+              className="btn btn-outline"
             >
               <Download size={14} />
               <span>Xuất file</span>

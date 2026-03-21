@@ -397,7 +397,7 @@ export default function EventTaskModal({
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-bg-hover/40 hover:bg-bg-hover group transition-colors"
+                className="flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -526,7 +526,7 @@ export default function EventTaskModal({
               {conflicts.map((c) => (
                 <div
                   key={c.id}
-                  className="p-2.5 rounded-xl bg-error/5 flex items-start gap-2"
+                  className="p-2.5 rounded-md bg-error/5 flex items-start gap-2"
                 >
                   <AlertTriangle size={14} className="text-error shrink-0 mt-0.5" />
                   <div className="text-caption text-error font-medium">

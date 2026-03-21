@@ -50,7 +50,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-body-sm text-text-secondary">Giảm giá</span>
             {/* Toggle VNĐ / % */}
-            <div className="flex overflow-hidden rounded-lg bg-neutral-100 p-0.5">
+            <div className="flex overflow-hidden rounded-md bg-neutral-100 p-0.5">
               <button
                 type="button"
                 onClick={() => { setDiscountType("fixed"); updateDiscount(0); }}

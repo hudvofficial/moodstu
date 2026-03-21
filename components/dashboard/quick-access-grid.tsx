@@ -35,10 +35,10 @@ export function QuickAccessGrid() {
             <Link
               key={mod.id}
               href={mod.href}
-              className="flex flex-col items-center gap-1.5 py-2 rounded-xl group"
+              className="flex flex-col items-center gap-1.5 py-2 rounded-lg group"
             >
               <div className={cn(
-                "w-14 h-14 rounded-2xl flex items-center justify-center",
+                "w-14 h-14 rounded-xl flex items-center justify-center",
                 "shadow-[0_2px_6px_rgba(0,0,0,0.14)]",
                 "group-active:scale-90 transition-all duration-200",
                 color.bg

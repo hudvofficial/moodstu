@@ -3,6 +3,7 @@ import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
 import type { Payment } from "@/types/contract";
 import { getPaymentMethodLabel } from "@/types/contract-constants";
 
+
 // ═══════════════════════════════════════════
 // Financial Dashboard — Unified finance card
 // Stitch SSOT: line 344-382 (stitch_contract_detail.html)
@@ -17,6 +18,8 @@ interface Props {
   remainingAmount: number;
   payments?: Payment[];
   onPaymentClick?: () => void;
+  subtotal?: number;
+  discountAmount?: number;
 }
 
 export default function FinancialDashboard({
@@ -25,6 +28,8 @@ export default function FinancialDashboard({
   remainingAmount,
   payments = [],
   onPaymentClick,
+  subtotal,
+  discountAmount = 0,
 }: Props) {
   const progress =
     totalAmount > 0
@@ -69,7 +74,7 @@ export default function FinancialDashboard({
 
         {/* Grid 2-col: Đã thu + Còn nợ — Stitch: slate-50 bg + inset accent */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 p-3 rounded-lg inset-success">
+          <div className="bg-slate-50 p-3 rounded-md inset-success">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Đã thu
             </p>
@@ -77,7 +82,7 @@ export default function FinancialDashboard({
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg inset-warning">
+          <div className="bg-slate-50 p-3 rounded-md inset-warning">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Còn nợ
             </p>
@@ -133,7 +138,7 @@ export default function FinancialDashboard({
         )}
       </div>
 
-      {/* ══════════ DESKTOP ORIGINAL ══════════ */}
+      {/* ══════════ DESKTOP OPTIMIZED (Phase 1) ══════════ */}
       <div className="max-lg:hidden space-y-6">
         {/* Header */}
         <h3 className="text-h3">Tài chính</h3>
@@ -142,27 +147,67 @@ export default function FinancialDashboard({
         <div>
           <p className="text-overline mb-1">Tổng cộng</p>
           <p className="text-amount">{formatCurrency(totalAmount)} {CURRENCY_SYMBOL}</p>
+          {discountAmount > 0 && subtotal != null && (
+            <p className="text-caption mt-1">
+              Tạm tính: {formatCurrency(subtotal)} · Giảm: −{formatCurrency(discountAmount)}
+            </p>
+          )}
         </div>
 
-        {/* Progress */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-body-sm font-medium text-primary">
-              Đã thanh toán: {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
-            </span>
-            <span className="text-caption">{progress}%</span>
+        {/* Status Banner */}
+        {remainingAmount <= 0 ? (
+          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-md">
+            <CheckCircle2 size={18} className="shrink-0" />
+            <span className="text-body-sm font-semibold">Đã thanh toán đầy đủ</span>
           </div>
-          <div className="progress-track">
-            <div
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
-            />
+        ) : progress === 0 ? (
+          <div className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2.5 rounded-md">
+            <Clock size={18} className="shrink-0" />
+            <span className="text-body-sm font-semibold">Chưa thanh toán</span>
+          </div>
+        ) : null}
+
+        {/* Progress — only show when partial payment */}
+        {progress > 0 && remainingAmount > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-body-sm font-medium text-primary">
+                Đã thanh toán: {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
+              </span>
+              <span className="text-caption">{progress}%</span>
+            </div>
+            <div className="progress-track">
+              <div
+                className="progress-fill"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Grid 2-col: Đã thu + Còn nợ — match mobile */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-50 p-3 rounded-md inset-success">
+            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+              Đã thu
+            </p>
+            <p className="text-body font-semibold text-emerald-600">
+              {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
+            </p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-md inset-warning">
+            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+              Còn nợ
+            </p>
+            <p className="text-body font-semibold text-interactive">
+              {formatCurrency(remainingAmount)} {CURRENCY_SYMBOL}
+            </p>
           </div>
         </div>
 
         {/* Payment Items */}
         {sortedPayments.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
             {sortedPayments.map((payment, index) => {
               const isRefund = payment.amount < 0;
               return (
@@ -208,6 +253,7 @@ export default function FinancialDashboard({
             Thu tiền
           </button>
         )}
+
       </div>
     </div>
   );

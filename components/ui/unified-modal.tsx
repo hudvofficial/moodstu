@@ -163,7 +163,7 @@ export function UnifiedModal({
         <div
           className={cn(
             "relative w-full z-10 will-change-transform",
-            "rounded-t-2xl lg:rounded-2xl",
+            "rounded-t-2xl lg:rounded-xl",
             "max-h-[98dvh] lg:max-h-[90vh]",
             "bg-(--color-bg-card) shadow-2xl",
             "flex flex-col overflow-hidden",

@@ -221,10 +221,10 @@ export default function DatePicker({
     <div
       className={`bg-elevated ${
         !isDesktop
-          ? "w-full rounded-lg p-3"
+          ? "w-full rounded-md p-3"
           : compact
-            ? "w-[230px] shadow-2xl border border-border rounded-lg p-2.5"
-            : "w-full lg:w-[328px] lg:shadow-2xl lg:border lg:border-border rounded-lg p-3"
+            ? "w-[230px] shadow-2xl border border-border rounded-md p-2.5"
+            : "w-full lg:w-[328px] lg:shadow-2xl lg:border lg:border-border rounded-md p-3"
       }`}
     >
       {/* Header */}
@@ -255,7 +255,7 @@ export default function DatePicker({
                   : "day",
             )
           }
-          className={`font-semibold text-text-main hover:text-primary transition-colors hover:bg-surface uppercase tracking-tight ${compact ? "text-xs px-3 py-1 rounded-lg" : "text-xs px-3 py-1.5 rounded-lg"}`}
+          className={`font-semibold text-text-main hover:text-primary transition-colors hover:bg-surface uppercase tracking-tight ${compact ? "text-xs px-3 py-1 rounded-md" : "text-xs px-3 py-1.5 rounded-md"}`}
         >
           {viewMode === "day" && format(viewDate, "MMMM yyyy", { locale: vi })}
           {viewMode === "month" && format(viewDate, "yyyy")}
@@ -328,7 +328,7 @@ export default function DatePicker({
                 setViewMode("day");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-lg text-[11px]"}
+                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-[11px]"}
                 ${monthIdx === viewDate.getMonth() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
               `}
               style={monthIdx !== viewDate.getMonth() ? { border: "1px solid var(--color-border)" } : undefined}
@@ -355,7 +355,7 @@ export default function DatePicker({
                 setViewMode("month");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-lg text-[11px]"}
+                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-[11px]"}
                 ${year === viewDate.getFullYear() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
               `}
               style={year !== viewDate.getFullYear() ? { border: "1px solid var(--color-border)" } : undefined}
@@ -374,7 +374,7 @@ export default function DatePicker({
         <button
           type="button"
           onClick={handleClear}
-          className={`flex-1 font-medium text-error hover:bg-error/5 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-lg" : "px-3 py-1.5 text-xs rounded-lg"}`}
+          className={`flex-1 font-medium text-error hover:bg-error/5 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
           style={{ border: "1px solid var(--color-error)" }}
         >
           Xóa chọn
@@ -382,7 +382,7 @@ export default function DatePicker({
         <button
           type="button"
           onClick={handleToday}
-          className={`flex-1 font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-lg" : "px-3 py-1.5 text-xs rounded-lg"}`}
+          className={`flex-1 font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
           style={{ border: "1px solid rgba(139,94,60,0.15)" }}
         >
           Hôm nay
@@ -464,7 +464,7 @@ export default function DatePicker({
                   <div className="w-10 h-1 bg-border opacity-60 rounded-full" />
                 </div>
                 <div className="px-4 pb-4">
-                  <div className="bg-elevated rounded-lg">
+                  <div className="bg-elevated rounded-md">
                     {calendarPanel}
                   </div>
                 </div>
