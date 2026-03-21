@@ -15,6 +15,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { CheckCircle, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { isDone, IN_PROGRESS_STATUS, CANCELLED_STATUS } from "@/constants/work-statuses";
 import { getWorkTypeLabel, getTaskStatusLabel } from "@/types/contract-constants";
 import type { WorkType, TaskStatus } from "@/types/contract";
@@ -179,7 +180,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
             ([groupName, groupTasks]) =>
               groupTasks.length > 0 && (
                 <div key={groupName}>
-                  <div className="text-tiny font-black uppercase tracking-widest text-primary/60 mb-1.5 flex items-center gap-2">
+                  <div className="text-overline text-primary/60 mb-1.5 flex items-center gap-2">
                     <span>{groupName}</span>
                     <span className="h-px flex-1 bg-primary/10" />
                   </div>
@@ -199,17 +200,17 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
                               {getWorkTypeLabel(t.work_type as WorkType)}
                             </span>
                           </div>
-                          <span
-                            className={`text-tiny font-bold shrink-0 px-1 py-0.5 rounded ${
+                          <Badge
+                            variant={
                               taskDone
-                                ? "bg-success/10 text-success"
+                                ? "success"
                                 : t.status === IN_PROGRESS_STATUS
-                                  ? "bg-info/10 text-info"
-                                  : "bg-warning/10 text-warning"
-                            }`}
+                                  ? "info"
+                                  : "warning"
+                            }
                           >
                             {getTaskStatusLabel(t.status as TaskStatus)}
-                          </span>
+                          </Badge>
                         </li>
                       );
                     })}

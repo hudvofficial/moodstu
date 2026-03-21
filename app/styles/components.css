@@ -215,3 +215,129 @@
   color: var(--color-accent);
   white-space: nowrap;
 }
+
+/* ══════════════════════════════════════
+   7. MODAL (UnifiedModal SSOT)
+   Replaces inline styles + hardcoded Tailwind
+   Mobile: bottom-sheet (justify-end)
+   Desktop: centered dialog (justify-center + items-center)
+   ══════════════════════════════════════ */
+
+/* 7.1 Overlay — fixed fullscreen container */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Mobile: bottom-sheet */
+}
+@media (min-width: 1024px) {
+  .modal-overlay {
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+/* 7.2 Card — main modal panel */
+.modal-card {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  will-change: transform;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  max-height: 98dvh;
+}
+@media (min-width: 1024px) {
+  .modal-card {
+    border-radius: var(--radius-lg);
+    max-height: 90vh;
+  }
+}
+
+/* 7.3 Header — title + close button row */
+.modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-base);
+}
+@media (min-width: 640px) {
+  .modal-header {
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+  }
+}
+
+/* 7.4 Body — scrollable content area */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 var(--spacing-lg) var(--spacing-lg);
+}
+@media (min-width: 640px) {
+  .modal-body {
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+  }
+}
+
+/* 7.5 Footer — sticky actions, shadow separator (NO border-t per V2 rule #64) */
+.modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  padding: var(--spacing-base) var(--spacing-lg);
+  box-shadow: 0 -1px 0 0 var(--color-border-light);
+}
+@media (min-width: 640px) {
+  .modal-footer {
+    padding-left: var(--spacing-xl);
+    padding-right: var(--spacing-xl);
+  }
+}
+
+/* 7.6 Close button — circle with hover rotation */
+.modal-close-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  transition: color 150ms ease, transform 200ms ease;
+}
+.modal-close-btn:hover {
+  color: var(--color-text-primary);
+  transform: rotate(90deg);
+}
+.modal-close-btn:active {
+  transform: rotate(90deg) scale(0.9);
+}
+
+/* 7.7 Drag handle — mobile bottom-sheet indicator */
+.modal-drag-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-border);
+  transition: background 150ms ease;
+}
+.modal-drag-handle.is-swiping {
+  background: var(--color-text-muted);
+}

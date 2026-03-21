@@ -123,3 +123,12 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 ## Từ V1→V2 Port Session (2026-03-21)
 
 77. **V2 = V1 + TỐI ƯU — TUYỆT ĐỐI KHÔNG ĐƯỢC "LITE"** — Khi port V1 sang V2: (1) Port 100% features/functions từ V1 — KHÔNG bỏ sót bất kỳ function nào. (2) Tối ưu: code sạch hơn, nhanh hơn, bảo mật hơn (withAuth, audit, parallel queries). (3) KHÔNG BAO GIỜ gọi "Lite" hay cắt bớt tính năng — V2 phải ≥ V1. (4) Nếu V1 có RPC → V2 cũng phải có RPC (adapt cho schema mới). (5) Nếu V1 có N functions → V2 phải có ≥ N functions. MINDSET: "Lite" = thất bại. "Full + Optimized" = chuẩn V2. ENFORCEMENT: Trước khi gọi phase hoàn tất → cross-check V1 source: liệt kê tất cả exported functions V1 → verify V2 có đủ.
+
+## Từ Radius Normalization Session (2026-03-21)
+
+78. **CSS BTN VARIANT PHẢI TỰ ĐỦ BASE STYLES** — `.btn-primary` chỉ set color/background nhưng KHÔNG có border-radius/padding → khi dùng `btn-primary` mà thiếu `.btn` base = button mất styles. FIX: Dùng CSS grouped selector `.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-ghost { ...base... }` → mọi variant tự có base. ENFORCEMENT: Khi tạo CSS variant class → PHẢI include base layout styles hoặc group với base selector.
+
+79. **TAILWIND V4 SCANS MỌI FILE KỂ CẢ .md** — TW4 auto-detect source files, kể cả `.md` trong `plans/`, `docs/`. Nếu `.md` chứa patterns như `rounded-[var(--radius-*)]` → TW4 cố generate CSS → parse error. FIX: Thêm `@source not "../plans"; @source not "../docs";` trong globals.css. ENFORCEMENT: Khi dự án có docs/plans chứa code examples → PHẢI exclude khỏi TW scan.
+
+80. **TW4 SYNTAX: KHÔNG DÙNG `[var(--token)]`** — Tailwind v4 KHÔNG dùng `rounded-[var(--radius-sm)]`. Phải dùng utility class trực tiếp: `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`. Hoặc dùng parenthesis syntax: `rounded-(--radius-sm)`. ENFORCEMENT: Grep `[var(--` trong toàn bộ TSX files → thay bằng canonical utility hoặc `(--token)` syntax.
+

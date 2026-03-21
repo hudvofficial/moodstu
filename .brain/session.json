@@ -1,62 +1,74 @@
 {
-  "updated_at": "2026-03-20T15:15:00+07:00",
+  "updated_at": "2026-03-21T19:56:00+07:00",
   "working_on": {
-    "feature": "Contract Module Polish",
-    "task": "CustomerFormModal bugfix — ALL DONE",
+    "feature": "Border Radius Token Normalization",
+    "task": "Full radius + button system normalization — ALL DONE",
     "status": "completed",
     "files": [
-      "components/contracts/form/modals/CustomerFormModal.tsx"
+      "app/globals.css",
+      "app/styles/pages.css",
+      "app/styles/components.css",
+      "components/contracts/detail/quick-actions-grid.tsx",
+      "components/ui/ux-states.tsx",
+      "components/contracts/detail/payment-receipt-form.tsx",
+      "components/contracts/detail/printing-order-form.tsx",
+      "components/contracts/detail/inventory-reservation-form.tsx",
+      "components/contracts/detail/notes-timeline.tsx",
+      "components/contracts/detail/top-action-bar.tsx",
+      "components/contracts/detail/contract-actions-menu.tsx",
+      "components/contracts/print/print-contract-client.tsx"
     ],
     "blockers": [],
-    "notes": "Tất cả 10 bugs (B1-B10) đã fix. B10 (debounce phone check 500ms) là fix cuối cùng. Verified trên browser."
+    "notes": "7 phases hoàn tất. Token scale: 6→8→12→16px. Btn variants giờ tự có base styles. TW4 syntax fixed. Plans/ excluded from TW scan."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-20T15:00:00+07:00",
-      "type": "bugfix",
-      "description": "B10: Phone dedup check — thêm debounce 500ms bằng useRef+setTimeout. Tránh spam API mỗi keystroke.",
-      "files": ["components/contracts/form/modals/CustomerFormModal.tsx"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-20T14:50:00+07:00",
-      "type": "audit",
-      "description": "CustomerFormModal full audit: B1-B9 đã fix trước đó. createCustomer (crm.ts) đã có bride_name/groom_name insert. showCoupleFields logic đúng (studio=true).",
+      "timestamp": "2026-03-21T19:45:00+07:00",
+      "type": "fix",
+      "description": "Phase 05-07: CSS btn grouped selector (btn-primary/secondary/danger/ghost kế thừa .btn base), TSX 7 files thêm .btn base class, exclude plans/ docs/ from TW4 scan",
       "files": [
-        "components/contracts/form/modals/CustomerFormModal.tsx",
-        "app/actions/crm.ts",
-        "types/crm.ts",
-        "types/contract-form.ts"
+        "app/globals.css",
+        "app/styles/pages.css",
+        "components/contracts/detail/payment-receipt-form.tsx",
+        "components/contracts/detail/printing-order-form.tsx",
+        "components/contracts/detail/inventory-reservation-form.tsx",
+        "components/contracts/detail/notes-timeline.tsx",
+        "components/contracts/detail/top-action-bar.tsx",
+        "components/contracts/detail/contract-actions-menu.tsx",
+        "components/contracts/print/print-contract-client.tsx"
       ],
       "verified": true
     },
     {
-      "timestamp": "2026-03-20T14:28:00+07:00",
-      "type": "plan-update",
-      "description": "Mock Contract Events plan (260320-1400): Cập nhật status tất cả 8 phases → Done. DB confirmed: 4 events, 9 tasks, 10 checklists, 3 payment_plans, 2 reservations, 3 notes.",
-      "files": ["plans/260320-1400-mock-contract-events/plan.md"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-20T14:16:00+07:00",
-      "type": "data",
-      "description": "Full mock data cho HĐ-0003: 4 events + 9 tasks + 10 checklists + 3 payment_plans + 2 reservations + 3 notes + delivery_date",
-      "files": [],
+      "timestamp": "2026-03-21T19:20:00+07:00",
+      "type": "refactor",
+      "description": "Phase 01-04: Token values update (sm:6 md:8 lg:12 xl:16), remove --radius-content, fix TW4 syntax rounded-[var()] → rounded-*, CSS hardcode → token",
+      "files": [
+        "app/globals.css",
+        "app/styles/pages.css",
+        "app/styles/components.css",
+        "components/contracts/detail/quick-actions-grid.tsx",
+        "components/ui/ux-states.tsx"
+      ],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "CustomerFormModal B5+B6 đã fix sẵn trong crm.ts (line 173-175, 142-143)",
-      "reason": "Code đã có bride_name/groom_name trong cả INSERT lẫn phone-dedup UPDATE path."
+      "decision": "Radius token scale: sm=6px, md=8px, lg=12px, xl=16px (Stripe+Apple hybrid)",
+      "reason": "Industry standard: Stripe dùng 6-8-12, Apple 8-12-16. Hybrid scale phù hợp SaaS earth-tone."
     },
     {
-      "decision": "showCoupleFields default = true (khi service_type = studio)",
-      "reason": "WEDDING_SERVICE_TYPES = [studio, ngay_cuoi, combo]. Default service = studio → couple fields hiện mặc định là ĐÚNG."
+      "decision": "Xóa --radius-content, gộp vào --radius-md",
+      "reason": "Redundant token (cùng 8px), gây confusion. Single purpose per token."
     },
     {
-      "decision": "Debounce phone check 500ms bằng useRef+setTimeout",
-      "reason": "Pattern React chuẩn, không cần thêm dependency (lodash/usehooks-ts). Đơn giản, hiệu quả."
+      "decision": "CSS btn grouped selector thay vì sửa 20+ TSX files",
+      "reason": "Fix CSS = fix tất cả nơi dùng. Backward compatible (btn btn-primary vẫn OK). DRY principle."
+    },
+    {
+      "decision": "Exclude plans/ docs/ from Tailwind v4 source scanning",
+      "reason": "TW4 auto-scan tìm thấy old rounded-[var(--radius-*)] patterns trong .md files → CSS parse error."
     }
   ],
   "pending_tasks": [
@@ -68,6 +80,11 @@
   ],
   "completed_plans": [
     {
+      "plan": "260321-1916-radius-normalize",
+      "status": "complete",
+      "summary": "7/7 phases done. Token scale chuẩn hóa, btn variants kế thừa base, TW4 syntax fixed."
+    },
+    {
       "plan": "260320-1400-mock-contract-events",
       "status": "complete",
       "summary": "Full mock data cho HĐ-0003 (Combo 68M, Lê Thị Y Linh). 8/8 phases done."
@@ -75,13 +92,13 @@
     {
       "plan": "260319-1452-customer-form-bugfix",
       "status": "complete",
-      "summary": "CustomerFormModal 10 bugs (B1-B10) all fixed. Phase A (UI) + Phase B (data) + B10 (debounce)."
+      "summary": "CustomerFormModal 10 bugs (B1-B10) all fixed."
     }
   ],
   "errors_encountered": [
     {
-      "error": "Agent terminated due to error — context window quá dài",
-      "solution": "Mở conversation mới + /recap. Session dài > 20 messages + nhiều browser subagent = dễ crash.",
+      "error": "TW4 CSS parse error: rounded-[var(--radius-*)] in .md plan files",
+      "solution": "Add @source not '../plans'; @source not '../docs'; to globals.css",
       "resolved": true
     }
   ]

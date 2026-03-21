@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @source not "../plans";
 @source not "../docs";
+@source not "../tasks";
+@source not "../.brain";
 @import "./design-system.css";
 
 /* ═══════════════════════════════════════════

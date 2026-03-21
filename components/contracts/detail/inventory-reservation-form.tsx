@@ -8,6 +8,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { getAvailableItems, addInventoryReservation } from "@/app/actions/inventory-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
+import DatePicker from "@/components/ui/date-picker";
 
 // ═══════════════════════════════════════════
 // Inventory Reservation Form — V2 (replaces V1 DressSelector)
@@ -219,12 +220,11 @@ export default function InventoryReservationForm({
                 />
               </div>
               <div>
-                <label className="label-base mb-1 block">Ngày bắt đầu</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="input-base w-full"
+                  onChange={(date) => setStartDate(date)}
+                  label="Ngày bắt đầu"
+                  placeholder="Chọn ngày"
                 />
               </div>
             </div>
@@ -254,17 +254,17 @@ export default function InventoryReservationForm({
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="form-actions">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn btn-outline flex-1"
+            className="btn btn-outline"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selectedId || loading}
-            className="btn btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {loading ? "Đang xử lý..." : "Đặt trang phục"}
           </button>

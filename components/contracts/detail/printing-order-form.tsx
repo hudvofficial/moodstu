@@ -7,6 +7,7 @@ import { createPrintingOrder, getLabs } from "@/app/actions/printing-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import DatePicker from "@/components/ui/date-picker";
 
 // ═══════════════════════════════════════════
 // Printing Order Form — V1 → V2
@@ -144,12 +145,11 @@ export default function PrintingOrderForm({
 
         {/* Expected date */}
         <div>
-          <label className="label-base mb-1 block">Ngày dự kiến nhận</label>
-          <input
-            type="date"
+          <DatePicker
             value={expectedDate}
-            onChange={(e) => setExpectedDate(e.target.value)}
-            className="input-base w-full"
+            onChange={(date) => setExpectedDate(date)}
+            label="Ngày dự kiến nhận"
+            placeholder="Chọn ngày"
           />
         </div>
 
@@ -229,17 +229,17 @@ export default function PrintingOrderForm({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="form-actions">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn btn-outline flex-1"
+            className="btn btn-outline"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {loading ? "Đang xử lý..." : "Tạo đơn in"}
           </button>

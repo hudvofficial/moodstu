@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-20T13:48:00+07:00"
+    "last_updated": "2026-03-21T19:56:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -72,6 +72,18 @@
       "groom": "#3B82F6"
     },
     "typography": { "font": "Inter", "size": "14px body, 12px caption" },
+    "radius_tokens": {
+      "sm": "6px (buttons, inputs, small elements)",
+      "md": "8px (cards, content blocks, CTA buttons)",
+      "lg": "12px (modals, dropdowns, large containers)",
+      "xl": "16px (pills, tags, special elements)",
+      "full": "9999px (circles, dots, avatars)"
+    },
+    "btn_architecture": {
+      "base_selector": ".btn + .btn-primary/secondary/danger/ghost (grouped in pages.css)",
+      "standalone_classes": ".btn-outline, .btn-cta, .btn-interactive (self-contained)",
+      "note": "All btn variants inherit base styles via CSS grouped selector. TSX can use btn-primary alone or btn btn-primary — both work."
+    },
     "components": {
       "UnifiedModal": "Standard modal wrapper for all CRUD forms",
       "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
@@ -79,6 +91,13 @@
       "toast-utils": "Centralized notification system",
       "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views"
     }
+  },
+  "knowledge_items": {
+    "gotchas": [
+      "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
+      "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
+      "CSS btn variants must include base styles — dont rely on .btn being present"
+    ]
   },
   "decisions": [
     {

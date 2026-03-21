@@ -9,6 +9,7 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import type { PaymentPlan } from "@/types/contract";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import DatePicker from "@/components/ui/date-picker";
 
 // ═══════════════════════════════════════════
 // Payment Receipt Form — V1 business logic → V2
@@ -178,12 +179,11 @@ export default function PaymentReceiptForm({
 
         {/* Payment date */}
         <div>
-          <label className="label-base mb-1 block">Ngày thu</label>
-          <input
-            type="date"
+          <DatePicker
             value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
-            className="input-base w-full"
+            onChange={(date) => setPaymentDate(date)}
+            label="Ngày thu"
+            placeholder="Chọn ngày thu"
           />
         </div>
 
@@ -266,17 +266,17 @@ export default function PaymentReceiptForm({
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="form-actions">
           <button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn btn-outline flex-1"
+            className="btn btn-outline"
           >
             Đóng
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || amount <= 0}
-            className="btn btn-primary flex-1 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
             style={{ background: themeColor }}
           >
             {loading ? "Đang xử lý..." : isFullyPaid ? "Tạo phát sinh" : "Tạo phiếu thu"}

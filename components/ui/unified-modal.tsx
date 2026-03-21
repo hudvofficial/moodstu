@@ -138,19 +138,14 @@ export function UnifiedModal({
 
   return (
     <ModalPortal>
-      {/*
-        B1 FIX: flex-col justify-end (mobile = bottom sheet full-width)
-        → lg: justify-center items-center (desktop = centered dialog)
-        KHÔNG dùng flex-row items-end vì justify-center sẽ shrink modal
-      */}
+      {/* B1: modal-overlay = fixed inset-0, flex-col justify-end (mobile) → center (desktop) */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onKeyDown={handleTabKey}
-        style={{ position: "fixed", inset: 0, zIndex: 9999 }}
-        className="flex flex-col justify-end lg:justify-center lg:items-center"
+        className="modal-overlay"
       >
         {/* Backdrop */}
         <div
@@ -159,21 +154,11 @@ export function UnifiedModal({
           onClick={handleBackdropClick}
         />
 
-        {/* Modal card — full-width mobile, capped on desktop */}
+        {/* Modal card — modal-card SSOT + dynamic maxWidth/swipeStyle only */}
         <div
-          className={cn(
-            "relative w-full z-10 will-change-transform",
-            "rounded-t-2xl lg:rounded-xl",
-            "max-h-[98dvh] lg:max-h-[90vh]",
-            "bg-(--color-bg-card) shadow-2xl",
-            "flex flex-col overflow-hidden",
-            contentAnimation,
-            className
-          )}
+          className={cn("modal-card", contentAnimation, className)}
           style={{
             maxWidth: MAX_WIDTH_MAP[size],
-            marginLeft: "auto",
-            marginRight: "auto",
             ...swipeStyle,
           }}
         >
@@ -183,17 +168,14 @@ export function UnifiedModal({
               className="lg:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
               {...handlers}
             >
-              <div className={cn(
-                "w-10 h-1 rounded-full transition-colors",
-                isSwiping ? "bg-text-muted" : "bg-border"
-              )} />
+              <div className={cn("modal-drag-handle", isSwiping && "is-swiping")} />
             </div>
           )}
 
           {/* Header (also swipeable on mobile) */}
           {(title || showCloseButton) && (
             <div
-              className="shrink-0 flex items-start justify-between px-6 pt-5 pb-4 sm:px-8"
+              className="modal-header"
               {...(showDragHandle ? handlers : {})}
             >
               <div className="flex flex-col gap-1">
@@ -206,7 +188,7 @@ export function UnifiedModal({
                 <button
                   onClick={handleClose}
                   aria-label="Đóng"
-                  className="shrink-0 p-2 bg-(--color-bg-hover) rounded-full text-text-muted hover:text-dark transition-all hover:rotate-90 active:scale-90"
+                  className="modal-close-btn"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -215,13 +197,13 @@ export function UnifiedModal({
           )}
 
           {/* Body — scrollable */}
-          <div className="flex-1 overflow-y-auto px-6 pb-6 sm:px-8 overflow-x-hidden">
+          <div className="modal-body">
             {children}
           </div>
 
-          {/* C2: Sticky footer — shrink-0, không cuộn cùng body */}
+          {/* C2: Sticky footer — modal-footer SSOT (shadow separator, no border-t) */}
           {footer && (
-            <div className="shrink-0 px-6 py-4 sm:px-8 border-t border-border flex gap-3 justify-end">
+            <div className="modal-footer">
               {footer}
             </div>
           )}
