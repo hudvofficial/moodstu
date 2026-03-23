@@ -8,39 +8,14 @@ import { generateChecklists } from "@/app/actions/checklist-actions";
 import type { ContractStatus } from "@/types/contract";
 
 // ═══════════════════════════════════════════
-// Contract Mutations — Submit + Status Update
-// Max ~150 lines (lesson #7)
+// Contract Mutations — Create + Status Update
+// V2: getNextContractCode → contract-queries.ts
 // Cancel/Delete/Reactivate → contract-lifecycle.ts
 // ═══════════════════════════════════════════
 
-// ─── getNextContractCode ─────────────────────
-export async function getNextContractCode() {
-  return withAuth(async (supabase) => {
-    const year = new Date().getFullYear();
-    const prefix = `HĐ-${year}-`;
-
-    const { data } = await supabase
-      .from("contracts")
-      .select("contract_code")
-      .like("contract_code", `${prefix}%`)
-      .order("contract_code", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    let nextNum = 1;
-    if (data?.contract_code) {
-      const parts = data.contract_code.split("-");
-      const lastNum = parseInt(parts[2]);
-      if (!isNaN(lastNum)) nextNum = lastNum + 1;
-    }
-
-    return `${prefix}${nextNum.toString().padStart(4, "0")}`;
-  });
-}
-
-// ─── submitContract ──────────────────────────
+// ─── createContract ──────────────────────────
 // Atomic: contract upsert + items replace + payment (create only)
-export async function submitContract(rawData: unknown) {
+export async function createContract(rawData: unknown) {
   const parsed = contractSubmissionSchema.safeParse(rawData);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
@@ -227,7 +202,7 @@ export async function submitContract(rawData: unknown) {
     // ── Auto-generate checklists (CREATE only, non-blocking) ──
     if (!data.existingContractId && contractId && data.formData.service_type) {
       generateChecklists(contractId, data.formData.service_type).catch((err) => {
-        console.error("[submitContract] Auto-generate checklists failed:", err);
+        console.error("[createContract] Auto-generate checklists failed:", err);
       });
     }
 
@@ -241,12 +216,46 @@ export async function submitContract(rawData: unknown) {
   });
 }
 
-// ─── updateContractStatus ────────────────────
+// ─── Status Transition Machine (W1 fix) ──────
+// Valid transitions: prevents random status jumping
+const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
+  cho_xu_ly: ["dang_thuc_hien", "da_huy"],
+  dang_thuc_hien: ["hoan_thanh", "da_huy"],
+  hoan_thanh: [], // Terminal state — use admin override if needed
+  da_huy: ["cho_xu_ly"], // Reactivate only via reactivateContract()
+};
+
 export async function updateContractStatus(
   id: string,
-  newStatus: ContractStatus
+  newStatus: ContractStatus,
+  adminOverride = false
 ) {
   return withAuth(async (supabase, userId) => {
+    // Fetch current status BEFORE updating
+    const { data: current, error: fetchErr } = await supabase
+      .from("contracts")
+      .select("status")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchErr || !current) {
+      throw new Error("Không tìm thấy hợp đồng");
+    }
+
+    const currentStatus = current.status as ContractStatus;
+
+    // Validate transition (unless admin override)
+    if (!adminOverride) {
+      const allowed = VALID_TRANSITIONS[currentStatus] || [];
+      if (!allowed.includes(newStatus)) {
+        throw new Error(
+          `Không thể chuyển từ "${currentStatus}" sang "${newStatus}". ` +
+          `Trạng thái hợp lệ: ${allowed.length > 0 ? allowed.join(", ") : "không có"}`
+        );
+      }
+    }
+
     const { error } = await supabase
       .from("contracts")
       .update({
@@ -254,7 +263,8 @@ export async function updateContractStatus(
         updated_by: userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .is("deleted_at", null);
 
     if (error) throw error;
 

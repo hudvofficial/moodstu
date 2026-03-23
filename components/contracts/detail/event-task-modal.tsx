@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { UserPlus, X, AlertTriangle, Loader2, Clock, MapPin, CalendarCheck } from "lucide-react";
+import { Clock, MapPin, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { CurrencyInput } from "@/components/ui/currency-input";
-import { GroupedSelect } from "@/components/ui/grouped-select";
-import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
 import { formatCurrency } from "@/lib/utils";
-import {
-  getWorkTypeLabel,
-  getTaskStatusLabel,
-  isOnSetEvent,
-} from "@/types/contract-constants";
+import { isOnSetEvent } from "@/types/contract-constants";
 import {
   getTasksByEvent,
   getActiveEmployees,
@@ -25,51 +17,14 @@ import {
 import { checkEmployeeTimeOverlap } from "@/app/actions/task-overlap-actions";
 import { updateContractEvent } from "@/app/actions/contract-event-actions";
 import type { WorkType, TaskStatus, EventType } from "@/types/contract";
+import { TaskListPanel } from "./task-list-panel";
+import type { TaskRow, Employee, ConflictItem } from "./task-list-panel";
 
 // ═══════════════════════════════════════════
 // EventTaskModal — V2 port of V1 EventTaskModal
-// V1 ref: 0Moodstudio/webapp/components/contracts/details/EventTaskModal.tsx
+// V2: TaskListPanel extracted to task-list-panel.tsx
 // SSOT: .input-base, .label-base, Badge, UnifiedModal, CurrencyInput
 // ═══════════════════════════════════════════
-
-// ─── Grouped work types — OptionGroup[] for SelectGrouped ────
-const WORK_TYPE_SELECT_GROUPS = [
-  {
-    groupName: "Sản xuất",
-    color: "gold" as const,
-    options: [
-      { value: "chup_anh", label: "Chụp ảnh" },
-      { value: "quay_phim", label: "Quay phim" },
-      { value: "makeup", label: "Trang điểm" },
-      { value: "tro_ly", label: "Trợ lý" },
-      { value: "cameraman", label: "Cameraman" },
-    ],
-  },
-  {
-    groupName: "Tiền kỳ",
-    color: "sky" as const,
-    options: [
-      { value: "concept", label: "Concept" },
-      { value: "kich_ban", label: "Kịch bản" },
-    ],
-  },
-  {
-    groupName: "Hậu kỳ",
-    color: "rose" as const,
-    options: [
-      { value: "hau_ky_anh", label: "Hậu kỳ ảnh" },
-      { value: "dung_phim", label: "Dựng phim" },
-      { value: "retouch", label: "Retouch" },
-      { value: "premiere", label: "Premiere" },
-      { value: "bien_tap", label: "Biên tập" },
-    ],
-  },
-  {
-    groupName: "Khác",
-    color: "gold" as const,
-    options: [{ value: "khac", label: "Khác" }],
-  },
-];
 
 // ─── Types ────────────────────────────────
 interface EventForModal {
@@ -82,31 +37,6 @@ interface EventForModal {
   end_time?: string | null;
   location: string | null;
   status: string;
-}
-
-interface TaskRow {
-  id: string;
-  work_type: string;
-  assigned_to: string | null;
-  status: string;
-  cost: number;
-  start_time?: string | null;
-  end_time?: string | null;
-  employees?: { id: string; full_name: string }[] | { id: string; full_name: string } | null;
-}
-
-interface Employee {
-  id: string;
-  full_name: string;
-  department: string | null;
-}
-
-interface ConflictItem {
-  id: string;
-  work_type: string;
-  start_time: string;
-  end_time: string;
-  event_title: string;
 }
 
 interface Props {
@@ -140,7 +70,7 @@ export default function EventTaskModal({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // New task form — V1 ref: L119-125
+  // New task form
   const [form, setForm] = useState({
     work_type: (isOnSet ? "chup_anh" : "hau_ky_anh") as WorkType,
     assigned_to: "",
@@ -149,7 +79,7 @@ export default function EventTaskModal({
     end_time: event.end_time?.slice(0, 5) || "",
   });
 
-  // Conflicts (V1: time overlap data)
+  // Conflicts
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
 
   // Form ref for closure-safe reads (W3 fix)
@@ -186,7 +116,7 @@ export default function EventTaskModal({
     if (isOpen) loadData();
   }, [isOpen, loadData]);
 
-  // ─── Check time overlap (V1 ref: L170-208) ───
+  // ─── Check time overlap ───────────────
   const doConflictCheck = useCallback(
     async (empId: string, startT: string, endT: string) => {
       if (!isOnSet || !empId || !startT || !endT || !event.event_date) {
@@ -212,11 +142,9 @@ export default function EventTaskModal({
     [isOnSet, event.event_date]
   );
 
-  // Trigger conflict check when employee or time changes
   const handleEmployeeChange = useCallback(
     (empId: string) => {
       setForm((prev) => ({ ...prev, assigned_to: empId }));
-      // Read from ref to avoid stale closure (W3 fix)
       doConflictCheck(empId, formRef.current.start_time, formRef.current.end_time);
     },
     [doConflictCheck]
@@ -233,7 +161,7 @@ export default function EventTaskModal({
     [doConflictCheck]
   );
 
-  // ─── Add task (V1 ref: L211-253) ────────
+  // ─── Add task ─────────────────────────
   const handleAdd = async () => {
     if (submitting) return;
     if (!form.assigned_to) {
@@ -264,7 +192,7 @@ export default function EventTaskModal({
     }
   };
 
-  // ─── Delete task ──────────────────────────
+  // ─── Delete task ──────────────────────
   const handleDelete = async (taskId: string) => {
     try {
       await deleteTask(taskId, event.id);
@@ -337,7 +265,7 @@ export default function EventTaskModal({
       size="xl"
     >
       <div className="space-y-4">
-        {/* ── Date + Info Pills (V1 ref: L299-343) ── */}
+        {/* ── Date + Info Pills ── */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <DatePicker
             compact
@@ -384,179 +312,22 @@ export default function EventTaskModal({
           </span>
         </div>
 
-        {/* ── Existing tasks ── */}
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          </div>
-        ) : tasks.length > 0 ? (
-          <div className="space-y-1.5">
-            <h4 className="text-overline">
-              Nhân sự đã giao ({tasks.length})
-            </h4>
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-label">
-                      {(Array.isArray(task.employees) ? task.employees[0]?.full_name : task.employees?.full_name) || "Chưa giao"}
-                    </span>
-                    <span className="text-caption text-text-muted">
-                      {getWorkTypeLabel(task.work_type as WorkType)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-caption text-error font-semibold">
-                      {formatCurrency(task.cost)}
-                    </span>
-                    {/* V1 ref L408-413: Show time on on-set tasks */}
-                    {isOnSet && task.start_time && task.end_time && (
-                      <span className="inline-flex items-center gap-0.5 text-caption text-interactive font-medium">
-                        <Clock size={10} />
-                        {task.start_time.slice(0, 5)} - {task.end_time.slice(0, 5)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status toggle */}
-                <button
-                  type="button"
-                  onClick={() => handleToggle(task)}
-                  className="shrink-0"
-                >
-                  <Badge
-                    variant={
-                      task.status === "hoan_thanh"
-                        ? "success"
-                        : task.status === "dang_lam"
-                          ? "info"
-                          : "neutral"
-                    }
-                  >
-                    {getTaskStatusLabel(task.status as TaskStatus)}
-                  </Badge>
-                </button>
-
-                {/* Delete */}
-                <button
-                  onClick={() => handleDelete(task.id)}
-                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded-full hover:bg-error/10 transition-all"
-                >
-                  <X size={14} className="text-error" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <UserPlus size={28} className="mx-auto text-text-muted mb-2" />
-            <p className="text-body-sm text-text-muted">Chưa có nhân sự nào</p>
-          </div>
-        )}
-
-        {/* ── Add task form ── */}
-        <div className="pt-4">
-          <h4 className="text-overline text-primary mb-3">
-            + Thêm nhân sự
-          </h4>
-
-          {/* Row 1: Work type + Employee */}
-          <div className="form-grid-2col">
-            <GroupedSelect
-              label="Loại việc"
-              value={form.work_type}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, work_type: val as WorkType }))
-              }
-              groups={WORK_TYPE_SELECT_GROUPS}
-            />
-            <SimpleSelect
-              label="Nhân sự"
-              value={form.assigned_to}
-              onChange={(val) => handleEmployeeChange(val)}
-              options={employees.map((emp) => ({
-                value: emp.id,
-                label: `${emp.full_name}${emp.department ? ` (${emp.department})` : ""}`,
-              }))}
-              placeholder="-- Chọn --"
-            />
-          </div>
-
-          {/* Row 2: Cost + Time (V1 ref: L574-639) */}
-          {/* On-set: 3 cols (cost + giờ BĐ + giờ KT) */}
-          {/* Hậu kỳ: 1 col (chỉ cost, KHÔNG CÓ GIỜ) */}
-          <div className={`grid ${isOnSet ? "grid-cols-3" : "grid-cols-1"} gap-3 mt-3`}>
-            <CurrencyInput
-              label="Chi phí"
-              value={form.cost}
-              onChange={(val) => setForm((prev) => ({ ...prev, cost: val }))}
-              className="text-error"
-            />
-            {isOnSet && (
-              <>
-                <div>
-                  <label className="label-base">Giờ BĐ</label>
-                  <input
-                    type="time"
-                    value={form.start_time}
-                    onChange={(e) => handleTimeChange("start_time", e.target.value)}
-                    className="input-base text-center"
-                  />
-                </div>
-                <div>
-                  <label className="label-base">Giờ KT</label>
-                  <input
-                    type="time"
-                    value={form.end_time}
-                    onChange={(e) => handleTimeChange("end_time", e.target.value)}
-                    className="input-base text-center"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Conflict warning (V1 ref: L643-661) */}
-          {conflicts.length > 0 && (
-            <div className="mt-2 space-y-1.5">
-              {conflicts.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-2.5 rounded-md bg-error/5 flex items-start gap-2"
-                >
-                  <AlertTriangle size={14} className="text-error shrink-0 mt-0.5" />
-                  <div className="text-caption text-error font-medium">
-                    Trùng <strong>{c.event_title || getWorkTypeLabel(c.work_type as WorkType)}</strong>{" "}
-                    {c.start_time.slice(0, 5)}-{c.end_time.slice(0, 5)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add button — V1 ref L667: disabled when no employee */}
-          <button
-            onClick={handleAdd}
-            disabled={submitting || !form.assigned_to}
-            className="btn btn-primary w-full mt-3"
-          >
-            {submitting ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Đang thêm...
-              </>
-            ) : (
-              <>
-                <UserPlus size={14} />
-                Thêm nhân sự
-              </>
-            )}
-          </button>
-        </div>
+        {/* ── Task list + Add form (extracted component) ── */}
+        <TaskListPanel
+          tasks={tasks}
+          loading={loading}
+          isOnSet={isOnSet}
+          form={form}
+          setForm={setForm}
+          employees={employees}
+          conflicts={conflicts}
+          submitting={submitting}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onAdd={handleAdd}
+          onEmployeeChange={handleEmployeeChange}
+          onTimeChange={handleTimeChange}
+        />
       </div>
     </UnifiedModal>
   );

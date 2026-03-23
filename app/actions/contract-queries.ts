@@ -4,31 +4,34 @@ import { withAuth } from "@/lib/auth_utils";
 import type { ContractItemFormData } from "@/types/contract-form";
 
 // ═══════════════════════════════════════════
-// Contract Queries — Form Support Actions
-// searchCustomers, getContractForEdit, addon history
-// Split from contracts.ts (lesson #7: max 250 lines)
+// Contract Queries — Contract-domain READ actions
+// V2: Only contract-specific queries here
+// Cross-module functions moved to their domain modules
 // ═══════════════════════════════════════════
 
-// ─── searchCustomers ─────────────────────────
-// Autocomplete for customer selection in contract form
-export async function searchCustomers(query: string) {
-  if (!query || query.length < 2) return { success: true as const, data: [] };
-
+// ─── getNextContractCode ─────────────────────
+// Generate next sequential contract code (HĐ-YYYY-NNNN)
+export async function getNextContractCode() {
   return withAuth(async (supabase) => {
-    const sanitized = query
-      .replace(/[%_]/g, "")
-      .trim();
+    const year = new Date().getFullYear();
+    const prefix = `HĐ-${year}-`;
 
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address")
-      .is("deleted_at", null)
-      .or(`full_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%`)
-      .order("full_name")
-      .limit(10);
+    const { data } = await supabase
+      .from("contracts")
+      .select("contract_code")
+      .like("contract_code", `${prefix}%`)
+      .order("contract_code", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) throw new Error(`Lỗi tìm khách hàng: ${error.message}`);
-    return data || [];
+    let nextNum = 1;
+    if (data?.contract_code) {
+      const parts = data.contract_code.split("-");
+      const lastNum = parseInt(parts[2]);
+      if (!isNaN(lastNum)) nextNum = lastNum + 1;
+    }
+
+    return `${prefix}${nextNum.toString().padStart(4, "0")}`;
   });
 }
 
@@ -42,7 +45,7 @@ export async function getContractForEdit(contractId: string) {
       .select(`
         *,
         customers (id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address),
-        contract_items (*)
+        contract_items (id, type, item_name, service_id, inventory_item_id, export_type, is_addon, addon_category, quantity, unit_price, original_price, discount_amount, total_amount, notes, deleted_at)
       `)
       .eq("id", contractId)
       .is("deleted_at", null)
@@ -64,8 +67,9 @@ export async function getContractForEdit(contractId: string) {
       0
     );
 
-    // Map items to form format
-    const items: ContractItemFormData[] = (contract.contract_items || []).map(
+    // Map items to form format (filter soft-deleted)
+    const activeItems = (contract.contract_items || []).filter((i: { deleted_at?: string | null }) => !i.deleted_at);
+    const items: ContractItemFormData[] = activeItems.map(
       (item: Record<string, unknown>, index: number) => ({
         _tempId: `existing-${index}`,
         id: item.id as string,
@@ -92,110 +96,5 @@ export async function getContractForEdit(contractId: string) {
       paidAmount,
       updatedAt: contract.updated_at as string,
     };
-  });
-}
-
-// ─── searchAddonHistory ──────────────────────
-// Autocomplete for addon items in ItemModal
-export async function searchAddonHistory(query: string) {
-  if (!query || query.length < 2) return { success: true as const, data: [] };
-
-  return withAuth(async (supabase) => {
-    const sanitized = query.replace(/[%_]/g, "").trim();
-
-    const { data, error } = await supabase
-      .from("addon_history")
-      .select("addon_name, addon_category, last_price, usage_count")
-      .ilike("addon_name", `%${sanitized}%`)
-      .order("usage_count", { ascending: false })
-      .limit(10);
-
-    if (error) throw new Error(`Lỗi tìm addon: ${error.message}`);
-    return data || [];
-  });
-}
-
-// ─── upsertAddonHistory ──────────────────────
-// Track addon usage for future autocomplete + price suggestions
-export async function upsertAddonHistory(
-  addonName: string,
-  addonCategory: string | null,
-  price: number
-) {
-  return withAuth(async (supabase) => {
-    const { data: existing } = await supabase
-      .from("addon_history")
-      .select("id, usage_count")
-      .eq("addon_name", addonName)
-      .eq("addon_category", addonCategory)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from("addon_history")
-        .update({
-          last_price: price,
-          usage_count: (existing.usage_count || 0) + 1,
-          last_used_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-    } else {
-      await supabase.from("addon_history").insert({
-        addon_name: addonName,
-        addon_category: addonCategory,
-        last_price: price,
-        usage_count: 1,
-      });
-    }
-
-    return null;
-  });
-}
-
-// ─── getAvailableServices ────────────────────
-// Fetch services for ItemModal service picker
-export async function getAvailableServices(search?: string) {
-  return withAuth(async (supabase) => {
-    let query = supabase
-      .from("services")
-      .select("id, service_name, service_type, category_id, selling_price, cost_price")
-      .eq("status", "active")
-      .order("service_name");
-
-    if (search && search.trim()) {
-      const sanitized = search.replace(/[%_]/g, "").trim();
-      query = query.ilike("service_name", `%${sanitized}%`);
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Lỗi tải dịch vụ: ${error.message}`);
-    return data || [];
-  });
-}
-
-// ─── quickCreateService ──────────────────────
-// Quick create service from ItemModal
-export async function quickCreateService(serviceData: {
-  service_name: string;
-  service_type: string;
-  selling_price: number;
-  cost_price?: number;
-}) {
-  return withAuth(async (supabase) => {
-    const { data: service, error } = await supabase
-      .from("services")
-      .insert({
-        service_name: serviceData.service_name.trim(),
-        service_type: serviceData.service_type,
-        selling_price: serviceData.selling_price,
-        cost_price: serviceData.cost_price || 0,
-        status: "active",
-      })
-      .select("id, service_name, selling_price, service_type")
-      .single();
-
-    if (error) throw error;
-    return service;
   });
 }

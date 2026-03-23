@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { searchCustomers } from "@/app/actions/contract-queries";
+import { searchCustomers } from "@/app/actions/customer-actions";
 import type { SelectedCustomer } from "@/types/contract-form";
 
 // ═══════════════════════════════════════════

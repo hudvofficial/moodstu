@@ -93,36 +93,57 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
               </div>
 
               {/* Content */}
-              <div className={`flex-1 ${isLast ? "" : "pb-4"}`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-sm leading-none">{config.icon}</span>
-                  <span className="text-body-sm font-medium text-text-main">
-                    {config.label}
-                  </span>
-                  <span className="text-tiny text-text-muted ml-auto">
-                    {statusLabel}
-                  </span>
+              {event.status === "hoan_thanh" ? (
+                /* Compact: completed events → 1 dòng */
+                <div className={`flex-1 ${isLast ? "" : "pb-2"}`}>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm leading-none shrink-0">{config.icon}</span>
+                    <span className="text-body-sm font-medium text-text-main truncate">
+                      {config.label}
+                    </span>
+                    {event.location && (
+                      <span className="text-tiny text-text-muted truncate">
+                        · {event.location}
+                      </span>
+                    )}
+                    <span className="text-tiny text-success ml-auto shrink-0">
+                      {statusLabel}
+                    </span>
+                  </div>
                 </div>
+              ) : (
+                /* Full: pending/in-progress events → title + date + location */
+                <div className={`flex-1 ${isLast ? "" : "pb-2"}`}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-sm leading-none">{config.icon}</span>
+                    <span className="text-body-sm font-medium text-text-main">
+                      {config.label}
+                    </span>
+                    <span className="text-tiny text-text-muted ml-auto">
+                      {statusLabel}
+                    </span>
+                  </div>
 
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                  {event.event_date && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-text-muted" />
-                      <span className="text-tiny text-text-secondary">
-                        {formatDate(event.event_date)}
-                      </span>
-                    </div>
-                  )}
-                  {event.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-text-muted" />
-                      <span className="text-tiny text-text-secondary truncate max-w-[180px]">
-                        {event.location}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {event.event_date && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-text-muted" />
+                        <span className="text-tiny text-text-secondary">
+                          {formatDate(event.event_date)}
+                        </span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-text-muted" />
+                        <span className="text-tiny text-text-secondary truncate max-w-[180px]">
+                          {event.location}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}

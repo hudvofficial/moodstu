@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createCustomer } from "@/app/actions/customer-actions";
-import { searchCustomers } from "@/app/actions/contract-queries";
+import { searchCustomers } from "@/app/actions/customer-actions";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { CustomerFormData } from "@/types/crm";
 

@@ -46,3 +46,55 @@ export async function deleteCategory(id: string) {
     return null;
   });
 }
+
+// ═══════════════════════════════════════════
+// Service Actions — Query + Quick Create
+// Moved from contract-queries.ts → service domain (V2)
+// ═══════════════════════════════════════════
+
+// ─── getAvailableServices ────────────────────
+// Fetch services for ItemModal service picker
+export async function getAvailableServices(search?: string) {
+  return withAuth(async (supabase) => {
+    let query = supabase
+      .from("services")
+      .select("id, service_name, service_type, category_id, selling_price, cost_price")
+      .eq("status", "active")
+      .order("service_name");
+
+    if (search && search.trim()) {
+      const sanitized = search.replace(/[%_]/g, "").trim();
+      query = query.ilike("service_name", `%${sanitized}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Lỗi tải dịch vụ: ${error.message}`);
+    return data || [];
+  });
+}
+
+// ─── quickCreateService ──────────────────────
+// Quick create service from ItemModal
+export async function quickCreateService(serviceData: {
+  service_name: string;
+  service_type: string;
+  selling_price: number;
+  cost_price?: number;
+}) {
+  return withAuth(async (supabase) => {
+    const { data: service, error } = await supabase
+      .from("services")
+      .insert({
+        service_name: serviceData.service_name.trim(),
+        service_type: serviceData.service_type,
+        selling_price: serviceData.selling_price,
+        cost_price: serviceData.cost_price || 0,
+        status: "active",
+      })
+      .select("id, service_name, selling_price, service_type")
+      .single();
+
+    if (error) throw error;
+    return service;
+  });
+}

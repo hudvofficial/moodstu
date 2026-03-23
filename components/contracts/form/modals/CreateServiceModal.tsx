@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { quickCreateService } from "@/app/actions/contract-queries";
+import { quickCreateService } from "@/app/actions/category-actions";
 import { Loader2 } from "lucide-react";
 import { CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";

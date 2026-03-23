@@ -42,9 +42,30 @@ export default function ImageViewer({
   const isViewOnly = mode === "view";
 
   // Sync note when image changes
+  /* eslint-disable */
   useEffect(() => {
     setNoteValue(current?.client_note || "");
   }, [currentIndex, current?.client_note]);
+  /* eslint-enable */
+
+  // Preload next/prev images for smooth navigation
+  useEffect(() => {
+    const preload = (idx: number) => {
+      const img = images[idx];
+      if (!img) return;
+      const url = img.thumbnail_url
+        ? img.thumbnail_url.replace(/sz=s\d+/, "sz=s1600")
+        : img.image_url;
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "image";
+      link.href = url;
+      document.head.appendChild(link);
+      return link;
+    };
+    const links = [preload(currentIndex - 1), preload(currentIndex + 1)].filter(Boolean) as HTMLLinkElement[];
+    return () => links.forEach((l) => l.remove());
+  }, [currentIndex, images]);
 
   // ─── Navigation ────────────────────────────
   const goNext = useCallback(() => {
@@ -104,12 +125,10 @@ export default function ImageViewer({
 
   if (!current) return null;
 
-  // Big image URL (sz=s1600 for full-screen)
-  const bigImageUrl = current.image_url.includes("lh3.googleusercontent.com")
-    ? current.image_url
-    : current.thumbnail_url
-      ? current.thumbnail_url.replace(/sz=s\d+/, "sz=s1600")
-      : current.image_url;
+  // Big image URL (sz=s1600 for full-screen — avoid loading 30MB+ originals)
+  const bigImageUrl = current.thumbnail_url
+    ? current.thumbnail_url.replace(/sz=s\d+/, "sz=s1600")
+    : current.image_url;
 
   return (
     <div
@@ -182,6 +201,22 @@ export default function ImageViewer({
           >
             <ChevronLeft size={24} style={{ color: "white" }} />
           </button>
+        )}
+
+        {/* Mobile tap zones (invisible) */}
+        {currentIndex > 0 && (
+          <div
+            className="md:hidden absolute inset-y-0 left-0 z-10"
+            style={{ width: "30%" }}
+            onClick={goPrev}
+          />
+        )}
+        {currentIndex < images.length - 1 && (
+          <div
+            className="md:hidden absolute inset-y-0 right-0 z-10"
+            style={{ width: "30%" }}
+            onClick={goNext}
+          />
         )}
 
         {/* eslint-disable-next-line @next/next/no-img-element */}

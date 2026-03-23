@@ -6,6 +6,7 @@ import { ModalProvider } from "@/lib/context/modal-context";
 import { GlobalModal } from "@/components/providers/modal-renderer";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -17,7 +18,16 @@ const inter = localFont({
 export const metadata: Metadata = {
   title: "Mood Studio — Quản lý studio cưới",
   description: "Hệ thống quản lý studio cưới chuyên nghiệp",
-  icons: { icon: "/logo.png" },
+  icons: {
+    icon: "/logo.png",
+    apple: "/icons/icon-192x192.png",
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Mood Studio",
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,6 +35,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: "#8B5E3C",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -38,6 +49,7 @@ export default function RootLayout({
         <ThemeProvider>
           <NuqsAdapter>
             <ModalProvider>
+              <OfflineIndicator />
               {children}
               <GlobalModal />
               <Toaster

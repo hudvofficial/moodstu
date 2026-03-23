@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Heart, Camera, Download, ThumbsUp } from "lucide-react";
 import {
   toggleImageSelection,
@@ -41,11 +41,7 @@ interface PublicGalleryClientProps {
   mode?: "select" | "view";
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  goc: "Ảnh gốc",
-  da_sua: "Đã sửa",
-  chon_in: "Chọn in",
-};
+const BATCH_SIZE = 50;
 
 export default function PublicGalleryClient({
   gallery,
@@ -57,7 +53,9 @@ export default function PublicGalleryClient({
   const [showLanding, setShowLanding] = useState(true);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
-  const [activeGroup, setActiveGroup] = useState<string>("all");
+  const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
   const isViewOnly = mode === "view";
 
@@ -77,16 +75,37 @@ export default function PublicGalleryClient({
   const selectedCount = images.filter((img) => img.is_selected).length;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
 
-  // ─── Category groups ──────────────────────
-  const groups = useMemo(() => {
-    const set = new Set(images.map((i) => i.file_group).filter(Boolean));
-    return Array.from(set) as string[];
-  }, [images]);
-
+  // ─── Filtered + visible images ──────────────
   const filteredImages = useMemo(
-    () => activeGroup === "all" ? images : images.filter((i) => i.file_group === activeGroup),
+    () => activeGroup === "selected" ? images.filter((i) => i.is_selected) : images,
     [images, activeGroup],
   );
+
+  const visibleImages = useMemo(
+    () => filteredImages.slice(0, visibleCount),
+    [filteredImages, visibleCount],
+  );
+
+  // Reset visible count khi toggle filter
+  /* eslint-disable */
+  useEffect(() => { setVisibleCount(BATCH_SIZE); }, [activeGroup]);
+  /* eslint-enable */
+
+  // IntersectionObserver — load thêm khi cuộn
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const ob = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filteredImages.length));
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    ob.observe(el);
+    return () => ob.disconnect();
+  }, [filteredImages.length]);
 
   // ─── Toggle heart ──────────────────────────
   const handleToggleHeart = useCallback(
@@ -197,31 +216,29 @@ export default function PublicGalleryClient({
           </div>
           <div className="flex items-center gap-3 text-xs" style={{ color: "var(--color-text-secondary, #666)" }}>
             <span>📷 {images.length} ảnh</span>
-            {!isViewOnly && <span>❤️ {selectedCount} đã chọn</span>}
+            {!isViewOnly && selectedCount > 0 && (
+              <button
+                onClick={() => setActiveGroup((prev) => prev === "selected" ? "all" : "selected")}
+                className="transition-all duration-200"
+                style={{
+                  color: activeGroup === "selected" ? "var(--color-primary, #8B5E3C)" : "inherit",
+                  fontWeight: activeGroup === "selected" ? 600 : 400,
+                }}
+              >
+                ❤️ {selectedCount} đã chọn
+              </button>
+            )}
             {totalLikes > 0 && <span>👍 {totalLikes} thích</span>}
-            {groups.length > 1 && <span>📁 {groups.length} nhóm</span>}
           </div>
         </div>
       </div>
 
-      {/* ── Category Tabs ── */}
-      {groups.length > 1 && (
-        <div className="sticky top-[52px] z-20 px-4 py-2 overflow-x-auto"
-          style={{ background: "var(--color-bg-main, #faf8f5)", WebkitOverflowScrolling: "touch" }}>
-          <div className="max-w-5xl mx-auto flex gap-2">
-            <TabButton label="Tất cả" active={activeGroup === "all"} count={images.length} onClick={() => setActiveGroup("all")} />
-            {groups.map((g) => (
-              <TabButton key={g} label={GROUP_LABELS[g] || g} active={activeGroup === g}
-                count={images.filter((i) => i.file_group === g).length} onClick={() => setActiveGroup(g)} />
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* ── Photo Grid ── */}
       <div className="max-w-5xl mx-auto px-3 py-4">
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {filteredImages.map((img) => (
+          {visibleImages.map((img) => (
             <div key={img.id} className="relative group overflow-hidden cursor-pointer"
               style={{ borderRadius: "var(--radius-lg, 8px)", aspectRatio: "1 / 1" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -279,6 +296,21 @@ export default function PublicGalleryClient({
             </div>
           ))}
         </div>
+
+        {/* ── Infinite scroll sentinel ── */}
+        {visibleCount < filteredImages.length ? (
+          <div ref={sentinelRef} className="flex justify-center py-6">
+            <span className="text-xs animate-pulse" style={{ color: "var(--color-text-muted, #999)" }}>
+              Đang tải thêm...
+            </span>
+          </div>
+        ) : filteredImages.length > BATCH_SIZE ? (
+          <div className="text-center py-4">
+            <span className="text-xs" style={{ color: "var(--color-text-muted, #999)" }}>
+              Đã hiện tất cả {filteredImages.length} ảnh
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {/* ── Lightbox viewer ── */}
@@ -297,18 +329,3 @@ export default function PublicGalleryClient({
   );
 }
 
-// ─── Tab Button sub-component ───────────────
-function TabButton({ label, active, count, onClick }: {
-  label: string; active: boolean; count: number; onClick: () => void;
-}) {
-  return (
-    <button onClick={onClick}
-      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap"
-      style={{
-        background: active ? "var(--color-primary, #8B5E3C)" : "var(--color-bg-hover, #f0ece6)",
-        color: active ? "white" : "var(--color-text-secondary, #666)",
-      }}>
-      {label} ({count})
-    </button>
-  );
-}

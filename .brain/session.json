@@ -1,60 +1,93 @@
 {
-  "updated_at": "2026-03-23T18:24:00+07:00",
+  "updated_at": "2026-03-24T01:55:00+07:00",
   "working_on": {
-    "feature": "Gallery Warm Earth-Tone Palette",
-    "task": "Complete — 9 tokens + 16 code changes across 3 files",
+    "feature": "Contract Clone-Ready Fix Plan",
+    "task": "All 3 phases complete + notes bug fixed",
     "status": "completed",
     "files": [
-      "app/globals.css",
-      "components/gallery/password-gate.tsx",
-      "components/gallery/public-gallery-client.tsx"
+      "app/actions/contract-queries.ts",
+      "app/actions/contract-mutations.ts",
+      "app/actions/customer-actions.ts",
+      "app/actions/category-actions.ts",
+      "app/actions/note-actions.ts",
+      "components/contracts/detail/event-task-modal.tsx",
+      "components/contracts/detail/task-list-panel.tsx",
+      "components/contracts/detail/contract-detail-client.tsx",
+      "components/contracts/detail/detail-layout-sections.tsx",
+      "components/contracts/form/ContractCustomerSection.tsx",
+      "components/contracts/form/CoupleDetailFields.tsx",
+      "components/contracts/contract-drawer.tsx",
+      "components/contracts/drawer-tab-content.tsx",
+      "docs/specs/v2-module-template.md"
     ],
     "blockers": [],
-    "notes": "Cold white → warm earth-tone tokens. TW4 @theme vars need fallback values in inline styles."
+    "notes": "3 phases: naming cleanup → file splitting → V2 Module Template Spec. Plus fixed notes FK bug."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-23T18:09:00+07:00",
-      "type": "feature",
-      "description": "Gallery Warm Earth-Tone Palette: 9 SSOT tokens (gallery-bg, gallery-text, gallery-icon, etc.) + applied to password-gate.tsx (10 changes) and public-gallery-client.tsx landing (6 changes). CTA changed from white to accent gold.",
-      "files": ["app/globals.css", "components/gallery/password-gate.tsx", "components/gallery/public-gallery-client.tsx"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-23T17:00:00+07:00",
+      "timestamp": "2026-03-24T01:55:00+07:00",
       "type": "bugfix",
-      "description": "Password Gate layout fix: card collapsing due to TW width classes not generating. Fixed with inline style width/maxWidth. Also cleaned 11 inline styles → TW classes.",
-      "files": ["components/gallery/password-gate.tsx", "components/gallery/public-gallery-client.tsx"],
+      "description": "Fixed contract notes: employees:created_by(full_name) JOIN failed because contract_notes.created_by has no FK to employees table. Removed broken JOIN, select plain UUID instead.",
+      "files": ["app/actions/note-actions.ts"],
       "verified": true
     },
     {
-      "timestamp": "2026-03-23T12:15:00+07:00",
+      "timestamp": "2026-03-24T01:46:00+07:00",
+      "type": "documentation",
+      "description": "Phase 03: Created V2 Module Template Spec (docs/specs/v2-module-template.md) — 8 sections covering folder structure, naming, action patterns, hook composition, DB templates, file size rules, and Module Compliance Checklist.",
+      "files": ["docs/specs/v2-module-template.md"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-24T01:30:00+07:00",
       "type": "refactor",
-      "description": "Phase 4: Token consistency — shadow→--shadow-header, height→--header-mobile-h/desktop-h, z-index→--z-header",
-      "files": ["app/styles/utilities.css", "components/layout/header.tsx"],
+      "description": "Phase 02: Split 4 files > 300 lines — event-task-modal (564→295 + task-list-panel 278), contract-detail-client (456→254 + detail-layout-sections 224), ContractCustomerSection (385→222 + CoupleDetailFields 152), contract-drawer (367→117 + drawer-tab-content 226).",
+      "files": [
+        "components/contracts/detail/event-task-modal.tsx",
+        "components/contracts/detail/task-list-panel.tsx",
+        "components/contracts/detail/contract-detail-client.tsx",
+        "components/contracts/detail/detail-layout-sections.tsx",
+        "components/contracts/form/ContractCustomerSection.tsx",
+        "components/contracts/form/CoupleDetailFields.tsx",
+        "components/contracts/contract-drawer.tsx",
+        "components/contracts/drawer-tab-content.tsx"
+      ],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-24T00:45:00+07:00",
+      "type": "refactor",
+      "description": "Phase 01: Naming cleanup — moved cross-module functions to correct domains, removed duplicates, renamed submitContract→createContract, moved getNextContractCode to queries.",
+      "files": [
+        "app/actions/contract-queries.ts",
+        "app/actions/contract-mutations.ts",
+        "app/actions/customer-actions.ts",
+        "app/actions/category-actions.ts"
+      ],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "Gallery public pages always use dark theme with warm earth-tone palette (derive from --color-accent #C9A96E)",
-      "reason": "Dark bg makes photos stand out. Warm tones match brand. 9 SSOT tokens in globals.css @theme."
+      "decision": "Contract module = V2 Gold Standard for cloning all future modules",
+      "reason": "3-phase clone-ready fix completed: naming, splitting, template spec."
     },
     {
-      "decision": "All gallery dark CSS vars use fallback pattern: var(--token, hardcoded-value)",
-      "reason": "TW4 @theme vars NOT available in inline styles. Fallback ensures colors always render correctly."
-    },
-    {
-      "decision": "Gallery view section (photo grid) stays on light theme — only password gate + landing page are dark",
-      "reason": "Photo grid needs light bg for readability of text/stats. Dark theme reserved for cinematic intro/gate screens."
+      "decision": "V2 Module Template Spec (docs/specs/v2-module-template.md) is SSOT for new module creation",
+      "reason": "Standardizes folder structure, naming conventions, action patterns, DB templates, and file size rules."
     }
   ],
   "pending_tasks": [],
   "completed_plans": [
     {
+      "plan": "260324-0200-clone-ready-fix",
+      "status": "complete",
+      "summary": "3/3 phases: naming cleanup, file splitting (4 files), V2 Module Template Spec. Contract module 100% clone-ready."
+    },
+    {
       "plan": "gallery-warm-earth-tone-palette",
       "status": "complete",
-      "summary": "9 tokens SSOT, 16 code changes. Password gate + landing page warm palette. Build pass, desktop + mobile verified."
+      "summary": "9 tokens SSOT, 16 code changes. Password gate + landing page warm palette."
     },
     {
       "plan": "header-standardization-4-phases",
@@ -64,7 +97,7 @@
     {
       "plan": "260321-1916-radius-normalize",
       "status": "complete",
-      "summary": "7/7 phases done. Token scale chuẩn hóa, btn variants kế thừa base, TW4 syntax fixed."
+      "summary": "7/7 phases done. Token scale chuẩn hóa, btn variants kế thừa base."
     },
     {
       "plan": "260320-1400-mock-contract-events",
@@ -79,7 +112,12 @@
   ],
   "errors_encountered": [
     {
-      "error": "TW4 @theme CSS vars not resolving in inline styles — gallery bg showed light instead of dark",
+      "error": "contract_notes: Could not find a relationship between 'contract_notes' and 'created_by' — query used employees:created_by(full_name) but no FK exists",
+      "solution": "Remove FK join, select created_by as plain UUID. FK only exists on contract_id→contracts.",
+      "resolved": true
+    },
+    {
+      "error": "TW4 @theme CSS vars not resolving in inline styles",
       "solution": "Add fallback values to all var() calls: var(--color-gallery-bg, #1a1a1a)",
       "resolved": true
     }

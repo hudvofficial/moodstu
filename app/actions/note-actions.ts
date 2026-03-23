@@ -13,7 +13,7 @@ export async function getContractNotes(contractId: string) {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("contract_notes")
-      .select("id, content, created_by, created_at, employees:created_by(full_name)")
+      .select("id, content, created_by, created_at")
       .eq("contract_id", contractId)
       .order("created_at", { ascending: true });
 
@@ -40,7 +40,7 @@ export async function addContractNote(contractId: string, content: string) {
         created_at: now,
         updated_at: now,
       })
-      .select("id, content, created_by, created_at, employees:created_by(full_name)")
+      .select("id, content, created_by, created_at")
       .single();
 
     if (error) throw new Error(`Lỗi thêm ghi chú: ${error.message}`);

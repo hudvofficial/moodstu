@@ -18,30 +18,16 @@ import TopActionBar from "./top-action-bar";
 import ContractActionsMenu from "./contract-actions-menu";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import CancelBanner from "./cancel-banner";
-import SummaryCard from "./summary-card";
-import CustomerInfoBlock from "./customer-info-block";
-import ServiceDetailsBlock from "./service-details-block";
-import FinancialDashboard from "./financial-dashboard";
-import EventTimeline from "./event-timeline";
-import WorkflowStepper from "./workflow-stepper";
-import CostumesBlock from "./costumes-block";
-import PrintOrdersBlock from "./print-orders-block";
-import ActivityLog from "./activity-log";
-import DriveGalleryBlock from "./drive-gallery-block";
-import QuickActionsGrid from "./quick-actions-grid";
-
 import MobileBottomBar from "./mobile-bottom-bar";
-import MobileTabNav from "./mobile-tab-nav";
 import PaymentReceiptForm from "./payment-receipt-form";
 import PrintingOrderForm from "./printing-order-form";
 import InventoryReservationForm from "./inventory-reservation-form";
-import NotesTimeline from "./notes-timeline";
 import AddEventModal from "./add-event-modal";
+import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
 
 // ═══════════════════════════════════════════
-// Contract Detail Client — SWR wrapper
-// Phase 04d→04f: Desktop 65/35 + Sidebar + Quick Actions
-// Mobile: stacked 1-col, Desktop: 2-col grid
+// Contract Detail Client — SWR wrapper + state
+// V2: Layout sections extracted to detail-layout-sections.tsx
 // ═══════════════════════════════════════════
 
 interface Props {
@@ -72,19 +58,13 @@ export default function ContractDetailClient({
     mutate: refreshContract,
   } = useContractDetail(params.id);
 
-  // SWR fallback: use live data if available, else initial server data
-  const contract =
-    (liveContract as unknown as Contract) || initialContract;
-  const payments =
-    (livePayments as unknown as Payment[]) || initialPayments;
-  const paymentPlans =
-    (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans;
-  const reservations =
-    (liveReservations as unknown as InventoryReservation[]) || initialReservations;
-  const printOrders =
-    (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders;
-  const auditLogs =
-    (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
+  // SWR fallback
+  const contract = (liveContract as unknown as Contract) || initialContract;
+  const payments = (livePayments as unknown as Payment[]) || initialPayments;
+  const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans;
+  const reservations = (liveReservations as unknown as InventoryReservation[]) || initialReservations;
+  const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders;
+  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
   const isCancelled = contract.status === "da_huy";
 
   // ── Set header slots for mobile ──
@@ -147,9 +127,7 @@ export default function ContractDetailClient({
     }
   }, []);
 
-  // subtotal computed in FinancialSummary desktop embed only
-
-  // ── Linked State: Hoist auto-hide header logic ──
+  // ── Auto-hide header logic ──
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
   const SCROLL_THRESHOLD = 15;
@@ -158,7 +136,7 @@ export default function ContractDetailClient({
   const [tabsMerged, setTabsMerged] = useState(false);
   const tabSentinelRef = useRef<HTMLDivElement>(null);
 
-  // ── Hoisted tab state (shared between MobileTabNav + TopActionBar) ──
+  // ── Hoisted tab state ──
   const [activeTab, setActiveTab] = useState<string>("details");
 
   const handleTabClick = useCallback((tab: { key: string; sectionId: string }) => {
@@ -195,7 +173,7 @@ export default function ContractDetailClient({
     return () => scrollEl.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Sentinel observer: detect when tab nav leaves viewport
+  // Sentinel observer
   useEffect(() => {
     const sentinel = tabSentinelRef.current;
     const scrollEl = document.getElementById("main-scroll");
@@ -210,9 +188,21 @@ export default function ContractDetailClient({
     return () => observer.disconnect();
   }, []);
 
+  // ── Common layout props ──
+  const layoutProps = {
+    contract,
+    payments,
+    reservations,
+    printOrders,
+    auditLogs,
+    refreshContract: () => refreshContract(),
+    onPaymentClick: () => setShowPaymentForm(true),
+    onAddEvent: () => setShowAddEventModal(true),
+    onQuickAction: handleQuickAction,
+  };
+
   return (
     <div className="main-container max-lg:pb-24">
-      {/* Top Action Bar — Desktop breadcrumb + title + actions */}
       <TopActionBar
         contractId={contract.id}
         contractCode={contract.contract_code}
@@ -223,7 +213,6 @@ export default function ContractDetailClient({
         isCancelled={isCancelled}
       />
 
-      {/* Cancel Banner (if cancelled) */}
       {isCancelled && (
         <CancelBanner
           contractId={contract.id}
@@ -232,190 +221,19 @@ export default function ContractDetailClient({
         />
       )}
 
-      {/* Content with opacity when cancelled */}
       <div className={isCancelled ? "opacity-60" : ""}>
-
-        {/* ════════════════════════════════════════ */}
-        {/*  DESKTOP LAYOUT: 65/35 grid             */}
-        {/* ════════════════════════════════════════ */}
-        <div className="max-lg:hidden">
-          <WorkflowStepper
-            contract={contract}
-            events={contract.contract_events || []}
-          />
-          <div className="detail-grid mt-6">
-            {/* LEFT COLUMN (67%) — Info + Events + Actions */}
-            <div className="detail-main">
-              {/* Thông tin hợp đồng (Stitch: merged info card) */}
-              <div className="card-base p-6">
-                <SummaryCard
-                  contract={contract}
-                  customer={contract.customers || null}
-                  embedded
-                />
-                <div className="h-px bg-border/30 my-4" />
-                <CustomerInfoBlock
-                  customer={contract.customers || null}
-                  notes={contract.notes}
-                  embedded
-                  brideName={contract.customers?.bride_name}
-                  groomName={contract.customers?.groom_name}
-                  bridePhone={contract.customers?.bride_phone}
-                  groomPhone={contract.customers?.groom_phone}
-                  brideHeight={contract.customers?.bride_height}
-                  brideWeight={contract.customers?.bride_weight}
-                  brideShoeSize={contract.customers?.bride_shoe_size}
-                  groomHeight={contract.customers?.groom_height}
-                  groomWeight={contract.customers?.groom_weight}
-                  groomShoeSize={contract.customers?.groom_shoe_size}
-                />
-              </div>
-
-              {/* Lịch trình chi tiết */}
-              <EventTimeline
-                events={contract.contract_events || []}
-                tasks={contract.work_tasks || []}
-                onRefresh={() => refreshContract()}
-                onAddEvent={() => setShowAddEventModal(true)}
-              />
-
-              {/* Thao tác nhanh (Stitch: main column, after events) */}
-              <QuickActionsGrid onAction={handleQuickAction} />
-
-              {/* Service Details */}
-              <ServiceDetailsBlock
-                items={contract.contract_items || []}
-                totalAmount={contract.total_amount}
-                discountAmount={contract.discount_amount}
-              />
-
-              {/* Trang phục (Stitch: main column, last section) */}
-              <CostumesBlock reservations={reservations} contractId={contract.id} />
-
-              {/* In ấn — gom cùng nhóm tài sản vật lý */}
-              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
-            </div>
-
-            {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
-            <div className="detail-sidebar">
-              {/* Financial Dashboard + Payments inline (Stitch: 1 card) */}
-              <FinancialDashboard
-                totalAmount={contract.total_amount}
-                paidAmount={contract.paid_amount}
-                remainingAmount={contract.remaining_amount}
-                payments={payments}
-                onPaymentClick={() => setShowPaymentForm(true)}
-                subtotal={contract.total_amount + (contract.discount_amount || 0)}
-                discountAmount={contract.discount_amount}
-              />
-
-              {/* File & Drive (Stitch: before Checklist) */}
-              <div id="section-drive">
-                <DriveGalleryBlock contractId={contract.id} />
-              </div>
-
-
-
-              {/* Hoạt động gần đây */}
-              <ActivityLog logs={auditLogs} />
-
-              {/* Ghi chú (Phase 07B — match mobile) */}
-              <NotesTimeline contractId={contract.id} />
-            </div>
-          </div>
-        </div>
-
-        {/* ════════════════════════════════════════ */}
-        {/*  MOBILE LAYOUT: stacked 1-col            */}
-        {/* ════════════════════════════════════════ */}
-        <div className="lg:hidden">
-          <div className="flex flex-col gap-4 mt-4">
-            {/* 1. SummaryCard compact — badges + tên KH (Stitch 59-71) */}
-            <div id="section-details">
-              <SummaryCard
-                contract={contract}
-                customer={contract.customers || null}
-              />
-            </div>
-
-            {/* 2. FinancialDashboard — mobile variant (Stitch 72-101) */}
-            <FinancialDashboard
-              totalAmount={contract.total_amount}
-              paidAmount={contract.paid_amount}
-              remainingAmount={contract.remaining_amount}
-              payments={payments}
-              onPaymentClick={() => setShowPaymentForm(true)}
-            />
-
-            {/* 3. WorkflowStepper (Stitch 103-137) */}
-            <WorkflowStepper
-              contract={contract}
-              events={contract.contract_events || []}
-            />
-          </div>
-
-          {/* Sentinel — detect when tabs leave natural position */}
-          <div ref={tabSentinelRef} className="h-0 w-full" />
-
-          {/* 4. MobileTabNav — sticky pills (Stitch 139-147) */}
-          <MobileTabNav
-            headerVisible={headerVisible}
-            tabsMerged={tabsMerged}
-            activeTab={activeTab}
-            onTabClick={handleTabClick}
-            setActiveTab={setActiveTab}
-          />
-
-          <div className="flex flex-col gap-4 px-0 mt-4">
-            {/* 4. Lịch trình sự kiện (Stitch 149-182) */}
-            <div id="section-events">
-              <EventTimeline
-                events={contract.contract_events || []}
-                tasks={contract.work_tasks || []}
-                onRefresh={() => refreshContract()}
-                onAddEvent={() => setShowAddEventModal(true)}
-              />
-            </div>
-
-
-
-            {/* 6. Thao tác nhanh (Stitch 249-277) */}
-            <div id="section-actions">
-              <QuickActionsGrid onAction={handleQuickAction} />
-            </div>
-
-            {/* 6.5 File & Drive (mobile) */}
-            <div id="section-drive-mobile">
-              <DriveGalleryBlock contractId={contract.id} />
-            </div>
-
-            {/* 7. Ghi chú (Phase 07B) */}
-            <div id="section-notes">
-              <NotesTimeline contractId={contract.id} />
-            </div>
-
-            {/* 8. Chi tiết dịch vụ (match desktop) */}
-            <ServiceDetailsBlock
-              items={contract.contract_items || []}
-              totalAmount={contract.total_amount}
-              discountAmount={contract.discount_amount}
-            />
-
-            {/* 9. Trang phục (match desktop) */}
-            <CostumesBlock reservations={reservations} contractId={contract.id} />
-
-            {/* 10. Đơn hàng in ấn — gom cùng nhóm tài sản */}
-            <div id="section-print">
-              <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
-            </div>
-
-            {/* 11. Hoạt động gần đây (match desktop) */}
-            <ActivityLog logs={auditLogs} />
-          </div>
-        </div>
+        <DesktopLayout {...layoutProps} />
+        <MobileLayout
+          {...layoutProps}
+          headerVisible={headerVisible}
+          tabsMerged={tabsMerged}
+          activeTab={activeTab}
+          onTabClick={handleTabClick}
+          setActiveTab={setActiveTab}
+          tabSentinelRef={tabSentinelRef}
+        />
       </div>
 
-      {/* Mobile Bottom Bar (Stitch: sticky 2 buttons) */}
       <MobileBottomBar
         contractId={contract.id}
         isCancelled={isCancelled}

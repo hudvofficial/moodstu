@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { getAvailableServices } from "@/app/actions/contract-queries";
+import { getAvailableServices } from "@/app/actions/category-actions";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ContractItemFormData } from "@/types/contract-form";

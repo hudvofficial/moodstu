@@ -9,8 +9,8 @@
  * SSOT: All display labels from types/contract-constants.ts
  */
 
-import { UserCircle, Clock } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { useState } from "react";
+import { UserCircle } from "lucide-react";
 import { WORK_TYPE_MAP, TASK_STATUS_MAP } from "@/types/contract-constants";
 import type { WorkType, TaskStatus } from "@/types/contract";
 
@@ -57,14 +57,16 @@ function getWorkLabel(workType: string): string {
 
 // ─── COMPONENT ───────────────────────────────────
 
-const MAX_VISIBLE = 5;
+const MAX_ASSIGNED = 4;
 
 export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (!tasks || tasks.length === 0) {
     return (
       <section className="card-base p-4">
         <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-          Phân công
+          Nhân sự
         </h4>
         <p className="text-body-sm text-text-muted italic">
           Chưa có phân công
@@ -73,57 +75,82 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
     );
   }
 
-  const visibleTasks = tasks.slice(0, MAX_VISIBLE);
-  const hiddenCount = tasks.length - MAX_VISIBLE;
+  const assigned = tasks.filter((t) => t.employees?.full_name);
+  const unassigned = tasks.filter((t) => !t.employees?.full_name);
+  const visibleAssigned = expanded ? assigned : assigned.slice(0, MAX_ASSIGNED);
+  const hiddenAssignedCount = Math.max(0, assigned.length - MAX_ASSIGNED);
+  const progressPercent = (assigned.length / tasks.length) * 100;
 
   return (
     <section className="card-base p-4">
-      <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-        Phân công ({tasks.length})
-      </h4>
-
-      <div className="flex flex-col gap-2">
-        {visibleTasks.map((task) => (
-          <div
-            key={task.id}
-            className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-hover/50 transition-colors"
-          >
-            {/* Avatar placeholder */}
-            <UserCircle className="w-5 h-5 text-text-muted shrink-0" />
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-body-sm font-medium text-text-main truncate">
-                  {task.employees?.full_name || "Chưa gán"}
-                </span>
-                <span
-                  className={`text-tiny px-1.5 py-0.5 rounded-full font-medium ${getStatusStyle(task.status)}`}
-                >
-                  {getStatusText(task.status)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-tiny text-text-muted">
-                  {getWorkLabel(task.work_type)}
-                </span>
-                {task.deadline && (
-                  <span className="flex items-center gap-0.5 text-tiny text-text-muted">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(task.deadline)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {hiddenCount > 0 && (
-          <p className="text-tiny text-text-muted text-center py-1">
-            + {hiddenCount} phân công khác
-          </p>
-        )}
+      {/* Header summary */}
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
+          Nhân sự
+        </h4>
+        <span className="text-tiny text-text-muted">
+          {assigned.length}/{tasks.length} gán
+        </span>
       </div>
+
+      {/* Thin progress bar */}
+      <div className="h-1 bg-border/30 rounded-full mb-3 overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
+      {/* Warning block: unassigned tasks */}
+      {unassigned.length > 0 && (
+        <div className="bg-warning/5 rounded-md px-3 py-2 mb-2">
+          <p className="text-tiny font-medium text-warning">
+            ⚠️ {unassigned.length} chưa gán
+          </p>
+          <p className="text-tiny text-text-muted mt-0.5 line-clamp-2">
+            {unassigned
+              .slice(0, 5)
+              .map((t) => getWorkLabel(t.work_type))
+              .join(" · ")}
+            {unassigned.length > 5 && ` · +${unassigned.length - 5}`}
+          </p>
+        </div>
+      )}
+
+      {/* Assigned list (compact) */}
+      {visibleAssigned.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {visibleAssigned.map((task) => (
+            <div
+              key={task.id}
+              className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-hover/50 transition-colors"
+            >
+              <UserCircle className="w-4 h-4 text-text-muted shrink-0" />
+              <span className="text-body-sm font-medium text-text-main truncate flex-1">
+                {task.employees!.full_name}
+              </span>
+              <span className="text-tiny text-text-muted shrink-0">
+                {getWorkLabel(task.work_type)}
+              </span>
+              <span
+                className={`text-tiny px-1.5 py-0.5 rounded-full font-medium shrink-0 ${getStatusStyle(task.status)}`}
+              >
+                {getStatusText(task.status)}
+              </span>
+            </div>
+          ))}
+          {hiddenAssignedCount > 0 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-tiny text-primary hover:text-primary/80 text-center py-0.5 w-full transition-colors"
+            >
+              {expanded
+                ? "Thu gọn"
+                : `+${hiddenAssignedCount} nhân sự khác`}
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

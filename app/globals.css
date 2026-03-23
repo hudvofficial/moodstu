@@ -130,6 +130,20 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* PWA: Safe area for notch devices (iPhone X+) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* PWA: Remove blue flash on tap (native feel) */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* PWA: Standalone mode adjustments */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: contain;
+  }
 }
 
 /* ── Scrollbar ── */

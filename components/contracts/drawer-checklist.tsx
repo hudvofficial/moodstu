@@ -29,9 +29,9 @@ interface DrawerChecklistProps {
 // ─── CATEGORY COLORS ────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  "lễ tân": { bg: "bg-amber-100/60", text: "text-amber-700" },
-  "makeup": { bg: "bg-pink-100/60", text: "text-pink-700" },
-  "photo": { bg: "bg-blue-100/60", text: "text-blue-700" },
+  "lễ tân": { bg: "bg-warning/10", text: "text-warning" },
+  "makeup": { bg: "bg-accent/10", text: "text-accent" },
+  "photo": { bg: "bg-info/10", text: "text-info" },
 };
 
 function getCatStyle(category: string) {

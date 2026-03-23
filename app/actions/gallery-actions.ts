@@ -19,6 +19,13 @@ import {
 // Helper: paginated fetch bypasses PostgREST max_rows=1000
 const IMAGE_COLS = "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
 
+// RAW file extensions — filter khỏi public gallery (admin vẫn thấy full)
+const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|raf|dng|rw2|orf|pef)$/i;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filterRawFiles(images: any[]) {
+  return images.filter((img) => !RAW_EXTENSIONS.test(img.file_name || ""));
+}
+
 async function fetchAllGalleryImages(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -228,7 +235,7 @@ export async function getPublicGallery(accessUrl: string) {
       };
     }
 
-    const images = await fetchAllGalleryImages(supabase, data.id);
+    const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _pwd, ...galleryWithoutPwd } = data;
     return { success: true as const, data: { ...galleryWithoutPwd, gallery_images: images, needsPassword: false as const } as Gallery & { needsPassword: false } };
@@ -256,7 +263,7 @@ export async function verifyGalleryPassword(galleryId: string, password: string)
       return { success: false as const, error: "Mật khẩu không đúng." };
     }
 
-    const images = await fetchAllGalleryImages(supabase, data.id);
+    const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
     return { success: true as const, data: { ...data, gallery_images: images } as Gallery };
   } catch (err) {
     console.error("[verifyGalleryPassword] Error:", err);

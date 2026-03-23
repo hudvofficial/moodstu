@@ -131,7 +131,7 @@ function ContractsListInner() {
   };
   const handleHover = (id: string) => prefetchContract(id);
   const handleEdit = (id: string) => router.push(`/contracts/${id}/edit`);
-  const handleDelete = (id: string) => void id; // TODO: Phase 05
+  const handleDelete = (id: string) => void id; // Delete handled via drawer lifecycle actions
 
   const handleApplyDateRange = () => {
     applyDateRange(localStartDate, localEndDate);

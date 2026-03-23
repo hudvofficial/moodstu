@@ -155,3 +155,27 @@ export async function getCustomerStats(): Promise<ActionResult<{ total: number; 
     return { total: total || 0, newThisMonth: newThisMonth || 0, avgLifetimeValue };
   });
 }
+
+// ─── SEARCH CUSTOMERS (Autocomplete) ─────────
+// Moved from contract-queries.ts → customer domain (V2)
+
+export async function searchCustomers(query: string) {
+  if (!query || query.length < 2) return { success: true as const, data: [] };
+
+  return withAuth(async (supabase) => {
+    const sanitized = query
+      .replace(/[%_]/g, "")
+      .trim();
+
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address")
+      .is("deleted_at", null)
+      .or(`full_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%`)
+      .order("full_name")
+      .limit(10);
+
+    if (error) throw new Error(`Lỗi tìm khách hàng: ${error.message}`);
+    return data || [];
+  });
+}

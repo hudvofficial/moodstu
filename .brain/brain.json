@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-23T18:24:00+07:00"
+    "last_updated": "2026-03-24T01:55:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -121,8 +121,13 @@
       "CSS btn variants must include base styles — dont rely on .btn being present",
       "Header detail pages: use HeaderSlotsContext to set mobile header slots — NOT separate <header> blocks",
       "rightSlot replaces mobile actions only — desktop always keeps Search+ThemeToggle+Bell defaults",
-      "TW4 @theme vars NOT available in inline styles — MUST use var() with fallback: var(--token, #fallback). Tokens still defined in @theme for documentation + future TW class usage",
-      "Gallery public pages: width-related TW classes (w-full, max-w-sm) NOT generated — use inline style={{ width, maxWidth }} as fallback"
+      "TW4 @theme vars NOT available in inline styles — MUST use var() with fallback: var(--token, #fallback)",
+      "Gallery public pages: width-related TW classes NOT generated — use inline style as fallback",
+      "PostgREST FK join: employees:created_by(full_name) FAILS if created_by has no FK to employees — just select UUID",
+      "File splitting: keep parent as orchestrator (state+handlers), extract child UI. NO barrel exports for internal splits"
+    ],
+    "specs": [
+      "docs/specs/v2-module-template.md — V2 Module Template Spec (gold standard from Contract module)"
     ]
   },
   "decisions": [
@@ -150,6 +155,11 @@
       "date": "2026-03-23",
       "decision": "Gallery public pages always dark theme. Warm earth-tone palette (derive from --color-accent #C9A96E). 9 SSOT tokens in globals.css @theme.",
       "reason": "Dark bg makes photos stand out. Warm tones match brand. SSOT tokens allow single-point palette changes."
+    },
+    {
+      "date": "2026-03-24",
+      "decision": "Contract module = V2 Gold Standard. All future modules follow docs/specs/v2-module-template.md. Files > 300 lines MUST split.",
+      "reason": "Clone-Ready Fix Plan completed. Naming cleaned, 4 files split, V2 Module Template Spec created."
     }
   ]
 }

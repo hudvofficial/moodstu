@@ -91,11 +91,6 @@ export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: 
     (e) => e.status !== "hoan_thanh" && e.status !== "da_huy"
   )?.id ?? null;
 
-  // Overall progress
-  const completedCount = sorted.filter(
-    (e) => e.status === "hoan_thanh"
-  ).length;
-
   if (sorted.length === 0) {
     return (
       <div className="card-base p-4 lg:p-6">
@@ -161,7 +156,7 @@ export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: 
       <div
         className="grid gap-2 lg:gap-3"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
         }}
       >
         {sorted.map((event) => {

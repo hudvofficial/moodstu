@@ -10,7 +10,7 @@
  * - Progress per stage + global
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { toast } from "sonner";
@@ -30,9 +30,9 @@ interface ChecklistItem {
 // ─── CATEGORY STYLES ─────────────────────────
 
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; accent: string }> = {
-  "lễ tân": { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-500" },
-  "makeup": { bg: "bg-pink-50", text: "text-pink-700", accent: "bg-pink-500" },
-  "photo":  { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-500" },
+  "lễ tân": { bg: "bg-warning/10", text: "text-warning", accent: "bg-warning" },
+  "makeup": { bg: "bg-accent/10", text: "text-accent", accent: "bg-accent" },
+  "photo":  { bg: "bg-info/10", text: "text-info", accent: "bg-info" },
 };
 
 function getCategoryStyle(category: string) {
@@ -66,6 +66,11 @@ export default function ContractChecklistManager({
   initialChecklists: ChecklistItem[];
 }) {
   const [items, setItems] = useState(initialChecklists);
+
+  // W6 fix: Sync state when prop changes (switching contracts / tab refetch)
+  useEffect(() => {
+    setItems(initialChecklists);
+  }, [initialChecklists]);
 
   // Group by stage → category
   const groupedByStage = useMemo(() => {

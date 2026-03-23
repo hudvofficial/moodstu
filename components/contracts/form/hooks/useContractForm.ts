@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { submitContract, getNextContractCode } from "@/app/actions/contract-mutations";
-import { getContractForEdit } from "@/app/actions/contract-queries";
+import { createContract } from "@/app/actions/contract-mutations";
+import { getNextContractCode, getContractForEdit } from "@/app/actions/contract-queries";
 import { useContractCustomer } from "./useContractCustomer";
 import { useContractItems } from "./useContractItems";
 import { useContractFinancials } from "./useContractFinancials";
@@ -130,9 +130,24 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       newErrors.items = "Phải có ít nhất 1 dịch vụ";
     }
 
+    // W5 fix: Date order validation
+    const contractDate = formData.contract_date;
+    const workDate = formData.work_date;
+    const deliveryDate = formData.delivery_date;
+
+    if (contractDate && workDate && workDate < contractDate) {
+      newErrors.work_date = "Ngày làm phải sau ngày ký hợp đồng";
+    }
+    if (workDate && deliveryDate && deliveryDate < workDate) {
+      newErrors.delivery_date = "Ngày giao phải sau ngày làm";
+    }
+    if (contractDate && deliveryDate && !workDate && deliveryDate < contractDate) {
+      newErrors.delivery_date = "Ngày giao phải sau ngày ký hợp đồng";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [customer.selectedCustomer, items.items.length]);
+  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, formData.delivery_date]);
 
   // ── Submit (internal, reused by both submit + draft) ──
   const handleSubmitInternal = useCallback(async (isDraft = false) => {
@@ -185,7 +200,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         expectedUpdatedAt: expectedUpdatedAt || undefined,
       };
 
-      const result = await submitContract(payload);
+      const result = await createContract(payload);
 
       if (!result.success) {
         setErrors({ submit: result.error });
