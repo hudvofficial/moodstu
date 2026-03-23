@@ -74,11 +74,7 @@ export function SelectForm({
                 {placeholder}
               </span>
             }
-          >
-            {value
-              ? options.find((o) => o.value === value)?.label
-              : undefined}
-          </RadixSelect.Value>
+          />
           <RadixSelect.Icon asChild>
             <ChevronDown className="w-4 h-4 text-text-muted shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </RadixSelect.Icon>

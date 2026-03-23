@@ -10,11 +10,18 @@ import { cn } from "@/lib/utils";
 import { Role } from "@/types/roles";
 import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
+import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 
 // Routes that hide Header + BottomNav (form takes over)
 const FULLPAGE_PATTERNS = [
   /^\/contracts\/create$/,
   /^\/contracts\/[^/]+\/edit$/,
+];
+
+// Routes that keep Header + BottomNav but remove main padding
+// (e.g. gallery page needs sticky header flush to top)
+const NO_PADDING_PATTERNS = [
+  /\/contracts\/[^/]+\/gallery/,
 ];
 
 interface AppShellProps {
@@ -31,6 +38,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
   const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
+  const isNoPadding = NO_PADDING_PATTERNS.some(p => p.test(pathname));
 
   // Ref to the main scroll container — shared via context
   const mainRef = React.useRef<HTMLElement>(null);
@@ -75,26 +83,29 @@ export function AppShell({ children, role, userName }: AppShellProps) {
         </div>
       )}
 
-      {/* 3. Main Wrapper */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <ScrollContainerProvider value={mainRef}>
-          {!isFullpage && <Header />}
+        <HeaderSlotsProvider>
+          <ScrollContainerProvider value={mainRef}>
+            {!isFullpage && <Header />}
           
-          <main
-            ref={mainRef}
-            id="main-scroll"
-            className={cn(
-            "flex-1 overflow-y-auto scroll-smooth",
-            isFullpage
-              ? "" // FullpageFormShell handles its own padding
-              : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
-            "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
-          )}>
-              {children}
-          </main>
+            <main
+              ref={mainRef}
+              id="main-scroll"
+              className={cn(
+              "flex-1 overflow-y-auto scroll-smooth",
+              isFullpage
+                ? "" // FullpageFormShell handles its own padding
+                : isNoPadding
+                  ? "pb-28 lg:pb-6" // Keep only bottom padding for BottomNav spacing
+                  : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
+              "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
+            )}>
+                {children}
+            </main>
 
-          {!isFullpage && <BottomNav />}
-        </ScrollContainerProvider>
+            {!isFullpage && <BottomNav />}
+          </ScrollContainerProvider>
+        </HeaderSlotsProvider>
       </div>
     </div>
   );

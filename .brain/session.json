@@ -1,84 +1,79 @@
 {
-  "updated_at": "2026-03-21T19:56:00+07:00",
+  "updated_at": "2026-03-23T12:18:00+07:00",
   "working_on": {
-    "feature": "Border Radius Token Normalization",
-    "task": "Full radius + button system normalization — ALL DONE",
+    "feature": "Header Standardization",
+    "task": "4/4 phases complete — Header SSOT with slots, tokens, gallery/contract integration",
     "status": "completed",
     "files": [
-      "app/globals.css",
-      "app/styles/pages.css",
-      "app/styles/components.css",
-      "components/contracts/detail/quick-actions-grid.tsx",
-      "components/ui/ux-states.tsx",
-      "components/contracts/detail/payment-receipt-form.tsx",
-      "components/contracts/detail/printing-order-form.tsx",
-      "components/contracts/detail/inventory-reservation-form.tsx",
-      "components/contracts/detail/notes-timeline.tsx",
+      "contexts/header-slots-context.tsx",
+      "components/layout/app-shell.tsx",
+      "components/layout/header.tsx",
       "components/contracts/detail/top-action-bar.tsx",
-      "components/contracts/detail/contract-actions-menu.tsx",
-      "components/contracts/print/print-contract-client.tsx"
+      "components/contracts/detail/contract-detail-client.tsx",
+      "components/contracts/gallery/gallery-full-page.tsx",
+      "components/contracts/gallery/gallery-toolbar.tsx",
+      "app/styles/utilities.css"
     ],
     "blockers": [],
-    "notes": "7 phases hoàn tất. Token scale: 6→8→12→16px. Btn variants giờ tự có base styles. TW4 syntax fixed. Plans/ excluded from TW scan."
+    "notes": "header.tsx = SSOT. Slots via context. Mobile: leftSlot+titleOverride+rightSlot. Desktop: default module label."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-21T19:45:00+07:00",
-      "type": "fix",
-      "description": "Phase 05-07: CSS btn grouped selector (btn-primary/secondary/danger/ghost kế thừa .btn base), TSX 7 files thêm .btn base class, exclude plans/ docs/ from TW4 scan",
+      "timestamp": "2026-03-23T12:15:00+07:00",
+      "type": "refactor",
+      "description": "Phase 4: Token consistency — shadow→--shadow-header, height→--header-mobile-h/desktop-h, z-index→--z-header",
+      "files": ["app/styles/utilities.css", "components/layout/header.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-23T12:05:00+07:00",
+      "type": "refactor",
+      "description": "Phase 3: Gallery header integration — Back+Title moved from gallery-toolbar Row1 to header.tsx via HeaderSlotsContext",
+      "files": ["components/contracts/gallery/gallery-full-page.tsx", "components/contracts/gallery/gallery-toolbar.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-23T11:40:00+07:00",
+      "type": "refactor",
+      "description": "Phase 2: Contract Detail header — TopActionBar mobile block removed, HeaderSlotsContext created, contract-detail-client sets Back+contractCode+ActionsMenu",
       "files": [
-        "app/globals.css",
-        "app/styles/pages.css",
-        "components/contracts/detail/payment-receipt-form.tsx",
-        "components/contracts/detail/printing-order-form.tsx",
-        "components/contracts/detail/inventory-reservation-form.tsx",
-        "components/contracts/detail/notes-timeline.tsx",
+        "contexts/header-slots-context.tsx",
+        "components/layout/app-shell.tsx",
+        "components/layout/header.tsx",
         "components/contracts/detail/top-action-bar.tsx",
-        "components/contracts/detail/contract-actions-menu.tsx",
-        "components/contracts/print/print-contract-client.tsx"
+        "components/contracts/detail/contract-detail-client.tsx"
       ],
       "verified": true
     },
     {
-      "timestamp": "2026-03-21T19:20:00+07:00",
+      "timestamp": "2026-03-23T11:20:00+07:00",
       "type": "refactor",
-      "description": "Phase 01-04: Token values update (sm:6 md:8 lg:12 xl:16), remove --radius-content, fix TW4 syntax rounded-[var()] → rounded-*, CSS hardcode → token",
-      "files": [
-        "app/globals.css",
-        "app/styles/pages.css",
-        "app/styles/components.css",
-        "components/contracts/detail/quick-actions-grid.tsx",
-        "components/ui/ux-states.tsx"
-      ],
+      "description": "Phase 1: header.tsx extended with leftSlot/titleOverride/subtitleOverride/rightSlot/hideSearch props + isDetailPage logic removed",
+      "files": ["components/layout/header.tsx"],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "Radius token scale: sm=6px, md=8px, lg=12px, xl=16px (Stripe+Apple hybrid)",
-      "reason": "Industry standard: Stripe dùng 6-8-12, Apple 8-12-16. Hybrid scale phù hợp SaaS earth-tone."
+      "decision": "HeaderSlotsContext pattern — child pages set header content via context, merging order: props > context > defaults",
+      "reason": "Avoid prop drilling. Pages like contract detail/gallery can override mobile header title/actions without passing props through multiple layers."
     },
     {
-      "decision": "Xóa --radius-content, gộp vào --radius-md",
-      "reason": "Redundant token (cùng 8px), gây confusion. Single purpose per token."
+      "decision": "rightSlot and titleOverride are mobile-only replacements; desktop always shows module defaults",
+      "reason": "Desktop sidebar already shows navigation context. Mobile needs contextual header since sidebar is hidden."
     },
     {
-      "decision": "CSS btn grouped selector thay vì sửa 20+ TSX files",
-      "reason": "Fix CSS = fix tất cả nơi dùng. Backward compatible (btn btn-primary vẫn OK). DRY principle."
-    },
-    {
-      "decision": "Exclude plans/ docs/ from Tailwind v4 source scanning",
-      "reason": "TW4 auto-scan tìm thấy old rounded-[var(--radius-*)] patterns trong .md files → CSS parse error."
+      "decision": "Design tokens for header: --header-mobile-h, --header-desktop-h, --z-header, --shadow-header",
+      "reason": "SSOT. Height tokens referenced by header.tsx, utilities.css (.mobile-header-spacer). Single place to change."
     }
   ],
-  "pending_tasks": [
-    {
-      "task": "Fix empty gap: Header ẩn để lại khoảng trống trên /contracts/create",
-      "priority": "low",
-      "notes": "Cần sửa Header.tsx hoặc FullpageFormShell.tsx. Cosmetic issue."
-    }
-  ],
+  "pending_tasks": [],
   "completed_plans": [
+    {
+      "plan": "header-standardization-4-phases",
+      "status": "complete",
+      "summary": "4/4 phases done. header.tsx = SSOT. HeaderSlotsContext for dynamic content. Contract detail + Gallery integrated. Tokens chuẩn hóa."
+    },
     {
       "plan": "260321-1916-radius-normalize",
       "status": "complete",
@@ -95,11 +90,5 @@
       "summary": "CustomerFormModal 10 bugs (B1-B10) all fixed."
     }
   ],
-  "errors_encountered": [
-    {
-      "error": "TW4 CSS parse error: rounded-[var(--radius-*)] in .md plan files",
-      "solution": "Add @source not '../plans'; @source not '../docs'; to globals.css",
-      "resolved": true
-    }
-  ]
+  "errors_encountered": []
 }

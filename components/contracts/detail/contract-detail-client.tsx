@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useContractDetail } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import type {
@@ -13,6 +15,8 @@ import type {
   AuditLogEntry,
 } from "@/types/contract";
 import TopActionBar from "./top-action-bar";
+import ContractActionsMenu from "./contract-actions-menu";
+import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import CancelBanner from "./cancel-banner";
 import SummaryCard from "./summary-card";
 import CustomerInfoBlock from "./customer-info-block";
@@ -23,10 +27,9 @@ import WorkflowStepper from "./workflow-stepper";
 import CostumesBlock from "./costumes-block";
 import PrintOrdersBlock from "./print-orders-block";
 import ActivityLog from "./activity-log";
-import FilesDrivePlaceholder from "./files-drive-placeholder";
+import DriveGalleryBlock from "./drive-gallery-block";
 import QuickActionsGrid from "./quick-actions-grid";
-import ChecklistBlock from "./checklist-block";
-import ContractChecklistManager from "./checklist-manager";
+
 import MobileBottomBar from "./mobile-bottom-bar";
 import MobileTabNav from "./mobile-tab-nav";
 import PaymentReceiptForm from "./payment-receipt-form";
@@ -84,6 +87,30 @@ export default function ContractDetailClient({
     (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
   const isCancelled = contract.status === "da_huy";
 
+  // ── Set header slots for mobile ──
+  const setHeaderSlots = useSetHeaderSlots();
+  useEffect(() => {
+    setHeaderSlots({
+      leftSlot: (
+        <Link href="/contracts" className="lg:hidden btn-icon shrink-0">
+          <ArrowLeft size={20} />
+        </Link>
+      ),
+      titleOverride: contract.contract_code,
+      hideSearch: true,
+      rightSlot: (
+        <ContractActionsMenu
+          contractId={contract.id}
+          contractCode={contract.contract_code}
+          customerName={contract.customers?.full_name || "Khách hàng"}
+          hasReceipts={payments.length > 0}
+          isCancelled={isCancelled}
+        />
+      ),
+    });
+    return () => setHeaderSlots({});
+  }, [setHeaderSlots, contract.id, contract.contract_code, contract.customers?.full_name, payments.length, isCancelled]);
+
   // ── Quick Action Modal State ──
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showPrintForm, setShowPrintForm] = useState(false);
@@ -104,7 +131,16 @@ export default function ContractDetailClient({
       case "event":
         setShowAddEventModal(true);
         break;
-      case "drive":
+      case "drive": {
+        const el = document.getElementById("section-drive-mobile")
+          || document.getElementById("section-drive");
+        const scrollEl = document.getElementById("main-scroll");
+        if (el && scrollEl) {
+          const offset = 56 + 8;
+          scrollEl.scrollTo({ top: el.offsetTop - offset, behavior: "smooth" });
+        }
+        break;
+      }
       case "note":
         toast("Tính năng đang phát triển", "info");
         break;
@@ -175,8 +211,8 @@ export default function ContractDetailClient({
   }, []);
 
   return (
-    <div className="main-container max-lg:pb-24 mobile-header-spacer">
-      {/* Top Action Bar — Stitch header with title + badge */}
+    <div className="main-container max-lg:pb-24">
+      {/* Top Action Bar — Desktop breadcrumb + title + actions */}
       <TopActionBar
         contractId={contract.id}
         contractCode={contract.contract_code}
@@ -185,10 +221,6 @@ export default function ContractDetailClient({
         status={contract.status}
         paymentStatus={contract.payment_status}
         isCancelled={isCancelled}
-        headerVisible={headerVisible}
-        tabsMerged={tabsMerged}
-        activeTab={activeTab}
-        onTabClick={handleTabClick}
       />
 
       {/* Cancel Banner (if cancelled) */}
@@ -278,15 +310,11 @@ export default function ContractDetailClient({
               />
 
               {/* File & Drive (Stitch: before Checklist) */}
-              <FilesDrivePlaceholder />
+              <div id="section-drive">
+                <DriveGalleryBlock contractId={contract.id} />
+              </div>
 
-              {/* Checklist (Stitch: after File/Drive) */}
-              <ChecklistBlock tasks={contract.work_tasks || []} />
 
-              {/* Chuẩn bị (checklist từ templates) */}
-              <ContractChecklistManager
-                initialChecklists={(contract.contract_checklists || []) as { id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean }[]}
-              />
 
               {/* Hoạt động gần đây */}
               <ActivityLog logs={auditLogs} />
@@ -349,19 +377,16 @@ export default function ContractDetailClient({
               />
             </div>
 
-            {/* 5. Checklist công việc (Stitch 208-247) */}
-            <div id="section-checklist">
-              <ChecklistBlock tasks={contract.work_tasks || []} />
-            </div>
 
-            {/* 5b. Chuẩn bị (checklist từ templates) */}
-            <ContractChecklistManager
-              initialChecklists={(contract.contract_checklists || []) as { id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean }[]}
-            />
 
             {/* 6. Thao tác nhanh (Stitch 249-277) */}
             <div id="section-actions">
               <QuickActionsGrid onAction={handleQuickAction} />
+            </div>
+
+            {/* 6.5 File & Drive (mobile) */}
+            <div id="section-drive-mobile">
+              <DriveGalleryBlock contractId={contract.id} />
             </div>
 
             {/* 7. Ghi chú (Phase 07B) */}

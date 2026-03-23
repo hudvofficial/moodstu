@@ -29,6 +29,10 @@
 - [ ] Đã đọc `tasks/lessons.md` (scan nhanh relevant entries)
 - [ ] Đã đọc `tasks/pre-code-checklist.md`
 
+### 6. 🚪 MODAL & ANIMATION RULES (Lesson #81-82)
+- [ ] Modal mới PHẢI dùng `openModal()` — KHÔNG tự render `modal-backdrop` trong component
+- [ ] Animation keyframe `to` state PHẢI dùng `transform: none` — KHÔNG `translateY(0)` hoặc `scale(1)`
+
 ---
 
 ## ❌ DỪNG LẠI NẾU:

@@ -3,6 +3,8 @@
 import { useModal } from "@/lib/context/modal-context";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
+import { DriveLinkModalContent } from "@/components/contracts/detail/drive-link-modal";
+import { ShareGalleryModalContent } from "@/components/contracts/gallery/share-gallery-modal";
 
 /**
  * Component trung tâm điều phối tất cả Modal trong ứng dụng.
@@ -55,6 +57,28 @@ export function GlobalModal() {
           </div>
         );
 
+      case "DRIVE_LINK":
+        return (
+          <DriveLinkModalContent
+            contractId={data?.contractId}
+            onClose={closeModal}
+            onSuccess={() => {
+              data?.onSuccess?.();
+              closeModal();
+            }}
+          />
+        );
+
+      case "SHARE_GALLERY":
+        return (
+          <ShareGalleryModalContent
+            accessUrl={data?.accessUrl}
+            galleryId={data?.galleryId}
+            galleryTitle={data?.galleryTitle}
+            hasPassword={data?.hasPassword}
+          />
+        );
+
       default:
         return <div className="p-10 text-center text-text-muted">Mô-đun đang được xây dựng...</div>;
     }
@@ -67,6 +91,10 @@ export function GlobalModal() {
         return { title: data?.title || "Xác nhận xóa", description: "Hành động quan trọng" };
       case "QUICK_SEARCH":
         return { title: "Tìm kiếm nhanh", description: "Nhấn ESC để đóng" };
+      case "DRIVE_LINK":
+        return { title: "Gán Link Google Drive", description: "Kết nối folder ảnh từ Drive" };
+      case "SHARE_GALLERY":
+        return { title: "Chia sẻ Album", description: "Gửi link cho khách hàng xem và chọn ảnh" };
       default:
         return { title: "Thông báo", description: "Hệ thống" };
     }

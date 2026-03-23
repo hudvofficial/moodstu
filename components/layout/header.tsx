@@ -11,16 +11,24 @@ import { useScrollContainer } from "@/contexts/scroll-container";
 import { Search, X } from "lucide-react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import NotificationBell from "@/components/layout/NotificationBell";
+import { useHeaderSlotsContext } from "@/contexts/header-slots-context";
 
 // ──── Props ────
 interface HeaderProps {
   className?: string;
+  /** Override left section (default: Logo link) */
+  leftSlot?: React.ReactNode;
+  /** Override center title (default: module label from navigation.ts) */
+  titleOverride?: string;
+  /** Override center subtitle (default: module description) */
+  subtitleOverride?: string;
+  /** Override right section (default: Search + ThemeToggle + Bell) */
+  rightSlot?: React.ReactNode;
+  /** Hide search bar entirely (useful for detail pages) */
+  hideSearch?: boolean;
 }
 
-// UUID pattern: detect /{module}/{uuid} detail pages
-const DETAIL_PAGE_RE = /^\/[a-z-]+\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-
-export function Header({ className }: HeaderProps) {
+export function Header({ className, leftSlot: leftSlotProp, titleOverride: titleOverrideProp, subtitleOverride: subtitleOverrideProp, rightSlot: rightSlotProp, hideSearch: hideSearchProp }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,8 +36,13 @@ export function Header({ className }: HeaderProps) {
   const scrollRef = useScrollContainer();
   const { isVisible } = useScrollDirection({ threshold: 60, containerRef: scrollRef });
 
-  // Stitch SSOT: detail pages have NO global header — breadcrumb + h2 replaces it
-  const isDetailPage = DETAIL_PAGE_RE.test(pathname);
+  // Merge: props > context > defaults
+  const ctx = useHeaderSlotsContext();
+  const leftSlot = leftSlotProp ?? ctx.leftSlot;
+  const titleOverride = titleOverrideProp ?? ctx.titleOverride;
+  const subtitleOverride = subtitleOverrideProp ?? ctx.subtitleOverride;
+  const rightSlot = rightSlotProp ?? ctx.rightSlot;
+  const hideSearch = hideSearchProp ?? ctx.hideSearch;
   const [isSearchVisible, setIsSearchVisible] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState(searchParams.get('q') || "");
   const searchRef = React.useRef<HTMLInputElement>(null);
@@ -78,7 +91,6 @@ export function Header({ className }: HeaderProps) {
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }, [pathname, router, searchParams]);
 
-  if (isDetailPage) return null;
 
   // Create/edit fullpage forms have their own shell header on mobile
   const isFullpageForm = pathname.endsWith('/create');
@@ -86,8 +98,8 @@ export function Header({ className }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 bg-bg-card shadow-(--shadow-sidebar) print:hidden transition-[transform,margin] duration-300 ease-in-out",
-        isVisible ? "translate-y-0" : "-translate-y-full -mb-16 lg:translate-y-0 lg:mb-0",
+        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden transition-[transform,margin] duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "-translate-y-full -mb-(--header-mobile-h) lg:translate-y-0 lg:mb-0",
         isFullpageForm && "max-lg:hidden",
         className
       )}
@@ -117,76 +129,91 @@ export function Header({ className }: HeaderProps) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between h-14 px-4 lg:h-16 lg:px-8">
-          {/* ── Left: Logo (mobile only) ── */}
+        <div className="flex items-center justify-between h-(--header-mobile-h) px-4 lg:h-(--header-desktop-h) lg:px-8">
+          {/* ── Left: Custom slot or default Logo (mobile only) ── */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <Link
-              href="/dashboard"
-              onClick={(e) => {
-                if (pathname === "/dashboard") {
-                  e.preventDefault();
-                  document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
-                }
-              }}
-              className="lg:hidden active:scale-95 transition-transform shrink-0"
-            >
-              <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center p-1 shadow-sm">
-                <Image
-                  src="/logo.png"
-                  alt="Mood Studio"
-                  fill
-                  className="object-contain brightness-0 invert p-1.5"
-                />
-              </div>
-            </Link>
+            {leftSlot || (
+              <Link
+                href="/dashboard"
+                onClick={(e) => {
+                  if (pathname === "/dashboard") {
+                    e.preventDefault();
+                    document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
+                className="lg:hidden active:scale-95 transition-transform shrink-0"
+              >
+                <div className="relative w-10 h-10 rounded-full bg-primary flex items-center justify-center p-1 shadow-sm">
+                  <Image
+                    src="/logo.png"
+                    alt="Mood Studio"
+                    fill
+                    className="object-contain brightness-0 invert p-1.5"
+                  />
+                </div>
+              </Link>
+            )}
           </div>
 
-          {/* ── Center: Title + Subtitle ── */}
+          {/* ── Center: Title + Subtitle (overridable — mobile only, desktop keeps module label) ── */}
           <div className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:flex-1 lg:ml-2 flex flex-col min-w-0">
             <h1 className="text-h3 truncate">
-              {currentModule.label}
+              {titleOverride ? (
+                <>
+                  <span className="lg:hidden">{titleOverride}</span>
+                  <span className="hidden lg:inline">{currentModule.label}</span>
+                </>
+              ) : currentModule.label}
             </h1>
-            {currentModule.description && (
+            {(subtitleOverride ?? currentModule.description) && (
               <p className="hidden lg:block text-caption truncate">
-                {currentModule.description}
+                {subtitleOverride ?? currentModule.description}
               </p>
             )}
           </div>
 
-          {/* ── Right: Actions ── */}
+          {/* ── Right: Actions (rightSlot replaces MOBILE section only, desktop always keeps defaults) ── */}
           <div className="flex items-center gap-1 lg:gap-4 shrink-0">
 
-            {/* Search icon — mobile only (wrapper controls visibility) */}
-            <div className="lg:hidden">
-              <button
-                onClick={() => setIsSearchVisible(true)}
-                className="icon-btn"
-                aria-label="Tìm kiếm"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Mobile: custom slot or default search icon */}
+            {rightSlot ? (
+              <div className="lg:hidden flex items-center gap-1">{rightSlot}</div>
+            ) : (
+              !hideSearch && (
+                <div className="lg:hidden">
+                  <button
+                    onClick={() => setIsSearchVisible(true)}
+                    className="icon-btn"
+                    aria-label="Tìm kiếm"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                </div>
+              )
+            )}
 
-            {/* Desktop search input */}
-            <div className="relative hidden lg:block">
-              <div className="relative w-64">
-                {!searchTerm && (
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
-                )}
-                <input
-                  type="text"
-                  placeholder={searchPlaceholder}
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className={`search-input pr-14 ${searchTerm ? "pl-4" : "pl-9"}`}
-                />
-                {/* ⌘K badge */}
-                <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none flex items-center gap-0.5">
-                  <span className="kbd-badge">⌘</span>
-                  <span className="kbd-badge">K</span>
+            {/* Desktop search input (always, unless hideSearch) */}
+            {!hideSearch && (
+              <div className="relative hidden lg:block">
+                <div className="relative w-64">
+                  {!searchTerm && (
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+                  )}
+                  <input
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className={`search-input pr-14 ${searchTerm ? "pl-4" : "pl-9"}`}
+                  />
+                  {/* ⌘K badge */}
+                  <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none flex items-center gap-0.5">
+                    <span className="kbd-badge">⌘</span>
+                    <span className="kbd-badge">K</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Theme toggle — desktop only */}
             <div className="hidden lg:block">

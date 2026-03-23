@@ -132,3 +132,12 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 
 80. **TW4 SYNTAX: KHÔNG DÙNG `[var(--token)]`** — Tailwind v4 KHÔNG dùng `rounded-[var(--radius-sm)]`. Phải dùng utility class trực tiếp: `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`. Hoặc dùng parenthesis syntax: `rounded-(--radius-sm)`. ENFORCEMENT: Grep `[var(--` trong toàn bộ TSX files → thay bằng canonical utility hoặc `(--token)` syntax.
 
+## Từ Drive Modal Fix Session (2026-03-22)
+
+81. **MODAL PHẢI DÙNG `openModal()` — KHÔNG TỰ RENDER BACKDROP** — DriveLinkModal tự render `modal-backdrop` + `modal-card` bên trong component con (DriveGalleryBlock) → modal nằm trong ancestor có CSS `transform` → `position: fixed` bị nhốt (CSS containing block rule). FIX: Dùng `openModal("DRIVE_LINK", data)` từ ModalProvider → GlobalModal render qua UnifiedModal + ModalPortal (createPortal → document.body) → luôn thoát mọi ancestor. ENFORCEMENT: KHÔNG BAO GIỜ render `modal-backdrop` trực tiếp trong component con. Luôn dùng `openModal()`.
+
+82. **ANIMATION KEYFRAME `to` STATE PHẢI DÙNG `transform: none`** — `translateY(0)` và `scale(1)` KÉ TECHNICAL GIỐNG `none` nhưng CSS spec coi chúng là "có transform" → tạo containing block mới → break `position: fixed` cho con cháu. FIX: Mọi `@keyframes` `to` state phải dùng `transform: none` thay vì `translateY(0)` hoặc `scale(1) translateY(0)`. ENFORCEMENT: Khi viết animation keyframe → `to` state LUÔN dùng `transform: none`.
+
+## Từ Drive >1000 Files Fix (2026-03-23)
+
+83. **SUPABASE POSTGREST SILENT TRUNCATION Ở 1000 ROWS** — Supabase PostgREST mặc định cap `max_rows=1000`. Query `.select(gallery_images(*))` (foreignTable sub-select) bị SILENT truncation: trả 1000 rows mà KHÔNG báo lỗi, KHÔNG warning. Cả `.limit(10000)` lẫn `.limit(10000, {foreignTable})` đều KHÔNG vượt qua server-side cap. GIẢI PHÁP: (1) KHÔNG dùng foreignTable sub-select cho bảng lớn. (2) Tách ra query riêng `.from("gallery_images").select().eq("gallery_id", id)`. (3) Dùng pagination loop với `.range(from, from+999)` cho đến hết. Helper `fetchAllGalleryImages()` đã implement pattern này. ENFORCEMENT: Khi query bảng có khả năng >1000 rows → PHẢI dùng pagination loop, KHÔNG dùng `.limit()` hay foreignTable sub-select.

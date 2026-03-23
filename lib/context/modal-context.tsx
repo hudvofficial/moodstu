@@ -8,7 +8,9 @@ export type ModalType =
   | "CONTRACT_FORM" 
   | "CUSTOMER_FORM" 
   | "QUICK_SEARCH" 
-  | "USER_PROFILE";
+  | "USER_PROFILE"
+  | "DRIVE_LINK"
+  | "SHARE_GALLERY";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface ModalContextType<T = any> {

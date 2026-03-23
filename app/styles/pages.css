@@ -280,7 +280,7 @@
 
 @keyframes entrance-fade-up {
   from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 .entrance   { animation: entrance-fade-up 0.4s ease-out both; }
@@ -295,7 +295,7 @@
 
 @keyframes stagger-fade-up {
   from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 .stagger-item { animation: stagger-fade-up 0.3s ease-out both; }
@@ -311,14 +311,14 @@
 
 @keyframes card-entrance {
   from { opacity: 0; transform: scale(0.97) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 .card-entrance { animation: card-entrance 0.25s ease-out both; }
 
 @keyframes popover-in {
   from { opacity: 0; transform: scale(0.96) translateY(-4px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 .animate-popover-in { animation: popover-in 0.18s ease-out both; }
@@ -332,7 +332,7 @@
 
 @keyframes slide-up {
   from { opacity: 1; transform: translateY(100%); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 
 .animate-slide-up { animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -340,7 +340,7 @@
 /* F/N2: Desktop modal — match V1 modalContent (scale + translateY) */
 @keyframes modal-in {
   from { opacity: 0; transform: scale(0.97) translateY(8px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .animate-modal-in { animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
@@ -361,14 +361,14 @@
 /* Drawer — desktop slide from right */
 @keyframes drawer-slide-right {
   from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
+  to   { transform: none; }
 }
 .animate-slide-in-right { animation: drawer-slide-right 0.2s ease-out both; }
 
 /* Drawer — mobile bottom sheet slide up */
 @keyframes drawer-slide-up {
   from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+  to   { transform: none; }
 }
 .animate-slide-in-up { animation: drawer-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
 

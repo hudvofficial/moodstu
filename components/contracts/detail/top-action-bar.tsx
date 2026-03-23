@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, Pencil, Printer, Download } from "lucide-react";
+import { ChevronRight, Pencil, Printer, Download } from "lucide-react";
 import { CONTRACT_STATUS_MAP, PAYMENT_STATUS_MAP } from "@/types/contract-constants";
 import { Badge } from "@/components/ui/badge";
 import type { ContractStatus, PaymentStatus } from "@/types/contract";
@@ -20,7 +20,6 @@ export const CONTRACT_DETAIL_TABS = [
   { key: "details", label: "Chi tiết", sectionId: "section-details" },
   { key: "events", label: "Lịch trình", sectionId: "section-events" },
   { key: "print", label: "In ấn", sectionId: "section-print" },
-  { key: "checklist", label: "Checklist", sectionId: "section-checklist" },
   { key: "actions", label: "Thao tác", sectionId: "section-actions" },
 ] as const;
 
@@ -32,10 +31,6 @@ interface Props {
   status: ContractStatus;
   paymentStatus?: PaymentStatus;
   isCancelled: boolean;
-  headerVisible: boolean;
-  tabsMerged?: boolean;
-  activeTab?: string;
-  onTabClick?: (tab: { key: string; sectionId: string }) => void;
 }
 
 export default function TopActionBar({
@@ -46,10 +41,6 @@ export default function TopActionBar({
   status,
   paymentStatus,
   isCancelled,
-  headerVisible,
-  tabsMerged = false,
-  activeTab,
-  onTabClick,
 }: Props) {
   const statusInfo = CONTRACT_STATUS_MAP[status];
 
@@ -58,64 +49,8 @@ export default function TopActionBar({
 
   return (
     <>
-      {/* ══════════ MOBILE HEADER ══════════ Stitch lines 47-57 */}
-      <div
-        className={`lg:hidden fixed top-0 left-0 right-0 z-50 bg-white shadow-xs
-                    transition-transform duration-300 ease-out
-                    ${(headerVisible || tabsMerged) ? "translate-y-0" : "-translate-y-full"}`}
-      >
-        <div className="flex items-center justify-between px-4 h-(--header-mobile-h)">
-          {/* Left: icon-only back */}
-          <Link
-            href="/contracts"
-            className="btn-icon shrink-0"
-          >
-            <ArrowLeft size={20} />
-          </Link>
-
-          {/* Center: title OR tabs (cross-fade) */}
-          <div className="flex-1 min-w-0 relative flex items-center justify-center">
-            {/* Layer 1: Contract code — hide when merged */}
-            <span
-              className={`text-[15px] font-semibold tracking-tight uppercase text-text-primary
-                transition-opacity duration-200 ease-out
-                ${tabsMerged ? "opacity-0 pointer-events-none" : "opacity-100"}`}
-            >
-              {contractCode}
-            </span>
-
-            {/* Layer 2: Tab pills — show when merged */}
-            <div
-              className={`absolute inset-0 flex items-center gap-1
-                overflow-x-auto no-scrollbar
-                transition-opacity duration-200 ease-out
-                ${tabsMerged ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-            >
-              {CONTRACT_DETAIL_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => onTabClick?.(tab)}
-                  className={`tab-pill tab-pill-compact whitespace-nowrap
-                    ${activeTab === tab.key ? "tab-pill-active" : "tab-pill-inactive"}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: actions menu */}
-          <ContractActionsMenu
-            contractId={contractId}
-            contractCode={contractCode}
-            customerName={customerName}
-            hasReceipts={hasReceipts}
-            isCancelled={isCancelled}
-          />
-        </div>
-      </div>
-
       {/* ══════════ DESKTOP HEADER ══════════ Stitch line 96-120 */}
+      {/* Mobile header now handled by header.tsx via HeaderSlotsContext */}
       <header className="max-lg:hidden space-y-4">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-body-sm text-text-secondary">

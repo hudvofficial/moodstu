@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-21T19:56:00+07:00"
+    "last_updated": "2026-03-23T12:18:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -89,14 +89,28 @@
       "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
       "StatusSelect": "Interactive status dropdown with color-coded logic",
       "toast-utils": "Centralized notification system",
-      "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views"
+      "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views",
+      "HeaderSlotsContext": "Context-based header slot system — child pages override mobile header content (leftSlot, titleOverride, rightSlot, hideSearch) via useSetHeaderSlots hook"
+    },
+    "header_architecture": {
+      "ssot": "components/layout/header.tsx",
+      "context": "contexts/header-slots-context.tsx",
+      "pattern": "Merge order: props > context > defaults. rightSlot + titleOverride = mobile-only. Desktop keeps module defaults.",
+      "tokens": {
+        "--header-mobile-h": "3.5rem (56px)",
+        "--header-desktop-h": "4rem (64px)",
+        "--z-header": "40",
+        "--shadow-header": "0 2px 8px -2px rgba(0,0,0,0.06)"
+      }
     }
   },
   "knowledge_items": {
     "gotchas": [
       "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
       "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
-      "CSS btn variants must include base styles — dont rely on .btn being present"
+      "CSS btn variants must include base styles — dont rely on .btn being present",
+      "Header detail pages: use HeaderSlotsContext to set mobile header slots — NOT separate <header> blocks",
+      "rightSlot replaces mobile actions only — desktop always keeps Search+ThemeToggle+Bell defaults"
     ]
   },
   "decisions": [
@@ -114,6 +128,11 @@
       "date": "2026-03-19",
       "decision": "Use ScrollContainerContext for all scroll-based logic instead of window.scrollY.",
       "reason": "AppShell root is overflow-hidden, window.scrollY is always 0."
+    },
+    {
+      "date": "2026-03-23",
+      "decision": "header.tsx = SSOT for all pages. Detail pages use HeaderSlotsContext to set mobile-only overrides (Back+title+actions).",
+      "reason": "Eliminates duplicate mobile headers. Single component controls height, shadow, z-index tokens. Context pattern avoids prop drilling."
     }
   ]
 }
