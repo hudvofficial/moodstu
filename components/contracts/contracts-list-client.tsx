@@ -149,7 +149,7 @@ function ContractsListInner() {
 
     return (
     <>
-    <div className="main-container gap-3! pt-3!">
+    <div className="main-container gap-3!">
       {/* ── Stats Bar ── */}
       <div className="lg:hidden">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />

@@ -107,6 +107,9 @@
   --spacing-base: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+
+  /* ── Layout spacing (SSOT: header → content gap) ── */
+  --spacing-main-y: 12px;  /* cộng với main py-4=16px → total 28px */
 }
 
 /* ── Global base styles ── */

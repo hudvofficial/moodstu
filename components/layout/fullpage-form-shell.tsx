@@ -2,14 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useScrollDirection } from "@/hooks/use-scroll-direction";
-import { useScrollContainer } from "@/contexts/scroll-container";
 
 interface FullpageFormShellProps {
-  /** Left: breadcrumb/back button */
-  breadcrumb: React.ReactNode;
-  /** Right: badge, user info, etc. */
-  headerRight?: React.ReactNode;
   /** LEFT column — main form sections (S1, S2, S3, S6...) */
   children: React.ReactNode;
   /** RIGHT sticky panel — financial summary + actions (desktop only) */
@@ -21,46 +15,22 @@ interface FullpageFormShellProps {
 /**
  * FullpageFormShell — Shared layout for fullpage forms.
  *
- * Width: 100% (same as main-container / detail pages)
- * Padding: synced with main-container (8px mobile → 8px/32px desktop)
- *
- * Provides:
- * - Sticky top header (breadcrumb + right slot)
+ * Header is handled by system header via HeaderSlotsContext (set in ContractForm).
+ * This component only manages the body layout:
  * - Two-column grid on desktop (lg+):
  *     LEFT  — main form content (flex-1, scrollable)
  *     RIGHT — sticky panel: financial summary + actions
  * - Single column on mobile (< lg), right panel hidden
  */
 export function FullpageFormShell({
-  breadcrumb,
-  headerRight,
   children,
   rightPanel,
   className,
 }: FullpageFormShellProps) {
-  const scrollRef = useScrollContainer();
-  const { isVisible } = useScrollDirection({ threshold: 60, containerRef: scrollRef });
-
   return (
     <div className={cn("flex flex-col", className)}>
-      {/* ── Sticky Header — hides on scroll down (mobile only) ── */}
-      <header className={cn(
-        "sticky top-0 z-50 bg-bg-card/80 backdrop-blur-md border-b border-border-light transition-transform duration-300 ease-in-out",
-        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0"
-      )}>
-        <div className="px-2 lg:px-8 h-16 flex items-center justify-between">
-          {breadcrumb}
-          {headerRight && (
-            <div className="flex items-center gap-3">
-              {headerRight}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* ── Scrollable Body ── */}
       <div className="flex-1">
-        <div className="px-2 pt-2 pb-24 lg:px-8 lg:py-6 lg:pb-6">
+        <div className="pb-24 lg:pb-6" style={{ paddingTop: 'var(--spacing-main-y)' }}>
           {rightPanel ? (
             /* Two-column mode — same 8/4 grid as detail page */
             <div className="detail-grid">

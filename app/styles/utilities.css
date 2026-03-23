@@ -48,16 +48,6 @@
   --z-header: 40;
 }
 
-.mobile-header-spacer {
-  padding-top: var(--header-mobile-h);
-}
-
-@media (min-width: 1024px) {
-  .mobile-header-spacer {
-    padding-top: 0;
-  }
-}
-
 /* ══════════════════════════════════════
    4. MOBILE RESPONSIVE OVERRIDES
    Compact layout cho màn hình < 1024px

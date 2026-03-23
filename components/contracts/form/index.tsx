@@ -13,7 +13,8 @@ import { ItemModal } from "./modals/ItemModal";
 import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { CustomerFormModal } from "./modals/CustomerFormModal";
 import { FullpageFormShell } from "@/components/layout/fullpage-form-shell";
-import { Loader2, Fingerprint, ChevronRight, ArrowLeft } from "lucide-react";
+import { useSetHeaderSlots } from "@/contexts/header-slots-context";
+import { Loader2, ChevronRight, ArrowLeft } from "lucide-react";
 import type { ContractFormMode } from "@/types/contract-form";
 
 // ═══════════════════════════════════════════
@@ -32,6 +33,27 @@ interface Props {
 export default function ContractForm({ mode, contractId }: Props) {
   const form = useContractForm({ mode, contractId });
   const [showCreateService, setShowCreateService] = useState(false);
+
+  // ── Unified badge code (preview for create, actual for edit) ──
+  const badgeCode = mode === "create" ? form.previewCode : form.formData.contract_code;
+
+  // ══════════════════════════════
+  // Header slots (system header via HeaderSlotsContext)
+  // ALL hooks MUST be called before any early return
+  // ══════════════════════════════
+  const setHeaderSlots = useSetHeaderSlots();
+  useEffect(() => {
+    setHeaderSlots({
+      leftSlot: (
+        <Link href="/contracts" className="lg:hidden btn-icon shrink-0">
+          <ArrowLeft size={20} />
+        </Link>
+      ),
+      titleOverride: mode === "create" ? "Tạo hợp đồng mới" : "Sửa hợp đồng",
+      hideSearch: true,
+    });
+    return () => setHeaderSlots({});
+  }, [setHeaderSlots, mode]);
 
   // Load data for edit mode
   useEffect(() => {
@@ -67,52 +89,6 @@ export default function ContractForm({ mode, contractId }: Props) {
     );
   }
 
-  // ── Unified badge code (preview for create, actual for edit) ──
-  const badgeCode = mode === "create" ? form.previewCode : form.formData.contract_code;
-
-  // ══════════════════════════════
-  // Slots for FullpageFormShell
-  // ══════════════════════════════
-
-  /** Left slot: breadcrumb back button */
-  const breadcrumb = (
-    <>
-      {/* Desktop: full breadcrumb — clone từ top-action-bar.tsx */}
-      <nav className="max-lg:hidden flex items-center gap-2 text-body-sm text-text-secondary">
-        <Link
-          href="/contracts"
-          className="hover:text-primary transition-colors"
-        >
-          Hợp đồng
-        </Link>
-        <ChevronRight size={14} className="text-text-muted" />
-        <span className="text-text-primary font-medium">
-          {mode === "create" ? "Tạo mới" : "Chỉnh sửa"}
-        </span>
-      </nav>
-
-      {/* Mobile: ← + title inline */}
-      <div className="lg:hidden flex items-center gap-2">
-        <Link href="/contracts" className="btn-icon shrink-0 -ml-2">
-          <ArrowLeft size={20} />
-        </Link>
-        <span className="text-base font-semibold text-text-primary truncate">
-          {mode === "create" ? "Tạo hợp đồng mới" : "Sửa hợp đồng"}
-        </span>
-      </div>
-    </>
-  );
-
-  /** Right slot: contract code badge */
-  const headerRight = badgeCode ? (
-    <div className="flex items-center gap-2 rounded-md bg-interactive/10 text-interactive px-3 py-1.5 border border-interactive/20 shrink-0">
-      <Fingerprint className="h-3.5 w-3.5" />
-      <span className="text-caption font-bold tracking-wider">
-        {badgeCode}
-      </span>
-    </div>
-  ) : undefined;
-
   /** Right panel: S4 + S5 + Actions (desktop sticky) */
   const rightPanel = (
     <>
@@ -144,15 +120,28 @@ export default function ContractForm({ mode, contractId }: Props) {
     <>
       {/* ══ Main Shell ══ */}
       <FullpageFormShell
-        breadcrumb={breadcrumb}
-        headerRight={headerRight}
         rightPanel={rightPanel}
       >
+        {/* Desktop breadcrumb — inline above form (not in header) */}
+        <nav className="max-lg:hidden flex items-center gap-2 text-body-sm text-text-secondary mb-4">
+          <Link
+            href="/contracts"
+            className="hover:text-primary transition-colors"
+          >
+            Hợp đồng
+          </Link>
+          <ChevronRight size={14} className="text-text-muted" />
+          <span className="text-text-primary font-medium">
+            {mode === "create" ? "Tạo mới" : "Chỉnh sửa"}
+          </span>
+        </nav>
+
         {/* Section 1: Contract Info */}
         <ContractInfoSection
           formData={form.formData}
           updateField={form.updateField}
           showDeliveryDate={form.shouldShowDeliveryDate}
+          badgeCode={badgeCode}
         />
 
         {/* Section 2: Customer */}

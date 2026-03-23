@@ -32,14 +32,24 @@ interface Props {
   formData: ContractFormData;
   updateField: <K extends keyof ContractFormData>(field: K, value: ContractFormData[K]) => void;
   showDeliveryDate: boolean;
+  badgeCode?: string;
 }
 
-export function ContractInfoSection({ formData, updateField, showDeliveryDate }: Props) {
+export function ContractInfoSection({ formData, updateField, showDeliveryDate, badgeCode }: Props) {
   return (
     <section className="card-base border-l-4 border-accent p-6 space-y-4">
-      <h3 className="form-section-heading">
-        1. Thông tin hợp đồng
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="form-section-heading">
+          1. Thông tin hợp đồng
+        </h3>
+        {badgeCode && (
+          <div className="flex items-center gap-1.5 text-interactive text-caption">
+            <span className="text-text-muted">Mã HĐ</span>
+            <Fingerprint className="h-3.5 w-3.5" />
+            <span className="font-bold tracking-wider">{badgeCode}</span>
+          </div>
+        )}
+      </div>
 
       {/* All fields: 2 cols mobile, 3 cols desktop */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -91,19 +101,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate }:
         </Field>
       </div>
 
-      {/* Contract code — mobile only (desktop header badge already shows it) */}
-      {formData.contract_code && (
-        <div className="lg:hidden">
-          <Field label="Mã hợp đồng">
-            <div className="flex items-center gap-2 py-2">
-              <Fingerprint className="h-4 w-4 text-interactive shrink-0" />
-              <span className="text-body font-bold text-interactive tracking-wider">
-                {formData.contract_code}
-              </span>
-            </div>
-          </Field>
-        </div>
-      )}
+
 
       {/* Description */}
       <Field label="Mô tả">

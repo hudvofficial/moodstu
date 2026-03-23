@@ -91,16 +91,11 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }, [pathname, router, searchParams]);
 
-
-  // Create/edit fullpage forms have their own shell header on mobile
-  const isFullpageForm = pathname.endsWith('/create');
-
   return (
     <header
       className={cn(
         "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden transition-[transform,margin] duration-300 ease-in-out",
         isVisible ? "translate-y-0" : "-translate-y-full -mb-(--header-mobile-h) lg:translate-y-0 lg:mb-0",
-        isFullpageForm && "max-lg:hidden",
         className
       )}
     >
@@ -156,7 +151,7 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
           </div>
 
           {/* ── Center: Title + Subtitle (overridable — mobile only, desktop keeps module label) ── */}
-          <div className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:flex-1 lg:ml-2 flex flex-col min-w-0">
+          <div className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-160px)] lg:static lg:translate-x-0 lg:max-w-none lg:flex-1 lg:ml-2 flex flex-col min-w-0">
             <h1 className="text-h3 truncate">
               {titleOverride ? (
                 <>
@@ -220,8 +215,10 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
               <ThemeToggle />
             </div>
 
-            {/* Notification bell */}
-            <NotificationBell />
+            {/* Notification bell — hidden on mobile when rightSlot is set */}
+            <div className={cn(rightSlot && "max-lg:hidden")}>
+              <NotificationBell />
+            </div>
           </div>
         </div>
       )}

@@ -12,8 +12,12 @@ import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 
-// Routes that hide Header + BottomNav (form takes over)
-const FULLPAGE_PATTERNS = [
+// Routes that hide BOTH Header + BottomNav (currently unused)
+const FULLPAGE_PATTERNS: RegExp[] = [];
+
+// Routes that keep Header (via HeaderSlotsContext) but hide BottomNav
+// (form pages have their own fixed footer: Hủy / Lưu nháp / Tạo HĐ)
+const FORM_PAGE_PATTERNS = [
   /^\/contracts\/create$/,
   /^\/contracts\/[^/]+\/edit$/,
 ];
@@ -38,6 +42,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
   const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
+  const isFormPage = FORM_PAGE_PATTERNS.some(p => p.test(pathname));
   const isNoPadding = NO_PADDING_PATTERNS.some(p => p.test(pathname));
 
   // Ref to the main scroll container — shared via context
@@ -95,15 +100,17 @@ export function AppShell({ children, role, userName }: AppShellProps) {
               "flex-1 overflow-y-auto scroll-smooth",
               isFullpage
                 ? "" // FullpageFormShell handles its own padding
-                : isNoPadding
-                  ? "pb-28 lg:pb-6" // Keep only bottom padding for BottomNav spacing
-                  : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
+                : isFormPage
+                  ? "px-2 py-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
+                  : isNoPadding
+                    ? "pb-28 lg:pb-6" // Keep only bottom padding for BottomNav spacing
+                    : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
               "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
             )}>
                 {children}
             </main>
 
-            {!isFullpage && <BottomNav />}
+            {!(isFullpage || isFormPage) && <BottomNav />}
           </ScrollContainerProvider>
         </HeaderSlotsProvider>
       </div>
