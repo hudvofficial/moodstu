@@ -51,6 +51,17 @@
   --color-error: #f44336;
   --color-info: #2196f3;
 
+  /* ── Gallery Dark Theme (warm earth-tone) ── */
+  --color-gallery-bg: #1a1a1a;
+  --color-gallery-text: #F5E6D3;
+  --color-gallery-text-muted: rgba(201, 169, 110, 0.6);
+  --color-gallery-text-dim: rgba(201, 169, 110, 0.3);
+  --color-gallery-card-bg: rgba(201, 169, 110, 0.06);
+  --color-gallery-border: rgba(201, 169, 110, 0.15);
+  --color-gallery-border-focus: rgba(201, 169, 110, 0.4);
+  --color-gallery-icon: #C9A96E;
+  --color-gallery-btn-text: #FFF8F0;
+
   /* ── Shadows ── */
   /* Override Tailwind v4 default: remove inset ring from shadow-xs (V2: no borders) */
   --shadow-xs: 0 1px 2px rgba(61, 43, 31, 0.05);

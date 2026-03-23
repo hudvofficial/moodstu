@@ -1,78 +1,65 @@
 {
-  "updated_at": "2026-03-23T12:18:00+07:00",
+  "updated_at": "2026-03-23T18:24:00+07:00",
   "working_on": {
-    "feature": "Header Standardization",
-    "task": "4/4 phases complete — Header SSOT with slots, tokens, gallery/contract integration",
+    "feature": "Gallery Warm Earth-Tone Palette",
+    "task": "Complete — 9 tokens + 16 code changes across 3 files",
     "status": "completed",
     "files": [
-      "contexts/header-slots-context.tsx",
-      "components/layout/app-shell.tsx",
-      "components/layout/header.tsx",
-      "components/contracts/detail/top-action-bar.tsx",
-      "components/contracts/detail/contract-detail-client.tsx",
-      "components/contracts/gallery/gallery-full-page.tsx",
-      "components/contracts/gallery/gallery-toolbar.tsx",
-      "app/styles/utilities.css"
+      "app/globals.css",
+      "components/gallery/password-gate.tsx",
+      "components/gallery/public-gallery-client.tsx"
     ],
     "blockers": [],
-    "notes": "header.tsx = SSOT. Slots via context. Mobile: leftSlot+titleOverride+rightSlot. Desktop: default module label."
+    "notes": "Cold white → warm earth-tone tokens. TW4 @theme vars need fallback values in inline styles."
   },
   "recent_changes": [
+    {
+      "timestamp": "2026-03-23T18:09:00+07:00",
+      "type": "feature",
+      "description": "Gallery Warm Earth-Tone Palette: 9 SSOT tokens (gallery-bg, gallery-text, gallery-icon, etc.) + applied to password-gate.tsx (10 changes) and public-gallery-client.tsx landing (6 changes). CTA changed from white to accent gold.",
+      "files": ["app/globals.css", "components/gallery/password-gate.tsx", "components/gallery/public-gallery-client.tsx"],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-23T17:00:00+07:00",
+      "type": "bugfix",
+      "description": "Password Gate layout fix: card collapsing due to TW width classes not generating. Fixed with inline style width/maxWidth. Also cleaned 11 inline styles → TW classes.",
+      "files": ["components/gallery/password-gate.tsx", "components/gallery/public-gallery-client.tsx"],
+      "verified": true
+    },
     {
       "timestamp": "2026-03-23T12:15:00+07:00",
       "type": "refactor",
       "description": "Phase 4: Token consistency — shadow→--shadow-header, height→--header-mobile-h/desktop-h, z-index→--z-header",
       "files": ["app/styles/utilities.css", "components/layout/header.tsx"],
       "verified": true
-    },
-    {
-      "timestamp": "2026-03-23T12:05:00+07:00",
-      "type": "refactor",
-      "description": "Phase 3: Gallery header integration — Back+Title moved from gallery-toolbar Row1 to header.tsx via HeaderSlotsContext",
-      "files": ["components/contracts/gallery/gallery-full-page.tsx", "components/contracts/gallery/gallery-toolbar.tsx"],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-23T11:40:00+07:00",
-      "type": "refactor",
-      "description": "Phase 2: Contract Detail header — TopActionBar mobile block removed, HeaderSlotsContext created, contract-detail-client sets Back+contractCode+ActionsMenu",
-      "files": [
-        "contexts/header-slots-context.tsx",
-        "components/layout/app-shell.tsx",
-        "components/layout/header.tsx",
-        "components/contracts/detail/top-action-bar.tsx",
-        "components/contracts/detail/contract-detail-client.tsx"
-      ],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-23T11:20:00+07:00",
-      "type": "refactor",
-      "description": "Phase 1: header.tsx extended with leftSlot/titleOverride/subtitleOverride/rightSlot/hideSearch props + isDetailPage logic removed",
-      "files": ["components/layout/header.tsx"],
-      "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "HeaderSlotsContext pattern — child pages set header content via context, merging order: props > context > defaults",
-      "reason": "Avoid prop drilling. Pages like contract detail/gallery can override mobile header title/actions without passing props through multiple layers."
+      "decision": "Gallery public pages always use dark theme with warm earth-tone palette (derive from --color-accent #C9A96E)",
+      "reason": "Dark bg makes photos stand out. Warm tones match brand. 9 SSOT tokens in globals.css @theme."
     },
     {
-      "decision": "rightSlot and titleOverride are mobile-only replacements; desktop always shows module defaults",
-      "reason": "Desktop sidebar already shows navigation context. Mobile needs contextual header since sidebar is hidden."
+      "decision": "All gallery dark CSS vars use fallback pattern: var(--token, hardcoded-value)",
+      "reason": "TW4 @theme vars NOT available in inline styles. Fallback ensures colors always render correctly."
     },
     {
-      "decision": "Design tokens for header: --header-mobile-h, --header-desktop-h, --z-header, --shadow-header",
-      "reason": "SSOT. Height tokens referenced by header.tsx, utilities.css (.mobile-header-spacer). Single place to change."
+      "decision": "Gallery view section (photo grid) stays on light theme — only password gate + landing page are dark",
+      "reason": "Photo grid needs light bg for readability of text/stats. Dark theme reserved for cinematic intro/gate screens."
     }
   ],
   "pending_tasks": [],
   "completed_plans": [
     {
+      "plan": "gallery-warm-earth-tone-palette",
+      "status": "complete",
+      "summary": "9 tokens SSOT, 16 code changes. Password gate + landing page warm palette. Build pass, desktop + mobile verified."
+    },
+    {
       "plan": "header-standardization-4-phases",
       "status": "complete",
-      "summary": "4/4 phases done. header.tsx = SSOT. HeaderSlotsContext for dynamic content. Contract detail + Gallery integrated. Tokens chuẩn hóa."
+      "summary": "4/4 phases done. header.tsx = SSOT. HeaderSlotsContext for dynamic content."
     },
     {
       "plan": "260321-1916-radius-normalize",
@@ -82,7 +69,7 @@
     {
       "plan": "260320-1400-mock-contract-events",
       "status": "complete",
-      "summary": "Full mock data cho HĐ-0003 (Combo 68M, Lê Thị Y Linh). 8/8 phases done."
+      "summary": "Full mock data cho HĐ-0003."
     },
     {
       "plan": "260319-1452-customer-form-bugfix",
@@ -90,5 +77,11 @@
       "summary": "CustomerFormModal 10 bugs (B1-B10) all fixed."
     }
   ],
-  "errors_encountered": []
+  "errors_encountered": [
+    {
+      "error": "TW4 @theme CSS vars not resolving in inline styles — gallery bg showed light instead of dark",
+      "solution": "Add fallback values to all var() calls: var(--color-gallery-bg, #1a1a1a)",
+      "resolved": true
+    }
+  ]
 }

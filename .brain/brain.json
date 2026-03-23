@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-23T12:18:00+07:00"
+    "last_updated": "2026-03-23T18:24:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -69,7 +69,17 @@
       "warning": "amber-100/800",
       "info": "blue-100/800",
       "bride": "#EC4899",
-      "groom": "#3B82F6"
+      "groom": "#3B82F6",
+      "gallery_dark": {
+        "bg": "#1a1a1a",
+        "text": "#F5E6D3",
+        "text_muted": "rgba(201,169,110,0.6)",
+        "text_dim": "rgba(201,169,110,0.3)",
+        "card_bg": "rgba(201,169,110,0.06)",
+        "border": "rgba(201,169,110,0.15)",
+        "icon": "#C9A96E",
+        "btn_text": "#FFF8F0"
+      }
     },
     "typography": { "font": "Inter", "size": "14px body, 12px caption" },
     "radius_tokens": {
@@ -110,7 +120,9 @@
       "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
       "CSS btn variants must include base styles — dont rely on .btn being present",
       "Header detail pages: use HeaderSlotsContext to set mobile header slots — NOT separate <header> blocks",
-      "rightSlot replaces mobile actions only — desktop always keeps Search+ThemeToggle+Bell defaults"
+      "rightSlot replaces mobile actions only — desktop always keeps Search+ThemeToggle+Bell defaults",
+      "TW4 @theme vars NOT available in inline styles — MUST use var() with fallback: var(--token, #fallback). Tokens still defined in @theme for documentation + future TW class usage",
+      "Gallery public pages: width-related TW classes (w-full, max-w-sm) NOT generated — use inline style={{ width, maxWidth }} as fallback"
     ]
   },
   "decisions": [
@@ -133,6 +145,11 @@
       "date": "2026-03-23",
       "decision": "header.tsx = SSOT for all pages. Detail pages use HeaderSlotsContext to set mobile-only overrides (Back+title+actions).",
       "reason": "Eliminates duplicate mobile headers. Single component controls height, shadow, z-index tokens. Context pattern avoids prop drilling."
+    },
+    {
+      "date": "2026-03-23",
+      "decision": "Gallery public pages always dark theme. Warm earth-tone palette (derive from --color-accent #C9A96E). 9 SSOT tokens in globals.css @theme.",
+      "reason": "Dark bg makes photos stand out. Warm tones match brand. SSOT tokens allow single-point palette changes."
     }
   ]
 }

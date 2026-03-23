@@ -150,7 +150,8 @@ export default function PublicGalleryClient({
   if (showLanding) {
     const coverImage = images[0];
     return (
-      <div className="min-h-screen flex flex-col justify-center relative overflow-hidden" style={{ background: "#1a1a1a" }}>
+      <div className="min-h-screen flex flex-col justify-center relative overflow-hidden"
+        style={{ background: "var(--color-gallery-bg, #1a1a1a)" }}>
         {coverImage && (
           <div className="absolute inset-0" style={{
             backgroundImage: `url(${coverImage.thumbnail_url || coverImage.image_url})`,
@@ -159,18 +160,21 @@ export default function PublicGalleryClient({
           }} />
         )}
         <div className="relative z-10 text-center px-6 mx-auto gallery-entrance" style={{ width: "100%", maxWidth: "512px" }}>
-          <Camera size={48} className="mx-auto mb-4" style={{ color: "rgba(255,255,255,0.6)" }} />
-          <h1 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: "white" }}>
+          <Camera size={48} className="mx-auto mb-4"
+            style={{ color: "var(--color-gallery-icon, #C9A96E)" }} />
+          <h1 className="text-2xl md:text-3xl font-bold mb-2"
+            style={{ color: "var(--color-gallery-text, #F5E6D3)" }}>
             {gallery.title || "Album ảnh"}
           </h1>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="text-sm" style={{ color: "var(--color-gallery-text-muted, rgba(201,169,110,0.6))" }}>
             {images.length} ảnh{!isViewOnly && " • Chọn ảnh yêu thích của bạn"}
           </p>
-          <button onClick={() => setShowLanding(false)} className="mt-6 px-8 py-3 rounded-full font-semibold text-sm transition-all duration-200"
-            style={{ background: "white", color: "#1a1a1a" }}>
+          <button onClick={() => setShowLanding(false)}
+            className="mt-6 px-8 py-3 rounded-full font-semibold text-sm transition-all duration-200"
+            style={{ background: "var(--color-accent, #C9A96E)", color: "#1a1a1a" }}>
             Xem Album
           </button>
-          <p className="mt-8 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>Mood Studio</p>
+          <p className="mt-8 text-xs" style={{ color: "var(--color-gallery-text-dim, rgba(201,169,110,0.3))" }}>Mood Studio</p>
         </div>
       </div>
     );
