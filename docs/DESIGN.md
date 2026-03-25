@@ -700,4 +700,38 @@ useRealtime('costume_rentals'); // Inventory calendar
 
 ---
 
-*Tạo bởi AWF — Design Phase | 2026-03-15*
+## 7. ARCHITECTURE STANDARDS & ENFORCEMENT (AWF 2.0)
+
+*(Cập nhật 2026-03-25 — Phase A standardization)*
+
+### 7.1. Hybrid Gold Standard
+Mọi module mới/refactor phải tuân thủ bộ quy tắc:
+1. **SSOT Metadata**: Mỗi page (server component) phải có metadata title/description.
+2. **Server-Side Fetch**: Ưu tiên fetch data ở Page level (Server Component) và pass xuống Client Component để SWR hydrate.
+3. **Audit Logging**: Mọi mutation (Insert/Update/Delete) trong Server Actions PHẢI gọi `fireAuditLog()` sau khi thành công.
+4. **Zod Validation**: Input của Server Actions PHẢI được validate qua Zod schema (đặt tại `lib/validations/`).
+5. **Error Boundaries**: Mỗi folder module PHẢI có `error.tsx` để handle server failures.
+
+### 7.2. Audit Logging Pattern
+Sử dụng `lib/audit.ts` (fire-and-forget logic):
+```typescript
+fireAuditLog({
+  action: 'CREATE' | 'UPDATE' | 'DELETE',
+  tableName: 'string',
+  recordId: 'uuid',
+  description: 'Mô tả thân thiện',
+  newData: object,
+  severity: 'INFO' | 'WARNING' | 'CRITICAL'
+});
+```
+
+### 7.3. Error Boundary UI Standard
+Sử dụng SSOT tokens từ `design-system.css`:
+- Container: `flex flex-col items-center justify-center min-h-[400px]`
+- Heading: `text-h2`
+- Body: `text-body text-text-secondary`
+- Action: `.btn .btn-primary` calling `reset()`
+
+---
+
+*Tạo bởi AWF — Design Phase | 2026-03-25*

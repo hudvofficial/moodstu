@@ -2,6 +2,7 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
 
 // ═══════════════════════════════════════════
 // Contract Lifecycle — Cancel + Delete + Reactivate
@@ -30,6 +31,16 @@ export async function cancelContract(
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "contracts",
+      recordId: contractId,
+      description: `Hủy HĐ: ${contractId.substring(0, 8)}... — Lý do: ${reason.trim()}`,
+      source: "server_action",
+      severity: "WARNING",
+    });
+
     return null;
   });
 }
@@ -46,6 +57,16 @@ export async function deleteContract(contractId: string) {
     if (error) throw new Error(error.message);
 
     revalidatePath("/contracts");
+
+    fireAuditLog({
+      action: "DELETE",
+      tableName: "contracts",
+      recordId: contractId,
+      description: `Xóa HĐ: ${contractId.substring(0, 8)}...`,
+      source: "server_action",
+      severity: "WARNING",
+    });
+
     return null;
   });
 }
@@ -88,6 +109,15 @@ export async function reactivateContract(contractId: string) {
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "contracts",
+      recordId: contractId,
+      description: `Kích hoạt lại HĐ: ${contractId.substring(0, 8)}...`,
+      source: "server_action",
+    });
+
     return null;
   });
 }

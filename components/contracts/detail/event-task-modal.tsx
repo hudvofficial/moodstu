@@ -9,11 +9,11 @@ import { formatCurrency } from "@/lib/utils";
 import { isOnSetEvent } from "@/types/contract-constants";
 import {
   getTasksByEvent,
-  getActiveEmployees,
   addTask,
   deleteTask,
   toggleTaskStatus,
 } from "@/app/actions/work-task-actions";
+import { getActiveEmployees } from "@/app/actions/employee-queries";
 import { checkEmployeeTimeOverlap } from "@/app/actions/task-overlap-actions";
 import { updateContractEvent } from "@/app/actions/contract-event-actions";
 import type { WorkType, TaskStatus, EventType } from "@/types/contract";

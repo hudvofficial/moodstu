@@ -22,18 +22,8 @@ export async function getTasksByEvent(eventId: string) {
   });
 }
 
-export async function getActiveEmployees() {
-  return withAuth(async (supabase) => {
-    const { data, error } = await supabase
-      .from("employees")
-      .select("id, full_name, avatar_url, department, position")
-      .eq("status", "active")
-      .is("deleted_at", null)
-      .order("full_name");
-    if (error) throw new Error(`Lỗi tải nhân viên: ${error.message}`);
-    return data || [];
-  });
-}
+// ─── getActiveEmployees → MOVED to employee-queries.ts ───
+
 
 export async function addTask(input: {
   eventId: string; contractId: string; workType: WorkType;

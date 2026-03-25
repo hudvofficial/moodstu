@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════
-// Mood Studio V2 — Utility functions
-// cn, formatCurrency, formatDate
+// Mood Studio V2 — Utility functions (SSOT)
+// cn, formatCurrency, formatDate, getInitials, formatPhone
 // ═══════════════════════════════════════════
 
 import { type ClassValue, clsx } from "clsx";
@@ -59,4 +59,18 @@ export function parseIntOrNull(value: string | undefined | null): number | null 
   if (!value) return null;
   const n = parseInt(value, 10);
   return isNaN(n) ? null : n;
+}
+
+/** Get 2-char initials from full name — SSOT for avatars across all modules */
+export function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map(w => w[0]).slice(-2).join("").toUpperCase();
+}
+
+/** Format Vietnamese phone: 0901234001 → 0901 234 001 — SSOT for phone display */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10)
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  return phone;
 }

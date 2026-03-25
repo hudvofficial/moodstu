@@ -2,6 +2,7 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
 import { generateChecklists } from "@/app/actions/checklist-actions";
@@ -209,6 +210,17 @@ export async function createContract(rawData: unknown) {
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
 
+    fireAuditLog({
+      action: data.existingContractId ? "UPDATE" : "CREATE",
+      tableName: "contracts",
+      recordId: contractId!,
+      description: data.existingContractId
+        ? `Cập nhật HĐ: ${contractPayload.contract_code}`
+        : `Tạo HĐ: ${contractPayload.contract_code}`,
+      newData: contractPayload as Record<string, unknown>,
+      source: "server_action",
+    });
+
     return {
       id: contractId,
       contract_code: data.formData.contract_code,
@@ -270,6 +282,15 @@ export async function updateContractStatus(
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${id}`);
+
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "contracts",
+      recordId: id,
+      description: `Chuyển trạng thái HĐ: ${currentStatus} → ${newStatus}`,
+      source: "server_action",
+    });
+
     return null;
   });
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.53] - 2026-03-25
+### Added
+- **Architecture Standardization (Audit Logs + Zod + Error Boundaries)**: Phase A fixed 4 critical gaps.
+- **Audit Logs**: Enhanced `createContract`, `updateContractStatus`, `cancelContract`, `deleteContract`, and `reactivateContract` with fire-and-forget audit logging.
+- **Zod Validation**: New `employee.schema.ts` enforces data integrity in `createEmployee` server action.
+- **Error Boundaries**: Native Next.js `error.tsx` added to Contracts and Employees modules with SSOT styling.
+- **Contracts SEO**: Added metadata title to `/contracts` page.
+
 ## [1.1.52] - 2026-03-20
 ### Added
 - Created `plans/260320-1340-create-page-header/plan.md` for header optimization.

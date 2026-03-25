@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 
 type AvatarSize = "sm" | "md" | "lg";
 
@@ -22,14 +22,6 @@ const pixelSize: Record<AvatarSize, number> = {
   lg: 56,
 };
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 export function Avatar({ name, src, size = "md", className }: AvatarProps) {
   if (src) {

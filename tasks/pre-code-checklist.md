@@ -4,7 +4,7 @@
 
 ---
 
-## ✅ Checklist BẮT BUỘC (7 bước)
+## ✅ Checklist BẮT BUỘC (9 bước)
 
 1. [ ] Đã đọc `tasks/pre-code-checklist.md` (file này)
 2. [ ] Đã đọc `tasks/lessons.md`
@@ -13,6 +13,8 @@
 5. [ ] Đã check **Coffee** (`C:\Users\Admin\Desktop\Ai\mcoffe\src\`) cho reusable components
 6. [ ] Đã check **Stitch screens** cho UI pixel-reference (Stitch project ID: `3342062284752503492`)
 7. [ ] Đã đọc **phase file** tương ứng (`plans/phase-XX-*.md`) — biết rõ scope + file được sửa
+8. [ ] Nếu tạo **MODULE MỚI** → ĐỌC `tasks/module-blueprint.md` (scaffold + catalog + patterns)
+9. [ ] Nếu tạo **SERVER ACTION MỚI** → ĐỌC `tasks/action-template.md` (withAuth + try-catch + revalidate)
 
 ---
 
@@ -34,6 +36,26 @@
 - **Max 250 lines/file** — split nếu dài hơn
 - **globals.css < 100 lines** — dùng Tailwind v4 @theme tokens
 - **Không dùng `any`** — full TypeScript types
+
+### Architecture Patterns (BẮT BUỘC theo layer)
+
+| Layer | Pattern | Ví dụ |
+|-------|---------|-------|
+| **UI** | Functional Component + Hooks | `function Badge({ variant }) {}`, `useState`, `useEffect` |
+| **State** | React Hooks (useState/useReducer) + Server Actions | KHÔNG Redux/Zustand trừ khi user yêu cầu |
+| **Business Logic** | OOP mindset — tách thành services/utils | `employee-mutations.ts`, `contract-actions.ts` |
+| **Model** | TypeScript Interface / Type | `interface EmployeeDetail {}`, `type ContractStatus` |
+| **CSS** | SSOT Tokens — `app/styles/*.css` | `card-base`, `section-heading`, `input-base` |
+| **Shared UI** | Reusable FC in `components/ui/` | `<Badge>`, `<Breadcrumb>`, `<SelectForm>` |
+
+**Quy tắc cụ thể:**
+- ❌ KHÔNG viết inline class khi đã có token → dùng SSOT token
+- ❌ KHÔNG viết native `<select>` → dùng `<SelectForm>`
+- ❌ KHÔNG viết logic phức tạp trong component → tách ra `actions/` hoặc `utils/`
+- ❌ KHÔNG dùng `any` → define Interface/Type rõ ràng
+- ✅ Mọi component MỚI phải là FC + Hooks
+- ✅ Mọi shared component đặt trong `components/ui/`
+- ✅ Mọi business logic đặt trong `app/actions/` hoặc `lib/`
 
 ### Design System — V2 Earth-Tone
 - **Primary: `#8B5E3C`** — KHÔNG dùng V1 `#2e5c46` (deep olive)
@@ -93,3 +115,10 @@ Warning:     #FF9800
 Error:       #F44336
 Info:        #2196F3
 ```
+
+---
+
+### 🛡️ GATE SAU KHI CODE (BẮT BUỘC)
+- **Trước khi báo "DONE"** → ĐỌC `tasks/gates/after-edit.md`
+- Tick đủ 5 layers: Build → Visual → Logic → Side-effects → SSOT
+- **"Compile OK ≠ Done"** — phải verify cả 5 layers

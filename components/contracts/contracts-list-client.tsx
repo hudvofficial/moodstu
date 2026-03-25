@@ -11,6 +11,7 @@ import { useState, Suspense } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
+import { FAB } from "@/components/ui/fab";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
 import { useContracts, useContractStats, prefetchContract } from "@/lib/hooks/use-contracts";
@@ -36,14 +37,6 @@ const STATUS_TABS = [
   { label: "Đã hủy", value: "da_huy" },
 ];
 
-/** Mobile pill labels — shorter for pill display */
-const STATUS_PILLS = [
-  { label: "Tất cả", value: "all" },
-  { label: "Chờ xử lý", value: "cho_xu_ly" },
-  { label: "Đang làm", value: "dang_thuc_hien" },
-  { label: "Hoàn thành", value: "hoan_thanh" },
-  { label: "Đã hủy", value: "da_huy" },
-];
 
 const MOBILE_SERVICE_OPTIONS = [
   { value: "all", label: "Dịch vụ" },
@@ -150,43 +143,29 @@ function ContractsListInner() {
     return (
     <>
     <div className="main-container gap-3!">
-      {/* ── Stats Bar ── */}
-      <div className="lg:hidden">
+      {/* ── Stats + Action (unified container — same pattern as employees) ── */}
+      <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
-      </div>
-      <div className="hidden lg:flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
-        <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
-        <button onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
-          <Plus className="w-5 h-5" />
-          <span>Tạo hợp đồng</span>
-        </button>
-      </div>
-
-      {/* ── Mobile FAB ── */}
-      <div className="lg:hidden fixed bottom-24 right-4 z-40">
-        <button onClick={() => router.push('/contracts/create')} className="flex items-center justify-center size-12 rounded-full bg-primary text-text-inverse shadow-lg hover:opacity-90 active:scale-95 transition-all">
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* ── MOBILE: V1 pill filter bar ── */}
-      <div className="lg:hidden flex items-center gap-2 overflow-x-auto scrollbar-hide">
-        {STATUS_PILLS.map((pill) => (
-          <button
-            key={pill.value}
-            onClick={() => setStatus(pill.value)}
-            className={`flex h-8 shrink-0 items-center justify-center rounded-md px-4 text-sm font-medium transition-all ${
-              filters.status === pill.value
-                ? "bg-primary text-white"
-                : "bg-surface text-text-secondary hover:bg-border/50"
-            }`}
-          >
-            {pill.label}
+        <div className="hidden lg:flex">
+          <button onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
+            <Plus className="w-5 h-5" />
+            <span>Tạo hợp đồng</span>
           </button>
-        ))}
+        </div>
+      </div>
 
+      <FAB onClick={() => router.push('/contracts/create')} label="Tạo hợp đồng" />
 
-        {/* Service dropdown pill */}
+      {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
+      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+        <TabsFilter
+          tabs={STATUS_TABS}
+          activeTab={filters.status}
+          onChange={setStatus}
+          variant="pills"
+        />
+        {/* Separator */}
+        <div className="h-5 border-l border-border shrink-0" />
         <SelectPill
           value={filters.service}
           onChange={setService}
@@ -194,8 +173,6 @@ function ContractsListInner() {
           placeholder="Dịch vụ"
           options={MOBILE_SERVICE_OPTIONS}
         />
-
-        {/* Sort dropdown pill */}
         <SelectPill
           value={filters.sort}
           onChange={setSort}

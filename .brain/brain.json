@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-24T01:55:00+07:00"
+    "last_updated": "2026-03-25T20:06:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -18,19 +18,36 @@
     "ai": "Gemini Pro (Moodie AI assistant)",
     "hosting": "Vercel",
     "v1_codebase": "C:\\Users\\Admin\\Desktop\\Ai\\0Moodstudio\\webapp",
-    "api_pattern": "Server Actions with withAuth() higher-order logic for atomic mutations"
+    "api_pattern": "Server Actions with withAuth() higher-order logic for atomic mutations + Zod + Audit Logs"
   },
   "database_schema": {
-    "summary": "Core: contracts, contract_items, customers, leads. Support: printing_orders, inventory_reservations, inventory_items, contract_notes (NEW), transaction_categories, studio_info, labs.",
+    "summary": "Core: contracts, contract_items, customers, leads, employees, audit_logs. Support: printing_orders, inventory_reservations, inventory_items, contract_notes, transaction_categories, studio_info, labs.",
     "new_tables": [
       {
         "name": "contract_notes",
         "description": "Chat-style timeline for contract comments",
         "columns": ["id", "contract_id", "content", "created_by", "created_at"]
+      },
+      {
+        "name": "audit_logs",
+        "description": "Centralized system for tracking record changes (administered by lib/audit.ts)",
+        "columns": ["performed_by", "action", "table_name", "record_id", "old_data", "new_data", "description", "log_type", "severity", "source"]
       }
     ]
   },
   "api_endpoints": [
+    {
+      "type": "Server Action",
+      "path": "app/actions/contract-mutations.ts",
+      "actions": ["createContract", "updateContractStatus", "cancelContract", "deleteContract", "reactivateContract"],
+      "patterns": ["fireAuditLog() enabled"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/employee-mutations.ts",
+      "actions": ["createEmployee"],
+      "patterns": ["Zod validation enabled"]
+    },
     {
       "type": "Server Action",
       "path": "app/actions/payment-actions.ts",
@@ -100,7 +117,8 @@
       "StatusSelect": "Interactive status dropdown with color-coded logic",
       "toast-utils": "Centralized notification system",
       "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views",
-      "HeaderSlotsContext": "Context-based header slot system — child pages override mobile header content (leftSlot, titleOverride, rightSlot, hideSearch) via useSetHeaderSlots hook"
+      "HeaderSlotsContext": "Context-based header slot system",
+      "ErrorFallback": "Clean module-specific error.tsx with SSOT styling"
     },
     "header_architecture": {
       "ssot": "components/layout/header.tsx",
@@ -119,12 +137,10 @@
       "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
       "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
       "CSS btn variants must include base styles — dont rely on .btn being present",
-      "Header detail pages: use HeaderSlotsContext to set mobile header slots — NOT separate <header> blocks",
-      "rightSlot replaces mobile actions only — desktop always keeps Search+ThemeToggle+Bell defaults",
-      "TW4 @theme vars NOT available in inline styles — MUST use var() with fallback: var(--token, #fallback)",
-      "Gallery public pages: width-related TW classes NOT generated — use inline style as fallback",
-      "PostgREST FK join: employees:created_by(full_name) FAILS if created_by has no FK to employees — just select UUID",
-      "File splitting: keep parent as orchestrator (state+handlers), extract child UI. NO barrel exports for internal splits"
+      "Header detail pages: use HeaderSlotsContext to set mobile header slots",
+      "PostgREST FK join: employees:created_by(full_name) FAILS if no FK — select UUID instead",
+      "File splitting: keep parent as orchestrator, extract child UI. NO internal barrel exports",
+      "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())"
     ],
     "specs": [
       "docs/specs/v2-module-template.md — V2 Module Template Spec (gold standard from Contract module)"
@@ -132,34 +148,14 @@
   },
   "decisions": [
     {
-      "date": "2026-03-20",
-      "decision": "Compact Create Header: breadcrumb > title+desc block on desktop.",
-      "reason": "Saves vertical space and reduces redundancy."
-    },
-    {
-      "date": "2026-03-18",
-      "decision": "All mutations MUST go through Server Actions (withAuth). No direct client-side Supabase writes in V2 detail components.",
-      "reason": "Security, atomic transactions, and better SSR/Server Component alignment."
-    },
-    {
-      "date": "2026-03-19",
-      "decision": "Use ScrollContainerContext for all scroll-based logic instead of window.scrollY.",
-      "reason": "AppShell root is overflow-hidden, window.scrollY is always 0."
-    },
-    {
-      "date": "2026-03-23",
-      "decision": "header.tsx = SSOT for all pages. Detail pages use HeaderSlotsContext to set mobile-only overrides (Back+title+actions).",
-      "reason": "Eliminates duplicate mobile headers. Single component controls height, shadow, z-index tokens. Context pattern avoids prop drilling."
-    },
-    {
-      "date": "2026-03-23",
-      "decision": "Gallery public pages always dark theme. Warm earth-tone palette (derive from --color-accent #C9A96E). 9 SSOT tokens in globals.css @theme.",
-      "reason": "Dark bg makes photos stand out. Warm tones match brand. SSOT tokens allow single-point palette changes."
+      "date": "2026-03-25",
+      "decision": "Hybrid Gold Standard achieved: Audit Logs via fireAuditLog() + Zod server-side validation + error.tsx boundaries.",
+      "reason": "Fixes 4 gaps identified during cross-module standardization audit (Phase A)."
     },
     {
       "date": "2026-03-24",
-      "decision": "Contract module = V2 Gold Standard. All future modules follow docs/specs/v2-module-template.md. Files > 300 lines MUST split.",
-      "reason": "Clone-Ready Fix Plan completed. Naming cleaned, 4 files split, V2 Module Template Spec created."
+      "decision": "Contract module = V2 Gold Standard. All future modules follow docs/specs/v2-module-template.md.",
+      "reason": "Clone-Ready Fix Plan completed."
     }
   ]
 }

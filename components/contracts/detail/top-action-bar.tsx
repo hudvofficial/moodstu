@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Pencil, Printer, Download } from "lucide-react";
+import { Pencil, Printer, Download } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { CONTRACT_STATUS_MAP, PAYMENT_STATUS_MAP } from "@/types/contract-constants";
 import { Badge } from "@/components/ui/badge";
 import type { ContractStatus, PaymentStatus } from "@/types/contract";
@@ -53,16 +54,10 @@ export default function TopActionBar({
       {/* Mobile header now handled by header.tsx via HeaderSlotsContext */}
       <header className="max-lg:hidden space-y-4">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-body-sm text-text-secondary">
-          <Link
-            href="/contracts"
-            className="hover:text-primary transition-colors"
-          >
-            Hợp đồng
-          </Link>
-          <ChevronRight size={14} className="text-text-muted" />
-          <span className="text-text-primary font-medium">{contractCode}</span>
-        </nav>
+        <Breadcrumb items={[
+          { label: "Hợp đồng", href: "/contracts" },
+          { label: contractCode },
+        ]} />
 
         {/* Title + Badge + Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

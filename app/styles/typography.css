@@ -127,6 +127,15 @@
   border-left: 4px solid var(--color-accent);
 }
 
+/* Section heading — card/form sub-sections (no gold bar) */
+/* Dùng cho: "Thông tin cá nhân", "Ghi chú", embedded section titles */
+.section-heading {
+  font-size: var(--font-size-body-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
 /* Section Header Row — title + inline search + action button */
 /* Dùng cho: S2 Khách hàng (title + search + tạo KH mới) */
 .section-header-row {

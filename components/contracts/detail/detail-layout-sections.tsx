@@ -165,7 +165,7 @@ export function MobileLayout({
 }: MobileLayoutProps) {
   return (
     <div className="lg:hidden">
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="flex flex-col gap-4">
         <div id="section-details">
           <SummaryCard
             contract={contract}

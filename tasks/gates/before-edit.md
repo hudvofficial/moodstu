@@ -5,7 +5,7 @@
 
 ---
 
-## ✅ Checklist (5 items — PHẢI TICK HẾT)
+## ✅ Checklist (7 items — PHẢI TICK HẾT)
 
 ### 1. 👁️ SEE IT FIRST
 - [ ] Đã mở browser + chạy dev server
@@ -32,6 +32,10 @@
 ### 6. 🚪 MODAL & ANIMATION RULES (Lesson #81-82)
 - [ ] Modal mới PHẢI dùng `openModal()` — KHÔNG tự render `modal-backdrop` trong component
 - [ ] Animation keyframe `to` state PHẢI dùng `transform: none` — KHÔNG `translateY(0)` hoặc `scale(1)`
+
+### 7. 📘 MODULE & ACTION TEMPLATES
+- [ ] Nếu tạo **MODULE MỚI** → đã đọc `tasks/module-blueprint.md` (scaffold + catalog + patterns)
+- [ ] Nếu tạo **ACTION MỚI** → đã đọc `tasks/action-template.md` (withAuth + try-catch + revalidate)
 
 ---
 

@@ -36,7 +36,7 @@ export async function getAuthUsers() {
       created_at: u.created_at, last_sign_in_at: u.last_sign_in_at || null, is_banned: !!u.banned_until,
     }));
 
-    const { data: employees } = await supabase.from("employees").select("id, full_name, email, role, avatar_url, auth_user_id, status").eq("status", "Đang làm").order("full_name");
+    const { data: employees } = await supabase.from("employees").select("id, full_name, email, role, avatar_url, auth_user_id, status").eq("status", "active").order("full_name");
 
     const result: AuthUserWithEmployee[] = authUsers.map((user) => {
       const linked = employees?.find((e: { auth_user_id: string | null }) => e.auth_user_id === user.auth_id) || null;
@@ -98,7 +98,7 @@ export async function unlinkUserFromEmployee(authUserId: string) {
 
 export async function getUnlinkedEmployees() {
   return withAuth(async (supabase) => {
-    const { data, error } = await supabase.from("employees").select("id, full_name, email, role, avatar_url").is("auth_user_id", null).eq("status", "Đang làm").order("full_name");
+    const { data, error } = await supabase.from("employees").select("id, full_name, email, role, avatar_url").is("auth_user_id", null).eq("status", "active").order("full_name");
     if (error) throw new Error(error.message);
     return data;
   });

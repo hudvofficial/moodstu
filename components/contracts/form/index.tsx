@@ -14,7 +14,8 @@ import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { CustomerFormModal } from "./modals/CustomerFormModal";
 import { FullpageFormShell } from "@/components/layout/fullpage-form-shell";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
-import { Loader2, ChevronRight, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { ContractFormMode } from "@/types/contract-form";
 
 // ═══════════════════════════════════════════
@@ -123,18 +124,13 @@ export default function ContractForm({ mode, contractId }: Props) {
         rightPanel={rightPanel}
       >
         {/* Desktop breadcrumb — inline above form (not in header) */}
-        <nav className="max-lg:hidden flex items-center gap-2 text-body-sm text-text-secondary mb-4">
-          <Link
-            href="/contracts"
-            className="hover:text-primary transition-colors"
-          >
-            Hợp đồng
-          </Link>
-          <ChevronRight size={14} className="text-text-muted" />
-          <span className="text-text-primary font-medium">
-            {mode === "create" ? "Tạo mới" : "Chỉnh sửa"}
-          </span>
-        </nav>
+        <Breadcrumb
+          items={[
+            { label: "Hợp đồng", href: "/contracts" },
+            { label: mode === "create" ? "Tạo mới" : "Chỉnh sửa" },
+          ]}
+          className="max-lg:hidden mb-4"
+        />
 
         {/* Section 1: Contract Info */}
         <ContractInfoSection

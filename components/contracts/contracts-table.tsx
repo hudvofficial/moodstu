@@ -9,7 +9,8 @@
 
 import { ChevronRight, FileText, CheckCircle, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/ux-states";
+import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
 import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
 import {
   CONTRACT_STATUS_MAP,
@@ -29,13 +30,6 @@ function fmt(amount: number): string {
 function fmtDate(dateStr: string | null): string {
   if (!dateStr) return "---";
   return formatDate(dateStr);
-}
-
-function getInitials(name: string | null): string {
-  if (!name) return "?";
-  const words = name.trim().split(/\s+/);
-  if (words.length === 1) return words[0].charAt(0).toUpperCase();
-  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
 }
 
 function getAvatarColor(serviceType: string | null): string {
@@ -251,26 +245,16 @@ function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps)
   );
 }
 
-// ─── EMPTY STATE ─────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div className="min-h-[40vh] py-16 flex flex-col items-center justify-center text-center px-4">
-      <div className="w-16 h-16 bg-bg-hover rounded-full flex items-center justify-center mb-5">
-        <FileText className="w-7 h-7 text-text-muted" />
-      </div>
-      <h3 className="text-h3 mb-2">Chưa có hợp đồng</h3>
-      <p className="text-body text-text-secondary max-w-[280px]">
-        Chưa ghi nhận hợp đồng nào phù hợp với bộ lọc hiện tại.
-      </p>
-    </div>
-  );
-}
-
 // ─── MAIN EXPORT ─────────────────────────────────
 
 export function ContractsTable(props: ContractsTableProps) {
-  if (props.contracts.length === 0) return <EmptyState />;
+  if (props.contracts.length === 0) return (
+    <EmptyState
+      icon={FileText}
+      title="Chưa có hợp đồng"
+      description="Chưa ghi nhận hợp đồng nào phù hợp với bộ lọc hiện tại."
+    />
+  );
   return (
     <>
       <DesktopTable {...props} />
