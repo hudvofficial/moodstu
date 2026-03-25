@@ -17,13 +17,11 @@ import type {
   AuditLogEntry,
 } from "@/types/contract";
 import {
-  getContracts,
+  getContractList,
   getContractStats,
-} from "@/app/actions/contracts";
-import {
-  getContractById,
+  getContractDetail,
   getContractDrawerExtra,
-} from "@/app/actions/contract-detail-actions";
+} from "@/app/actions/contract-queries";
 
 // ─── Cache Key Factory ──────────────────────────────────
 
@@ -41,7 +39,7 @@ export function useContracts(filters: ContractFilters) {
   const { data, error, isLoading, mutate } = useSWR(
     contractKeys.list(filters),
     async () => {
-      const result = await getContracts(filters);
+      const result = await getContractList(filters);
       if (!result.success) throw new Error(result.error);
       return result.data as {
         contracts: Record<string, unknown>[];
@@ -98,7 +96,7 @@ export function useContractDetail(id: string | null) {
     id ? contractKeys.detail(id) : null,
     async () => {
       if (!id) return null;
-      const result = await getContractById(id);
+      const result = await getContractDetail(id);
       if (!result.success) throw new Error(result.error);
       return result.data as unknown as {
         contract: Contract;

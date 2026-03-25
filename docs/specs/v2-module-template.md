@@ -90,9 +90,21 @@ export async function get{Module}ForEdit(id: string) {
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
+import { {module}Schema } from "@/lib/validations/{module}.schema";
 
-export async function create{Module}(payload: Create{Module}Payload) {
+export async function create{Module}(rawData: unknown) {
+  // 1. Zod Validation (Bắt buộc)
+  const parsed = {module}Schema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+  const payload = parsed.data;
+
   return withAuth(async (supabase, userId) => {
+    // 2. Race Prevention (nếu có auto-code) - Retry loop 3 lần
+    
+    // 3. Insert/Update
     const { data, error } = await supabase
       .from("{table}")
       .insert({ ...payload, created_by: userId })
@@ -101,23 +113,81 @@ export async function create{Module}(payload: Create{Module}Payload) {
 
     if (error) throw new Error(error.message);
 
+    // 4. Revalidate
     revalidatePath("/{module}");
-    return data;
+    
+    // 5. Fire Audit Log (Bắt buộc cho mọi mutation)
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "{table}",
+      recordId: data.id,
+      description: `Tạo mới {Module}: ${data.code}`,
+      newData: data,
+      source: "server_action"
+    });
+
+    return { success: true, data };
+  });
+}
+
+export async function update{Module}(id: string, rawData: unknown, expectedUpdatedAt?: string) {
+  const parsed = {module}Schema.safeParse(rawData);
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
+  const payload = parsed.data;
+
+  return withAuth(async (supabase, userId) => {
+    // 1. Optimistic Locking (Bắt buộc cho Update)
+    if (expectedUpdatedAt) {
+      const { data: current } = await supabase.from("{table}").select("updated_at").eq("id", id).single();
+      if (current && current.updated_at !== expectedUpdatedAt) {
+        throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng tải lại trang.");
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("{table}")
+      .update({ ...payload, updated_by: userId, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select().single();
+
+    if (error) throw error;
+
+    revalidatePath("/{module}");
+    revalidatePath(`/{module}/${id}`);
+
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "{table}",
+      recordId: id,
+      description: `Cập nhật {Module}: ${id}`,
+      newData: payload,
+      source: "server_action"
+    });
+
+    return { success: true, data };
   });
 }
 ```
 
-### 2.3 Function Naming Standard
+### 2.3 Status Transition Machine
 
-| Action | Pattern | Ví dụ |
-|--------|---------|-------|
-| Read one | `get{Module}ForEdit` | `getContractForEdit()` |
-| Read list | `get{Module}List` | `getContractList()` |
-| Read code | `getNext{Module}Code` | `getNextContractCode()` |
-| Create | `create{Module}` | `createContract()` |
-| Update | `update{Module}` | `updateContract()` |
-| Delete | `delete{Module}` | `deleteContract()` |
-| Status | `update{Module}Status` | `updateContractStatus()` |
+Sử dụng `VALID_TRANSITIONS` để chặn việc nhảy trạng thái sai logic:
+
+```typescript
+const VALID_TRANSITIONS: Record<{Module}Status, {Module}Status[]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["completed", "failed"],
+  // ...
+};
+
+export async function updateStatus(id: string, newStatus: {Module}Status) {
+  return withAuth(async (supabase) => {
+    // 1. Fetch current status
+    // 2. Check VALID_TRANSITIONS[current]
+    // 3. Update + fireAuditLog
+  });
+}
+```
 
 ### 2.4 Domain Isolation Rule
 
@@ -289,7 +359,7 @@ CREATE TYPE {module}_status_enum AS ENUM (
 
 ---
 
-## 7. UI Component Standards
+## 7. UI & Error Standards
 
 ### 7.1 CSS Classes (SSOT)
 
@@ -298,7 +368,33 @@ PHẢI dùng: .input-base, .label-base, .btn-primary, .card-base, .badge-*
 KHÔNG hardcode: text-xl font-bold, h-12 px-5 bg-bg-card rounded-2xl
 ```
 
-### 7.2 Import Pattern
+### 7.2 Module Error Boundaries
+
+Mỗi module `{module}/` bắt buộc phải có `error.tsx` để cô lập lỗi:
+
+```typescript
+// app/(protected)/{module}/error.tsx
+"use client";
+
+import { ErrorFallback } from "@/components/ui/error-fallback";
+
+export default function ModuleError({ error, reset }: { error: Error; reset: () => void }) {
+  return <ErrorFallback error={error} reset={reset} moduleName="{Module Name}" />;
+}
+```
+
+### 7.3 SEO & Metadata
+
+Mọi trang chính (`page.tsx`) đều phải có Metadata:
+
+```typescript
+export const metadata: Metadata = {
+  title: "{Module Name} | Mood Studio",
+  description: "Quản lý {Description} chuyên nghiệp",
+};
+```
+
+### 7.4 Import Pattern
 
 ```typescript
 // ✅ Đúng — import từ domain action
@@ -327,7 +423,10 @@ Validate bất kỳ module mới nào trước khi merge:
 - [ ] Actions split: `{module}-queries.ts` + `{module}-mutations.ts` + `{module}-lifecycle.ts`
 - [ ] No cross-module functions in action files
 - [ ] All actions use `withAuth()` wrapper
-- [ ] `revalidatePath()` called after mutations
+- [ ] **Zod Validation** thực hiện qua `safeParse()` ở đầu action
+- [ ] **Audit Logs** được bắn qua `fireAuditLog()` cho mọi mutation
+- [ ] **Optimistic Locking** (check `updated_at`) cho hàm Update
+- [ ] `revalidatePath()` gọi sau mutations
 - [ ] `created_by` FK → `auth.users(id)` (KHÔNG employees)
 
 ### Naming
@@ -336,16 +435,17 @@ Validate bất kỳ module mới nào trước khi merge:
 - [ ] DB enums: snake_case tiếng Việt không dấu
 - [ ] Display labels: Sentence case (không UPPERCASE)
 
-### Types
+### Types & Validations
 - [ ] Types centralized in `types/{module}.ts`
 - [ ] Constants/labels in `types/{module}-constants.ts`
-- [ ] Form types in `types/{module}-form.ts` (nếu form ≠ DB)
+- [ ] Zod Schema đặt tại `lib/validations/{module}.schema.ts`
 - [ ] Không dùng `any` — full TypeScript types
 
 ### Components
 - [ ] No file > 300 lines (split nếu cần)
-- [ ] Form uses composition hook pattern (`use{Module}Form`)
-- [ ] CSS classes from SSOT (`design-system.css`)
+- [ ] Form sử dụng composition hook pattern (`use{Module}Form`)
+- [ ] CSS classes từ SSOT (`design-system.css`)
+- [ ] Cung cấp `error.tsx` riêng cho module
 - [ ] Responsive: Desktop + Mobile layouts
 - [ ] Currency via `formatCurrency()` + `CURRENCY_SYMBOL`
 
@@ -356,7 +456,7 @@ Validate bất kỳ module mới nào trước khi merge:
 - [ ] Audit columns: `created_by`, `updated_by`, `created_at`, `updated_at`
 
 ### Performance
-- [ ] SWR for client-side data (không React Query)
+- [ ] SWR cho client-side data (không React Query)
 - [ ] Pagination cho lists > 50 items
 - [ ] No foreignTable sub-select cho bảng > 1000 rows
 

@@ -1,4 +1,4 @@
-import { getContractById } from "@/app/actions/contract-detail-actions";
+import { getContractDetail } from "@/app/actions/contract-queries";
 import { getStudioInfo } from "@/app/actions/studio";
 import { notFound } from "next/navigation";
 import type {
@@ -23,7 +23,7 @@ export default async function PrintContractPage(props: {
 
   // Parallel fetch: reuse existing + studio info
   const [contractResult, studioResult] = await Promise.all([
-    getContractById(id),
+    getContractDetail(id),
     getStudioInfo(),
   ]);
 

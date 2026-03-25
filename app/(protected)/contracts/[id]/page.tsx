@@ -1,4 +1,4 @@
-import { getContractById } from "@/app/actions/contract-detail-actions";
+import { getContractDetail } from "@/app/actions/contract-queries";
 import { notFound } from "next/navigation";
 import type {
   Contract,
@@ -20,7 +20,7 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  const result = await getContractById(id);
+  const result = await getContractDetail(id);
 
   if (!result.success || !result.data) {
     notFound();

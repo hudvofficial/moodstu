@@ -1,22 +1,31 @@
 {
-  "updated_at": "2026-03-25T20:06:00+07:00",
+  "updated_at": "2026-03-25T21:33:00+07:00",
   "working_on": {
-    "feature": "Architecture Standardization Phase A",
-    "task": "Fixed 4 critical gaps in Contracts and Employees",
+    "feature": "Skills & Workflow Upgrade",
+    "task": "Build + Commit sau khi hoàn thành nâng cấp",
     "status": "completed",
     "files": [
-      "app/(protected)/contracts/page.tsx",
-      "app/actions/contract-mutations.ts",
-      "app/actions/contract-lifecycle.ts",
-      "lib/validations/employee.schema.ts",
-      "app/actions/employee-mutations.ts",
-      "app/(protected)/contracts/error.tsx",
-      "app/(protected)/employees/error.tsx"
+      "~/.gemini/antigravity/skills/business-studio-finance/SKILL.md",
+      "~/.gemini/antigravity/skills/business-wedding-crm/SKILL.md",
+      "~/.gemini/antigravity/global_workflows/new-module.md",
+      "docs/specs/v2-module-template.md"
     ],
     "blockers": [],
-    "notes": "TRUE Hybrid Gold Standard achieved. Audit logs + Zod + Error Boundaries + SEO meta."
+    "notes": "Deep audit phát hiện 3 CRITICAL issues. Viết lại Skills từ gốc Anthropic, xóa Constitution vô giá trị, tạo workflow /new-module 5 phases với enforcement gates."
   },
   "recent_changes": [
+    {
+      "timestamp": "2026-03-25T21:33:00+07:00",
+      "type": "feature",
+      "description": "Skills & Workflow Upgrade: (1) Viết lại business-studio-finance SKILL (150 dòng, trích gốc Anthropic). (2) Viết lại business-wedding-crm SKILL (170 dòng, trích gốc Anthropic). (3) Xóa constitution.md (vô giá trị). (4) Fix Phase 0 sai vị trí trong v2-module-template.md. (5) Tạo workflow /new-module (5 phases, 11 file refs, enforcement grep checks).",
+      "files": [
+        "skills/business-studio-finance/SKILL.md",
+        "skills/business-wedding-crm/SKILL.md",
+        "global_workflows/new-module.md",
+        "docs/specs/v2-module-template.md"
+      ],
+      "verified": true
+    },
     {
       "timestamp": "2026-03-25T20:06:00+07:00",
       "type": "feature",
@@ -27,56 +36,38 @@
         "app/(protected)/contracts/error.tsx"
       ],
       "verified": true
-    },
-    {
-      "timestamp": "2026-03-24T01:55:00+07:00",
-      "type": "bugfix",
-      "description": "Fixed contract notes: employees:created_by(full_name) JOIN failed because contract_notes.created_by has no FK to employees table. Removed broken JOIN, select plain UUID instead.",
-      "files": ["app/actions/note-actions.ts"],
-      "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "All mutations must have Audit Logs via fireAuditLog() in server actions",
-      "reason": "Phase A architectural requirement to maintain transaction history across all modules."
+      "decision": "Xóa constitution.md — vô giá trị, chỉ lặp lại v2-module-template",
+      "reason": "Deep audit cho thấy dự án đã có enforcement thực sự: before-edit.md, after-edit.md, pre-code-checklist.md, 83 lessons. Constitution thêm 1 file nữa chỉ gây nhầm."
     },
     {
-      "decision": "Modules must have separate error.tsx boundaries with SSOT styles",
-      "reason": "Prevents cascading failures and provides clean 'Try Again' fallback for users."
+      "decision": "Skills phải trích lọc từ file gốc Anthropic, KHÔNG tự bịa",
+      "reason": "Flash viết ~50 dòng tự bịa vs file gốc ~200+ dòng chi tiết. Chất lượng chênh lệch rất lớn."
+    },
+    {
+      "decision": "Workflow /new-module tham chiếu 11 files, chia 3 nhóm lazy loading",
+      "reason": "11 files đọc 1 lúc sẽ overflow context. Chia 3 nhóm: NHÓM A (planning), B (execution gates), C (verify gates)."
+    },
+    {
+      "decision": "module-blueprint.md giá trị hơn v2-module-template.md — giữ cả 2 vì bổ sung nhau",
+      "reason": "module-blueprint có Component Catalog (17 items), CSS Token Catalog, UX States, Cross-module rules. template có Naming + Audit Rules."
     }
   ],
-  "pending_tasks": [
-    {
-      "task": "Phase B: Create Module Spec Template",
-      "priority": "high"
-    },
-    {
-      "task": "Phase C: Fill specs for Contracts and Employees",
-      "priority": "medium"
-    },
-    {
-      "task": "Phase D: Naming cleanup for Contracts",
-      "priority": "medium"
-    }
-  ],
+  "pending_tasks": [],
   "completed_plans": [
     {
-      "plan": "260325-2000-architecture-standardization-phase-a",
+      "plan": "260325-2133-skills-workflow-upgrade",
       "status": "complete",
-      "summary": "Fixed 4 critical gaps: audit logs, Zod validation, error boundaries, and metadata."
+      "summary": "3 phases: (1) Viết lại 2 Business Skills từ gốc Anthropic. (2) Xóa Constitution + fix template. (3) Tạo workflow /new-module."
     },
     {
-      "plan": "260324-0200-clone-ready-fix",
+      "plan": "260325-2040-architecture-standardization-phase-d",
       "status": "complete",
-      "summary": "3/3 phases: naming cleanup, file splitting (4 files), V2 Module Template Spec. Contract module 100% clone-ready."
+      "summary": "Consolidated contract actions into contract-queries.ts, contract-mutations.ts, and contract-lifecycle.ts."
     }
   ],
-  "errors_encountered": [
-    {
-      "error": "Zod record validation lint error: Expected 2nd argument",
-      "solution": "Use z.record(z.string(), z.unknown()) instead of z.record(z.unknown())",
-      "resolved": true
-    }
-  ]
+  "errors_encountered": []
 }
