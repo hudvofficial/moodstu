@@ -30,6 +30,8 @@ export const DRESS_STATUSES = [
   "reserved",
   "rented",
   "maintenance",
+  "cleaning",
+  "overdue",
   "retired",
 ] as const;
 
@@ -73,3 +75,20 @@ export const dressUpdateSchema = z.object({
 });
 
 export type UpdateDressInput = z.infer<typeof dressUpdateSchema>;
+
+// ─── Reserve Dress Schema ───────────────────────────────────
+
+export const reserveDressSchema = z.object({
+  inventoryItemId: z.string().uuid("ID trang phục không hợp lệ"),
+  contractId: z.string().uuid("ID hợp đồng không hợp lệ"),
+  contractItemId: z.string().uuid().optional(),
+  customerId: z.string().uuid().optional(),
+  startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
+  endDate: z.string().min(1, "Ngày kết thúc là bắt buộc"),
+  exportType: z.enum(["xuat_ban", "xuat_thue"]).optional(),
+  isAddon: z.boolean().default(false),
+  rentalPrice: z.number().min(0).default(0),
+  notes: z.string().max(1000).optional(),
+});
+
+export type ReserveDressInput = z.infer<typeof reserveDressSchema>;

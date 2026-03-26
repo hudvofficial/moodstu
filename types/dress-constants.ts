@@ -21,6 +21,8 @@ export const DRESS_STATUS_MAP: Record<DressStatus, StatusConfig> = {
   reserved:    { label: "Đã đặt",     variant: "info" },
   rented:      { label: "Đang thuê",  variant: "warning" },
   maintenance: { label: "Bảo trì",    variant: "neutral" },
+  cleaning:    { label: "Đang giặt",  variant: "neutral" },
+  overdue:     { label: "Quá hạn",    variant: "error" },
   retired:     { label: "Ngừng dùng", variant: "error" },
 };
 
@@ -55,6 +57,16 @@ export const RESERVATION_STATUS_MAP: Record<string, { label: string; variant: Ba
   reserved: { label: "Đã đặt",     variant: "info" },
   rented:   { label: "Đang thuê",  variant: "warning" },
   returned: { label: "Đã trả",     variant: "neutral" },
+};
+
+// ─── RENTAL STATUS (standalone rentals) → Display ────────────
+
+export const RENTAL_STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
+  reserved:  { label: "Đã đặt",    variant: "info" },
+  renting:   { label: "Đang thuê", variant: "warning" },
+  returned:  { label: "Đã trả",    variant: "success" },
+  overdue:   { label: "Quá hạn",   variant: "error" },
+  cancelled: { label: "Đã hủy",    variant: "neutral" },
 };
 
 // ─── PAGE SIZE ───────────────────────────────────────────────

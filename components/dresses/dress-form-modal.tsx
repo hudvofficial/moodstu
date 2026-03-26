@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Shirt } from "lucide-react";
+import { Shirt, Ribbon, Briefcase, Gift, Baby, Shapes, type LucideIcon } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { createDress, updateDress, deleteDress } from "@/app/actions/dress-mutations";
+import { createDress, updateDress, deleteDress, uploadDressImage, deleteDressImage } from "@/app/actions/dress-mutations";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.schema";
 import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP } from "@/types/dress-constants";
 import { toast } from "@/lib/toast-utils";
+import { QRLabel } from "@/components/dresses/dress-qr-modal";
 import type { DressItem } from "@/types/dress";
 
 // ═══════════════════════════════════════════
@@ -44,6 +45,16 @@ const CONDITION_OPTIONS = DRESS_CONDITIONS.map((c) => ({
   label: DRESS_CONDITION_MAP[c],
 }));
 
+// Category → Lucide icon map (V1 ref: mỗi loại có icon riêng)
+const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
+  "Váy cưới": Shirt,
+  "Áo dài": Ribbon,
+  "Vest": Briefcase,
+  "Váy tráp": Gift,
+  "Đồ bé": Baby,
+  "Khác": Shapes,
+};
+
 function getInitial(item: DressItem | null): FormState {
   return {
     name: item?.name ?? "",
@@ -63,9 +74,13 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   const [form, setForm] = useState<FormState>(() => getInitial(editItem));
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingUploadUrl, setPendingUploadUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) setForm(getInitial(editItem));
+    if (isOpen) {
+      setForm(getInitial(editItem));
+      setPendingUploadUrl(null);
+    }
   }, [isOpen, editItem]);
 
   const update = useCallback((partial: Partial<FormState>) => {
@@ -94,12 +109,21 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
       }
       onClose();
       onSaved();
+      setPendingUploadUrl(null);
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : "Có lỗi xảy ra", "error");
     } finally {
       setLoading(false);
     }
   }, [form, editItem, onClose, onSaved]);
+
+  const handleClose = useCallback(() => {
+    if (pendingUploadUrl && pendingUploadUrl !== editItem?.image_url) {
+      deleteDressImage(pendingUploadUrl); // fire-and-forget
+    }
+    setPendingUploadUrl(null);
+    onClose();
+  }, [pendingUploadUrl, editItem?.image_url, onClose]);
 
   // Fix #8: ConfirmDialog handler (thay native confirm)
   const handleDeleteConfirm = useCallback(async () => {
@@ -122,7 +146,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
     <>
       <UnifiedModal
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleClose}
         title={editItem ? `Sửa: ${editItem.name}` : "Thêm trang phục"}
         size="lg"
         footer={
@@ -141,8 +165,16 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
           {/* Image Upload */}
           <div>
             <label className="label-base">Hình ảnh</label>
-            <ImageUpload value={form.image_url || undefined} onChange={(url) => update({ image_url: url })} />
+            <ImageUpload value={form.image_url || undefined} onChange={(url) => { update({ image_url: url }); setPendingUploadUrl(url); }} onUpload={uploadDressImage} />
           </div>
+
+          {/* QR Preview (edit mode only, V1 ref: DressModal.tsx) */}
+          {editItem?.item_code && (
+            <div className="flex flex-col items-center gap-2 p-3 bg-bg-hover rounded-xl">
+              <QRLabel dress={editItem} qrSize={100} />
+              <p className="text-caption text-text-muted">Mã QR sẽ in cùng nhãn</p>
+            </div>
+          )}
 
           {/* Name */}
           <div>
@@ -162,7 +194,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
                       ? "bg-primary/10 text-primary ring-1 ring-primary"
                       : "bg-bg-hover text-text-muted hover:bg-bg-secondary"
                   }`}>
-                  <Shirt size={16} />
+                  {(() => { const Icon = CATEGORY_ICON_MAP[cat] || Shapes; return <Icon size={16} />; })()}
                   {DRESS_CATEGORY_MAP[cat].label}
                 </button>
               ))}

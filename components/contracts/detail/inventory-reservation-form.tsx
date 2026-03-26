@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Shirt, Search } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { getAvailableItems, addInventoryReservation } from "@/app/actions/inventory-actions";
+import { getAvailableItems } from "@/app/actions/inventory-actions";
+import { reserveDressForContract } from "@/app/actions/dress-mutations";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import DatePicker from "@/components/ui/date-picker";
@@ -104,14 +105,14 @@ export default function InventoryReservationForm({
     const price = parseFloat(rentalPrice) || 0;
     setLoading(true);
     try {
-      const result = await addInventoryReservation({
+      const result = await reserveDressForContract({
+        inventoryItemId: selectedId,
         contractId,
-        itemId: selectedId,
         isAddon,
         rentalPrice: price,
-        startDate: startDate || null,
-        endDate: endDate || null,
-        notes: notes.trim() || null,
+        startDate: startDate || new Date().toISOString().split("T")[0],
+        endDate: endDate || new Date().toISOString().split("T")[0],
+        notes: notes.trim() || undefined,
       });
 
       if (result.success) {

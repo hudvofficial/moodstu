@@ -10,7 +10,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { ImagePlus, Pencil, Loader2 } from "lucide-react";
-import { uploadDressImage } from "@/app/actions/dress-mutations";
+
 import { toast } from "@/lib/toast-utils";
 
 // ─── TYPES ───────────────────────────────────────
@@ -18,11 +18,13 @@ import { toast } from "@/lib/toast-utils";
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
+  onUpload: (formData: FormData) => Promise<{ success: boolean; data?: { url: string }; error?: string }>;
+  maxSizeMB?: number;
 }
 
 // ─── COMPONENT ───────────────────────────────────
 
-export function ImageUpload({ value, onChange }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,8 +40,8 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       toast("Chỉ chấp nhận file ảnh", "error");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast("Ảnh không được vượt quá 5MB", "error");
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      toast(`Ảnh không được vượt quá ${maxSizeMB}MB`, "error");
       return;
     }
 
@@ -54,10 +56,10 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       formData.append("file", file);
       if (value) formData.append("oldUrl", value);
 
-      const result = await uploadDressImage(formData);
+      const result = await onUpload(formData);
       if (result.success) {
-        onChange(result.data.url);
-        toast("Upload thành công", "success");
+        onChange(result.data!.url);
+        toast("Đã tải ảnh lên. Bấm Lưu để hoàn tất", "success");
       } else {
         toast(result.error || "Lỗi upload", "error");
         setPreview(null); // revert preview

@@ -79,6 +79,18 @@
       "path": "app/actions/dress-mutations.ts",
       "actions": ["createDress", "updateDress", "deleteDress"],
       "patterns": ["Zod validation", "Optimistic Locking", "fireAuditLog()", "Soft delete"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/rental-queries.ts",
+      "actions": ["fetchAllRentals"],
+      "patterns": ["Pagination", "Status filter"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/rental-mutations.ts",
+      "actions": ["createRental", "startRental", "cancelRental", "returnDressRental", "markCleaned"],
+      "patterns": ["Zod validation", "withAuth() raw return data", "fireAuditLog()"]
     }
   ],
   "design_system": {

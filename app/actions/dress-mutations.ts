@@ -3,7 +3,7 @@
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
-import { dressCreateSchema, dressUpdateSchema } from "@/lib/validations/dress.schema";
+import { dressCreateSchema, dressUpdateSchema, reserveDressSchema } from "@/lib/validations/dress.schema";
 
 // ═══════════════════════════════════════════
 // Dress Mutations — Create/Update/Delete
@@ -196,7 +196,124 @@ export async function deleteDress(id: string) {
   });
 }
 
-// ─── RELEASE RESERVATION ─────────────────────────────────────
+// ─── RESERVE DRESS FOR CONTRACT ──────────────────────────────
+
+export async function reserveDressForContract(rawData: unknown) {
+  const parsed = reserveDressSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" };
+  }
+
+  return withAuth(async (supabase, userId) => {
+    const input = parsed.data;
+    const now = new Date().toISOString();
+
+    // 1. Check item exists + not deleted
+    const { data: item, error: itemErr } = await supabase
+      .from("inventory_items")
+      .select("id, name, status")
+      .eq("id", input.inventoryItemId)
+      .is("deleted_at", null)
+      .single();
+
+    if (itemErr || !item) throw new Error("Trang phục không tồn tại hoặc đã bị xóa");
+
+    // 2. Date overlap check (prevent double-booking)
+    const { data: overlaps } = await supabase
+      .from("inventory_reservations")
+      .select("id")
+      .eq("inventory_item_id", input.inventoryItemId)
+      .in("status", ["reserved", "rented"])
+      .lte("start_date", input.endDate)
+      .gte("end_date", input.startDate)
+      .limit(1);
+
+    if (overlaps && overlaps.length > 0) {
+      throw new Error("Trang phục đã được đặt trong khoảng thời gian này");
+    }
+
+    // 3. Handle addon billing (insert contract_item FIRST to get FK)
+    let contractItemId = input.contractItemId || null;
+
+    if (input.isAddon && input.rentalPrice > 0) {
+      const { data: newItem, error: ciErr } = await supabase
+        .from("contract_items")
+        .insert({
+          contract_id: input.contractId,
+          item_name: item.name || "Trang phục phát sinh",
+          type: "trang_phuc",
+          quantity: 1,
+          unit_price: input.rentalPrice,
+          total_amount: input.rentalPrice,
+          is_addon: true,
+          addon_category: "trang_phuc",
+          inventory_item_id: input.inventoryItemId,
+          created_at: now,
+        })
+        .select("id")
+        .single();
+
+      if (ciErr) throw new Error(`Lỗi thêm phát sinh: ${ciErr.message}`);
+      contractItemId = newItem.id;
+
+      // Update contract totals
+      const { data: contract } = await supabase
+        .from("contracts")
+        .select("total_amount, remaining_amount")
+        .eq("id", input.contractId)
+        .single();
+
+      if (contract) {
+        await supabase
+          .from("contracts")
+          .update({
+            total_amount: contract.total_amount + input.rentalPrice,
+            remaining_amount: contract.remaining_amount + input.rentalPrice,
+            updated_by: userId,
+            updated_at: now,
+          })
+          .eq("id", input.contractId);
+      }
+    }
+
+    // 4. Insert reservation (correct column names)
+    const { error: resError } = await supabase.from("inventory_reservations").insert({
+      inventory_item_id: input.inventoryItemId,
+      contract_id: input.contractId,
+      contract_item_id: contractItemId,
+      customer_id: input.customerId || null,
+      start_date: input.startDate,
+      end_date: input.endDate,
+      export_type: input.exportType || null,
+      status: "reserved",
+      notes: input.notes || null,
+      created_at: now,
+      updated_at: now,
+    });
+
+    if (resError) throw new Error(`Lỗi đặt trang phục: ${resError.message}`);
+
+    // 5. Update item status → reserved
+    await supabase
+      .from("inventory_items")
+      .update({ status: "reserved", updated_at: now })
+      .eq("id", input.inventoryItemId);
+
+    // 6. Audit log
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "inventory_reservations",
+      description: `Đặt trang phục: ${item.name} cho HĐ #${input.contractId.substring(0, 8)}`,
+      source: "server_action",
+    });
+
+    // 7. Revalidate
+    revalidatePath("/dresses");
+    revalidatePath("/contracts");
+    revalidatePath(`/contracts/${input.contractId}`);
+    return null;
+  });
+}
 
 export async function releaseReservation(reservationId: string) {
   if (!reservationId) return { success: false as const, error: "ID không hợp lệ" };
@@ -296,7 +413,7 @@ export async function uploadDressImage(formData: FormData) {
 
     // Validate
     if (!file || file.size === 0) throw new Error("Chưa chọn ảnh");
-    if (file.size > 5 * 1024 * 1024) throw new Error("Ảnh không được vượt quá 5MB");
+    if (file.size > 10 * 1024 * 1024) throw new Error("Ảnh không được vượt quá 10MB");
     if (!file.type.startsWith("image/")) throw new Error("Chỉ chấp nhận file ảnh");
 
     // Delete old file if exists
@@ -315,5 +432,22 @@ export async function uploadDressImage(formData: FormData) {
 
     const { data: urlData } = supabase.storage.from("dresses").getPublicUrl(filePath);
     return { url: urlData.publicUrl };
+  });
+}
+
+// ═══════════════════════════════════════════
+// Delete Dress Image — Cleanup orphan files
+// Best-effort: lỗi vẫn return success
+// ═══════════════════════════════════════════
+
+export async function deleteDressImage(imageUrl: string) {
+  return withAuth(async (supabase) => {
+    try {
+      const path = imageUrl.split("/dresses/")[1]?.split("?")[0];
+      if (path) await supabase.storage.from("dresses").remove([path]);
+    } catch {
+      // Best-effort cleanup — don't block user
+    }
+    return null;
   });
 }

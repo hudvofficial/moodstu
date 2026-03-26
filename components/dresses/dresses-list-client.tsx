@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import useSWR from "swr";
-import { Shirt, Plus, Loader2, FilterX, ScanLine, Printer } from "lucide-react";
+import { Shirt, Plus, Loader2, FilterX, ScanLine, Printer, CalendarDays } from "lucide-react";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
@@ -119,6 +120,10 @@ function DressesListInner() {
             <Printer className="w-4 h-4" />
             <span>In nhãn</span>
           </button>
+          <Link href="/dresses/rentals" className="btn btn-outline gap-2">
+            <CalendarDays className="w-4 h-4" />
+            <span>Xem lịch</span>
+          </Link>
           <button onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Thêm trang phục</span>

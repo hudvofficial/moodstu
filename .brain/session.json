@@ -1,22 +1,51 @@
 {
-  "updated_at": "2026-03-26T15:41:00+07:00",
+  "updated_at": "2026-03-26T20:50:00+07:00",
   "working_on": {
-    "feature": "Dresses Module Audit & Remediation",
-    "task": "Completed — Phase 1 (3 Critical) + Phase 2 (2 Warning) + Phase 3 (2 Suggestions) + item_code MAX() optimize",
-    "status": "completed",
+    "feature": "Dresses Module — Hầu hết đã hoàn thành",
+    "task": "Core features done: List, Create, Drawer, Filters, Scanner, QR, Rental History, Audit Remediation",
+    "status": "mostly_complete",
     "files": [
+      "components/dresses/dress-drawer.tsx",
+      "components/dresses/dress-drawer-content.tsx",
+      "components/dresses/dress-scanner-modal.tsx",
+      "components/dresses/dress-qr-modal.tsx",
+      "components/dresses/rental-history-client.tsx",
+      "components/dresses/dresses-filters.tsx",
+      "components/dresses/dresses-list-client.tsx",
       "app/actions/dress-queries.ts",
-      "app/actions/dress-mutations.ts",
-      "types/dress.ts"
+      "app/actions/dress-mutations.ts"
     ],
     "blockers": [],
-    "notes": "Full audit hoàn tất: C1 (addon billing JOIN), C2 (item_id→inventory_item_id), C3 (storage bucket), W3 (item_code retry+MAX optimize), W4 (search escape), S1 (DressStatus type), S3 (composite index). W1/W2/S2 deferred to backlog."
+    "notes": "Audit remediation hoàn tất (7 fixes). Filter bar chuẩn hoá (TabsFilter + SelectPill + URL searchParams). 16/16 blueprint checklist pass."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-26T15:31:00+07:00",
+      "timestamp": "2026-03-26T20:50:00+07:00",
+      "type": "feature",
+      "description": "Phase 05-06: Standalone Rentals UI/UX Polish. Refined Stats Bar to w-max with text-h3 tabular numbers. Replaced arbitrary CSS classes with Tailwind v4 standard tokens (hover:bg-bg-hover, border-border-light). Handled breadcrumb typography discussions.",
+      "files": [
+        "components/dresses/standalone-rentals-client.tsx",
+        "implementation_plan.md",
+        "walkthrough.md"
+      ],
+      "verified": true
+    },
+    {
+      "timestamp": "2026-03-26T16:22:00+07:00",
+      "type": "feature",
+      "description": "reserveDressForContract: Gold Standard action (Zod+withAuth+audit+revalidate). Fix fetchRentalHistory sai cột (item_id→inventory_item_id, remove rental_price). Migrate UI form. Xóa legacy addInventoryReservation (47 lines dead code).",
+      "files": [
+        "lib/validations/dress.schema.ts",
+        "app/actions/dress-mutations.ts",
+        "app/actions/dress-queries.ts",
+        "components/contracts/detail/inventory-reservation-form.tsx",
+        "app/actions/inventory-actions.ts"
+      ],
+      "verified": true
+    },
+    {
       "type": "bugfix",
-      "description": "Dresses Audit Phase 1-3 + Optimization: (1) C2: item_id→inventory_item_id 7 chỗ. (2) C1: addon billing rewrite JOIN contract_items. (3) C3: Storage bucket 'dresses' created. (4) W4: Search ILIKE escape %/_. (5) W3+Optimize: item_code auto-gen từ COUNT→MAX() parse (fix bug xóa mềm gây trùng mã). (6) S1: status string→DressStatus type. (7) S3: composite index (inventory_item_id, status).",
+      "description": "Dresses Audit Phase 1-3 + Optimization: (1) C2: item_id→inventory_item_id 7 chỗ. (2) C1: addon billing rewrite JOIN contract_items. (3) C3: Storage bucket 'dresses' created. (4) W4: Search ILIKE escape %/_. (5) W3+Optimize: item_code auto-gen từ COUNT→MAX() parse. (6) S1: status string→DressStatus type. (7) S3: composite index.",
       "files": [
         "app/actions/dress-queries.ts",
         "app/actions/dress-mutations.ts",
@@ -27,7 +56,7 @@
     {
       "timestamp": "2026-03-26T09:30:00+07:00",
       "type": "refactor",
-      "description": "Phase 2+3: Standardize Dresses filter bar — (1) Xóa SearchBar, thêm TabsFilter 4 tabs + Sort SelectPill. (2) Migrate filter state từ useState sang URL searchParams (clone employee-filters pattern). (3) Xóa dead search code. Commit: bd83199",
+      "description": "Phase 2+3: Standardize Dresses filter bar — TabsFilter + Sort SelectPill + URL searchParams.",
       "files": [
         "components/dresses/dresses-filters.tsx",
         "components/dresses/dresses-list-client.tsx"
@@ -38,59 +67,72 @@
   "decisions_made": [
     {
       "decision": "MAX() parse thay COUNT cho item_code auto-gen",
-      "reason": "COUNT(active) sai khi xóa mềm (COUNT giảm → gen mã trùng). MAX query toàn bộ items (kể cả deleted) lấy số lớn nhất → +1, an toàn tuyệt đối."
+      "reason": "COUNT(active) sai khi xóa mềm → MAX toàn bộ items lấy số lớn nhất → +1."
     },
     {
       "decision": "Skip W1 (stats over-fetch), W2 (transaction), S2 (enum)",
       "reason": "Scale studio nhỏ (2-5 user), risk/effort không worth it. Deferred to backlog."
     },
     {
-      "decision": "URL searchParams (thay useState) cho Dresses filters",
-      "reason": "Đồng bộ Gold Standard (Employees). URL shareable, back button giữ filter, bookmark được."
+      "decision": "URL searchParams cho Dresses filters",
+      "reason": "Đồng bộ Gold Standard (Employees). URL shareable, back button giữ filter."
     }
   ],
   "pending_tasks": [
     {
-      "task": "Dress Detail Drawer",
+      "task": "Reserve/Release Dress Actions",
       "priority": "high",
-      "notes": "dress-detail-drawer.tsx — click card mở drawer chi tiết + reservation history. Spec L168.",
-      "source": "docs/specs/dresses.md"
-    },
-    {
-      "task": "Reservation Actions (reserve + release + availability)",
-      "priority": "high",
-      "notes": "3 server actions: reserveDressForContract, releaseDressReservation, getDressAvailability. Spec L87-116.",
-      "source": "docs/specs/dresses.md"
-    },
-    {
-      "task": "QR/Barcode Scanner + QR Label Print",
-      "priority": "medium",
-      "notes": "dress-scan-input.tsx + dress-qr-label.tsx. Port từ V1. Spec L17, L23.",
-      "source": "docs/specs/dresses.md"
-    },
-    {
-      "task": "Rental History Page (/dresses/rentals)",
-      "priority": "medium",
-      "notes": "Mobile cards + desktop table. Spec L20, L162-163. Deferred v2.1.",
+      "status": "✅ reserveDressForContract done. releaseDressReservation đã có sẵn (dress-mutations.ts L201-285).",
+      "notes": "Cả 2 actions đều hoàn thành. getDressAvailability cũng đã có.",
       "source": "docs/specs/dresses.md"
     },
     {
       "task": "ImageUpload trong dress-form-modal",
       "priority": "low",
-      "notes": "Dùng shared ImageUpload component. Spec L24.",
+      "notes": "dress-form-modal.tsx chưa có ImageUpload component.",
       "source": "docs/specs/dresses.md"
+    },
+    {
+      "task": "Xóa Checklist + Chuẩn bị khỏi Contract Detail",
+      "priority": "low",
+      "notes": "tasks/todo.md — 6 tasks chưa tick. Cosmetic cleanup.",
+      "source": "tasks/todo.md"
     }
   ],
+  "completed_features": {
+    "dresses_module": [
+      "Dress List + Card UI (dress-card.tsx, dresses-list-client.tsx)",
+      "Dress Create/Edit Form (dress-form-modal.tsx)",
+      "Dress Detail Drawer (dress-drawer.tsx + dress-drawer-content.tsx)",
+      "Filter Bar — TabsFilter + SelectPill + URL searchParams (dresses-filters.tsx)",
+      "Stats Bar (dresses-stats-bar.tsx)",
+      "QR/Barcode Scanner (dress-scanner-modal.tsx)",
+      "QR Label Print (dress-qr-modal.tsx)",
+      "Rental History Page (app/(protected)/dresses/rentals/ + rental-history-client.tsx)",
+      "getDressAvailability server action",
+      "Audit Remediation — 7 fixes, 16/16 blueprint pass",
+      "reserveDressForContract server action (Gold Standard)",
+      "fetchRentalHistory column bug fix",
+      "UI migration: inventory-reservation-form → reserveDressForContract",
+      "Legacy addInventoryReservation cleanup",
+      "Standalone Rentals UI/UX Full Polish (Phase 06)"
+    ]
+  },
   "completed_plans": [
     {
       "plan": "260326-dresses-audit-remediation",
       "status": "complete",
-      "summary": "Full audit: 3 Critical (C1 addon billing, C2 column mismatch, C3 storage) + 2 Warning (W3 race condition+MAX optimize, W4 search escape) + 2 Suggestions (S1 type safety, S3 composite index). tsc --noEmit = 0 errors. 2 migrations applied."
+      "summary": "Full audit: 3 Critical + 2 Warning + 2 Suggestions. tsc = 0 errors. 2 migrations applied."
     },
     {
       "plan": "260326-dresses-standardization",
       "status": "complete",
-      "summary": "13 audit fixes (Phase A/B/C) + Phase 2 (TabsFilter + Sort) + Phase 3 (URL searchParams). All 16/16 blueprint checklist items pass."
+      "summary": "13 audit fixes + TabsFilter + URL searchParams. 16/16 blueprint pass."
+    },
+    {
+      "plan": "260326-1609-reserve-dress-fix",
+      "status": "complete",
+      "summary": "4 phases: Zod+Action, Column fix, UI migration, Verification. 5 files, tsc 0 errors."
     }
   ],
   "errors_encountered": []

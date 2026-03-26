@@ -96,3 +96,29 @@ export interface RentalHistoryFilters {
   status?: "reserved" | "rented" | "returned" | "all";
   page?: number;
 }
+
+// ─── STANDALONE RENTAL (dress_rentals table) ─────────────────
+
+export interface DressRental {
+  id: string;
+  item_id: string;
+  contract_id: string | null;
+  customer_name: string;
+  phone: string | null;
+  pickup_date: string;
+  return_date: string;
+  actual_return_date: string | null;
+  rental_price: number;
+  deposit: number;
+  deposit_returned: boolean;
+  damage_fee: number;
+  status: string;
+  accessories: string | null;
+  notes: string | null;
+  return_condition: string | null;
+  created_at: string;
+  // Joined fields
+  item_name?: string;
+  item_code?: string;
+  item_image?: string;
+}

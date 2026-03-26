@@ -157,7 +157,7 @@ export async function fetchRentalHistory(
     let query = supabase
       .from("inventory_reservations")
       .select(
-        `id, item_id, contract_id, status, rental_price, start_date, end_date, notes, created_at,
+        `id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at,
          contracts(id, contract_code, customers(full_name)),
          inventory_items!inner(id, name, item_code, category)`,
         { count: "exact" }
@@ -167,7 +167,7 @@ export async function fetchRentalHistory(
 
     // Filter by specific dress
     if (filters.item_id) {
-      query = query.eq("item_id", filters.item_id);
+      query = query.eq("inventory_item_id", filters.item_id);
     }
 
     // Status filter

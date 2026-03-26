@@ -23,7 +23,7 @@ interface DressQRModalProps {
 
 // ─── SINGLE QR LABEL ────────────────────────
 
-function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: number }) {
+export function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: number }) {
   const qrRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const qrInstance = useRef<any>(null);
@@ -66,6 +66,11 @@ function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: number })
         {dress.size && dress.color && <span>·</span>}
         {dress.color && <span>{dress.color}</span>}
       </div>
+      {dress.rental_price != null && dress.rental_price > 0 && (
+        <span className="text-caption font-semibold text-primary">
+          {new Intl.NumberFormat("vi-VN").format(dress.rental_price)}đ
+        </span>
+      )}
     </div>
   );
 }

@@ -1,15 +1,15 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import RentalHistoryClient from "@/components/dresses/rental-history-client";
+import StandaloneRentalsClient from "@/components/dresses/standalone-rentals-client";
 
 export const metadata: Metadata = {
-  title: "Lịch sử cho thuê — Mood Studio",
+  title: "Đơn thuê vãng lai — Mood Studio",
 };
 
 export default function RentalsPage() {
   return (
     <Suspense>
-      <RentalHistoryClient />
+      <StandaloneRentalsClient />
     </Suspense>
   );
 }

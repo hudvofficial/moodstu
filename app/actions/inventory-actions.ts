@@ -139,53 +139,6 @@ export async function createInventoryTransaction(input: CreateTransactionInput) 
   });
 }
 
-// ─── ADD RESERVATION ─────────────────────────
-
-export async function addInventoryReservation(input: {
-  contractId: string; itemId: string; isAddon: boolean; rentalPrice: number;
-  startDate: string | null; endDate: string | null; notes: string | null;
-}) {
-  return withAuth(async (supabase, userId) => {
-    const now = new Date().toISOString();
-
-    // BL-1 fix: Check date overlap before reserving (防 race condition)
-    if (input.startDate && input.endDate) {
-      const { data: overlaps } = await supabase
-        .from("inventory_reservations")
-        .select("id")
-        .eq("item_id", input.itemId)
-        .in("status", ["reserved", "rented"])
-        .lte("start_date", input.endDate)
-        .gte("end_date", input.startDate)
-        .limit(1);
-      if (overlaps && overlaps.length > 0) {
-        throw new Error("Trang phục đã được đặt trong khoảng thời gian này");
-      }
-    }
-
-    const { error: resError } = await supabase.from("inventory_reservations").insert({
-      contract_id: input.contractId, item_id: input.itemId, status: "reserved",
-      rental_price: input.rentalPrice, start_date: input.startDate, end_date: input.endDate,
-      notes: input.notes, created_by: userId, created_at: now, updated_at: now,
-    });
-    if (resError) throw new Error(`Lỗi đặt trang phục: ${resError.message}`);
-
-    await supabase.from("inventory_items").update({ status: "reserved", updated_at: now }).eq("id", input.itemId);
-
-    if (input.isAddon && input.rentalPrice > 0) {
-      const { data: item } = await supabase.from("inventory_items").select("name").eq("id", input.itemId).single();
-      await supabase.from("contract_items").insert({ contract_id: input.contractId, item_name: item?.name || "Trang phục phát sinh", quantity: 1, unit_price: input.rentalPrice, total_amount: input.rentalPrice, is_addon: true, created_at: now });
-      const { data: contract } = await supabase.from("contracts").select("total_amount, remaining_amount").eq("id", input.contractId).single();
-      if (contract) {
-        await supabase.from("contracts").update({ total_amount: contract.total_amount + input.rentalPrice, remaining_amount: contract.remaining_amount + input.rentalPrice, updated_by: userId, updated_at: now }).eq("id", input.contractId);
-      }
-    }
-
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${input.contractId}`);
-    return null;
-  });
-}
 
 // ─── INVENTORY STATS ─────────────────────────
 
