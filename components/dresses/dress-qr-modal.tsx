@@ -9,6 +9,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Printer, QrCode } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { printDressLabel, printDressLabelBatch } from "@/lib/print-qr-label";
 import type { DressItem } from "@/types/dress";
 
 // ─── TYPES ──────────────────────────────────
@@ -59,18 +60,20 @@ export function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: nu
   return (
     <div className="qr-label-item flex flex-col items-center gap-3 p-4">
       <div ref={qrRef} className="flex items-center justify-center" />
-      <span className="tag-badge text-lg">{dress.item_code}</span>
-      <p className="text-body-sm font-semibold text-text-primary text-center">{dress.name}</p>
-      <div className="flex items-center gap-2 text-caption text-text-muted">
-        {dress.size && <span>Size {dress.size}</span>}
-        {dress.size && dress.color && <span>·</span>}
-        {dress.color && <span>{dress.color}</span>}
+      <div className="w-full flex flex-col items-center gap-1.5 px-3 py-2 bg-white/60 rounded-lg">
+        <span className="tag-badge text-lg">{dress.item_code}</span>
+        <p className="text-body-sm font-semibold text-text-primary text-center">{dress.name}</p>
+        <div className="flex items-center gap-2 text-caption text-text-muted">
+          {dress.size && <span>Size {dress.size}</span>}
+          {dress.size && dress.color && <span>·</span>}
+          {dress.color && <span>{dress.color}</span>}
+        </div>
+        {dress.rental_price != null && dress.rental_price > 0 && (
+          <span className="text-caption font-semibold text-primary">
+            {new Intl.NumberFormat("vi-VN").format(dress.rental_price)}đ
+          </span>
+        )}
       </div>
-      {dress.rental_price != null && dress.rental_price > 0 && (
-        <span className="text-caption font-semibold text-primary">
-          {new Intl.NumberFormat("vi-VN").format(dress.rental_price)}đ
-        </span>
-      )}
     </div>
   );
 }
@@ -81,10 +84,29 @@ export function DressQRModal({ dress, dresses, isOpen, onClose }: DressQRModalPr
   const isBatch = !!dresses?.length;
   const items = isBatch ? dresses!.filter(d => d.item_code) : (dress ? [dress] : []);
   
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+
   if (!isOpen || items.length === 0) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (isBatch) {
+      // Collect all QR canvas data URLs
+      const qrDataUrls = new Map<string, string>();
+      const canvases = qrContainerRef.current?.querySelectorAll("canvas");
+      canvases?.forEach((canvas) => {
+        // Find parent qr-label-item to match with dress item_code
+        const labelItem = canvas.closest(".qr-label-item");
+        const codeEl = labelItem?.querySelector(".tag-badge");
+        if (codeEl?.textContent) {
+          qrDataUrls.set(codeEl.textContent.trim(), canvas.toDataURL("image/png"));
+        }
+      });
+      printDressLabelBatch(items, qrDataUrls);
+    } else {
+      const canvas = qrContainerRef.current?.querySelector("canvas");
+      const qrDataUrl = canvas ? canvas.toDataURL("image/png") : undefined;
+      printDressLabel(items[0], qrDataUrl);
+    }
   };
 
   const title = isBatch
@@ -109,41 +131,21 @@ export function DressQRModal({ dress, dresses, isOpen, onClose }: DressQRModalPr
           ) : undefined
         }
       >
-        {isBatch ? (
-          /* Batch grid: 2 columns for A4 print */
-          <div className="grid grid-cols-2 gap-4 qr-print-area">
-            {items.slice(0, 50).map((d) => (
-              <QRLabel key={d.id} dress={d} qrSize={120} />
-            ))}
-          </div>
-        ) : (
-          /* Single QR label */
-          <div className="qr-print-area">
+        <div ref={qrContainerRef}>
+          {isBatch ? (
+            /* Batch grid: 2 columns for A4 print */
+            <div className="grid grid-cols-2 gap-4">
+              {items.slice(0, 50).map((d) => (
+                <QRLabel key={d.id} dress={d} qrSize={120} />
+              ))}
+            </div>
+          ) : (
+            /* Single QR label */
             <QRLabel dress={items[0]} />
-          </div>
-        )}
+          )}
+        </div>
       </UnifiedModal>
 
-      {/* Print-only CSS — clone from print-contract-client.tsx */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: ${isBatch ? "A4 portrait" : "80mm 60mm"};
-            margin: ${isBatch ? "10mm" : "5mm"};
-          }
-          body > *:not(.qr-print-area) {
-            display: none !important;
-          }
-          .qr-print-area {
-            display: ${isBatch ? "grid !important" : "flex !important"};
-            ${isBatch ? "grid-template-columns: 1fr 1fr; gap: 8mm;" : "flex-direction: column; align-items: center; justify-content: center;"}
-          }
-          .qr-label-item {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-        }
-      `}</style>
     </>
   );
 }

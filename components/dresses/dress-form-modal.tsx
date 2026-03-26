@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Shirt, Ribbon, Briefcase, Gift, Baby, Shapes, type LucideIcon } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Shirt, Ribbon, Briefcase, Gift, Baby, Shapes, Printer, type LucideIcon } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -12,6 +12,7 @@ import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.sche
 import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP } from "@/types/dress-constants";
 import { toast } from "@/lib/toast-utils";
 import { QRLabel } from "@/components/dresses/dress-qr-modal";
+import { printDressLabel } from "@/lib/print-qr-label";
 import type { DressItem } from "@/types/dress";
 
 // ═══════════════════════════════════════════
@@ -75,6 +76,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingUploadUrl, setPendingUploadUrl] = useState<string | null>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -162,19 +164,37 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
         }
       >
         <div className="space-y-4">
-          {/* Image Upload */}
-          <div>
-            <label className="label-base">Hình ảnh</label>
-            <ImageUpload value={form.image_url || undefined} onChange={(url) => { update({ image_url: url }); setPendingUploadUrl(url); }} onUpload={uploadDressImage} />
-          </div>
-
-          {/* QR Preview (edit mode only, V1 ref: DressModal.tsx) */}
-          {editItem?.item_code && (
-            <div className="flex flex-col items-center gap-2 p-3 bg-bg-hover rounded-xl">
-              <QRLabel dress={editItem} qrSize={100} />
-              <p className="text-caption text-text-muted">Mã QR sẽ in cùng nhãn</p>
+          {/* Image + QR — 2 columns on edit */}
+          <div className={`grid gap-4 items-stretch ${editItem?.item_code ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Image Upload */}
+            <div className={editItem?.item_code ? 'flex flex-col gap-1 p-3 bg-bg-hover rounded-xl' : ''}>
+              <label className="label-base">Hình ảnh</label>
+              <div className="flex-1 min-h-0">
+                <ImageUpload fillCard={!!editItem?.item_code} value={form.image_url || undefined} onChange={(url) => { update({ image_url: url }); setPendingUploadUrl(url); }} onUpload={uploadDressImage} />
+              </div>
             </div>
-          )}
+
+            {/* QR Card — print via popup window (V1 pattern) */}
+            {editItem?.item_code && (
+              <div className="flex flex-col items-center gap-2 p-3 bg-bg-hover rounded-xl">
+                <div ref={qrContainerRef}>
+                  <QRLabel dress={editItem} qrSize={72} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const canvas = qrContainerRef.current?.querySelector("canvas");
+                    const qrDataUrl = canvas ? canvas.toDataURL("image/png") : undefined;
+                    printDressLabel(editItem, qrDataUrl);
+                  }}
+                  className="btn btn-primary gap-1.5 w-full"
+                >
+                  <Printer size={14} />
+                  In nhãn QR
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Name */}
           <div>
@@ -262,6 +282,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
         message={`Bạn có chắc muốn xóa "${editItem?.name}"? Hành động này không thể hoàn tác.`}
         confirmLabel="Xóa"
       />
+
     </>
   );
 }
