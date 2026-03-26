@@ -33,9 +33,16 @@
 - [ ] Modal mới PHẢI dùng `openModal()` — KHÔNG tự render `modal-backdrop` trong component
 - [ ] Animation keyframe `to` state PHẢI dùng `transform: none` — KHÔNG `translateY(0)` hoặc `scale(1)`
 
-### 7. 📘 MODULE & ACTION TEMPLATES
-- [ ] Nếu tạo **MODULE MỚI** → đã đọc `tasks/module-blueprint.md` (scaffold + catalog + patterns)
-- [ ] Nếu tạo **ACTION MỚI** → đã đọc `tasks/action-template.md` (withAuth + try-catch + revalidate)
+### 7. 📘 MODULE BLUEPRINT — CLONE, KHÔNG TỰ VIẾT (BẮT BUỘC)
+- [ ] **Đã đọc `tasks/module-blueprint.md`** (1 file duy nhất — SSOT)
+- [ ] **CLONE file structure** từ employees/contracts → đổi entity name → đổi data
+- [ ] Filter bar **TÁCH FILE RIÊNG** `[module]-filters.tsx` (KHÔNG viết inline)
+- [ ] Stats bar **TÁCH FILE RIÊNG** `[module]-stats-bar.tsx` dùng shared `<StatsBar>`
+- [ ] Mobile: `<TabsFilter variant="pills">` + `<SelectPill>` (KHÔNG SearchBar trong status bar)
+- [ ] Desktop: `<TabsFilter>` + pills nhóm phải với `lg:justify-between`
+- [ ] Form: `<SelectForm>` + `<CurrencyInput>` + `.form-grid-2col` (KHÔNG SelectPill, KHÔNG inline grid)
+- [ ] **DIFF kiểm tra** structure phải giống hệt Gold Standard source
+- [ ] Nếu tạo **ACTION MỚI** → đã đọc `tasks/action-template.md`
 
 ---
 

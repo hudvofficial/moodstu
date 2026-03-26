@@ -1,0 +1,76 @@
+/**
+ * 📦 Dress Module Types (V2)
+ *
+ * Types for dress catalog, filters, stats.
+ * DB table: inventory_items (filtered by category)
+ *
+ * @see types/contract.ts for pattern reference
+ */
+
+import type { DressCategory, DressStatus, DressCondition } from "@/lib/validations/dress.schema";
+
+// ─── CORE DATA MODEL (inventory_items row) ───────────────────
+
+export interface DressItem {
+  id: string;
+  item_code: string;
+  name: string;
+  category: string | null;
+  size: string | null;
+  color: string | null;
+  condition: string | null;
+  rental_price: number | null;
+  sale_price: number | null;
+  purchase_price: number | null;
+  current_stock: number | null;
+  min_stock: number | null;
+  image_url: string | null;
+  status: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+  deleted_at: string | null;
+}
+
+// ─── FILTER STATE (synced to URL params via nuqs) ────────────
+
+export interface DressFilters {
+  search?: string;
+  category?: DressCategory | "all";
+  status?: DressStatus | "all";
+  page?: number;
+}
+
+// ─── STATS FOR LIST HEADER ───────────────────────────────────
+
+export interface DressStats {
+  total: number;
+  available: number;
+  reserved: number;
+  rented: number;
+  maintenance: number;
+}
+
+// ─── DRESS DETAIL (with reservations) ────────────────────────
+
+export interface DressReservation {
+  id: string;
+  contract_id: string;
+  status: string | null;
+  rental_price: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+  created_at: string;
+  contracts?: {
+    id: string;
+    contract_code: string;
+    customers?: { full_name: string } | null;
+  } | null;
+}
+
+export interface DressDetail extends DressItem {
+  reservations: DressReservation[];
+}

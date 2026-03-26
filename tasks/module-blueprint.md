@@ -1,7 +1,9 @@
-# 📘 Module Blueprint — Sổ tay triển khai module mới
+# 📘 Module Blueprint — SSOT cho Module Mới
 
-> **BẮT BUỘC đọc file này TRƯỚC KHI tạo module mới.**
-> Contracts = Gold Standard. Mọi module sau phải follow patterns dưới đây.
+> **1 FILE DUY NHẤT.** Không cần đọc thêm file nào khác.
+> Chứa: File structure + Component catalog + CSS tokens + Clone templates + Hooks + Checklist.
+>
+> **Nguyên tắc: CLONE CODE, CHỈ ĐỔI DATA. KHÔNG TỰ VIẾT.**
 
 ---
 
@@ -13,24 +15,24 @@
 │   ├── page.tsx              ← Server Component (fetch → pass props)
 │   ├── loading.tsx           ← Skeleton loader (BẮT BUỘC)
 │   └── [id]/
-│       └── page.tsx          ← Detail page (Server fetch → Client render)
+│       └── page.tsx          ← Detail page
 │
 ├── components/[module]/
-│   ├── [module]-list-page.tsx      ← Client wrapper (hooks + filters + SWR)
+│   ├── [module]-list-page.tsx      ← Client wrapper (hooks + SWR)
+│   ├── [module]-filters.tsx        ← Filter bar (TÁCH FILE RIÊNG — BẮT BUỘC)
+│   ├── [module]-stats-bar.tsx      ← Stats (dùng shared StatsBar — TÁCH FILE RIÊNG)
 │   ├── [module]-table.tsx          ← Data table (desktop)
-│   ├── [module]-card.tsx           ← Card view (mobile) — nếu cần
+│   ├── [module]-card.tsx           ← Card view (mobile)
 │   ├── [module]-detail-page.tsx    ← Detail view
-│   ├── [module]-form-modal.tsx     ← Create/Edit form (dùng openModal)
-│   ├── [module]-filters.tsx        ← Filter dropdowns
-│   └── [module]-stats-bar.tsx      ← Stats summary (dùng shared StatsBar)
+│   └── [module]-form-modal.tsx     ← Create/Edit form
 │
 ├── app/actions/
-│   ├── [module]-mutations.ts       ← CRUD (create, update, delete)
-│   └── [module]-queries.ts         ← Data fetching (list, detail, search)
+│   ├── [module]-mutations.ts       ← CRUD
+│   └── [module]-queries.ts         ← Data fetching
 │
 └── types/
-    ├── [module].ts                 ← Interface/Type definitions
-    └── [module]-constants.ts       ← Display maps, enum labels, status colors
+    ├── [module].ts                 ← Types
+    └── [module]-constants.ts       ← Display maps, enum labels
 ```
 
 ### Naming Convention
@@ -39,49 +41,87 @@
 |------|-----------|-------|
 | Files | kebab-case | `employee-mutations.ts` |
 | Components | PascalCase | `EmployeeFormModal` |
-| Types/Interfaces | PascalCase | `EmployeeDetail` |
+| Types | PascalCase | `EmployeeDetail` |
 | Constants | UPPER_SNAKE | `GENDER_OPTIONS` |
-| DB enums | snake_case | `cho_xu_ly` (KHÔNG tiếng Việt) |
+| DB enums | snake_case | `cho_xu_ly` |
 
 ---
 
-## 2. Component Catalog — DÙNG CÁI NÀY, KHÔNG TỰ VIẾT
+## 2. Component Catalog — TOÀN BỘ `components/ui/`
 
-| Component | Import | Khi nào dùng |
-|-----------|--------|-------------|
-| `<Badge variant={v} dot>` | `@/components/ui/badge` | Status labels, role tags |
-| `<Breadcrumb items={[...]}>` | `@/components/ui/breadcrumb` | Page navigation |
-| `<SelectForm options={[...]}>` | `@/components/ui/select/SelectForm` | Dropdown (thay native `<select>`) |
-| `<UnifiedModal>` | `@/components/ui/unified-modal` | Modal (qua `openModal()`) |
-| `<StatsBar items={[...]}>` | `@/components/ui/stats-bar` | Summary numbers trên list page |
-| `<TabsFilter>` | `@/components/ui/tabs-filter` | Tab filters |
-| `<SearchBar>` | `@/components/ui/search-bar` | Search input |
-| `<CurrencyInput>` | `@/components/ui/currency-input` | Input tiền tệ (format tự động) |
-| `<DatePicker>` | `@/components/ui/date-picker` | Chọn ngày |
-| `<Drawer>` | `@/components/ui/drawer` | Mobile bottom sheet |
-| `<ConfirmDialog>` | `@/components/ui/confirm-dialog` | Xác nhận delete/cancel |
-| `<Skeleton>` | `@/components/ui/skeleton` | Loading placeholder |
-| `<UxStates>` | `@/components/ui/ux-states` | Empty/Error states |
-| `<Pagination>` | `@/components/ui/pagination` | Phân trang |
-| `<FilterSelect>` | `@/components/ui/filter-select` | Filter pills/dropdown |
-| `<FAB>` | `@/components/ui/fab` | Floating Action Button mobile |
+### 2A. List Page Components
 
-**Rules:**
-- ❌ KHÔNG tự viết component khi đã có sẵn ở trên
-- ✅ CHỈ tạo mới nếu thật sự chưa tồn tại trong `components/ui/`
+| Component | Import | Dùng ở đâu | Props chính |
+|-----------|--------|-----------|-------------|
+| `StatsBar` | `@/components/ui/stats-bar` | Stats summary (list page) | `items: StatItem[]` |
+| `TabsFilter` | `@/components/ui/tabs-filter` | Status tabs | `tabs, activeTab, onChange, variant?` |
+| `SelectPill` | `@/components/ui/select/SelectPill` | **Filter toolbar** (list page) | `options, value, onChange, placeholder, defaultValue` |
+| `SearchBar` | `@/components/ui/search-bar` | Desktop search (nếu cần) | `value, onChange, placeholder` |
+| `FAB` | `@/components/ui/fab` | Mobile floating button | `onClick, label, icon?` |
+| `Pagination` | `@/components/ui/pagination` | Phân trang | `page, totalPages, onChange` |
+| `EmptyState` | `@/components/ui/ux-states` | Khi list rỗng | `icon, title, description, actionLabel, onAction` |
+| `KPICard` | `@/components/ui/kpi-card` | Dashboard KPI cards | `label, value, icon, iconColor, iconBg, trend?` |
+
+### 2B. Table Components
+
+| Component | Import | Dùng ở đâu |
+|-----------|--------|-----------|
+| `TableWrapper` | `@/components/ui/table` | Bao ngoài table (responsive scroll) |
+| `THead` | `@/components/ui/table` | Header |
+| `TBody` | `@/components/ui/table` | Body |
+| `TH` | `@/components/ui/table` | Header cell |
+| `TD` | `@/components/ui/table` | Body cell |
+| `TR` | `@/components/ui/table` | Table row (hover, onClick) |
+
+### 2C. Form Components
+
+| Component | Import | Dùng ở đâu | Props chính |
+|-----------|--------|-----------|-------------|
+| `SelectForm` | `@/components/ui/select/SelectForm` | **Dropdown TRONG FORM** | `options, value, onChange, label` |
+| `SelectGrouped` | `@/components/ui/select/SelectGrouped` | Grouped dropdown trong form | `groups, value, onChange, label` |
+| `CurrencyInput` | `@/components/ui/currency-input` | Input tiền (auto-format VNĐ, shortcut k/m) | `value, onChange, label, error?` |
+| `DatePicker` | `@/components/ui/date-picker` | Chọn ngày | `value, onChange, label` |
+| `UnifiedModal` | `@/components/ui/unified-modal` | Modal wrapper | `isOpen, onClose, title, size, footer` |
+| `ConfirmDialog` | `@/components/ui/confirm-dialog` | Xác nhận delete | `isOpen, onClose, onConfirm, title, message` |
+
+### 2D. Display Components
+
+| Component | Import | Dùng ở đâu | Props chính |
+|-----------|--------|-----------|-------------|
+| `Badge` | `@/components/ui/badge` | Status labels, tags | `variant, children, dot?` |
+| `getStatusVariant()` | `@/components/ui/badge` | Map enum → badge variant | `status: string → BadgeVariant` |
+| `SelectStatus` | `@/components/ui/select/SelectStatus` | **Inline status editor** (table rows) | `current, options: StatusOption[], onUpdate` |
+| `Avatar` | `@/components/ui/avatar` | User avatar (image or initials) | `name, src?, size?` |
+| `Breadcrumb` | `@/components/ui/breadcrumb` | Page navigation | `items: {label, href}[]` |
+| `Drawer` | `@/components/ui/drawer` | Side panel (desktop) / Bottom sheet (mobile) | `isOpen, onClose, title, children, width?` |
+| `Skeleton` | `@/components/ui/skeleton` | Loading placeholder | `className` |
+| `SkeletonCard` | `@/components/ui/ux-states` | Loading card placeholder | — |
+
+### ⚠️ PHÂN BIỆT RÕ — KHÔNG NHẦM
+
+| Component | ✅ ĐÚNG ở đâu | ❌ SAI ở đâu |
+|-----------|--------------|-------------|
+| `SelectPill` | Filter toolbar (list page) | ❌ Form modal |
+| `SelectForm` | Form modal, form fields | ❌ Filter toolbar |
+| `SelectStatus` | Inline status editor (table rows, detail) | ❌ Filter, ❌ Form |
+| `TabsFilter` | Status filter bar | ❌ Form |
+| `SearchBar` | Desktop filter bar | ❌ Mobile status bar |
+| `CurrencyInput` | Form tiền tệ | ❌ Filter |
+| `StatsBar` | List page stats | ❌ Detail page (dùng KPICard) |
+| `KPICard` | Dashboard, detail stats cards | ❌ List page (dùng StatsBar) |
 
 ---
 
 ## 3. CSS Token Catalog — SSOT Classes
 
-### Typography (`app/styles/typography.css`)
+### Typography (`typography.css`)
 
 | Token | Dùng cho |
-|-------|---------|
+|-------|---------| 
 | `.text-display` | Số lớn (dashboard KPI) |
 | `.text-h1` | Page title |
 | `.text-h2` | Section title lớn |
-| `.text-h3` | Card title |
+| `.text-h3` | Card title, modal title |
 | `.text-body` | Body text |
 | `.text-body-sm` | Small body |
 | `.text-caption` | Muted small text |
@@ -90,126 +130,319 @@
 | `.text-amount` | Currency display |
 | `.section-heading` | Card/form sub-section titles |
 
-### Forms (`app/styles/forms.css`)
+### Forms (`forms.css`)
+
+| Token | Dùng cho | ❌ KHÔNG dùng |
+|-------|---------|----|
+| `.input-base` | Mọi input field | ❌ inline `border rounded-lg px-3 py-2` |
+| `.label-base` | Mọi form label | ❌ inline `text-sm font-medium` |
+| `.error-text` | Error message dưới input | ❌ inline `text-red-500 text-xs` |
+| `.warning-text` | Warning message | — |
+| `.form-grid-2col` | 2 cột responsive grid | ❌ inline `grid grid-cols-2 gap-3` |
+| `.form-actions` | Footer buttons trong modal | ❌ inline `flex justify-end gap-2` |
+
+### Layout (`components.css`)
 
 | Token | Dùng cho |
 |-------|---------|
-| `.input-base` | Mọi input field |
-| `.label-base` | Mọi form label |
-| `.error-text` | Error message dưới input |
-| `.form-grid-2col` | 2 cột responsive grid |
+| `.main-container` | Page layout wrapper (padding + gap responsive) |
+| `.section-title` | Section heading (icon + text + dashed border) |
+| `.table-header` | Table header row |
 
-### Pages (`app/styles/pages.css`)
-
-| Token | Dùng cho |
-|-------|---------|
-| `.card-base` | Card wrapper |
-| `.detail-grid` | Detail page layout (main + sidebar) |
-| `.detail-main` | Main content column |
-| `.detail-sidebar` | Sidebar column |
-| `.badge` | Badge base |
-| `.badge-success` `.badge-warning` `.badge-error` `.badge-info` | Status variants |
-
-### Components (`app/styles/components.css`)
+### Cards & Pages (`pages.css`)
 
 | Token | Dùng cho |
 |-------|---------|
-| `.breadcrumb` | Breadcrumb nav |
+| `.card-base` | Static card |
+| `.card-interactive` | Clickable card (hover lift + shadow) |
+| `.stats-card` | KPI/stats card (used by `KPICard`) |
+| `.detail-grid` | Detail page layout (12-col grid desktop) |
+| `.detail-main` | Main content (8 cols desktop) |
+| `.detail-sidebar` | Sidebar (4 cols desktop) |
+
+### Buttons (`components.css`)
+
+| Token | Dùng cho |
+|-------|---------|
 | `.btn` | Button base |
-| `.btn-primary` `.btn-outline` `.btn-ghost` `.btn-danger` | Button variants |
+| `.btn-primary` | Primary action |
+| `.btn-outline` | Secondary action |
+| `.btn-ghost` | Tertiary action |
+| `.btn-danger` | Delete/cancel |
+| `.btn-interactive` | Neutral interactive |
+| `.icon-btn` | Icon-only button |
 
-### Select (`app/styles/select.css`)
+### Badges (`pages.css`)
+
+| Token | Dùng cho |
+|-------|---------|
+| `.badge` | Badge base |
+| `.badge-success` `.badge-warning` `.badge-error` `.badge-info` `.badge-neutral` `.badge-primary` `.badge-accent` | Status variants |
+
+### Select (`select.css`)
 
 | Token | Dùng cho |
 |-------|---------|
 | `.select-content` | Dropdown panel |
 | `.select-item` | Dropdown option |
-| `.select-trigger-pill` | Pill-style select trigger |
+| `.select-trigger-pill` | Pill-style trigger |
 
-**Rules:**
-- ❌ KHÔNG viết `text-sm font-semibold text-text` → dùng `.section-heading`
-- ❌ KHÔNG viết `bg-white rounded-2xl shadow-sm p-6` → dùng `.card-base`
-- ❌ KHÔNG viết `text-xs text-text-secondary` → dùng `.text-caption`
+### Utilities (`utilities.css`)
+
+| Token | Dùng cho |
+|-------|---------|
+| `.accent-card` `.accent-card-gold` | Accent border cards |
+| `.progress-track` | Progress bar track |
+| `.stagger-item` | Staggered animation children |
+| `.scrollbar-hide` | Ẩn scrollbar (Tailwind utility) |
 
 ---
 
-## 4. Page Pattern — Gold Standard từ Contracts
+## 4. Shared Hooks
 
-### Server Page (`page.tsx`)
+| Hook | Import | Dùng cho |
+|------|--------|---------|
+| `useDebounce` | `@/hooks/use-debounce` | Delay search input |
+| `useMobile` | `@/hooks/use-mobile` | Detect mobile viewport |
+| `useEscape` | `@/hooks/useEscape` | Close on Escape key |
+| `useListFilters` | `@/hooks/useListFilters` | URL-based filter state (generic) |
+| `useContractFilters` | `@/hooks/useContractFilters` | Contract-specific filters (clone cho module khác) |
+| `useInfiniteScroll` | `@/hooks/use-infinite-scroll` | Infinite scroll pagination |
+| `useScrollDirection` | `@/hooks/use-scroll-direction` | Detect scroll up/down |
+| `useSwipeDismiss` | `@/hooks/useSwipeDismiss` | Swipe to dismiss (mobile) |
+| `useOnlineStatus` | `@/hooks/useOnlineStatus` | Online/offline detection |
+| `useRealtime` | `@/hooks/use-realtime` | Supabase realtime subscription |
+
+### SWR Cache Pattern (lib/swr.ts)
 
 ```tsx
-// app/(protected)/[module]/page.tsx
-import { fetchModuleList } from "@/app/actions/[module]-queries";
-import { ModuleListPage } from "@/components/[module]/[module]-list-page";
+import { cacheKeys, revalidate } from "@/lib/swr";
 
-export default async function ModulePage() {
-  const data = await fetchModuleList();
-  return <ModuleListPage initialData={data} />;
+// Fetch
+const { data, isLoading, error } = useSWR(cacheKeys.dresses(), fetcher);
+
+// Revalidate sau mutation
+revalidate(cacheKeys.dresses());
+revalidate(cacheKeys.dressStats());
+```
+
+---
+
+## 5. Clone Templates — COPY RỒI ĐỔI DATA
+
+> **QUY TRÌNH:** Clone file → Find & Replace entity name → đổi data → DIFF kiểm tra.
+
+### BLOCK 1: Stats Container + FAB
+
+**Clone:** [employee-list-page.tsx L56-66](file:///c:/Users/Admin/Desktop/Ai/mood%20saas/mood-studio/components/employees/employee-list-page.tsx#L56-L66)
+
+```tsx
+{/* ── Stats + Action (unified container) ── */}
+<div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+  <[Module]StatsBar stats={stats} />
+  <div className="hidden lg:flex">
+    <button onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+      <Plus className="w-5 h-5" />
+      <span>Tạo [entity]</span>
+    </button>
+  </div>
+</div>
+
+<FAB onClick={handleCreate} label="Tạo [entity]" />
+```
+
+### BLOCK 2: Stats Bar (TÁCH FILE RIÊNG)
+
+**Clone:** [employee-stats-bar.tsx](file:///c:/Users/Admin/Desktop/Ai/mood%20saas/mood-studio/components/employees/employee-stats-bar.tsx)
+
+```tsx
+import { StatsBar } from "@/components/ui/stats-bar";
+
+export default function [Module]StatsBar({ stats }: Props) {
+  const items = [
+    { icon: Icon1, label: "tổng", value: String(stats.total), iconBg: "bg-primary/10", iconColor: "text-primary" },
+    { icon: Icon2, label: "hoạt động", value: String(stats.active), iconBg: "bg-success/10", iconColor: "text-success" },
+  ];
+  return <StatsBar items={items} />;
 }
 ```
 
-### Client Component (`[module]-list-page.tsx`)
+### BLOCK 3: Filter Bar (TÁCH FILE RIÊNG — BẮT BUỘC)
+
+**Clone:** [employee-filters.tsx](file:///c:/Users/Admin/Desktop/Ai/mood%20saas/mood-studio/components/employees/employee-filters.tsx)
 
 ```tsx
-"use client";
-import { useState } from "react";
-import useSWR from "swr";
+import { TabsFilter } from "@/components/ui/tabs-filter";
+import { SelectPill } from "@/components/ui/select/SelectPill";
 
-export function ModuleListPage({ initialData }: Props) {
-  const [filters, setFilters] = useState(defaultFilters);
-  const { data } = useSWR(key, fetcher, { fallbackData: initialData });
-  // ... filters, table, drawer
-}
-```
-
-### Detail Page (`[id]/page.tsx`)
-
-```tsx
-import { fetchModuleDetail } from "@/app/actions/[module]-queries";
-import { ModuleDetailPage } from "@/components/[module]/[module]-detail-page";
-import { notFound } from "next/navigation";
-
-export default async function DetailPageRoute({ params }: Props) {
-  const { id } = await params;
-  const data = await fetchModuleDetail(id);
-  if (!data) notFound();
-  return <ModuleDetailPage data={data} />;
-}
-```
-
-### Loading Skeleton (`loading.tsx`)
-
-```tsx
-import { Skeleton } from "@/components/ui/skeleton";
-
-export default function ModuleLoading() {
+export default function [Module]Filters({ stats }: Props) {
   return (
-    <div className="space-y-4 p-6">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-[400px] w-full" />
-    </div>
+    <>
+      {/* ── MOBILE: 1 hàng cuộn ngang ── */}
+      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+        <TabsFilter tabs={STATUS_TABS} activeTab={current} onChange={fn} variant="pills" />
+        <div className="h-5 border-l border-border shrink-0" />
+        <SelectPill options={OPTS} value={v} onChange={fn} placeholder="..." defaultValue="all" />
+      </div>
+
+      {/* ── DESKTOP ── */}
+      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        <TabsFilter tabs={STATUS_TABS} activeTab={current} onChange={fn} />
+        <div className="flex items-center gap-2">
+          <SelectPill options={OPTS} value={v} onChange={fn} placeholder="..." defaultValue="all" />
+        </div>
+      </div>
+    </>
   );
 }
 ```
 
----
+#### Mobile vs Desktop
 
-## 5. Hook Pattern — Form State Management
+| Yếu tố | Mobile (`lg:hidden`) | Desktop (`hidden lg:flex`) |
+|---------|---------------------|---------------------------|
+| Status | `<TabsFilter variant="pills">` | `<TabsFilter>` (default) |
+| Layout | `flex-nowrap overflow-x-auto scrollbar-hide` | `lg:justify-between` |
+| Dropdowns | Cùng hàng, scroll ngang | Nhóm bên phải `flex gap-2` |
+| Separator | `border-l border-border` | Không cần |
 
-Gold standard: `useContractForm`
+### BLOCK 4: List Content (Table/Cards + Empty + Pagination)
+
+**Clone:** [employee-list-page.tsx L72-104](file:///c:/Users/Admin/Desktop/Ai/mood%20saas/mood-studio/components/employees/employee-list-page.tsx#L72-L104)
 
 ```tsx
-// hooks/use[Module]Form.ts
-export function useModuleForm(initialData?: ModuleType) {
-  const [formData, setFormData] = useState<FormData>(
-    initialData ? mapToForm(initialData) : defaultValues
-  );
+{items.length === 0 ? (
+  hasFilters ? (
+    <EmptyState icon={FilterX} title="Không tìm thấy" description="..." actionLabel="Xóa bộ lọc" onAction={clearFilters} />
+  ) : (
+    <EmptyState icon={ModuleIcon} title="Chưa có [entity]" description="..." actionLabel="Tạo [entity]" onAction={handleCreate} />
+  )
+) : (
+  <>
+    <div className="hidden lg:block"><[Module]Table items={items} /></div>
+    <div className="lg:hidden space-y-2">
+      {items.map((item) => <[Module]Card key={item.id} item={item} />)}
+    </div>
+    <Pagination page={page} totalPages={totalPages} onChange={handlePage} className="mt-4" />
+    <p className="text-center text-xs text-text-muted mt-1">
+      Hiển thị {start}–{end} của {total} [entity]
+    </p>
+  </>
+)}
+```
+
+### BLOCK 5: Loading / Error States
+
+**Copy nguyên — không đổi gì:**
+
+```tsx
+{isLoading && (
+  <div className="flex items-center justify-center py-16">
+    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+    <span className="ml-2 text-sm text-text-secondary">Đang tải dữ liệu...</span>
+  </div>
+)}
+{error && !isLoading && (
+  <div className="flex items-center justify-center py-16">
+    <p className="error-text">Lỗi tải dữ liệu</p>
+  </div>
+)}
+```
+
+### BLOCK 6: Form Modal
+
+```tsx
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import { SelectForm } from "@/components/ui/select/SelectForm";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+// Layout
+<div className="form-grid-2col">
+  <div>
+    <label className="label-base">Field 1</label>
+    <input className="input-base w-full" />
+  </div>
+  <SelectForm label="Field 2" value={v} onChange={fn} options={opts} />
+</div>
+<div className="form-grid-2col">
+  <CurrencyInput label="Giá" value={v} onChange={fn} />
+  <CurrencyInput label="Chi phí" value={v} onChange={fn} />
+</div>
+
+// Delete confirmation
+<ConfirmDialog isOpen={confirmOpen} onClose={fn} onConfirm={handleDelete}
+  title="Xóa [entity]" message="Bạn có chắc?" confirmLabel="Xóa" />
+```
+
+### BLOCK 7: Detail Page
+
+```tsx
+<div className="main-container">
+  <Breadcrumb items={[{ label: "[Module]", href: "/[module]" }, { label: data.name }]} />
+  <div className="detail-grid">
+    <div className="detail-main">
+      {/* Main content sections */}
+    </div>
+    <div className="detail-sidebar">
+      {/* Sidebar sections */}
+    </div>
+  </div>
+</div>
+```
+
+### BLOCK 8: Desktop Table
+
+```tsx
+import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
+
+<TableWrapper>
+  <THead>
+    <tr>
+      <TH>Tên</TH>
+      <TH>Trạng thái</TH>
+      <TH>Ngày tạo</TH>
+    </tr>
+  </THead>
+  <TBody>
+    {items.map((item) => (
+      <TR key={item.id} onClick={() => handleView(item)}>
+        <TD>{item.name}</TD>
+        <TD><Badge variant={getStatusVariant(item.status)}>{item.status_label}</Badge></TD>
+        <TD>{formatDate(item.created_at)}</TD>
+      </TR>
+    ))}
+  </TBody>
+</TableWrapper>
+```
+
+### BLOCK 9: Full Page Structure Order
+
+```tsx
+<div className="main-container gap-3!">
+  {/* 1 */} Stats Container + Desktop Button
+  {/* 2 */} <FAB /> (mobile)
+  {/* 3 */} <[Module]Filters /> (TÁCH FILE RIÊNG)
+  {/* 4 */} Loading State
+  {/* 5 */} Error State
+  {/* 6 */} List Content (Table/Cards/Empty + Pagination + Footer count)
+  {/* 7 */} Form Modal
+</div>
+```
+
+---
+
+## 6. Hook Pattern — Form State
+
+```tsx
+export function use[Module]Form(initialData?: ModuleType) {
+  const [formData, setFormData] = useState<FormData>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = (field: keyof FormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: "" })); // Clear error on change
+    setErrors(prev => ({ ...prev, [field]: "" }));
   };
 
   const validate = (): boolean => {
@@ -219,98 +452,67 @@ export function useModuleForm(initialData?: ModuleType) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validate()) return;
-    setIsSubmitting(true);
-    const result = await createOrUpdateModule(formData);
-    setIsSubmitting(false);
-    if (!result.success) toast.error(result.error);
-    else toast.success("Thành công!");
-  };
-
-  return { formData, updateField, errors, isSubmitting, handleSubmit };
+  return { formData, updateField, errors, isSubmitting, validate };
 }
 ```
 
 ---
 
-## 6. Error Handling — Mọi mutation PHẢI có feedback
-
-### Component gọi action:
+## 7. Error Handling — Mọi mutation PHẢI có feedback
 
 ```tsx
 const result = await createModule(data);
 if (result.success) {
-  toast.success("Đã tạo thành công");
+  toast("Thành công", "success");
   closeModal();
 } else {
-  toast.error(result.error || "Có lỗi xảy ra");
+  toast(result.error || "Có lỗi", "error");
 }
 ```
 
-### Rules:
-
-- ❌ `await createModule(data);` → KHÔNG check result = UI im lặng khi fail
-- ✅ Check `result.success` → toast feedback
-- ✅ Mọi action PHẢI return `{ success: boolean; data?: T; error?: string }`
-- ✅ Mọi button submit PHẢI có loading state (`isSubmitting`)
+**Rules:** Mọi action return `{ success, data?, error? }`. Mọi button có loading state.
 
 ---
 
-## 7. Cross-module — Module A cần data Module B
+## 8. Cross-module
 
-### READ data module khác:
-
-```tsx
-// components/contracts/ cần employee list:
-import { fetchEmployeeList } from "@/app/actions/employee-queries";
-```
-
-### WRITE data module khác:
-
-```tsx
-// components/contracts/ cần tạo customer:
-import { createCustomer } from "@/app/actions/customer-actions";
-```
-
-### Rules:
-
-- ❌ KHÔNG copy query logic vào module khác → import từ source module
+- ❌ KHÔNG copy query logic → import từ source module
 - ❌ KHÔNG import component từ module khác trực tiếp
 - ✅ Shared UI → `components/ui/`
-- ✅ Module-specific UI → `components/[module]/`
-- ✅ FK JOIN → luôn LEFT JOIN (nullable) tránh missing data crash page
-- ✅ Cross-module WRITE → `revalidatePath` CẢ 2 module paths:
-  ```tsx
-  revalidatePath("/contracts");
-  revalidatePath("/employees");
-  ```
+- ✅ Cross-module WRITE → `revalidatePath` CẢ 2 module paths
 
 ---
 
-## 8. UX States — Mỗi page PHẢI có 3 states
+## 9. UX States — PHẢI có đủ
 
-### ① Loading State (BẮT BUỘC)
+| State | Component | Bắt buộc |
+|-------|----------|----------|
+| Loading (page) | `loading.tsx` + `Skeleton` | ✅ |
+| Loading (section) | `Loader2` spinner | ✅ |
+| Empty (no data) | `EmptyState` + CTA | ✅ |
+| Empty (no filter match) | `EmptyState` + "Xóa bộ lọc" | ✅ |
+| Error | `.error-text` | ✅ |
+| Submit loading | `isSubmitting` disable button | ✅ |
 
-- `loading.tsx` ở route level → Skeleton cho page-level loading
-- `<Skeleton>` component cho section-level loading
-- Submit button có `isSubmitting` state → disable + spinner
+---
 
-### ② Empty State (BẮT BUỘC)
+## 10. CHECKLIST TRƯỚC KHI BÁO DONE
 
-- Khi list rỗng → hiện message rõ ràng + CTA (nút tạo mới)
-- Dùng `<UxStates type="empty" />` hoặc custom
-- ❌ KHÔNG để bảng trống không có text giải thích
-
-### ③ Error State (BẮT BUỘC)
-
-- Khi fetch fail → hiện error message + retry button
-- ❌ KHÔNG hiện trang trắng hoặc crash
-- Form validation errors → hiện dưới input bằng `.error-text`
-
-### ④ Responsive Verify (BẮT BUỘC)
-
-- **Desktop (1440px)** — grid layout, bảng đầy đủ columns
-- **Mobile (375px)** — 1 cột, card view thay bảng, FAB thay header button
-- **Test CẢ 2 viewports** trước khi báo done
-- Lesson #63: Dùng `max-lg:` override, KHÔNG đổi default classes
+```
+□ CLONE từ Gold Standard (employees/contracts) — KHÔNG tự viết
+□ Stats bar TÁCH FILE RIÊNG [module]-stats-bar.tsx dùng shared <StatsBar>
+□ Filter bar TÁCH FILE RIÊNG [module]-filters.tsx
+□ Mobile: <TabsFilter variant="pills"> + <SelectPill> (lg:hidden)
+□ Desktop: <TabsFilter> + pills nhóm phải lg:justify-between (hidden lg:flex)
+□ Desktop table dùng <TableWrapper> <THead> <TBody> <TH> <TD> <TR>
+□ Mobile cards <div className="lg:hidden space-y-2">
+□ Empty state × 2 (no data + no filter match) dùng <EmptyState>
+□ Loading/Error states copy nguyên template
+□ FAB đặt SAU stats container
+□ Pagination + footer count
+□ Form: SelectForm (KHÔNG SelectPill), CurrencyInput, ConfirmDialog
+□ Form grid: .form-grid-2col (KHÔNG inline grid-cols-2)
+□ Detail page: Breadcrumb + .detail-grid + .detail-main + .detail-sidebar
+□ Badge dùng <Badge variant={getStatusVariant(status)}>
+□ DIFF kiểm tra structure giống hệt Gold Standard source
+```

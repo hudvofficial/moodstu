@@ -141,3 +141,7 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 ## Từ Drive >1000 Files Fix (2026-03-23)
 
 83. **SUPABASE POSTGREST SILENT TRUNCATION Ở 1000 ROWS** — Supabase PostgREST mặc định cap `max_rows=1000`. Query `.select(gallery_images(*))` (foreignTable sub-select) bị SILENT truncation: trả 1000 rows mà KHÔNG báo lỗi, KHÔNG warning. Cả `.limit(10000)` lẫn `.limit(10000, {foreignTable})` đều KHÔNG vượt qua server-side cap. GIẢI PHÁP: (1) KHÔNG dùng foreignTable sub-select cho bảng lớn. (2) Tách ra query riêng `.from("gallery_images").select().eq("gallery_id", id)`. (3) Dùng pagination loop với `.range(from, from+999)` cho đến hết. Helper `fetchAllGalleryImages()` đã implement pattern này. ENFORCEMENT: Khi query bảng có khả năng >1000 rows → PHẢI dùng pagination loop, KHÔNG dùng `.limit()` hay foreignTable sub-select.
+
+## Từ Dresses Module Refactor (2026-03-26)
+
+84. **PHẢI ĐỌC module-blueprint.md + ĐỐI CHIẾU CONTRACTS GOLD STANDARD TRƯỚC KHI CODE BẤT KỲ MODULE NÀO** — AI đã dùng `SelectForm` thay vì `SelectPill` cho filter toolbar, viết inline FAB thay vì dùng `<FAB>`, viết inline pagination thay vì dùng `<Pagination>`. Tất cả components này đã có sẵn trong `module-blueprint.md` Section 2: Component Catalog. Nguyên nhân: gate `before-edit.md` step 7 chỉ trigger cho "MODULE MỚI" nên AI skip khi refactor → đã FIX gate trigger cho MỌI công việc module. ENFORCEMENT: `before-edit.md` step 7 bắt buộc đọc Component Catalog + đối chiếu contracts module. Phân biệt: `SelectPill` = filter toolbar, `SelectForm` = form fields.

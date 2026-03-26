@@ -50,7 +50,12 @@
 
 **Quy tắc cụ thể:**
 - ❌ KHÔNG viết inline class khi đã có token → dùng SSOT token
-- ❌ KHÔNG viết native `<select>` → dùng `<SelectForm>`
+- ❌ KHÔNG viết native `<select>`:
+  - Filter toolbar → dùng `<SelectPill>` (compact pill dropdown)
+  - Form fields → dùng `<SelectForm>` (full-width form dropdown)
+- ❌ KHÔNG viết inline FAB → dùng `<FAB>` (`components/ui/fab`)
+- ❌ KHÔNG viết inline pagination → dùng `<Pagination>` (`components/ui/pagination`)
+- ❌ KHÔNG code bất kỳ component nào khi `module-blueprint.md` Section 2 đã có sẵn
 - ❌ KHÔNG viết logic phức tạp trong component → tách ra `actions/` hoặc `utils/`
 - ❌ KHÔNG dùng `any` → define Interface/Type rõ ràng
 - ✅ Mọi component MỚI phải là FC + Hooks
