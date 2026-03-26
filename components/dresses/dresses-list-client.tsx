@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
-import { Shirt, Plus, Loader2, FilterX, ScanLine, Printer, CalendarDays } from "lucide-react";
+import { Shirt, Plus, Loader2, FilterX, ScanLine, CalendarDays } from "lucide-react";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
@@ -19,7 +19,7 @@ import DressCard from "@/components/dresses/dress-card";
 import DressFormModal from "@/components/dresses/dress-form-modal";
 import { DressDrawer } from "@/components/dresses/dress-drawer";
 import { DressScannerModal } from "@/components/dresses/dress-scanner-modal";
-import { DressQRModal } from "@/components/dresses/dress-qr-modal";
+
 
 // ═══════════════════════════════════════════
 // DressesListClient — Main page component
@@ -45,7 +45,7 @@ function DressesListInner() {
   const [editItem, setEditItem] = useState<DressItem | null>(null);
   const [drawerItem, setDrawerItem] = useState<DressItem | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
-  const [batchPrintOpen, setBatchPrintOpen] = useState(false);
+
 
   // SWR — dress list
   const { data: listData, isLoading, error } = useSWR(
@@ -116,10 +116,7 @@ function DressesListInner() {
             <ScanLine className="w-4 h-4" />
             <span>Quét mã</span>
           </button>
-          <button onClick={() => setBatchPrintOpen(true)} className="btn btn-outline gap-2" disabled={dresses.length === 0}>
-            <Printer className="w-4 h-4" />
-            <span>In nhãn</span>
-          </button>
+
           <Link href="/dresses/rentals" className="btn btn-outline gap-2">
             <CalendarDays className="w-4 h-4" />
             <span>Xem lịch</span>
@@ -223,12 +220,7 @@ function DressesListInner() {
         onScanned={handleScanned}
       />
 
-      {/* 10 ─── Batch Print QR Modal ─── */}
-      <DressQRModal
-        dresses={dresses}
-        isOpen={batchPrintOpen}
-        onClose={() => setBatchPrintOpen(false)}
-      />
+
     </div>
   );
 }

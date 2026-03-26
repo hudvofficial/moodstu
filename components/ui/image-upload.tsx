@@ -20,11 +20,13 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   onUpload: (formData: FormData) => Promise<{ success: boolean; data?: { url: string }; error?: string }>;
   maxSizeMB?: number;
+  /** When true, image fills parent height (for grid/flex layouts) */
+  fillCard?: boolean;
 }
 
 // ─── COMPONENT ───────────────────────────────────
 
-export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10 }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10, fillCard }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,11 +77,11 @@ export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10 }: Image
   };
 
   return (
-    <div>
+    <div className={fillCard ? 'h-full' : ''}>
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="aspect-3/4 w-full max-w-[200px] bg-bg-hover border-2 border-dashed border-border rounded-xl overflow-hidden relative group cursor-pointer hover:border-primary/40 transition-colors"
+        className={`${fillCard ? 'h-full w-full min-h-[200px]' : 'aspect-3/4 w-full max-w-[200px]'} bg-bg-hover border-2 border-dashed border-border rounded-xl overflow-hidden relative group cursor-pointer hover:border-primary/40 transition-colors`}
       >
         {displayUrl ? (
           <>

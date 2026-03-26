@@ -46,7 +46,7 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
 
         {/* Status badge */}
         <div className="absolute top-2 left-2">
-          <Badge variant={statusConfig.variant}>
+          <Badge variant={statusConfig.variant} solid>
             {statusConfig.label}
           </Badge>
         </div>
@@ -54,18 +54,18 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
         {/* Edit button — hover */}
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-card/90 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-card/90 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
         >
           <Pencil size={12} />
         </button>
       </div>
 
       {/* Info */}
-      <div className="p-2.5">
-        <div className="flex justify-between items-start gap-1.5 mb-1">
+      <div className="p-3">
+        <div className="flex justify-between items-start gap-2 mb-2">
           <div className="min-w-0">
-            <p className="text-caption text-text-muted truncate">{dress.category}</p>
-            <h3 className="text-body-sm font-semibold text-text-primary truncate">{dress.name}</h3>
+            <p className="text-caption font-bold uppercase tracking-widest text-text-muted truncate">{dress.category}</p>
+            <h3 className="text-sm font-bold text-primary uppercase tracking-tight truncate" title={dress.name}>{dress.name}</h3>
           </div>
           {dress.item_code && (
             <span className="tag-badge shrink-0">
@@ -74,18 +74,26 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
           )}
         </div>
 
-        {/* Size + Color */}
-        <div className="flex items-center gap-2 text-caption text-text-muted">
-          {dress.size && <span>Size {dress.size}</span>}
-          {dress.size && dress.color && <span>·</span>}
-          {dress.color && <span>{dress.color}</span>}
+        {/* Size + Color — V1 2-column layout with V2 tokens */}
+        <div className="flex items-center gap-2 mt-2 py-2 border-t border-dashed border-border">
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-caption uppercase text-text-muted">Size</span>
+            <span className="text-sm font-bold text-text-primary truncate">{dress.size || "—"}</span>
+          </div>
+          <div className="w-px h-6 bg-border" />
+          <div className="flex flex-col min-w-0 flex-1 pl-2">
+            <span className="text-caption uppercase text-text-muted">Màu</span>
+            <span className="text-sm font-bold text-text-primary truncate">{dress.color || "—"}</span>
+          </div>
         </div>
 
         {/* Price */}
         {dress.rental_price ? (
-          <p className="text-body-sm font-semibold text-primary mt-1">
-            {new Intl.NumberFormat("vi-VN").format(dress.rental_price)}đ
-          </p>
+          <div className="mt-2 pt-2 border-t border-border text-center">
+            <p className="text-sm font-bold text-primary">
+              {new Intl.NumberFormat("vi-VN").format(dress.rental_price)}đ
+            </p>
+          </div>
         ) : null}
       </div>
     </div>

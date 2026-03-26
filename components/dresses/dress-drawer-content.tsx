@@ -31,6 +31,17 @@ import { useState } from "react";
 
 
 
+// ─── HELPERS ─────────────────────────────────────
+
+function MetaItem({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-caption">{label}</span>
+      <span className="text-body-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>{value || "—"}</span>
+    </div>
+  );
+}
+
 // ─── INFO SECTION (0ms) ─────────────────────────
 
 function InfoSection({ dress }: { dress: DressItem }) {
@@ -39,59 +50,55 @@ function InfoSection({ dress }: { dress: DressItem }) {
 
   return (
     <div className="space-y-4">
-      <h4 className="section-title">Thông tin</h4>
+      {/* ── Image + Info cùng hàng (Stitch: flex gap-5) ── */}
+      <div className="flex gap-4">
+        {/* Image — 1/3 width */}
+        <div className="shrink-0 bg-bg-hover rounded-xl overflow-hidden relative shadow-xs" style={{ width: 130, height: 173 }}>
+          {dress.image_url ? (
+            <Image src={dress.image_url} alt={dress.name} fill className="object-cover" sizes="120px" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-text-muted/30">
+              <Shirt size={32} />
+              <p className="text-caption mt-1">Chưa có ảnh</p>
+            </div>
+          )}
+        </div>
 
-      {/* Image */}
-      <div className="aspect-3/4 bg-bg-hover rounded-xl overflow-hidden relative max-w-[200px]">
-        {dress.image_url ? (
-          <Image src={dress.image_url} alt={dress.name} fill className="object-cover" sizes="200px" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-text-muted/30">
-            <Shirt size={40} />
-            <p className="text-caption mt-1">Chưa có ảnh</p>
-          </div>
-        )}
-      </div>
-
-      {/* Info grid 2 columns */}
-      <div className="form-grid-2col gap-y-3">
-        <div>
-          <span className="text-caption text-text-muted">Mã</span>
-          <p><span className="tag-badge">{dress.item_code}</span></p>
-        </div>
-        <div>
-          <span className="text-caption text-text-muted">Danh mục</span>
-          <p className="text-body-sm">{dress.category || "—"}</p>
-        </div>
-        <div>
-          <span className="text-caption text-text-muted">Size</span>
-          <p className="text-body-sm">{dress.size || "—"}</p>
-        </div>
-        <div>
-          <span className="text-caption text-text-muted">Màu</span>
-          <p className="text-body-sm">{dress.color || "—"}</p>
-        </div>
-        <div>
-          <span className="text-caption text-text-muted">Giá thuê</span>
-          <p className="text-body-sm font-semibold text-primary">{formatPrice(dress.rental_price)}</p>
-        </div>
-        <div>
-          <span className="text-caption text-text-muted">Giá bán</span>
-          <p className="text-body-sm">{formatPrice(dress.sale_price)}</p>
-        </div>
-        {conditionLabel && (
+        {/* Info — 2/3 width */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
-            <span className="text-caption text-text-muted">Tình trạng</span>
-            <p className="text-body-sm">{conditionLabel}</p>
+            {/* Badges: Mã + Tình trạng */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="tag-badge">{dress.item_code}</span>
+              {conditionLabel && <Badge variant="neutral">{conditionLabel}</Badge>}
+            </div>
+
+            {/* Detail grid 2col (Stitch: grid-cols-2) */}
+            <div className="grid grid-cols-2 gap-y-2.5 gap-x-2">
+              <MetaItem label="Danh mục" value={dress.category} />
+              <MetaItem label="Size" value={dress.size} />
+              <MetaItem label="Màu" value={dress.color} />
+            </div>
           </div>
-        )}
+
+          {/* Prices — tách riêng, shadow separator (Lesson #64: no border) */}
+          <div className="mt-3 pt-3" style={{ boxShadow: "inset 0 1px 0 var(--color-border-light, rgba(0,0,0,0.06))" }}>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-caption text-text-muted">Giá thuê</span>
+              <span className="text-lg font-bold text-primary tracking-tight">{formatPrice(dress.rental_price)}</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-caption text-text-muted">Giá bán</span>
+              <span className="text-body-sm font-semibold">{formatPrice(dress.sale_price)}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Notes */}
+      {/* Notes — tonal card (Stitch: bg-surface-container-low p-4 rounded-xl) */}
       {dress.notes && (
-        <div>
-          <span className="text-caption text-text-muted">Ghi chú</span>
-          <p className="text-body-sm mt-0.5">{dress.notes}</p>
+        <div className="bg-bg-hover p-4 rounded-xl">
+          <p className="text-body-sm text-text-secondary leading-relaxed">{dress.notes}</p>
         </div>
       )}
 
@@ -236,10 +243,10 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
     <div className="space-y-2 mt-4">
       <h4 className="section-title">Hành động</h4>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex gap-2 flex-wrap">
         {/* Đặt cho hợp đồng - luôn show nếu available */}
         {status === "available" && (
-          <Link href={`/contracts/new?dress_id=${dress.id}`} className="btn btn-ghost w-full gap-2">
+          <Link href={`/contracts/new?dress_id=${dress.id}`} className="btn btn-ghost flex-1 gap-2">
             <FileText size={16} />
             Đặt cho hợp đồng
           </Link>
@@ -247,7 +254,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
 
         {/* Đặt thuê vãng lai */}
         {status === "available" && (
-          <button onClick={() => setShowRentalModal(true)} className="btn btn-primary w-full gap-2">
+          <button onClick={() => setShowRentalModal(true)} className="btn btn-primary flex-1 gap-2">
             <ShoppingBag size={16} />
             Đặt thuê
           </button>

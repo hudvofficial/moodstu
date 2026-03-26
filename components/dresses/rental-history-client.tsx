@@ -10,7 +10,7 @@ import { useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
-import { Calendar, Loader2, ChevronRight, FilterX } from "lucide-react";
+import { Calendar, Loader2, FilterX } from "lucide-react";
 import { fetchRentalHistory } from "@/app/actions/dress-queries";
 import { RENTAL_HISTORY_PAGE_SIZE, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { RentalHistoryFilters, RentalHistoryRow } from "@/types/dress";
@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/ux-states";
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -38,8 +40,8 @@ function RentalRow({ row }: { row: RentalHistoryRow }) {
   const statusConfig = RESERVATION_STATUS_MAP[row.status || "reserved"] || RESERVATION_STATUS_MAP.reserved;
 
   return (
-    <tr className="border-b border-border/30 hover:bg-hover/30 transition-colors">
-      <td className="py-3 px-4">
+    <TR>
+      <TD>
         <div className="flex items-center gap-2">
           {row.inventory_items?.item_code && (
             <span className="tag-badge text-xs">{row.inventory_items.item_code}</span>
@@ -48,27 +50,27 @@ function RentalRow({ row }: { row: RentalHistoryRow }) {
             {row.inventory_items?.name || "—"}
           </span>
         </div>
-      </td>
-      <td className="py-3 px-4">
+      </TD>
+      <TD>
         {row.contracts?.contract_code ? (
           <Link href={`/contracts/${row.contracts.id}`} className="text-body-sm font-medium text-primary hover:underline">
             {row.contracts.contract_code}
           </Link>
         ) : "—"}
-      </td>
-      <td className="py-3 px-4 text-body-sm text-text-secondary">
+      </TD>
+      <TD className="text-body-sm text-text-secondary">
         {row.contracts?.customers?.full_name || "—"}
-      </td>
-      <td className="py-3 px-4 text-body-sm font-medium">
+      </TD>
+      <TD className="text-body-sm font-medium">
         {formatPrice(row.rental_price)}
-      </td>
-      <td className="py-3 px-4 text-caption text-text-muted">
+      </TD>
+      <TD className="text-caption text-text-muted">
         {formatDate(row.start_date)} – {formatDate(row.end_date)}
-      </td>
-      <td className="py-3 px-4">
+      </TD>
+      <TD>
         <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-      </td>
-    </tr>
+      </TD>
+    </TR>
   );
 }
 
@@ -167,13 +169,10 @@ export default function RentalHistoryClient() {
     <div className="main-container gap-3!">
 
       {/* 1 ─── Breadcrumb ─── */}
-      <nav className="flex items-center gap-1.5 text-caption text-text-muted">
-        <Link href="/dresses" className="hover:text-text-primary transition-colors">
-          Váy cưới
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-text-primary font-medium">Lịch sử cho thuê</span>
-      </nav>
+      <Breadcrumb items={[
+        { label: "Váy cưới", href: "/dresses" },
+        { label: "Lịch sử cho thuê" },
+      ]} />
 
       {/* 2 ─── Stats summary ─── */}
       <div className="flex items-center gap-6 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
@@ -242,25 +241,23 @@ export default function RentalHistoryClient() {
       {!isLoading && !error && rows.length > 0 && (
         <>
           {/* Desktop */}
-          <div className="hidden lg:block bg-bg-card rounded-xl shadow-xs overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Trang phục</th>
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Hợp đồng</th>
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Khách hàng</th>
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Giá thuê</th>
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Ngày thuê</th>
-                  <th className="text-left py-3 px-4 text-caption text-text-muted uppercase font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <RentalRow key={row.id} row={row} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <TableWrapper className="hidden lg:block">
+            <THead>
+              <tr>
+                <TH>Trang phục</TH>
+                <TH>Hợp đồng</TH>
+                <TH>Khách hàng</TH>
+                <TH>Giá thuê</TH>
+                <TH>Ngày thuê</TH>
+                <TH>Trạng thái</TH>
+              </tr>
+            </THead>
+            <TBody>
+              {rows.map((row) => (
+                <RentalRow key={row.id} row={row} />
+              ))}
+            </TBody>
+          </TableWrapper>
 
           {/* Mobile cards */}
           <div className="lg:hidden space-y-2">

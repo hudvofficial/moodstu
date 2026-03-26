@@ -45,14 +45,14 @@ export function DressDrawer({ dress, isOpen, onClose, onEdit }: DressDrawerProps
         onClick={() => {
           if (onEdit) { onClose(); onEdit(dress); }
         }}
-        className="p-1.5 rounded-md hover:bg-hover transition-colors"
+        className="btn-icon"
         title="Sửa trang phục"
       >
         <Pencil className="w-4 h-4 text-text-secondary" />
       </button>
       <button
         onClick={() => setQrOpen(true)}
-        className="p-1.5 rounded-md hover:bg-hover transition-colors"
+        className="btn-icon"
         title="Mã QR"
       >
         <QrCode className="w-4 h-4 text-text-secondary" />

@@ -89,7 +89,7 @@ export function ContractDrawer({
           onClose();
           router.push(`/contracts/${contractId}/edit`);
         }}
-        className="p-1.5 rounded-md hover:bg-hover transition-colors"
+        className="btn-icon"
         title="Sửa hợp đồng"
       >
         <Pencil className="w-4 h-4 text-text-secondary" />
@@ -98,7 +98,7 @@ export function ContractDrawer({
         href={`/contracts/${contractId}/print`}
         target="_blank"
         rel="noopener noreferrer"
-        className="p-1.5 rounded-md hover:bg-hover transition-colors"
+        className="btn-icon"
         title="In hợp đồng"
       >
         <Printer className="w-4 h-4 text-text-secondary" />

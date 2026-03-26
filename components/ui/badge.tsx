@@ -7,6 +7,7 @@ interface BadgeProps {
   children: React.ReactNode;
   className?: string;
   dot?: boolean;
+  solid?: boolean;
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -19,9 +20,20 @@ const variantClasses: Record<BadgeVariant, string> = {
   accent: "badge-accent",
 };
 
-export function Badge({ variant = "neutral", children, className, dot }: BadgeProps) {
+const solidVariantClasses: Record<BadgeVariant, string> = {
+  success: "badge-solid-success",
+  warning: "badge-solid-warning",
+  error: "badge-solid-error",
+  info: "badge-solid-info",
+  neutral: "badge-solid-neutral",
+  primary: "badge-solid-primary",
+  accent: "badge-solid-accent",
+};
+
+export function Badge({ variant = "neutral", children, className, dot, solid }: BadgeProps) {
+  const colorClass = solid ? solidVariantClasses[variant] : variantClasses[variant];
   return (
-    <span className={cn("badge", variantClasses[variant], className)}>
+    <span className={cn("badge", colorClass, className)}>
       {dot && (
         <span
           className="w-1.5 h-1.5 rounded-full shrink-0"
