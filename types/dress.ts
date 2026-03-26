@@ -7,7 +7,7 @@
  * @see types/contract.ts for pattern reference
  */
 
-import type { DressCategory, DressStatus, DressCondition } from "@/lib/validations/dress.schema";
+import type { DressCategory, DressStatus } from "@/lib/validations/dress.schema";
 
 // ─── CORE DATA MODEL (inventory_items row) ───────────────────
 
@@ -25,7 +25,7 @@ export interface DressItem {
   current_stock: number | null;
   min_stock: number | null;
   image_url: string | null;
-  status: string | null;
+  status: DressStatus | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -73,4 +73,26 @@ export interface DressReservation {
 
 export interface DressDetail extends DressItem {
   reservations: DressReservation[];
+}
+
+// ─── RENTAL HISTORY (full page) ──────────────────────────────
+
+export interface RentalHistoryRow {
+  id: string;
+  inventory_item_id: string;
+  contract_id: string;
+  status: string | null;
+  rental_price: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+  created_at: string;
+  contracts?: { id: string; contract_code: string; customers?: { full_name: string } | null } | null;
+  inventory_items?: { id: string; name: string; item_code: string; category: string | null } | null;
+}
+
+export interface RentalHistoryFilters {
+  item_id?: string;
+  status?: "reserved" | "rented" | "returned" | "all";
+  page?: number;
 }

@@ -147,6 +147,22 @@ export async function addInventoryReservation(input: {
 }) {
   return withAuth(async (supabase, userId) => {
     const now = new Date().toISOString();
+
+    // BL-1 fix: Check date overlap before reserving (防 race condition)
+    if (input.startDate && input.endDate) {
+      const { data: overlaps } = await supabase
+        .from("inventory_reservations")
+        .select("id")
+        .eq("item_id", input.itemId)
+        .in("status", ["reserved", "rented"])
+        .lte("start_date", input.endDate)
+        .gte("end_date", input.startDate)
+        .limit(1);
+      if (overlaps && overlaps.length > 0) {
+        throw new Error("Trang phục đã được đặt trong khoảng thời gian này");
+      }
+    }
+
     const { error: resError } = await supabase.from("inventory_reservations").insert({
       contract_id: input.contractId, item_id: input.itemId, status: "reserved",
       rental_price: input.rentalPrice, start_date: input.startDate, end_date: input.endDate,

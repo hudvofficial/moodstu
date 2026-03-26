@@ -29,8 +29,8 @@ export function EmptyState({
       <div className="w-20 h-20 bg-bg-hover rounded-full flex items-center justify-center mb-6 border border-border/50">
         <Icon className="w-10 h-10 text-text-muted" strokeWidth={1.5} />
       </div>
-      <h3 className="text-h3 mb-2">{title}</h3>
-      <p className="text-sm text-text-muted max-w-sm leading-relaxed mb-8">
+      <h3 className="text-h3 mb-2" style={{ width: "100%" }}>{title}</h3>
+      <p className="text-sm text-text-muted leading-relaxed mb-8" style={{ maxWidth: "24rem", width: "100%" }}>
         {description}
       </p>
       {actionLabel && onAction && (

@@ -7,20 +7,21 @@
  */
 
 import type { DressStatus, DressCondition, DressCategory } from "@/lib/validations/dress.schema";
+import type { BadgeVariant } from "@/components/ui/badge";
 
 // ─── STATUS → Display ────────────────────────────────────────
 
 interface StatusConfig {
   label: string;
-  variant: "success" | "info" | "warning" | "muted" | "danger";
+  variant: BadgeVariant;
 }
 
 export const DRESS_STATUS_MAP: Record<DressStatus, StatusConfig> = {
   available:   { label: "Sẵn sàng",   variant: "success" },
   reserved:    { label: "Đã đặt",     variant: "info" },
   rented:      { label: "Đang thuê",  variant: "warning" },
-  maintenance: { label: "Bảo trì",    variant: "muted" },
-  retired:     { label: "Ngừng dùng", variant: "danger" },
+  maintenance: { label: "Bảo trì",    variant: "neutral" },
+  retired:     { label: "Ngừng dùng", variant: "error" },
 };
 
 // ─── CONDITION → Display ─────────────────────────────────────
@@ -48,6 +49,15 @@ export const DRESS_CATEGORY_MAP: Record<DressCategory, CategoryConfig> = {
   "Khác":    { label: "Khác",    icon: "package" },
 };
 
+// ─── RESERVATION STATUS → Display ────────────────────────────
+
+export const RESERVATION_STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
+  reserved: { label: "Đã đặt",     variant: "info" },
+  rented:   { label: "Đang thuê",  variant: "warning" },
+  returned: { label: "Đã trả",     variant: "neutral" },
+};
+
 // ─── PAGE SIZE ───────────────────────────────────────────────
 
 export const DRESS_PAGE_SIZE = 18;
+export const RENTAL_HISTORY_PAGE_SIZE = 20;

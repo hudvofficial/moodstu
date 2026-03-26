@@ -31,6 +31,7 @@ export const cacheKeys = {
   dresses: () => "dresses",
   dressStats: () => "dress-stats",
   dressDetail: (id: string) => `dress:${id}`,
+  dressRentals: () => "dress-rentals",
 
   // Dashboard
   dashboard: () => "dashboard",

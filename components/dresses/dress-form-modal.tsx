@@ -7,6 +7,7 @@ import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { createDress, updateDress, deleteDress } from "@/app/actions/dress-mutations";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.schema";
 import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP } from "@/types/dress-constants";
 import { toast } from "@/lib/toast-utils";
@@ -137,6 +138,12 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
         }
       >
         <div className="space-y-4">
+          {/* Image Upload */}
+          <div>
+            <label className="label-base">Hình ảnh</label>
+            <ImageUpload value={form.image_url || undefined} onChange={(url) => update({ image_url: url })} />
+          </div>
+
           {/* Name */}
           <div>
             <label className="label-base">Tên trang phục *</label>

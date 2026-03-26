@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
-import { Shirt, Plus, Loader2, FilterX } from "lucide-react";
+import { Shirt, Plus, Loader2, FilterX, ScanLine, Printer } from "lucide-react";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
 import { cacheKeys, revalidate } from "@/lib/swr";
+import { toast } from "@/lib/toast-utils";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -15,6 +16,9 @@ import { DressesStatsBar } from "./dresses-stats-bar";
 import DressesFilters from "./dresses-filters";
 import DressCard from "@/components/dresses/dress-card";
 import DressFormModal from "@/components/dresses/dress-form-modal";
+import { DressDrawer } from "@/components/dresses/dress-drawer";
+import { DressScannerModal } from "@/components/dresses/dress-scanner-modal";
+import { DressQRModal } from "@/components/dresses/dress-qr-modal";
 
 // ═══════════════════════════════════════════
 // DressesListClient — Main page component
@@ -38,6 +42,9 @@ function DressesListInner() {
   // ── Form state (local only — not URL) ──
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<DressItem | null>(null);
+  const [drawerItem, setDrawerItem] = useState<DressItem | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [batchPrintOpen, setBatchPrintOpen] = useState(false);
 
   // SWR — dress list
   const { data: listData, isLoading, error } = useSWR(
@@ -53,7 +60,7 @@ function DressesListInner() {
     { keepPreviousData: true }
   );
 
-  const dresses = listData?.data || [];
+  const dresses = useMemo(() => listData?.data || [], [listData?.data]);
   const totalCount = listData?.count || 0;
   const totalPages = Math.ceil(totalCount / DRESS_PAGE_SIZE);
   const hasFilters = !!(searchParams.get("status") || searchParams.get("category"));
@@ -83,13 +90,35 @@ function DressesListInner() {
     router.push(pathname);
   }, [router, pathname]);
 
+  // ── Scanner callback ──
+  const handleScanned = useCallback((code: string) => {
+    const found = dresses.find(d => d.item_code === code);
+    if (found) {
+      setDrawerItem(found);
+      toast(`Tìm thấy: ${found.name}`, "success");
+    } else {
+      toast("Đang tìm kiếm...", "info");
+      const params = new URLSearchParams();
+      params.set("q", code);
+      router.push(`${pathname}?${params.toString()}`);
+    }
+  }, [dresses, pathname, router]);
+
   return (
     <div className="main-container gap-3!">
 
-      {/* 1 ─── Stats container + Desktop button ─── */}
+      {/* 1 ─── Stats container + Desktop buttons ─── */}
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <DressesStatsBar stats={stats || { total: 0, available: 0, reserved: 0, rented: 0, maintenance: 0 }} />
-        <div className="hidden lg:flex">
+        <div className="hidden lg:flex items-center gap-2">
+          <button onClick={() => setScanOpen(true)} className="btn btn-outline gap-2">
+            <ScanLine className="w-4 h-4" />
+            <span>Quét mã</span>
+          </button>
+          <button onClick={() => setBatchPrintOpen(true)} className="btn btn-outline gap-2" disabled={dresses.length === 0}>
+            <Printer className="w-4 h-4" />
+            <span>In nhãn</span>
+          </button>
           <button onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Thêm trang phục</span>
@@ -144,6 +173,7 @@ function DressesListInner() {
               key={dress.id}
               dress={dress}
               onEdit={() => openForm(dress)}
+              onClick={() => setDrawerItem(dress)}
             />
           ))}
         </div>
@@ -171,6 +201,28 @@ function DressesListInner() {
         onClose={() => { setFormOpen(false); setEditItem(null); }}
         editItem={editItem}
         onSaved={handleSaved}
+      />
+
+      {/* 8 ─── Detail Drawer (0ms — data from list) ─── */}
+      <DressDrawer
+        dress={drawerItem}
+        isOpen={!!drawerItem}
+        onClose={() => setDrawerItem(null)}
+        onEdit={(dress) => openForm(dress)}
+      />
+
+      {/* 9 ─── Camera Scanner Modal ─── */}
+      <DressScannerModal
+        isOpen={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onScanned={handleScanned}
+      />
+
+      {/* 10 ─── Batch Print QR Modal ─── */}
+      <DressQRModal
+        dresses={dresses}
+        isOpen={batchPrintOpen}
+        onClose={() => setBatchPrintOpen(false)}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Shirt, Pencil } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { DressItem } from "@/types/dress";
 import { DRESS_STATUS_MAP } from "@/types/dress-constants";
 import type { DressStatus } from "@/lib/validations/dress.schema";
@@ -14,15 +15,16 @@ import type { DressStatus } from "@/lib/validations/dress.schema";
 interface Props {
   dress: DressItem;
   onEdit: () => void;
+  onClick?: () => void;
 }
 
-export default function DressCard({ dress, onEdit }: Props) {
+export default function DressCard({ dress, onEdit, onClick }: Props) {
   const statusConfig = DRESS_STATUS_MAP[(dress.status as DressStatus) || "available"];
 
   return (
     <div
       className="card-interactive overflow-hidden group cursor-pointer stagger-item"
-      onClick={onEdit}
+      onClick={onClick || onEdit}
     >
       {/* Image */}
       <div className="aspect-3/4 bg-bg-hover relative overflow-hidden">
@@ -44,9 +46,9 @@ export default function DressCard({ dress, onEdit }: Props) {
 
         {/* Status badge */}
         <div className="absolute top-2 left-2">
-          <span className={`badge badge-${statusConfig.variant}`}>
+          <Badge variant={statusConfig.variant}>
             {statusConfig.label}
-          </span>
+          </Badge>
         </div>
 
         {/* Edit button — hover */}

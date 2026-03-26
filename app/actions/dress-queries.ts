@@ -1,8 +1,8 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
-import type { DressItem, DressFilters, DressStats, DressDetail } from "@/types/dress";
-import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
+import type { DressItem, DressFilters, DressStats, DressDetail, RentalHistoryRow, RentalHistoryFilters } from "@/types/dress";
+import { DRESS_PAGE_SIZE, RENTAL_HISTORY_PAGE_SIZE } from "@/types/dress-constants";
 import { DRESS_CATEGORIES } from "@/lib/validations/dress.schema";
 
 // ═══════════════════════════════════════════
@@ -47,7 +47,7 @@ export async function fetchDressList(
 
     // Search (name or code)
     if (filters.search?.trim()) {
-      const s = filters.search.trim();
+      const s = filters.search.trim().replace(/%/g, '\\%').replace(/_/g, '\\_');
       query = query.or(`name.ilike.%${s}%,item_code.ilike.%${s}%`);
     }
 
@@ -75,8 +75,8 @@ export async function fetchDressDetail(id: string): Promise<DressDetail | null> 
       supabase.from("inventory_items").select(DRESS_SELECT).eq("id", id).is("deleted_at", null).single(),
       supabase
         .from("inventory_reservations")
-        .select(`id, contract_id, status, rental_price, start_date, end_date, notes, created_at, contracts(id, contract_code, customers(full_name))`)
-        .eq("item_id", id)
+        .select(`id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at, contracts(id, contract_code, customers(full_name))`)
+        .eq("inventory_item_id", id)
         .order("created_at", { ascending: false }),
     ]);
 
@@ -128,7 +128,7 @@ export async function getDressAvailability(
     const { data, error } = await supabase
       .from("inventory_reservations")
       .select("id")
-      .eq("item_id", itemId)
+      .eq("inventory_item_id", itemId)
       .in("status", ["reserved", "rented"])
       .lte("start_date", endDate)
       .gte("end_date", startDate);
@@ -141,5 +141,51 @@ export async function getDressAvailability(
   }).then((result) => {
     if (result.success) return result.data;
     return false;
+  });
+}
+
+// ─── RENTAL HISTORY (paginated, full page) ───────────────────
+
+export async function fetchRentalHistory(
+  filters: RentalHistoryFilters = {}
+): Promise<{ data: RentalHistoryRow[]; count: number }> {
+  return withAuth(async (supabase) => {
+    const page = filters.page || 1;
+    const from = (page - 1) * RENTAL_HISTORY_PAGE_SIZE;
+    const to = from + RENTAL_HISTORY_PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("inventory_reservations")
+      .select(
+        `id, item_id, contract_id, status, rental_price, start_date, end_date, notes, created_at,
+         contracts(id, contract_code, customers(full_name)),
+         inventory_items!inner(id, name, item_code, category)`,
+        { count: "exact" }
+      )
+      .in("inventory_items.category", DRESS_CATEGORIES)
+      .order("created_at", { ascending: false });
+
+    // Filter by specific dress
+    if (filters.item_id) {
+      query = query.eq("item_id", filters.item_id);
+    }
+
+    // Status filter
+    if (filters.status && filters.status !== "all") {
+      query = query.eq("status", filters.status);
+    }
+
+    query = query.range(from, to);
+
+    const { data, count, error } = await query;
+    if (error) {
+      console.error("[fetchRentalHistory]", error);
+      return { data: [], count: 0 };
+    }
+    return { data: (data as unknown as RentalHistoryRow[]) || [], count: count || 0 };
+  }).then((result) => {
+    if (result.success) return result.data;
+    console.error("[fetchRentalHistory] auth error:", result.error);
+    return { data: [], count: 0 };
   });
 }

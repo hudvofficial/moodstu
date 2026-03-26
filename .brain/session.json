@@ -1,72 +1,96 @@
 {
-  "updated_at": "2026-03-25T21:33:00+07:00",
+  "updated_at": "2026-03-26T15:41:00+07:00",
   "working_on": {
-    "feature": "Skills & Workflow Upgrade",
-    "task": "Build + Commit sau khi hoàn thành nâng cấp",
+    "feature": "Dresses Module Audit & Remediation",
+    "task": "Completed — Phase 1 (3 Critical) + Phase 2 (2 Warning) + Phase 3 (2 Suggestions) + item_code MAX() optimize",
     "status": "completed",
     "files": [
-      "~/.gemini/antigravity/skills/business-studio-finance/SKILL.md",
-      "~/.gemini/antigravity/skills/business-wedding-crm/SKILL.md",
-      "~/.gemini/antigravity/global_workflows/new-module.md",
-      "docs/specs/v2-module-template.md"
+      "app/actions/dress-queries.ts",
+      "app/actions/dress-mutations.ts",
+      "types/dress.ts"
     ],
     "blockers": [],
-    "notes": "Deep audit phát hiện 3 CRITICAL issues. Viết lại Skills từ gốc Anthropic, xóa Constitution vô giá trị, tạo workflow /new-module 5 phases với enforcement gates."
+    "notes": "Full audit hoàn tất: C1 (addon billing JOIN), C2 (item_id→inventory_item_id), C3 (storage bucket), W3 (item_code retry+MAX optimize), W4 (search escape), S1 (DressStatus type), S3 (composite index). W1/W2/S2 deferred to backlog."
   },
   "recent_changes": [
     {
-      "timestamp": "2026-03-25T21:33:00+07:00",
-      "type": "feature",
-      "description": "Skills & Workflow Upgrade: (1) Viết lại business-studio-finance SKILL (150 dòng, trích gốc Anthropic). (2) Viết lại business-wedding-crm SKILL (170 dòng, trích gốc Anthropic). (3) Xóa constitution.md (vô giá trị). (4) Fix Phase 0 sai vị trí trong v2-module-template.md. (5) Tạo workflow /new-module (5 phases, 11 file refs, enforcement grep checks).",
+      "timestamp": "2026-03-26T15:31:00+07:00",
+      "type": "bugfix",
+      "description": "Dresses Audit Phase 1-3 + Optimization: (1) C2: item_id→inventory_item_id 7 chỗ. (2) C1: addon billing rewrite JOIN contract_items. (3) C3: Storage bucket 'dresses' created. (4) W4: Search ILIKE escape %/_. (5) W3+Optimize: item_code auto-gen từ COUNT→MAX() parse (fix bug xóa mềm gây trùng mã). (6) S1: status string→DressStatus type. (7) S3: composite index (inventory_item_id, status).",
       "files": [
-        "skills/business-studio-finance/SKILL.md",
-        "skills/business-wedding-crm/SKILL.md",
-        "global_workflows/new-module.md",
-        "docs/specs/v2-module-template.md"
+        "app/actions/dress-queries.ts",
+        "app/actions/dress-mutations.ts",
+        "types/dress.ts"
       ],
       "verified": true
     },
     {
-      "timestamp": "2026-03-25T20:06:00+07:00",
-      "type": "feature",
-      "description": "Implemented Phase A: Architecture Standardization. Audit logs added to 5 contract actions. Zod validation added to employee mutations. Error boundaries added to both modules.",
+      "timestamp": "2026-03-26T09:30:00+07:00",
+      "type": "refactor",
+      "description": "Phase 2+3: Standardize Dresses filter bar — (1) Xóa SearchBar, thêm TabsFilter 4 tabs + Sort SelectPill. (2) Migrate filter state từ useState sang URL searchParams (clone employee-filters pattern). (3) Xóa dead search code. Commit: bd83199",
       "files": [
-        "app/actions/contract-mutations.ts",
-        "app/actions/employee-mutations.ts",
-        "app/(protected)/contracts/error.tsx"
+        "components/dresses/dresses-filters.tsx",
+        "components/dresses/dresses-list-client.tsx"
       ],
       "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "Xóa constitution.md — vô giá trị, chỉ lặp lại v2-module-template",
-      "reason": "Deep audit cho thấy dự án đã có enforcement thực sự: before-edit.md, after-edit.md, pre-code-checklist.md, 83 lessons. Constitution thêm 1 file nữa chỉ gây nhầm."
+      "decision": "MAX() parse thay COUNT cho item_code auto-gen",
+      "reason": "COUNT(active) sai khi xóa mềm (COUNT giảm → gen mã trùng). MAX query toàn bộ items (kể cả deleted) lấy số lớn nhất → +1, an toàn tuyệt đối."
     },
     {
-      "decision": "Skills phải trích lọc từ file gốc Anthropic, KHÔNG tự bịa",
-      "reason": "Flash viết ~50 dòng tự bịa vs file gốc ~200+ dòng chi tiết. Chất lượng chênh lệch rất lớn."
+      "decision": "Skip W1 (stats over-fetch), W2 (transaction), S2 (enum)",
+      "reason": "Scale studio nhỏ (2-5 user), risk/effort không worth it. Deferred to backlog."
     },
     {
-      "decision": "Workflow /new-module tham chiếu 11 files, chia 3 nhóm lazy loading",
-      "reason": "11 files đọc 1 lúc sẽ overflow context. Chia 3 nhóm: NHÓM A (planning), B (execution gates), C (verify gates)."
-    },
-    {
-      "decision": "module-blueprint.md giá trị hơn v2-module-template.md — giữ cả 2 vì bổ sung nhau",
-      "reason": "module-blueprint có Component Catalog (17 items), CSS Token Catalog, UX States, Cross-module rules. template có Naming + Audit Rules."
+      "decision": "URL searchParams (thay useState) cho Dresses filters",
+      "reason": "Đồng bộ Gold Standard (Employees). URL shareable, back button giữ filter, bookmark được."
     }
   ],
-  "pending_tasks": [],
-  "completed_plans": [
+  "pending_tasks": [
     {
-      "plan": "260325-2133-skills-workflow-upgrade",
-      "status": "complete",
-      "summary": "3 phases: (1) Viết lại 2 Business Skills từ gốc Anthropic. (2) Xóa Constitution + fix template. (3) Tạo workflow /new-module."
+      "task": "Dress Detail Drawer",
+      "priority": "high",
+      "notes": "dress-detail-drawer.tsx — click card mở drawer chi tiết + reservation history. Spec L168.",
+      "source": "docs/specs/dresses.md"
     },
     {
-      "plan": "260325-2040-architecture-standardization-phase-d",
+      "task": "Reservation Actions (reserve + release + availability)",
+      "priority": "high",
+      "notes": "3 server actions: reserveDressForContract, releaseDressReservation, getDressAvailability. Spec L87-116.",
+      "source": "docs/specs/dresses.md"
+    },
+    {
+      "task": "QR/Barcode Scanner + QR Label Print",
+      "priority": "medium",
+      "notes": "dress-scan-input.tsx + dress-qr-label.tsx. Port từ V1. Spec L17, L23.",
+      "source": "docs/specs/dresses.md"
+    },
+    {
+      "task": "Rental History Page (/dresses/rentals)",
+      "priority": "medium",
+      "notes": "Mobile cards + desktop table. Spec L20, L162-163. Deferred v2.1.",
+      "source": "docs/specs/dresses.md"
+    },
+    {
+      "task": "ImageUpload trong dress-form-modal",
+      "priority": "low",
+      "notes": "Dùng shared ImageUpload component. Spec L24.",
+      "source": "docs/specs/dresses.md"
+    }
+  ],
+  "completed_plans": [
+    {
+      "plan": "260326-dresses-audit-remediation",
       "status": "complete",
-      "summary": "Consolidated contract actions into contract-queries.ts, contract-mutations.ts, and contract-lifecycle.ts."
+      "summary": "Full audit: 3 Critical (C1 addon billing, C2 column mismatch, C3 storage) + 2 Warning (W3 race condition+MAX optimize, W4 search escape) + 2 Suggestions (S1 type safety, S3 composite index). tsc --noEmit = 0 errors. 2 migrations applied."
+    },
+    {
+      "plan": "260326-dresses-standardization",
+      "status": "complete",
+      "summary": "13 audit fixes (Phase A/B/C) + Phase 2 (TabsFilter + Sort) + Phase 3 (URL searchParams). All 16/16 blueprint checklist items pass."
     }
   ],
   "errors_encountered": []

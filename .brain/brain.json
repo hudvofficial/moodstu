@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-25T20:06:00+07:00"
+    "last_updated": "2026-03-26T09:31:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -67,6 +67,18 @@
       "type": "Server Action",
       "path": "app/actions/note-actions.ts",
       "actions": ["getContractNotes", "addContractNote", "deleteContractNote"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/dress-queries.ts",
+      "actions": ["fetchDressList", "fetchDressDetail", "getDressStats", "getDressAvailability"],
+      "patterns": ["SWR client-side fetch", "URL searchParams filters"]
+    },
+    {
+      "type": "Server Action",
+      "path": "app/actions/dress-mutations.ts",
+      "actions": ["createDress", "updateDress", "deleteDress"],
+      "patterns": ["Zod validation", "Optimistic Locking", "fireAuditLog()", "Soft delete"]
     }
   ],
   "design_system": {
@@ -143,7 +155,8 @@
       "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())"
     ],
     "specs": [
-      "docs/specs/v2-module-template.md — V2 Module Template Spec (gold standard from Contract module)"
+      "docs/specs/v2-module-template.md — V2 Module Template Spec (gold standard from Contract module)",
+      "docs/specs/dresses.md — Dresses Module Spec (V2 — 9/18 features done, remaining in .brain brief)"
     ]
   },
   "decisions": [
