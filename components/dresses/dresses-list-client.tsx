@@ -5,10 +5,11 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
 import { Shirt, Plus, Loader2, FilterX, ScanLine, CalendarDays } from "lucide-react";
+import { useRealtime } from "@/hooks/use-realtime";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
-import { cacheKeys, revalidate } from "@/lib/swr";
+import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
@@ -37,8 +38,9 @@ function DressesListInner() {
   const category = searchParams.get("category") || undefined;
   const sort = searchParams.get("sort") || "newest";
   const page = Number(searchParams.get("page")) || 1;
+  const search = searchParams.get("q") || undefined;
 
-  const filters: DressFilters = { status: status as DressFilters["status"], category: category as DressFilters["category"], page };
+  const filters: DressFilters = { status: status as DressFilters["status"], category: category as DressFilters["category"], search, page };
 
   // ── Form state (local only — not URL) ──
   const [formOpen, setFormOpen] = useState(false);
@@ -48,18 +50,21 @@ function DressesListInner() {
 
 
   // SWR — dress list
-  const { data: listData, isLoading, error } = useSWR(
+  const { data: listData, isLoading, error, mutate: mutateList } = useSWR(
     [cacheKeys.dresses(), { ...filters, sort }],
     () => fetchDressList({ ...filters, sort } as DressFilters & { sort?: string }),
     { keepPreviousData: true }
   );
 
   // SWR — stats
-  const { data: stats } = useSWR<DressStats>(
+  const { data: stats, mutate: mutateStats } = useSWR<DressStats>(
     cacheKeys.dressStats(),
     () => getDressStats(),
     { keepPreviousData: true }
   );
+
+  // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
+  useRealtime("dresses");
 
   const dresses = useMemo(() => listData?.data || [], [listData?.data]);
   const totalCount = listData?.count || 0;
@@ -78,9 +83,9 @@ function DressesListInner() {
   );
 
   const handleSaved = useCallback(() => {
-    revalidate(cacheKeys.dresses());
-    revalidate(cacheKeys.dressStats());
-  }, []);
+    mutateList();    // bound mutate — exact SWR key match
+    mutateStats();   // refresh stats counters
+  }, [mutateList, mutateStats]);
 
   const openForm = useCallback((item?: DressItem) => {
     setEditItem(item || null);

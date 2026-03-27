@@ -2,6 +2,7 @@ import { getEmployeeById } from "@/app/actions/employee-queries";
 import { notFound } from "next/navigation";
 import type { EmployeeDetail } from "@/types/employee";
 import EmployeeDetailPage from "@/components/employees/employee-detail-page";
+import { RealtimeSync } from "@/components/shared/realtime-sync";
 
 // ═══════════════════════════════════════════
 // Employee Detail Page — Server Component
@@ -26,5 +27,10 @@ export default async function EmployeeDetailRoute(props: {
     notFound();
   }
 
-  return <EmployeeDetailPage employee={result.data as EmployeeDetail} />;
+  return (
+    <>
+      <RealtimeSync table="profiles" />
+      <EmployeeDetailPage employee={result.data as EmployeeDetail} />
+    </>
+  );
 }

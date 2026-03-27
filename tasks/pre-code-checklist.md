@@ -21,7 +21,11 @@
 ## 🚫 Quy tắc TUYỆT ĐỐI — Vi phạm = Revert
 
 ### Database & Backend
-- **ENUM, không VARCHAR** cho status/type fields
+- **ABC Schema Rule** cho status/type/category fields:
+  - **Group A (DB ENUM):** system-level, ≤5 values, bất biến (role, gender, payment_method)
+  - **Group B (VARCHAR + TS enum):** business logic, có thể mở rộng → 80% cases dùng cái này
+  - **Group C (Lookup table):** user-managed runtime, ≥10 values, cần metadata
+  - ❌ KHÔNG mặc định DB ENUM cho mọi thứ → apply flowchart trong `audit_report.md`
 - **FK only** — không lưu trùng names (denormalize)
 - **Atomic RPC** cho financial calculations — KHÔNG client-side calc
 - **getSession()** trong middleware — KHÔNG getUser() (tiết kiệm 200-400ms)

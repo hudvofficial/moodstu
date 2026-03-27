@@ -32,16 +32,18 @@ export const ROLE_BADGE_MAP: Record<EmployeeRole, { label: string; variant: stri
   ctv: { label: "CTV", variant: "neutral" },
 };
 
-// ─── Gender ─────────────────────────────────
+// ─── Gender (DB ENUM: gender_enum) ──────────
 export const GENDER_OPTIONS = [
-  { value: "Nam", label: "Nam" },
-  { value: "Nữ", label: "Nữ" },
+  { value: "nam", label: "Nam" },
+  { value: "nu", label: "Nữ" },
+  { value: "khac", label: "Khác" },
 ] as const;
 
-// ─── Status ─────────────────────────────────
+// ─── Status (DB ENUM: employee_status_enum) ─
 export const EMPLOYEE_STATUS_MAP: Record<string, { label: string; variant: string }> = {
   active: { label: "Đang làm", variant: "success" },
   inactive: { label: "Nghỉ việc", variant: "neutral" },
+  on_leave: { label: "Nghỉ phép", variant: "warning" },
 };
 
 // ─── Helpers ────────────────────────────────

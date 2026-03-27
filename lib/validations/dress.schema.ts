@@ -2,7 +2,7 @@
  * 📦 Dress Zod Schemas (V2)
  *
  * Validates dress form submissions before DB operations.
- * DB table: inventory_items (filtered by category)
+ * DB table: dresses
  *
  * @see Lesson #65: V2 DB snake_case ENUM, NOT Vietnamese strings
  * @see Lesson #72: FK *_by → auth.users(id)
@@ -10,15 +10,17 @@
 
 import { z } from "zod";
 
-// ─── Categories (Vietnamese — user-facing, stored as varchar) ─
+// ─── Categories (snake_case ENUM — matches dress_category_enum in DB) ─
 
 export const DRESS_CATEGORIES = [
-  "Váy cưới",
-  "Áo dài",
-  "Vest",
-  "Váy tráp",
-  "Đồ bé",
-  "Khác",
+  "vay_cuoi",
+  "ao_dai",
+  "vest",
+  "vay_trap",
+  "do_be",
+  "vay_da_hoi",
+  "phu_kien",
+  "khac",
 ] as const;
 
 export type DressCategory = (typeof DRESS_CATEGORIES)[number];

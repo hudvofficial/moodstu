@@ -1,8 +1,8 @@
 /**
  * 📦 Dress Constants (V2)
  *
- * Display mappings: DB values → Vietnamese labels + colors
- * @see Lesson #65: DB uses snake_case, display uses Vietnamese
+ * Display mappings: DB ENUM values → Vietnamese labels + colors
+ * @see Lesson #65: DB uses snake_case ENUM, display uses Vietnamese
  * @see Lesson #18: Status badge colors must be consistent
  */
 
@@ -35,7 +35,7 @@ export const DRESS_CONDITION_MAP: Record<DressCondition, string> = {
   worn: "Cũ",
 };
 
-// ─── CATEGORY → Icons (Lucide name) ─────────────────────────
+// ─── CATEGORY → Display (ENUM key → Vietnamese label + icon) ─
 
 interface CategoryConfig {
   label: string;
@@ -43,20 +43,36 @@ interface CategoryConfig {
 }
 
 export const DRESS_CATEGORY_MAP: Record<DressCategory, CategoryConfig> = {
-  "Váy cưới": { label: "Váy cưới", icon: "shirt" },
-  "Áo dài":   { label: "Áo dài",   icon: "shirt" },
-  "Vest":     { label: "Vest",     icon: "shirt" },
-  "Váy tráp": { label: "Váy tráp", icon: "gift" },
-  "Đồ bé":   { label: "Đồ bé",   icon: "baby" },
-  "Khác":    { label: "Khác",    icon: "package" },
+  vay_cuoi:   { label: "Váy cưới",    icon: "shirt" },
+  ao_dai:     { label: "Áo dài",      icon: "shirt" },
+  vest:       { label: "Vest",        icon: "shirt" },
+  vay_trap:   { label: "Váy tráp",    icon: "gift" },
+  do_be:      { label: "Đồ bé",      icon: "baby" },
+  vay_da_hoi: { label: "Váy dạ hội",  icon: "sparkles" },
+  phu_kien:   { label: "Phụ kiện",    icon: "gem" },
+  khac:       { label: "Khác",       icon: "package" },
+};
+
+// ─── CATEGORY → ITEM CODE PREFIX (SSOT) ─────────────────────
+
+export const CATEGORY_PREFIX_MAP: Record<string, string> = {
+  vay_cuoi:   "VC",
+  ao_dai:     "AD",
+  vest:       "VT",
+  vay_trap:   "VTR",
+  do_be:      "DB",
+  vay_da_hoi: "VD",
+  phu_kien:   "PK",
+  khac:       "K",
 };
 
 // ─── RESERVATION STATUS → Display ────────────────────────────
 
 export const RESERVATION_STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
-  reserved: { label: "Đã đặt",     variant: "info" },
-  rented:   { label: "Đang thuê",  variant: "warning" },
-  returned: { label: "Đã trả",     variant: "neutral" },
+  reserved:  { label: "Đã đặt",     variant: "info" },
+  rented:    { label: "Đang thuê",  variant: "warning" },
+  returned:  { label: "Đã trả",     variant: "neutral" },
+  cancelled: { label: "Đã hủy",     variant: "neutral" },
 };
 
 // ─── RENTAL STATUS (standalone rentals) → Display ────────────

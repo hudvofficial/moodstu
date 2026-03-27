@@ -1,5 +1,6 @@
 import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
 import EmployeeListPage from "@/components/employees/employee-list-page";
+import { RealtimeSync } from "@/components/shared/realtime-sync";
 
 export const metadata = { title: "Nhân viên | Mood Studio" };
 
@@ -33,12 +34,15 @@ export default async function EmployeesPage({ searchParams }: Props) {
   const stats = statsResult.success ? statsResult.data : { total: 0, active: 0, inactive: 0, departments: {} };
 
   return (
-    <EmployeeListPage
-      employees={list?.employees || []}
-      stats={stats || { total: 0, active: 0, inactive: 0, departments: {} }}
-      total={list?.total || 0}
-      page={list?.page || 1}
-      pageSize={list?.pageSize || 20}
-    />
+    <>
+      <RealtimeSync table="profiles" />
+      <EmployeeListPage
+        employees={list?.employees || []}
+        stats={stats || { total: 0, active: 0, inactive: 0, departments: {} }}
+        total={list?.total || 0}
+        page={list?.page || 1}
+        pageSize={list?.pageSize || 20}
+      />
+    </>
   );
 }

@@ -4,12 +4,29 @@ import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { dressCreateSchema, dressUpdateSchema, reserveDressSchema } from "@/lib/validations/dress.schema";
+import { CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
 
 // ═══════════════════════════════════════════
 // Dress Mutations — Create/Update/Delete
-// DB: inventory_items (dresses subset)
+// DB: dresses
 // Pattern: withAuth + Zod + fireAuditLog + revalidatePath
 // ═══════════════════════════════════════════
+
+// ─── CHECK ITEM CODE EXISTS ─────────────────────────────────
+
+export async function checkItemCodeExists(code: string, excludeId?: string) {
+  return withAuth(async (supabase) => {
+    let query = supabase
+      .from("dresses")
+      .select("id")
+      .eq("item_code", code.trim())
+      .is("deleted_at", null)
+      .limit(1);
+    if (excludeId) query = query.neq("id", excludeId);
+    const { data } = await query;
+    return { exists: (data?.length ?? 0) > 0 };
+  });
+}
 
 // ─── CREATE ──────────────────────────────────────────────────
 
@@ -25,14 +42,10 @@ export async function createDress(rawData: unknown) {
     // Auto-gen item_code if empty — MAX() parse (kể cả đã xóa mềm)
     let itemCode = data.item_code?.trim();
     if (!itemCode) {
-      const prefix = data.category === "Váy cưới" ? "VC" :
-        data.category === "Áo dài" ? "AD" :
-        data.category === "Vest" ? "VT" :
-        data.category === "Váy tráp" ? "VTR" :
-        data.category === "Đồ bé" ? "DB" : "K";
+      const prefix = CATEGORY_PREFIX_MAP[data.category] || "K";
 
       const { data: maxRow } = await supabase
-        .from("inventory_items")
+        .from("dresses")
         .select("item_code")
         .eq("category", data.category)
         .like("item_code", `${prefix}-%`)
@@ -49,7 +62,7 @@ export async function createDress(rawData: unknown) {
     }
 
     const { data: result, error } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .insert({
         ...data,
         item_code: itemCode,
@@ -70,7 +83,7 @@ export async function createDress(rawData: unknown) {
         const currentNum = codeMatch ? parseInt(codeMatch[1], 10) : 0;
         const retryCode = `${itemCode.split("-")[0]}-${String(currentNum + 1).padStart(3, "0")}`;
         const { data: retryData, error: retryErr } = await supabase
-          .from("inventory_items")
+          .from("dresses")
           .insert({
             ...data,
             item_code: retryCode,
@@ -93,7 +106,7 @@ export async function createDress(rawData: unknown) {
 
     fireAuditLog({
       action: "CREATE",
-      tableName: "inventory_items",
+      tableName: "dresses",
       recordId: result.id,
       description: `Thêm trang phục: ${data.name} (${itemCode})`,
       source: "server_action",
@@ -117,7 +130,7 @@ export async function updateDress(rawData: unknown) {
 
     // Optimistic Locking: check updated_at hasn't changed
     const { data: current } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .select("updated_at")
       .eq("id", id)
       .is("deleted_at", null)
@@ -129,7 +142,7 @@ export async function updateDress(rawData: unknown) {
     }
 
     const { error } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({
         ...data,
         image_url: data.image_url || null,
@@ -143,7 +156,7 @@ export async function updateDress(rawData: unknown) {
 
     fireAuditLog({
       action: "UPDATE",
-      tableName: "inventory_items",
+      tableName: "dresses",
       recordId: id,
       description: `Cập nhật trang phục #${id.substring(0, 8)}`,
       source: "server_action",
@@ -173,7 +186,7 @@ export async function deleteDress(id: string) {
     }
 
     const { error } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({
         deleted_at: new Date().toISOString(),
         updated_by: userId,
@@ -184,7 +197,7 @@ export async function deleteDress(id: string) {
 
     fireAuditLog({
       action: "DELETE",
-      tableName: "inventory_items",
+      tableName: "dresses",
       recordId: id,
       description: `Xóa mềm trang phục #${id.substring(0, 8)}`,
       severity: "WARNING",
@@ -210,7 +223,7 @@ export async function reserveDressForContract(rawData: unknown) {
 
     // 1. Check item exists + not deleted
     const { data: item, error: itemErr } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .select("id, name, status")
       .eq("id", input.inventoryItemId)
       .is("deleted_at", null)
@@ -295,7 +308,7 @@ export async function reserveDressForContract(rawData: unknown) {
 
     // 5. Update item status → reserved
     await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({ status: "reserved", updated_at: now })
       .eq("id", input.inventoryItemId);
 
@@ -350,7 +363,7 @@ export async function releaseReservation(reservationId: string) {
     // Restore item status only if no other active reservations
     if (!otherActive || otherActive.length === 0) {
       await supabase
-        .from("inventory_items")
+        .from("dresses")
         .update({ status: "available", updated_at: now })
         .eq("id", reservation.inventory_item_id);
     }

@@ -12,6 +12,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
+import { useRealtime } from "@/hooks/use-realtime";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
 import { useContracts, useContractStats, prefetchContract } from "@/lib/hooks/use-contracts";
@@ -80,6 +81,9 @@ function ContractsListInner() {
     swrFilters
   );
   const { stats } = useContractStats();
+
+  // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
+  useRealtime("contracts");
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 

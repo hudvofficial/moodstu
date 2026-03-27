@@ -7,7 +7,7 @@ import { createRentalSchema, returnDressSchema } from "@/lib/validations/rental.
 
 // ═══════════════════════════════════════════
 // Rental Mutations — CRUD + Status Flow
-// DB: dress_rentals + inventory_items
+// DB: dress_rentals + dresses
 // Pattern: withAuth + Zod + fireAuditLog + revalidatePath
 // ═══════════════════════════════════════════
 
@@ -62,7 +62,7 @@ export async function createRental(rawData: unknown) {
 
     // 3. Update dress status → reserved
     await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({ status: "reserved", updated_by: userId })
       .eq("id", data.item_id);
 
@@ -106,7 +106,7 @@ export async function startRental(rentalId: string) {
 
     // Update dress status → rented
     await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({ status: "rented", updated_by: userId })
       .eq("id", rental.item_id);
 
@@ -163,7 +163,7 @@ export async function returnDressRental(rawData: unknown) {
 
     // Dress → cleaning
     await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({ status: "cleaning", updated_by: userId })
       .eq("id", rental.item_id);
 
@@ -185,7 +185,7 @@ export async function returnDressRental(rawData: unknown) {
 export async function markCleaned(itemId: string) {
   return withAuth(async (supabase, userId) => {
     const { error } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .update({ status: "available", updated_by: userId })
       .eq("id", itemId);
 
@@ -193,7 +193,7 @@ export async function markCleaned(itemId: string) {
 
     fireAuditLog({
       action: "UPDATE",
-      tableName: "inventory_items",
+      tableName: "dresses",
       recordId: itemId,
       description: "Giặt xong — sẵn sàng cho thuê",
       source: "server_action",
@@ -238,7 +238,7 @@ export async function cancelRental(rentalId: string) {
     // If no other active → set available
     if (!otherActive || otherActive.length === 0) {
       await supabase
-        .from("inventory_items")
+        .from("dresses")
         .update({ status: "available", updated_by: userId })
         .eq("id", rental.item_id);
     }

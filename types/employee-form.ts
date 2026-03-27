@@ -24,7 +24,7 @@ export interface EmployeeFormData {
 
 export const DEFAULT_FORM_DATA: EmployeeFormData = {
   full_name: "",
-  gender: "Nam",
+  gender: "nam",
   phone: "",
   email: "",
   department: "",

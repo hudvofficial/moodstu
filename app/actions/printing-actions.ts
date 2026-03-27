@@ -180,7 +180,7 @@ export async function updateReservationStatus(
 
     if (error) throw new Error(`Lỗi cập nhật trang phục: ${error.message}`);
 
-    // V2 special: if "returned" → update inventory_items availability
+    // V2 special: if "returned" → update dresses availability
     if (status === "returned") {
       const { data: reservation } = await supabase
         .from("inventory_reservations")
@@ -190,7 +190,7 @@ export async function updateReservationStatus(
 
       if (reservation?.item_id) {
         await supabase
-          .from("inventory_items")
+          .from("dresses")
           .update({ status: "available", updated_at: now })
           .eq("id", reservation.item_id);
       }

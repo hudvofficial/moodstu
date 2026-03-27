@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Shirt, Ribbon, Briefcase, Gift, Baby, Shapes, Printer, type LucideIcon } from "lucide-react";
+import { Shirt, Ribbon, Briefcase, Gift, Baby, Shapes, Sparkles, Gem, Printer, type LucideIcon } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { createDress, updateDress, deleteDress, uploadDressImage, deleteDressImage } from "@/app/actions/dress-mutations";
+import { createDress, updateDress, deleteDress, uploadDressImage, deleteDressImage, checkItemCodeExists } from "@/app/actions/dress-mutations";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.schema";
-import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP } from "@/types/dress-constants";
+import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP, CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
 import { toast } from "@/lib/toast-utils";
 import { QRLabel } from "@/components/dresses/dress-qr-modal";
 import { printDressLabel } from "@/lib/print-qr-label";
@@ -46,21 +46,23 @@ const CONDITION_OPTIONS = DRESS_CONDITIONS.map((c) => ({
   label: DRESS_CONDITION_MAP[c],
 }));
 
-// Category → Lucide icon map (V1 ref: mỗi loại có icon riêng)
+// Category → Lucide icon map (ENUM keys — V1 ref: mỗi loại có icon riêng)
 const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
-  "Váy cưới": Shirt,
-  "Áo dài": Ribbon,
-  "Vest": Briefcase,
-  "Váy tráp": Gift,
-  "Đồ bé": Baby,
-  "Khác": Shapes,
+  vay_cuoi: Shirt,
+  ao_dai: Ribbon,
+  vest: Briefcase,
+  vay_trap: Gift,
+  do_be: Baby,
+  vay_da_hoi: Sparkles,
+  phu_kien: Gem,
+  khac: Shapes,
 };
 
 function getInitial(item: DressItem | null): FormState {
   return {
     name: item?.name ?? "",
     item_code: item?.item_code ?? "",
-    category: item?.category ?? "Váy cưới",
+    category: item?.category ?? "vay_cuoi",
     size: item?.size ?? "",
     color: item?.color ?? "",
     condition: item?.condition ?? "new",
@@ -76,22 +78,46 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingUploadUrl, setPendingUploadUrl] = useState<string | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setForm(getInitial(editItem));
       setPendingUploadUrl(null);
+      setCodeError(null);
     }
   }, [isOpen, editItem]);
 
   const update = useCallback((partial: Partial<FormState>) => {
-    setForm((p) => ({ ...p, ...partial }));
+    setForm((p) => {
+      const next = { ...p, ...partial };
+      // Auto-clear item_code when category changes (prefix mismatch)
+      if (partial.category && partial.category !== p.category) {
+        next.item_code = "";
+        setCodeError(null);
+      }
+      return next;
+    });
   }, []);
+
+  // ── Async uniqueness check ──
+  const validateItemCode = useCallback(async (code: string) => {
+    if (!code.trim()) { setCodeError(null); return; }
+    try {
+      const res = await checkItemCodeExists(code, editItem?.id);
+      if ("exists" in res && res.exists) setCodeError("Mã này đã tồn tại!");
+      else setCodeError(null);
+    } catch { setCodeError(null); }
+  }, [editItem?.id]);
 
   const handleSubmit = useCallback(async () => {
     if (!form.name.trim()) {
       toast("Tên trang phục là bắt buộc", "warning");
+      return;
+    }
+    if (codeError) {
+      toast("Mã trang phục đã tồn tại, vui lòng đổi mã khác", "warning");
       return;
     }
     setLoading(true);
@@ -117,7 +143,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
     } finally {
       setLoading(false);
     }
-  }, [form, editItem, onClose, onSaved]);
+  }, [form, editItem, onClose, onSaved, codeError]);
 
   const handleClose = useCallback(() => {
     if (pendingUploadUrl && pendingUploadUrl !== editItem?.image_url) {
@@ -225,8 +251,25 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
           <div className="form-grid-2col">
             <div>
               <label className="label-base">Mã trang phục</label>
-              <input type="text" value={form.item_code} onChange={(e) => update({ item_code: e.target.value })}
-                placeholder="Tự gen nếu bỏ trống" className="input-base w-full font-mono" />
+              <div className="flex gap-0">
+                <span className="inline-flex items-center px-2.5 bg-bg-hover text-text-muted text-sm font-mono rounded-l-lg border border-r-0 border-border-primary">
+                  {CATEGORY_PREFIX_MAP[form.category] || "K"}-
+                </span>
+                <input
+                  type="text"
+                  value={form.item_code.replace(/^[A-Z]+-?/i, "")}
+                  onChange={(e) => {
+                    const num = e.target.value.replace(/[^0-9]/g, "");
+                    const prefix = CATEGORY_PREFIX_MAP[form.category] || "K";
+                    update({ item_code: num ? `${prefix}-${num}` : "" });
+                    setCodeError(null);
+                  }}
+                  onBlur={() => validateItemCode(form.item_code)}
+                  placeholder="Tự gen"
+                  className="input-base w-full font-mono rounded-l-none"
+                />
+              </div>
+              {codeError && <p className="text-xs text-error mt-1">{codeError}</p>}
             </div>
             <div>
               <label className="label-base">Màu sắc</label>

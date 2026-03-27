@@ -3,11 +3,11 @@
 import { withAuth } from "@/lib/auth_utils";
 import type { DressItem, DressFilters, DressStats, DressDetail, RentalHistoryRow, RentalHistoryFilters } from "@/types/dress";
 import { DRESS_PAGE_SIZE, RENTAL_HISTORY_PAGE_SIZE } from "@/types/dress-constants";
-import { DRESS_CATEGORIES } from "@/lib/validations/dress.schema";
+// Categories validated at form level, not query level
 
 // ═══════════════════════════════════════════
 // Dress Queries — Read-only server actions
-// DB: inventory_items (filter category for dresses)
+// DB: dresses (dedicated table for dress items)
 // Pattern: withAuth + return empty on error
 // ═══════════════════════════════════════════
 
@@ -29,9 +29,8 @@ export async function fetchDressList(
     const to = from + DRESS_PAGE_SIZE - 1;
 
     let query = supabase
-      .from("inventory_items")
+      .from("dresses")
       .select(DRESS_SELECT, { count: "exact" })
-      .in("category", DRESS_CATEGORIES)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -72,7 +71,7 @@ export async function fetchDressDetail(id: string): Promise<DressDetail | null> 
   return withAuth(async (supabase) => {
     // Parallel: item + reservations
     const [itemRes, reservationsRes] = await Promise.all([
-      supabase.from("inventory_items").select(DRESS_SELECT).eq("id", id).is("deleted_at", null).single(),
+      supabase.from("dresses").select(DRESS_SELECT).eq("id", id).is("deleted_at", null).single(),
       supabase
         .from("inventory_reservations")
         .select(`id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at, contracts(id, contract_code, customers(full_name))`)
@@ -97,9 +96,8 @@ export async function fetchDressDetail(id: string): Promise<DressDetail | null> 
 export async function getDressStats(): Promise<DressStats> {
   return withAuth(async (supabase) => {
     const { data } = await supabase
-      .from("inventory_items")
+      .from("dresses")
       .select("status")
-      .in("category", DRESS_CATEGORIES)
       .is("deleted_at", null);
 
     const items = data || [];
@@ -159,10 +157,10 @@ export async function fetchRentalHistory(
       .select(
         `id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at,
          contracts(id, contract_code, customers(full_name)),
-         inventory_items!inner(id, name, item_code, category)`,
+         dresses!inner(id, name, item_code, category)`,
         { count: "exact" }
       )
-      .in("inventory_items.category", DRESS_CATEGORIES)
+
       .order("created_at", { ascending: false });
 
     // Filter by specific dress
@@ -187,5 +185,20 @@ export async function fetchRentalHistory(
     if (result.success) return result.data;
     console.error("[fetchRentalHistory] auth error:", result.error);
     return { data: [], count: 0 };
+  });
+}
+
+// ─── AVAILABLE ITEMS (for reservation form) ──
+
+/** Get available dresses for contract reservation */
+export async function getAvailableItems() {
+  return withAuth(async (supabase) => {
+    const { data, error } = await supabase
+      .from("dresses")
+      .select("id, name, item_code, category, size, color, rental_price, image_url")
+      .eq("status", "available")
+      .order("name");
+    if (error) throw new Error(`Lỗi lấy trang phục: ${error.message}`);
+    return data || [];
   });
 }

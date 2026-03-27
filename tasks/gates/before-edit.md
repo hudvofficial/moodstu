@@ -44,6 +44,15 @@
 - [ ] **DIFF kiểm tra** structure phải giống hệt Gold Standard source
 - [ ] Nếu tạo **ACTION MỚI** → đã đọc `tasks/action-template.md`
 
+### 8. 🗄️ SCHEMA TYPE CHECK — ABC Rule (nếu có DB migration)
+- [ ] Column status/type/category mới thuộc Group nào? **A / B / C**
+- [ ] **Group A (DB ENUM):** chỉ khi system-level, ≤5 values, bất biến (role, gender, payment_method)
+- [ ] **Group B (VARCHAR + TS enum):** business logic, có thể mở rộng → **mặc định dùng cái này**
+- [ ] **Group C (Lookup table):** user-managed runtime, ≥10 values, cần metadata
+- [ ] Nếu Group B → DB dùng `VARCHAR(N)`, TS có `const array` + `z.enum()` validate
+- [ ] ❌ **KHÔNG** `CREATE TYPE ... ENUM` cho business field (category, status, condition)
+- [ ] Nếu KHÔNG chắc → mặc định **Group B** (an toàn nhất)
+
 ---
 
 ## ❌ DỪNG LẠI NẾU:

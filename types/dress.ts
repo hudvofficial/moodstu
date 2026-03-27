@@ -2,14 +2,14 @@
  * 📦 Dress Module Types (V2)
  *
  * Types for dress catalog, filters, stats.
- * DB table: inventory_items (filtered by category)
+ * DB table: dresses
  *
  * @see types/contract.ts for pattern reference
  */
 
 import type { DressCategory, DressStatus } from "@/lib/validations/dress.schema";
 
-// ─── CORE DATA MODEL (inventory_items row) ───────────────────
+// ─── CORE DATA MODEL (dresses row) ───────────────────
 
 export interface DressItem {
   id: string;
@@ -88,7 +88,7 @@ export interface RentalHistoryRow {
   notes: string | null;
   created_at: string;
   contracts?: { id: string; contract_code: string; customers?: { full_name: string } | null } | null;
-  inventory_items?: { id: string; name: string; item_code: string; category: string | null } | null;
+  dresses?: { id: string; name: string; item_code: string; category: string | null } | null;
 }
 
 export interface RentalHistoryFilters {

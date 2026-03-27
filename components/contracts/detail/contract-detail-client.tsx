@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useContractDetail } from "@/lib/hooks/use-contracts";
@@ -58,6 +59,9 @@ export default function ContractDetailClient({
     mutate: refreshContract,
   } = useContractDetail(params.id);
 
+  // 📡 Realtime — auto-refresh on contract or receipt changes
+  useRealtime("contracts");
+  useRealtime("receipts");
   // SWR fallback
   const contract = (liveContract as unknown as Contract) || initialContract;
   const payments = (livePayments as unknown as Payment[]) || initialPayments;

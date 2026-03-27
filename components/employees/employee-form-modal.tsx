@@ -28,7 +28,7 @@ const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({ valu
 function employeeToForm(emp: EmployeeDetail): EmployeeFormData {
   return {
     full_name: emp.full_name || "",
-    gender: emp.gender || "Nam",
+    gender: emp.gender || "nam",
     phone: emp.phone || "",
     email: emp.email || "",
     department: emp.department || "",

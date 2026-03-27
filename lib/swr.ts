@@ -23,10 +23,6 @@ export const cacheKeys = {
   payments: () => "payments",
   receipts: (contractId?: string) => contractId ? `receipts:${contractId}` : "receipts",
 
-  // Inventory
-  inventory: () => "inventory",
-  inventoryItem: (id: string) => `inventory:${id}`,
-
   // Dresses
   dresses: () => "dresses",
   dressStats: () => "dress-stats",

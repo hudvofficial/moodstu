@@ -272,7 +272,7 @@ export async function getContractDetail(id: string) {
       supabase
         .from("inventory_reservations")
         .select(
-          `id, status, start_date, end_date, notes, inventory_items (id, name, item_code, category, size, color, image_url)`
+          `id, status, start_date, end_date, notes, dresses (id, name, item_code, category, size, color, image_url)`
         )
         .eq("contract_id", id)
         .order("created_at", { ascending: false }),

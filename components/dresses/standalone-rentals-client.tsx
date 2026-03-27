@@ -30,6 +30,7 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ReturnModal } from "@/components/dresses/return-modal";
 import { toast } from "@/lib/toast-utils";
+import { useRealtime } from "@/hooks/use-realtime";
 
 const PAGE_SIZE = 20;
 
@@ -294,6 +295,9 @@ export default function StandaloneRentalsClient() {
   const search = searchParams.get("search") || searchParams.get("q") || "";
   const page = Number(searchParams.get("page")) || 1;
   const view = searchParams.get("view") || "list";
+
+  // 📡 Realtime — auto-refresh on dress_rentals changes
+  useRealtime("dress_rentals");
 
   // ── SWR data ──
   const { data: result, isLoading, error, mutate } = useSWR(

@@ -15,6 +15,7 @@ import { fetchRentalHistory } from "@/app/actions/dress-queries";
 import { RENTAL_HISTORY_PAGE_SIZE, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { RentalHistoryFilters, RentalHistoryRow } from "@/types/dress";
 import { cacheKeys } from "@/lib/swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -43,11 +44,11 @@ function RentalRow({ row }: { row: RentalHistoryRow }) {
     <TR>
       <TD>
         <div className="flex items-center gap-2">
-          {row.inventory_items?.item_code && (
-            <span className="tag-badge text-xs">{row.inventory_items.item_code}</span>
+          {row.dresses?.item_code && (
+            <span className="tag-badge text-xs">{row.dresses.item_code}</span>
           )}
           <span className="text-body-sm font-medium text-text-primary">
-            {row.inventory_items?.name || "—"}
+            {row.dresses?.name || "—"}
           </span>
         </div>
       </TD>
@@ -83,11 +84,11 @@ function RentalCard({ row }: { row: RentalHistoryRow }) {
     <div className="card-interactive p-3 space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          {row.inventory_items?.item_code && (
-            <span className="tag-badge text-xs">{row.inventory_items.item_code}</span>
+          {row.dresses?.item_code && (
+            <span className="tag-badge text-xs">{row.dresses.item_code}</span>
           )}
           <span className="text-body-sm font-medium text-text-primary truncate">
-            {row.inventory_items?.name || "—"}
+            {row.dresses?.name || "—"}
           </span>
         </div>
         <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
@@ -124,6 +125,9 @@ export default function RentalHistoryClient() {
   const page = Number(searchParams.get("page")) || 1;
 
   const filters: RentalHistoryFilters = { status, item_id: itemId, page };
+
+  // 📡 Realtime — auto-refresh on reservation changes
+  useRealtime("inventory_reservations");
 
   // ── SWR data ──
   const { data, isLoading, error } = useSWR(

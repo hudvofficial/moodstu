@@ -231,14 +231,14 @@ export interface ContractStats {
 
 // ─── SIDEBAR TYPES (Phase 04e) ───────────────────────────
 
-/** Inventory reservation from `inventory_reservations` JOIN `inventory_items` */
+/** Inventory reservation from `inventory_reservations` JOIN `dresses` */
 export interface InventoryReservation {
   id: string;
   status: string | null;
   start_date: string;
   end_date: string;
   notes: string | null;
-  inventory_items: {
+  dresses: {
     id: string;
     name: string;
     item_code: string | null;

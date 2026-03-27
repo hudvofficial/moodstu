@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-26T09:31:00+07:00"
+    "last_updated": "2026-03-27T16:05:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -22,6 +22,7 @@
   },
   "database_schema": {
     "summary": "Core: contracts, contract_items, customers, leads, employees, audit_logs. Support: printing_orders, inventory_reservations, inventory_items, contract_notes, transaction_categories, studio_info, labs.",
+    "strategy": "ABC Framework — Group A (Keep ENUM), Group B (Rollback to VARCHAR+TS), Group C (Lookup Table)",
     "new_tables": [
       {
         "name": "contract_notes",
@@ -157,6 +158,18 @@
     }
   },
   "knowledge_items": {
+    "patterns": [
+      {
+        "name": "ABC Schema Type Strategy",
+        "doc": "audit_report.md",
+        "template": "tasks/schema-type-template.md",
+        "details": "A (Keep ENUM — system), B (VARCHAR+TS — business logic), C (Lookup Table — user-managed)"
+      },
+      {
+        "name": "VARCHAR + TS Enum Pattern (Group B)",
+        "details": "DB: VARCHAR(N) | TS: const array + type [X] | Zod: z.enum() | SSOT map for labels"
+      }
+    ],
     "gotchas": [
       "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
       "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
@@ -164,14 +177,21 @@
       "Header detail pages: use HeaderSlotsContext to set mobile header slots",
       "PostgREST FK join: employees:created_by(full_name) FAILS if no FK — select UUID instead",
       "File splitting: keep parent as orchestrator, extract child UI. NO internal barrel exports",
-      "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())"
+      "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())",
+      "Migration: Dependent partial indexes must be dropped before altering columns from ENUM to VARCHAR"
     ],
     "specs": [
-      "docs/specs/v2-module-template.md — V2 Module Template Spec (gold standard from Contract module)",
-      "docs/specs/dresses.md — Dresses Module Spec (V2 — 9/18 features done, remaining in .brain brief)"
+      "docs/specs/v2-module-template.md — V2 Module Template Spec",
+      "docs/specs/dresses.md — Dresses Module Spec",
+      "docs/specs/inventory.md — Inventory Module Spec (draft)"
     ]
   },
   "decisions": [
+    {
+      "date": "2026-03-27",
+      "decision": "Adopt ABC Framework for database schema types. Rolled back 12 business ENUMs to VARCHAR.",
+      "reason": "Improves flexibility, avoids complex migrations for workflow changes, aligns with enterprise-grade modularity."
+    },
     {
       "date": "2026-03-25",
       "decision": "Hybrid Gold Standard achieved: Audit Logs via fireAuditLog() + Zod server-side validation + error.tsx boundaries.",

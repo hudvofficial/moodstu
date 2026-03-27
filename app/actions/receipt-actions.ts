@@ -129,7 +129,7 @@ export async function createSaleReceipt(input: {
     const receiptId = (data as { receipt_id: string }).receipt_id;
     fireAuditLog({ action: "CREATE", tableName: "receipts", recordId: receiptId, description: `Bán vật tư ${input.receipt_amount.toLocaleString("vi-VN")}₫` });
     revalidatePath("/finance/receipts");
-    revalidatePath("/inventory");
+    revalidatePath("/dresses");
     return { receipt_id: receiptId };
   });
 }

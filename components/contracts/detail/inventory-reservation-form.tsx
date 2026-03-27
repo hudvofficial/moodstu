@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Shirt, Search } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { getAvailableItems } from "@/app/actions/inventory-actions";
+import { getAvailableItems } from "@/app/actions/dress-queries";
 import { reserveDressForContract } from "@/app/actions/dress-mutations";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
@@ -24,7 +24,7 @@ interface Props {
   contractCode: string;
 }
 
-interface InventoryItem {
+interface DressItem {
   id: string;
   name: string;
   item_code: string | null;
@@ -41,7 +41,7 @@ export default function InventoryReservationForm({
   contractId,
   contractCode,
 }: Props) {
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<DressItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [isAddon, setIsAddon] = useState(true);
@@ -56,7 +56,7 @@ export default function InventoryReservationForm({
     if (!isOpen) return;
     getAvailableItems().then((result) => {
       if (result.success && result.data) {
-        setItems(result.data as InventoryItem[]);
+        setItems(result.data as DressItem[]);
       }
     });
   }, [isOpen]);
@@ -79,7 +79,7 @@ export default function InventoryReservationForm({
   );
 
   // Auto-fill price when selecting item
-  const handleSelect = useCallback((item: InventoryItem) => {
+  const handleSelect = useCallback((item: DressItem) => {
     setSelectedId(item.id);
     if (item.rental_price) {
       setRentalPrice(String(item.rental_price));

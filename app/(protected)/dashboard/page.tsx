@@ -10,10 +10,14 @@ import { ServicePieChart } from "@/components/dashboard/service-pie-chart";
 import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { PaymentReminders } from "@/components/dashboard/payment-reminders";
 import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
+import { RealtimeSync } from "@/components/shared/realtime-sync";
 
 export default function DashboardPage() {
   return (
     <div className="main-container">
+      {/* 📡 Realtime — live KPI updates */}
+      <RealtimeSync table="contracts" />
+      <RealtimeSync table="receipts" />
       {/* ── Quick Access Grid (mobile only) ── */}
       <QuickAccessGrid />
 

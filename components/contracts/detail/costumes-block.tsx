@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════
 // CostumesBlock — Trang phục đã chọn
-// Phase 04e: inventory_reservations JOIN inventory_items
+// Phase 04e: inventory_reservations JOIN dresses
 // ═══════════════════════════════════════════
 
 interface Props {
@@ -46,7 +46,7 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
           {reservations.map((r) => {
-            const item = r.inventory_items;
+            const item = r.dresses;
             return (
               <div
                 key={r.id}

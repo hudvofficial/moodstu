@@ -8,7 +8,7 @@ export type { DressRental } from "@/types/dress";
 
 // ═══════════════════════════════════════════
 // Rental Queries — Fetch rentals data
-// DB: dress_rentals + inventory_items (join)
+// DB: dress_rentals + dresses (join)
 // Pattern: withAuth + service_role (bypass RLS)
 // ═══════════════════════════════════════════
 
@@ -45,7 +45,7 @@ export async function fetchAllRentals(filters?: {
 
     let query = supabase
       .from("dress_rentals")
-      .select("*, inventory_items!inner(name, item_code, image_url)", { count: "exact" });
+      .select("*, dresses!inner(name, item_code, image_url)", { count: "exact" });
 
     if (filters?.status && filters.status !== "all") {
       query = query.eq("status", filters.status);
@@ -63,13 +63,13 @@ export async function fetchAllRentals(filters?: {
 
     // Flatten joined data
     const rentals: DressRental[] = (data || []).map((r: Record<string, unknown>) => {
-      const item = r.inventory_items as Record<string, unknown> | null;
+      const item = r.dresses as Record<string, unknown> | null;
       return {
         ...r,
         item_name: item?.name as string || "",
         item_code: item?.item_code as string || "",
         item_image: item?.image_url as string || null,
-        inventory_items: undefined,
+        dresses: undefined,
       } as unknown as DressRental;
     });
 
