@@ -1,240 +1,178 @@
-# Spec: Inventory Module
+# Spec: Inventory (Kho Vật Tư Tiêu Hao)
 
-Status: 📋 Draft v2 — cập nhật theo feedback đồng bộ V2
+**Status:** 📋 Draft — chờ User duyệt
 
 ---
 
 ## 1. Mô tả nghiệp vụ
 
-Module **Kho vật tư** quản lý toàn bộ trang phục, phụ kiện, vật tư tiêu hao của Wedding Studio:
+Module **độc lập**, quản lý vật tư tiêu hao — KHÔNG liên quan Dresses (trang phục).
 
-- **Quản lý items:** CRUD vật tư/trang phục, tracking tồn kho (current_stock), cảnh báo tồn kho thấp (min_stock)
-- **Nhập/Xuất kho:** Ghi nhận mọi transaction IN/OUT, liên kết contract nếu có, tính giá trung bình
-- **Reservations:** Đặt trước trang phục cho hợp đồng (date range conflict check)
-- **Thống kê:** Tổng items, giá trị kho, items sắp hết, giao dịch trong tháng
+**Đối tượng:** Khung ảnh, album, standee, hoa giả, backdrop, giấy in, mực, keo...
 
-### Nghiệp vụ cốt lõi (từ V1):
-1. Danh sách vật tư → filter theo category, status → search theo tên/mã
-2. Xem chi tiết item → lịch sử giao dịch nhập/xuất
-3. Nhập kho (IN): nhận NCC, lý do, đơn giá → cập nhật tồn + giá TB
-4. Xuất kho (OUT): liên kết contract, check đủ tồn → cảnh báo nếu thấp
-5. Stats: tổng items, giá trị kho, low stock alerts, giao dịch tháng
+### Core Flows
+
+```
+FLOW 1: NHẬP KHO (Stock In)
+NCC giao hàng → Chọn/tạo vật tư → Nhập SL + đơn giá + NCC
+  → Tạo transaction (type=IN)
+  → Cộng current_stock
+  → Tính lại average_unit_price
+
+FLOW 2: XUẤT KHO (Stock Out)
+Cần vật tư → Chọn item + SL → Check tồn kho
+  ✅ Đủ → Tạo transaction (type=OUT) → Trừ stock → Link HĐ nếu có
+  ❌ Thiếu → Báo lỗi
+
+FLOW 3: QUẢN LÝ VẬT TƯ (CRUD)
+Danh sách → Filter (category, status) → Xem chi tiết → Tạo/Sửa/Ngưng
+```
 
 ---
 
 ## 2. Database Schema
 
-### Schema hiện có + Migration cần thêm
+### 2.1. Bảng `inventory_items` [MỚI]
 
-#### Migration 1: ENUM types (đồng bộ V2)
+| Column | Type | Note |
+|--------|------|------|
+| `id` | UUID PK | `gen_random_uuid()` |
+| `item_code` | VARCHAR(20) UNIQUE | Auto-gen: `VT-001` |
+| `name` | VARCHAR(200) NOT NULL | Tên vật tư |
+| `category` | VARCHAR(50) | Group B — `khung_anh`, `album`, `hoa`, `tieu_hao`, `trang_tri` |
+| `unit` | VARCHAR(30) | `cai`, `bo`, `hop`, `cuon`, `met`, `to` |
+| `current_stock` | INTEGER DEFAULT 0 | Tồn kho hiện tại |
+| `min_stock` | INTEGER DEFAULT 0 | Ngưỡng cảnh báo |
+| `purchase_price` | NUMERIC(15,2) DEFAULT 0 | Giá mua gần nhất |
+| `average_unit_price` | NUMERIC(15,2) DEFAULT 0 | Giá trung bình (weighted) |
+| `sale_price` | NUMERIC(15,2) DEFAULT 0 | Giá bán (nếu xuất bán) |
+| `supplier` | VARCHAR(200) | NCC chính |
+| `image_url` | TEXT | Ảnh vật tư |
+| `status` | VARCHAR(20) DEFAULT 'active' | Group B — `active`, `discontinued` |
+| `notes` | TEXT | Ghi chú |
+| `created_by` | UUID FK → `auth.users(id)` | Lesson #72 |
+| `updated_by` | UUID FK → `auth.users(id)` | |
+| `created_at` | TIMESTAMPTZ DEFAULT now() | |
+| `updated_at` | TIMESTAMPTZ DEFAULT now() | |
+| `deleted_at` | TIMESTAMPTZ DEFAULT NULL | Soft delete |
 
-```sql
--- Tạo ENUM cho status (thay VARCHAR free-text)
-CREATE TYPE inventory_status_enum AS ENUM (
-  'available',     -- Có sẵn
-  'rented',        -- Đang cho thuê
-  'maintenance',   -- Đang bảo trì
-  'retired'        -- Ngừng sử dụng
-);
+**Indexes:** `status`, `category`, `item_code`
+**RLS:** `service_role_full_access` + `anon_no_access`
 
--- Tạo ENUM cho category (thay VARCHAR free-text)
-CREATE TYPE inventory_category_enum AS ENUM (
-  'vay_cuoi',      -- Váy cưới
-  'vest',          -- Vest
-  'ao_dai',        -- Áo dài
-  'phu_kien',      -- Phụ kiện (khăn voan, vương miện, giày...)
-  'vat_tu',        -- Vật tư tiêu hao (khung ảnh, album...)
-  'trang_tri',     -- Đồ trang trí
-  'khac'           -- Khác
-);
+### 2.2. Bảng `inventory_transactions` [ĐÃ CÓ — FIX]
 
--- Migrate existing data
-ALTER TABLE inventory_items
-  ALTER COLUMN status TYPE inventory_status_enum
-    USING status::inventory_status_enum;
+Bảng đã tồn tại (17 columns, 0 rows). Cần fix:
+1. **Thêm FK:** `item_id` → `inventory_items(id)`
+2. **Rollback ENUM:** `inventory_transaction_type_enum` → VARCHAR (ABC Group B, Lesson #89)
+3. **Fix FK:** `performed_by` — hiện FK trỏ bảng không xác định → **Drop + Re-add FK** → `auth.users(id)` (Lesson #72)
+4. **Thêm audit columns:** `created_by` FK → `auth.users(id)` (hiện chỉ có `performed_by`)
 
-ALTER TABLE inventory_items
-  ALTER COLUMN category TYPE inventory_category_enum
-    USING category::inventory_category_enum;
+> [!WARNING]
+> ENUM rollback: ALTER column type → DROP old enum type.
+> `performed_by` FK cũ cần DROP trước rồi re-create trỏ đúng `auth.users(id)`.
 
-ALTER TABLE inventory_items
-  ALTER COLUMN status SET DEFAULT 'available'::inventory_status_enum;
+### 2.3. Auto-code: `item_code`
+
 ```
-
-**`inventory_items`** (3 rows có sẵn):
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | gen_random_uuid() |
-| item_code | VARCHAR UNIQUE | Mã vật tư |
-| name | VARCHAR | Tên |
-| category | `inventory_category_enum` | ✅ **ENUM mới** — snake_case |
-| size, color, condition | VARCHAR | Thuộc tính vật lý |
-| rental_price, sale_price, purchase_price | NUMERIC | Giá bán/cho thuê/mua |
-| current_stock | INT | Tồn kho hiện tại |
-| min_stock | INT | Ngưỡng cảnh báo |
-| average_unit_price | NUMERIC | Giá TB (nhập kho) |
-| image_url | TEXT | Ảnh |
-| status | `inventory_status_enum` | ✅ **ENUM mới** — available/rented/maintenance/retired |
-| notes | TEXT | Ghi chú |
-| created_by, updated_by | UUID FK → auth.users | ✅ Đúng chuẩn |
-| created_at, updated_at | TIMESTAMPTZ | Audit |
-| deleted_at | TIMESTAMPTZ | Soft delete ✅ |
-
-**`inventory_transactions`** (0 rows):
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | |
-| item_id | UUID FK → inventory_items | |
-| transaction_type | VARCHAR CHECK IN/OUT | |
-| quantity | INT | |
-| unit_cost, total_cost (generated) | NUMERIC | |
-| contract_id | UUID FK → contracts | (nullable) |
-| contract_code | VARCHAR | (denorm — chấp nhận) |
-| reason, supplier, notes | TEXT | |
-| performed_by | UUID FK → auth.users | ✅ |
-| customer_name, customer_phone, customer_address | VARCHAR/TEXT | Cho xuất bán |
-| created_at | TIMESTAMPTZ | |
-
-**`inventory_reservations`** (2 rows):
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | |
-| inventory_item_id | UUID FK → inventory_items | |
-| contract_id, contract_item_id, customer_id | UUID FK | |
-| start_date, end_date | DATE | Date range |
-| export_type | ENUM xuat_ban/xuat_thue | |
-| status | VARCHAR | reserved/confirmed/cancelled |
-| notes | TEXT | |
-
-> **RLS:** Cả 3 bảng đều enabled. Đã có sẵn policies.
-
-### Schema Changes Needed:
-- [x] Tạo `inventory_status_enum` (đồng bộ pattern V2: contract_status_enum, lead_status_enum...)
-- [x] Tạo `inventory_category_enum` (snake_case, Lesson #65)
-- [x] Migrate existing VARCHAR → ENUM
-- [x] Indexes cho `category`, `status` (filter performance)
+Prefix: VT-
+Format: VT-001, VT-002, ...
+Logic: SELECT MAX + 1 (retry loop 3 lần — race prevention)
+```
 
 ---
 
 ## 3. Server Actions
 
-### ✅ ĐÃ TỒN TẠI — CẦN REFACTOR
+### inventory-queries.ts (READ)
 
-Hiện có 2 files:
-- `inventory-actions.ts` (161 lines) — CRUD items + transactions + stats
-- `inventory-query-actions.ts` (79 lines) — Transaction history queries
+| Function | Mô tả |
+|----------|--------|
+| `fetchInventoryList(filters?)` | List + filter (category, status, search) |
+| `fetchInventoryDetail(id)` | Detail + transactions history |
+| `getInventoryStats()` | Tổng items, giá trị kho, low stock count |
+| `getNextInventoryCode()` | Auto-gen VT-XXX |
 
-**Refactor cần làm** (theo v2-module-template):
+### inventory-mutations.ts (WRITE)
 
-#### `inventory-queries.ts` [NEW] — tách queries ra riêng
-- `fetchInventoryList(search?, category?, status?)` — list items (thay `getInventoryAction`)
-- `fetchInventoryDetail(id)` — chi tiết 1 item
-- `getInventoryStats()` — stats (move từ inventory-actions.ts)
-- `getItemTransactions(itemId, page)` — (move từ inventory-query-actions.ts)
-- `getAllTransactions(filters)` — (move từ inventory-query-actions.ts)
-- `getAvailableItems()` — items available cho reservation
+| Function | Mô tả |
+|----------|--------|
+| `createInventoryItem(data)` | Tạo vật tư mới |
+| `updateInventoryItem(id, data)` | Sửa info (optimistic locking) |
+| `deleteInventoryItem(id)` | Soft delete |
+| `stockIn(itemId, qty, unitCost, supplier?, notes?)` | Nhập kho → transaction + stock + avg price |
+| `stockOut(itemId, qty, contractId?, reason?, notes?)` | Xuất kho → check stock → transaction → trừ stock |
 
-#### `inventory-mutations.ts` [NEW] — CRUD + transactions
-- `createInventoryItem(rawData)` — Zod validation, fireAuditLog
-- `updateInventoryItem(id, rawData, expectedUpdatedAt)` — Optimistic Locking
-- `deleteInventoryItem(id)` — Soft delete (set deleted_at)
-- `createInventoryTransaction(input)` — Stock check OUT, low stock warning
-
-#### Xóa files cũ:
-- [DELETE] `inventory-actions.ts`
-- [DELETE] `inventory-query-actions.ts`
+**Tất cả:** `withAuth` + `try-catch` + `revalidatePath` + `fireAuditLog` + Zod `safeParse`
 
 ---
 
 ## 4. UI Components
 
-### File Structure (theo module-blueprint §1):
+### File Structure
+
 ```
 app/(protected)/inventory/
-├── page.tsx              — Server Component (SSR fetch → props)
-├── loading.tsx           — Skeleton loader
-├── error.tsx             — Error boundary
-└── [id]/page.tsx         — Detail page (item detail + transaction history)
+├── page.tsx              ← SSR + metadata
+├── loading.tsx           ← Skeleton (BẮT BUỘC)
+├── error.tsx             ← Error boundary (BẮT BUỘC)
+└── [id]/page.tsx         ← Detail
 
 components/inventory/
-├── inventory-list-page.tsx      — Client wrapper (SWR + filters)
-├── inventory-table.tsx          — Desktop table
-├── inventory-card.tsx           — Mobile card
-├── inventory-filters.tsx        — Filter bar (TabsFilter + SelectPill)
-├── inventory-stats-bar.tsx      — Stats (shared StatsBar)
-├── inventory-detail-page.tsx    — Detail view
-├── inventory-form-modal.tsx     — Create/Edit item
-├── inventory-transaction-modal.tsx — Nhập/Xuất kho modal
+├── inventory-list-page.tsx     ← Client (SWR + filters)
+├── inventory-filters.tsx       ← SelectPill (category, status)
+├── inventory-stats-bar.tsx     ← StatsBar
+├── inventory-table.tsx         ← Desktop table
+├── inventory-card.tsx          ← Mobile card
+├── inventory-detail-page.tsx   ← Detail + transaction history
+├── inventory-form-modal.tsx    ← Create/Edit (openModal)
+├── stock-in-modal.tsx          ← Nhập kho form
+└── stock-out-modal.tsx         ← Xuất kho form
 
 types/
-├── inventory.ts                 — DB types + enums
-└── inventory-constants.ts       — Display maps, labels
+├── inventory.ts                ← Types + Group B enums
+└── inventory-constants.ts      ← Labels, maps
 ```
 
-### Pages & Components:
+### Shared Components Used
 
-**1. List Page** (`/inventory`)
-- Stats bar: tổng items | giá trị kho | cảnh báo thấp | GD tháng
-- Filter: TabsFilter (Tất cả / Có sẵn / Đang thuê / Bảo trì / Hết hàng)
-- SelectPill: filter category (Váy cưới / Vest / Phụ kiện / Vật tư)
-- Desktop: Table (mã | tên | category | tồn | giá thuê | trạng thái)
-- Mobile: Cards
-- FAB: "Thêm vật tư"
-
-**2. Detail Page** (`/inventory/[id]`)
-- Breadcrumb → Kho vật tư → [item name]
-- Main: Thông tin chung (ảnh, mã, tên, category, kích thước, màu sắc, tình trạng)
-- Sidebar: Giá (thuê/bán/mua), tồn kho hiện tại, ngưỡng cảnh báo
-- Tab: Lịch sử giao dịch (paginated), Reservations
-
-**3. Form Modal** — Tạo/Sửa item
-- Fields: tên, mã (auto-gen), category (SelectForm), size, color, condition
-- Giá: rental_price, sale_price, purchase_price (CurrencyInput)
-- Tồn kho: current_stock, min_stock
-- Image, notes
-
-**4. Transaction Modal** — Nhập/Xuất kho
-- Type: IN/OUT (tabs)
-- Item selector, quantity, unit_cost (CurrencyInput)
-- Reason, supplier (IN), contract link (OUT)
-- Customer info (xuất bán): tên, SĐT, địa chỉ
+| Component | Dùng ở đâu |
+|-----------|-----------|
+| `StatsBar` | Tổng items, giá trị kho, low stock |
+| `TabsFilter` | Status (Tất cả / Active / Ngưng) |
+| `SelectPill` | Category filter |
+| `SearchBar` | Tìm tên/mã |
+| `FAB` | Mobile "+" |
+| `Badge` | Status |
+| `CurrencyInput` | Giá mua/bán |
+| `openModal()` | Tất cả modals |
 
 ---
 
 ## 5. Status Transitions
 
-### Item Status (không có FSM phức tạp — free update):
 ```
-available ←→ rented ←→ maintenance ←→ retired
+active ←→ discontinued
 ```
-Không cần lifecycle file — trạng thái cập nhật trực tiếp.
+
+- `active`: kinh doanh, nhập/xuất OK
+- `discontinued`: ngưng, không cho nhập/xuất
 
 ---
 
-## 6. Compliance Check
+## 6. Compliance Checklist
 
-### Architecture
-- [x] DB schema đã tồn tại — KHÔNG cần migration
-- [ ] Actions split: queries + mutations (refactor cần thiết)
-- [ ] withAuth() cho mọi action
-- [ ] Zod validation cho mutations
-- [ ] fireAuditLog cho mutations
-- [ ] Optimistic Locking cho update
-- [ ] revalidatePath sau mutations
-- [x] created_by FK → auth.users(id) ✅
-
-### UI
-- [ ] loading.tsx + Skeleton
-- [ ] error.tsx
-- [ ] 3 UX states (loading, empty, error)
-- [ ] Responsive: Desktop + Mobile
-- [ ] CSS SSOT tokens only
-- [ ] Transaction modal (Nhập/Xuất kho) — full scope
-- [ ] Max 250 lines/file
-
-### Database
-- [x] Soft delete: deleted_at ✅
-- [x] RLS enabled ✅
-- [x] Audit columns ✅
-- [ ] Status ENUM `inventory_status_enum` ✅ (migration cần apply)
-- [ ] Category ENUM `inventory_category_enum` ✅ (migration cần apply)
+- [x] Actions: queries + mutations split
+- [x] withAuth() mọi action
+- [x] Zod safeParse cho mutations
+- [x] fireAuditLog cho mutations
+- [x] Optimistic locking cho update
+- [x] FK `*_by` → `auth.users(id)` (Lesson #72)
+- [x] ABC Group B cho category/status/unit/transaction_type (Lesson #89-90)
+- [x] Soft delete + RLS
+- [x] loading.tsx + error.tsx
+- [x] CSS SSOT — NO hardcode hex
+- [x] NO border — shadow only
+- [x] openModal() — NO self-render
+- [x] SelectPill for filters, SelectForm for forms
+- [x] Max 250 lines/file
+- [x] Responsive Desktop + Mobile

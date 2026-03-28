@@ -81,7 +81,7 @@ export type UpdateDressInput = z.infer<typeof dressUpdateSchema>;
 // ─── Reserve Dress Schema ───────────────────────────────────
 
 export const reserveDressSchema = z.object({
-  inventoryItemId: z.string().uuid("ID trang phục không hợp lệ"),
+  dressId: z.string().uuid("ID trang phục không hợp lệ"),
   contractId: z.string().uuid("ID hợp đồng không hợp lệ"),
   contractItemId: z.string().uuid().optional(),
   customerId: z.string().uuid().optional(),

@@ -175,9 +175,9 @@ export async function deleteDress(id: string) {
   return withAuth(async (supabase, userId) => {
     // Check: cannot delete if reserved/rented
     const { data: reservations } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .select("id")
-      .eq("inventory_item_id", id)
+      .eq("dress_id", id)
       .in("status", ["reserved", "rented"])
       .limit(1);
 
@@ -225,7 +225,7 @@ export async function reserveDressForContract(rawData: unknown) {
     const { data: item, error: itemErr } = await supabase
       .from("dresses")
       .select("id, name, status")
-      .eq("id", input.inventoryItemId)
+      .eq("id", input.dressId)
       .is("deleted_at", null)
       .single();
 
@@ -233,9 +233,9 @@ export async function reserveDressForContract(rawData: unknown) {
 
     // 2. Date overlap check (prevent double-booking)
     const { data: overlaps } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .select("id")
-      .eq("inventory_item_id", input.inventoryItemId)
+      .eq("dress_id", input.dressId)
       .in("status", ["reserved", "rented"])
       .lte("start_date", input.endDate)
       .gte("end_date", input.startDate)
@@ -260,7 +260,7 @@ export async function reserveDressForContract(rawData: unknown) {
           total_amount: input.rentalPrice,
           is_addon: true,
           addon_category: "trang_phuc",
-          inventory_item_id: input.inventoryItemId,
+          dress_id: input.dressId,
           created_at: now,
         })
         .select("id")
@@ -290,8 +290,8 @@ export async function reserveDressForContract(rawData: unknown) {
     }
 
     // 4. Insert reservation (correct column names)
-    const { error: resError } = await supabase.from("inventory_reservations").insert({
-      inventory_item_id: input.inventoryItemId,
+    const { error: resError } = await supabase.from("dress_reservations").insert({
+      dress_id: input.dressId,
       contract_id: input.contractId,
       contract_item_id: contractItemId,
       customer_id: input.customerId || null,
@@ -310,12 +310,12 @@ export async function reserveDressForContract(rawData: unknown) {
     await supabase
       .from("dresses")
       .update({ status: "reserved", updated_at: now })
-      .eq("id", input.inventoryItemId);
+      .eq("id", input.dressId);
 
     // 6. Audit log
     fireAuditLog({
       action: "CREATE",
-      tableName: "inventory_reservations",
+      tableName: "dress_reservations",
       description: `Đặt trang phục: ${item.name} cho HĐ #${input.contractId.substring(0, 8)}`,
       source: "server_action",
     });
@@ -336,8 +336,8 @@ export async function releaseReservation(reservationId: string) {
 
     // 1. Fetch reservation details
     const { data: reservation, error: fetchErr } = await supabase
-      .from("inventory_reservations")
-      .select("id, inventory_item_id, contract_id, contract_item_id, status")
+      .from("dress_reservations")
+      .select("id, dress_id, contract_id, contract_item_id, status")
       .eq("id", reservationId)
       .single();
 
@@ -346,16 +346,16 @@ export async function releaseReservation(reservationId: string) {
 
     // 2. Update reservation → returned
     const { error: updateErr } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .update({ status: "returned", updated_at: now })
       .eq("id", reservationId);
     if (updateErr) throw new Error(`Lỗi trả trang phục: ${updateErr.message}`);
 
     // 3. Check if item has other active reservations
     const { data: otherActive } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .select("id")
-      .eq("inventory_item_id", reservation.inventory_item_id)
+      .eq("dress_id", reservation.dress_id)
       .in("status", ["reserved", "rented"])
       .neq("id", reservationId)
       .limit(1);
@@ -365,7 +365,7 @@ export async function releaseReservation(reservationId: string) {
       await supabase
         .from("dresses")
         .update({ status: "available", updated_at: now })
-        .eq("id", reservation.inventory_item_id);
+        .eq("id", reservation.dress_id);
     }
 
     // 4. Reverse addon billing if applicable (JOIN contract_items for is_addon + unit_price)
@@ -399,7 +399,7 @@ export async function releaseReservation(reservationId: string) {
 
     fireAuditLog({
       action: "UPDATE",
-      tableName: "inventory_reservations",
+      tableName: "dress_reservations",
       recordId: reservationId,
       description: `Trả trang phục — reservation #${reservationId.substring(0, 8)}`,
       source: "server_action",

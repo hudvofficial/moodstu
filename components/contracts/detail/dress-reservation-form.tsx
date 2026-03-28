@@ -12,8 +12,8 @@ import { toast } from "@/lib/toast-utils";
 import DatePicker from "@/components/ui/date-picker";
 
 // ═══════════════════════════════════════════
-// Inventory Reservation Form — V2 (replaces V1 DressSelector)
-// Phase 07A: V2 inventory_reservations pattern
+// Dress Reservation Form — V2 (replaces V1 DressSelector)
+// Phase 07A: V2 dress_reservations pattern
 // Data via server actions, NOT client Supabase
 // ═══════════════════════════════════════════
 
@@ -35,7 +35,7 @@ interface DressItem {
   image_url: string | null;
 }
 
-export default function InventoryReservationForm({
+export default function DressReservationForm({
   isOpen,
   onClose,
   contractId,
@@ -106,7 +106,7 @@ export default function InventoryReservationForm({
     setLoading(true);
     try {
       const result = await reserveDressForContract({
-        inventoryItemId: selectedId,
+        dressId: selectedId,
         contractId,
         isAddon,
         rentalPrice: price,

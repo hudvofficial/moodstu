@@ -79,7 +79,7 @@ export interface DressDetail extends DressItem {
 
 export interface RentalHistoryRow {
   id: string;
-  inventory_item_id: string;
+  dress_id: string;
   contract_id: string;
   status: string | null;
   rental_price: number | null;

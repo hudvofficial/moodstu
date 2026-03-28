@@ -4,7 +4,7 @@ import type {
   Contract,
   Payment,
   PaymentPlan,
-  InventoryReservation,
+  DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
 } from "@/types/contract";
@@ -30,7 +30,7 @@ export default async function ContractDetailPage(props: {
       contract: Contract;
       payments: Payment[];
       paymentPlans: PaymentPlan[];
-      reservations: InventoryReservation[];
+      reservations: DressReservationRow[];
       printOrders: PrintingOrder[];
       auditLogs: AuditLogEntry[];
     };

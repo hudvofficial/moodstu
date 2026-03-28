@@ -176,7 +176,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         },
         items: items.items.map((item) => ({
           service_id: item.service_id,
-          inventory_item_id: item.inventory_item_id,
+          dress_id: item.dress_id,
           item_name: item.item_name,
           quantity: item.quantity,
           unit_price: item.unit_price,

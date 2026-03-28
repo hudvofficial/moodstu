@@ -60,7 +60,7 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
     } else {
       onAdd({
         service_id: null,
-        inventory_item_id: null,
+        dress_id: null,
         item_name: name.trim(),
         quantity: qty,
         unit_price: price,

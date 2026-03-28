@@ -159,7 +159,7 @@ export async function updatePrintOrderStatus(
   });
 }
 
-/** Update inventory reservation status (V2 — replaces V1 dress_rentals) */
+/** Update dress reservation status (V2 — replaces V1 dress_rentals) */
 export async function updateReservationStatus(
   reservationId: string,
   status: string,
@@ -170,7 +170,7 @@ export async function updateReservationStatus(
 
     // Update reservation
     const { error } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .update({
         status,
         updated_by: userId,
@@ -183,7 +183,7 @@ export async function updateReservationStatus(
     // V2 special: if "returned" → update dresses availability
     if (status === "returned") {
       const { data: reservation } = await supabase
-        .from("inventory_reservations")
+        .from("dress_reservations")
         .select("item_id")
         .eq("id", reservationId)
         .single();

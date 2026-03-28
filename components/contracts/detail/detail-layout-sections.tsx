@@ -16,7 +16,7 @@ import NotesTimeline from "./notes-timeline";
 import type {
   Contract,
   Payment,
-  InventoryReservation,
+  DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
 } from "@/types/contract";
@@ -30,7 +30,7 @@ import type {
 interface LayoutProps {
   contract: Contract;
   payments: Payment[];
-  reservations: InventoryReservation[];
+  reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
   auditLogs: AuditLogEntry[];
   refreshContract: () => void;

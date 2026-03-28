@@ -138,6 +138,7 @@
     },
     "components": {
       "UnifiedModal": "Standard modal wrapper for all CRUD forms",
+      "ComboboxSearch": "Searchable dropdown with Portal-based rendering for large lists",
       "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
       "StatusSelect": "Interactive status dropdown with color-coded logic",
       "toast-utils": "Centralized notification system",
@@ -159,6 +160,11 @@
   },
   "knowledge_items": {
     "patterns": [
+      {
+        "name": "Searchable Combobox Pattern",
+        "doc": "docs/patterns/combobox-search-pattern.md",
+        "details": "Portal-based rendering to document.body + fixed positioning to escape modal overflow clipping."
+      },
       {
         "name": "ABC Schema Type Strategy",
         "doc": "audit_report.md",

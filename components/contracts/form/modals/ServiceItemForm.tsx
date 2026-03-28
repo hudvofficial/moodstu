@@ -87,7 +87,7 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
     selected.forEach((svc) => {
       onAdd({
         service_id: svc.id,
-        inventory_item_id: null,
+        dress_id: null,
         item_name: svc.service_name,
         quantity: 1,
         unit_price: svc.selling_price,

@@ -320,7 +320,7 @@ export type Database = {
           phase: string | null
           sort_order: number | null
           start_time: string | null
-          status: Database["public"]["Enums"]["task_status_enum"] | null
+          status: string | null
           title: string | null
           updated_at: string | null
         }
@@ -340,7 +340,7 @@ export type Database = {
           phase?: string | null
           sort_order?: number | null
           start_time?: string | null
-          status?: Database["public"]["Enums"]["task_status_enum"] | null
+          status?: string | null
           title?: string | null
           updated_at?: string | null
         }
@@ -360,7 +360,7 @@ export type Database = {
           phase?: string | null
           sort_order?: number | null
           start_time?: string | null
-          status?: Database["public"]["Enums"]["task_status_enum"] | null
+          status?: string | null
           title?: string | null
           updated_at?: string | null
         }
@@ -384,9 +384,9 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           discount_amount: number | null
+          dress_id: string | null
           export_type: Database["public"]["Enums"]["export_type_enum"] | null
           id: string
-          inventory_item_id: string | null
           is_addon: boolean | null
           item_name: string
           notes: string | null
@@ -407,9 +407,9 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           discount_amount?: number | null
+          dress_id?: string | null
           export_type?: Database["public"]["Enums"]["export_type_enum"] | null
           id?: string
-          inventory_item_id?: string | null
           is_addon?: boolean | null
           item_name: string
           notes?: string | null
@@ -430,9 +430,9 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           discount_amount?: number | null
+          dress_id?: string | null
           export_type?: Database["public"]["Enums"]["export_type_enum"] | null
           id?: string
-          inventory_item_id?: string | null
           is_addon?: boolean | null
           item_name?: string
           notes?: string | null
@@ -454,7 +454,7 @@ export type Database = {
           },
           {
             foreignKeyName: "contract_items_inventory_item_id_fkey"
-            columns: ["inventory_item_id"]
+            columns: ["dress_id"]
             isOneToOne: false
             referencedRelation: "dresses"
             referencedColumns: ["id"]
@@ -521,10 +521,10 @@ export type Database = {
           id: string
           notes: string | null
           paid_amount: number | null
-          payment_status: Database["public"]["Enums"]["payment_status_enum"]
+          payment_status: string
           remaining_amount: number | null
           service_type: Database["public"]["Enums"]["service_type_enum"]
-          status: Database["public"]["Enums"]["contract_status_enum"]
+          status: string
           total_amount: number
           transaction_type: Database["public"]["Enums"]["transaction_type_enum"]
           updated_at: string | null
@@ -548,10 +548,10 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_amount?: number | null
-          payment_status?: Database["public"]["Enums"]["payment_status_enum"]
+          payment_status?: string
           remaining_amount?: number | null
           service_type: Database["public"]["Enums"]["service_type_enum"]
-          status?: Database["public"]["Enums"]["contract_status_enum"]
+          status?: string
           total_amount?: number
           transaction_type?: Database["public"]["Enums"]["transaction_type_enum"]
           updated_at?: string | null
@@ -575,10 +575,10 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_amount?: number | null
-          payment_status?: Database["public"]["Enums"]["payment_status_enum"]
+          payment_status?: string
           remaining_amount?: number | null
           service_type?: Database["public"]["Enums"]["service_type_enum"]
-          status?: Database["public"]["Enums"]["contract_status_enum"]
+          status?: string
           total_amount?: number
           transaction_type?: Database["public"]["Enums"]["transaction_type_enum"]
           updated_at?: string | null
@@ -735,7 +735,7 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           full_name: string
-          gender: string | null
+          gender: Database["public"]["Enums"]["gender_enum"] | null
           groom_height: number | null
           groom_name: string | null
           groom_phone: string | null
@@ -767,7 +767,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           full_name: string
-          gender?: string | null
+          gender?: Database["public"]["Enums"]["gender_enum"] | null
           groom_height?: number | null
           groom_name?: string | null
           groom_phone?: string | null
@@ -799,7 +799,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           full_name?: string
-          gender?: string | null
+          gender?: Database["public"]["Enums"]["gender_enum"] | null
           groom_height?: number | null
           groom_name?: string | null
           groom_phone?: string | null
@@ -1043,6 +1043,80 @@ export type Database = {
           },
         ]
       }
+      dress_reservations: {
+        Row: {
+          contract_id: string | null
+          contract_item_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          dress_id: string
+          end_date: string
+          export_type: Database["public"]["Enums"]["export_type_enum"] | null
+          id: string
+          notes: string | null
+          start_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          contract_item_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          dress_id: string
+          end_date: string
+          export_type?: Database["public"]["Enums"]["export_type_enum"] | null
+          id?: string
+          notes?: string | null
+          start_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          contract_item_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          dress_id?: string
+          end_date?: string
+          export_type?: Database["public"]["Enums"]["export_type_enum"] | null
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_contract_item_id_fkey"
+            columns: ["contract_item_id"]
+            isOneToOne: false
+            referencedRelation: "contract_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_inventory_item_id_fkey"
+            columns: ["dress_id"]
+            isOneToOne: false
+            referencedRelation: "dresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dresses: {
         Row: {
           average_unit_price: number | null
@@ -1227,7 +1301,7 @@ export type Database = {
           email: string | null
           employee_code: string
           full_name: string
-          gender: string | null
+          gender: Database["public"]["Enums"]["gender_enum"] | null
           id: string
           notes: string | null
           phone: string | null
@@ -1247,7 +1321,7 @@ export type Database = {
           email?: string | null
           employee_code: string
           full_name: string
-          gender?: string | null
+          gender?: Database["public"]["Enums"]["gender_enum"] | null
           id?: string
           notes?: string | null
           phone?: string | null
@@ -1267,7 +1341,7 @@ export type Database = {
           email?: string | null
           employee_code?: string
           full_name?: string
-          gender?: string | null
+          gender?: Database["public"]["Enums"]["gender_enum"] | null
           id?: string
           notes?: string | null
           phone?: string | null
@@ -1905,85 +1979,78 @@ export type Database = {
         }
         Relationships: []
       }
-      inventory_reservations: {
+      inventory_items: {
         Row: {
-          contract_id: string | null
-          contract_item_id: string | null
+          average_unit_price: number | null
+          category: string | null
           created_at: string | null
-          customer_id: string | null
-          end_date: string
-          export_type: Database["public"]["Enums"]["export_type_enum"] | null
+          created_by: string | null
+          current_stock: number | null
+          deleted_at: string | null
           id: string
-          inventory_item_id: string
+          image_url: string | null
+          item_code: string
+          min_stock: number | null
+          name: string
           notes: string | null
-          start_date: string
+          purchase_price: number | null
+          sale_price: number | null
           status: string | null
+          supplier: string | null
+          unit: string | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
-          contract_id?: string | null
-          contract_item_id?: string | null
+          average_unit_price?: number | null
+          category?: string | null
           created_at?: string | null
-          customer_id?: string | null
-          end_date: string
-          export_type?: Database["public"]["Enums"]["export_type_enum"] | null
+          created_by?: string | null
+          current_stock?: number | null
+          deleted_at?: string | null
           id?: string
-          inventory_item_id: string
+          image_url?: string | null
+          item_code: string
+          min_stock?: number | null
+          name: string
           notes?: string | null
-          start_date: string
+          purchase_price?: number | null
+          sale_price?: number | null
           status?: string | null
+          supplier?: string | null
+          unit?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
-          contract_id?: string | null
-          contract_item_id?: string | null
+          average_unit_price?: number | null
+          category?: string | null
           created_at?: string | null
-          customer_id?: string | null
-          end_date?: string
-          export_type?: Database["public"]["Enums"]["export_type_enum"] | null
+          created_by?: string | null
+          current_stock?: number | null
+          deleted_at?: string | null
           id?: string
-          inventory_item_id?: string
+          image_url?: string | null
+          item_code?: string
+          min_stock?: number | null
+          name?: string
           notes?: string | null
-          start_date?: string
+          purchase_price?: number | null
+          sale_price?: number | null
           status?: string | null
+          supplier?: string | null
+          unit?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_reservations_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_contract_item_id_fkey"
-            columns: ["contract_item_id"]
-            isOneToOne: false
-            referencedRelation: "contract_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_inventory_item_id_fkey"
-            columns: ["inventory_item_id"]
-            isOneToOne: false
-            referencedRelation: "dresses"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       inventory_transactions: {
         Row: {
           contract_code: string | null
           contract_id: string | null
           created_at: string | null
+          created_by: string | null
           customer_address: string | null
           customer_name: string | null
           customer_phone: string | null
@@ -2003,6 +2070,7 @@ export type Database = {
           contract_code?: string | null
           contract_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -2022,6 +2090,7 @@ export type Database = {
           contract_code?: string | null
           contract_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -2043,6 +2112,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
@@ -2639,7 +2715,7 @@ export type Database = {
           order_date: string | null
           payment_status: string | null
           received_date: string | null
-          status: Database["public"]["Enums"]["printing_status_enum"] | null
+          status: string | null
           total_amount: number | null
           updated_at: string | null
         }
@@ -2657,7 +2733,7 @@ export type Database = {
           order_date?: string | null
           payment_status?: string | null
           received_date?: string | null
-          status?: Database["public"]["Enums"]["printing_status_enum"] | null
+          status?: string | null
           total_amount?: number | null
           updated_at?: string | null
         }
@@ -2675,7 +2751,7 @@ export type Database = {
           order_date?: string | null
           payment_status?: string | null
           received_date?: string | null
-          status?: Database["public"]["Enums"]["printing_status_enum"] | null
+          status?: string | null
           total_amount?: number | null
           updated_at?: string | null
         }
@@ -3247,7 +3323,7 @@ export type Database = {
           notes: string | null
           start_date: string | null
           start_time: string | null
-          status: Database["public"]["Enums"]["task_status_enum"] | null
+          status: string | null
           updated_at: string | null
           work_type: Database["public"]["Enums"]["work_type_enum"]
         }
@@ -3265,7 +3341,7 @@ export type Database = {
           notes?: string | null
           start_date?: string | null
           start_time?: string | null
-          status?: Database["public"]["Enums"]["task_status_enum"] | null
+          status?: string | null
           updated_at?: string | null
           work_type: Database["public"]["Enums"]["work_type_enum"]
         }
@@ -3283,7 +3359,7 @@ export type Database = {
           notes?: string | null
           start_date?: string | null
           start_time?: string | null
-          status?: Database["public"]["Enums"]["task_status_enum"] | null
+          status?: string | null
           updated_at?: string | null
           work_type?: Database["public"]["Enums"]["work_type_enum"]
         }
@@ -3397,11 +3473,6 @@ export type Database = {
         | "phu_kien"
         | "them_gio"
         | "khac"
-      contract_status_enum:
-        | "cho_xu_ly"
-        | "dang_thuc_hien"
-        | "hoan_thanh"
-        | "da_huy"
       employee_role_enum: "admin" | "manager" | "sale" | "media" | "ctv"
       event_type_enum:
         | "chuan_bi"
@@ -3410,6 +3481,7 @@ export type Database = {
         | "hau_ky"
         | "giao_san_pham"
       export_type_enum: "xuat_ban" | "xuat_thue"
+      gender_enum: "nam" | "nu" | "khac"
       item_type_enum: "dich_vu" | "san_pham" | "trang_phuc" | "phat_sinh"
       lead_potential_enum: "hot" | "warm" | "cold"
       lead_status_enum:
@@ -3427,13 +3499,6 @@ export type Database = {
         | "ERROR"
         | "GENERAL"
       payment_method_enum: "tien_mat" | "chuyen_khoan"
-      payment_status_enum:
-        | "chua_thanh_toan"
-        | "da_coc"
-        | "thanh_toan_mot_phan"
-        | "da_thanh_toan"
-        | "hoan_tien"
-      printing_status_enum: "moi" | "dang_in" | "da_ve" | "da_giao"
       service_type_enum:
         | "studio"
         | "ngay_cuoi"
@@ -3448,7 +3513,6 @@ export type Database = {
         | "media"
         | "khac"
       severity_enum: "INFO" | "WARNING" | "ERROR" | "CRITICAL"
-      task_status_enum: "chua_lam" | "dang_lam" | "hoan_thanh" | "da_huy"
       transaction_type_enum: "hop_dong" | "hoa_don"
       work_type_enum:
         | "concept"
@@ -3598,12 +3662,6 @@ export const Constants = {
         "them_gio",
         "khac",
       ],
-      contract_status_enum: [
-        "cho_xu_ly",
-        "dang_thuc_hien",
-        "hoan_thanh",
-        "da_huy",
-      ],
       employee_role_enum: ["admin", "manager", "sale", "media", "ctv"],
       event_type_enum: [
         "chuan_bi",
@@ -3613,6 +3671,7 @@ export const Constants = {
         "giao_san_pham",
       ],
       export_type_enum: ["xuat_ban", "xuat_thue"],
+      gender_enum: ["nam", "nu", "khac"],
       item_type_enum: ["dich_vu", "san_pham", "trang_phuc", "phat_sinh"],
       lead_potential_enum: ["hot", "warm", "cold"],
       lead_status_enum: [
@@ -3632,14 +3691,6 @@ export const Constants = {
         "GENERAL",
       ],
       payment_method_enum: ["tien_mat", "chuyen_khoan"],
-      payment_status_enum: [
-        "chua_thanh_toan",
-        "da_coc",
-        "thanh_toan_mot_phan",
-        "da_thanh_toan",
-        "hoan_tien",
-      ],
-      printing_status_enum: ["moi", "dang_in", "da_ve", "da_giao"],
       service_type_enum: [
         "studio",
         "ngay_cuoi",
@@ -3655,7 +3706,6 @@ export const Constants = {
         "khac",
       ],
       severity_enum: ["INFO", "WARNING", "ERROR", "CRITICAL"],
-      task_status_enum: ["chua_lam", "dang_lam", "hoan_thanh", "da_huy"],
       transaction_type_enum: ["hop_dong", "hoa_don"],
       work_type_enum: [
         "concept",

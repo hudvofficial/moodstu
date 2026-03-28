@@ -11,7 +11,7 @@ import type {
   Contract,
   Payment,
   PaymentPlan,
-  InventoryReservation,
+  DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
 } from "@/types/contract";
@@ -22,7 +22,7 @@ import CancelBanner from "./cancel-banner";
 import MobileBottomBar from "./mobile-bottom-bar";
 import PaymentReceiptForm from "./payment-receipt-form";
 import PrintingOrderForm from "./printing-order-form";
-import InventoryReservationForm from "./inventory-reservation-form";
+import DressReservationForm from "./dress-reservation-form";
 import AddEventModal from "./add-event-modal";
 import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
 
@@ -35,7 +35,7 @@ interface Props {
   initialContract: Contract;
   initialPayments: Payment[];
   initialPaymentPlans: PaymentPlan[];
-  initialReservations: InventoryReservation[];
+  initialReservations: DressReservationRow[];
   initialPrintOrders: PrintingOrder[];
   initialAuditLogs: AuditLogEntry[];
 }
@@ -66,7 +66,7 @@ export default function ContractDetailClient({
   const contract = (liveContract as unknown as Contract) || initialContract;
   const payments = (livePayments as unknown as Payment[]) || initialPayments;
   const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans;
-  const reservations = (liveReservations as unknown as InventoryReservation[]) || initialReservations;
+  const reservations = (liveReservations as unknown as DressReservationRow[]) || initialReservations;
   const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders;
   const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
   const isCancelled = contract.status === "da_huy";
@@ -260,7 +260,7 @@ export default function ContractDetailClient({
         contractId={contract.id}
         contractCode={contract.contract_code}
       />
-      <InventoryReservationForm
+      <DressReservationForm
         isOpen={showCostumeForm}
         onClose={() => setShowCostumeForm(false)}
         contractId={contract.id}

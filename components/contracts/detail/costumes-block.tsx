@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Shirt, CalendarDays } from "lucide-react";
-import type { InventoryReservation } from "@/types/contract";
+import type { DressReservationRow } from "@/types/contract";
 import { formatDate } from "@/lib/utils";
 import StatusSelect, { RESERVATION_STATUS_OPTIONS } from "@/components/ui/status-select";
 import { updateReservationStatus } from "@/app/actions/printing-actions";
@@ -9,11 +9,11 @@ import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════
 // CostumesBlock — Trang phục đã chọn
-// Phase 04e: inventory_reservations JOIN dresses
+// Phase 04e: dress_reservations JOIN dresses
 // ═══════════════════════════════════════════
 
 interface Props {
-  reservations: InventoryReservation[];
+  reservations: DressReservationRow[];
   contractId: string;
 }
 

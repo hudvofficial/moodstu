@@ -116,7 +116,7 @@ export interface ContractItem {
   original_price: number | null;
   discount_amount: number;
   total_amount: number;
-  inventory_item_id: string | null;
+  dress_id: string | null;
   notes: string | null;
   added_by: string | null;
   created_at: string;
@@ -231,8 +231,8 @@ export interface ContractStats {
 
 // ─── SIDEBAR TYPES (Phase 04e) ───────────────────────────
 
-/** Inventory reservation from `inventory_reservations` JOIN `dresses` */
-export interface InventoryReservation {
+/** Dress reservation from `dress_reservations` JOIN `dresses` */
+export interface DressReservationRow {
   id: string;
   status: string | null;
   start_date: string;

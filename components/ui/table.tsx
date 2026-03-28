@@ -20,7 +20,7 @@ export function TableWrapper({
 }: TableWrapperProps) {
   return (
     <div className={cn(
-      "w-full bg-bg-card rounded-xl overflow-hidden shadow-sm",
+      "card-base overflow-x-auto",
       containerClassName
     )}>
       <div className="overflow-x-auto scrollbar-hide">
@@ -34,7 +34,7 @@ export function TableWrapper({
 
 export function THead({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <thead className={cn("bg-bg-base/50", className)}>
+    <thead className={cn("sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary bg-bg-card", className)}>
       {children}
     </thead>
   );
@@ -42,7 +42,7 @@ export function THead({ children, className }: { children: React.ReactNode, clas
 
 export function TBody({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <tbody className={cn("", className)}>
+    <tbody className={cn("text-sm [&>tr:nth-child(even)]:bg-bg-base/40", className)}>
       {children}
     </tbody>
   );
@@ -51,7 +51,7 @@ export function TBody({ children, className }: { children: React.ReactNode, clas
 export function TH({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
     <th className={cn(
-      "px-6 py-4 text-tiny font-bold text-text-muted uppercase tracking-[0.15em] whitespace-nowrap",
+      "px-4 py-3 font-medium whitespace-nowrap",
       className
     )}>
       {children}
@@ -62,7 +62,7 @@ export function TH({ children, className }: { children: React.ReactNode, classNa
 export function TD({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
     <td className={cn(
-      "px-6 py-5 text-sm font-semibold text-text-secondary whitespace-nowrap transition-colors",
+      "px-4 whitespace-nowrap transition-colors",
       className
     )}>
       {children}
@@ -75,7 +75,7 @@ export function TR({ children, className, onClick }: { children: React.ReactNode
     <tr 
       onClick={onClick}
       className={cn(
-        "group transition-colors hover:bg-bg-hover/50",
+        "group transition-colors hover:bg-bg-hover h-14",
         onClick && "cursor-pointer",
         className
       )}

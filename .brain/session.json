@@ -1,20 +1,32 @@
 {
-  "updated_at": "2026-03-27T16:05:00+07:00",
+  "updated_at": "2026-03-28T11:30:00+07:00",
   "working_on": {
-    "feature": "Schema Optimization & ABC Framework Implementation",
-    "task": "Rollback 12 business ENUMs, enforce rules, prepare for Inventory P1",
-    "status": "ready_for_p1",
+    "feature": "Inventory UI Optimization",
+    "task": "Implement and fix Searchable Combobox",
+    "status": "completed",
+    "last_run": "2026-03-28T11:28:00+07:00",
+    "last_run_url": "http://localhost:3000/inventory",
     "files": [
-      "tasks/gates/before-edit.md",
-      "tasks/pre-code-checklist.md",
-      "tasks/lessons.md",
-      "tasks/schema-type-template.md",
-      "audit_report.md"
+      "components/ui/combobox-search.tsx",
+      "components/inventory/stock-in-modal.tsx",
+      "components/inventory/stock-out-modal.tsx"
     ],
     "blockers": [],
-    "notes": "ABC Framework V2.0 finalized. 12 ENUMs rolled back to VARCHAR successfully. Rules enforced in checklist, lessons, and Gate 8. Build passes."
+    "notes": "ComboboxSearch finalized with Portal rendering. Clipping bugs in modals fixed. 0 errors build."
   },
   "recent_changes": [
+    {
+      "timestamp": "2026-03-28T11:30:00+07:00",
+      "type": "feature",
+      "description": "Implemented ComboboxSearch component with Portal rendering to fix modal clipping. Refactored Stock-In/Out modals to use it.",
+      "files": [
+        "components/ui/combobox-search.tsx",
+        "components/inventory/stock-in-modal.tsx",
+        "components/inventory/stock-out-modal.tsx",
+        "docs/patterns/combobox-search-pattern.md"
+      ],
+      "verified": true
+    },
     {
       "timestamp": "2026-03-27T16:05:00+07:00",
       "type": "refactor",
@@ -28,37 +40,12 @@
         "tasks/schema-type-template.md"
       ],
       "verified": true
-    },
-    {
-      "timestamp": "2026-03-27T14:42:00+07:00",
-      "type": "feature",
-      "description": "P0 ENUM Consolidation: Created 10 new PostgreSQL ENUMs, updated 6 TS files and verified with Next.js build. (Later rolled back for Group B columns).",
-      "files": [
-        "lib/validations/dress.schema.ts",
-        "types/dress-constants.ts",
-        "components/dresses/dress-form-modal.tsx",
-        "types/employee-constants.ts"
-      ],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-26T20:50:00+07:00",
-      "type": "feature",
-      "description": "Phase 05-06: Standalone Rentals UI/UX Polish. Refined Stats Bar, breadcrumbs and Tailwind v4 tokens.",
-      "files": [
-        "components/dresses/standalone-rentals-client.tsx"
-      ],
-      "verified": true
     }
   ],
   "decisions_made": [
     {
-      "decision": "ABC Framework Strategy",
-      "reason": "80% of business logic columns should be Group B (VARCHAR+TS) to avoid migration friction. Keep Group A (DB ENUM) for system-level immutable roles/genders."
-    },
-    {
-      "decision": "Partial Index Drop/Recreate during migration",
-      "reason": "PostgreSQL indexes on ENUM columns must be dropped before altering column type to VARCHAR."
+      "decision": "Portal rendering for Combobox dropdown",
+      "reason": "Modal cards have overflow: hidden, clipping absolute-positioned children. Using createPortal to document.body ensures the search list is always visible."
     }
   ],
   "pending_tasks": [
@@ -68,19 +55,13 @@
       "status": "pending",
       "notes": "Follow Group B (VARCHAR+TS) for categories and status fields.",
       "source": "docs/specs/inventory.md"
-    },
-    {
-      "task": "Re-generate Supabase types",
-      "priority": "medium",
-      "notes": "Run npx supabase gen types to update project types with VARCHAR changes."
-    },
-    {
-      "task": "Migrate service_type and work_type to Lookup Tables (Group C)",
-      "priority": "low",
-      "notes": "Deferred until next module refactor."
     }
   ],
   "completed_features": {
+    "inventory_module": [
+      "Searchable Combobox Integration",
+      "Stock In/Out UX Improved"
+    ],
     "dresses_module": [
       "Dress List + Card UI",
       "Dress Create/Edit Form",
@@ -100,6 +81,6 @@
     }
   ],
   "errors_encountered": [
-    { "error": "operator does not exist: varchar <> contract_status_enum", "solution": "Drop dependent partial indexes before altering columns.", "resolved": true }
+    { "error": "Dropdown clipped by modal overflow:hidden", "solution": "Use createPortal with fixed positioning.", "resolved": true }
   ]
 }

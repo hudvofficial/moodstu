@@ -221,7 +221,7 @@ export async function getContractDetail(id: string) {
           id, type, item_name, service_id, export_type,
           quantity, unit_price, original_price,
           discount_amount, total_amount, is_addon,
-          addon_category, inventory_item_id, notes, deleted_at
+          addon_category, dress_id, notes, deleted_at
         ),
         contract_events (
           id, contract_id, event_type, title, event_date, end_date,
@@ -270,7 +270,7 @@ export async function getContractDetail(id: string) {
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
       supabase
-        .from("inventory_reservations")
+        .from("dress_reservations")
         .select(
           `id, status, start_date, end_date, notes, dresses (id, name, item_code, category, size, color, image_url)`
         )
@@ -370,7 +370,7 @@ export async function getContractForEdit(contractId: string) {
         `
         *,
         customers (id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address),
-        contract_items (id, type, item_name, service_id, inventory_item_id, export_type, is_addon, addon_category, quantity, unit_price, original_price, discount_amount, total_amount, notes, deleted_at)
+        contract_items (id, type, item_name, service_id, dress_id, export_type, is_addon, addon_category, quantity, unit_price, original_price, discount_amount, total_amount, notes, deleted_at)
       `
       )
       .eq("id", contractId)
@@ -400,7 +400,7 @@ export async function getContractForEdit(contractId: string) {
         _tempId: `existing-${index}`,
         id: item.id as string,
         service_id: (item.service_id as string) || null,
-        inventory_item_id: (item.inventory_item_id as string) || null,
+        dress_id: (item.dress_id as string) || null,
         item_name: item.item_name as string,
         type: item.type as string,
         export_type: (item.export_type as string) || null,

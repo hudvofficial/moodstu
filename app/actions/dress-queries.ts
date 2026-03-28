@@ -73,9 +73,9 @@ export async function fetchDressDetail(id: string): Promise<DressDetail | null> 
     const [itemRes, reservationsRes] = await Promise.all([
       supabase.from("dresses").select(DRESS_SELECT).eq("id", id).is("deleted_at", null).single(),
       supabase
-        .from("inventory_reservations")
-        .select(`id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at, contracts(id, contract_code, customers(full_name))`)
-        .eq("inventory_item_id", id)
+        .from("dress_reservations")
+        .select(`id, dress_id, contract_id, status, start_date, end_date, notes, created_at, contracts(id, contract_code, customers(full_name))`)
+        .eq("dress_id", id)
         .order("created_at", { ascending: false }),
     ]);
 
@@ -124,9 +124,9 @@ export async function getDressAvailability(
   return withAuth(async (supabase) => {
     // Check for overlapping reservations
     const { data, error } = await supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .select("id")
-      .eq("inventory_item_id", itemId)
+      .eq("dress_id", itemId)
       .in("status", ["reserved", "rented"])
       .lte("start_date", endDate)
       .gte("end_date", startDate);
@@ -153,9 +153,9 @@ export async function fetchRentalHistory(
     const to = from + RENTAL_HISTORY_PAGE_SIZE - 1;
 
     let query = supabase
-      .from("inventory_reservations")
+      .from("dress_reservations")
       .select(
-        `id, inventory_item_id, contract_id, status, start_date, end_date, notes, created_at,
+        `id, dress_id, contract_id, status, start_date, end_date, notes, created_at,
          contracts(id, contract_code, customers(full_name)),
          dresses!inner(id, name, item_code, category)`,
         { count: "exact" }
@@ -165,7 +165,7 @@ export async function fetchRentalHistory(
 
     // Filter by specific dress
     if (filters.item_id) {
-      query = query.eq("inventory_item_id", filters.item_id);
+      query = query.eq("dress_id", filters.item_id);
     }
 
     // Status filter

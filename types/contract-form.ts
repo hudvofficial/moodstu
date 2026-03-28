@@ -60,7 +60,7 @@ export interface ContractItemFormData {
   /** Existing DB ID (only for edit mode) */
   id?: string;
   service_id: string | null;
-  inventory_item_id: string | null;
+  dress_id: string | null;
   item_name: string;
   type: ItemType;
   export_type: ExportType;

@@ -127,7 +127,7 @@ export default function RentalHistoryClient() {
   const filters: RentalHistoryFilters = { status, item_id: itemId, page };
 
   // 📡 Realtime — auto-refresh on reservation changes
-  useRealtime("inventory_reservations");
+  useRealtime("dress_reservations");
 
   // ── SWR data ──
   const { data, isLoading, error } = useSWR(

@@ -87,7 +87,7 @@ const contractFormDataSchema = z.object({
 const formLineItemSchema = z.object({
   id: z.string().optional(),
   service_id: z.string().nullable().optional(),
-  inventory_item_id: z.string().nullable().optional(),
+  dress_id: z.string().nullable().optional(),
   item_name: z.string().min(1, "Tên dịch vụ là bắt buộc"),
   quantity: z.number().min(1, "Số lượng phải ≥ 1"),
   unit_price: z.number().min(0, "Đơn giá phải ≥ 0"),

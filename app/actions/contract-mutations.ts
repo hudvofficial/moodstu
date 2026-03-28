@@ -165,7 +165,7 @@ export async function createContract(rawData: unknown) {
         type: item.type,
         item_name: item.item_name,
         service_id: item.service_id || null,
-        inventory_item_id: item.inventory_item_id || null,
+        dress_id: item.dress_id || null,
         export_type: item.export_type || null,
         quantity: item.quantity,
         unit_price: item.unit_price,

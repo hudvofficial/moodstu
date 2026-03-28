@@ -12,7 +12,7 @@ import type {
   Contract,
   Payment,
   PaymentPlan,
-  InventoryReservation,
+  DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
 } from "@/types/contract";
@@ -102,7 +102,7 @@ export function useContractDetail(id: string | null) {
         contract: Contract;
         payments: Payment[];
         paymentPlans: PaymentPlan[];
-        reservations: InventoryReservation[];
+        reservations: DressReservationRow[];
         printOrders: PrintingOrder[];
         auditLogs: AuditLogEntry[];
       };
