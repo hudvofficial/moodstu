@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
   },
 
-  // 🖼️ Image Optimization — WebP/AVIF auto-convert, lazy load, responsive
+    // 🖼️ Image Optimization — WebP/AVIF auto-convert, lazy load, responsive
   images: {
     formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 31536000, // Cache 1 năm (immutable)
@@ -49,6 +49,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
+        pathname: "/**",
       },
     ],
   },

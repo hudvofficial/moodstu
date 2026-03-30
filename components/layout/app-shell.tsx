@@ -20,6 +20,7 @@ const FULLPAGE_PATTERNS: RegExp[] = [];
 const FORM_PAGE_PATTERNS = [
   /^\/contracts\/create$/,
   /^\/contracts\/[^/]+\/edit$/,
+  /^\/services\/[^/]+\/quote$/,
 ];
 
 // Routes that keep Header + BottomNav but remove main padding

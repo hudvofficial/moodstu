@@ -3149,9 +3149,14 @@ export type Database = {
           name: string
           selling_price: number
           service_code: string
-          service_type: Database["public"]["Enums"]["service_type_enum"]
+          service_type: string
           status: string | null
           updated_at: string | null
+          unit: string | null
+          fulfillment_type: string | null
+          created_by: string | null
+          updated_by: string | null
+          deleted_at: string | null
         }
         Insert: {
           category_id?: string | null
@@ -3163,9 +3168,14 @@ export type Database = {
           name: string
           selling_price?: number
           service_code: string
-          service_type: Database["public"]["Enums"]["service_type_enum"]
+          service_type: string
           status?: string | null
           updated_at?: string | null
+          unit?: string | null
+          fulfillment_type?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          deleted_at?: string | null
         }
         Update: {
           category_id?: string | null
@@ -3177,9 +3187,14 @@ export type Database = {
           name?: string
           selling_price?: number
           service_code?: string
-          service_type?: Database["public"]["Enums"]["service_type_enum"]
+          service_type?: string
           status?: string | null
           updated_at?: string | null
+          unit?: string | null
+          fulfillment_type?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+          deleted_at?: string | null
         }
         Relationships: [
           {
