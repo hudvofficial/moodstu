@@ -34,7 +34,7 @@ export function TableWrapper({
 
 export function THead({ children, className }: { children: React.ReactNode, className?: string }) {
   return (
-    <thead className={cn("sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary bg-bg-card", className)}>
+    <thead className={cn("sticky top-0 z-10 text-xs uppercase tracking-wider text-text-secondary bg-bg-sidebar", className)}>
       {children}
     </thead>
   );
@@ -48,7 +48,7 @@ export function TBody({ children, className }: { children: React.ReactNode, clas
   );
 }
 
-export function TH({ children, className }: { children: React.ReactNode, className?: string }) {
+export function TH({ children, className }: { children?: React.ReactNode, className?: string }) {
   return (
     <th className={cn(
       "px-4 py-3 font-medium whitespace-nowrap",

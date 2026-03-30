@@ -3,12 +3,12 @@
 /**
  * ═══════════════════════════════════════════════════════════
  * ComboboxSearch — Searchable dropdown (text input + filter list)
- * Portal-based dropdown to escape modal overflow:hidden
+ * Inline list pattern (no portal) — works inside modals
+ * Ref: ContractCustomerSection pattern (proven)
  * ═══════════════════════════════════════════════════════════
  */
 
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Search, X, ChevronDown } from "lucide-react";
 
 export interface ComboboxOption {
@@ -37,12 +37,10 @@ export function ComboboxSearch({
 }: ComboboxSearchProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter options by query (case-insensitive, match anywhere)
   const filtered = query.trim()
@@ -52,32 +50,25 @@ export function ComboboxSearch({
     : options;
 
   // Clamp highlight index
-  const safeHighlightIndex = Math.min(highlightIndex, Math.max(filtered.length - 1, 0));
+  const safeHighlightIndex = Math.min(
+    highlightIndex,
+    Math.max(filtered.length - 1, 0)
+  );
 
-  // Update dropdown position when open
-  useLayoutEffect(() => {
-    if (!isOpen || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    setDropdownPos({
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, [isOpen, query]);
-
-  // Close on click outside (check both container and portal dropdown)
+  // Close on click outside
   useEffect(() => {
+    if (!isOpen) return;
     const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const inContainer = containerRef.current?.contains(target);
-      const inDropdown = dropdownRef.current?.contains(target);
-      if (!inContainer && !inDropdown) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [isOpen]);
 
   const selectItem = useCallback(
     (value: string) => {
@@ -124,51 +115,9 @@ export function ComboboxSearch({
 
   const handleClear = () => {
     setQuery("");
-    setIsOpen(true);
+    setIsOpen(false);
     inputRef.current?.focus();
   };
-
-  // Portal dropdown
-  const dropdown =
-    isOpen && !disabled && typeof window !== "undefined"
-      ? createPortal(
-          <div
-            ref={dropdownRef}
-            className="fixed z-9999 max-h-[220px] overflow-y-auto rounded-xl bg-card border border-border shadow-lg animate-fade-in"
-            style={{
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              width: dropdownPos.width,
-            }}
-          >
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2.5 text-sm text-text-muted">
-                Không tìm thấy kết quả
-              </p>
-            ) : (
-              filtered.map((option, idx) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`
-                    w-full text-left px-3 py-2.5 text-sm transition-colors
-                    ${
-                      idx === safeHighlightIndex
-                        ? "bg-primary/10 text-primary"
-                        : "text-text hover:bg-surface-hover"
-                    }
-                  `}
-                  onMouseEnter={() => setHighlightIndex(idx)}
-                  onClick={() => selectItem(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))
-            )}
-          </div>,
-          document.body
-        )
-      : null;
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
@@ -176,7 +125,6 @@ export function ComboboxSearch({
 
       {/* Input trigger */}
       <div
-        ref={triggerRef}
         className={`
           input-base w-full flex items-center gap-2 cursor-text
           ${error ? "border-error focus-within:ring-error/20" : ""}
@@ -184,12 +132,13 @@ export function ComboboxSearch({
         `}
         onClick={() => {
           if (!disabled) {
-            setIsOpen(true);
             inputRef.current?.focus();
           }
         }}
       >
-        <Search className="w-4 h-4 text-text-muted shrink-0" />
+        {!isFocused && !query && (
+          <Search className="w-4 h-4 text-text-muted shrink-0" />
+        )}
         <input
           ref={inputRef}
           type="text"
@@ -198,10 +147,15 @@ export function ComboboxSearch({
           value={query}
           disabled={disabled}
           onChange={(e) => {
-            setQuery(e.target.value);
-            setIsOpen(true);
+            const val = e.target.value;
+            setQuery(val);
+            setIsOpen(val.trim().length > 0);
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            // Delay to allow click on list items
+            setTimeout(() => setIsFocused(false), 150);
+          }}
           onKeyDown={handleKeyDown}
         />
         {query && !disabled && (
@@ -224,8 +178,35 @@ export function ComboboxSearch({
         />
       </div>
 
-      {/* Portal dropdown */}
-      {dropdown}
+      {/* Inline dropdown list — normal flow, no portal, no position tricks */}
+      {isOpen && !disabled && query.trim().length > 0 && (
+        <div className="dropdown-inline">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2.5 text-sm text-text-muted">
+              Không tìm thấy kết quả
+            </p>
+          ) : (
+            filtered.map((option, idx) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`
+                  w-full text-left px-3 py-2.5 text-sm transition-colors
+                  ${
+                    idx === safeHighlightIndex
+                      ? "bg-primary/10 text-primary"
+                      : "text-text hover:bg-surface-hover"
+                  }
+                `}
+                onMouseEnter={() => setHighlightIndex(idx)}
+                onClick={() => selectItem(option.value)}
+              >
+                {option.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
 
       {error && <p className="error-text mt-1">{error}</p>}
     </div>

@@ -5,7 +5,7 @@
 
 ---
 
-## ✅ Checklist (7 items — PHẢI TICK HẾT)
+## ✅ Checklist (10 sections — PHẢI TICK HẾT)
 
 ### 1. 👁️ SEE IT FIRST
 - [ ] Đã mở browser + chạy dev server
@@ -16,10 +16,30 @@
 - [ ] Đã ghi ra **danh sách sai lệch** visual (spacing, color, font, layout)
 - [ ] Nếu KHÔNG có Stitch → ghi rõ "Không có Stitch cho trang này"
 
-### 3. 🏗️ CHECK SSOT CLASSES
-- [ ] Đã đọc `design-system.css` → list classes dùng được
-- [ ] Đã grep `components/ui/` → list shared components có sẵn
-- [ ] KHÔNG viết inline nếu SSOT class đã tồn tại
+### 3. 🔍 SSOT AUTO-SCAN (AI PHẢI chạy 3 lệnh này TRƯỚC KHI viết code UI)
+> **Không scan = Không code. Không ngoại lệ.**
+
+**Bước 3a: Chạy 3 lệnh grep (BẮT BUỘC — output phải paste vào plan)**
+```bash
+# 1. Scan CSS tokens hiện có
+grep -rn "^\." app/styles/*.css | grep -v "^#\|/\*" | head -80
+
+# 2. Scan UI components đang export
+grep -rn "^export function\|^export const" components/ui/**/*.tsx
+
+# 3. Scan REGISTRY quick-ref
+grep "THAY CHO\|❌ KHÔNG" components/ui/REGISTRY.md
+```
+
+**Bước 3b: So khớp (AI tự check)**
+- [ ] Với MỖI element sắp viết (div, table, input, select, badge, card...)
+  → Đã tìm trong output scan ở trên?
+  → Nếu CÓ token/component matching → **DÙNG NÓ**
+  → Nếu KHÔNG CÓ → chuyển sang **Section 10 (Approval Gate)**
+
+**Bước 3c: Ghi vào plan**
+- [ ] Plan phải ghi rõ: "Dùng `<TableWrapper>` (REGISTRY), dùng `.card-base` (tokens)..."
+- [ ] Nếu plan có BẤT KỲ class/component mới → phải có mục "⚠️ NEW TOKEN REQUEST"
 
 ### 4. 📋 PLAN BEFORE FIX
 - [ ] Đã viết plan (dù ngắn) liệt kê: file nào → sửa gì
@@ -52,6 +72,57 @@
 - [ ] Nếu Group B → DB dùng `VARCHAR(N)`, TS có `const array` + `z.enum()` validate
 - [ ] ❌ **KHÔNG** `CREATE TYPE ... ENUM` cho business field (category, status, condition)
 - [ ] Nếu KHÔNG chắc → mặc định **Group B** (an toàn nhất)
+
+### 9. 🎨 ZERO INLINE — SSOT STYLE ENFORCEMENT (BẮT BUỘC)
+> **Mọi visual property PHẢI đến từ SSOT token hoặc CSS class. KHÔNG BAO GIỜ inline.**
+
+- [ ] **z-index:** Dùng CSS variable (`--z-modal`, `--z-dropdown`) khai báo trong `globals.css @theme` → class trong `components.css`. ❌ KHÔNG `style={{ zIndex: 99999 }}`, ❌ KHÔNG `z-[99999]`
+- [ ] **background:** Dùng SSOT class (`.card-base`, `.portal-dropdown`) hoặc token `bg-bg-card`. ❌ KHÔNG `style={{ backgroundColor: '...' }}`
+- [ ] **color/spacing/radius:** Dùng CSS variable (`--color-*`, `--spacing-*`, `--radius-*`). ❌ KHÔNG hardcode hex/px
+- [ ] **Self-check trước submit:** Grep file vừa sửa → tìm `style={{` hoặc hardcode hex → nếu CÓ → DỪNG, refactor sang token
+
+**❌ VI PHẠM = REVERT. Không ngoại lệ.**
+
+### 10. 🚦 NEW TOKEN APPROVAL GATE (BẮT BUỘC)
+> **Cần tạo CSS class, component, hoặc hook MỚI? PHẢI hỏi user TRƯỚC.**
+> **KHÔNG ĐƯỢC tự tạo rồi báo sau.**
+
+**Khi nào trigger gate này:**
+- Cần viết `.new-class-name` trong `app/styles/*.css`
+- Cần tạo `components/ui/new-component.tsx`
+- Cần tạo `hooks/use-new-hook.ts`
+- Cần thêm CSS variable mới vào `globals.css @theme`
+- Cần viết inline style vì "chưa có token"
+
+**Format yêu cầu (PHẢI trình bày ĐÚNG format này):**
+```
+⚠️ SSOT CREATE REQUEST:
+┌────────────────────────────────────────────┐
+│ Loại:    CSS Token / Component / Hook      │
+│ Tên:     .timeline-connector               │
+│ Lý do:   Chưa có token nào cover pattern X │
+│ Đặt ở:   app/styles/components.css         │
+│ Gần nhất: .progress-track (khác vì...)     │
+│                                            │
+│ Code dự kiến:                              │
+│   .timeline-connector {                    │
+│     @apply w-px h-6 bg-border mx-auto;     │
+│   }                                        │
+│                                            │
+│ → Anh duyệt không?                        │
+│   [Y] Tạo token mới                       │
+│   [N] Dùng token có sẵn (suggest: ...)     │
+│   [M] Sửa lại token có sẵn thay vì tạo mới│
+└────────────────────────────────────────────┘
+```
+
+**Quy trình:**
+1. AI trình request → **DỪNG LẠI, CHỜ USER**
+2. User approve [Y] → AI tạo token trong CSS file TRƯỚC → rồi mới dùng trong code
+3. User reject [N] → AI dùng token có sẵn, adapt nếu cần
+4. User modify [M] → AI sửa token existing để cover case mới
+
+**❌ TỰ TẠO token/component/hook MỚI MÀ CHƯA HỎI = REVERT TOÀN BỘ.**
 
 ---
 

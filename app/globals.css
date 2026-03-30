@@ -121,6 +121,10 @@
 
   /* ── Layout spacing (SSOT: header → content gap) ── */
   --spacing-main-y: 12px;  /* cộng với main py-4=16px → total 28px */
+
+  /* ── Z-Index Scale (SSOT: quản lý tập trung) ── */
+  --z-modal: 9999;
+  --z-dropdown: 10000;     /* portal dropdown — luôn trên modal */
 }
 
 /* ── Global base styles ── */

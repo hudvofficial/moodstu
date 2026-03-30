@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import type { UseContractItemsReturn } from "./hooks/useContractItems";
 import type { ContractItemFormData } from "@/types/contract-form";
 import { getItemTypeLabel } from "@/types/contract-constants";
@@ -81,17 +82,17 @@ export function ContractItemsSection({ items, error }: Props) {
           {/* Desktop table */}
           <div className="card-base hidden overflow-hidden sm:block">
             <table className="w-full text-body-sm">
-              <thead>
-                <tr className="bg-bg-base text-left text-caption font-semibold text-text-secondary">
-                  <th className="px-4 py-3">Tên</th>
-                  <th className="px-4 py-3 w-24">Loại</th>
-                  <th className="px-4 py-3 w-16 text-center">SL</th>
-                  <th className="px-4 py-3 w-28 text-right">Đơn giá</th>
-                  <th className="px-4 py-3 w-28 text-right">Thành tiền</th>
-                  <th className="px-4 py-3 w-20" />
+              <THead>
+                <tr>
+                  <TH>Tên</TH>
+                  <TH className="w-24">Loại</TH>
+                  <TH className="w-16 text-center">SL</TH>
+                  <TH className="w-28 text-right">Đơn giá</TH>
+                  <TH className="w-28 text-right">Thành tiền</TH>
+                  <TH className="w-20" />
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border-light">
+              </THead>
+              <TBody className="divide-y divide-border-light">
                 {items.items.map((item, index) => (
                   <DesktopRow
                     key={item._tempId}
@@ -100,7 +101,7 @@ export function ContractItemsSection({ items, error }: Props) {
                     onRemove={() => handleDeleteClick(index, item.item_name)}
                   />
                 ))}
-              </tbody>
+              </TBody>
             </table>
           </div>
 
@@ -153,24 +154,24 @@ function DesktopRow({
 }) {
   const badgeClass = TYPE_BADGE_STYLES[item.type] || TYPE_BADGE_STYLES.dich_vu;
   return (
-    <tr className="hover:bg-bg-hover/50 transition-colors">
-      <td className="px-4 py-2.5">
+    <TR>
+      <TD>
         <p className="font-medium text-text-primary truncate max-w-[200px]">{item.item_name}</p>
         {item.notes && <p className="text-caption text-text-muted truncate">{item.notes}</p>}
-      </td>
-      <td className="px-3 py-2.5">
+      </TD>
+      <TD>
         <span className={`badge ${badgeClass}`}>
           {getItemTypeLabel(item.type)}
         </span>
-      </td>
-      <td className="px-3 py-2.5 text-center">{item.quantity}</td>
-      <td className="px-3 py-2.5 text-right text-text-secondary">
+      </TD>
+      <TD className="text-center">{item.quantity}</TD>
+      <TD className="text-right text-text-secondary">
         {formatCurrency(item.unit_price)}
-      </td>
-      <td className="px-3 py-2.5 text-right font-medium text-text-primary">
+      </TD>
+      <TD className="text-right font-medium text-text-primary">
         {formatCurrency(item.total_amount)} {CURRENCY_SYMBOL}
-      </td>
-      <td className="px-3 py-2.5">
+      </TD>
+      <TD>
         <div className="flex items-center justify-end gap-1">
           <button type="button" onClick={onEdit} className="rounded-radius-sm p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary transition-colors">
             <Pencil className="h-3.5 w-3.5" />
@@ -179,8 +180,8 @@ function DesktopRow({
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-      </td>
-    </tr>
+      </TD>
+    </TR>
   );
 }
 

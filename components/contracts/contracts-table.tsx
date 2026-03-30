@@ -8,6 +8,7 @@
  */
 
 import { ChevronRight, FileText, CheckCircle, Calendar } from "lucide-react";
+import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/ux-states";
 import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
@@ -71,22 +72,22 @@ function getArr(obj: Record<string, unknown>, key: string): Record<string, unkno
 
 function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTableProps) {
   return (
-    <div className="hidden lg:block card-base overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead className="sticky top-0 z-10">
-          <tr className="text-xs uppercase tracking-wider text-text-secondary bg-bg-card">
-            <th className="px-4 py-3 font-medium">Mã HĐ</th>
-            <th className="px-4 py-3 font-medium">Khách hàng</th>
-            <th className="px-4 py-3 font-medium">Ngày ký</th>
-            <th className="px-4 py-3 font-medium text-right">Tổng cộng</th>
-            <th className="px-4 py-3 font-medium text-right">Còn nợ</th>
-            <th className="px-4 py-3 font-medium text-center">Thông tin</th>
-            <th className="px-4 py-3 font-medium">Tiến độ</th>
-            <th className="px-4 py-3 font-medium">Trạng thái</th>
-            <th className="px-4 py-3 font-medium text-right">Thao tác</th>
+    <div className="hidden lg:block">
+      <TableWrapper>
+        <THead>
+          <tr>
+            <TH>Mã HĐ</TH>
+            <TH>Khách hàng</TH>
+            <TH>Ngày ký</TH>
+            <TH className="text-right">Tổng cộng</TH>
+            <TH className="text-right">Còn nợ</TH>
+            <TH className="text-center">Thông tin</TH>
+            <TH>Tiến độ</TH>
+            <TH>Trạng thái</TH>
+            <TH className="text-right">Thao tác</TH>
           </tr>
-        </thead>
-        <tbody className="text-sm [&>tr:nth-child(even)]:bg-bg-base/40">
+        </THead>
+        <TBody>
           {contracts.map((c) => {
             const id = getStr(c, "id");
             const status = getStr(c, "status") as ContractStatus;
@@ -98,18 +99,17 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
             const svcBadge = getServiceBadgeColor(serviceType);
 
             return (
-              <tr
+              <TR
                 key={id}
                 onClick={() => onView(c)}
-                onMouseEnter={() => onHover?.(id)}
-                className={`hover:bg-bg-hover transition-colors group cursor-pointer h-14 ${isCancelled ? "opacity-50" : ""}`}
+                className={isCancelled ? "opacity-50" : ""}
               >
-                <td className="px-4 whitespace-nowrap">
+                <TD>
                   <span className="font-semibold text-text-main">
                     {getStr(c, "contract_code")}
                   </span>
-                </td>
-                <td className="px-4">
+                </TD>
+                <TD>
                   <div className="flex items-center gap-2">
                     <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(serviceType)}`}>
                       {getInitials(customerName)}
@@ -121,14 +121,14 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
                       {getServiceLabel(serviceType as import("@/types/contract").ServiceType)}
                     </span>
                   </div>
-                </td>
-                <td className="px-4 whitespace-nowrap text-text-secondary">
+                </TD>
+                <TD className="text-text-secondary">
                   {fmtDate(getStr(c, "contract_date") || null)}
-                </td>
-                <td className="px-4 text-right whitespace-nowrap font-semibold text-text-main">
+                </TD>
+                <TD className="text-right font-semibold text-text-main">
                   {fmt(getNum(c, "total_amount"))}
-                </td>
-                <td className="px-4 text-right whitespace-nowrap">
+                </TD>
+                <TD className="text-right">
                   {getNum(c, "remaining_amount") > 0 ? (
                     <span className="font-semibold text-error">
                       {fmt(getNum(c, "remaining_amount"))}
@@ -136,28 +136,28 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
                   ) : (
                     <Badge variant="success">Đầy đủ</Badge>
                   )}
-                </td>
-                <td className="px-4 text-center">
+                </TD>
+                <TD className="text-center">
                   <MissingInfoBadge items={(getArr(c, "contract_checklists") as { id: string; contract_id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean; created_at: string; updated_at: string }[])} />
-                </td>
-                <td className="px-4">
+                </TD>
+                <TD>
                   <ProgressBadge tasks={getArr(c, "work_tasks") as { id: string; work_type: string; status: string; deadline: string | null }[]} />
-                </td>
-                <td className="px-4">
+                </TD>
+                <TD>
                   <Badge variant={getStatusVariant(status)} dot>
                     {getStatusLabel(status)}
                   </Badge>
-                </td>
-                <td className="px-4 text-right">
+                </TD>
+                <TD className="text-right">
                   <div className="h-8 w-8 inline-flex items-center justify-center rounded-md shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
                     <ChevronRight className="w-4 h-4" />
                   </div>
-                </td>
-              </tr>
+                </TD>
+              </TR>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </TableWrapper>
     </div>
   );
 }

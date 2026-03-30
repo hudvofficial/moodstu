@@ -1,86 +1,61 @@
 {
-  "updated_at": "2026-03-28T11:30:00+07:00",
+  "updated_at": "2026-03-30T12:57:00+07:00",
   "working_on": {
-    "feature": "Inventory UI Optimization",
-    "task": "Implement and fix Searchable Combobox",
-    "status": "completed",
-    "last_run": "2026-03-28T11:28:00+07:00",
-    "last_run_url": "http://localhost:3000/inventory",
-    "files": [
-      "components/ui/combobox-search.tsx",
-      "components/inventory/stock-in-modal.tsx",
-      "components/inventory/stock-out-modal.tsx"
-    ],
-    "blockers": [],
-    "notes": "ComboboxSearch finalized with Portal rendering. Clipping bugs in modals fixed. 0 errors build."
+    "feature": "Services Module Migration & SSOT Enforcement Integration",
+    "task": "Phase 0: Researching V1 Services (C:\\Users\\Admin\\Desktop\\Ai\\0Moodstudio) for V2 implementation",
+    "status": "in_progress"
   },
-  "recent_changes": [
-    {
-      "timestamp": "2026-03-28T11:30:00+07:00",
-      "type": "feature",
-      "description": "Implemented ComboboxSearch component with Portal rendering to fix modal clipping. Refactored Stock-In/Out modals to use it.",
-      "files": [
-        "components/ui/combobox-search.tsx",
-        "components/inventory/stock-in-modal.tsx",
-        "components/inventory/stock-out-modal.tsx",
-        "docs/patterns/combobox-search-pattern.md"
-      ],
-      "verified": true
-    },
-    {
-      "timestamp": "2026-03-27T16:05:00+07:00",
-      "type": "refactor",
-      "description": "ABC Framework Rollback: Reverted 12 business-logic ENUMs to VARCHAR with zero-risk data preservation. Fixed 2 dependent partial indexes (idx_contracts_active, idx_tasks_deadline). Updated SSOT display maps.",
-      "files": [
-        "audit_report.md",
-        "walkthrough.md",
-        "tasks/gates/before-edit.md",
-        "tasks/pre-code-checklist.md",
-        "tasks/lessons.md",
-        "tasks/schema-type-template.md"
-      ],
-      "verified": true
-    }
-  ],
-  "decisions_made": [
-    {
-      "decision": "Portal rendering for Combobox dropdown",
-      "reason": "Modal cards have overflow: hidden, clipping absolute-positioned children. Using createPortal to document.body ensures the search list is always visible."
-    }
-  ],
-  "pending_tasks": [
-    {
-      "task": "Inventory Module P1: Create inventory_items table",
-      "priority": "high",
-      "status": "pending",
-      "notes": "Follow Group B (VARCHAR+TS) for categories and status fields.",
-      "source": "docs/specs/inventory.md"
-    }
-  ],
-  "completed_features": {
-    "inventory_module": [
-      "Searchable Combobox Integration",
-      "Stock In/Out UX Improved"
-    ],
-    "dresses_module": [
-      "Dress List + Card UI",
-      "Dress Create/Edit Form",
-      "Dress Detail Drawer",
-      "Filter Bar Standardization",
-      "QR/Barcode Logic",
-      "Rental History Page",
-      "reserveDressForContract (Gold Standard)",
-      "ABC Framework Integration"
+  "ssot_enforcement": {
+    "registry": "components/ui/REGISTRY.md",
+    "protocols": [
+      "AUTO-SCAN: 3 mandatory grep commands before UI code (before-edit.md §3)",
+      "APPROVAL GATE: Mandatory request for new tokens/components (before-edit.md §10)",
+      "V-GATE: See UI in browser + Screenshot BEFORE fixing (before-edit.md §1)"
     ]
   },
-  "completed_plans": [
-    {
-      "plan": "260327-abc-framework-implementation",
-      "status": "complete",
-      "summary": "Full strategy implementation: Audit, Rollback, Rules Enforcement, Templates."
+  "ssot_components": {
+    "table": {
+      "source": "components/ui/table.tsx",
+      "description": "Single Source of Truth for ALL table UI in the app",
+      "components": {
+        "TableWrapper": "Outer wrapper (card-base + overflow-x-auto + <table>)",
+        "THead": "Header section — sticky, bg-bg-sidebar (#f5efe6), uppercase 12px tracking-wider text-text-secondary",
+        "TBody": "Body section — zebra-stripes via [&>tr:nth-child(even)]:bg-bg-base/40",
+        "TH": "Header cell — px-4 py-3 font-medium whitespace-nowrap (children optional)",
+        "TD": "Data cell — px-4 whitespace-nowrap transition-colors",
+        "TR": "Row — hover:bg-bg-hover h-14, auto cursor-pointer if onClick"
+      },
+      "coverage": {
+        "gold": [
+          "inventory-table.tsx",
+          "contracts-table.tsx",
+          "employee-table.tsx",
+          "service-details-block.tsx",
+          "ContractItemsSection.tsx"
+        ],
+        "exception": [
+          "contract-template.tsx (print layout — uses inline styles for window.print())"
+        ]
+      }
     }
+  },
+  "recent_changes": [
+    "Created components/ui/REGISTRY.md (Quick-ref mapping 'THAY CHO')",
+    "Implemented SSOT AUTO-SCAN protocol in before-edit.md",
+    "Implemented NEW TOKEN APPROVAL GATE in before-edit.md",
+    "Integrated SSOT enforcement into /new-module workflow",
+    "Migrated all major tables (Contracts, Employees, Inventory) to shared SSOT components",
+    "Started research on V1 Services module for V2 migration"
   ],
-  "errors_encountered": [
-    { "error": "Dropdown clipped by modal overflow:hidden", "solution": "Use createPortal with fixed positioning.", "resolved": true }
+  "errors_encountered": [],
+  "decisions_made": [
+    {
+      "decision": "Mandatory SSOT Scan before any UI code",
+      "reason": "Eliminate AI-driven inline styling and unauthorized token creation (AI-drift)"
+    },
+    {
+      "decision": "component/ui/REGISTRY.md as SSOT quick-reference",
+      "reason": "Provide immediate mapping from inline CSS patterns to shared components"
+    }
   ]
 }

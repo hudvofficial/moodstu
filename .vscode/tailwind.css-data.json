@@ -36,8 +36,18 @@
       "description": "Tailwind CSS v4: Define custom variants.",
       "references": [
         {
-          "name": "Tailwind CSS v4 Docs",
+          "name": "Tailwind CSS Docs",
           "url": "https://tailwindcss.com/docs/functions-and-directives"
+        }
+      ]
+    },
+    {
+      "name": "@apply",
+      "description": "Tailwind CSS: Inline any existing utility classes into your own custom CSS.",
+      "references": [
+        {
+          "name": "Tailwind CSS Docs",
+          "url": "https://tailwindcss.com/docs/functions-and-directives#apply"
         }
       ]
     }

@@ -1,6 +1,7 @@
 import { List, Package, Shirt, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import type { ContractItem, ItemType } from "@/types/contract";
 import { getItemTypeLabel } from "@/types/contract-constants";
 
@@ -64,35 +65,33 @@ export default function ServiceDetailsBlock({
           {/* ═══ Desktop Table ═══ */}
           <div className="hidden lg:block">
             <table className="w-full">
-              <thead>
-                <tr className="bg-bg-hover/50">
-                  <th className="table-header px-6 py-3 text-left">
+              <THead>
+                <tr>
+                  <TH className="px-6 text-left">
                     Tên dịch vụ
-                  </th>
-                  <th className="table-header px-4 py-3 text-center">Loại</th>
-                  <th className="table-header px-4 py-3 text-center">SL</th>
-                  <th className="table-header px-4 py-3 text-right">
+                  </TH>
+                  <TH className="text-center">Loại</TH>
+                  <TH className="text-center">SL</TH>
+                  <TH className="text-right">
                     Đơn giá
-                  </th>
-                  <th className="table-header px-6 py-3 text-right">
+                  </TH>
+                  <TH className="px-6 text-right">
                     Thành tiền
-                  </th>
+                  </TH>
                 </tr>
-              </thead>
-              <tbody>
+              </THead>
+              <TBody>
                 {items.map((item, idx) => {
                   const variant = ITEM_TYPE_VARIANT[item.type] || "info";
                   const typeLabel = getItemTypeLabel(item.type);
                   return (
-                    <tr
+                    <TR
                       key={item.id}
-                      className={`hover:bg-bg-hover/30 transition-colors ${
-                        idx < items.length - 1
-                          ? "shadow-[inset_0_-1px_0_var(--color-border)]"
-                          : ""
-                      }`}
+                      className={idx < items.length - 1
+                        ? "shadow-[inset_0_-1px_0_var(--color-border)]"
+                        : ""}
                     >
-                      <td className="px-6 py-3">
+                      <TD className="px-6">
                         <div className="flex items-center gap-2.5">
                           <div className="p-1.5 rounded-md bg-bg-hover text-text-secondary">
                             {getItemIcon(item.type)}
@@ -108,25 +107,25 @@ export default function ServiceDetailsBlock({
                             )}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
+                      </TD>
+                      <TD className="text-center">
                         <Badge variant={variant}>
                           {typeLabel}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center text-body-sm font-medium">
+                      </TD>
+                      <TD className="text-center text-body-sm font-medium">
                         {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-right text-body-sm text-text-secondary">
+                      </TD>
+                      <TD className="text-right text-body-sm text-text-secondary">
                         {formatCurrency(item.unit_price)}
-                      </td>
-                      <td className="px-6 py-3 text-right text-body-sm font-bold text-text-primary">
+                      </TD>
+                      <TD className="px-6 text-right text-body-sm font-bold text-text-primary">
                         {formatCurrency(item.total_amount)}
-                      </td>
-                    </tr>
+                      </TD>
+                    </TR>
                   );
                 })}
-              </tbody>
+              </TBody>
             </table>
           </div>
 

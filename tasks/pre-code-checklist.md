@@ -54,6 +54,7 @@
 
 **Quy tắc cụ thể:**
 - ❌ KHÔNG viết inline class khi đã có token → dùng SSOT token
+- ❌ KHÔNG tạo token/component/hook MỚI mà chưa hỏi user → trigger **SSOT CREATE REQUEST** (xem `tasks/gates/before-edit.md` §10)
 - ❌ KHÔNG viết native `<select>`:
   - Filter toolbar → dùng `<SelectPill>` (compact pill dropdown)
   - Form fields → dùng `<SelectForm>` (full-width form dropdown)

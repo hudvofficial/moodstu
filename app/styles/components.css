@@ -198,11 +198,12 @@
 }
 
 .table-header {
-  font-size: var(--font-size-micro);
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);   /* 12px — match THead text-xs */
+  font-weight: 500;                      /* medium — match TH font-medium */
+  color: var(--color-text-secondary);    /* #8b7355 — match THead */
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.05em;               /* tracking-wider — match THead */
+  background-color: var(--color-bg-sidebar);
 }
 
 .tag-badge {
@@ -227,7 +228,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* Mobile: bottom-sheet */
@@ -340,6 +341,36 @@
 }
 .modal-drag-handle.is-swiping {
   background: var(--color-text-muted);
+}
+
+/* ══════════════════════════════════════
+   8.5 DROPDOWN LISTS
+   Reusable cho mọi dropdown (portal hoặc inline)
+   ══════════════════════════════════════ */
+.portal-dropdown {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dropdown-inline {
+  margin-top: 4px;
+  max-height: 192px; /* 48 * 4px = 12rem */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 20;
 }
 
 /* ══════════════════════════════════════

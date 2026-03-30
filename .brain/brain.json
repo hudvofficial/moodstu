@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-27T16:05:00+07:00"
+    "last_updated": "2026-03-30T12:57:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -144,7 +144,8 @@
       "toast-utils": "Centralized notification system",
       "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views",
       "HeaderSlotsContext": "Context-based header slot system",
-      "ErrorFallback": "Clean module-specific error.tsx with SSOT styling"
+      "ErrorFallback": "Clean module-specific error.tsx with SSOT styling",
+      "TableSuite": "TableWrapper, THead, TBody, TR, TH, TD (shared/table.tsx)"
     },
     "header_architecture": {
       "ssot": "components/layout/header.tsx",
@@ -174,9 +175,14 @@
       {
         "name": "VARCHAR + TS Enum Pattern (Group B)",
         "details": "DB: VARCHAR(N) | TS: const array + type [X] | Zod: z.enum() | SSOT map for labels"
+      },
+      {
+        "name": "SSOT Enforcement Protocol",
+        "details": "1. REGISTRY.md quick-ref | 2. Mandatory AUTO-SCAN grep | 3. NEW TOKEN APPROVAL GATE (before-edit.md)"
       }
     ],
     "gotchas": [
+      "Tailwind <table> border-collapse causes <th> to paint over <thead> background. Apply background directly to <tr>.",
       "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
       "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
       "CSS btn variants must include base styles — dont rely on .btn being present",
@@ -184,7 +190,8 @@
       "PostgREST FK join: employees:created_by(full_name) FAILS if no FK — select UUID instead",
       "File splitting: keep parent as orchestrator, extract child UI. NO internal barrel exports",
       "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())",
-      "Migration: Dependent partial indexes must be dropped before altering columns from ENUM to VARCHAR"
+      "Migration: Dependent partial indexes must be dropped before altering columns from ENUM to VARCHAR",
+      "AI-Drift Prevention: Always run 'AUTO-SCAN' grep commands and consult components/ui/REGISTRY.md BEFORE writing any UI code to ensure zero inline styles."
     ],
     "specs": [
       "docs/specs/v2-module-template.md — V2 Module Template Spec",
