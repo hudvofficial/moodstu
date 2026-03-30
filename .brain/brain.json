@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-30T12:57:00+07:00"
+    "last_updated": "2026-03-30T14:12:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -21,77 +21,44 @@
     "api_pattern": "Server Actions with withAuth() higher-order logic for atomic mutations + Zod + Audit Logs"
   },
   "database_schema": {
-    "summary": "Core: contracts, contract_items, customers, leads, employees, audit_logs. Support: printing_orders, inventory_reservations, inventory_items, contract_notes, transaction_categories, studio_info, labs.",
+    "summary": "Core: contracts, contract_items, customers, leads, employees, audit_logs, services, service_categories, service_bundles. Support: printing_orders, inventory_reservations, inventory_items, contract_notes, transaction_categories, studio_info, labs.",
     "strategy": "ABC Framework — Group A (Keep ENUM), Group B (Rollback to VARCHAR+TS), Group C (Lookup Table)",
     "new_tables": [
       {
-        "name": "contract_notes",
-        "description": "Chat-style timeline for contract comments",
-        "columns": ["id", "contract_id", "content", "created_by", "created_at"]
+        "name": "services",
+        "description": "Master list of studio services/products",
+        "columns": ["id", "service_code", "name", "category_id", "selling_price", "cost_price", "unit", "service_type", "fulfillment_type", "status", "description", "image_url", "is_custom_price", "created_by", "updated_by", "deleted_at", "version_id"]
       },
       {
-        "name": "audit_logs",
-        "description": "Centralized system for tracking record changes (administered by lib/audit.ts)",
-        "columns": ["performed_by", "action", "table_name", "record_id", "old_data", "new_data", "description", "log_type", "severity", "source"]
+        "name": "service_categories",
+        "description": "Hierarchical grouping of services",
+        "columns": ["id", "name", "slug", "icon", "sort_order"]
+      },
+      {
+        "name": "service_bundles",
+        "description": "Mapping for complex services containing other services",
+        "columns": ["id", "parent_service_id", "child_service_id", "quantity", "sort_order"]
       }
     ]
   },
   "api_endpoints": [
     {
       "type": "Server Action",
-      "path": "app/actions/contract-mutations.ts",
-      "actions": ["createContract", "updateContractStatus", "cancelContract", "deleteContract", "reactivateContract"],
-      "patterns": ["fireAuditLog() enabled"]
+      "path": "app/actions/service-queries.ts",
+      "actions": ["getServices", "getServiceById", "getServiceCategories", "getBundleItems", "searchServicesForBundle"],
+      "patterns": ["Admin supabase client (bypass RLS)", "withAuth() wrapper"]
     },
     {
       "type": "Server Action",
-      "path": "app/actions/employee-mutations.ts",
-      "actions": ["createEmployee"],
-      "patterns": ["Zod validation enabled"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/payment-actions.ts",
-      "actions": ["createPaymentReceipt", "getTransactionCategories"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/printing-actions.ts",
-      "actions": ["getLabs", "createPrintingOrder", "updatePrintOrderStatus", "updateReservationStatus"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/inventory-actions.ts",
-      "actions": ["getAvailableItems", "addInventoryReservation"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/note-actions.ts",
-      "actions": ["getContractNotes", "addContractNote", "deleteContractNote"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/dress-queries.ts",
-      "actions": ["fetchDressList", "fetchDressDetail", "getDressStats", "getDressAvailability"],
-      "patterns": ["SWR client-side fetch", "URL searchParams filters"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/dress-mutations.ts",
-      "actions": ["createDress", "updateDress", "deleteDress"],
+      "path": "app/actions/service-mutations.ts",
+      "actions": ["createService", "updateService", "deleteService", "syncBundleItems", "createCategory"],
       "patterns": ["Zod validation", "Optimistic Locking", "fireAuditLog()", "Soft delete"]
     },
     {
       "type": "Server Action",
-      "path": "app/actions/rental-queries.ts",
-      "actions": ["fetchAllRentals"],
-      "patterns": ["Pagination", "Status filter"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/rental-mutations.ts",
-      "actions": ["createRental", "startRental", "cancelRental", "returnDressRental", "markCleaned"],
-      "patterns": ["Zod validation", "withAuth() raw return data", "fireAuditLog()"]
+      "path": "app/actions/contract-mutations.ts",
+      "actions": ["createContract", "updateContractStatus", "cancelContract", "deleteContract", "reactivateContract"],
+      "patterns": ["fireAuditLog() enabled"]
     }
   ],
   "design_system": {
@@ -111,109 +78,42 @@
       "warning": "amber-100/800",
       "info": "blue-100/800",
       "bride": "#EC4899",
-      "groom": "#3B82F6",
-      "gallery_dark": {
-        "bg": "#1a1a1a",
-        "text": "#F5E6D3",
-        "text_muted": "rgba(201,169,110,0.6)",
-        "text_dim": "rgba(201,169,110,0.3)",
-        "card_bg": "rgba(201,169,110,0.06)",
-        "border": "rgba(201,169,110,0.15)",
-        "icon": "#C9A96E",
-        "btn_text": "#FFF8F0"
-      }
+      "groom": "#3B82F6"
     },
-    "typography": { "font": "Inter", "size": "14px body, 12px caption" },
+    "typography": { "font": "Inter", "size": "14px body, 12px caption, 11px tiny" },
     "radius_tokens": {
-      "sm": "6px (buttons, inputs, small elements)",
-      "md": "8px (cards, content blocks, CTA buttons)",
-      "lg": "12px (modals, dropdowns, large containers)",
-      "xl": "16px (pills, tags, special elements)",
-      "full": "9999px (circles, dots, avatars)"
-    },
-    "btn_architecture": {
-      "base_selector": ".btn + .btn-primary/secondary/danger/ghost (grouped in pages.css)",
-      "standalone_classes": ".btn-outline, .btn-cta, .btn-interactive (self-contained)",
-      "note": "All btn variants inherit base styles via CSS grouped selector. TSX can use btn-primary alone or btn btn-primary — both work."
+      "sm": "6px",
+      "md": "8px",
+      "lg": "12px",
+      "xl": "16px",
+      "full": "9999px"
     },
     "components": {
-      "UnifiedModal": "Standard modal wrapper for all CRUD forms",
-      "ComboboxSearch": "Searchable dropdown with Portal-based rendering for large lists",
-      "ScrollContainer": "Context-based scroll tracking for elements inside overflow-hidden roots",
-      "StatusSelect": "Interactive status dropdown with color-coded logic",
-      "toast-utils": "Centralized notification system",
-      "SegmentedControl": "Apple-style tabs for drawer navigation and filtered views",
-      "HeaderSlotsContext": "Context-based header slot system",
-      "ErrorFallback": "Clean module-specific error.tsx with SSOT styling",
-      "TableSuite": "TableWrapper, THead, TBody, TR, TH, TD (shared/table.tsx)"
-    },
-    "header_architecture": {
-      "ssot": "components/layout/header.tsx",
-      "context": "contexts/header-slots-context.tsx",
-      "pattern": "Merge order: props > context > defaults. rightSlot + titleOverride = mobile-only. Desktop keeps module defaults.",
-      "tokens": {
-        "--header-mobile-h": "3.5rem (56px)",
-        "--header-desktop-h": "4rem (64px)",
-        "--z-header": "40",
-        "--shadow-header": "0 2px 8px -2px rgba(0,0,0,0.06)"
-      }
+      "TableSuite": "TableWrapper, THead, TBody, TR, TH, TD (Gold Standard table parts)",
+      "StatsBar": "Compact inline stats (REGISTRY compliant)",
+      "EmptyState": "UxState with icon, title, description, and optional action",
+      "SelectPill": "Chip-based selection for categories and filters",
+      "ServiceTable": "Extended TableSuite with expandable row detail pattern",
+      "ServiceMobileList": "Compact row list with active expand state",
+      "ServiceGrid": "Responsive card layout with hover action overlays"
     }
   },
   "knowledge_items": {
     "patterns": [
       {
-        "name": "Searchable Combobox Pattern",
-        "doc": "docs/patterns/combobox-search-pattern.md",
-        "details": "Portal-based rendering to document.body + fixed positioning to escape modal overflow clipping."
-      },
-      {
-        "name": "ABC Schema Type Strategy",
-        "doc": "audit_report.md",
-        "template": "tasks/schema-type-template.md",
-        "details": "A (Keep ENUM — system), B (VARCHAR+TS — business logic), C (Lookup Table — user-managed)"
+        "name": "Expandable Table Row Pattern",
+        "doc": "components/services/service-table.tsx",
+        "details": "Toggle state (null | id) to show full description block inside <tr> without breaking TableSuite columns."
       },
       {
         "name": "VARCHAR + TS Enum Pattern (Group B)",
         "details": "DB: VARCHAR(N) | TS: const array + type [X] | Zod: z.enum() | SSOT map for labels"
-      },
-      {
-        "name": "SSOT Enforcement Protocol",
-        "details": "1. REGISTRY.md quick-ref | 2. Mandatory AUTO-SCAN grep | 3. NEW TOKEN APPROVAL GATE (before-edit.md)"
       }
     ],
     "gotchas": [
-      "Tailwind <table> border-collapse causes <th> to paint over <thead> background. Apply background directly to <tr>.",
-      "TW4 scans ALL files including .md — use @source not to exclude non-code dirs",
-      "TW4 syntax: rounded-[var(--token)] is WRONG → use rounded-sm/md/lg/xl directly",
-      "CSS btn variants must include base styles — dont rely on .btn being present",
-      "Header detail pages: use HeaderSlotsContext to set mobile header slots",
-      "PostgREST FK join: employees:created_by(full_name) FAILS if no FK — select UUID instead",
-      "File splitting: keep parent as orchestrator, extract child UI. NO internal barrel exports",
-      "Zod record lint: z.record() must have 2 args in current version: z.record(z.string(), z.unknown())",
-      "Migration: Dependent partial indexes must be dropped before altering columns from ENUM to VARCHAR",
-      "AI-Drift Prevention: Always run 'AUTO-SCAN' grep commands and consult components/ui/REGISTRY.md BEFORE writing any UI code to ensure zero inline styles."
-    ],
-    "specs": [
-      "docs/specs/v2-module-template.md — V2 Module Template Spec",
-      "docs/specs/dresses.md — Dresses Module Spec",
-      "docs/specs/inventory.md — Inventory Module Spec (draft)"
+      "calculateServiceStats MUST be a pure function in utils/ to avoid Next.js Build error 'Server Actions must be async'.",
+      "Service category manager should refresh state without hard page reload (Optimistic UI pending Phase 1c).",
+      "Mobile FAB button: fixed/z-40 to stay above all content except Modals."
     ]
-  },
-  "decisions": [
-    {
-      "date": "2026-03-27",
-      "decision": "Adopt ABC Framework for database schema types. Rolled back 12 business ENUMs to VARCHAR.",
-      "reason": "Improves flexibility, avoids complex migrations for workflow changes, aligns with enterprise-grade modularity."
-    },
-    {
-      "date": "2026-03-25",
-      "decision": "Hybrid Gold Standard achieved: Audit Logs via fireAuditLog() + Zod server-side validation + error.tsx boundaries.",
-      "reason": "Fixes 4 gaps identified during cross-module standardization audit (Phase A)."
-    },
-    {
-      "date": "2026-03-24",
-      "decision": "Contract module = V2 Gold Standard. All future modules follow docs/specs/v2-module-template.md.",
-      "reason": "Clone-Ready Fix Plan completed."
-    }
-  ]
+  }
 }

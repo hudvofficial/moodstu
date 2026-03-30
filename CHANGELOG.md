@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.55] - 2026-03-30
+### Added
+- **Services Module V2 Implementation (Phase 1a & 1b)**: Full-stack migration from V1 to V2 architecture.
+- **Infrastructure**: New `services`, `service_categories`, and `service_bundles` tables with Soft Delete and Optimistic Locking support.
+- **Server Actions**: Robust CRUD actions for services and categories using `withAuth` and `fireAuditLog`.
+- **Responsive List Page**: Implemented `/services` with specialized views:
+    - **Desktop Table**: High-density table with expandable row details.
+    - **Mobile List**: Compact card-based rows with interactive expand state.
+    - **Grid View**: Visual card layout with hover action overlays.
+- **Stats & Filters**: Real-time stats recalculation (total, avg/min/max price) and category-chip filtering.
+- **Build Compliance**: Extracted `calculateServiceStats` to utilities to fix Next.js Server Action build errors.
+
 ## [1.1.54] - 2026-03-28
 ### Added
 - **Searchable Combobox Component**: New `ComboboxSearch` with real-time filtering, portal-based rendering (to avoid modal clipping), and keyboard navigation.

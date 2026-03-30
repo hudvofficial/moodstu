@@ -1,0 +1,166 @@
+"use client";
+
+import { memo, useState, useCallback } from "react";
+import { ChevronDown, ChevronUp, FileText, Pencil } from "lucide-react";
+import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
+import type { ServiceRecord } from "@/types/service";
+import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
+import type { ServiceType, ServiceUnit } from "@/types/service-constants";
+import { parseContentStructure } from "@/lib/utils/service-utils";
+
+interface Props {
+  services: ServiceRecord[];
+  onQuote: (service: ServiceRecord) => void;
+  onEdit: (id: string) => void;
+}
+
+function ServiceTableInner({ services, onQuote, onEdit }: Props) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const formatPrice = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+
+  return (
+    <div className="hidden lg:block">
+      <TableWrapper>
+        <THead>
+          <tr>
+            <TH className="w-10" />
+            <TH>Tên dịch vụ</TH>
+            <TH>Danh mục</TH>
+            <TH className="text-right">Giá bán</TH>
+            <TH className="w-24 text-center">Thao tác</TH>
+          </tr>
+        </THead>
+        <TBody>
+          {services.map((service) => {
+            const isExpanded = expandedId === service.id;
+            const sections = isExpanded ? parseContentStructure(service.description) : [];
+            const unitLabel = SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit;
+            const typeLabel = SERVICE_TYPE_LABELS[service.service_type as ServiceType] || service.service_type;
+
+            return (
+              <ServiceTableRow
+                key={service.id}
+                service={service}
+                isExpanded={isExpanded}
+                sections={sections}
+                unitLabel={unitLabel}
+                typeLabel={typeLabel}
+                formatPrice={formatPrice}
+                onToggle={() => toggleExpand(service.id)}
+                onQuote={() => onQuote(service)}
+                onEdit={() => onEdit(service.id)}
+              />
+            );
+          })}
+        </TBody>
+      </TableWrapper>
+    </div>
+  );
+}
+
+// ── Memoized Row Component ───────────────────────
+
+interface RowProps {
+  service: ServiceRecord;
+  isExpanded: boolean;
+  sections: { title: string; items: string[] }[];
+  unitLabel: string;
+  typeLabel: string;
+  formatPrice: (n: number) => string;
+  onToggle: () => void;
+  onQuote: () => void;
+  onEdit: () => void;
+}
+
+const ServiceTableRow = memo(function ServiceTableRow({
+  service,
+  isExpanded,
+  sections,
+  unitLabel,
+  typeLabel,
+  formatPrice,
+  onToggle,
+  onQuote,
+  onEdit,
+}: RowProps) {
+  return (
+    <>
+      <TR onClick={onToggle}>
+        <TD className="w-10 text-center">
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-text-muted" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-text-muted" />
+          )}
+        </TD>
+        <TD>
+          <div className="flex flex-col">
+            <span className="font-medium text-text-main">{service.name}</span>
+            <span className="text-caption text-text-muted">
+              {typeLabel} · {unitLabel} · {service.service_code}
+            </span>
+          </div>
+        </TD>
+        <TD>
+          <span className="text-sm text-text-secondary">
+            {service.category?.name || "—"}
+          </span>
+        </TD>
+        <TD className="text-right">
+          <span className="font-semibold text-text-main">
+            {formatPrice(Number(service.selling_price))}
+          </span>
+          <span className="text-caption text-text-muted ml-1">VNĐ</span>
+        </TD>
+        <TD className="w-24 text-center">
+          <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuote(); }}
+              className="icon-btn-sm"
+              title="Báo giá"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="icon-btn-sm"
+              title="Chỉnh sửa"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
+        </TD>
+      </TR>
+
+      {/* Expanded content */}
+      {isExpanded && sections.length > 0 && (
+        <tr>
+          <td colSpan={5} className="px-4 py-4 bg-bg-base/60">
+            <div className="grid grid-cols-3 gap-6 pl-10">
+              {sections.map((section, idx) => (
+                <div key={idx}>
+                  <h4 className="text-label text-primary mb-2">{section.title}</h4>
+                  <ul className="space-y-1">
+                    {section.items.map((item, j) => (
+                      <li key={j} className="text-caption text-text-secondary flex items-start gap-1.5">
+                        <span className="text-text-muted mt-0.5">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+});
+
+export default memo(ServiceTableInner);

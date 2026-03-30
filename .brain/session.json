@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-03-30T12:57:00+07:00",
+  "updated_at": "2026-03-30T14:10:00+07:00",
   "working_on": {
-    "feature": "Services Module Migration & SSOT Enforcement Integration",
-    "task": "Phase 0: Researching V1 Services (C:\\Users\\Admin\\Desktop\\Ai\\0Moodstudio) for V2 implementation",
-    "status": "in_progress"
+    "feature": "Services Module Migration V2",
+    "task": "Phase 1b DONE → Phase 1c: Implement Category Manager & Create/Edit Form",
+    "status": "implementation_in_progress"
   },
   "ssot_enforcement": {
     "registry": "components/ui/REGISTRY.md",
@@ -31,31 +31,35 @@
           "contracts-table.tsx",
           "employee-table.tsx",
           "service-details-block.tsx",
-          "ContractItemsSection.tsx"
+          "ContractItemsSection.tsx",
+          "service-table.tsx"
         ],
-        "exception": [
-          "contract-template.tsx (print layout — uses inline styles for window.print())"
-        ]
+        "pending": [],
+        "exception": ["contract-template.tsx (print layout — uses inline styles for window.print())"]
       }
     }
   },
   "recent_changes": [
-    "Created components/ui/REGISTRY.md (Quick-ref mapping 'THAY CHO')",
-    "Implemented SSOT AUTO-SCAN protocol in before-edit.md",
-    "Implemented NEW TOKEN APPROVAL GATE in before-edit.md",
-    "Integrated SSOT enforcement into /new-module workflow",
-    "Migrated all major tables (Contracts, Employees, Inventory) to shared SSOT components",
-    "Started research on V1 Services module for V2 migration"
+    "Complete Phase 1a: Infrastructure (types, zod, actions) for Services V2.",
+    "Complete Phase 1b: Implement responsive List Page (Desktop Table + Mobile List + Grid view).",
+    "Extracted calculateServiceStats to lib/utils/service-utils.ts for Next.js build compliance.",
+    "Resolved build error: Server Actions (use server) must be async functions.",
+    "Fixed 404 at /services with full implementation."
   ],
-  "errors_encountered": [],
+  "errors_encountered": [
+    {
+      "error": "Build Error: Server Actions must be async functions (calculateServiceStats was sync).",
+      "solution": "Moved function to client-side utility file (lib/utils/service-utils.ts)."
+    }
+  ],
   "decisions_made": [
     {
-      "decision": "Mandatory SSOT Scan before any UI code",
-      "reason": "Eliminate AI-driven inline styling and unauthorized token creation (AI-drift)"
+      "decision": "Phase 1/2 split: Core CRUD first, Builder/Quote later",
+      "reason": "Reduce scope, ship functional service management before advanced features"
     },
     {
-      "decision": "component/ui/REGISTRY.md as SSOT quick-reference",
-      "reason": "Provide immediate mapping from inline CSS patterns to shared components"
+      "decision": "Sync function in 'use server' file restriction",
+      "reason": "Next.js requires all exports in 'use server' to be async. Pure logic belongs in utils."
     }
   ]
 }
