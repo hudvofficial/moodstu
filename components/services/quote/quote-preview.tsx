@@ -1,0 +1,93 @@
+"use client";
+
+import { parseContentStructure } from "@/lib/utils/service-utils";
+import { formatCurrency } from "@/lib/utils";
+
+// ═══════════════════════════════════════════
+// QuotePreview — Level 3 (In-form live preview)
+//
+// Compact card that updates as formData changes.
+// Desktop: sidebar / collapsible section
+// Mobile: Hidden (user accesses via /services/[id]/quote)
+//
+// @see Phase 1d / Task 3
+// ═══════════════════════════════════════════
+
+interface Props {
+  serviceName: string;
+  sellingPrice: number;
+  description: string;
+  unit?: string;
+}
+
+export default function QuotePreview({
+  serviceName,
+  sellingPrice,
+  description,
+  unit,
+}: Props) {
+  const structure = parseContentStructure(description || "");
+
+  return (
+    <div className="bg-bg-card text-text-main w-full mx-auto shadow-xl rounded-2xl overflow-hidden border border-border max-w-[400px] relative px-6 pb-6 pt-4 flex flex-col">
+      {/* 1. HEADER */}
+      <div className="mb-2 text-center">
+        <h3 className="text-xl font-bold text-primary mb-0.5 leading-tight">
+          {serviceName || "Tên dịch vụ"}
+        </h3>
+        <p className="text-tiny font-bold tracking-widest text-text-secondary uppercase italic">
+          {unit || "Gói Dịch Vụ"}
+        </p>
+      </div>
+
+      {/* 2. BODY SECTIONS */}
+      <div className="flex-1 space-y-4">
+        {structure.length > 0 ? (
+          structure.map((section, idx) => (
+            <div key={idx}>
+              {section.title && (
+                <div className="mb-1">
+                  <h4 className="text-[11px] font-bold text-primary uppercase tracking-wide inline-block border-b border-border pb-1">
+                    {section.title}
+                  </h4>
+                </div>
+              )}
+              <ul className="space-y-1.5 list-none pl-1">
+                {section.items.map((item: string, i: number) => (
+                  <li
+                    key={i}
+                    className="text-[13px] text-text-secondary leading-snug flex items-start gap-2"
+                  >
+                    <span className="text-text-muted text-tiny mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        ) : (
+          <div className="text-center italic text-text-muted text-xs py-10">
+            (Nội dung mô tả sẽ hiển thị ở đây)
+          </div>
+        )}
+      </div>
+
+      {/* 3. FOOTER PRICE */}
+      <div className="mt-6 pt-4 border-t border-dashed border-border">
+        <p className="text-micro font-bold text-text-muted uppercase tracking-widest mb-1">
+          Giá trọn gói
+        </p>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-4xl font-black text-primary tracking-tighter tabular-nums">
+            {sellingPrice > 0
+              ? formatCurrency(sellingPrice).replace("₫", "")
+              : "0"}
+          </span>
+          <span className="text-caption font-bold text-text-muted uppercase">
+            VNĐ
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}

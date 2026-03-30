@@ -17,18 +17,21 @@ function toSlug(name: string): string {
 export async function upsertCategory(data: { id?: string; name: string; icon?: string }) {
   return withAuth(async (supabase) => {
     const payload = { name: data.name, slug: toSlug(data.name), icon: data.icon };
+    let record;
 
     if (data.id) {
-      const { error } = await supabase.from("service_categories").update(payload).eq("id", data.id);
+      const { data: updated, error } = await supabase.from("service_categories").update(payload).eq("id", data.id).select().single();
       if (error) throw new Error(`Lỗi cập nhật danh mục: ${error.message}`);
+      record = updated;
     } else {
-      const { error } = await supabase.from("service_categories").insert(payload);
+      const { data: inserted, error } = await supabase.from("service_categories").insert(payload).select().single();
       if (error) throw new Error(`Lỗi tạo danh mục: ${error.message}`);
+      record = inserted;
     }
 
     fireAuditLog({ action: data.id ? "UPDATE" : "CREATE", tableName: "service_categories", description: `${data.id ? "Cập nhật" : "Tạo"} danh mục: ${data.name}` });
     revalidatePath("/services");
-    return null;
+    return record;
   });
 }
 

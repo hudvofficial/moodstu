@@ -1,65 +1,34 @@
 {
-  "updated_at": "2026-03-30T14:10:00+07:00",
+  "updated_at": "2026-03-31T04:25:00+07:00",
   "working_on": {
-    "feature": "Services Module Migration V2",
-    "task": "Phase 1b DONE → Phase 1c: Implement Category Manager & Create/Edit Form",
-    "status": "implementation_in_progress"
-  },
-  "ssot_enforcement": {
-    "registry": "components/ui/REGISTRY.md",
-    "protocols": [
-      "AUTO-SCAN: 3 mandatory grep commands before UI code (before-edit.md §3)",
-      "APPROVAL GATE: Mandatory request for new tokens/components (before-edit.md §10)",
-      "V-GATE: See UI in browser + Screenshot BEFORE fixing (before-edit.md §1)"
-    ]
-  },
-  "ssot_components": {
-    "table": {
-      "source": "components/ui/table.tsx",
-      "description": "Single Source of Truth for ALL table UI in the app",
-      "components": {
-        "TableWrapper": "Outer wrapper (card-base + overflow-x-auto + <table>)",
-        "THead": "Header section — sticky, bg-bg-sidebar (#f5efe6), uppercase 12px tracking-wider text-text-secondary",
-        "TBody": "Body section — zebra-stripes via [&>tr:nth-child(even)]:bg-bg-base/40",
-        "TH": "Header cell — px-4 py-3 font-medium whitespace-nowrap (children optional)",
-        "TD": "Data cell — px-4 whitespace-nowrap transition-colors",
-        "TR": "Row — hover:bg-bg-hover h-14, auto cursor-pointer if onClick"
-      },
-      "coverage": {
-        "gold": [
-          "inventory-table.tsx",
-          "contracts-table.tsx",
-          "employee-table.tsx",
-          "service-details-block.tsx",
-          "ContractItemsSection.tsx",
-          "service-table.tsx"
-        ],
-        "pending": [],
-        "exception": ["contract-template.tsx (print layout — uses inline styles for window.print())"]
-      }
-    }
+    "feature": "Services Module V2 — Round 2 (UI/UX & Tech Debt)",
+    "task": "Phase 0-C Implementation (Plan approved)",
+    "status": "ready_to_execute",
+    "files": ["components/services/quote/quote-modal.tsx", "components/services/form/ServiceBundleSection.tsx", "components/services/service-filters.tsx", "components/services/service-mobile-list.tsx"]
   },
   "recent_changes": [
-    "Complete Phase 1a: Infrastructure (types, zod, actions) for Services V2.",
-    "Complete Phase 1b: Implement responsive List Page (Desktop Table + Mobile List + Grid view).",
-    "Extracted calculateServiceStats to lib/utils/service-utils.ts for Next.js build compliance.",
-    "Resolved build error: Server Actions (use server) must be async functions.",
-    "Fixed 404 at /services with full implementation."
+    "Comprehensive fix plan created for 7 issues (Round 2).",
+    "Identified CRITICAL BUG: Quote Modal width (1375px) vs V1 parity (340px).",
+    "Verified all issues via browser subagent audit (1440px desktop)."
   ],
   "errors_encountered": [
     {
-      "error": "Build Error: Server Actions must be async functions (calculateServiceStats was sync).",
-      "solution": "Moved function to client-side utility file (lib/utils/service-utils.ts)."
+      "error": "Quote Modal max-w-[340px] ignored by Tailwind JIT in dynamic template literal.",
+      "solution": "Use inline style={{ maxWidth: 340 }} for layout-critical constraints."
     }
   ],
   "decisions_made": [
     {
-      "decision": "Phase 1/2 split: Core CRUD first, Builder/Quote later",
-      "reason": "Reduce scope, ship functional service management before advanced features"
+      "decision": "Prioritize Quote Modal width fix (Phase 0) before any other work.",
+      "reason": "Major visual regression detected during Round 2 audit."
     },
     {
-      "decision": "Sync function in 'use server' file restriction",
-      "reason": "Next.js requires all exports in 'use server' to be async. Pure logic belongs in utils."
+      "decision": "Use inline styles for specific numeric layout constraints (max-width) to bypass JIT dynamic detection issues.",
+      "reason": "Tailwind arbitrary values in template literals often fail to generate classes."
+    },
+    {
+      "decision": "Skip grid overlay button tokenization.",
+      "reason": "Contextual overlay on images requires specific backdrop-blur/opacity not currently in standard button tokens."
     }
   ]
 }

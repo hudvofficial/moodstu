@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, FileText, Pencil } from "lucide-react";
 import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS } from "@/types/service-constants";
 import type { ServiceType } from "@/types/service-constants";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   services: ServiceRecord[];
@@ -15,7 +16,7 @@ interface Props {
 function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const formatPrice = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -63,7 +64,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
               {/* Price + chevron */}
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-sm font-semibold text-text-main">
-                  {formatPrice(Number(service.selling_price))}
+                  {formatCurrency(Number(service.selling_price))}
                 </span>
                 {isExpanded ? (
                   <ChevronUp className="w-4 h-4 text-text-muted" />
@@ -85,7 +86,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                   <div>
                     <span className="text-text-muted">Giá vốn:</span>{" "}
                     <span className="text-text-secondary">
-                      {formatPrice(Number(service.cost_price))}
+                      {formatCurrency(Number(service.cost_price))}
                     </span>
                   </div>
                 </div>

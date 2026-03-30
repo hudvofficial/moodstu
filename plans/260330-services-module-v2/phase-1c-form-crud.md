@@ -1,5 +1,5 @@
 # Phase 1c: Form + CRUD
-Status: ⬜ Pending
+Status: ✅ Complete
 Dependencies: Phase 1a (mutations + schema + types)
 
 ## Objective
@@ -9,16 +9,16 @@ thành composition pattern: orchestrator + sections + hook.
 ## Implementation Steps
 
 ### 1. Form Hook
-- [ ] Tạo `components/services/form/hooks/useServiceForm.ts`
+- [x] Tạo `components/services/form/hooks/useServiceForm.ts`
   - State: formData (ServiceFormData), errors, isSubmitting
   - Methods: handleChange, handleSectionChange, handleSubmit
-  - Logic: auto-gen service_code khi trống, Zod client-side validate
-  - Submit: gọi createService() hoặc updateService() server action
+  - Logic: auto-gen service_code khi trống, client-side validate
+  - Submit: gọi createService() hoặc updateService() server action (unwrap ActionResult)
   - Toast: success/error notifications
   - Redirect: after successful create → `/services`
 
 ### 2. Form Orchestrator
-- [ ] Tạo `components/services/form/index.tsx` (< 250 lines)
+- [x] Tạo `components/services/form/index.tsx` (< 150 lines)
   - Props: initialData? (edit mode), preFetchedCategories
   - Uses: useServiceForm() hook
   - Renders: InfoSection + PriceSection + ContentEditor + SaveButton
@@ -26,14 +26,14 @@ thành composition pattern: orchestrator + sections + hook.
   - Desktop: single column, save button inline
 
 ### 3. Info Section
-- [ ] Tạo `components/services/form/ServiceInfoSection.tsx`
+- [x] Tạo `components/services/form/ServiceInfoSection.tsx`
   - Fields: service_name (required), service_code (auto-gen), service_type, category_id
   - Category dropdown: options from preFetchedCategories
   - "Quản lý DM" button → opens CategoryManager modal
   - Image URL: optional text input (Phase 2: file upload)
 
 ### 4. Price Section
-- [ ] Tạo `components/services/form/ServicePriceSection.tsx`
+- [x] Tạo `components/services/form/ServicePriceSection.tsx`
   - Fields: selling_price, cost_price, unit (dropdown from SERVICE_UNITS), quantity_stock
   - Additional: status (active/inactive Toggle), fulfillment_type (dropdown)
   - Desktop: 2-column grid layout
@@ -41,7 +41,7 @@ thành composition pattern: orchestrator + sections + hook.
   - Currency inputs: numeric with formatCurrency preview
 
 ### 5. Content Editor (Structured Description)
-- [ ] Tạo `components/services/form/ServiceContentEditor.tsx`
+- [x] Tạo `components/services/form/ServiceContentEditor.tsx`
   - Port V1 logic: EditableSection[] ↔ JSON string
   - Section card: title input + items list + Add Item + Delete Section
   - Add Section: dashed border button "＋ Thêm Mục Mới"
@@ -50,7 +50,7 @@ thành composition pattern: orchestrator + sections + hook.
   - Empty: show placeholder "Thêm nội dung mô tả cho dịch vụ"
 
 ### 6. Category Manager Modal
-- [ ] Tạo `components/services/category-manager-modal.tsx`
+- [x] Đã có `components/services/category-manager-modal.tsx` (Phase 1b)
   - Port V1 CategoryManager.tsx (163 lines)
   - UnifiedModal (size="md")
   - Inline form: name + icon inputs + Thêm button
@@ -60,13 +60,13 @@ thành composition pattern: orchestrator + sections + hook.
   - On close: refresh categories (callback prop)
 
 ### 7. Create Page Route
-- [ ] Tạo `app/(protected)/services/create/page.tsx`
+- [x] Tạo `app/(protected)/services/create/page.tsx`
   - SSR: fetch categories
   - Header: "Thêm danh mục kinh doanh" + back link
   - Body: ServiceForm (create mode, no initialData)
 
 ### 8. Edit Page Route
-- [ ] Tạo `app/(protected)/services/[id]/page.tsx`
+- [x] Tạo `app/(protected)/services/[id]/page.tsx`
   - SSR: fetch service + categories + bundleItems (if BUNDLE)
   - 404: if service not found or deleted
   - Header: "Chỉnh sửa dịch vụ" + service name + back link

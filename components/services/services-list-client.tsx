@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Package } from "lucide-react";
 import type { ServiceRecord, ServiceCategory } from "@/types/service";
 import type { ViewMode } from "@/types/service-constants";
@@ -11,6 +12,9 @@ import ServiceTable from "./service-table";
 import ServiceMobileList from "./service-mobile-list";
 import ServiceGrid from "./service-grid";
 import { EmptyState } from "@/components/ui/ux-states";
+import { FAB } from "@/components/ui/fab";
+import { CategoryManagerModal } from "./category-manager-modal";
+import QuoteModal from "@/components/services/quote/quote-modal";
 
 interface Props {
   initialServices: ServiceRecord[];
@@ -23,10 +27,12 @@ export default function ServicesListClient({
   categories,
 }: Props) {
   // ── State ──────────────────────────────────
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [showCategoryManager, setShowCategoryManager] = useState(false); // Phase 1c
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [quoteService, setQuoteService] = useState<ServiceRecord | null>(null);
 
   // ── Client-side filtering ──────────────────
   const filteredServices = useMemo(() => {
@@ -56,36 +62,29 @@ export default function ServicesListClient({
 
   // ── Handlers ───────────────────────────────
   const handleQuote = useCallback((service: ServiceRecord) => {
-    // TODO: Phase 1d — Open quote modal
-    console.log("[Quote]", service.id);
+    setQuoteService(service);
   }, []);
 
   const handleEdit = useCallback((id: string) => {
-    // TODO: Phase 1c — Navigate to edit or open form
-    console.log("[Edit]", id);
-  }, []);
+    router.push(`/services/${id}`);
+  }, [router]);
 
   const handleCreate = useCallback(() => {
-    // TODO: Phase 1c — Open create form
-    console.log("[Create]");
-  }, []);
+    router.push("/services/create");
+  }, [router]);
 
   return (
     <div className="main-container gap-3!">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-h2">Dịch vụ</h1>
-        <button
-          onClick={handleCreate}
-          className="btn-primary flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Thêm dịch vụ</span>
-        </button>
+      {/* ── Stats + Action (unified container — same pattern as contracts) ── */}
+      <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+        <ServiceStatsBar stats={stats} />
+        <div className="hidden lg:flex">
+          <button onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+            <Plus className="w-5 h-5" />
+            <span>Thêm dịch vụ</span>
+          </button>
+        </div>
       </div>
-
-      {/* ── Stats ── */}
-      <ServiceStatsBar stats={stats} />
 
       {/* ── Filters ── */}
       <ServiceFilters
@@ -135,17 +134,23 @@ export default function ServicesListClient({
         </>
       )}
 
-      {/* ── FAB: Mobile-only create ── */}
-      <button
-        onClick={handleCreate}
-        className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        aria-label="Thêm dịch vụ"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {/* ── FAB: Mobile-only create (shared component) ── */}
+      <FAB onClick={handleCreate} label="Thêm dịch vụ" />
 
-      {/* TODO: Phase 1c — CategoryManager modal */}
-      {/* TODO: Phase 1c — ServiceForm modal */}
+      {/* ── CategoryManager modal (Phase 1c) ── */}
+      <CategoryManagerModal
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
+        categories={categories}
+      />
+
+      {/* ── Quote Modal (Phase 1d) ── */}
+      {quoteService && (
+        <QuoteModal
+          service={quoteService}
+          onClose={() => setQuoteService(null)}
+        />
+      )}
     </div>
   );
 }

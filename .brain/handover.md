@@ -1,32 +1,35 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 HANDOVER DOCUMENT — Mood Studio V2
+📋 HANDOVER DOCUMENT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📍 Đang làm: Research & Brainstorm Module /services
-🔢 Đến bước: Phase 0 (Research V1 components & actions)
+📍 Đang làm: Services Module V2 — Round 2 (UI/UX & Tech Debt Fixes)
+🔢 Đến bước: Phase 0 DONE (Planning & Verification complete)
 
-✅ ĐÃ XONG (Session này):
-   - Thiết lập hệ thống **SSOT Enforcement Protocol** (Anti AI-drift).
-   - Tạo `components/ui/REGISTRY.md` (Quick-ref mapping).
-   - Update `before-edit.md` Gate với scan protocol & approval gate.
-   - Di chuyển toàn bộ Table UI (Contracts, Employees, Inventory) sang shared components.
-   - Done Table Header Standardization (#f5efe6 + sticky).
+✅ ĐÃ XONG:
+   - Migration V2 Phases 1-5 (Core crud, tables, mobile list, grid).
+   - Visual Audit & Parity Check với V1.
+   - Identified 7 remaining issues (Icon system, Formatting, Unused props, Tokens).
+   - **CRITICAL BUG FOUND:** Quote Modal width regression (1375px vs 340px V1).
 
-⏳ CÒN LẠI (Sắp tới):
-   - Task 1: Tạo `docs/specs/services.md` dựa trên V1 research.
-   - Task 2: Implement `/services` table & management page (Phase 1-4).
-   - Task 3: Migrate Bundle Builder logic (V1 research in progress).
+⏳ CÒN LẠI (Ready to Code):
+   - **Phase 0:** Fix Quote Modal width using inline style (Priority 1).
+   - **Phase A:** Migrate BundleSection to `lucide-react` (5 icons) and `formatCurrency` (2 prices).
+   - **Phase B:** Remove unused `search` props from Filters.
+   - **Phase C:** Standardize Mobile List expanded action buttons.
 
 🔧 QUYẾT ĐỊNH QUAN TRỌNG:
-   - REGISTRY.md là SSOT duy nhất để map inline code sang shared UI.
-   - TUYỆT ĐỐI không tạo token/component/hook mới mà chưa qua Approval Gate.
-   - Services module sẽ tối ưu dựa trên V1 tại `C:\Users\Admin\Desktop\Ai\0Moodstudio`.
+   - Dùng `style={{ maxWidth: 340 }}` cho modal để vượt qua lỗi Tailwind JIT arbitrary value trong dynamic strings.
+   - Giữ nguyên Grid hover overlay buttons (đặc thù context).
+   - Bỏ qua Quote action buttons (In/PDF) để ưu tiên Parity thon gọn của V1.
+
+⚠️ LƯU Ý CHO SESSION SAU:
+   - File `components/services/quote/quote-modal.tsx` cần fix L87 ngay đầu session.
+   - `ServiceBundleSection.tsx` L90+ có nhiều lỗi material icons và locale-formatting cần dọn dẹp.
 
 📁 FILES QUAN TRỌNG:
-   - components/ui/table.tsx (Table SSOT)
-   - components/ui/REGISTRY.md (Mapping SSOT)
-   - tasks/gates/before-edit.md (Mandatory Gate)
-   - .brain/session.json (Current Progress)
+   - implementation_plan.md (Scope chính)
+   - .brain/session.json (Progress)
+   - .brain/brain.json (Gotchas & Patterns)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📍 Đã lưu! Để tiếp tục: Gõ /recap

@@ -1,0 +1,366 @@
+"use client";
+
+import { useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, Printer, Pencil, Phone, MapPin } from "lucide-react";
+import { parseContentStructure } from "@/lib/utils/service-utils";
+import { formatCurrency } from "@/lib/utils";
+import type { ServiceRecord } from "@/types/service";
+import type { StudioInfo } from "@/types/service";
+
+// ═══════════════════════════════════════════
+// QuoteView V2 — Full-page printable quote
+//
+// Route: /services/[id]/quote
+// Desktop: 12-col grid (8+4), Stripe-style sidebar
+// Mobile: iOS HIG Inset Grouped List + Sticky bottom
+//
+// @see Task 4 / Quote V2 Redesign
+// ═══════════════════════════════════════════
+
+interface Props {
+  service: ServiceRecord;
+  studio: StudioInfo;
+}
+
+export default function QuoteView({ service, studio }: Props) {
+  const structure = parseContentStructure(service.description || "");
+  const itemCount = useMemo(
+    () => structure.reduce((sum, s) => sum + s.items.length, 0),
+    [structure],
+  );
+
+  const studioLogo = studio?.logo_url || "/logo.png";
+  const studioName = studio?.name || "Mood Studio";
+  const formattedPrice = formatCurrency(service.selling_price);
+
+
+
+  return (
+    <>
+      {/* ─── PRINT STYLES ─── */}
+      <style>{`
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .quote-no-print { display: none !important; }
+          [data-sidebar] { display: none !important; }
+          [data-bottom-nav] { display: none !important; }
+          main { padding-bottom: 0 !important; overflow: visible !important; }
+          .quote-print-only { display: block !important; }
+        }
+      `}</style>
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  DESKTOP LAYOUT (≥ 1024px) — Stripe-style Grid   */}
+      {/* ══════════════════════════════════════════════════ */}
+      <div className="hidden lg:block min-h-screen bg-bg-sidebar">
+        {/* Toolbar */}
+        <div className="quote-no-print sticky top-0 z-40 bg-bg-card/90 backdrop-blur-md shadow-xs px-6 py-3 flex items-center justify-between">
+          <Link
+            href="/services"
+            className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="font-medium">Quay lại danh sách</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="btn-secondary"
+            >
+              <Printer className="w-4 h-4" />
+              In / PDF
+            </button>
+            <Link
+              href={`/services/${service.id}`}
+              className="btn-ghost text-primary"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Chỉnh sửa
+            </Link>
+          </div>
+        </div>
+
+        {/* Grid Content */}
+        <div className="max-w-6xl mx-auto px-8 py-10 grid grid-cols-12 gap-8 items-start">
+          {/* ── Main Content (8 cols) ── */}
+          <div className="col-span-8 space-y-6">
+            {/* Hero Card */}
+            <div className="bg-bg-card rounded-2xl shadow-sm p-8">
+              <div className="flex items-start gap-5 mb-6">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                  <Image
+                    src={studioLogo}
+                    alt={studioName}
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">
+                    {studioName} · Báo giá dịch vụ
+                  </p>
+                  <h1 className="text-2xl font-black text-text-main leading-tight">
+                    {service.name}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    {service.unit && (
+                      <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                        {service.unit}
+                      </span>
+                    )}
+                    {itemCount > 0 && (
+                      <span className="text-tiny font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
+                        {itemCount} hạng mục
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Sections */}
+            {structure.length > 0 ? (
+              <div className="space-y-4">
+                {structure.map((section, idx) => (
+                  <div key={idx} className="bg-bg-card rounded-2xl shadow-sm p-6">
+                    {section.title && (
+                      <div className="flex items-center gap-2.5 mb-4">
+                        <div className="w-1 h-5 bg-primary rounded-full shrink-0" />
+                        <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
+                          {section.title}
+                        </h3>
+                      </div>
+                    )}
+                    <ul className="space-y-2.5">
+                      {section.items.map((item: string, i: number) => (
+                        <li key={i} className="flex items-start gap-3 text-[13px] text-text-secondary leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-bg-card rounded-2xl shadow-sm p-12 text-center">
+                <p className="text-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Sidebar (4 cols — Sticky) ── */}
+          <div className="col-span-4 sticky top-20 space-y-4">
+            {/* Price Card (Stripe Checkout style) */}
+            <div className="bg-bg-card rounded-2xl shadow-sm p-6">
+              <p className="text-tiny font-bold text-text-muted uppercase tracking-[0.2em] mb-3">
+                Giá trọn gói
+              </p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-4xl font-black text-primary tabular-nums tracking-tight">
+                  {formattedPrice.replace("₫", "").trim()}
+                </span>
+                <span className="text-sm font-bold text-text-muted">VNĐ</span>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-border/60 my-5" />
+
+              {/* Actions */}
+              <div className="space-y-2.5 quote-no-print">
+                <button
+                  onClick={() => window.print()}
+                  className="btn-primary w-full"
+                >
+                  <Printer className="w-4 h-4" />
+                  Tải báo giá PDF
+                </button>
+                <Link
+                  href={`/services/${service.id}`}
+                  className="btn-secondary w-full"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Chỉnh sửa dịch vụ
+                </Link>
+              </div>
+            </div>
+
+            {/* Studio Contact Card */}
+            <div className="bg-bg-card rounded-2xl shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                  <Image
+                    src={studioLogo}
+                    alt={studioName}
+                    width={22}
+                    height={22}
+                    className="object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-text-main">{studioName}</p>
+                  <p className="text-[11px] text-text-muted">Liên hệ tư vấn</p>
+                </div>
+              </div>
+              <div className="space-y-2.5 text-[12px] text-text-secondary">
+                {studio.phone && (
+                  <div className="flex items-center gap-2.5">
+                    <Phone className="w-3.5 h-3.5 text-primary/60" />
+                    <span className="font-medium">{studio.phone}</span>
+                  </div>
+                )}
+                {studio.address && (
+                  <div className="flex items-center gap-2.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary/60" />
+                    <span className="font-medium">{studio.address}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/*  MOBILE LAYOUT (< 1024px) — iOS HIG Style        */}
+      {/* ══════════════════════════════════════════════════ */}
+      <div className="lg:hidden min-h-screen bg-bg-sidebar pb-28">
+        {/* Mobile Header */}
+        <div className="quote-no-print sticky top-0 z-40 bg-bg-card/90 backdrop-blur-md shadow-xs px-4 py-3 flex items-center justify-between">
+          <Link
+            href="/services"
+            className="flex items-center gap-1.5 text-sm text-text-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="font-medium">Quay lại</span>
+          </Link>
+          <Link
+            href={`/services/${service.id}`}
+            className="flex items-center gap-1 text-xs font-bold text-primary"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Sửa
+          </Link>
+        </div>
+
+        {/* Hero Section */}
+        <div className="px-4 pt-5 pb-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+              <Image
+                src={studioLogo}
+                alt={studioName}
+                width={22}
+                height={22}
+                className="object-contain"
+              />
+            </div>
+            <p className="text-tiny font-bold text-text-muted uppercase tracking-[0.15em]">
+              {studioName} · Báo giá
+            </p>
+          </div>
+          <h1 className="text-xl font-black text-text-main leading-tight mb-2">
+            {service.name}
+          </h1>
+          <div className="flex items-center gap-2">
+            {service.unit && (
+              <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                {service.unit}
+              </span>
+            )}
+            {itemCount > 0 && (
+              <span className="text-tiny font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
+                {itemCount} hạng mục
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Inset Grouped List — Content Sections */}
+        <div className="px-4 space-y-3 mt-2">
+          {structure.length > 0 ? (
+            structure.map((section, idx) => (
+              <div key={idx} className="bg-bg-card rounded-2xl shadow-sm overflow-hidden">
+                {section.title && (
+                  <div className="px-5 pt-4 pb-2 flex items-center gap-2.5">
+                    <div className="w-1 h-4 bg-primary rounded-full shrink-0" />
+                    <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                      {section.title}
+                    </h3>
+                  </div>
+                )}
+                <div className="divide-y divide-border/40">
+                  {section.items.map((item: string, i: number) => (
+                    <div key={i} className="px-5 py-3 flex items-start gap-3">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
+                      <span className="text-[13px] text-text-secondary leading-relaxed">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-bg-card rounded-2xl shadow-sm p-8 text-center">
+              <p className="text-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
+            </div>
+          )}
+
+          {/* Contact Card */}
+          <div className="bg-bg-card rounded-2xl shadow-sm p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                <Image
+                  src={studioLogo}
+                  alt={studioName}
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-text-main">{studioName}</p>
+                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-text-muted">
+                  {studio.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-primary/50" />
+                      {studio.phone}
+                    </span>
+                  )}
+                  {studio.address && (
+                    <span className="flex items-center gap-1 truncate">
+                      <MapPin className="w-3 h-3 text-primary/50" />
+                      {studio.address}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky Bottom Bar — Price + Action */}
+        <div className="quote-no-print fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-micro font-bold text-text-muted uppercase tracking-[0.15em]">Trọn gói</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-black text-primary tabular-nums">
+                {formattedPrice.replace("₫", "").trim()}
+              </span>
+              <span className="text-tiny font-bold text-text-muted">VNĐ</span>
+            </div>
+          </div>
+          <button
+            onClick={() => window.print()}
+            className="btn-primary"
+          >
+            <Printer className="w-4 h-4" />
+            In / PDF
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}

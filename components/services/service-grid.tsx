@@ -5,6 +5,7 @@ import { FileText, Pencil } from "lucide-react";
 import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS } from "@/types/service-constants";
 import type { ServiceType } from "@/types/service-constants";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   services: ServiceRecord[];
@@ -13,7 +14,6 @@ interface Props {
 }
 
 function ServiceGridInner({ services, onQuote, onEdit }: Props) {
-  const formatPrice = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -66,7 +66,7 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
               </p>
               <div className="mt-auto">
                 <span className="text-sm font-bold text-primary">
-                  {formatPrice(Number(service.selling_price))}
+                  {formatCurrency(Number(service.selling_price))}
                 </span>
                 <span className="text-caption text-text-muted ml-1">VNĐ</span>
               </div>

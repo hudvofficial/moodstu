@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-30T14:12:00+07:00"
+    "last_updated": "2026-03-31T04:25:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -15,105 +15,38 @@
   "tech_stack": {
     "frontend": "Next.js 14 + React 19 + Tailwind CSS v4",
     "backend": "Supabase (PostgreSQL + Auth + RLS + Server Actions)",
-    "ai": "Gemini Pro (Moodie AI assistant)",
     "hosting": "Vercel",
-    "v1_codebase": "C:\\Users\\Admin\\Desktop\\Ai\\0Moodstudio\\webapp",
-    "api_pattern": "Server Actions with withAuth() higher-order logic for atomic mutations + Zod + Audit Logs"
+    "api_pattern": "Server Actions + Auth HO + Zod + Audit Logs"
   },
   "database_schema": {
-    "summary": "Core: contracts, contract_items, customers, leads, employees, audit_logs, services, service_categories, service_bundles. Support: printing_orders, inventory_reservations, inventory_items, contract_notes, transaction_categories, studio_info, labs.",
-    "strategy": "ABC Framework — Group A (Keep ENUM), Group B (Rollback to VARCHAR+TS), Group C (Lookup Table)",
+    "summary": "Core: contracts, services, service_categories. Strategy: ABC Framework.",
     "new_tables": [
-      {
-        "name": "services",
-        "description": "Master list of studio services/products",
-        "columns": ["id", "service_code", "name", "category_id", "selling_price", "cost_price", "unit", "service_type", "fulfillment_type", "status", "description", "image_url", "is_custom_price", "created_by", "updated_by", "deleted_at", "version_id"]
-      },
-      {
-        "name": "service_categories",
-        "description": "Hierarchical grouping of services",
-        "columns": ["id", "name", "slug", "icon", "sort_order"]
-      },
-      {
-        "name": "service_bundles",
-        "description": "Mapping for complex services containing other services",
-        "columns": ["id", "parent_service_id", "child_service_id", "quantity", "sort_order"]
-      }
+      { "name": "services", "columns": ["id", "service_code", "name", "category_id", "selling_price", "status"] },
+      { "name": "service_categories", "columns": ["id", "name", "slug"] }
     ]
   },
   "api_endpoints": [
-    {
-      "type": "Server Action",
-      "path": "app/actions/service-queries.ts",
-      "actions": ["getServices", "getServiceById", "getServiceCategories", "getBundleItems", "searchServicesForBundle"],
-      "patterns": ["Admin supabase client (bypass RLS)", "withAuth() wrapper"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/service-mutations.ts",
-      "actions": ["createService", "updateService", "deleteService", "syncBundleItems", "createCategory"],
-      "patterns": ["Zod validation", "Optimistic Locking", "fireAuditLog()", "Soft delete"]
-    },
-    {
-      "type": "Server Action",
-      "path": "app/actions/contract-mutations.ts",
-      "actions": ["createContract", "updateContractStatus", "cancelContract", "deleteContract", "reactivateContract"],
-      "patterns": ["fireAuditLog() enabled"]
-    }
+    { "type": "Server Action", "path": "app/actions/service-queries.ts", "actions": ["getServices", "getServiceById"] },
+    { "type": "Server Action", "path": "app/actions/service-mutations.ts", "actions": ["createService", "updateService"] }
   ],
   "design_system": {
-    "description": "Earth-tone luxury palette — Stripe-inspired, Apple HIG compliant",
-    "ssot_file": "plans/stitch-master-brief.md",
-    "colors": {
-      "primary": "#8b5e3c",
-      "page_bg": "#FAF7F2",
-      "accent": "#c9a96e",
-      "neutral_brown": "#8b7355",
-      "sidebar_bg": "#f5efe6",
-      "background_light": "#f7f7f6",
-      "background_dark": "#1d1815",
-      "cards": "#FFFFFF",
-      "success": "emerald-100/800",
-      "danger": "red-100/800",
-      "warning": "amber-100/800",
-      "info": "blue-100/800",
-      "bride": "#EC4899",
-      "groom": "#3B82F6"
-    },
-    "typography": { "font": "Inter", "size": "14px body, 12px caption, 11px tiny" },
-    "radius_tokens": {
-      "sm": "6px",
-      "md": "8px",
-      "lg": "12px",
-      "xl": "16px",
-      "full": "9999px"
-    },
+    "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
     "components": {
-      "TableSuite": "TableWrapper, THead, TBody, TR, TH, TD (Gold Standard table parts)",
-      "StatsBar": "Compact inline stats (REGISTRY compliant)",
-      "EmptyState": "UxState with icon, title, description, and optional action",
-      "SelectPill": "Chip-based selection for categories and filters",
-      "ServiceTable": "Extended TableSuite with expandable row detail pattern",
+      "ServiceTable": "Expandable Table Row Pattern",
       "ServiceMobileList": "Compact row list with active expand state",
-      "ServiceGrid": "Responsive card layout with hover action overlays"
+      "QuoteModal": "Compact, floating centered card (max-w 340px) vs V1 parity"
     }
   },
   "knowledge_items": {
     "patterns": [
       {
-        "name": "Expandable Table Row Pattern",
-        "doc": "components/services/service-table.tsx",
-        "details": "Toggle state (null | id) to show full description block inside <tr> without breaking TableSuite columns."
-      },
-      {
-        "name": "VARCHAR + TS Enum Pattern (Group B)",
-        "details": "DB: VARCHAR(N) | TS: const array + type [X] | Zod: z.enum() | SSOT map for labels"
+        "name": "Quote Modal Parity Pattern",
+        "details": "Always cap modal width to ~340-400px to maintain floating card feel. Avoid full-width on large screens."
       }
     ],
     "gotchas": [
-      "calculateServiceStats MUST be a pure function in utils/ to avoid Next.js Build error 'Server Actions must be async'.",
-      "Service category manager should refresh state without hard page reload (Optimistic UI pending Phase 1c).",
-      "Mobile FAB button: fixed/z-40 to stay above all content except Modals."
+      "calculateServiceStats MUST be sync/pure utility exported separately to avoid Next.js build errors in Server Action files.",
+      "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints."
     ]
   }
 }

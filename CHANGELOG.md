@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.56] - 2026-03-31 (WIP)
+### Fixed
+- **Quote Modal Layout**: Identified critical 1375px width regression vs V1 340px parity.
+- **Service Bundle Section (Pending)**: Scheduled migration to `lucide-react` and `formatCurrency`.
+- **UI Consistency (Pending)**: Cleanup unused filter props and mobile list button tokens.
+
 ## [1.1.55] - 2026-03-30
 ### Added
 - **Services Module V2 Implementation (Phase 1a & 1b)**: Full-stack migration from V1 to V2 architecture.

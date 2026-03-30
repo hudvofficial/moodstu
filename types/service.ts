@@ -72,6 +72,7 @@ export interface ServiceFilters {
   search?: string;
   category?: string;
   status?: string;
+  fulfillment_type?: string;
   page?: number;
   limit?: number;
 }
@@ -94,3 +95,28 @@ export interface StudioInfo {
   logo_url: string | null;
   tagline: string | null;
 }
+
+// ─── VISUAL BUILDER TYPES (Phase 2) ──────────────
+
+export type RelationType = "REQUIRED" | "OPTIONAL" | "SUGGESTED";
+
+export interface ServiceRelation {
+  id: string;
+  parent_service_id: string;
+  child_service_id?: string | null;
+  child_category_id?: string | null;
+  relation_type: RelationType;
+  min_quantity: number;
+  max_quantity: number | null;
+}
+
+export interface PriceRule {
+  id: string;
+  name: string;
+  description?: string;
+  conditions: Record<string, unknown>;
+  actions: Record<string, unknown>;
+  priority: number;
+  is_active: boolean;
+}
+

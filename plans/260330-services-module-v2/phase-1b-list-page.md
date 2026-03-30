@@ -1,5 +1,5 @@
 # Phase 1b: List Page (Desktop + Mobile)
-Status: ⬜ Pending
+Status: ✅ Complete
 Dependencies: Phase 1a (queries + types must exist)
 
 ## Objective

@@ -7,6 +7,7 @@ import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
 import type { ServiceType, ServiceUnit } from "@/types/service-constants";
 import { parseContentStructure } from "@/lib/utils/service-utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   services: ServiceRecord[];
@@ -21,7 +22,7 @@ function ServiceTableInner({ services, onQuote, onEdit }: Props) {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
-  const formatPrice = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+
 
   return (
     <div className="hidden lg:block">
@@ -50,7 +51,7 @@ function ServiceTableInner({ services, onQuote, onEdit }: Props) {
                 sections={sections}
                 unitLabel={unitLabel}
                 typeLabel={typeLabel}
-                formatPrice={formatPrice}
+
                 onToggle={() => toggleExpand(service.id)}
                 onQuote={() => onQuote(service)}
                 onEdit={() => onEdit(service.id)}
@@ -71,7 +72,7 @@ interface RowProps {
   sections: { title: string; items: string[] }[];
   unitLabel: string;
   typeLabel: string;
-  formatPrice: (n: number) => string;
+
   onToggle: () => void;
   onQuote: () => void;
   onEdit: () => void;
@@ -83,7 +84,6 @@ const ServiceTableRow = memo(function ServiceTableRow({
   sections,
   unitLabel,
   typeLabel,
-  formatPrice,
   onToggle,
   onQuote,
   onEdit,
@@ -113,7 +113,7 @@ const ServiceTableRow = memo(function ServiceTableRow({
         </TD>
         <TD className="text-right">
           <span className="font-semibold text-text-main">
-            {formatPrice(Number(service.selling_price))}
+            {formatCurrency(Number(service.selling_price))}
           </span>
           <span className="text-caption text-text-muted ml-1">VNĐ</span>
         </TD>
@@ -121,14 +121,14 @@ const ServiceTableRow = memo(function ServiceTableRow({
           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={(e) => { e.stopPropagation(); onQuote(); }}
-              className="icon-btn-sm"
+              className="btn-icon"
               title="Báo giá"
             >
               <FileText className="w-4 h-4" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="icon-btn-sm"
+              className="btn-icon"
               title="Chỉnh sửa"
             >
               <Pencil className="w-4 h-4" />

@@ -19,7 +19,7 @@ const DEFAULT_LIMIT = 50;
 
 export async function getServices(filters: ServiceFilters = {}) {
   return withAuth(async (supabase) => {
-    const { search, category, status, page = 1, limit = DEFAULT_LIMIT } = filters;
+    const { search, category, status, fulfillment_type, page = 1, limit = DEFAULT_LIMIT } = filters;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
@@ -44,6 +44,10 @@ export async function getServices(filters: ServiceFilters = {}) {
 
     if (status) {
       query = query.eq("status", status);
+    }
+
+    if (fulfillment_type) {
+      query = query.eq("fulfillment_type", fulfillment_type);
     }
 
     const { data, error, count } = await query;
@@ -95,12 +99,12 @@ export async function getBundleItems(parentServiceId: string) {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("service_bundles")
-      .select("*, child_service:services!child_service_id(id, name, selling_price, unit)")
+      .select("*, child_service:services!child_service_id(id, name, selling_price, category_id, unit, service_code, image_url)")
       .eq("parent_service_id", parentServiceId)
       .order("sort_order");
 
     if (error) throw new Error(`Lỗi tải bundle: ${error.message}`);
-    return (data || []) as ServiceBundleItem[];
+    return data || [];
   });
 }
 
