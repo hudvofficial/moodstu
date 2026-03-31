@@ -1,7 +1,7 @@
-/* eslint-disable no-restricted-syntax */ // Exception: specific typography for print presentation and legacy icons.
 "use client";
 
 import React from "react";
+import { Paintbrush, X, Image as LucideImage, ImageIcon, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CalculationResult } from "@/lib/logic/bundle-calculator";
 import Image from "next/image";
@@ -23,14 +23,13 @@ export default function QuoteModernView({
 }: QuoteModernViewProps) {
   return (
     <div className="fixed inset-0 z-overlay flex items-center justify-center bg-background/60 animate-fadeIn p-0 md:p-6">
-      <div className="bg-elevated w-full max-w-lg h-full md:h-[90vh] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative border border-white/20">
+        {/* eslint-disable-next-line no-restricted-syntax -- Artistic print preview: intentional rounded corner */}
+        <div className="bg-elevated w-full max-w-lg h-full md:h-[90vh] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative border border-white/20">
         {/* Header / Branding */}
         <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-elevated/90 to-transparent">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-[20px]">
-                brush
-              </span>
+              <Paintbrush size={20} className="text-white" />
             </div>
             <span className="text-lg font-black tracking-tighter text-text-main uppercase italic">
               Moodstudio
@@ -41,7 +40,7 @@ export default function QuoteModernView({
             onClick={onClose}
             className="w-10 h-10 rounded-full bg-elevated/80 shadow-lg flex items-center justify-center text-text-secondary hover:text-text-main transition-all p-0 border-0"
           >
-            <span className="material-symbols-outlined">close</span>
+            <X size={24} />
           </Button>
         </div>
 
@@ -61,17 +60,15 @@ export default function QuoteModernView({
               />
             ) : (
               <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/5 flex flex-col items-center justify-center text-primary/40">
-                <span className="material-symbols-outlined text-6xl mb-2">
-                  wallpaper
-                </span>
-                <span className="text-tiny uppercase font-black">
+                <LucideImage size={48} className="mb-2" />
+                <span className="text-caption uppercase font-black">
                   Official Quotation
                 </span>
               </div>
             )}
             <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
-              <span className="text-tiny font-black text-primary bg-elevated px-2 py-1 rounded-md uppercase tracking-widest mb-2 inline-block">
+              <span className="text-caption font-black text-primary bg-elevated px-2 py-1 rounded-md uppercase tracking-widest mb-2 inline-block">
                 Báo giá dịch vụ
               </span>
               <h1 className="text-2xl font-black text-white leading-none">
@@ -85,7 +82,7 @@ export default function QuoteModernView({
             {/* Summary Box */}
             <div className="bg-surface p-4 rounded-soft-2xl border border-border flex justify-between items-center -mt-12 relative z-20 shadow-xl shadow-primary/5">
               <div>
-                <p className="text-tiny text-text-muted font-bold uppercase tracking-wider">
+                <p className="text-caption text-text-muted font-bold uppercase tracking-wider">
                   Tổng giá trị gói
                 </p>
                 <p className="text-2xl font-black text-primary tracking-tighter">
@@ -93,10 +90,10 @@ export default function QuoteModernView({
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-tiny text-text-muted font-bold uppercase">
+                <p className="text-caption text-text-muted font-bold uppercase">
                   Ngày lập
                 </p>
-                <p className="text-xs font-bold text-text-main">
+                <p className="text-caption font-bold text-text-main">
                   {new Date().toLocaleDateString("vi-VN")}
                 </p>
               </div>
@@ -127,9 +124,7 @@ export default function QuoteModernView({
                           }
                         />
                       ) : (
-                        <span className="material-symbols-outlined text-text-muted">
-                          image
-                        </span>
+                        <ImageIcon size={20} className="text-text-muted" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -137,13 +132,13 @@ export default function QuoteModernView({
                         <h4 className="text-sm font-bold text-text-main leading-tight">
                           {item.service_name}
                         </h4>
-                        <span className="text-xs font-black text-text-main">
+                        <span className="text-caption font-black text-text-main">
                           {(
                             item.selling_price * item.quantity
                           ).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-tiny text-text-muted mt-0.5">
+                      <p className="text-caption text-text-muted mt-0.5">
                         SL: {item.quantity} x{" "}
                         {item.selling_price.toLocaleString()}{" "}
                         {item.unit || "món"}
@@ -156,10 +151,10 @@ export default function QuoteModernView({
 
             {/* Note & Branding */}
             <div className="p-6 bg-primary/5 rounded-4xl border border-primary/10">
-              <h4 className="text-tiny font-black text-primary uppercase mb-2">
+              <h4 className="text-caption font-black text-primary uppercase mb-2">
                 Cam kết chất lượng
               </h4>
-              <p className="text-xs text-text-secondary italic leading-relaxed">
+              <p className="text-caption text-text-secondary italic leading-relaxed">
                 &ldquo;Từng khoảnh khắc tại Moodstudio đều được chăm chút tỉ mỉ
                 từ khâu ý tưởng đến thành phẩm cuối cùng. Chúng tôi cam kết mang
                 lại trải nghiệm chuyên nghiệp và xứng tầm với kỳ vọng của
@@ -177,13 +172,12 @@ export default function QuoteModernView({
               className="flex-1 py-4 bg-background text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 h-auto"
               onClick={() => window.print()}
             >
-              <span className="material-symbols-outlined text-[20px]">
-                share
-              </span>
+              <Send size={20} />
               Liên hệ tư vấn
             </Button>
           </div>
           <div className="mt-4 flex items-center justify-center gap-2 opacity-30 grayscale hover:grayscale-0 transition-all cursor-default">
+            {/* eslint-disable-next-line no-restricted-syntax -- Artistic print preview: intentional micro branding text */}
             <span className="text-[8px] font-black tracking-[0.2em] uppercase">
               Built with heart by Moodstudio
             </span>

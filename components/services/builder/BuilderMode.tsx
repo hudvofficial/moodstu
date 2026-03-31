@@ -1,7 +1,7 @@
-/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for material-icons sizing.
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { AlertTriangle, Scale, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ComponentSelector from "./ComponentSelector";
 import BundleCanvas from "./BundleCanvas";
@@ -170,14 +170,12 @@ export default function BuilderMode({
       {missingRequired.length > 0 && (
         <div className="bg-state-warning/10 border border-state-warning/30 p-3 rounded-soft-md flex items-center justify-between gap-3 animate-pulse">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-state-warning">
-              warning_amber
-            </span>
+            <AlertTriangle size={20} className="text-state-warning shrink-0" />
             <div className="flex-1">
-              <p className="text-xs font-bold text-state-warning">
+              <p className="text-caption font-bold text-state-warning">
                 Thiếu {missingRequired.length} món bắt buộc!
               </p>
-              <p className="text-tiny text-state-warning/80">
+              <p className="text-caption text-state-warning/80">
                 Gói này sẽ không hợp lệ nếu thiếu các thành phần chính.
               </p>
             </div>
@@ -196,7 +194,7 @@ export default function BuilderMode({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[650px]">
         {/* Left: Selector (7 cols) */}
         <div className="lg:col-span-7 h-full flex-col hidden lg:flex">
-          <h3 className="font-bold text-text-main mb-2 text-sm flex items-center gap-2">
+          <h3 className="font-bold text-text-main mb-2 text-body-sm flex items-center gap-2">
             Cách 1: Chọn món lẻ từ Danh mục
           </h3>
           <div className="flex-1 overflow-hidden">
@@ -212,7 +210,7 @@ export default function BuilderMode({
         <div className="lg:col-span-5 h-full flex flex-col gap-4 overflow-hidden">
           {relations.length > 0 && (
             <div className="shrink-0">
-              <h3 className="font-bold text-text-main mb-2 text-sm flex items-center justify-between">
+              <h3 className="font-bold text-text-main mb-2 text-body-sm flex items-center justify-between">
                 Cách 2: Gợi ý Thông minh
               </h3>
               <SmartSuggestions
@@ -225,16 +223,14 @@ export default function BuilderMode({
 
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-text-main text-sm">Combo Của Quý Khách</h3>
+              <h3 className="font-bold text-text-main text-body-sm">Combo Của Quý Khách</h3>
               <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
                   type="button"
                   onClick={() => setShowRuleManager(true)}
                 >
-                  <span className="material-symbols-outlined text-[14px]">
-                    rule
-                  </span>
+                  <Scale size={14} />
                   QUY TẮC GIÁ
                 </Button>
                 <Button
@@ -242,9 +238,7 @@ export default function BuilderMode({
                   type="button"
                   onClick={() => setShowPremiumQuote(true)}
                 >
-                  <span className="material-symbols-outlined text-[14px]">
-                    auto_awesome
-                  </span>
+                  <Sparkles size={14} />
                   XEM BÁO GIÁ
                 </Button>
               </div>

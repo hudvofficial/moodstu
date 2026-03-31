@@ -4,6 +4,7 @@
 
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
+import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 
 // ═══════════════════════════════════════════
 // QuotePreview — Level 3 (In-form live preview)
@@ -37,8 +38,8 @@ export default function QuotePreview({
         <h3 className="text-h3 text-primary mb-0.5 leading-tight wrap-break-word line-clamp-2">
           {serviceName || "Tên dịch vụ"}
         </h3>
-        <p className="text-tiny font-bold tracking-wide text-text-secondary">
-          {unit || "Gói Dịch Vụ"}
+        <p className="text-caption font-bold tracking-wide text-text-secondary">
+          {unit ? (SERVICE_UNIT_LABELS[unit as ServiceUnit] || unit) : "Gói Dịch Vụ"}
         </p>
       </div>
 
@@ -77,7 +78,7 @@ export default function QuotePreview({
       {/* 3. FOOTER PRICE */}
       <div className="mt-6 pt-4">
         <div className="bg-border/40 h-px -mx-6 mb-4" />
-        <p className="text-micro font-bold text-text-muted mb-1">
+        <p className="text-caption font-bold text-text-muted mb-1">
           Giá trọn gói
         </p>
         <div className="flex items-baseline gap-1.5">

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ArrowLeft, Printer, Pencil, Phone, MapPin } from "lucide-react";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
+import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
 import type { StudioInfo } from "@/types/service";
 
@@ -109,12 +110,12 @@ export default function QuoteView({ service, studio }: Props) {
                   </h1>
                   <div className="flex items-center gap-2 mt-2">
                     {service.unit && (
-                      <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
-                        {service.unit}
+                      <span className="text-caption font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
+                        {SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit}
                       </span>
                     )}
                     {itemCount > 0 && (
-                      <span className="text-tiny font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
+                      <span className="text-caption font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
                         {itemCount} hạng mục
                       </span>
                     )}
@@ -270,12 +271,12 @@ export default function QuoteView({ service, studio }: Props) {
           </h1>
           <div className="flex items-center gap-2">
             {service.unit && (
-              <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
-                {service.unit}
+              <span className="text-caption font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
+                {SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit}
               </span>
             )}
             {itemCount > 0 && (
-              <span className="text-tiny font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
+              <span className="text-caption font-bold text-text-muted bg-bg-hover px-2.5 py-0.5 rounded-full">
                 {itemCount} hạng mục
               </span>
             )}
@@ -352,7 +353,7 @@ export default function QuoteView({ service, studio }: Props) {
               <span className="text-amount font-black text-primary tabular-nums">
                 {formattedPrice.replace("₫", "").trim()}
               </span>
-              <span className="text-tiny font-bold text-text-muted">VNĐ</span>
+              <span className="text-caption font-bold text-text-muted">VNĐ</span>
             </div>
           </div>
           <Button

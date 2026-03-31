@@ -1,7 +1,7 @@
-/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for material-icons sizing.
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { ShoppingBag, GripVertical, Image as ImageIcon, X, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculateBundlePrice } from "@/lib/logic/bundle-calculator";
 import { getPriceRules } from "@/app/actions/builder-actions";
@@ -39,13 +39,11 @@ export default function BundleCanvas({
   return (
     <div className="flex flex-col h-full bg-elevated rounded-soft-md border border-border overflow-hidden">
       <div className="p-3 border-b border-border bg-surface flex justify-between items-center">
-        <h3 className="font-bold text-text-main flex items-center gap-2 text-sm">
-          <span className="material-symbols-outlined text-text-muted">
-            shopping_bag
-          </span>
+        <h3 className="font-bold text-text-main flex items-center gap-2 text-body-sm">
+          <ShoppingBag size={20} className="text-text-muted" />
           Gói combo đang soạn
         </h3>
-        <span className="text-primary font-bold text-lg">
+        <span className="text-primary font-bold text-h3">
           {totalPrice.toLocaleString()} ₫
         </span>
       </div>
@@ -53,10 +51,8 @@ export default function BundleCanvas({
       <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-background">
         {items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-text-muted space-y-2 border-2 border-dashed border-border rounded-soft-md bg-surface/50">
-            <span className="material-symbols-outlined text-4xl opacity-50">
-              drag_indicator
-            </span>
-            <p className="text-sm font-medium">
+            <GripVertical size={36} className="opacity-50" />
+            <p className="text-body-sm font-medium">
               Chọn dịch vụ từ danh sách bên trái
             </p>
           </div>
@@ -80,15 +76,13 @@ export default function BundleCanvas({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-text-muted">
-                      image
-                    </span>
+                    <ImageIcon size={20} className="text-text-muted" />
                   </div>
                 )}
               </div>
               <div className="flex-1 flex flex-col justify-between py-0.5">
                 <div className="flex justify-between items-start">
-                  <h4 className="font-semibold text-sm text-text-main line-clamp-2 pr-2">
+                  <h4 className="font-semibold text-body-sm text-text-main line-clamp-2 pr-2">
                     {item.service_name}
                   </h4>
                   <Button
@@ -96,13 +90,11 @@ export default function BundleCanvas({
                     onClick={() => onRemove(item.id)}
                     className="text-text-muted hover:text-state-error transition-colors shrink-0 p-0 h-auto border-0"
                   >
-                    <span className="material-symbols-outlined text-[20px]">
-                      close
-                    </span>
+                    <X size={20} />
                   </Button>
                 </div>
                 <div className="flex justify-between items-end mt-2">
-                  <div className="text-sm text-primary font-bold">
+                  <div className="text-body-sm text-primary font-bold">
                     {item.selling_price.toLocaleString()} ₫
                   </div>
                   <div className="flex items-center gap-2 bg-surface rounded-lg p-1 border border-border">
@@ -115,7 +107,7 @@ export default function BundleCanvas({
                     >
                       -
                     </Button>
-                    <span className="text-xs font-bold w-5 text-center">
+                    <span className="text-caption font-bold w-5 text-center">
                       {item.quantity}
                     </span>
                     <Button
@@ -135,20 +127,20 @@ export default function BundleCanvas({
       </div>
 
       <div className="p-4 border-t border-border bg-surface space-y-3">
-        <div className="flex justify-between text-sm text-text-secondary font-medium">
+        <div className="flex justify-between text-body-sm text-text-secondary font-medium">
           <span>Tổng số lượng:</span>
           <span>{items.reduce((s, i) => s + i.quantity, 0)} món</span>
         </div>
 
         {calculation.discountAmount > 0 && (
           <>
-            <div className="flex justify-between text-sm text-text-secondary">
+            <div className="flex justify-between text-body-sm text-text-secondary">
               <span>Tạm tính gộp:</span>
               <span className="line-through">
                 {calculation.originalTotal.toLocaleString()} ₫
               </span>
             </div>
-            <div className="flex justify-between text-sm text-state-success font-bold">
+            <div className="flex justify-between text-body-sm text-state-success font-bold">
               <span>Khuyến mãi áp dụng:</span>
               <span>-{calculation.discountAmount.toLocaleString()} ₫</span>
             </div>
@@ -157,11 +149,9 @@ export default function BundleCanvas({
                 {calculation.appliedRules.map((rule, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-1.5 text-xs bg-state-success/10 text-state-success px-2 py-1 rounded border border-state-success/20 w-fit font-medium"
+                    className="flex items-center gap-1.5 text-caption bg-state-success/10 text-state-success px-2 py-1 rounded border border-state-success/20 w-fit font-medium"
                   >
-                    <span className="material-symbols-outlined text-[14px]">
-                      verified
-                    </span>
+                    <BadgeCheck size={14} />
                     {rule}
                   </div>
                 ))}

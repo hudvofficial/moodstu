@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
+import { resolveIcon } from "@/lib/utils/icon-map";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -246,9 +247,9 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">
                         {cat.icon ? (
-                          <span className="material-symbols-rounded text-base">{cat.icon}</span>
+                          <>{React.createElement(resolveIcon(cat.icon), { size: 16 })}</>
                         ) : (
-                          <span className="font-bold text-xs uppercase">{cat.name.charAt(0)}</span>
+                          <span className="font-bold text-caption uppercase">{cat.name.charAt(0)}</span>
                         )}
                       </div>
                       <div>

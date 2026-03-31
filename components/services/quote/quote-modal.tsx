@@ -8,6 +8,7 @@ import { ModalPortal } from "@/components/ui/modal-portal";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
 
 // ═══════════════════════════════════════════
@@ -120,7 +121,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 />
               </div>
 
-              <p className="text-white/70 text-micro font-bold tracking-wide mb-1.5">
+              <p className="text-white/70 text-caption font-bold tracking-wide mb-1.5">
                 {studioName} · Báo giá dịch vụ
               </p>
 
@@ -129,8 +130,8 @@ export default function QuoteModal({ service, onClose }: Props) {
               </h2>
 
               {service.unit && (
-                <p className="text-white/60 text-tiny font-semibold tracking-wide mt-0.5">
-                  {service.unit}
+                <p className="text-white/60 text-caption font-semibold tracking-wide mt-0.5">
+                  {SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit}
                 </p>
               )}
 
@@ -141,7 +142,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                   <span className="text-h1 font-black text-amber-100 tracking-tighter tabular-nums leading-none drop-shadow-sm">
                     {formatCurrency(service.selling_price).replace("₫", "")}
                   </span>
-                  <span className="text-tiny font-bold text-amber-200/80">
+                  <span className="text-caption font-bold text-amber-200/80">
                     VNĐ
                   </span>
                 </div>
@@ -155,7 +156,7 @@ export default function QuoteModal({ service, onClose }: Props) {
               structure.map((section, idx) => (
                 <div key={idx}>
                   {section.title && (
-                    <h4 className="text-tiny font-bold text-primary tracking-wide mb-1.5">
+                    <h4 className="text-caption font-bold text-primary tracking-wide mb-1.5">
                       {section.title}
                     </h4>
                   )}
@@ -187,7 +188,7 @@ export default function QuoteModal({ service, onClose }: Props) {
               <div className="bg-border/30 h-px" />
               <div className="p-4 flex justify-center gap-4">
               {studio.hotline && (
-                <span className="flex items-center gap-1 text-tiny text-text-secondary">
+                <span className="flex items-center gap-1 text-caption text-text-secondary">
                   <Phone className="w-3 h-3 text-primary/60" />
                   {studio.hotline}
                 </span>
@@ -196,7 +197,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 <span className="w-px h-3 bg-border" />
               )}
               {studio.address && (
-                <span className="flex items-center gap-1 text-tiny text-text-secondary">
+                <span className="flex items-center gap-1 text-caption text-text-secondary">
                   <MapPin className="w-3 h-3 text-primary/60" />
                   {studio.address}
                 </span>

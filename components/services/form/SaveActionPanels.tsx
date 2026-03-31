@@ -96,7 +96,7 @@ export function MobileStickyPanel(props: ActionPanelProps) {
           variant="ghost"
           size="sm"
           onClick={() => setShowPreview(!showPreview)}
-          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-bg-card rounded-t-xl rounded-b-none shadow-sm flex items-center gap-2 text-xs font-semibold text-text-secondary h-10 px-4"
+          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-bg-card rounded-t-xl rounded-b-none shadow-sm flex items-center gap-2 text-caption font-semibold text-text-secondary h-10 px-4"
         >
           Báo giá
           <ChevronUp className={`w-3 h-3 transition-transform duration-300 ${showPreview ? "rotate-180" : ""}`} />

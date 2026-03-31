@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { Scale, X, GitBranch } from "lucide-react";
 import { getPriceRules, upsertPriceRule } from "@/app/actions/builder-actions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -69,11 +70,11 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
         {/* Header */}
         <div className="p-6 border-b border-border flex items-center justify-between bg-bg-sidebar/50">
           <div>
-            <h2 className="text-lg font-bold text-text-main flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">rule</span>
+            <h2 className="text-h3 font-bold text-text-main flex items-center gap-2">
+              <Scale size={24} className="text-primary" />
               Quản lý Quy tắc tính giá
             </h2>
-            <p className="text-sm text-text-secondary mt-1">
+            <p className="text-body-sm text-text-secondary mt-1">
               Cấu hình giảm giá, khuyến mãi và logic Combo
             </p>
           </div>
@@ -82,7 +83,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
             onClick={onClose}
             className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted transition-colors p-0"
           >
-            <span className="material-symbols-outlined">close</span>
+            <X size={24} />
           </Button>
         </div>
 
@@ -127,7 +128,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                   >
                     <div className="flex justify-between items-start mb-1">
                       <h4
-                        className={`text-sm font-bold truncate ${
+                        className={`text-body-sm font-bold truncate ${
                           selectedRule?.id === rule.id ? "text-white" : "text-text-main"
                         }`}
                       >
@@ -151,7 +152,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-micro font-medium px-1.5 py-0.5 rounded ${
+                        className={`text-tiny font-medium px-1.5 py-0.5 rounded ${
                           selectedRule?.id === rule.id
                             ? "bg-white/20 text-white"
                             : "bg-bg-sub text-text-secondary"
@@ -160,7 +161,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                         Prio: {rule.priority}
                       </span>
                       <span
-                        className={`text-micro truncate max-w-[100px] ${
+                        className={`text-tiny truncate max-w-[100px] ${
                           selectedRule?.id === rule.id ? "text-white/70" : "text-text-muted"
                         }`}
                       >
@@ -225,7 +226,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                       }}
                       className="w-full px-4 py-3 font-mono text-caption text-status-success"
                     />
-                    <span className="absolute top-0 right-1 text-micro text-primary italic font-normal">
+                    <span className="absolute top-0 right-1 text-tiny text-primary italic font-normal">
                       Hỗ trợ category_id
                     </span>
                   </div>
@@ -262,7 +263,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                   </Button>
                 </div>
                 <div className="bg-state-info/10 p-4 rounded-soft-lg border border-state-info/20">
-                  <h5 className="text-micro font-bold text-state-info uppercase mb-1">
+                  <h5 className="text-tiny font-bold text-state-info uppercase mb-1">
                     Cấu hình mẫu:
                   </h5>
                   <p className="text-caption text-text-secondary font-mono">
@@ -275,8 +276,8 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
               </form>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                <span className="material-symbols-outlined text-6xl mb-4">account_tree</span>
-                <p className="text-sm font-bold">
+                <GitBranch size={48} className="mb-4" />
+                <p className="text-body-sm font-bold">
                   Chọn một quy tắc từ danh sách bên trái để chỉnh sửa
                 </p>
               </div>

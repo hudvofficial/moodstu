@@ -40,11 +40,19 @@ export function TabsFilter({
       {tabs.map((tab) => {
         const isActive = tab.value === activeTab;
         return (
-          <button
+          <div
             key={tab.value}
+            role="button"
+            tabIndex={0}
             onClick={() => onChange(tab.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onChange(tab.value);
+              }
+            }}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap shrink-0",
+              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap shrink-0 select-none cursor-pointer",
               isPills
                 ? isActive
                   ? "bg-primary text-white shadow-sm"
@@ -60,7 +68,7 @@ export function TabsFilter({
                 ({tab.count})
               </span>
             )}
-          </button>
+          </div>
         );
       })}
     </div>

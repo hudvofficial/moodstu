@@ -1,11 +1,14 @@
 "use client";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { ChevronDown, ChevronUp, FileText, Pencil } from "lucide-react";
 import type { ServiceRecord } from "@/types/service";
-import { SERVICE_TYPE_LABELS } from "@/types/service-constants";
-import type { ServiceType } from "@/types/service-constants";
+import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
+import type { ServiceType, ServiceUnit } from "@/types/service-constants";
 import { formatCurrency } from "@/lib/utils";
+import { parseContentStructure } from "@/lib/utils/service-utils";
+import { Button } from "@/components/ui/button";
+import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
 
 interface Props {
   services: ServiceRecord[];
@@ -16,74 +19,76 @@ interface Props {
 function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-
-
   const toggleExpand = useCallback((id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
   return (
-    <div className="lg:hidden space-y-1.5">
+    <div className="space-y-1.5 lg:hidden">
       {services.map((service) => {
         const isExpanded = expandedId === service.id;
-        const typeLabel = SERVICE_TYPE_LABELS[service.service_type as ServiceType] || service.service_type;
+        const sections = isExpanded ? parseContentStructure(service.description) : [];
+        const typeLabel =
+          SERVICE_TYPE_LABELS[service.service_type as ServiceType] || service.service_type;
+        const unitLabel = SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit;
+        const badgeColor = getServiceBadgeColor(service.service_type);
+        const iconColor = getServiceColor(service.service_type);
 
         return (
-          <div
-            key={service.id}
-            className="card-base! px-4 py-3 entrance stagger-item"
-          >
-            {/* Compact row */}
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <button
+          <div key={service.id} className="card-base! entrance stagger-item px-4 py-3">
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => toggleExpand(service.id)}
-              className="w-full flex items-center gap-3 text-left"
+              className="flex w-full items-center gap-3 text-left outline-none"
             >
-              {/* Service icon / image */}
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconColor.bg}`}>
                 {service.image_url ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={service.image_url}
                     alt={service.name}
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="h-10 w-10 rounded-lg object-cover"
                   />
                 ) : (
-                  <span className="text-xs font-bold text-primary">
+                  <span className={`text-caption font-bold ${iconColor.text}`}>
                     {service.name.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-main truncate">{service.name}</p>
-                <p className="text-caption text-text-muted truncate">
-                  {typeLabel} · {service.category?.name || "Chưa phân loại"}
-                </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-text-main">{service.name}</p>
+                <div className="mt-1 flex items-center gap-1.5 truncate text-caption text-text-muted">
+                  <span className={`text-tiny px-1.5 py-0.5 rounded-md ${badgeColor.bg} ${badgeColor.text}`}>
+                    {typeLabel}
+                  </span>
+                  <span>· {unitLabel} · {service.service_code}</span>
+                </div>
               </div>
 
-              {/* Price + chevron */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm font-semibold text-text-main">
-                  {formatCurrency(Number(service.selling_price))}
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-text-muted" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-text-muted" />
-                )}
+              <div className="shrink-0 text-right">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-text-main">
+                    {formatCurrency(Number(service.selling_price))}
+                  </span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-text-muted" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-text-muted" />
+                  )}
+                </div>
               </div>
-            </button>
+            </div>
 
-            {/* Expanded detail */}
             {isExpanded && (
-              <div className="mt-3 pt-3 border-t border-border/50 animate-in slide-in-from-top-1 duration-200">
-                {/* Details */}
-                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+              <div className="animate-in slide-in-from-top-1 mt-3 border-t border-border/50 pt-3 duration-200">
+                <div className="mb-3 grid grid-cols-2 gap-2 text-caption">
                   <div>
-                    <span className="text-text-muted">Mã:</span>{" "}
-                    <span className="text-text-secondary">{service.service_code}</span>
+                    <span className="text-text-muted">Danh mục:</span>{" "}
+                    <span className="text-text-secondary">
+                      {service.category?.name || "Chưa phân loại"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-text-muted">Giá vốn:</span>{" "}
@@ -93,24 +98,54 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                   </div>
                 </div>
 
-                {/* Actions */}
+                {sections.length > 0 && (
+                  <div className="mb-3 space-y-3">
+                    {sections.map((section, idx) => (
+                      <div key={`${service.id}-section-${idx}`}>
+                        {section.title && (
+                          <h4 className="mb-1 text-caption font-semibold text-primary">
+                            {section.title}
+                          </h4>
+                        )}
+                        <ul className="space-y-1">
+                          {section.items.map((item, itemIdx) => (
+                            <li
+                              key={`${service.id}-item-${itemIdx}`}
+                              className="flex items-start gap-1.5 text-caption text-text-secondary"
+                            >
+                              <span className="mt-0.5 text-text-muted">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
-                  {/* eslint-disable-next-line react/forbid-elements */}
-                  <button
-                    onClick={() => onQuote(service)}
-                    className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-primary/5 text-primary rounded-lg text-xs font-medium hover:bg-primary/10 transition-colors"
+                  <Button
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onQuote(service);
+                    }}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary/5 text-caption font-medium text-primary transition-colors hover:bg-primary/10 px-0"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <FileText className="h-3.5 w-3.5" />
                     Báo giá
-                  </button>
-                  {/* eslint-disable-next-line react/forbid-elements */}
-                  <button
-                    onClick={() => onEdit(service.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-bg-hover text-text-secondary rounded-lg text-xs font-medium hover:bg-bg-sidebar transition-colors"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(service.id);
+                    }}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg-hover text-caption font-medium text-text-secondary transition-colors hover:bg-bg-sidebar px-0"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Pencil className="h-3.5 w-3.5" />
                     Sửa
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

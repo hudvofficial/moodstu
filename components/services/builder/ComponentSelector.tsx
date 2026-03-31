@@ -1,7 +1,8 @@
-/* eslint-disable no-restricted-syntax */ // Exception: material-icons typography.
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { Image as ImageIcon, Plus } from "lucide-react";
+import { resolveIcon } from "@/lib/utils/icon-map";
 import { Button } from "@/components/ui/button";
 import { getServices } from "@/app/actions/service-queries";
 import type { ServiceCategory, ServiceRecord } from "@/types/service";
@@ -51,7 +52,7 @@ export default function ComponentSelector({
         <Button
           variant="ghost"
           onClick={() => setSelectedCat("all")}
-          className={`h-auto px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+          className={`h-auto px-3 py-1.5 rounded-lg text-caption font-bold whitespace-nowrap transition-all ${
             selectedCat === "all"
               ? "bg-primary text-white shadow-sm hover:text-white"
               : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
@@ -64,15 +65,13 @@ export default function ComponentSelector({
             key={cat.id}
             variant="ghost"
             onClick={() => setSelectedCat(cat.id)}
-            className={`h-auto px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+            className={`h-auto px-3 py-1.5 rounded-lg text-caption font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
               selectedCat === cat.id
                 ? "bg-primary text-white shadow-sm hover:text-white"
                 : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
             }`}
           >
-            <span className="material-symbols-outlined text-[14px]">
-              {cat.icon || "category"}
-            </span>
+            {(() => { const Icon = resolveIcon(cat.icon); return <Icon size={14} />; })()}
             {cat.name}
           </Button>
         ))}
@@ -81,7 +80,7 @@ export default function ComponentSelector({
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-3 bg-surface">
         {loading || isPending ? (
-          <div className="flex items-center justify-center h-full text-text-muted text-sm">
+          <div className="flex items-center justify-center h-full text-text-muted text-body-sm">
             Đang tải...
           </div>
         ) : (
@@ -106,31 +105,29 @@ export default function ComponentSelector({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-text-muted">
-                      <span className="material-symbols-outlined text-3xl">
-                        image
-                      </span>
+                      <ImageIcon size={24} />
                     </div>
                   )}
                   {/* Add Button Overlay */}
                   <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <span className="bg-elevated text-primary rounded-full p-2 shadow-sm material-symbols-outlined">
-                      add
+                    <span className="bg-elevated text-primary rounded-full p-2 shadow-sm flex items-center justify-center">
+                      <Plus size={20} />
                     </span>
                   </div>
                 </div>
-                <h4 className="font-semibold text-xs text-text-main truncate">
+                <h4 className="font-semibold text-caption text-text-main truncate">
                   {service.name}
                 </h4>
                 <p className="text-caption text-text-muted mb-1 truncate">
                   {service.service_code}
                 </p>
-                <p className="text-xs text-primary font-bold">
+                <p className="text-caption text-primary font-bold">
                   {(service.selling_price || 0).toLocaleString()} ₫
                 </p>
               </div>
             ))}
             {services.length === 0 && !loading && (
-              <div className="col-span-full text-center text-text-muted text-xs py-4">
+              <div className="col-span-full text-center text-text-muted text-caption py-4">
                 Không tìm thấy dịch vụ
               </div>
             )}

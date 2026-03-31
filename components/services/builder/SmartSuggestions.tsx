@@ -1,7 +1,7 @@
-/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for legacy material-icons.
 "use client";
 
 import React from "react";
+import { Sparkles, CheckCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import type { ServiceRecord } from "@/types/service";
@@ -52,10 +52,8 @@ export default function SmartSuggestions({
   return (
     <div className="bg-elevated rounded-soft-md border border-border overflow-hidden shadow-sm">
       <div className="p-3 bg-primary/5 flex items-center gap-2 border-b border-border">
-        <span className="material-symbols-outlined text-primary text-h3">
-          auto_awesome
-        </span>
-        <span className="text-sm font-bold text-text-main">
+        <Sparkles size={20} className="text-primary" />
+        <span className="text-body-sm font-bold text-text-main">
           Gợi ý thông minh
         </span>
       </div>
@@ -86,7 +84,7 @@ export default function SmartSuggestions({
               <div className="flex-1 overflow-hidden">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span
-                    className={`text-tiny font-bold px-1.5 py-0.5 rounded leading-none ${
+                    className={`text-caption font-bold px-1.5 py-0.5 rounded leading-none ${
                       isRequired
                         ? "bg-state-warning text-white"
                         : "bg-primary/10 text-primary"
@@ -95,19 +93,19 @@ export default function SmartSuggestions({
                     {isRequired ? "BẮT BUỘC" : "GỢI Ý"}
                   </span>
                   {rel.child_category && (
-                    <span className="text-tiny bg-background text-text-secondary px-1.5 py-0.5 rounded leading-none border border-border">
+                    <span className="text-caption bg-background text-text-secondary px-1.5 py-0.5 rounded leading-none border border-border">
                       {rel.child_category.name}
                     </span>
                   )}
                 </div>
 
-                <h4 className="text-sm font-semibold text-text-main truncate">
+                <h4 className="text-body-sm font-semibold text-text-main truncate">
                   {rel.child_service?.name ||
                     `Lựa chọn từ ${rel.child_category?.name}`}
                 </h4>
 
                 {!satisfied && rel.child_service && (
-                  <p className="text-xs text-primary font-bold mt-1">
+                  <p className="text-caption text-primary font-bold mt-1">
                     +{(rel.child_service.selling_price || 0).toLocaleString()} ₫
                   </p>
                 )}
@@ -115,9 +113,7 @@ export default function SmartSuggestions({
 
               <div className="shrink-0">
                 {satisfied ? (
-                  <span className="material-symbols-outlined text-state-success text-[24px]">
-                    check_circle
-                  </span>
+                  <CheckCircle size={24} className="text-state-success" />
                 ) : (
                   <Button
                     variant="ghost"
@@ -127,9 +123,7 @@ export default function SmartSuggestions({
                         : "bg-surface border border-border text-text-muted hover:bg-primary hover:text-white hover:border-primary"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-h3">
-                      add
-                    </span>
+                    <Plus size={20} />
                   </Button>
                 )}
               </div>
@@ -140,7 +134,7 @@ export default function SmartSuggestions({
 
       {/* Legend / Status */}
       <div className="p-3 border-t border-border bg-background">
-        <p className="text-[11px] text-text-muted leading-tight">
+        <p className="text-caption text-text-muted leading-tight">
           {`* Các món "Bắt buộc" giúp đảm bảo vận hành đồng bộ của Gói dịch vụ.`}
         </p>
       </div>

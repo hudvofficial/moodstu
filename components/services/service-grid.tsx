@@ -47,14 +47,14 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
                 {/* eslint-disable-next-line react/forbid-elements */}
                 <button
                   onClick={() => onQuote(service)}
-                  className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-xs font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
+                  className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-caption font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <FileText className="w-3 h-3" /> Báo giá
                 </button>
                 {/* eslint-disable-next-line react/forbid-elements */}
                 <button
                   onClick={() => onEdit(service.id)}
-                  className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-xs font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
+                  className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-caption font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <Pencil className="w-3 h-3" /> Sửa
                 </button>

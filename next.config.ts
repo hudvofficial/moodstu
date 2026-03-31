@@ -10,9 +10,9 @@ const isDev = process.env.NODE_ENV === "development";
 const cspHeader = `
     default-src 'self';
     script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline';
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
-    font-src 'self' data: https://fonts.gstatic.com;
+    font-src 'self' data:;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -201,16 +201,7 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
-      // 🟢 RULE 3: Google Fonts — CacheFirst (immutable, 1 năm)
-      {
-        urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-        handler: "CacheFirst",
-        options: {
-          cacheName: "google-fonts",
-          expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
-        },
-      },
-      // 🟡 RULE 4: Supabase Storage images — StaleWhileRevalidate (30 ngày)
+      // 🟡 RULE 3: Supabase Storage images — StaleWhileRevalidate (30 ngày)
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
         handler: "StaleWhileRevalidate",
@@ -219,7 +210,7 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🟡 RULE 5: Supabase REST API — NetworkFirst (5s timeout)
+      // 🟡 RULE 4: Supabase REST API — NetworkFirst (5s timeout)
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
         handler: "NetworkFirst",
@@ -229,7 +220,7 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 },
         },
       },
-      // 🟢 RULE 6: Next.js static assets — CacheFirst (30 ngày)
+      // 🟢 RULE 5: Next.js static assets — CacheFirst (30 ngày)
       {
         urlPattern: /\/_next\/static\/.*/i,
         handler: "CacheFirst",

@@ -91,7 +91,7 @@ export default function ServiceBundleSection({
             type="button"
             variant="ghost"
             onClick={() => setBuilderMode(false)}
-            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-caption font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
           >
             <PenLine className="w-4 h-4" />
             Thủ công
@@ -100,7 +100,7 @@ export default function ServiceBundleSection({
             type="button"
             variant="ghost"
             onClick={() => setBuilderMode(true)}
-            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-caption font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
           >
             <GripVertical className="w-4 h-4" />
             Visual Builder
