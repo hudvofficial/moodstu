@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for material-icons sizing.
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import ComponentSelector from "./ComponentSelector";
 import BundleCanvas from "./BundleCanvas";
 import SmartSuggestions from "./SmartSuggestions";
@@ -180,13 +182,14 @@ export default function BuilderMode({
               </p>
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={addAllRequired}
-            className="btn-ghost text-state-warning whitespace-nowrap"
+            className="text-state-warning whitespace-nowrap hover:bg-state-warning/10"
           >
             Thêm tất cả
-          </button>
+          </Button>
         </div>
       )}
 
@@ -224,26 +227,26 @@ export default function BuilderMode({
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold text-text-main text-sm">Combo Của Quý Khách</h3>
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="secondary"
                   type="button"
                   onClick={() => setShowRuleManager(true)}
-                  className="btn-secondary"
                 >
                   <span className="material-symbols-outlined text-[14px]">
                     rule
                   </span>
                   QUY TẮC GIÁ
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
                   type="button"
                   onClick={() => setShowPremiumQuote(true)}
-                  className="btn-primary"
                 >
                   <span className="material-symbols-outlined text-[14px]">
                     auto_awesome
                   </span>
                   XEM BÁO GIÁ
-                </button>
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-hidden">

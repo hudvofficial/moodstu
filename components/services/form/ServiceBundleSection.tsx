@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getServices } from "@/app/actions/service-queries";
-import { useDebounce } from "use-debounce";
+import { useState } from "react";
 import type { ServiceRecord } from "@/types/service";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
+import { useServiceSearch } from "./hooks/useServiceSearch";
 
 import BuilderMode from "../builder/BuilderMode";
 import { Layers, PenLine, GripVertical, Search, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ServiceBundleSectionProps {
   bundleItems: BundleItem[];
@@ -20,34 +21,13 @@ export default function ServiceBundleSection({
   setBundleItems,
 }: ServiceBundleSectionProps) {
   const [builderMode, setBuilderMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch] = useDebounce(searchTerm, 400);
-  const [searchResults, setSearchResults] = useState<ServiceRecord[]>([]);
-  const [showResults, setShowResults] = useState(false);
-
-  // Search services for bundle
-  useEffect(() => {
-    if (!debouncedSearch || debouncedSearch.length < 2) {
-      return;
-    }
-
-    let cancelled = false;
-
-    // Fetch only SINGLE items to put in a bundle
-    getServices({ search: debouncedSearch, fulfillment_type: "single" })
-      .then((res) => {
-        if (!cancelled && res.success && res.data) {
-          setSearchResults(res.data.items as ServiceRecord[]);
-        }
-      })
-      .catch((err) => {
-        console.error("Lỗi tìm kiếm dịch vụ:", err);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [debouncedSearch]);
+  const {
+    searchTerm,
+    searchResults,
+    showResults,
+    handleSearchChange,
+    clearSearch,
+  } = useServiceSearch();
 
   // Add Item to Bundle
   const addBundleItem = (service: ServiceRecord) => {
@@ -69,29 +49,29 @@ export default function ServiceBundleSection({
     };
 
     setBundleItems([...bundleItems, newItem]);
-    setSearchTerm("");
-    setShowResults(false);
+    clearSearch();
   };
 
   // Remove Item
-  const removeBundleItem = (index: number) => {
-    const updated = bundleItems.filter((_, i) => i !== index);
+  const removeBundleItem = (id: string) => {
+    const updated = bundleItems.filter((item) => item.id !== id);
     setBundleItems(updated);
   };
 
   // Update Bundle Item
   const updateBundleItem = (
-    index: number,
+    id: string,
     field: string,
     value: string | number,
   ) => {
-    const updated = [...bundleItems];
-    updated[index] = { ...updated[index], [field]: value };
+    const updated = bundleItems.map((item) =>
+      item.id === id ? { ...item, [field]: value } : item
+    );
     setBundleItems(updated);
   };
 
   return (
-    <div className="card-base p-4 lg:p-6 space-y-4 border-l-4 border-l-primary animate-fade-in-up">
+    <div className="card-base rounded-soft-2xl p-4 lg:p-6 space-y-4 border-l-4 border-l-primary animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
           <h3 className="text-sm font-bold text-primary flex items-center gap-2">
@@ -107,22 +87,24 @@ export default function ServiceBundleSection({
         </div>
 
         <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setBuilderMode(false)}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
           >
             <PenLine className="w-4 h-4" />
             Thủ công
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setBuilderMode(true)}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
           >
             <GripVertical className="w-4 h-4" />
             Visual Builder
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -138,28 +120,20 @@ export default function ServiceBundleSection({
           {/* Search Box */}
           <div className="relative mb-6">
             <Search className="w-4 h-4 absolute left-3 top-3 text-text-muted" />
-            <input
+            <Input
               type="text"
               placeholder="Tìm dịch vụ để thêm vào gói..."
               value={searchTerm}
-              onChange={(e) => {
-                const val = e.target.value;
-                setSearchTerm(val);
-                if (val.length < 2) {
-                  setSearchResults([]);
-                }
-                setShowResults(true);
-              }}
-              className="input-base w-full pl-10 pr-4 py-3"
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 h-11 bg-surface font-medium"
             />
             {showResults && searchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 bg-bg-card border border-border rounded-b-lg shadow-xl z-20 max-h-60 overflow-y-auto">
                 {searchResults.map((svc) => (
-                  <button
+                  <div
                     key={svc.id}
-                    type="button"
                     onClick={() => addBundleItem(svc)}
-                    className="w-full text-left px-4 py-3 hover:bg-surface flex justify-between items-center border-b border-border last:border-0 transition-colors"
+                    className="w-full cursor-pointer text-left px-4 py-3 hover:bg-surface flex justify-between items-center border-b border-border last:border-0 transition-colors"
                   >
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-text-main">
@@ -172,7 +146,7 @@ export default function ServiceBundleSection({
                     <span className="text-xs font-bold text-primary">
                       {formatCurrency(svc.selling_price || 0)}
                     </span>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -185,7 +159,7 @@ export default function ServiceBundleSection({
                 Chưa có cấu phần nào trong gói. Mời tìm và thêm dịch vụ ở trên.
               </p>
             )}
-            {bundleItems.map((item, idx) => (
+            {bundleItems.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 bg-surface p-3 rounded-lg border border-border group hover:border-primary/30 transition-all shadow-sm"
@@ -204,29 +178,31 @@ export default function ServiceBundleSection({
                     <span className="text-caption uppercase font-bold text-text-muted">
                       SL:
                     </span>
-                    <input
+                    <Input
                       type="number"
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
                         updateBundleItem(
-                          idx,
+                          item.id,
                           "quantity",
-                          parseInt(e.target.value) || 1,
+                          Math.max(1, parseInt(e.target.value) || 1)
                         )
                       }
-                      className="input-base w-16 px-2 py-1 text-center font-bold"
+                      className="w-16 px-1 h-8 text-center font-bold"
                     />
                   </div>
                 </div>
 
-                <button
+                <Button
                   type="button"
-                  onClick={() => removeBundleItem(idx)}
-                  className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeBundleItem(item.id)}
+                  className="p-1 h-auto text-text-muted hover:text-error hover:bg-error/10"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Printer, Pencil, Phone, MapPin } from "lucide-react";
@@ -65,13 +67,13 @@ export default function QuoteView({ service, studio }: Props) {
             <span className="font-medium">Quay lại danh sách</span>
           </Link>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => window.print()}
-              className="btn-secondary"
             >
               <Printer className="w-4 h-4" />
               In / PDF
-            </button>
+            </Button>
             <Link
               href={`/services/${service.id}`}
               className="btn-ghost text-primary"
@@ -99,7 +101,7 @@ export default function QuoteView({ service, studio }: Props) {
                   />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.2em] mb-1">
+                  <p className="text-overline text-text-muted mb-1">
                     {studioName} · Báo giá dịch vụ
                   </p>
                   <h1 className="text-2xl font-black text-text-main leading-tight">
@@ -136,7 +138,7 @@ export default function QuoteView({ service, studio }: Props) {
                     )}
                     <ul className="space-y-2.5">
                       {section.items.map((item: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 text-[13px] text-text-secondary leading-relaxed">
+                        <li key={i} className="flex items-start gap-3 text-sm text-text-secondary leading-relaxed">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
                           <span>{item}</span>
                         </li>
@@ -156,7 +158,7 @@ export default function QuoteView({ service, studio }: Props) {
           <div className="col-span-4 sticky top-20 space-y-4">
             {/* Price Card (Stripe Checkout style) */}
             <div className="bg-bg-card rounded-2xl shadow-sm p-6">
-              <p className="text-tiny font-bold text-text-muted uppercase tracking-[0.2em] mb-3">
+              <p className="text-overline text-text-muted mb-3">
                 Giá trọn gói
               </p>
               <div className="flex items-baseline gap-1.5">
@@ -171,13 +173,14 @@ export default function QuoteView({ service, studio }: Props) {
 
               {/* Actions */}
               <div className="space-y-2.5 quote-no-print">
-                <button
+                <Button
+                  variant="primary"
+                  className="w-full"
                   onClick={() => window.print()}
-                  className="btn-primary w-full"
                 >
                   <Printer className="w-4 h-4" />
                   Tải báo giá PDF
-                </button>
+                </Button>
                 <Link
                   href={`/services/${service.id}`}
                   className="btn-secondary w-full"
@@ -202,10 +205,10 @@ export default function QuoteView({ service, studio }: Props) {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-text-main">{studioName}</p>
-                  <p className="text-[11px] text-text-muted">Liên hệ tư vấn</p>
+                  <p className="text-caption text-text-muted">Liên hệ tư vấn</p>
                 </div>
               </div>
-              <div className="space-y-2.5 text-[12px] text-text-secondary">
+              <div className="space-y-2.5 text-caption text-text-secondary">
                 {studio.phone && (
                   <div className="flex items-center gap-2.5">
                     <Phone className="w-3.5 h-3.5 text-primary/60" />
@@ -258,7 +261,7 @@ export default function QuoteView({ service, studio }: Props) {
                 className="object-contain"
               />
             </div>
-            <p className="text-tiny font-bold text-text-muted uppercase tracking-[0.15em]">
+            <p className="text-overline font-bold text-text-muted uppercase tracking-wider">
               {studioName} · Báo giá
             </p>
           </div>
@@ -287,7 +290,7 @@ export default function QuoteView({ service, studio }: Props) {
                 {section.title && (
                   <div className="px-5 pt-4 pb-2 flex items-center gap-2.5">
                     <div className="w-1 h-4 bg-primary rounded-full shrink-0" />
-                    <h3 className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                    <h3 className="text-overline text-primary">
                       {section.title}
                     </h3>
                   </div>
@@ -296,7 +299,7 @@ export default function QuoteView({ service, studio }: Props) {
                   {section.items.map((item: string, i: number) => (
                     <div key={i} className="px-5 py-3 flex items-start gap-3">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
-                      <span className="text-[13px] text-text-secondary leading-relaxed">{item}</span>
+                      <span className="text-sm text-text-secondary leading-relaxed">{item}</span>
                     </div>
                   ))}
                 </div>
@@ -322,7 +325,7 @@ export default function QuoteView({ service, studio }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-text-main">{studioName}</p>
-                <div className="flex items-center gap-3 mt-0.5 text-[11px] text-text-muted">
+                <div className="flex items-center gap-3 mt-0.5 text-caption text-text-muted">
                   {studio.phone && (
                     <span className="flex items-center gap-1">
                       <Phone className="w-3 h-3 text-primary/50" />
@@ -342,9 +345,9 @@ export default function QuoteView({ service, studio }: Props) {
         </div>
 
         {/* Sticky Bottom Bar — Price + Action */}
-        <div className="quote-no-print fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center gap-3">
+        <div className="quote-no-print fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-md shadow-md px-4 py-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-micro font-bold text-text-muted uppercase tracking-[0.15em]">Trọn gói</p>
+            <p className="text-overline text-text-muted uppercase">Trọn gói</p>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-black text-primary tabular-nums">
                 {formattedPrice.replace("₫", "").trim()}
@@ -352,13 +355,13 @@ export default function QuoteView({ service, studio }: Props) {
               <span className="text-tiny font-bold text-text-muted">VNĐ</span>
             </div>
           </div>
-          <button
+          <Button
+            variant="primary"
             onClick={() => window.print()}
-            className="btn-primary"
           >
             <Printer className="w-4 h-4" />
             In / PDF
-          </button>
+          </Button>
         </div>
       </div>
     </>

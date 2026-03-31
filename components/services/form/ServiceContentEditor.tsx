@@ -4,6 +4,8 @@ import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Plus, Trash2, X, FolderOpen } from "lucide-react";
 import type { ContentSection } from "@/types/service";
 import { parseContentStructure, sectionsToJson } from "@/lib/utils/service-utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // ServiceContentEditor — Structured Description
@@ -131,21 +133,23 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
             <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
               <FolderOpen className="w-4 h-4" />
             </div>
-            <input
+            <Input
               type="text"
               placeholder="Tiêu đề mục (VD: Ngày chụp)"
               value={section.title}
               onChange={(e) => updateTitle(sIdx, e.target.value)}
-              className="flex-1 bg-transparent text-sm font-semibold text-text-main placeholder:text-text-muted focus:outline-none border-b border-transparent focus:border-primary px-1 py-1"
+              className="flex-1 bg-transparent text-sm font-semibold border-b border-transparent focus:border-primary px-1 py-1 h-auto"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => removeSection(sIdx)}
-              className="text-text-muted hover:text-danger p-1.5 rounded-lg hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100"
+              className="text-text-muted hover:text-error p-1.5 rounded-lg hover:bg-error/10 transition-colors opacity-0 group-hover:opacity-100"
               title="Xóa mục"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
 
           {/* Items */}
@@ -153,45 +157,50 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
             {section.items.map((item, iIdx) => (
               <div key={iIdx} className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary/30 shrink-0" />
-                <input
+                <Input
                   type="text"
                   placeholder="Nội dung dòng..."
                   value={item}
                   onChange={(e) => updateItem(sIdx, iIdx, e.target.value)}
                   className="flex-1 input-base text-sm"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => removeItem(sIdx, iIdx)}
-                  className="text-text-muted hover:text-danger p-1 transition-colors"
+                  className="text-text-muted hover:text-error p-1 transition-colors"
                   title="Xóa dòng"
                 >
                   <X className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
             ))}
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => addItem(sIdx)}
-              className="flex items-center gap-1 text-caption font-semibold text-primary hover:text-primary/80 hover:bg-primary/5 px-2 py-1 rounded-md transition-colors"
+              className="flex items-center gap-1 text-caption font-semibold text-primary hover:text-primary/80 hover:bg-primary/5 px-2 py-1 rounded-md transition-colors w-fit"
             >
               <Plus className="w-3.5 h-3.5" />
               Thêm dòng
-            </button>
+            </Button>
           </div>
         </div>
       ))}
 
       {/* Add Section Button */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={addSection}
-        className="w-full py-3 border-2 border-dashed border-border rounded-lg text-text-muted font-semibold text-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 border-2 border-dashed border-border rounded-lg text-text-muted font-semibold text-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 h-auto"
       >
         <Plus className="w-4 h-4" />
         Thêm Mục Mới
-      </button>
+      </Button>
 
       {/* Empty state placeholder */}
       {sections.length === 0 && (

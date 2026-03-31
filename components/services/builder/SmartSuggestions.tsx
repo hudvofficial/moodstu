@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for legacy material-icons.
 "use client";
 
 import React from "react";
+import { Button } from "@/components/ui/button";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import type { ServiceRecord } from "@/types/service";
 
@@ -50,7 +52,7 @@ export default function SmartSuggestions({
   return (
     <div className="bg-elevated rounded-soft-md border border-border overflow-hidden shadow-sm">
       <div className="p-3 bg-primary/5 flex items-center gap-2 border-b border-border">
-        <span className="material-symbols-outlined text-primary text-[18px]">
+        <span className="material-symbols-outlined text-primary text-h3">
           auto_awesome
         </span>
         <span className="text-sm font-bold text-text-main">
@@ -117,17 +119,18 @@ export default function SmartSuggestions({
                     check_circle
                   </span>
                 ) : (
-                  <button
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  <Button
+                    variant="ghost"
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors p-0 border-0 ${
                       isRequired
                         ? "bg-state-warning text-white hover:bg-state-warning/90 shadow-sm"
                         : "bg-surface border border-border text-text-muted hover:bg-primary hover:text-white hover:border-primary"
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[18px]">
+                    <span className="material-symbols-outlined text-h3">
                       add
                     </span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

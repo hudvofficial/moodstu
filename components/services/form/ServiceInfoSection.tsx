@@ -8,6 +8,7 @@ import { SERVICE_TYPE_LABELS, SERVICE_TYPES } from "@/types/service-constants";
 import type { ServiceType } from "@/types/service-constants";
 import { Input } from "@/components/ui/input";
 import { SelectForm } from "@/components/ui/select/SelectForm";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // ServiceInfoSection — Name, Code, Type, Category
@@ -31,7 +32,7 @@ function ServiceInfoSectionInner({
   onOpenCategoryManager,
 }: Props) {
   return (
-    <div className="card-base p-4 lg:p-6 space-y-4">
+    <div className="card-base rounded-soft-2xl p-4 lg:p-6 space-y-4">
       <h3 className="text-sm font-bold text-primary flex items-center gap-2">
         📋 Thông tin dịch vụ
       </h3>
@@ -39,7 +40,7 @@ function ServiceInfoSectionInner({
       {/* Service Name */}
       <div className="space-y-1 min-w-0 w-full">
         <label className="label-base">
-          Tên dịch vụ <span className="text-danger">*</span>
+          Tên dịch vụ <span className="text-error">*</span>
         </label>
         <Input
           type="text"
@@ -75,14 +76,15 @@ function ServiceInfoSectionInner({
       <div className="space-y-1 min-w-0 w-full">
         <div className="flex items-center justify-between mb-1">
           <label className="label-base mb-0">Danh mục</label>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onOpenCategoryManager}
-            className="flex items-center gap-1 text-caption text-primary hover:text-primary/80 transition-colors"
+            className="h-auto p-0 flex items-center gap-1 text-caption text-primary hover:text-primary/80 hover:bg-transparent"
           >
             <Settings className="w-3 h-3" />
             Quản lý DM
-          </button>
+          </Button>
         </div>
         <SelectForm
           value={formData.category_id}

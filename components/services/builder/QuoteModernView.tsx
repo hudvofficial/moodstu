@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */ // Exception: specific typography for print presentation and legacy icons.
 "use client";
 
 import React from "react";
+import { Button } from "@/components/ui/button";
 import { CalculationResult } from "@/lib/logic/bundle-calculator";
 import Image from "next/image";
 
@@ -34,12 +36,13 @@ export default function QuoteModernView({
               Moodstudio
             </span>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-elevated/80 shadow-lg flex items-center justify-center text-text-secondary hover:text-text-main transition-all"
+            className="w-10 h-10 rounded-full bg-elevated/80 shadow-lg flex items-center justify-center text-text-secondary hover:text-text-main transition-all p-0 border-0"
           >
             <span className="material-symbols-outlined">close</span>
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide pb-24">
@@ -169,15 +172,16 @@ export default function QuoteModernView({
         {/* Footer Action */}
         <div className="p-6 border-t border-border bg-elevated shadow-2xl relative z-10">
           <div className="flex gap-3">
-            <button
-              className="flex-1 py-4 bg-background text-white rounded-soft-lg font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+            <Button
+              variant="primary"
+              className="flex-1 py-4 bg-background text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 h-auto"
               onClick={() => window.print()}
             >
               <span className="material-symbols-outlined text-[20px]">
                 share
               </span>
               Liên hệ tư vấn
-            </button>
+            </Button>
           </div>
           <div className="mt-4 flex items-center justify-center gap-2 opacity-30 grayscale hover:grayscale-0 transition-all cursor-default">
             <span className="text-[8px] font-black tracking-[0.2em] uppercase">

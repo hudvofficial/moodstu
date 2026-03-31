@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { X, Phone, MapPin } from "lucide-react";
 import { ModalPortal } from "@/components/ui/modal-portal";
@@ -98,13 +99,14 @@ export default function QuoteModal({ service, onClose }: Props) {
             <div className="absolute -bottom-10 -left-6 w-32 h-32 bg-white/6 rounded-full" />
 
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
               onClick={onClose}
-              className="absolute top-3 right-3 z-20 text-white/70 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+              className="absolute top-3 right-3 z-20 text-white/70 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 h-auto w-auto border-0"
               type="button"
             >
               <X className="w-5 h-5" />
-            </button>
+            </Button>
 
             <div className="relative z-10">
               {/* Logo */}

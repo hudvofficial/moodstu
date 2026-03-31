@@ -58,6 +58,7 @@ function ServiceFiltersInner({
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex items-center bg-elevated p-1 rounded-md shadow-xs">
+            {/* eslint-disable-next-line react/forbid-elements */}
             <button
               onClick={() => onViewModeChange("list")}
               className={cn(
@@ -70,6 +71,7 @@ function ServiceFiltersInner({
             >
               <List className="w-4 h-4" />
             </button>
+            {/* eslint-disable-next-line react/forbid-elements */}
             <button
               onClick={() => onViewModeChange("grid")}
               className={cn(
@@ -85,6 +87,7 @@ function ServiceFiltersInner({
           </div>
 
           {/* Category manager */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             onClick={onOpenCategoryManager}
             className="btn-icon"

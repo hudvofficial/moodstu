@@ -169,3 +169,9 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 92. **VẪN LẶP LẠI LỖI TỰ VIẾT INLINE MẶC DÙ ĐÃ CÓ LESSONS TRƯỚC (SSOT VIOLATION)** — Mặc dù đã có các lesson #53, #54, #67 cấm viết inline Tailwind classes thay vì SSOT, nhưng vẫn tiếp tục tự tiện viết `fixed inset-0 z-[9999] flex...` cho QuoteModal thay vì dùng `.modal-overlay`.
 **Root cause:** Phản xạ tự nhiên khi cần "fix nhanh" layout (đang cần center modal) là viết thẳng utilities vào class, vô tình phá vỡ toàn bộ cấu trúc z-index chuẩn của Design System, dẫn đến lỗi peeking khó hiểu. Lỗi nhỏ tích tụ thành Tech Debt.
 **GIẢI PHÁP / RULE CỨNG TỪ NAY:** TRƯỚC KHI gõ bất kỳ class layout/z-index nào (`fixed`, `absolute`, `z-`, `bg-`), BẮT BUỘC phải đặt câu hỏi: "Element này thuộc nhóm nào (Modal, Card, Dropdown)? Đã có class trong `components.css` chưa?". NẾU CÓ, phải dùng class đó (`modal-overlay`) và CHỈ thêm utility overrides cần thiết (`justify-center! items-center!`). KHÔNG BAO GIỜ tự build lại cấu trúc element bằng utilities.
+
+## Từ Quote Preview Clipping Fix (2026-03-31)
+
+93. **CSS CLIP: LỖI `mx-auto` + `w-full` VỚI CHỮ LONG-TEXT BỊ TỤT LỀ TRÁI** — Hình ảnh Quote Preview card bị cắt gọt phẳng lì bên trái thay vì bo tròn góc. 
+**Root cause:** Khi một thẻ div dùng `w-full max-w-sm mx-auto` được render trong Container có chiều rộng nhỏ hơn nội dung thực tế (do số liệu tiền tỷ `25.000.000 VNĐ` quá dài hoặc Font quá to), `min-width` tự nhiên của children làm bung box, sau đó `mx-auto` chia dư margin sang cả 2 bên (âm margin), đẩy lùi card chạy ra NGOÀI khỏi sidebar và bị khuất. 
+**GIẢI PHÁP:** 1. Luôn bảo hộ text dài bằng `break-all` hoặc `break-words`. 2. Reset min-width flex item bằng `min-w-0` để cho phép nó co lại. 3. Sử dụng font size tuỳ biến responsively (e.g. `clamp` qua `.text-amount`) thay vì fixed `text-4xl`. 4. Luôn kiểm tra giao diện trên màn desktop hẹp (~1024px) (điểm gãy thu hẹp layout) HOẶC sử dụng `w-full` mà không có `mx-auto`.

@@ -172,7 +172,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
             
             <form onSubmit={handleSave} className="flex gap-2 items-end">
               <div className="flex-1">
-                <label className="label-base block mb-1">Tên danh mục <span className="text-danger">*</span></label>
+                <label className="label-base block mb-1">Tên danh mục <span className="text-error">*</span></label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -246,7 +246,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">
                         {cat.icon ? (
-                          <span className="material-symbols-rounded text-[16px]">{cat.icon}</span>
+                          <span className="material-symbols-rounded text-base">{cat.icon}</span>
                         ) : (
                           <span className="font-bold text-xs uppercase">{cat.name.charAt(0)}</span>
                         )}
@@ -258,6 +258,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                     </div>
                     
                     <div className="flex items-center gap-1">
+                      {/* eslint-disable-next-line react/forbid-elements */}
                       <button
                         onClick={() => startEdit(cat)}
                         disabled={isSubmitting || cat.id.startsWith("temp_")}
@@ -267,10 +268,11 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                         <Edit2 className="w-4 h-4" />
                       </button>
                       
+                      {/* eslint-disable-next-line react/forbid-elements */}
                       <button
                         onClick={() => setDeletingId(cat.id)}
                         disabled={isSubmitting || cat.id.startsWith("temp_")}
-                        className="w-8 h-8 flex items-center justify-center rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-text-muted hover:text-error hover:bg-error/10 transition-colors disabled:opacity-50"
                         title="Xóa danh mục"
                       >
                         <Trash2 className="w-4 h-4" />

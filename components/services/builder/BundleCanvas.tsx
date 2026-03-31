@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */ // Exception: arbitrary typography used for material-icons sizing.
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import { calculateBundlePrice } from "@/lib/logic/bundle-calculator";
 import { getPriceRules } from "@/app/actions/builder-actions";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
@@ -89,38 +91,41 @@ export default function BundleCanvas({
                   <h4 className="font-semibold text-sm text-text-main line-clamp-2 pr-2">
                     {item.service_name}
                   </h4>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => onRemove(item.id)}
-                    className="text-text-muted hover:text-state-error transition-colors shrink-0"
+                    className="text-text-muted hover:text-state-error transition-colors shrink-0 p-0 h-auto border-0"
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       close
                     </span>
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex justify-between items-end mt-2">
                   <div className="text-sm text-primary font-bold">
                     {item.selling_price.toLocaleString()} ₫
                   </div>
                   <div className="flex items-center gap-2 bg-surface rounded-lg p-1 border border-border">
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => onUpdateQuantity(item.id, -1)}
-                      className="w-6 h-6 flex items-center justify-center bg-elevated rounded shadow-sm hover:text-primary disabled:opacity-50 transition-colors"
+                      className="w-6 h-6 flex items-center justify-center bg-elevated rounded shadow-sm hover:text-primary disabled:opacity-50 transition-colors p-0 border-0"
                       disabled={item.quantity <= 1}
                     >
                       -
-                    </button>
+                    </Button>
                     <span className="text-xs font-bold w-5 text-center">
                       {item.quantity}
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
                       type="button"
                       onClick={() => onUpdateQuantity(item.id, 1)}
-                      className="w-6 h-6 flex items-center justify-center bg-elevated rounded shadow-sm hover:text-primary transition-colors"
+                      className="w-6 h-6 flex items-center justify-center bg-elevated rounded shadow-sm hover:text-primary transition-colors p-0 border-0"
                     >
                       +
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

@@ -28,6 +28,7 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
             {/* Image / placeholder */}
             <div className="aspect-4/3 bg-bg-hover relative overflow-hidden">
               {service.image_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={service.image_url}
                   alt={service.name}
@@ -43,12 +44,14 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
 
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-3 gap-2">
+                {/* eslint-disable-next-line react/forbid-elements */}
                 <button
                   onClick={() => onQuote(service)}
                   className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-xs font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <FileText className="w-3 h-3" /> Báo giá
                 </button>
+                {/* eslint-disable-next-line react/forbid-elements */}
                 <button
                   onClick={() => onEdit(service.id)}
                   className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-xs font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"

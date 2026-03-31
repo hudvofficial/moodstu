@@ -12,6 +12,7 @@ import ServiceTable from "./service-table";
 import ServiceMobileList from "./service-mobile-list";
 import ServiceGrid from "./service-grid";
 import { EmptyState } from "@/components/ui/ux-states";
+import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { CategoryManagerModal } from "./category-manager-modal";
 import QuoteModal from "@/components/services/quote/quote-modal";
@@ -80,10 +81,10 @@ export default function ServicesListClient({
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <ServiceStatsBar stats={stats} />
         <div className="hidden lg:flex">
-          <button onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+          <Button onClick={handleCreate} className="gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Thêm dịch vụ</span>
-          </button>
+          </Button>
         </div>
       </div>
 

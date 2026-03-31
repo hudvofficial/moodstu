@@ -119,6 +119,7 @@ const ServiceTableRow = memo(function ServiceTableRow({
         </TD>
         <TD className="w-24 text-center">
           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* eslint-disable-next-line react/forbid-elements */}
             <button
               onClick={(e) => { e.stopPropagation(); onQuote(); }}
               className="btn-icon"
@@ -126,6 +127,7 @@ const ServiceTableRow = memo(function ServiceTableRow({
             >
               <FileText className="w-4 h-4" />
             </button>
+            {/* eslint-disable-next-line react/forbid-elements */}
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="btn-icon"

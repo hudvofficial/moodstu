@@ -2,14 +2,14 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { useServiceForm } from "./hooks/useServiceForm";
 import ServiceInfoSection from "./ServiceInfoSection";
 import ServicePriceSection from "./ServicePriceSection";
 import ServiceContentEditor from "./ServiceContentEditor";
 import { CategoryManagerModal } from "../category-manager-modal";
-import QuotePreview from "../quote/quote-preview";
 import ServiceBundleSection from "./ServiceBundleSection";
+import { FullpageFormShell } from "../../layout/fullpage-form-shell";
+import { DesktopSidebarPanel, MobileStickyPanel } from "./SaveActionPanels";
 import type { ServiceRecord, ServiceCategory } from "@/types/service";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 
@@ -59,6 +59,7 @@ export default function ServiceForm({
 
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     handleSubmit();
   };
 
@@ -70,140 +71,60 @@ export default function ServiceForm({
     [handleChange],
   );
 
+  // ── Unified Action Props ──
+  const actionProps = {
+    isSubmitting,
+    isEditMode,
+    onCancel: () => router.back(),
+    onDelete: handleDelete,
+    onSubmit: handleSubmit,
+    serviceName: formData.name || "",
+    sellingPrice: formData.selling_price || 0,
+    description: formData.description || "",
+    unit: formData.unit || "",
+  };
+
   return (
     <>
-      <div className="max-w-6xl mx-auto pb-32 lg:pb-12 lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+      <FullpageFormShell rightPanel={<DesktopSidebarPanel {...actionProps} />}>
         <form
           onSubmit={onFormSubmit}
-          className="space-y-4 lg:space-y-6 lg:col-span-7 xl:col-span-8"
+          className="space-y-4 lg:space-y-6"
         >
           {/* 1. Info Section */}
-        <ServiceInfoSection
-          formData={formData}
-          errors={errors}
-          categories={preFetchedCategories}
-          onChange={handleChange}
-          onOpenCategoryManager={() => setShowCategoryManager(true)}
-        />
-
-        {/* 2. Price Section */}
-        <ServicePriceSection
-          formData={formData}
-          errors={errors}
-          onChange={handleChange}
-        />
-
-        {/* 3. Bundle Section (Only if fulfillment_type === "bundle") */}
-        {formData.fulfillment_type === "bundle" && (
-          <ServiceBundleSection
-            bundleItems={bundleItems}
-            setBundleItems={setBundleItems}
+          <ServiceInfoSection
+            formData={formData}
+            errors={errors}
+            categories={preFetchedCategories}
+            onChange={handleChange}
+            onOpenCategoryManager={() => setShowCategoryManager(true)}
           />
-        )}
 
-        {/* 4. Content Editor (Description) */}
-        <ServiceContentEditor
-          value={formData.description}
-          onChange={handleDescriptionChange}
-        />
+          {/* 2. Price Section */}
+          <ServicePriceSection
+            formData={formData}
+            errors={errors}
+            onChange={handleChange}
+          />
 
-          {/* ── Mobile Save Buttons (Inline bottom of form stack) ── */}
-          <div className="lg:hidden flex flex-col gap-3 mt-8">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary w-full"
-            >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isEditMode ? "Lưu thay đổi" : "Tạo dịch vụ mới"}
-            </button>
-            {isEditMode && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này?")) handleDelete();
-                }}
-                disabled={isSubmitting}
-                className="btn-ghost w-full text-danger"
-              >
-                Xóa dịch vụ
-              </button>
-            )}
-          </div>
-        </form>
-
-        {/* ── Desktop Sidebar: Quote Preview + Save Buttons ── */}
-        <div className="hidden lg:flex lg:col-span-5 xl:col-span-4 sticky top-6 flex-col gap-6">
-          {/* Live Preview */}
-          <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-widest pl-1">
-              Bản xem trước báo giá
-            </h3>
-            <QuotePreview
-              serviceName={formData.name || ""}
-              sellingPrice={formData.selling_price || 0}
-              description={formData.description || ""}
-              unit={formData.unit || ""}
+          {/* 3. Bundle Section (Only if fulfillment_type === "bundle") */}
+          {formData.fulfillment_type === "bundle" && (
+            <ServiceBundleSection
+              bundleItems={bundleItems}
+              setBundleItems={setBundleItems}
             />
-          </div>
+          )}
 
-          {/* Desktop Save Button */}
-          <div className="flex flex-col gap-3 bg-bg-card p-5 rounded-soft-2xl border border-border">
-            <button
-              onClick={onFormSubmit}
-              type="button"
-              disabled={isSubmitting}
-              className="btn-primary w-full"
-            >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isEditMode ? "Lưu thay đổi" : "Tạo dịch vụ mới"}
-            </button>
+          {/* 4. Content Editor (Description) */}
+          <ServiceContentEditor
+            value={formData.description}
+            onChange={handleDescriptionChange}
+          />
 
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="btn-secondary w-full"
-            >
-              Quay về
-            </button>
-
-            {isEditMode && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này không thể hoàn tác.")) {
-                    handleDelete();
-                  }
-                }}
-                disabled={isSubmitting}
-                className="btn-ghost w-full text-danger mt-2"
-              >
-                Xóa vĩnh viễn dịch vụ
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mobile Sticky Save Bar ── */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-30 bg-bg-card border-t border-border px-4 py-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="btn-secondary"
-        >
-          Huỷ
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSubmit()}
-          disabled={isSubmitting}
-          className="btn-primary flex-1"
-        >
-          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-          {isEditMode ? "Lưu" : "Tạo mới"}
-        </button>
-      </div>
+          {/* ── Mobile Sticky Save Panel ── */}
+          <MobileStickyPanel {...actionProps} />
+        </form>
+      </FullpageFormShell>
 
       {/* ── Category Manager Modal ── */}
       <CategoryManagerModal

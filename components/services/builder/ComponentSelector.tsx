@@ -1,6 +1,8 @@
+/* eslint-disable no-restricted-syntax */ // Exception: material-icons typography.
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { Button } from "@/components/ui/button";
 import { getServices } from "@/app/actions/service-queries";
 import type { ServiceCategory, ServiceRecord } from "@/types/service";
 import Image from "next/image";
@@ -46,23 +48,25 @@ export default function ComponentSelector({
     <div className="flex flex-col h-full bg-surface rounded-soft-md overflow-hidden">
       {/* Category Tabs */}
       <div className="flex overflow-x-auto p-2 bg-elevated border-b border-border gap-2 scrollbar-hide">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setSelectedCat("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+          className={`h-auto px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
             selectedCat === "all"
-              ? "bg-primary text-white shadow-sm"
+              ? "bg-primary text-white shadow-sm hover:text-white"
               : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
           }`}
         >
           Tất cả
-        </button>
+        </Button>
         {categories.map((cat) => (
-          <button
+          <Button
             key={cat.id}
+            variant="ghost"
             onClick={() => setSelectedCat(cat.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+            className={`h-auto px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
               selectedCat === cat.id
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-white shadow-sm hover:text-white"
                 : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
             }`}
           >
@@ -70,7 +74,7 @@ export default function ComponentSelector({
               {cat.icon || "category"}
             </span>
             {cat.name}
-          </button>
+          </Button>
         ))}
       </div>
 

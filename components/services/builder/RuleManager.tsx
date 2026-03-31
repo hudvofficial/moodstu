@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useTransition } from "react";
 import { getPriceRules, upsertPriceRule } from "@/app/actions/builder-actions";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { PriceRule } from "@/types/service";
 
 interface RuleManagerProps {
@@ -74,12 +77,13 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
               Cấu hình giảm giá, khuyến mãi và logic Combo
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
-            className="w-10 h-10 rounded-full hover:bg-bg-sub flex items-center justify-center text-text-muted transition-colors"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-text-muted transition-colors p-0"
           >
             <span className="material-symbols-outlined">close</span>
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-hidden flex divide-x divide-border">
@@ -89,7 +93,8 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
               <span className="text-caption font-bold text-text-muted uppercase tracking-widest">
                 Danh sách
               </span>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() =>
                   setSelectedRule({
                     name: "Rule mới",
@@ -99,10 +104,10 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                     actions: { type: "discount_percent", value: 10 },
                   })
                 }
-                className="text-caption font-bold text-primary hover:bg-primary/5 px-2 py-1 rounded transition-colors"
+                className="text-caption font-bold text-primary hover:bg-primary/5 px-2 py-1 h-auto"
               >
                 + Thêm mới
-              </button>
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {loading ? (
@@ -173,60 +178,43 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
             {selectedRule ? (
               <form onSubmit={handleSave} className="space-y-6 animate-in fade-in">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-text-secondary ml-1">
-                      Tên Quy tắc
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedRule.name || ""}
-                      onChange={(e) =>
-                        setSelectedRule({ ...selectedRule, name: e.target.value })
-                      }
-                      className="input-base w-full px-4 py-2.5"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-text-secondary ml-1">
-                      Độ ưu tiên (Lớn chạy trước)
-                    </label>
-                    <input
-                      type="number"
-                      value={selectedRule.priority || 1}
-                      onChange={(e) =>
-                        setSelectedRule({
-                          ...selectedRule,
-                          priority: parseInt(e.target.value),
-                        })
-                      }
-                      className="input-base w-full px-4 py-2.5"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-bold text-text-secondary ml-1">Mô tả ngắn</label>
-                  <input
-                    type="text"
-                    value={selectedRule.description || ""}
+                  <Input
+                    label="Tên Quy tắc"
+                    value={selectedRule.name || ""}
                     onChange={(e) =>
-                      setSelectedRule({ ...selectedRule, description: e.target.value })
+                      setSelectedRule({ ...selectedRule, name: e.target.value })
                     }
-                    className="input-base w-full px-4 py-2.5"
-                    placeholder="VD: Giảm 10% khi mua trên 2 váy..."
+                    className="w-full px-4 py-2.5"
+                    required
+                  />
+                  <Input
+                    label="Độ ưu tiên (Lớn chạy trước)"
+                    type="number"
+                    value={selectedRule.priority || 1}
+                    onChange={(e) =>
+                      setSelectedRule({
+                        ...selectedRule,
+                        priority: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full px-4 py-2.5"
                   />
                 </div>
 
+                <Input
+                  label="Mô tả ngắn"
+                  value={selectedRule.description || ""}
+                  onChange={(e) =>
+                    setSelectedRule({ ...selectedRule, description: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5"
+                  placeholder="VD: Giảm 10% khi mua trên 2 váy..."
+                />
+
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-text-secondary ml-1 flex items-center justify-between">
-                      Điều kiện (Conditions - JSON)
-                      <span className="text-micro text-primary italic font-normal">
-                        Sử dụng Category ID để lọc
-                      </span>
-                    </label>
-                    <textarea
+                  <div className="space-y-1.5 relative">
+                    <Textarea
+                      label="Điều kiện (Conditions - JSON)"
                       rows={6}
                       value={JSON.stringify(selectedRule.conditions, null, 2)}
                       onChange={(e) => {
@@ -235,42 +223,43 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                           setSelectedRule({ ...selectedRule, conditions: parsed });
                         } catch {}
                       }}
-                      className="input-base w-full px-4 py-3 font-mono text-caption text-status-success"
+                      className="w-full px-4 py-3 font-mono text-caption text-status-success"
                     />
+                    <span className="absolute top-0 right-1 text-micro text-primary italic font-normal">
+                      Hỗ trợ category_id
+                    </span>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-bold text-text-secondary ml-1">
-                      Hành động (Actions - JSON)
-                    </label>
-                    <textarea
-                      rows={6}
-                      value={JSON.stringify(selectedRule.actions, null, 2)}
-                      onChange={(e) => {
-                        try {
-                          const parsed = JSON.parse(e.target.value);
-                          setSelectedRule({ ...selectedRule, actions: parsed });
-                        } catch {}
-                      }}
-                      className="input-base w-full px-4 py-3 font-mono text-caption text-status-warning"
-                    />
-                  </div>
+                  <Textarea
+                    label="Hành động (Actions - JSON)"
+                    rows={6}
+                    value={JSON.stringify(selectedRule.actions, null, 2)}
+                    onChange={(e) => {
+                      try {
+                        const parsed = JSON.parse(e.target.value);
+                        setSelectedRule({ ...selectedRule, actions: parsed });
+                      } catch {}
+                    }}
+                    className="w-full px-4 py-3 font-mono text-caption text-status-warning"
+                  />
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                  <button
+                  <Button
                     type="submit"
+                    variant="primary"
                     disabled={isPending}
-                    className="flex-1 py-3 bg-primary text-white rounded-soft-lg font-bold text-sm shadow-md hover:bg-primary-hover transition-all disabled:opacity-50"
+                    className="flex-1 py-3 shadow-md"
                   >
                     {isPending ? "Đang lưu..." : "Lưu Quy tắc"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setSelectedRule(null)}
-                    className="px-6 py-3 bg-bg-sub text-text-secondary rounded-soft-lg font-bold text-sm hover:bg-border transition-all"
+                    className="px-6 py-3 bg-bg-sub text-text-secondary hover:bg-border"
                   >
                     Hủy
-                  </button>
+                  </Button>
                 </div>
                 <div className="bg-state-info/10 p-4 rounded-soft-lg border border-state-info/20">
                   <h5 className="text-micro font-bold text-state-info uppercase mb-1">
