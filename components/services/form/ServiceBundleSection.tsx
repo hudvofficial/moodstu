@@ -7,6 +7,8 @@ import type { ServiceRecord } from "@/types/service";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 
 import BuilderMode from "../builder/BuilderMode";
+import { Layers, PenLine, GripVertical, Search, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface ServiceBundleSectionProps {
   bundleItems: BundleItem[];
@@ -93,7 +95,7 @@ export default function ServiceBundleSection({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
           <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-            <span className="material-symbols-outlined font-bold">layers</span>
+            <Layers className="w-4 h-4" />
             Thành phần Gói / Combo
           </h3>
           <p className="text-caption text-text-muted mt-1">
@@ -110,9 +112,7 @@ export default function ServiceBundleSection({
             onClick={() => setBuilderMode(false)}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
           >
-            <span className="material-symbols-outlined text-[16px]">
-              edit_note
-            </span>
+            <PenLine className="w-4 h-4" />
             Thủ công
           </button>
           <button
@@ -120,9 +120,7 @@ export default function ServiceBundleSection({
             onClick={() => setBuilderMode(true)}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
           >
-            <span className="material-symbols-outlined text-[16px]">
-              drag_indicator
-            </span>
+            <GripVertical className="w-4 h-4" />
             Visual Builder
           </button>
         </div>
@@ -139,9 +137,7 @@ export default function ServiceBundleSection({
         <>
           {/* Search Box */}
           <div className="relative mb-6">
-            <span className="material-symbols-outlined absolute left-3 top-3 text-text-muted">
-              search
-            </span>
+            <Search className="w-4 h-4 absolute left-3 top-3 text-text-muted" />
             <input
               type="text"
               placeholder="Tìm dịch vụ để thêm vào gói..."
@@ -174,7 +170,7 @@ export default function ServiceBundleSection({
                       </span>
                     </div>
                     <span className="text-xs font-bold text-primary">
-                      {svc.selling_price?.toLocaleString()} VNĐ
+                      {formatCurrency(svc.selling_price || 0)}
                     </span>
                   </button>
                 ))}
@@ -199,7 +195,7 @@ export default function ServiceBundleSection({
                     {item.service_name}
                   </div>
                   <div className="text-caption text-text-muted font-mono">
-                    ID: {item.service_id.slice(0, 8)}... | Giá gốc: {item.original_price?.toLocaleString()}
+                    ID: {item.service_id.slice(0, 8)}... | Giá gốc: {formatCurrency(item.original_price || 0)}
                   </div>
                 </div>
 
@@ -229,9 +225,7 @@ export default function ServiceBundleSection({
                   onClick={() => removeBundleItem(idx)}
                   className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
                 >
-                  <span className="material-symbols-outlined text-lg">
-                    delete
-                  </span>
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}

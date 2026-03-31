@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 
 interface Props {
-  search: string;
-  onSearchChange: (v: string) => void;
   categoryId: string;
   onCategoryChange: (v: string) => void;
   categories: ServiceCategory[];
@@ -19,8 +17,6 @@ interface Props {
 }
 
 function ServiceFiltersInner({
-  search,
-  onSearchChange,
   categoryId,
   onCategoryChange,
   categories,

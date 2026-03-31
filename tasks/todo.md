@@ -1,39 +1,21 @@
-# 📋 Plan: Xóa Checklist + Chuẩn bị khỏi Contract Detail
+# Plan: Refactoring Quote Modal SSOT
+Status: 🟡 In Progress
+Created: 2026-03-31
 
-**Ngày:** 2026-03-21
-**Scope:** Chỉ trang Detail — KHÔNG đụng Drawer, Tooltip, List
+## Triệu chứng
+Màn hình Báo Giá (`quote-modal.tsx`) bị nhũn inline, vi phạm quy định cấm `uppercase`, cấm `tracking: 0.03em+` và gán cứng màu Giá Tiền sai tương phản.
 
----
+## Phases
 
-## Phạm vi
+| Phase | Name | Mục tiêu | Lịch trình |
+|---|---|---|---|
+| **Phase 01** | **Thanh lọc Typography & Inline Styles** | Gỡ bỏ toàn bộ `.tracking-widest`, `.uppercase`, JS inline `style={maxWidth}` và các class Tailwind viết cứng trong DOM. | 5 phút |
+| **Phase 02** | **Xây chuẩn Design System (CSS)** | Tạo các class chuẩn SSOT trong `app/styles/components.css` (`.quote-card`, `.quote-header`, v.v.) và map đúng Design Tokens. Cân bằng chữ Giá Tiền. | 10 phút |
+| **Phase 03** | **Kiểm định (Verify)** | Xác nhận visual Modal không sai lệch, test compact/full mode. | 5 phút |
 
-- **File duy nhất:** `components/contracts/detail/contract-detail-client.tsx`
-- **Hành động:** Xóa 2 component khỏi layout (desktop + mobile)
-
-## Tasks
-
-### Phase 1: Xóa khỏi Detail
-
-- [ ] 1.1 Xóa import `ChecklistBlock` (dòng 28)
-- [ ] 1.2 Xóa import `ContractChecklistManager` (dòng 29)
-- [ ] 1.3 Xóa `<ChecklistBlock>` desktop sidebar (dòng 284)
-- [ ] 1.4 Xóa `<ContractChecklistManager>` desktop sidebar (dòng 287-289)
-- [ ] 1.5 Xóa `<ChecklistBlock>` mobile + div wrapper (dòng 352-355)
-- [ ] 1.6 Xóa `<ContractChecklistManager>` mobile (dòng 357-360)
-
-### Phase 2: Verify
-
-- [ ] 2.1 Build thành công (không lỗi)
-- [ ] 2.2 Mở browser → Desktop detail → confirm 2 section đã mất
-- [ ] 2.3 Mở browser → Mobile detail → confirm 2 section đã mất
-- [ ] 2.4 Event Timeline vẫn hoạt động bình thường
-- [ ] 2.5 Workflow Stepper vẫn hoạt động bình thường
-
-## KHÔNG ĐỤNG
-
-- ❌ `checklist-block.tsx` (file vẫn giữ, chưa xóa)
-- ❌ `checklist-manager.tsx` (file vẫn giữ, chưa xóa)
-- ❌ Drawer (contract-drawer.tsx)
-- ❌ ProgressBadge (tooltip)
-- ❌ checklist-actions.ts
-- ❌ Database / data queries
+## Checklist Thực thi
+- [ ] Gỡ bỏ toàn bộ vi phạm Uppercase & Tracking.
+- [ ] Dọn JS `style={{ maxWidth... }}` sang CSS utilities.
+- [ ] Rời styles của Header, Title, Subtitle, Price vào `components.css`.
+- [ ] Chỉnh contrast màu Giá Tiền hợp lý (Bỏ amber-100, thay bằng biến hợp lý tùy theo màu Header).
+- [ ] Mở Browser UI chụp Screenshot check visual lại.

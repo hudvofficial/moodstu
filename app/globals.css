@@ -108,6 +108,9 @@
   --font-size-micro: 9px;
 
   /* ── Tailwind v4 text utility aliases ── */
+  --text-h1: 28px;
+  --text-h3: 18px;
+  --text-caption: 12px;
   --text-micro: 9px;
   --text-tiny: 10px;
 

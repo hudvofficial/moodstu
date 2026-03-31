@@ -20,6 +20,10 @@ import type { ServiceRecord } from "@/types/service";
 // @see Phase 1d / Task 1
 // ═══════════════════════════════════════════
 
+/** Quote modal width tokens (inline — TW4 arbitrary values unreliable at runtime) */
+const QUOTE_WIDTH_COMPACT = 340;
+const QUOTE_WIDTH_DEFAULT = 400;
+
 interface StudioCache {
   name: string;
   hotline: string | null;
@@ -75,7 +79,7 @@ export default function QuoteModal({ service, onClose }: Props) {
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="modal-overlay justify-center! items-center! p-4">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
@@ -84,7 +88,8 @@ export default function QuoteModal({ service, onClose }: Props) {
 
         {/* Modal Card — Smart width */}
         <div
-          className={`relative bg-bg-card rounded-2xl shadow-2xl w-full overflow-hidden flex flex-col max-h-[90vh] z-10 animate-in zoom-in-95 fade-in duration-200 ring-1 ring-black/5 ${isCompact ? "max-w-[340px]" : "max-w-[400px]"}`}
+          className="relative bg-bg-card rounded-2xl shadow-2xl w-full overflow-hidden flex flex-col max-h-[90vh] z-10 animate-in zoom-in-95 fade-in duration-200 ring-1 ring-black/5"
+          style={{ maxWidth: isCompact ? QUOTE_WIDTH_COMPACT : QUOTE_WIDTH_DEFAULT }}
         >
           {/* ── PRIMARY HEADER ── */}
           <div className="bg-primary px-6 pt-4 pb-5 text-center relative overflow-hidden shrink-0">
@@ -117,7 +122,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 {studioName} · Báo giá dịch vụ
               </p>
 
-              <h2 className="text-white text-lg font-bold leading-snug">
+              <h2 className="text-white text-h3 font-bold leading-snug">
                 {service.name}
               </h2>
 
@@ -128,12 +133,12 @@ export default function QuoteModal({ service, onClose }: Props) {
               )}
 
               {/* Price in header */}
-              <div className="mt-3 pt-3 border-t border-white/15">
+              <div className="mt-3 pt-3 border-t border-white/25">
                 <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-[28px] font-black text-white tracking-tighter tabular-nums leading-none">
+                  <span className="text-h1 font-black text-amber-100 tracking-tighter tabular-nums leading-none drop-shadow-sm">
                     {formatCurrency(service.selling_price).replace("₫", "")}
                   </span>
-                  <span className="text-tiny font-bold text-white/50">
+                  <span className="text-tiny font-bold text-amber-200/80">
                     VNĐ
                   </span>
                 </div>
@@ -155,9 +160,9 @@ export default function QuoteModal({ service, onClose }: Props) {
                     {section.items.map((item: string, i: number) => (
                       <li
                         key={i}
-                        className="text-[12px] text-text-secondary flex items-start gap-2 leading-snug"
+                        className="text-caption text-text-secondary flex items-start gap-2 leading-snug"
                       >
-                        <span className="text-text-muted/40 mt-[5px] shrink-0">
+                        <span className="text-text-muted/40 mt-1 shrink-0">
                           •
                         </span>
                         <span>{item}</span>
@@ -167,7 +172,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 </div>
               ))
             ) : (
-              <p className="text-center text-xs text-text-muted italic py-6">
+              <p className="text-center text-caption text-text-muted italic py-6">
                 (Nội dung đang cập nhật)
               </p>
             )}

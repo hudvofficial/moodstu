@@ -28,6 +28,7 @@ export default function ServicesListClient({
 }: Props) {
   // ── State ──────────────────────────────────
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -88,8 +89,6 @@ export default function ServicesListClient({
 
       {/* ── Filters ── */}
       <ServiceFilters
-        search={search}
-        onSearchChange={setSearch}
         categoryId={categoryId}
         onCategoryChange={setCategoryId}
         categories={categories}

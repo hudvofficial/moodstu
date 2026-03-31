@@ -163,3 +163,9 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 ## Từ Inventory Modal Wiring (2026-03-28)
 
 91. **SWR DETAIL CACHE ≠ LIST CACHE — PHẢI REVALIDATE RIÊNG** — `revalidateInventory()` chỉ mutate list + stats keys. Detail page dùng key riêng `inventory:${id}` → KHÔNG tự refresh. Khi modal trên detail page submit → PHẢI gọi `revalidateInventoryDetail(id)` trong onClose callback. ENFORCEMENT: Mỗi khi wire modal vào detail page → kiểm tra onClose có gọi `revalidateDetail(id)` không. Pattern: `onClose={() => { setShow(false); revalidateDetail(id); }}`.
+
+## Từ Quote Modal Peeking Fix (2026-03-31)
+
+92. **VẪN LẶP LẠI LỖI TỰ VIẾT INLINE MẶC DÙ ĐÃ CÓ LESSONS TRƯỚC (SSOT VIOLATION)** — Mặc dù đã có các lesson #53, #54, #67 cấm viết inline Tailwind classes thay vì SSOT, nhưng vẫn tiếp tục tự tiện viết `fixed inset-0 z-[9999] flex...` cho QuoteModal thay vì dùng `.modal-overlay`.
+**Root cause:** Phản xạ tự nhiên khi cần "fix nhanh" layout (đang cần center modal) là viết thẳng utilities vào class, vô tình phá vỡ toàn bộ cấu trúc z-index chuẩn của Design System, dẫn đến lỗi peeking khó hiểu. Lỗi nhỏ tích tụ thành Tech Debt.
+**GIẢI PHÁP / RULE CỨNG TỪ NAY:** TRƯỚC KHI gõ bất kỳ class layout/z-index nào (`fixed`, `absolute`, `z-`, `bg-`), BẮT BUỘC phải đặt câu hỏi: "Element này thuộc nhóm nào (Modal, Card, Dropdown)? Đã có class trong `components.css` chưa?". NẾU CÓ, phải dùng class đó (`modal-overlay`) và CHỈ thêm utility overrides cần thiết (`justify-center! items-center!`). KHÔNG BAO GIỜ tự build lại cấu trúc element bằng utilities.
