@@ -74,7 +74,7 @@ export default function ServiceBundleSection({
     <div className="card-base rounded-soft-2xl p-4 lg:p-6 space-y-4 border-l-4 border-l-primary animate-fade-in-up">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+          <h3 className="text-label text-primary flex items-center gap-2">
             <Layers className="w-4 h-4" />
             Thành phần Gói / Combo
           </h3>
@@ -86,12 +86,12 @@ export default function ServiceBundleSection({
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-surface p-1 rounded-lg border border-border">
+        <div className="flex items-center gap-1 bg-surface p-1 rounded-lg shadow-xs">
           <Button
             type="button"
             variant="ghost"
             onClick={() => setBuilderMode(false)}
-            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${!builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
           >
             <PenLine className="w-4 h-4" />
             Thủ công
@@ -100,7 +100,7 @@ export default function ServiceBundleSection({
             type="button"
             variant="ghost"
             onClick={() => setBuilderMode(true)}
-            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm border border-border" : "text-text-muted hover:text-text-secondary"}`}
+            className={`h-8 px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${builderMode ? "bg-bg-card text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"}`}
           >
             <GripVertical className="w-4 h-4" />
             Visual Builder
@@ -109,7 +109,7 @@ export default function ServiceBundleSection({
       </div>
 
       {builderMode ? (
-        <div className="p-0 lg:p-4 lg:border border-border bg-background lg:rounded-soft-md shadow-none lg:shadow-inner -mx-4 lg:mx-0">
+        <div className="p-0 lg:p-4 bg-background lg:rounded-soft-md lg:shadow-inner -mx-4 lg:mx-0">
           <BuilderMode
             initialItems={bundleItems}
             onChange={setBundleItems}
@@ -128,22 +128,22 @@ export default function ServiceBundleSection({
               className="w-full pl-10 pr-4 h-11 bg-surface font-medium"
             />
             {showResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-bg-card border border-border rounded-b-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 bg-bg-card rounded-b-lg shadow-xl z-20 max-h-60 overflow-y-auto">
                 {searchResults.map((svc) => (
                   <div
                     key={svc.id}
                     onClick={() => addBundleItem(svc)}
-                    className="w-full cursor-pointer text-left px-4 py-3 hover:bg-surface flex justify-between items-center border-b border-border last:border-0 transition-colors"
+                    className="w-full cursor-pointer text-left px-4 py-3 hover:bg-surface flex justify-between items-center transition-colors"
                   >
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-text-main">
+                      <span className="text-body-sm font-bold text-text-main">
                         {svc.name}
                       </span>
                       <span className="text-caption text-text-muted">
                         {svc.service_code}
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-primary">
+                    <span className="text-caption font-bold text-primary">
                       {formatCurrency(svc.selling_price || 0)}
                     </span>
                   </div>
@@ -155,14 +155,14 @@ export default function ServiceBundleSection({
           {/* Items List */}
           <div className="space-y-3">
             {bundleItems.length === 0 && (
-              <p className="text-center text-sm text-text-muted italic py-8 border-2 border-dashed border-border rounded-lg bg-surface/50">
+              <p className="text-center text-body-sm text-text-muted italic py-8 bg-surface/50 rounded-lg shadow-inner">
                 Chưa có cấu phần nào trong gói. Mời tìm và thêm dịch vụ ở trên.
               </p>
             )}
             {bundleItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 bg-surface p-3 rounded-lg border border-border group hover:border-primary/30 transition-all shadow-sm"
+                className="flex items-center gap-3 bg-surface p-3 rounded-lg group hover:shadow-md transition-all shadow-xs"
               >
                 <div className="flex-1">
                   <div className="text-sm font-bold text-text-main">
@@ -175,7 +175,7 @@ export default function ServiceBundleSection({
 
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-caption uppercase font-bold text-text-muted">
+                    <span className="text-caption font-bold text-text-muted">
                       SL:
                     </span>
                     <Input

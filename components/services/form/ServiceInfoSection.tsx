@@ -33,7 +33,7 @@ function ServiceInfoSectionInner({
 }: Props) {
   return (
     <div className="card-base rounded-soft-2xl p-4 lg:p-6 space-y-4">
-      <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+      <h3 className="text-label text-primary flex items-center gap-2">
         📋 Thông tin dịch vụ
       </h3>
 

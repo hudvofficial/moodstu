@@ -61,7 +61,7 @@ export default function QuoteView({ service, studio }: Props) {
         <div className="quote-no-print sticky top-0 z-40 bg-bg-card/90 backdrop-blur-md shadow-xs px-6 py-3 flex items-center justify-between">
           <Link
             href="/services"
-            className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors"
+            className="flex items-center gap-2 text-body-sm text-text-secondary hover:text-primary transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="font-medium">Quay lại danh sách</span>
@@ -104,12 +104,12 @@ export default function QuoteView({ service, studio }: Props) {
                   <p className="text-overline text-text-muted mb-1">
                     {studioName} · Báo giá dịch vụ
                   </p>
-                  <h1 className="text-2xl font-black text-text-main leading-tight">
+                  <h1 className="text-h1 font-black text-text-main leading-tight">
                     {service.name}
                   </h1>
                   <div className="flex items-center gap-2 mt-2">
                     {service.unit && (
-                      <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                      <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
                         {service.unit}
                       </span>
                     )}
@@ -131,14 +131,14 @@ export default function QuoteView({ service, studio }: Props) {
                     {section.title && (
                       <div className="flex items-center gap-2.5 mb-4">
                         <div className="w-1 h-5 bg-primary rounded-full shrink-0" />
-                        <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
+                        <h3 className="text-label text-primary">
                           {section.title}
                         </h3>
                       </div>
                     )}
                     <ul className="space-y-2.5">
                       {section.items.map((item: string, i: number) => (
-                        <li key={i} className="flex items-start gap-3 text-sm text-text-secondary leading-relaxed">
+                        <li key={i} className="flex items-start gap-3 text-body-sm text-text-secondary leading-relaxed">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
                           <span>{item}</span>
                         </li>
@@ -149,7 +149,7 @@ export default function QuoteView({ service, studio }: Props) {
               </div>
             ) : (
               <div className="bg-bg-card rounded-2xl shadow-sm p-12 text-center">
-                <p className="text-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
+                <p className="text-body-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
               </div>
             )}
           </div>
@@ -162,10 +162,10 @@ export default function QuoteView({ service, studio }: Props) {
                 Giá trọn gói
               </p>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-4xl font-black text-primary tabular-nums tracking-tight">
+                <span className="text-amount font-black text-primary tabular-nums tracking-tighter">
                   {formattedPrice.replace("₫", "").trim()}
                 </span>
-                <span className="text-sm font-bold text-text-muted">VNĐ</span>
+                <span className="text-caption font-bold text-text-muted">VNĐ</span>
               </div>
 
               {/* Divider */}
@@ -204,7 +204,7 @@ export default function QuoteView({ service, studio }: Props) {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-text-main">{studioName}</p>
+                  <p className="text-body-sm font-bold text-text-main">{studioName}</p>
                   <p className="text-caption text-text-muted">Liên hệ tư vấn</p>
                 </div>
               </div>
@@ -235,14 +235,14 @@ export default function QuoteView({ service, studio }: Props) {
         <div className="quote-no-print sticky top-0 z-40 bg-bg-card/90 backdrop-blur-md shadow-xs px-4 py-3 flex items-center justify-between">
           <Link
             href="/services"
-            className="flex items-center gap-1.5 text-sm text-text-secondary"
+            className="flex items-center gap-1.5 text-body-sm text-text-secondary"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="font-medium">Quay lại</span>
           </Link>
           <Link
             href={`/services/${service.id}`}
-            className="flex items-center gap-1 text-xs font-bold text-primary"
+            className="flex items-center gap-1 text-label text-primary"
           >
             <Pencil className="w-3.5 h-3.5" />
             Sửa
@@ -261,16 +261,16 @@ export default function QuoteView({ service, studio }: Props) {
                 className="object-contain"
               />
             </div>
-            <p className="text-overline font-bold text-text-muted uppercase tracking-wider">
+            <p className="text-overline font-bold text-text-muted tracking-wide">
               {studioName} · Báo giá
             </p>
           </div>
-          <h1 className="text-xl font-black text-text-main leading-tight mb-2">
+          <h1 className="text-h1 font-black text-text-main leading-tight mb-2">
             {service.name}
           </h1>
           <div className="flex items-center gap-2">
             {service.unit && (
-              <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+              <span className="text-tiny font-bold text-primary bg-primary/8 px-2.5 py-0.5 rounded-full tracking-wide">
                 {service.unit}
               </span>
             )}
@@ -295,11 +295,11 @@ export default function QuoteView({ service, studio }: Props) {
                     </h3>
                   </div>
                 )}
-                <div className="divide-y divide-border/40">
+                <div className="space-y-0">
                   {section.items.map((item: string, i: number) => (
                     <div key={i} className="px-5 py-3 flex items-start gap-3">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/30 mt-[7px] shrink-0" />
-                      <span className="text-sm text-text-secondary leading-relaxed">{item}</span>
+                      <span className="text-body-sm text-text-secondary leading-relaxed">{item}</span>
                     </div>
                   ))}
                 </div>
@@ -307,7 +307,7 @@ export default function QuoteView({ service, studio }: Props) {
             ))
           ) : (
             <div className="bg-bg-card rounded-2xl shadow-sm p-8 text-center">
-              <p className="text-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
+              <p className="text-body-sm text-text-muted italic">Nội dung chi tiết đang được cập nhật</p>
             </div>
           )}
 
@@ -324,7 +324,7 @@ export default function QuoteView({ service, studio }: Props) {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-text-main">{studioName}</p>
+                <p className="text-label font-bold text-text-main">{studioName}</p>
                 <div className="flex items-center gap-3 mt-0.5 text-caption text-text-muted">
                   {studio.phone && (
                     <span className="flex items-center gap-1">
@@ -347,9 +347,9 @@ export default function QuoteView({ service, studio }: Props) {
         {/* Sticky Bottom Bar — Price + Action */}
         <div className="quote-no-print fixed bottom-0 left-0 right-0 z-40 bg-bg-card/95 backdrop-blur-md shadow-md px-4 py-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-overline text-text-muted uppercase">Trọn gói</p>
+            <p className="text-overline text-text-muted">Trọn gói</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-xl font-black text-primary tabular-nums">
+              <span className="text-amount font-black text-primary tabular-nums">
                 {formattedPrice.replace("₫", "").trim()}
               </span>
               <span className="text-tiny font-bold text-text-muted">VNĐ</span>

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "interactive";
   size?: "sm" | "md" | "lg";
 }
 
@@ -13,6 +13,7 @@ const sizeMap = {
   lg: "px-8 py-3.5 text-base",
 };
 
+/* eslint-disable react/forbid-elements -- This IS the <Button> SSOT wrapper */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", ...props }, ref) => {
     return (
@@ -28,6 +29,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
+/* eslint-enable react/forbid-elements */
 Button.displayName = "Button";
 
 export { Button };

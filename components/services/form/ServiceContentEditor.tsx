@@ -114,7 +114,7 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
   return (
     <div className="card-base p-4 lg:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+        <h3 className="text-label text-primary flex items-center gap-2">
           📝 Nội dung mô tả
         </h3>
         <span className="text-caption text-text-muted bg-bg-hover px-2 py-0.5 rounded-md">
@@ -126,7 +126,7 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
       {sections.map((section, sIdx) => (
         <div
           key={section._id}
-          className="bg-bg-hover rounded-lg p-4 border border-border/50 group hover:border-primary/20 transition-colors"
+          className="bg-bg-hover rounded-lg p-4 shadow-xs group hover:shadow-sm transition-all"
         >
           {/* Section Header */}
           <div className="flex items-center gap-3 mb-3">
@@ -196,7 +196,7 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
         type="button"
         variant="ghost"
         onClick={addSection}
-        className="w-full py-3 border-2 border-dashed border-border rounded-lg text-text-muted font-semibold text-sm hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 h-auto"
+        className="w-full py-3 bg-surface/50 rounded-lg text-text-muted font-semibold text-body-sm hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 h-auto shadow-inner"
       >
         <Plus className="w-4 h-4" />
         Thêm Mục Mới

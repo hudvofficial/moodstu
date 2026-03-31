@@ -120,7 +120,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 />
               </div>
 
-              <p className="text-white/70 text-micro font-bold uppercase tracking-[0.2em] mb-1.5">
+              <p className="text-white/70 text-micro font-bold tracking-wide mb-1.5">
                 {studioName} · Báo giá dịch vụ
               </p>
 
@@ -129,13 +129,14 @@ export default function QuoteModal({ service, onClose }: Props) {
               </h2>
 
               {service.unit && (
-                <p className="text-white/60 text-tiny font-semibold uppercase tracking-widest mt-0.5">
+                <p className="text-white/60 text-tiny font-semibold tracking-wide mt-0.5">
                   {service.unit}
                 </p>
               )}
 
               {/* Price in header */}
-              <div className="mt-3 pt-3 border-t border-white/25">
+              <div className="mt-3 pt-3">
+                <div className="bg-white/15 h-px -mx-6 mb-3" />
                 <div className="flex items-baseline justify-center gap-1.5">
                   <span className="text-h1 font-black text-amber-100 tracking-tighter tabular-nums leading-none drop-shadow-sm">
                     {formatCurrency(service.selling_price).replace("₫", "")}
@@ -154,7 +155,7 @@ export default function QuoteModal({ service, onClose }: Props) {
               structure.map((section, idx) => (
                 <div key={idx}>
                   {section.title && (
-                    <h4 className="text-tiny font-bold text-primary uppercase tracking-widest mb-1.5 border-b border-border pb-1">
+                    <h4 className="text-tiny font-bold text-primary tracking-wide mb-1.5">
                       {section.title}
                     </h4>
                   )}
@@ -182,7 +183,9 @@ export default function QuoteModal({ service, onClose }: Props) {
 
           {/* ── FOOTER: Studio Contact ── */}
           {studio && (studio.hotline || studio.address) && (
-            <div className="p-4 bg-bg-hover border-t border-border flex justify-center gap-4 shrink-0">
+            <div className="bg-bg-hover shrink-0">
+              <div className="bg-border/30 h-px" />
+              <div className="p-4 flex justify-center gap-4">
               {studio.hotline && (
                 <span className="flex items-center gap-1 text-tiny text-text-secondary">
                   <Phone className="w-3 h-3 text-primary/60" />
@@ -198,6 +201,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                   {studio.address}
                 </span>
               )}
+              </div>
             </div>
           )}
         </div>

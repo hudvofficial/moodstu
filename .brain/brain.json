@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-31T04:25:00+07:00"
+    "last_updated": "2026-03-31T19:46:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -16,7 +16,8 @@
     "frontend": "Next.js 14 + React 19 + Tailwind CSS v4",
     "backend": "Supabase (PostgreSQL + Auth + RLS + Server Actions)",
     "hosting": "Vercel",
-    "api_pattern": "Server Actions + Auth HO + Zod + Audit Logs"
+    "api_pattern": "Server Actions + Auth HO + Zod + Audit Logs",
+    "core_icons": "Lucide-React (93% coverage, aim 100% in Phase 6)"
   },
   "database_schema": {
     "summary": "Core: contracts, services, service_categories. Strategy: ABC Framework.",
@@ -27,14 +28,22 @@
   },
   "api_endpoints": [
     { "type": "Server Action", "path": "app/actions/service-queries.ts", "actions": ["getServices", "getServiceById"] },
-    { "type": "Server Action", "path": "app/actions/service-mutations.ts", "actions": ["createService", "updateService"] }
+    { "type": "Server Action", "path": "app/actions/service-mutations.ts" },
+    { "type": "Server Action", "path": "app/actions/builder-actions.ts", "actions": ["getPriceRules", "upsertPriceRule"] }
   ],
   "design_system": {
     "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
+    "typography": {
+      "headers": ".text-h1 to .text-h4",
+      "labels": ".text-label (bold, tracking-wide)",
+      "body": ".text-body, .text-body-sm",
+      "exceptions": "QuoteModernView branding (Watermark) uses hardcoded custom spacing/font weight."
+    },
     "components": {
       "ServiceTable": "Expandable Table Row Pattern",
       "ServiceMobileList": "Compact row list with active expand state",
-      "QuoteModal": "Compact, floating centered card (max-w 340px) vs V1 parity"
+      "QuoteModal": "Compact, floating centered card (max-w 340px) vs V1 parity",
+      "VisualBuilder": "Grid 7/5 Desktop, Single column Mobile, Canvas with GripVertical icons."
     }
   },
   "knowledge_items": {
@@ -42,11 +51,16 @@
       {
         "name": "Quote Modal Parity Pattern",
         "details": "Always cap modal width to ~340-400px to maintain floating card feel. Avoid full-width on large screens."
+      },
+      {
+        "name": "Icon SSOT Strategy",
+        "details": "Migrate 100% to Lucide-React. Use size={relative_size} instead of text-[px] for better cross-browser SVG scaling."
       }
     ],
     "gotchas": [
       "calculateServiceStats MUST be sync/pure utility exported separately to avoid Next.js build errors in Server Action files.",
-      "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints."
+      "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints.",
+      "Inline text-xs/text-sm in Visual Builder (Redesign-holdouts) leads to design drift. Always use typography.css classes."
     ]
   }
 }
