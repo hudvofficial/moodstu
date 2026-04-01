@@ -1,0 +1,585 @@
+﻿
+> mood-studio-temp@2.0.3 lint
+> eslint
+
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\(protected)\contracts\error.tsx
+  23:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\(protected)\dresses\error.tsx
+  20:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\(protected)\employees\error.tsx
+  23:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\(protected)\inventory\error.tsx
+  23:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\(protected)\services\error.tsx
+  17:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\actions\gallery-album-actions.ts
+  5:10  warning  'revalidatePath' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\actions\service-queries.ts
+  5:47  warning  'ServiceBundleItem' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\global-error.tsx
+  63:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\login\page.tsx
+   87:28  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  115:32  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  147:33  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  162:20  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  176:22  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>                                                 react/forbid-elements
+  210:28  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\app\offline\page.tsx
+  63:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\contract-drawer.tsx
+  87:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\contracts-dropdown-filters.tsx
+  101:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\contracts-list-client.tsx
+  154:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  222:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\contracts-table.tsx
+   73:57  warning  'onHover' is defined but never used                                                                  @typescript-eslint/no-unused-vars
+  186:12  error    <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\add-event-modal.tsx
+   92:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+   95:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  129:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  159:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  171:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\cancel-banner.tsx
+  63:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\checklist-block.tsx
+  72:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\checklist-manager.tsx
+  172:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  240:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  290:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\contract-actions-menu.tsx
+   89:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+   99:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  126:10  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+  137:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  143:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  174:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  185:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  191:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\dress-reservation-form.tsx
+  144:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  165:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  215:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  235:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  247:14  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+  259:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  265:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\drive-gallery-block.tsx
+  137:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  170:20  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  185:20  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\drive-link-modal.tsx
+   77:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+   83:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+   97:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  114:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  128:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  131:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\event-task-modal.tsx
+  253:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\event-timeline.tsx
+  113:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  148:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\financial-dashboard.tsx
+   81:26  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+   89:26  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  131:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  133:23  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  252:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\mobile-bottom-bar.tsx
+  26:17  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  46:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\mobile-tab-nav.tsx
+  72:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\notes-timeline.tsx
+  117:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  159:24  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  189:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  198:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\payment-receipt-form.tsx
+  211:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  244:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+  256:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  270:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  276:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\printing-order-form.tsx
+  160:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  172:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  179:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  186:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  193:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  201:20  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  222:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+  233:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  239:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\quick-actions-grid.tsx
+  40:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  73:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\service-details-block.tsx
+  91:27  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\detail\task-list-panel.tsx
+  167:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  186:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  242:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  251:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  281:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\drawer-assignments.tsx
+  143:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\drawer-checklist.tsx
+  180:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\drawer-notes.tsx
+  148:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  159:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\drawer-tab-content.tsx
+   62:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  190:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  225:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\ContractCustomerSection.tsx
+   75:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  111:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  121:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  147:28  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  176:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  199:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\ContractFinancialSummary.tsx
+  54:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  65:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  88:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\ContractInfoSection.tsx
+   94:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  108:10  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\ContractItemsSection.tsx
+   59:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+   66:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  176:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  179:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  213:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  216:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  229:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\ContractPaymentSection.tsx
+  100:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\CoupleDetailFields.tsx
+   34:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+   44:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+   59:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+   72:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+   84:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+  108:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+  118:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+  133:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+  146:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+  158:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\FormActions.tsx
+   43:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+   56:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+   65:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+   88:25  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+   92:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  103:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  114:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\index.tsx
+   82:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  172:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\modals\AddonItemForm.tsx
+   85:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  107:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  122:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  138:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  141:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\modals\CreateServiceModal.tsx
+   70:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+   99:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  102:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\modals\CustomerFormModal.tsx
+  137:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  148:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  173:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  182:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  198:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  207:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  220:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+  237:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  244:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\form\modals\ServiceItemForm.tsx
+  127:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  137:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  151:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  171:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  195:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  241:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  244:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\gallery-image-grid.tsx
+  205:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\gallery-image-list.tsx
+  133:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\gallery-lightbox.tsx
+  28:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  33:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  36:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\gallery-sort-dropdown.tsx
+  45:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  65:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\gallery-toolbar.tsx
+   74:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+   82:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+   92:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  101:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  105:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  136:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  157:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  171:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  175:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  200:6   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  221:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  230:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  231:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  236:6   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\gallery\share-gallery-modal.tsx
+  179:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  196:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  208:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  265:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  282:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\contracts\print\print-contract-client.tsx
+   93:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  100:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dashboard\payment-reminders.tsx
+  31:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dashboard\quick-access-grid.tsx
+  42:17  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dashboard\upcoming-events.tsx
+  50:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-card.tsx
+  55:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-drawer-content.tsx
+  133:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  257:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  265:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  277:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  289:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  302:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-drawer.tsx
+  44:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  53:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-form-modal.tsx
+  183:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  185:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  186:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  209:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  228:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  237:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  258:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  276:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  285:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  313:14  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-qr-modal.tsx
+  127:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dress-scanner-modal.tsx
+  119:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\dresses-list-client.tsx
+  120:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  129:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\rental-modal.tsx
+  114:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  115:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  139:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  154:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  205:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  219:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\return-modal.tsx
+  113:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  114:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  188:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  209:14  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\dresses\standalone-rentals-client.tsx
+   95:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  100:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  105:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  158:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  163:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  168:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  219:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  221:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  258:56  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  404:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  412:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  434:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  441:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\employees\employee-detail-page.tsx
+  119:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  125:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  129:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\employees\employee-form-modal.tsx
+  125:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  126:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  148:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  158:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  163:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  183:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  197:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  205:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  210:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  214:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  218:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\employees\employee-list-page.tsx
+  59:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\employees\employee-notes.tsx
+  78:8  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\gallery\download-manager.tsx
+   96:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  111:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  125:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  137:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\gallery\image-viewer.tsx
+  140:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  170:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  197:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  232:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  247:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\gallery\password-gate.tsx
+  116:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  131:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  144:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\gallery\public-gallery-client.tsx
+  191:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  220:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  261:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  288:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\gallery\selection-summary.tsx
+  87:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\inventory\inventory-form-modal.tsx
+  106:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  109:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  121:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  154:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  178:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  189:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\inventory\inventory-list-client.tsx
+   96:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  100:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  104:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\inventory\inventory-table.tsx
+  116:24  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  125:24  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  155:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\inventory\stock-in-modal.tsx
+   78:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+   81:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  115:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  131:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  141:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  151:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\inventory\stock-out-modal.tsx
+   84:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+   87:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>        react/forbid-elements
+  119:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  134:12  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  145:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  154:14  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>           react/forbid-elements
+  165:12  error  <textarea> is forbidden, SSOT Violation: Use <Textarea> from @/components/ui instead of native <textarea>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\layout\NotificationBell.tsx
+  19:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\layout\app-shell.tsx
+   80:17  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  109:15  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\layout\bottom-nav.tsx
+   95:11  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  125:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\layout\header.tsx
+  108:16  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  117:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  179:20  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  197:20  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\layout\sidebar.tsx
+  147:14  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  159:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\providers\modal-renderer.tsx
+  42:15  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\settings\changelog-section.tsx
+  29:31  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\settings\edit-profile-modal.tsx
+  163:10  warning  Unused eslint-disable directive (no problems were reported from 'react/forbid-elements')
+  165:12  error    <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  190:12  error    <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\settings\members-section.tsx
+  34:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\settings\members-section.tsx:34:5
+  32 |
+  33 |   useEffect(() => {
+> 34 |     fetchUsers();
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  35 |   }, [fetchUsers]);
+  36 |
+  37 |   const handleRefresh = () => {  react-hooks/set-state-in-effect
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\theme\ThemeToggle.tsx
+  10:6  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\combobox-search.tsx
+  142:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  162:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  190:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\confirm-dialog.tsx
+  50:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  57:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\currency-input.tsx
+  89:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\date-picker.tsx
+  235:12   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  247:10   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  266:12   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  298:18   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  323:14   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  331:115  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  349:14   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  358:115  error  SSOT Violation: Arbitrary Tailwind values like text-[...], shadow-[...] are strictly forbidden. Use semantic tokens from components.css instead  no-restricted-syntax
+  374:10   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  382:10   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+  404:10   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>                                              react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\drawer.tsx
+  115:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  150:16  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\fab.tsx
+  21:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\image-upload.tsx
+   81:8  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  109:8  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\input.tsx
+  15:10  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\pagination.tsx
+  20:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  32:12  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  47:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\search-bar.tsx
+  15:8   error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  23:10  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\select.tsx
+  60:8   error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+  85:18  error  <input> is forbidden, SSOT Violation: Use <Input> from @/components/ui instead of native <input>     react/forbid-elements
+  99:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\components\ui\unified-modal.tsx
+  188:18  error  <button> is forbidden, SSOT Violation: Use <Button> from @/components/ui instead of native <button>  react/forbid-elements
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\scripts\normalize-services.mjs
+  17:33  warning  'currentType' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\types\inventory.ts
+  11:51  warning  'InventoryUnit' is defined but never used  @typescript-eslint/no-unused-vars
+
+âœ– 348 problems (342 errors, 6 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

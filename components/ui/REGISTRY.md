@@ -43,6 +43,7 @@ Badge         → Status label                     | ❌ KHÔNG tự viết span
 Drawer        → Side panel / bottom sheet        | Import: @/components/ui/drawer
 Skeleton      → Loading placeholder              | Import: @/components/ui/skeleton
 KPICard       → Dashboard stat cards             | Import: @/components/ui/kpi-card
+Switch        → Toggle boolean (iOS style)       | Import: @/components/ui/switch  ❌ KHÔNG tự viết role="switch"
 ```
 
 ## CSS Tokens (KHÔNG inline)

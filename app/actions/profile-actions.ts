@@ -12,19 +12,24 @@ import { profileSchema } from "@/lib/validations/settings.schema";
 // ═══════════════════════════════════════════
 
 export async function initializeProfile() {
-  return withAuth(async (supabase) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Chưa đăng nhập");
-
-    const { data: existing } = await supabase.from("employees").select("id").eq("email", user.email).single();
+  return withAuth(async (supabase, userId) => {
+    // [GS-FIX] Dùng userId param, KHÔNG gọi getUser() trên admin client
+    const { data: existing } = await supabase.from("employees").select("id").eq("auth_user_id", userId).single();
     if (existing) return { initialized: false };
 
+    // Lấy email từ auth.users bằng admin client (service role)
+    const { data: { user: authUser } } = await supabase.auth.admin.getUserById(userId);
+    const email = authUser?.email || "unknown";
+    const fullName = authUser?.user_metadata?.full_name || email.split("@")[0] || "Nhân viên mới";
+
     const { data: newEmp, error } = await supabase.from("employees").insert({
-      full_name: user.user_metadata.full_name || user.email?.split("@")[0] || "Nhân viên mới",
-      email: user.email, role: "User",
+      full_name: fullName,
+      email: email,
+      auth_user_id: userId,  // [GS-FIX] Liên kết auth user
+      role: "User",
       employee_code: "NV-" + Date.now().toString(36).toUpperCase(),
-      department: "Chưa phân", position: "Nhân viên", status: "Đang làm",
-      start_date: new Date().toISOString(), base_salary: 0, employee_type: "Nhân viên",
+      department: "Chưa phân", position: "Nhân viên", status: "active",
+      start_date: new Date().toISOString().split("T")[0],
     }).select("id").single();
     if (error) throw new Error(`Lỗi tạo hồ sơ: ${error.message}`);
 
@@ -33,22 +38,20 @@ export async function initializeProfile() {
       action: "CREATE",
       tableName: "employees",
       recordId: newEmp?.id,
-      description: `Khởi tạo hồ sơ cho ${user.email}`,
+      description: `Khởi tạo hồ sơ cho ${email}`,
       source: "server_action",
     });
 
-    revalidatePath("/", "layout");
+    revalidatePath("/settings");
     return { initialized: true };
   });
 }
 
 export async function updateProfile(rawData: {
-  full_name: string; department?: string; phone?: string; gender?: string;
-  position?: string; bank_name?: string; bank_account_no?: string; bank_account_name?: string;
+  full_name: string; phone?: string; gender?: string;
 }) {
-  return withAuth(async (supabase) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) throw new Error("Chưa đăng nhập");
+  return withAuth(async (supabase, userId) => {
+    // [GS-FIX] Dùng userId param, KHÔNG gọi getUser()
 
     // ── Zod validation ──
     const parsed = profileSchema.safeParse(rawData);
@@ -57,26 +60,24 @@ export async function updateProfile(rawData: {
       throw new Error(firstError);
     }
 
-    const { full_name, phone, gender, bank_name, bank_account_no, bank_account_name } = parsed.data;
+    const { full_name, phone, gender } = parsed.data;
 
     const updateData: Record<string, string | null> = { full_name };
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
     if (gender !== undefined) updateData.gender = gender?.trim() || null;
-    if (bank_name !== undefined) updateData.bank_name = bank_name?.trim() || null;
-    if (bank_account_no !== undefined) updateData.bank_account_no = bank_account_no?.trim() || null;
-    if (bank_account_name !== undefined) updateData.bank_account_name = bank_account_name?.trim() || null;
 
-    // Allow department/position only from validated data pass-through (not in Zod — admin-only fields)
-    if (rawData.department !== undefined) updateData.department = rawData.department.trim() || null;
-    if (rawData.position !== undefined) updateData.position = rawData.position.trim() || null;
+    // [GS-FIX] Lookup bằng auth_user_id
+    const { data: emp } = await supabase.from("employees").select("id").eq("auth_user_id", userId).single();
+    if (!emp) throw new Error("Không tìm thấy hồ sơ nhân viên");
 
-    const { error } = await supabase.from("employees").update(updateData).eq("email", user.email);
+    const { error } = await supabase.from("employees").update(updateData).eq("id", emp.id);
     if (error) throw new Error(`Lỗi cập nhật hồ sơ: ${error.message}`);
 
-    // Audit: profile update
+    // Audit: profile update [GS-FIX] có recordId
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
+      recordId: emp.id,
       description: `Cập nhật hồ sơ: ${full_name}`,
       newData: updateData,
       source: "server_action",
@@ -88,9 +89,8 @@ export async function updateProfile(rawData: {
 }
 
 export async function uploadAvatar(formData: FormData) {
-  return withAuth(async (supabase) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) throw new Error("Chưa đăng nhập");
+  return withAuth(async (supabase, userId) => {
+    // [GS-FIX] Dùng userId param, KHÔNG gọi getUser()
 
     const file = formData.get("avatar") as File;
     if (!file || file.size === 0) throw new Error("Chưa chọn ảnh");
@@ -98,7 +98,8 @@ export async function uploadAvatar(formData: FormData) {
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) throw new Error("Chỉ chấp nhận JPG, PNG, WEBP");
 
-    const { data: emp } = await supabase.from("employees").select("id, avatar_url").eq("email", user.email).single();
+    // [GS-FIX] Lookup bằng auth_user_id
+    const { data: emp } = await supabase.from("employees").select("id, avatar_url").eq("auth_user_id", userId).single();
     if (!emp) throw new Error("Không tìm thấy hồ sơ");
 
     // Delete old avatar
@@ -128,7 +129,6 @@ export async function uploadAvatar(formData: FormData) {
     });
 
     revalidatePath("/settings");
-    revalidatePath("/", "layout");
     return { url: publicUrl };
   });
 }

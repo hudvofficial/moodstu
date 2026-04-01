@@ -29,7 +29,8 @@ export function CustomSelect({
   error,
   className,
   searchable = true,
-}: CustomSelectProps) {
+  disabled = false,
+}: CustomSelectProps & { disabled?: boolean }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -56,14 +57,17 @@ export function CustomSelect({
       {label && <label className="label-base">{label}</label>}
       
       {/* Trigger — dùng .input-base + .select-trigger SSOT */}
+      {/* eslint-disable-next-line react/forbid-elements -- base UI component */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
         className={cn(
           "input-base select-trigger",
           isOpen && "ring-2 ring-primary/30",
           error && "input-error",
-          !selectedOption && "text-text-muted"
+          !selectedOption && "text-text-muted",
+          disabled && "opacity-50 cursor-not-allowed"
         )}
       >
         <span className="truncate">
@@ -79,6 +83,7 @@ export function CustomSelect({
             <div className="p-3 bg-bg-base/30">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+                {/* eslint-disable-next-line react/forbid-elements -- base UI component */}
                 <input
                   autoFocus
                   className="input-base pl-9 pr-4 py-2 text-xs"
@@ -93,9 +98,10 @@ export function CustomSelect({
           <div className="max-h-60 overflow-y-auto p-1.5 scrollbar-hide">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => {
+                <React.Fragment key={option.value}>
+                  {/* eslint-disable-next-line react/forbid-elements -- base UI component */}
+                  <button
+                    onClick={() => {
                     onChange(option.value);
                     setIsOpen(false);
                     setSearch("");
@@ -110,6 +116,7 @@ export function CustomSelect({
                   {option.label}
                   {value === option.value && <Check className="w-3.5 h-3.5" />}
                 </button>
+                </React.Fragment>
               ))
             ) : (
               <div className="p-4 text-center text-xs text-text-muted">

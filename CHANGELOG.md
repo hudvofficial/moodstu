@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.57] - 2026-04-02
+### Added
+- **Settings Module V2 Business Logic (Phase 1 & 2)**: Comprehensive refactoring of server actions for profile, notifications, and studio info.
+- **Auth User ID Lookup Pattern**: Replaced fragile email-based employee lookups with `auth_user_id` linked directly to Supabase Auth UUIDs.
+- **Atomic Optimistic Locking**: Hardened `updateStudioInfo` mutation with atomic version checks (`updated_at`) to prevent race conditions.
+- **Zod Data Integrity**: Implemented `settings.schema.ts` for all mutation actions, ensuring strict type-safety and field validation.
+- **Audit Log Coverage**: Added `recordId` and full `oldData`/`newData` diffing for Settings audit logs.
+
+### Fixed
+- **Auth Core (withAdmin)**: Resolved case-sensitivity in role checking and fixed RLS block in fallback queries by correctly using cached admin client.
+- **DB Schema Mismatch**: Removed non-existent columns (`bank_name`, `salary_info`, etc.) from profile actions to fix server-side execution errors.
+- **Dead Code Removal**: Deleted redundant `user-management-actions.ts`.
+
 ## [1.1.56] - 2026-03-31 (WIP)
 ### Fixed
 - **Quote Modal Layout**: Identified critical 1375px width regression vs V1 340px parity.

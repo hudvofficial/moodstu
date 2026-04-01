@@ -50,9 +50,6 @@ export const profileSchema = z.object({
   full_name: z.string().min(1, "Tên không được để trống").max(100, "Tên tối đa 100 ký tự"),
   phone: z.string().max(20, "SĐT tối đa 20 ký tự").optional(),
   gender: z.string().max(20).optional(),
-  bank_name: z.string().max(100, "Tên NH tối đa 100 ký tự").optional(),
-  bank_account_no: z.string().max(50, "STK tối đa 50 ký tự").optional(),
-  bank_account_name: z.string().max(100, "Tên chủ TK tối đa 100 ký tự").optional(),
 });
 
 export type ValidatedProfile = z.infer<typeof profileSchema>;

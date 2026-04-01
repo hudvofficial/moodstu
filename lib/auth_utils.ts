@@ -57,15 +57,16 @@ export async function withAdmin<T>(
     const jwtRole = user.app_metadata?.role;
     const adminRoles = ["admin", "manager"];
 
-    if (!adminRoles.includes(jwtRole)) {
-      // Fallback: check employees table
-      const { data: employee } = await supabase
+    if (!adminRoles.includes(jwtRole?.toLowerCase())) {
+      // Fallback: check employees table (use admin client to bypass RLS)
+      const adminFallback = await createAdminClient();
+      const { data: employee } = await adminFallback
         .from("employees")
         .select("role")
         .eq("auth_user_id", user.id)
         .single();
 
-      if (!employee || !adminRoles.includes(employee.role)) {
+      if (!employee || !adminRoles.includes(employee.role?.toLowerCase())) {
         return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
       }
     }

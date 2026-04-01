@@ -26,19 +26,6 @@ export async function updateStudioInfo(rawData: Record<string, unknown>) {
 
     const { expected_updated_at, ...updateFields } = parsed.data;
 
-    // ── Optimistic locking ──
-    if (expected_updated_at) {
-      const { data: current } = await adminClient
-        .from("studio_info")
-        .select("updated_at")
-        .limit(1)
-        .single();
-
-      if (current?.updated_at && current.updated_at !== expected_updated_at) {
-        throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng tải lại trang.");
-      }
-    }
-
     // ── Fetch old data for audit diff ──
     const { data: oldData } = await adminClient
       .from("studio_info")
@@ -46,24 +33,37 @@ export async function updateStudioInfo(rawData: Record<string, unknown>) {
       .limit(1)
       .single();
 
-    // ── Execute update ──
-    const { data: updated, error } = await adminClient
+    if (!oldData) throw new Error("Không tìm thấy thông tin studio");
+
+    // ── Atomic optimistic lock: update only if updated_at matches ──
+    let query = adminClient
       .from("studio_info")
       .update({
         ...updateFields,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", oldData?.id)
-      .select("*")
-      .single();
+      .eq("id", oldData.id);
 
-    if (error) throw new Error(`Lỗi cập nhật studio: ${error.message}`);
+    // Nếu client gửi expected_updated_at → thêm điều kiện lock
+    if (expected_updated_at) {
+      query = query.eq("updated_at", expected_updated_at);
+    }
+
+    const { data: updated, error } = await query.select("*").single();
+
+    if (error || !updated) {
+      // Nếu không update được row nào → conflict
+      if (!updated && !error) {
+        throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng tải lại trang.");
+      }
+      throw new Error(`Lỗi cập nhật studio: ${error?.message || "Unknown"}`);
+    }
 
     // ── Audit log ──
     fireAuditLog({
       action: "UPDATE",
       tableName: "studio_info",
-      recordId: oldData?.id,
+      recordId: updated.id,
       oldData: oldData as Record<string, unknown>,
       newData: updated as Record<string, unknown>,
       description: `Cập nhật thông tin studio: ${updateFields.name}`,

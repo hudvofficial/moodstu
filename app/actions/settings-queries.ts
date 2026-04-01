@@ -41,29 +41,27 @@ export async function getStudioInfo() {
 
 // ─── GET SETTINGS PAGE DATA ───────────────
 
-/** Parallel fetch for settings page (employee + prefs + admin check) */
+/** Fetch settings page data — employee + notification prefs + admin check */
 export async function getSettingsPageData(): Promise<SettingsPageData | null> {
-  const result = await withAuth(async (supabase) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) throw new Error("Chưa đăng nhập");
-
-    // Parallel fetch for performance
-    const [empResult, prefsResult] = await Promise.all([
-      supabase
-        .from("employees")
-        .select("id, full_name, email, phone, avatar_url, department, position, role, gender, bank_name, bank_account_no, bank_account_name")
-        .eq("email", user.email)
-        .single(),
-      supabase
-        .from("notification_preferences")
-        .select("onsite_reminder, deadline_reminder, overdue_alert, task_assignment, system_alerts, updated_at")
-        .eq("employee_id", user.id)
-        .single(),
-    ]);
+  const result = await withAuth(async (supabase, userId) => {
+    // [GS-FIX] Dùng userId param từ withAuth, KHÔNG gọi getUser() trên admin client
+    // [GS-FIX] Lookup bằng auth_user_id, KHÔNG dùng email (fragile)
+    const empResult = await supabase
+      .from("employees")
+      .select("id, full_name, email, phone, avatar_url, department, position, role, gender")
+      .eq("auth_user_id", userId)
+      .single();
 
     if (empResult.error || !empResult.data) {
       throw new Error("Không tìm thấy hồ sơ nhân viên");
     }
+
+    // [C5-FIX] Dùng employee.id (UUID employees table), KHÔNG dùng userId (auth UUID)
+    const prefsResult = await supabase
+      .from("notification_preferences")
+      .select("onsite_reminder, deadline_reminder, overdue_alert, task_assignment, system_alerts, updated_at")
+      .eq("employee_id", empResult.data.id)
+      .single();
 
     const defaults = {
       onsite_reminder: true,

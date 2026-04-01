@@ -30,19 +30,19 @@ export interface AppNotification {
 export type { NotificationPreferences } from "@/types/settings";
 
 // ─── HELPER: Get employee ID ──────────────────
+// [GS-FIX] Dùng userId param, KHÔNG gọi getUser() trên admin client
+// [GS-FIX] Lookup bằng auth_user_id, KHÔNG dùng email
 
-async function getEmployeeId(supabase: Parameters<Parameters<typeof withAuth>[0]>[0]): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) return null;
-  const { data: emp } = await supabase.from("employees").select("id").eq("email", user.email).single();
+async function getEmployeeId(supabase: Parameters<Parameters<typeof withAuth>[0]>[0], userId: string): Promise<string | null> {
+  const { data: emp } = await supabase.from("employees").select("id").eq("auth_user_id", userId).single();
   return emp?.id || null;
 }
 
 // ─── GET UNREAD COUNT ─────────────────────────
 
 export async function getUnreadCount(): Promise<number> {
-  const result = await withAuth(async (supabase) => {
-    const empId = await getEmployeeId(supabase);
+  const result = await withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
     if (!empId) return 0;
     const { count } = await supabase.from("notification_queue").select("id", { count: "exact", head: true }).eq("employee_id", empId).is("read_at", null);
     return count || 0;
@@ -53,8 +53,8 @@ export async function getUnreadCount(): Promise<number> {
 // ─── GET NOTIFICATIONS (Paginated) ────────────
 
 export async function getNotifications(offset: number = 0, limit: number = 20) {
-  return withAuth(async (supabase) => {
-    const empId = await getEmployeeId(supabase);
+  return withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
     if (!empId) throw new Error("Chưa đăng nhập");
 
     const { data, count, error } = await supabase
@@ -81,8 +81,8 @@ export async function markAsRead(id: string) {
 // ─── MARK ALL AS READ ─────────────────────────
 
 export async function markAllAsRead() {
-  return withAuth(async (supabase) => {
-    const empId = await getEmployeeId(supabase);
+  return withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
     if (!empId) throw new Error("Không tìm thấy nhân viên");
     const { error } = await supabase.from("notification_queue").update({ read_at: new Date().toISOString() }).eq("employee_id", empId).is("read_at", null);
     if (error) throw new Error(`Lỗi đánh dấu tất cả: ${error.message}`);
@@ -93,8 +93,8 @@ export async function markAllAsRead() {
 // ─── GET PREFERENCES ──────────────────────────
 
 export async function getNotificationPreferences() {
-  return withAuth(async (supabase) => {
-    const empId = await getEmployeeId(supabase);
+  return withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
     if (!empId) throw new Error("Chưa đăng nhập");
 
     const { data } = await supabase.from("notification_preferences").select("employee_id, onsite_reminder, deadline_reminder, overdue_alert, task_assignment, system_alerts").eq("employee_id", empId).single();
@@ -106,8 +106,8 @@ export async function getNotificationPreferences() {
 // ─── UPDATE PREFERENCES ───────────────────────
 
 export async function updateNotificationPreferences(rawPrefs: Record<string, boolean>) {
-  return withAuth(async (supabase) => {
-    const empId = await getEmployeeId(supabase);
+  return withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
     if (!empId) throw new Error("Không tìm thấy nhân viên");
 
     // ── Zod validation ──

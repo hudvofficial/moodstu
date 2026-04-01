@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-01T16:30:00+07:00"
+    "last_updated": "2026-04-02T00:30:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -23,7 +23,8 @@
     "summary": "Core: contracts, services, service_categories. Settings: studio_info, employees, notification_preferences.",
     "new_tables": [
       { "name": "services", "columns": ["id", "service_code", "name", "category_id", "selling_price", "status"] },
-      { "name": "service_categories", "columns": ["id", "name", "slug"] }
+      { "name": "service_categories", "columns": ["id", "name", "slug"] },
+      { "name": "employees", "columns": ["id", "auth_user_id", "full_name", "email", "role", "status", "department", "position"] }
     ]
   },
   "api_endpoints": [
@@ -35,7 +36,7 @@
     { "type": "Server Action", "path": "app/actions/settings-queries.ts", "actions": ["getStudioInfoAdmin", "getStudioInfo", "getSettingsPageData"] },
     { "type": "Server Action", "path": "app/actions/settings-mutations.ts", "actions": ["updateStudioInfo", "disconnectGoogleCalendar"] },
     { "type": "Server Action", "path": "app/actions/profile-actions.ts", "actions": ["initializeProfile", "updateProfile", "uploadAvatar"] },
-    { "type": "Server Action", "path": "app/actions/notification-actions.ts" }
+    { "type": "Server Action", "path": "app/actions/notification-actions.ts", "actions": ["updateNotificationPreferences"] }
   ],
   "design_system": {
     "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
@@ -59,6 +60,14 @@
         "details": "Read-only actions (settings-queries) employ withAuth/withAdmin but rarely need Zod. Mutating actions (settings-mutations) MUST have strict Zod validation via safeParse, optimistic locking handling, and invoke fireAuditLog immediately upon successful DB operation."
       },
       {
+        "name": "Atomic Optimistic Locking",
+        "details": "When performing updates that depend on a previous state (optimistic locking), combine the version check (e.g., .eq('updated_at', expected)) into the update query itself to ensure atomicity and avoid race conditions."
+      },
+      {
+        "name": "Auth User ID Lookup Pattern",
+        "details": "Never use email to link Auth users to application entities (e.g., employees). Always uses the auth_user_id (UUID) from Supabase. Use a separate column in the target table to map this relationship."
+      },
+      {
         "name": "Centralized Types Re-export",
         "details": "Types corresponding to database schemas should exist in a module-focused SSOT type file (e.g., types/settings.ts) and be re-exported individually into dependents to avoid duplication."
       },
@@ -74,6 +83,7 @@
     "gotchas": [
       "z.ZodError objects expose an .issues array (not .errors). Use parsed.error.issues[0]?.message for formatting safeParse errors.",
       "withAdmin(async (adminClient) => ...) signature: The HOF parameter is not destructured. Do not use { adminClient }.",
+      "employees table often lacks columns present in older V1 schemas (e.g., bank info, salary context). Always verify against current DB schema before coding actions.",
       "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints.",
       "Import order in design-system.css is critical. Utilities MUST load after Typography to allow color overrides."
     ]
