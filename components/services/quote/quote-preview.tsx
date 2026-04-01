@@ -35,7 +35,7 @@ export default function QuotePreview({
     <div className="bg-bg-card text-text-main w-full min-w-0 shadow-md rounded-2xl overflow-hidden relative px-6 pb-6 pt-4 flex flex-col">
       {/* 1. HEADER */}
       <div className="mb-2 text-center">
-        <h3 className="text-h3 text-primary mb-0.5 leading-tight wrap-break-word line-clamp-2">
+        <h3 className="text-h3 text-interactive mb-0.5 leading-tight wrap-break-word line-clamp-2">
           {serviceName || "Tên dịch vụ"}
         </h3>
         <p className="text-caption font-bold tracking-wide text-text-secondary">
@@ -82,7 +82,7 @@ export default function QuotePreview({
           Giá trọn gói
         </p>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-amount font-black text-primary tracking-tighter tabular-nums">
+          <span className="text-amount font-black text-interactive tracking-tighter tabular-nums">
             {sellingPrice > 0
               ? formatCurrency(sellingPrice).replace("₫", "")
               : "0"}

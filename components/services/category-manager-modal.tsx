@@ -160,7 +160,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
         isOpen={isOpen}
         onClose={onClose}
         title="Quản lý danh mục dịch vụ"
-        size="md"
+        size="lg"
         className="max-h-[85vh] flex flex-col"
       >
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
@@ -172,7 +172,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
             </h3>
             
             <form onSubmit={handleSave} className="flex gap-2 items-end">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <label className="label-base block mb-1">Tên danh mục <span className="text-error">*</span></label>
                 <Input
                   value={name}
@@ -184,7 +184,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                 />
               </div>
               
-              <div className="w-24">
+              <div className="w-24 shrink-0">
                 <label className="label-base block mb-1">Icon (tùy chọn)</label>
                 <Input
                   value={icon}
@@ -195,7 +195,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                 />
               </div>
               
-              <div className="flex gap-1 h-10 w-auto shrink-0 mb-0.5">
+              <div className="flex gap-1 shrink-0">
                 {editingId ? (
                   <>
                     <Button
@@ -243,9 +243,9 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
             ) : (
               <div className="border border-border-base rounded-lg overflow-hidden divide-y divide-border-base">
                 {localCategories.map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between p-3 hover:bg-bg-hover transition-colors bg-white">
+                  <div key={cat.id} className="flex items-center justify-between p-3 hover:bg-bg-hover transition-colors bg-bg-card">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-bg-hover text-accent flex items-center justify-center shrink-0">
                         {cat.icon ? (
                           <>{React.createElement(resolveIcon(cat.icon), { size: 16 })}</>
                         ) : (
@@ -254,7 +254,6 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
                       </div>
                       <div>
                         <div className="text-sm font-medium text-text-main">{cat.name}</div>
-                        <div className="text-caption text-text-muted mt-0.5">/{cat.slug}</div>
                       </div>
                     </div>
                     

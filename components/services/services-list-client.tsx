@@ -29,8 +29,7 @@ export default function ServicesListClient({
 }: Props) {
   // ── State ──────────────────────────────────
   const router = useRouter();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [search, setSearch] = useState("");
+
   const [categoryId, setCategoryId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -38,23 +37,9 @@ export default function ServicesListClient({
 
   // ── Client-side filtering ──────────────────
   const filteredServices = useMemo(() => {
-    let result = initialServices;
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.service_code.toLowerCase().includes(q)
-      );
-    }
-
-    if (categoryId) {
-      result = result.filter((s) => s.category_id === categoryId);
-    }
-
-    return result;
-  }, [initialServices, search, categoryId]);
+    if (!categoryId) return initialServices;
+    return initialServices.filter((s) => s.category_id === categoryId);
+  }, [initialServices, categoryId]);
 
   // ── Stats ──────────────────────────────────
   const stats = useMemo(
@@ -102,14 +87,14 @@ export default function ServicesListClient({
       {filteredServices.length === 0 ? (
         <EmptyState
           icon={Package}
-          title={search || categoryId ? "Không tìm thấy dịch vụ" : "Chưa có dịch vụ nào"}
+          title={categoryId ? "Không tìm thấy dịch vụ" : "Chưa có dịch vụ nào"}
           description={
-            search || categoryId
+            categoryId
               ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
               : "Bắt đầu bằng cách thêm dịch vụ đầu tiên cho studio."
           }
-          actionLabel={!search && !categoryId ? "Thêm dịch vụ" : undefined}
-          onAction={!search && !categoryId ? handleCreate : undefined}
+          actionLabel={!categoryId ? "Thêm dịch vụ" : undefined}
+          onAction={!categoryId ? handleCreate : undefined}
         />
       ) : viewMode === "grid" ? (
         <ServiceGrid

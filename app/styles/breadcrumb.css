@@ -1,0 +1,36 @@
+/* ═══════════════════════════════════════════
+   breadcrumb.css — Shared navigation breadcrumb
+   Part of: Mood Studio Design System
+   Source: components.css §8
+   Dùng bởi: Breadcrumb FC (components/ui/breadcrumb.tsx)
+   ═══════════════════════════════════════════ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.breadcrumb-link {
+  transition: color 150ms ease-out;
+}
+
+.breadcrumb-link:hover {
+  color: var(--color-primary);
+}
+
+.breadcrumb-separator {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.breadcrumb-current {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}

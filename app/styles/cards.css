@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════════
+   cards.css — Base, interactive, stats, accent cards
+   Part of: Mood Studio Design System
+   Source: pages.css §2 + components.css §1
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. BASE CARDS
+   ══════════════════════════════════════ */
+
+.card-base {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card-interactive {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-interactive:active {
+  transform: scale(0.98);
+}
+
+.stats-card {
+  background: var(--color-bg-card);
+  padding: var(--spacing-base);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ══════════════════════════════════════
+   2. ACCENT CARDS
+   ══════════════════════════════════════ */
+
+/* Accent Card System — reusable card with left border accent */
+/* Kế thừa V1: border-left-4, earth-tone hóa cho V2, SSOT tokens */
+.accent-card {
+  padding: 20px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Variants — chỉ đổi border-left color */
+.accent-card-rose   { border-left: 3px solid #e88ca0; }
+.accent-card-sky    { border-left: 3px solid #7db4d4; }
+.accent-card-gold   { border-left: 3px solid var(--color-accent); }
+.accent-card-green  { border-left: 3px solid #6dba82; }
+.accent-card-orange { border-left: 3px solid var(--color-interactive); }
+
+/* Accent icon + text colors — no inline Tailwind needed */
+.accent-icon-rose { color: #e88ca0; }
+.accent-text-rose { color: #c0566d; }
+.accent-icon-sky  { color: #7db4d4; }
+.accent-text-sky  { color: #4a8aaf; }

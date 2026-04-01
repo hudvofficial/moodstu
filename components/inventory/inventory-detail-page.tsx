@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/ux-states";
 import { StockInModal } from "@/components/inventory/stock-in-modal";
@@ -212,17 +213,19 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
 
           {/* Action buttons — inline header */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setShowEdit(true)}
-              className="btn btn-secondary gap-1.5"
+              className="gap-1.5"
             >
               <Pencil className="w-4 h-4" />
               <span className="hidden sm:inline">Sửa</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={handleDelete}
               disabled={actionLoading}
-              className="btn btn-secondary gap-1.5 text-error"
+              className="gap-1.5 text-error"
             >
               {actionLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -230,7 +233,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
                 <Trash2 className="w-4 h-4" />
               )}
               <span className="hidden sm:inline">Xóa</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -268,20 +271,22 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
               {/* Stock Actions CTA */}
               <div className="card-base p-4 space-y-2.5 entrance entrance-2">
                 <h3 className="text-overline mb-3">Quản lý kho</h3>
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => setShowStockIn(true)}
-                  className="btn btn-primary w-full gap-2"
+                  className="w-full gap-2"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
                   Nhập kho
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => setShowStockOut(true)}
-                  className="btn btn-secondary w-full gap-2"
+                  className="w-full gap-2"
                 >
                   <ArrowUpFromLine className="w-4 h-4" />
                   Xuất kho
-                </button>
+                </Button>
               </div>
 
               {/* Summary Stats */}
@@ -311,20 +316,22 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
 
           {/* Stock Actions — 2 buttons horizontal */}
           <div className="flex gap-2 entrance entrance-3">
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowStockIn(true)}
-              className="btn btn-primary flex-1 gap-2"
+              className="flex-1 gap-2"
             >
               <ArrowDownToLine className="w-4 h-4" />
               Nhập kho
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => setShowStockOut(true)}
-              className="btn btn-secondary flex-1 gap-2"
+              className="flex-1 gap-2"
             >
               <ArrowUpFromLine className="w-4 h-4" />
               Xuất kho
-            </button>
+            </Button>
           </div>
 
           {/* Transaction History */}

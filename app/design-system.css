@@ -6,18 +6,57 @@
    File này là INDEX — chỉ chứa @import.
    Sửa nội dung → vào file tương ứng trong app/styles/
 
-   Load order quan trọng:
-   1. utilities  (scrollbar, :root additions)
-   2. typography (text scales)
-   3. components (cards, buttons, dropdowns)
-   4. forms      (@layer base phải đặt sau utilities)
-   5. select     (Radix Select — dùng biến từ forms)
-   6. pages      (detail grid, animations, badges)
+   Load order quan trọng (Phase 01 Restructure):
+   ─────────────────────────────────────────
+   Layer 1 — Foundation
+     1. theme        (token overrides — placeholder)
+     2. base         (element resets — placeholder)
+   Layer 2 — Utilities & Typography
+     3. utilities    (scrollbar, :root additions, text colors)
+     4. typography   (text scales, progress, section headers)
+   Layer 3 — Components (modular)
+     5. layout       (main-container, detail-grid, icon-box)
+     6. cards        (card-base, stats-card, accent-card)
+     7. buttons      (btn-cta, btn-primary, btn-icon, etc.)
+     8. badges       (badge, badge-solid, tag-badge)
+     9. tabs         (tab-pill, tab-pill-active/inactive)
+    10. modals       (modal-overlay/card/header/body/footer)
+    11. dropdowns    (portal, inline, grouped, search)
+    12. breadcrumb   (breadcrumb nav links)
+    13. tables       (section-title, table-header)
+    14. animations   (keyframes, entrance, stagger, skeleton)
+   Layer 4 — Forms
+    15. forms        (@layer base, form inputs)
+    16. select       (Radix Select — dùng biến từ forms)
+   Layer 5 — Deprecated (sẽ xóa Phase 04)
+    17. components   (rỗng — đã migrate)
+    18. pages        (rỗng — đã migrate)
    ═══════════════════════════════════════════ */
 
+/* Layer 1 — Foundation */
+@import "./styles/theme.css";
+@import "./styles/base.css";
+
+/* Layer 2 — Utilities & Typography */
 @import "./styles/utilities.css";
 @import "./styles/typography.css";
-@import "./styles/components.css";
+
+/* Layer 3 — Components (modular) */
+@import "./styles/layout.css";
+@import "./styles/cards.css";
+@import "./styles/buttons.css";
+@import "./styles/badges.css";
+@import "./styles/tabs.css";
+@import "./styles/modals.css";
+@import "./styles/dropdowns.css";
+@import "./styles/breadcrumb.css";
+@import "./styles/tables.css";
+@import "./styles/animations.css";
+
+/* Layer 4 — Forms */
 @import "./styles/forms.css";
 @import "./styles/select.css";
+
+/* Layer 5 — Deprecated (Phase 04 sẽ xóa) */
+@import "./styles/components.css";
 @import "./styles/pages.css";

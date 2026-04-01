@@ -6,13 +6,24 @@ import { Button } from "@/components/ui/button";
 import { CalculationResult } from "@/lib/logic/bundle-calculator";
 import Image from "next/image";
 
+interface QuoteItem {
+  service_name: string;
+  selling_price: number;
+  quantity: number;
+  unit?: string;
+  image_url?: string;
+}
+
+interface ParentServiceInfo {
+  service_name?: string;
+  image_url?: string;
+}
+
 interface QuoteModernViewProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  items: Record<string, any>[];
+  items: QuoteItem[];
   calculation: CalculationResult;
   onClose: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parentService?: Record<string, any>;
+  parentService?: ParentServiceInfo;
 }
 
 export default function QuoteModernView({

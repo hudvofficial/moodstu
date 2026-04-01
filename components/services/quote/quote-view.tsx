@@ -105,7 +105,7 @@ export default function QuoteView({ service, studio }: Props) {
                   <p className="text-overline text-text-muted mb-1">
                     {studioName} · Báo giá dịch vụ
                   </p>
-                  <h1 className="text-h1 font-black text-text-main leading-tight">
+                  <h1 className="text-h1 font-black text-interactive leading-tight">
                     {service.name}
                   </h1>
                   <div className="flex items-center gap-2 mt-2">
@@ -163,7 +163,7 @@ export default function QuoteView({ service, studio }: Props) {
                 Giá trọn gói
               </p>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-amount font-black text-primary tabular-nums tracking-tighter">
+                <span className="text-amount font-black text-interactive tabular-nums tracking-tighter">
                   {formattedPrice.replace("₫", "").trim()}
                 </span>
                 <span className="text-caption font-bold text-text-muted">VNĐ</span>
@@ -266,7 +266,7 @@ export default function QuoteView({ service, studio }: Props) {
               {studioName} · Báo giá
             </p>
           </div>
-          <h1 className="text-h1 font-black text-text-main leading-tight mb-2">
+          <h1 className="text-h1 font-black text-interactive leading-tight mb-2">
             {service.name}
           </h1>
           <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export default function QuoteView({ service, studio }: Props) {
           <div className="flex-1 min-w-0">
             <p className="text-overline text-text-muted">Trọn gói</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-amount font-black text-primary tabular-nums">
+              <span className="text-amount font-black text-interactive tabular-nums">
                 {formattedPrice.replace("₫", "").trim()}
               </span>
               <span className="text-caption font-bold text-text-muted">VNĐ</span>

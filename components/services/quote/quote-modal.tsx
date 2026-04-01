@@ -125,7 +125,7 @@ export default function QuoteModal({ service, onClose }: Props) {
                 {studioName} · Báo giá dịch vụ
               </p>
 
-              <h2 className="text-white text-h3 font-bold leading-snug">
+              <h2 className="text-interactive-light text-h3 font-bold leading-snug">
                 {service.name}
               </h2>
 
@@ -139,10 +139,10 @@ export default function QuoteModal({ service, onClose }: Props) {
               <div className="mt-3 pt-3">
                 <div className="bg-white/15 h-px -mx-6 mb-3" />
                 <div className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-h1 font-black text-amber-100 tracking-tighter tabular-nums leading-none drop-shadow-sm">
+                  <span className="text-h1 font-black text-interactive-light tracking-tighter tabular-nums leading-none drop-shadow-sm">
                     {formatCurrency(service.selling_price).replace("₫", "")}
                   </span>
-                  <span className="text-caption font-bold text-amber-200/80">
+                  <span className="text-caption font-bold text-interactive-light opacity-80">
                     VNĐ
                   </span>
                 </div>

@@ -28,7 +28,7 @@ function ServiceFiltersInner({
   const categoryTabs = useMemo(() => {
     const tabs = [{ label: "Tất cả", value: "" }];
     categories.forEach((cat) =>
-      tabs.push({ label: cat.icon ? `${cat.icon} ${cat.name}` : cat.name, value: cat.id })
+      tabs.push({ label: cat.name, value: cat.id })
     );
     return tabs;
   }, [categories]);

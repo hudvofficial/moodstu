@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════
+   dropdowns.css — Portal, inline, grouped, search dropdowns
+   Part of: Mood Studio Design System
+   Source: components.css §2, §3, §8.5
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. GROUPED DROPDOWN COLORS
+   gold = Moodstudio (brand primary), rose = Photo, sky = Media
+   ══════════════════════════════════════ */
+
+.group-header-gold {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: #8b6914;
+  border-left-color: var(--color-accent);
+}
+.group-option-gold { border-left-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
+
+.group-header-rose {
+  background: color-mix(in srgb, #e88ca0 12%, transparent);
+  color: #c0566d;
+  border-left-color: #e88ca0;
+}
+.group-option-rose { border-left-color: color-mix(in srgb, #e88ca0 40%, transparent); }
+
+.group-header-sky {
+  background: color-mix(in srgb, #7db4d4 12%, transparent);
+  color: #4a8aaf;
+  border-left-color: #7db4d4;
+}
+.group-option-sky { border-left-color: color-mix(in srgb, #7db4d4 40%, transparent); }
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  .group-header-gold { background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: #d4b45c; }
+  .group-header-rose { background: color-mix(in srgb, #e88ca0 15%, transparent); color: #f0a0b2; }
+  .group-header-sky  { background: color-mix(in srgb, #7db4d4 15%, transparent); color: #92c8e4; }
+}
+
+/* ══════════════════════════════════════
+   2. SEARCH DROPDOWN
+   Customer search dropdown, reusable cho mọi search+create
+   ══════════════════════════════════════ */
+
+/* Sticky header phân nhóm kết quả ("Khách hàng cũ", etc.) */
+.dropdown-section-label {
+  position: sticky;
+  top: 0;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-hover);
+  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Sticky bottom — hành động tạo mới (V1 pattern) */
+.dropdown-create-action {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-interactive);
+  font-weight: 600;
+  font-size: var(--font-size-body-sm);
+  transition: background 150ms ease;
+  text-align: left;
+}
+.dropdown-create-action:hover {
+  background: var(--color-interactive-light);
+}
+
+/* Icon tròn trong create action */
+.dropdown-create-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: rgba(207, 103, 23, 0.1); /* interactive/10 */
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════
+   3. DROPDOWN LISTS
+   Reusable cho mọi dropdown (portal hoặc inline)
+   ══════════════════════════════════════ */
+
+.portal-dropdown {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dropdown-inline {
+  margin-top: 4px;
+  max-height: 192px; /* 48 * 4px = 12rem */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 20;
+}

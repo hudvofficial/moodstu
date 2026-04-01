@@ -85,6 +85,19 @@
 }
 
 /* ══════════════════════════════════════
+   6. TEXT COLOR UTILITIES (interactive palette)
+   Tailwind v4 @theme KHÔNG tự sinh text-* từ --color-*.
+   Khai báo thủ công để dùng text-interactive, text-interactive-light.
+   ══════════════════════════════════════ */
+
+.text-interactive {
+  color: var(--color-interactive);
+}
+.text-interactive-light {
+  color: var(--color-interactive-light);
+}
+
+/* ══════════════════════════════════════
    6. DARK MODE PREP (uncomment khi cần)
    ══════════════════════════════════════ */
 

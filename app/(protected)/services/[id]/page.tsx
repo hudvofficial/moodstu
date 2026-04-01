@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
 import ServiceForm from "@/components/services/form";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getServiceById, getServiceCategories, getBundleItems } from "@/app/actions/service-queries";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 
@@ -58,25 +57,12 @@ export default async function EditServicePage({ params }: Props) {
   );
 
   return (
-    <div className="main-container">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/services"
-          className="w-9 h-9 flex items-center justify-center rounded-lg bg-bg-hover hover:bg-bg-sidebar transition-colors text-text-muted hover:text-text-main"
-        >
-          <ArrowLeft className="w-4.5 h-4.5" />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-text-main flex items-center gap-2 truncate">
-            <Pencil className="w-4 h-4 text-primary shrink-0" />
-            {service.name}
-          </h1>
-          <p className="text-caption text-text-muted">
-            Chỉnh sửa dịch vụ · {service.service_code}
-          </p>
-        </div>
-      </div>
+    <div className="main-container gap-4!">
+      {/* Breadcrumb — Gold Standard (giống Employees/Inventory/Contracts) */}
+      <Breadcrumb items={[
+        { label: "Dịch vụ", href: "/services" },
+        { label: service.name },
+      ]} />
 
       {/* Form (Edit mode) */}
       <ServiceForm

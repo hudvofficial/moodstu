@@ -1,0 +1,100 @@
+/* ═══════════════════════════════════════════
+   layout.css — Main container, detail grid, icon box, links, disabled
+   Part of: Mood Studio Design System
+   Source: components.css §5 + pages.css §1, §7
+   ═══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   1. MAIN CONTAINER
+   ══════════════════════════════════════ */
+
+.main-container {
+  width: 100%;
+  padding: var(--spacing-main-y) var(--spacing-sm) var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+}
+
+@media (min-width: 1024px) {
+  .main-container {
+    padding: var(--spacing-sm) var(--spacing-xl) var(--spacing-xl);
+    gap: var(--spacing-xl);
+  }
+}
+
+/* ══════════════════════════════════════
+   2. DETAIL PAGE LAYOUT
+   Grid 2 cột dùng cho các trang detail (contract, CRM, etc.)
+   ══════════════════════════════════════ */
+
+/* Mobile-first: 1 cột stack */
+.detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 24px);
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 24px);
+}
+
+.detail-sidebar {
+  display: none;
+  flex-direction: column;
+  gap: var(--spacing-lg, 24px);
+}
+
+/* Desktop: grid 12 cột (≥1024px) */
+@media (min-width: 1024px) {
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .detail-main {
+    grid-column: span 8 / span 8;
+  }
+  .detail-sidebar {
+    display: flex;
+    grid-column: span 4 / span 4;
+  }
+}
+
+/* ══════════════════════════════════════
+   3. INTERACTION STATES
+   ══════════════════════════════════════ */
+
+.icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 200ms ease-out;
+}
+
+.stats-card:hover .icon-box,
+.card-interactive:hover .icon-box {
+  transform: scale(1.1);
+}
+
+.link-base {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 150ms ease-out;
+}
+
+.link-base:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

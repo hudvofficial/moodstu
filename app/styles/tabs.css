@@ -1,0 +1,49 @@
+/* ═══════════════════════════════════════════
+   tabs.css — Tab pills, compact variant
+   Part of: Mood Studio Design System
+   Source: pages.css §5
+   ═══════════════════════════════════════════ */
+
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body-sm);
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: all 200ms ease-out;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tab-pill:active {
+  transform: scale(0.95);
+}
+
+.tab-pill-active {
+  background: var(--color-interactive);
+  color: #fff;
+  border-color: var(--color-interactive);
+}
+
+.tab-pill-inactive {
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.tab-pill-inactive:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+/* Compact variant — used inside header merge bar */
+.tab-pill-compact {
+  padding: 4px 10px;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  border: none;
+}

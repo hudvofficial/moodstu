@@ -8,7 +8,7 @@ import type { ServiceType, ServiceUnit } from "@/types/service-constants";
 import { formatCurrency } from "@/lib/utils";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { Button } from "@/components/ui/button";
-import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
+import { getServiceBadgeColor } from "@/constants/service-colors";
 
 interface Props {
   services: ServiceRecord[];
@@ -24,7 +24,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
   }, []);
 
   return (
-    <div className="space-y-1.5 lg:hidden">
+    <div className="lg:hidden flex flex-col gap-3 pt-1">
       {services.map((service) => {
         const isExpanded = expandedId === service.id;
         const sections = isExpanded ? parseContentStructure(service.description) : [];
@@ -32,69 +32,54 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
           SERVICE_TYPE_LABELS[service.service_type as ServiceType] || service.service_type;
         const unitLabel = SERVICE_UNIT_LABELS[service.unit as ServiceUnit] || service.unit;
         const badgeColor = getServiceBadgeColor(service.service_type);
-        const iconColor = getServiceColor(service.service_type);
-
         return (
-          <div key={service.id} className="card-base! entrance stagger-item px-4 py-3">
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => toggleExpand(service.id)}
-              className="flex w-full items-center gap-3 text-left outline-none"
-            >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconColor.bg}`}>
-                {service.image_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={service.image_url}
-                    alt={service.name}
-                    className="h-10 w-10 rounded-lg object-cover"
-                  />
-                ) : (
-                  <span className={`text-caption font-bold ${iconColor.text}`}>
-                    {service.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-text-main">{service.name}</p>
-                <div className="mt-1 flex items-center gap-1.5 truncate text-caption text-text-muted">
-                  <span className={`text-tiny px-1.5 py-0.5 rounded-md ${badgeColor.bg} ${badgeColor.text}`}>
-                    {typeLabel}
-                  </span>
-                  <span>· {unitLabel} · {service.service_code}</span>
-                </div>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-text-main">
-                    {formatCurrency(Number(service.selling_price))}
-                  </span>
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-text-muted" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-text-muted" />
-                  )}
-                </div>
-              </div>
+          <div
+            key={service.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => toggleExpand(service.id)}
+            className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance stagger-item`}
+          >
+            {/* Row 1: Service code + Chevron */}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-text-muted">{service.service_code}</span>
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-text-muted" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-text-muted" />
+              )}
             </div>
+
+            {/* Row 2: Service name */}
+            <h3 className="text-sm font-bold text-text-main mb-1.5 line-clamp-2">{service.name}</h3>
+
+            {/* Row 3: Service type badge + Unit */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`text-tiny px-2 py-0.5 rounded-md ${badgeColor.bg} ${badgeColor.text}`}>
+                {typeLabel}
+              </span>
+              <span className="text-xs text-text-muted">· {unitLabel}</span>
+            </div>
+
+            {/* Row 4: Price */}
+            <p className="text-sm font-semibold text-text-main">
+              {formatCurrency(Number(service.selling_price))}
+            </p>
 
             {isExpanded && (
               <div className="animate-in slide-in-from-top-1 mt-3 border-t border-border/50 pt-3 duration-200">
-                <div className="mb-3 grid grid-cols-2 gap-2 text-caption">
+                <div className="mb-3 grid grid-cols-2 gap-2 text-caption bg-bg-subtle rounded-lg p-2.5">
                   <div>
-                    <span className="text-text-muted">Danh mục:</span>{" "}
-                    <span className="text-text-secondary">
+                    <span className="text-text-muted">Danh mục</span>
+                    <p className="text-text-main font-medium mt-0.5">
                       {service.category?.name || "Chưa phân loại"}
-                    </span>
+                    </p>
                   </div>
                   <div>
-                    <span className="text-text-muted">Giá vốn:</span>{" "}
-                    <span className="text-text-secondary">
+                    <span className="text-text-muted">Giá vốn</span>
+                    <p className="text-text-main font-medium mt-0.5">
                       {formatCurrency(Number(service.cost_price))}
-                    </span>
+                    </p>
                   </div>
                 </div>
 
@@ -103,7 +88,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                     {sections.map((section, idx) => (
                       <div key={`${service.id}-section-${idx}`}>
                         {section.title && (
-                          <h4 className="mb-1 text-caption font-semibold text-primary">
+                          <h4 className="mb-1 text-caption font-semibold text-text-main">
                             {section.title}
                           </h4>
                         )}
@@ -130,7 +115,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                       e.stopPropagation();
                       onQuote(service);
                     }}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary/5 text-caption font-medium text-primary transition-colors hover:bg-primary/10 px-0"
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary text-caption font-medium text-white transition-colors hover:bg-primary/90 px-0"
                   >
                     <FileText className="h-3.5 w-3.5" />
                     Báo giá
@@ -141,7 +126,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                       e.stopPropagation();
                       onEdit(service.id);
                     }}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg-hover text-caption font-medium text-text-secondary transition-colors hover:bg-bg-sidebar px-0"
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg-sidebar text-caption font-medium text-text-main transition-colors hover:bg-bg-hover px-0"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     Sửa

@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-03-31T19:46:00+07:00"
+    "last_updated": "2026-04-01T13:40:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -55,12 +55,17 @@
       {
         "name": "Icon SSOT Strategy",
         "details": "Migrate 100% to Lucide-React. Use size={relative_size} instead of text-[px] for better cross-browser SVG scaling."
+      },
+      {
+        "name": "CSS Architecture Restructuring (v1.2)",
+        "details": "Decouple color from typography system. Typography classes MUST ONLY define size/weight. Use utility classes for color. Load utility.css LAST. Phase 01 completed separating monolithic components.css and pages.css into 12 distinct module files (buttons, cards, badges, modals, etc.)."
       }
     ],
     "gotchas": [
       "calculateServiceStats MUST be sync/pure utility exported separately to avoid Next.js build errors in Server Action files.",
       "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints.",
-      "Inline text-xs/text-sm in Visual Builder (Redesign-holdouts) leads to design drift. Always use typography.css classes."
+      "Inline text-xs/text-sm in Visual Builder (Redesign-holdouts) leads to design drift. Always use typography.css classes.",
+      "Import order in design-system.css is critical. Utilities MUST load after Typography to allow color overrides."
     ]
   }
 }
