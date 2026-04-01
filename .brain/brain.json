@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-01T16:15:00+07:00"
+    "last_updated": "2026-04-01T16:30:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -27,6 +27,8 @@
     ]
   },
   "api_endpoints": [
+    { "type": "API Route", "path": "app/api/auth/google/route.ts", "actions": ["GET (Initiate OAuth)"] },
+    { "type": "API Route", "path": "app/api/auth/google/callback/route.ts", "actions": ["GET (Handle Callback)"] },
     { "type": "Server Action", "path": "app/actions/service-queries.ts", "actions": ["getServices", "getServiceById"] },
     { "type": "Server Action", "path": "app/actions/service-mutations.ts" },
     { "type": "Server Action", "path": "app/actions/builder-actions.ts", "actions": ["getPriceRules", "upsertPriceRule"] },
