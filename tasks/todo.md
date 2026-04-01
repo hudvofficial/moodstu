@@ -17,12 +17,12 @@ Mục tiêu: Tách 6 file cũ -> 15 file chuyên biệt, xóa color khỏi typog
 | Phase | Tên Phase | Mô tả công việc (What) | Status |
 |---|---|---|---|
 | **Phase 01** | **Foundation & Component Splitting** | Tạo 12 file mới (`theme.css`, `base.css`, `buttons.css`, `cards.css`, `badges.css`, `modals.css`, `dropdowns.css`, `tabs.css`, `animations.css`, `breadcrumb.css`, `tables.css`, `layout.css`). Di chuyển CSS từ files cũ sang. | ✅ Complete |
-| **Phase 02** | **Typography & Utilities Refactor** | Xóa `color` khỏi tất cả typography classes. Di chuyển các rule không phải utility từ `utilities.css` sang đúng chỗ. | ⏳ Pending |
-| **Phase 03** | **Architecture Index Update** | Cập nhật `design-system.css` với thứ tự import mới (Foundation -> Typography -> Components -> Utilities). | ⏳ Pending |
-| **Phase 04** | **Cleanup & Optimization** | Xóa bỏ `components.css` và `pages.css` sau khi đã migrate hết. Dọn dẹp duplicate comments. | ⏳ Pending |
-| **Phase 05** | **Verification Gate** | `npm run build` + Visual Audit trên 5 module core (Dashboard, Contracts, Services, Employees, Inventory). | ⏳ Pending |
+| **Phase 02** | **Typography & Utilities Refactor** | Xóa `color` khỏi tất cả typography classes. Di chuyển các rule không phải utility từ `utilities.css` sang đúng chỗ. | ✅ Complete |
+| **Phase 03** | **Architecture Index Update** | Cập nhật `design-system.css` với thứ tự import mới (Foundation → Typography → Components → Forms → Utilities). | ✅ Complete |
+| **Phase 04** | **Cleanup & Optimization** | Xóa bỏ `components.css` và `pages.css` sau khi đã migrate hết. Dọn dẹp duplicate comments. | ✅ Complete |
+| **Phase 05** | **Verification Gate** | `npm run build` + Visual Audit trên 5 module core (Dashboard, Contracts, Services, Employees, Inventory). | ✅ Complete |
 
 ---
 
 ## Quick Commands
-👉 Bước tiếp theo: **`/code phase-01`** (Bắt đầu tách file và xây dựng nền tảng mới).
+👉 Bước tiếp theo: **`/code phase-05`** (Final Verification Gate — audit toàn bộ 5 module core).

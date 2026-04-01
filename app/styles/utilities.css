@@ -37,35 +37,7 @@
   backdrop-filter: none;
 }
 
-/* ══════════════════════════════════════
-   3. MOBILE HEADER
-   Token: height = 56px (h-14)
-   ══════════════════════════════════════ */
-
-:root {
-  --header-mobile-h: 3.5rem; /* 56px = h-14 */
-  --header-desktop-h: 4rem; /* 64px = h-16 */
-  --z-header: 40;
-}
-
-/* ══════════════════════════════════════
-   4. MOBILE RESPONSIVE OVERRIDES
-   Compact layout cho màn hình < 1024px
-   Desktop giữ nguyên — chỉ mobile bị override
-   ══════════════════════════════════════ */
-
-@media (max-width: 1023px) {
-  /* Cards — compact padding */
-  .stats-card {
-    padding: var(--spacing-sm);
-  }
-
-  /* Icon box — nhỏ hơn */
-  .icon-box {
-    width: 32px;
-    height: 32px;
-  }
-}
+/* (Section 3 & 4 moved to theme.css, cards.css, layout.css — Phase 02) */
 
 /* ══════════════════════════════════════
    5. INSET INDICATORS

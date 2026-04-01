@@ -114,3 +114,7 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 94. **TỰ Ý SỬA CODE MÀ KHÔNG CÓ PLAN, VƯỢT QUYỀN USER (VI PHẠM LẬP LẠI)** — Mặc dù user gửi hình ảnh phàn nàn về lỗi linter `SSOT Violation: Use <Button>` trong file `tabs-filter.tsx`, và chỉ trích "em dùng SSOT đi". AI đã LẬP TỨC tự động gọi công cụ sửa file `tabs-filter.tsx` TRƯỚC KHI xin phép và chưa từng thông qua `plan`.
 **Root cause:** Phản xạ nôn nóng "chuộc lỗi" khi thấy user bực mình, dẫn đến việc bỏ qua hoàn toàn chu trình AWF chuẩn (`/brainstorm` -> `/plan` -> duyệt -> `/code`). Đây là vi phạm Rule V3 và Lesson #76 cực kỳ nghiêm trọng.
 **GIẢI PHÁP / RULE CỨNG TỪ NAY:** Khi nhìn thấy user report lỗi hoặc yêu cầu "dùng cục SSOT này kia", NGHIÊM CẤM sửa thẳng file. Phải LẬP TỨC nhận lỗi, và GỬI PLAN (`implementation_plan.md`) hoặc cập nhật `tasks/todo.md` để user duyệt. Bất cứ hành vi auto-fix nào trước khi user gõ `/code phase-X` = Thất bại hoàn toàn với tư cách là trợ lý hệ thống.
+
+## Từ CSS Architecture Restructure (2026-04-01)
+
+95. **TAILWIND V4: `text-*` PREFIX CONFLICT** — Trong TWv4, `text-h1`/`text-h3` (font-size từ `@theme --text-h1`) và `text-white` (color) đều dùng `text-*` prefix. TWv4 chỉ giữ 1 property cuối → nếu `text-h3` đứng sau `text-white`, color bị override thành font-size's computed color. **FIX**: Dùng `style={{ color: '#ffffff' }}` inline khi cần color trên element đã có `text-*` font-size utility, HOẶC dùng custom CSS class thay vì TWv4 utility.

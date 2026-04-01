@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════
    layout.css — Main container, detail grid, icon box, links, disabled
    Part of: Mood Studio Design System
-   Source: components.css §5 + pages.css §1, §7
    ═══════════════════════════════════════════ */
 
 /* ══════════════════════════════════════
@@ -79,6 +78,14 @@
 .stats-card:hover .icon-box,
 .card-interactive:hover .icon-box {
   transform: scale(1.1);
+}
+
+/* Mobile compact icon (moved from utilities.css Phase 02) */
+@media (max-width: 1023px) {
+  .icon-box {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 .link-base {

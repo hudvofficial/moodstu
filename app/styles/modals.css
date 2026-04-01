@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════
-   modals.css — UnifiedModal SSOT (overlay, card, header, body, footer)
+   modals.css — Modal overlay, card, header, body, footer
    Part of: Mood Studio Design System
-   Source: components.css §7
    
    Mobile: bottom-sheet (justify-end)
    Desktop: centered dialog (justify-center + items-center)

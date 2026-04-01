@@ -6,39 +6,36 @@
    File này là INDEX — chỉ chứa @import.
    Sửa nội dung → vào file tương ứng trong app/styles/
 
-   Load order quan trọng (Phase 01 Restructure):
+   Load order (Phase 03 Restructure):
    ─────────────────────────────────────────
    Layer 1 — Foundation
-     1. theme        (token overrides — placeholder)
-     2. base         (element resets — placeholder)
-   Layer 2 — Utilities & Typography
-     3. utilities    (scrollbar, :root additions, text colors)
-     4. typography   (text scales, progress, section headers)
+     1. theme        (:root token overrides)
+     2. base         (element resets)
+   Layer 2 — Typography (structure only — no color)
+     3. typography   (text scales, progress, section headers)
    Layer 3 — Components (modular)
-     5. layout       (main-container, detail-grid, icon-box)
-     6. cards        (card-base, stats-card, accent-card)
-     7. buttons      (btn-cta, btn-primary, btn-icon, etc.)
-     8. badges       (badge, badge-solid, tag-badge)
-     9. tabs         (tab-pill, tab-pill-active/inactive)
-    10. modals       (modal-overlay/card/header/body/footer)
-    11. dropdowns    (portal, inline, grouped, search)
-    12. breadcrumb   (breadcrumb nav links)
-    13. tables       (section-title, table-header)
-    14. animations   (keyframes, entrance, stagger, skeleton)
+     4. layout       (main-container, detail-grid, icon-box)
+     5. cards        (card-base, stats-card, accent-card)
+     6. buttons      (btn-cta, btn-primary, btn-icon, etc.)
+     7. badges       (badge, badge-solid, tag-badge)
+     8. tabs         (tab-pill, tab-pill-active/inactive)
+     9. modals       (modal-overlay/card/header/body/footer)
+    10. dropdowns    (portal, inline, grouped, search)
+    11. breadcrumb   (breadcrumb nav links)
+    12. tables       (section-title, table-header)
+    13. animations   (keyframes, entrance, stagger, skeleton)
    Layer 4 — Forms
-    15. forms        (@layer base, form inputs)
-    16. select       (Radix Select — dùng biến từ forms)
-   Layer 5 — Deprecated (sẽ xóa Phase 04)
-    17. components   (rỗng — đã migrate)
-    18. pages        (rỗng — đã migrate)
+    14. forms        (@layer base, form inputs)
+    15. select       (Radix Select — dùng biến từ forms)
+   Layer 5 — Utilities (CUỐI — highest cascade priority)
+    16. utilities    (scrollbar, backdrop, indicators, text colors)
    ═══════════════════════════════════════════ */
 
 /* Layer 1 — Foundation */
 @import "./styles/theme.css";
 @import "./styles/base.css";
 
-/* Layer 2 — Utilities & Typography */
-@import "./styles/utilities.css";
+/* Layer 2 — Typography (structure only — no color) */
 @import "./styles/typography.css";
 
 /* Layer 3 — Components (modular) */
@@ -57,6 +54,6 @@
 @import "./styles/forms.css";
 @import "./styles/select.css";
 
-/* Layer 5 — Deprecated (Phase 04 sẽ xóa) */
-@import "./styles/components.css";
-@import "./styles/pages.css";
+/* Layer 5 — Utilities (CUỐI — highest cascade priority) */
+@import "./styles/utilities.css";
+

@@ -166,7 +166,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
           
           {/* Quick Create / Edit Form */}
-          <div className="bg-bg-hover rounded-xl p-4 border border-border-base">
+          <div className="bg-bg-hover/80 rounded-xl p-4 shadow-md ring-1 ring-black/3">
             <h3 className="text-sm font-semibold text-text-main mb-3">
               {editingId ? "Chỉnh sửa danh mục" : "Thêm danh mục mới"}
             </h3>
@@ -237,13 +237,13 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
             </div>
             
             {localCategories.length === 0 ? (
-              <div className="text-center py-8 text-text-muted text-sm border border-dashed border-border-base rounded-lg bg-bg-surface">
+              <div className="text-center py-8 text-text-muted text-sm rounded-lg bg-bg-hover/50 shadow-sm ring-1 ring-black/3">
                 Chưa có danh mục nào. Hãy tạo danh mục đầu tiên.
               </div>
             ) : (
-              <div className="border border-border-base rounded-lg overflow-hidden divide-y divide-border-base">
+              <div className="rounded-xl overflow-hidden shadow-md ring-1 ring-black/3 bg-bg-card">
                 {localCategories.map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between p-3 hover:bg-bg-hover transition-colors bg-bg-card">
+                  <div key={cat.id} className="flex items-center justify-between p-3 hover:bg-bg-hover transition-colors bg-bg-card border-b border-border-light last:border-b-0">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-bg-hover text-accent flex items-center justify-center shrink-0">
                         {cat.icon ? (

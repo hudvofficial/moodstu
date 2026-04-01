@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════
    cards.css — Base, interactive, stats, accent cards
    Part of: Mood Studio Design System
-   Source: pages.css §2 + components.css §1
    ═══════════════════════════════════════════ */
 
 /* ══════════════════════════════════════
@@ -46,6 +45,13 @@
 .stats-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+/* Mobile compact padding (moved from utilities.css Phase 02) */
+@media (max-width: 1023px) {
+  .stats-card {
+    padding: var(--spacing-sm);
+  }
 }
 
 /* ══════════════════════════════════════
