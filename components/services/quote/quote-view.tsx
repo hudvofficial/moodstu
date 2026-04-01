@@ -210,10 +210,10 @@ export default function QuoteView({ service, studio }: Props) {
                 </div>
               </div>
               <div className="space-y-2.5 text-caption text-text-secondary">
-                {studio.phone && (
+                {studio.hotline && (
                   <div className="flex items-center gap-2.5">
                     <Phone className="w-3.5 h-3.5 text-primary/60" />
-                    <span className="font-medium">{studio.phone}</span>
+                    <span className="font-medium">{studio.hotline}</span>
                   </div>
                 )}
                 {studio.address && (
@@ -327,10 +327,10 @@ export default function QuoteView({ service, studio }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="text-label font-bold text-text-main">{studioName}</p>
                 <div className="flex items-center gap-3 mt-0.5 text-caption text-text-muted">
-                  {studio.phone && (
+                  {studio.hotline && (
                     <span className="flex items-center gap-1">
                       <Phone className="w-3 h-3 text-primary/50" />
-                      {studio.phone}
+                      {studio.hotline}
                     </span>
                   )}
                   {studio.address && (

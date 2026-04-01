@@ -141,3 +141,17 @@ grep "THAY CHO\|❌ KHÔNG" components/ui/REGISTRY.md
 > Grep code tìm inline violations chỉ là step 1.
 > Step 0 là MỞ UI LÊN XEM + SO VỚI STITCH.
 > Nếu skip step 0 → fix mù → fix sai.
+
+---
+
+## 11. 🔗 PER-MODULE CODE GATE (Lesson #96)
+
+> Ngoài gate chung này, MỖI MODULE có gate riêng với LOOKUP TABLE cụ thể.
+> **PHẢI ĐỌC gate module tương ứng TRƯỚC KHI viết code.**
+
+| Module | Gate File |
+|--------|-----------|
+| Settings | `tasks/gates/settings-code-gate.md` |
+
+**Workflow:** `before-edit.md` (chung) → `{module}-code-gate.md` (cụ thể) → viết code → grep verify
+

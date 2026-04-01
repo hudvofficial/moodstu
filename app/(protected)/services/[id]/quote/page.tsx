@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import QuoteView from "@/components/services/quote/quote-view";
 import { getServiceById } from "@/app/actions/service-queries";
-import { getStudioInfo } from "@/app/actions/studio";
+import { getStudioInfo } from "@/app/actions/settings-queries";
+import type { StudioInfo } from "@/types/settings";
 
 // ═══════════════════════════════════════════
 // /services/[id]/quote — Full-page Quote (SSR)
@@ -12,6 +13,23 @@ import { getStudioInfo } from "@/app/actions/studio";
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+/** Fallback studio info when DB fetch fails */
+const STUDIO_FALLBACK: StudioInfo = {
+  id: "",
+  name: "Mood Studio",
+  address: null,
+  hotline: null,
+  representative: null,
+  logo_url: null,
+  bank_info: null,
+  social_links: null,
+  working_hours: null,
+  timezone: null,
+  google_calendar_auth: null,
+  created_at: null,
+  updated_at: null,
+};
 
 export default async function QuotePage({ params }: Props) {
   const { id } = await params;
@@ -26,23 +44,10 @@ export default async function QuotePage({ params }: Props) {
     notFound();
   }
 
-  const studio = studioResult.success && studioResult.data ? {
-    id: studioResult.data.id,
-    name: studioResult.data.name,
-    address: studioResult.data.address,
-    phone: studioResult.data.hotline || null, // Map hotline to phone for V2 compat
-    email: null, // DB missing email
-    logo_url: studioResult.data.logo_url,
-    tagline: null, // DB missing tagline
-  } : {
-    id: "",
-    name: "Mood Studio",
-    address: null,
-    phone: null,
-    email: null,
-    logo_url: null,
-    tagline: null,
-  };
+  const studio: StudioInfo =
+    studioResult.success && studioResult.data
+      ? studioResult.data
+      : STUDIO_FALLBACK;
 
   return (
     <QuoteView
@@ -51,3 +56,4 @@ export default async function QuotePage({ params }: Props) {
     />
   );
 }
+

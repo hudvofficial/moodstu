@@ -2,11 +2,13 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
+import { profileSchema } from "@/lib/validations/settings.schema";
 
 // ═══════════════════════════════════════════
 // Profile Actions — Init + Update + Avatar
-// V1 ref: profile.ts (195 lines, 3 fn)
-// V2: withAuth for all (V1 used raw createClient)
+// V2 Gold Standard: withAuth + Zod + Audit
+// @see docs/specs/settings.md §3.4
 // ═══════════════════════════════════════════
 
 export async function initializeProfile() {
@@ -17,21 +19,30 @@ export async function initializeProfile() {
     const { data: existing } = await supabase.from("employees").select("id").eq("email", user.email).single();
     if (existing) return { initialized: false };
 
-    const { error } = await supabase.from("employees").insert({
+    const { data: newEmp, error } = await supabase.from("employees").insert({
       full_name: user.user_metadata.full_name || user.email?.split("@")[0] || "Nhân viên mới",
       email: user.email, role: "User",
       employee_code: "NV-" + Date.now().toString(36).toUpperCase(),
       department: "Chưa phân", position: "Nhân viên", status: "Đang làm",
       start_date: new Date().toISOString(), base_salary: 0, employee_type: "Nhân viên",
-    });
+    }).select("id").single();
     if (error) throw new Error(`Lỗi tạo hồ sơ: ${error.message}`);
+
+    // Audit: profile initialization
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "employees",
+      recordId: newEmp?.id,
+      description: `Khởi tạo hồ sơ cho ${user.email}`,
+      source: "server_action",
+    });
 
     revalidatePath("/", "layout");
     return { initialized: true };
   });
 }
 
-export async function updateProfile(data: {
+export async function updateProfile(rawData: {
   full_name: string; department?: string; phone?: string; gender?: string;
   position?: string; bank_name?: string; bank_account_no?: string; bank_account_name?: string;
 }) {
@@ -39,20 +50,37 @@ export async function updateProfile(data: {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) throw new Error("Chưa đăng nhập");
 
-    const name = data.full_name?.trim();
-    if (!name) throw new Error("Tên không được để trống");
+    // ── Zod validation ──
+    const parsed = profileSchema.safeParse(rawData);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ";
+      throw new Error(firstError);
+    }
 
-    const updateData: Record<string, string | null> = { full_name: name };
-    if (data.department !== undefined) updateData.department = data.department.trim() || null;
-    if (data.phone !== undefined) updateData.phone = data.phone.trim() || null;
-    if (data.gender !== undefined) updateData.gender = data.gender.trim() || null;
-    if (data.position !== undefined) updateData.position = data.position.trim() || null;
-    if (data.bank_name !== undefined) updateData.bank_name = data.bank_name.trim() || null;
-    if (data.bank_account_no !== undefined) updateData.bank_account_no = data.bank_account_no.trim() || null;
-    if (data.bank_account_name !== undefined) updateData.bank_account_name = data.bank_account_name.trim() || null;
+    const { full_name, phone, gender, bank_name, bank_account_no, bank_account_name } = parsed.data;
+
+    const updateData: Record<string, string | null> = { full_name };
+    if (phone !== undefined) updateData.phone = phone?.trim() || null;
+    if (gender !== undefined) updateData.gender = gender?.trim() || null;
+    if (bank_name !== undefined) updateData.bank_name = bank_name?.trim() || null;
+    if (bank_account_no !== undefined) updateData.bank_account_no = bank_account_no?.trim() || null;
+    if (bank_account_name !== undefined) updateData.bank_account_name = bank_account_name?.trim() || null;
+
+    // Allow department/position only from validated data pass-through (not in Zod — admin-only fields)
+    if (rawData.department !== undefined) updateData.department = rawData.department.trim() || null;
+    if (rawData.position !== undefined) updateData.position = rawData.position.trim() || null;
 
     const { error } = await supabase.from("employees").update(updateData).eq("email", user.email);
     if (error) throw new Error(`Lỗi cập nhật hồ sơ: ${error.message}`);
+
+    // Audit: profile update
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "employees",
+      description: `Cập nhật hồ sơ: ${full_name}`,
+      newData: updateData,
+      source: "server_action",
+    });
 
     revalidatePath("/settings");
     return null;
@@ -89,6 +117,15 @@ export async function uploadAvatar(formData: FormData) {
 
     const { error: updateError } = await supabase.from("employees").update({ avatar_url: publicUrl }).eq("id", emp.id);
     if (updateError) throw new Error(`Lỗi cập nhật avatar: ${updateError.message}`);
+
+    // Audit: avatar update
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "employees",
+      recordId: emp.id,
+      description: "Cập nhật avatar",
+      source: "server_action",
+    });
 
     revalidatePath("/settings");
     revalidatePath("/", "layout");

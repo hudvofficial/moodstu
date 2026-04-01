@@ -287,20 +287,6 @@ export interface PaymentPlan {
   created_at: string | null;
 }
 
-// ─── STUDIO INFO (Phase 00B) ─────────────────────────────
-
-/** Studio info from `studio_info` table (single row) */
-export interface StudioInfo {
-  id: string;
-  name: string;
-  address: string | null;
-  hotline: string | null;
-  representative: string | null;
-  logo_url: string | null;
-  bank_info: Record<string, unknown> | null;
-  social_links: Record<string, unknown> | null;
-  working_hours: Record<string, unknown> | null;
-  timezone: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+// ─── STUDIO INFO (Centralized → types/settings.ts) ───────
+// Re-export for backward compatibility
+export type { StudioInfo } from "@/types/settings";

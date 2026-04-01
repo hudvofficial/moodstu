@@ -84,17 +84,9 @@ export interface ServiceStats {
   minPrice: number;
 }
 
-// ─── Studio Info (for Quote branding) ────────────
-
-export interface StudioInfo {
-  id: string;
-  name: string;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-  logo_url: string | null;
-  tagline: string | null;
-}
+// ─── Studio Info (Centralized → types/settings.ts) ───────
+// Re-export for backward compatibility
+export type { StudioInfo } from "@/types/settings";
 
 // ─── VISUAL BUILDER TYPES (Phase 2) ──────────────
 

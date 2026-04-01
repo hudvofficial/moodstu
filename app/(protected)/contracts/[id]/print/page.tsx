@@ -1,5 +1,5 @@
 import { getContractDetail } from "@/app/actions/contract-queries";
-import { getStudioInfo } from "@/app/actions/studio";
+import { getStudioInfo } from "@/app/actions/settings-queries";
 import { notFound } from "next/navigation";
 import type {
   Contract,

@@ -118,3 +118,5 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 ## Từ CSS Architecture Restructure (2026-04-01)
 
 95. **TAILWIND V4: `text-*` PREFIX CONFLICT** — Trong TWv4, `text-h1`/`text-h3` (font-size từ `@theme --text-h1`) và `text-white` (color) đều dùng `text-*` prefix. TWv4 chỉ giữ 1 property cuối → nếu `text-h3` đứng sau `text-white`, color bị override thành font-size's computed color. **FIX**: Dùng `style={{ color: '#ffffff' }}` inline khi cần color trên element đã có `text-*` font-size utility, HOẶC dùng custom CSS class thay vì TWv4 utility.
+
+96. **PER-MODULE CODE GATE > LESSONS.MD** — Lessons.md ghi 95+ lessons, nhưng KHÔNG NGĂN ĐƯỢC lỗi inline/hardcode lặp lại (Lesson #67, #92, #94 = cùng 1 lỗi). **ROOT CAUSE:** Lessons ở cuối file, AI không đọc kỹ mỗi lần viết code. **FIX:** Tạo `tasks/gates/{module}-code-gate.md` chứa: (A) LOOKUP TABLE tra element→token, (B) PRE-WRITE checklist, (C) POST-WRITE grep verification, (D) FORBIDDEN PATTERNS auto-fail list. GATE PHẢI được đọc TRƯỚC mỗi file, và grep PHẢI chạy SAU mỗi file. Không pass gate = không commit.

@@ -2,11 +2,13 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
+import { notificationPrefsSchema } from "@/lib/validations/settings.schema";
 
 // ═══════════════════════════════════════════
 // Notification Actions — CRUD + Preferences
-// V1 ref: notifications.ts (200 lines, 6 fn)
-// V2: withAuth for all (V1 mixed createClient + withAuth)
+// V2 Gold Standard: withAuth + Zod + Audit
+// @see docs/specs/settings.md §3.5
 // ═══════════════════════════════════════════
 
 // ─── TYPES ────────────────────────────────────
@@ -24,13 +26,8 @@ export interface AppNotification {
   created_at: string;
 }
 
-export interface NotificationPreferences {
-  onsite_reminder: boolean;
-  deadline_reminder: boolean;
-  overdue_alert: boolean;
-  task_assignment: boolean;
-  system_alerts: boolean;
-}
+// Re-export from centralized types for backward compat
+export type { NotificationPreferences } from "@/types/settings";
 
 // ─── HELPER: Get employee ID ──────────────────
 
@@ -101,20 +98,41 @@ export async function getNotificationPreferences() {
     if (!empId) throw new Error("Chưa đăng nhập");
 
     const { data } = await supabase.from("notification_preferences").select("employee_id, onsite_reminder, deadline_reminder, overdue_alert, task_assignment, system_alerts").eq("employee_id", empId).single();
-    const defaults: NotificationPreferences = { onsite_reminder: true, deadline_reminder: true, overdue_alert: true, task_assignment: true, system_alerts: true };
+    const defaults = { onsite_reminder: true, deadline_reminder: true, overdue_alert: true, task_assignment: true, system_alerts: true };
     return data ? { ...defaults, ...data } : defaults;
   });
 }
 
 // ─── UPDATE PREFERENCES ───────────────────────
 
-export async function updateNotificationPreferences(prefs: Partial<NotificationPreferences>) {
+export async function updateNotificationPreferences(rawPrefs: Record<string, boolean>) {
   return withAuth(async (supabase) => {
     const empId = await getEmployeeId(supabase);
     if (!empId) throw new Error("Không tìm thấy nhân viên");
 
-    const { error } = await supabase.from("notification_preferences").upsert({ employee_id: empId, ...prefs, updated_at: new Date().toISOString() }, { onConflict: "employee_id" });
+    // ── Zod validation ──
+    const parsed = notificationPrefsSchema.safeParse(rawPrefs);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ";
+      throw new Error(firstError);
+    }
+
+    const { error } = await supabase.from("notification_preferences").upsert(
+      { employee_id: empId, ...parsed.data, updated_at: new Date().toISOString() },
+      { onConflict: "employee_id" },
+    );
     if (error) throw new Error(`Lỗi cập nhật cài đặt: ${error.message}`);
+
+    // Audit: notification preferences update
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "notification_preferences",
+      recordId: empId,
+      description: "Cập nhật cài đặt thông báo",
+      newData: parsed.data as Record<string, unknown>,
+      source: "server_action",
+    });
+
     revalidatePath("/settings");
     return null;
   });

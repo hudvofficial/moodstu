@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-01T13:40:00+07:00"
+    "last_updated": "2026-04-01T16:15:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -16,11 +16,11 @@
     "frontend": "Next.js 14 + React 19 + Tailwind CSS v4",
     "backend": "Supabase (PostgreSQL + Auth + RLS + Server Actions)",
     "hosting": "Vercel",
-    "api_pattern": "Server Actions + Auth HO + Zod + Audit Logs",
+    "api_pattern": "Server Actions + Auth HO (withAuth/withAdmin) + Zod + Audit Logs",
     "core_icons": "Lucide-React (93% coverage, aim 100% in Phase 6)"
   },
   "database_schema": {
-    "summary": "Core: contracts, services, service_categories. Strategy: ABC Framework.",
+    "summary": "Core: contracts, services, service_categories. Settings: studio_info, employees, notification_preferences.",
     "new_tables": [
       { "name": "services", "columns": ["id", "service_code", "name", "category_id", "selling_price", "status"] },
       { "name": "service_categories", "columns": ["id", "name", "slug"] }
@@ -29,7 +29,11 @@
   "api_endpoints": [
     { "type": "Server Action", "path": "app/actions/service-queries.ts", "actions": ["getServices", "getServiceById"] },
     { "type": "Server Action", "path": "app/actions/service-mutations.ts" },
-    { "type": "Server Action", "path": "app/actions/builder-actions.ts", "actions": ["getPriceRules", "upsertPriceRule"] }
+    { "type": "Server Action", "path": "app/actions/builder-actions.ts", "actions": ["getPriceRules", "upsertPriceRule"] },
+    { "type": "Server Action", "path": "app/actions/settings-queries.ts", "actions": ["getStudioInfoAdmin", "getStudioInfo", "getSettingsPageData"] },
+    { "type": "Server Action", "path": "app/actions/settings-mutations.ts", "actions": ["updateStudioInfo", "disconnectGoogleCalendar"] },
+    { "type": "Server Action", "path": "app/actions/profile-actions.ts", "actions": ["initializeProfile", "updateProfile", "uploadAvatar"] },
+    { "type": "Server Action", "path": "app/actions/notification-actions.ts" }
   ],
   "design_system": {
     "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
@@ -49,8 +53,12 @@
   "knowledge_items": {
     "patterns": [
       {
-        "name": "Quote Modal Parity Pattern",
-        "details": "Always cap modal width to ~340-400px to maintain floating card feel. Avoid full-width on large screens."
+        "name": "Server Actions Separation (Queries vs Mutations)",
+        "details": "Read-only actions (settings-queries) employ withAuth/withAdmin but rarely need Zod. Mutating actions (settings-mutations) MUST have strict Zod validation via safeParse, optimistic locking handling, and invoke fireAuditLog immediately upon successful DB operation."
+      },
+      {
+        "name": "Centralized Types Re-export",
+        "details": "Types corresponding to database schemas should exist in a module-focused SSOT type file (e.g., types/settings.ts) and be re-exported individually into dependents to avoid duplication."
       },
       {
         "name": "Icon SSOT Strategy",
@@ -58,13 +66,13 @@
       },
       {
         "name": "CSS Architecture Restructuring (v1.2)",
-        "details": "Decouple color from typography system. Typography classes MUST ONLY define size/weight. Use utility classes for color. Load utility.css LAST. Phase 01 completed separating monolithic components.css and pages.css into 12 distinct module files (buttons, cards, badges, modals, etc.)."
+        "details": "Decouple color from typography system. Typography classes MUST ONLY define size/weight. Use utility classes for color. Load utility.css LAST."
       }
     ],
     "gotchas": [
-      "calculateServiceStats MUST be sync/pure utility exported separately to avoid Next.js build errors in Server Action files.",
+      "z.ZodError objects expose an .issues array (not .errors). Use parsed.error.issues[0]?.message for formatting safeParse errors.",
+      "withAdmin(async (adminClient) => ...) signature: The HOF parameter is not destructured. Do not use { adminClient }.",
       "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints.",
-      "Inline text-xs/text-sm in Visual Builder (Redesign-holdouts) leads to design drift. Always use typography.css classes.",
       "Import order in design-system.css is critical. Utilities MUST load after Typography to allow color overrides."
     ]
   }
