@@ -103,3 +103,8 @@ export function normalizeLabStatus(
   return "active";
 }
 
+/** Status that means the order is still in-progress (eligible for overdue) */
+export function isPendingPrintStatus(status: PrintingOrderStatus): boolean {
+  return status === "cho_xu_ly" || status === "dang_in";
+}
+

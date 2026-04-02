@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
 import { Pagination } from "@/components/ui/pagination";
-import { fetchLabsList } from "@/app/actions/lab-queries";
+import { getLabOptions } from "@/app/actions/lab-queries";
 import { updatePrintingOrderStatus } from "@/app/actions/printing-mutations";
 import {
   fetchPrintingOrders,
@@ -19,17 +19,18 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import type {
-  Lab,
+  LabOption,
   PrintingFilters as PrintingFiltersType,
   PrintingOrderRow,
   PrintingOrdersPage,
   PrintingStats,
 } from "@/types/printing";
-import PrintingCard from "@/components/printing/printing-card";
 import PrintingFiltersBar from "@/components/printing/printing-filters";
 import PrintingFormModal from "@/components/printing/printing-form-modal";
+import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped";
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
 import PrintingTable from "@/components/printing/printing-table";
+import { groupOrdersByContract } from "@/lib/utils/printing-group-utils";
 
 type ActionResult<T> =
   | { success: true; data: T }
@@ -38,13 +39,13 @@ type ActionResult<T> =
 interface Props {
   initialOrdersPage: PrintingOrdersPage;
   initialStats: PrintingStats;
-  initialLabs: Lab[];
+  initialLabOptions: LabOption[];
 }
 
 function PrintingListInner({
   initialOrdersPage,
   initialStats,
-  initialLabs,
+  initialLabOptions,
 }: Props) {
   const isMobile = useIsMobile();
   const [editingOrder, setEditingOrder] = useState<PrintingOrderRow | null>(null);
@@ -80,6 +81,7 @@ function PrintingListInner({
     {
       fallbackData: { success: true, data: initialOrdersPage },
       keepPreviousData: true,
+      revalidateOnMount: false,
     },
   );
 
@@ -89,24 +91,32 @@ function PrintingListInner({
     {
       fallbackData: { success: true, data: initialStats },
       keepPreviousData: true,
+      revalidateOnMount: false,
     },
   );
 
-  const { data: labsResult, mutate: mutateLabs } = useSWR<ActionResult<Lab[]>>(
-    [cacheKeys.labs(), "list"],
-    () => fetchLabsList(),
+  const { data: labsResult, mutate: mutateLabs } = useSWR<ActionResult<LabOption[]>>(
+    [cacheKeys.labs(), "options"],
+    () => getLabOptions(),
     {
-      fallbackData: { success: true, data: initialLabs },
+      fallbackData: { success: true, data: initialLabOptions },
       keepPreviousData: true,
+      revalidateOnMount: false,
     },
   );
 
   const ordersPage = ordersResult?.success ? ordersResult.data : initialOrdersPage;
   const stats = statsResult?.success ? statsResult.data : initialStats;
-  const labs = labsResult?.success ? labsResult.data : initialLabs;
+  const labOptions = labsResult?.success ? labsResult.data : initialLabOptions;
   const totalPages = Math.max(
     1,
     Math.ceil(ordersPage.total / Math.max(ordersPage.pageSize, 1)),
+  );
+
+  // ── Contract Grouping (client-side) ────────
+  const contractGroups = useMemo(
+    () => groupOrdersByContract(ordersPage.orders),
+    [ordersPage.orders],
   );
 
   const handleSaved = async () => {
@@ -137,11 +147,13 @@ function PrintingListInner({
     await handleSaved();
   };
 
+
+
   return (
     <>
       <div className="main-container gap-3!">
         <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
-          <PrintingStatsBar stats={stats} />
+          <PrintingStatsBar stats={stats} compact={isMobile} />
 
           <div className="hidden lg:flex items-center gap-2">
             <Link href="/printing/labs" className="btn btn-outline">
@@ -170,7 +182,7 @@ function PrintingListInner({
 
         <PrintingFiltersBar
           stats={stats}
-          labs={labs}
+          labs={labOptions}
           status={filters.status}
           labId={filters.labId}
           paymentStatus={filters.paymentStatus}
@@ -207,22 +219,18 @@ function PrintingListInner({
             />
           )
         ) : isMobile ? (
-          <div className="space-y-3">
-            {ordersPage.orders.map((order) => (
-              <PrintingCard
-                key={order.id}
-                order={order}
-                onEdit={(selectedOrder) => {
-                  setEditingOrder(selectedOrder);
-                  setShowForm(true);
-                }}
-                onStatusChange={handleStatusChange}
-              />
-            ))}
-          </div>
+          <PrintingMobileGrouped
+            groups={contractGroups}
+            onEdit={(selectedOrder) => {
+              setEditingOrder(selectedOrder);
+              setShowForm(true);
+            }}
+            onStatusChange={handleStatusChange}
+          />
         ) : (
           <PrintingTable
             orders={ordersPage.orders}
+            groups={contractGroups}
             onEdit={(selectedOrder) => {
               setEditingOrder(selectedOrder);
               setShowForm(true);
@@ -255,8 +263,9 @@ function PrintingListInner({
           setEditingOrder(null);
         }}
         order={editingOrder}
-        labs={labs}
+        labs={labOptions}
         onSaved={handleSaved}
+        onStatusChange={handleStatusChange}
       />
     </>
   );

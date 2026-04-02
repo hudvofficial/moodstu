@@ -19,6 +19,7 @@ import { toast } from "@/lib/toast-utils";
 import type { Lab, LabDebtData } from "@/types/printing";
 import { LAB_STATUS_LABELS, LAB_STATUS_VARIANTS } from "@/types/printing-constants";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/utils";
 import LabFormModal from "@/components/printing/labs/lab-form-modal";
 import LabTable from "@/components/printing/labs/lab-table";
 
@@ -31,9 +32,7 @@ interface Props {
   initialDebts: LabDebtData;
 }
 
-function formatCurrency(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)}d`;
-}
+
 
 function LabListInner({ initialLabs, initialDebts }: Props) {
   const isMobile = useIsMobile();
@@ -51,6 +50,7 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
     {
       fallbackData: { success: true, data: initialLabs },
       keepPreviousData: true,
+      revalidateOnMount: false,
     },
   );
 
@@ -60,6 +60,7 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
     {
       fallbackData: { success: true, data: initialDebts },
       keepPreviousData: true,
+      revalidateOnMount: false,
     },
   );
 

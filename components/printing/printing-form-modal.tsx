@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -21,10 +21,11 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/lib/toast-utils";
 import type {
   ContractOption,
-  Lab,
+  LabOption,
   PrintingItem,
   PrintingOrderRow,
 } from "@/types/printing";
+import type { PrintingOrderStatus } from "@/types/printing-constants";
 
 type ActionResult<T> =
   | { success: true; data: T }
@@ -34,8 +35,27 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   order: PrintingOrderRow | null;
-  labs: Lab[];
+  labs: LabOption[];
   onSaved: () => Promise<void> | void;
+  onStatusChange?: (order: PrintingOrderRow, newStatus: string) => Promise<void>;
+}
+
+interface NextStepAction {
+  label: string;
+  nextStatus: PrintingOrderStatus;
+}
+
+function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
+  switch (status) {
+    case "cho_xu_ly":
+      return { label: "Bắt đầu in", nextStatus: "dang_in" };
+    case "dang_in":
+      return { label: "Hoàn thành in", nextStatus: "da_in" };
+    case "da_in":
+      return { label: "Đã giao khách", nextStatus: "da_nhan" };
+    default:
+      return null;
+  }
 }
 
 interface EditablePrintingItem extends PrintingItem {
@@ -88,6 +108,7 @@ export default function PrintingFormModal({
   order,
   labs,
   onSaved,
+  onStatusChange,
 }: Props) {
   const [form, setForm] = useState<FormState>(() => getInitialForm(order));
   const [loading, setLoading] = useState(false);
@@ -102,14 +123,7 @@ export default function PrintingFormModal({
     setConfirmDeleteOpen(false);
   }, [isOpen, order]);
 
-  const selectableLabs = useMemo(() => {
-    const currentLabId = order?.labId;
-    return labs.filter(
-      (lab) =>
-        lab.status === "active" ||
-        (currentLabId ? lab.id === currentLabId : false),
-    );
-  }, [labs, order?.labId]);
+  const selectableLabs = labs;
 
   const { data: contractOptionsResult } = useSWR<ActionResult<ContractOption[]>>(
     isOpen && !order ? ["printing-contract-options", debouncedContractSearch] : null,
@@ -243,6 +257,23 @@ export default function PrintingFormModal({
     }
   };
 
+  const nextStepAction = order ? getNextStepAction(order.status) : null;
+
+  const handleNextStep = async () => {
+    if (!order || !nextStepAction || !onStatusChange) return;
+    setLoading(true);
+    try {
+      await onStatusChange(order, nextStepAction.nextStatus);
+    } catch (error) {
+      toast(
+        error instanceof Error ? error.message : "Lỗi cập nhật trạng thái",
+        "error",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!order) return;
 
@@ -293,9 +324,20 @@ export default function PrintingFormModal({
               <Button
                 onClick={handleSubmit}
                 disabled={loading}
+                variant={nextStepAction && onStatusChange ? "outline" : "primary"}
               >
                 {loading ? "Đang xử lý..." : order ? "Cập nhật" : "Tạo đơn in"}
               </Button>
+              {nextStepAction && onStatusChange && (
+                <Button
+                  onClick={handleNextStep}
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  {nextStepAction.label}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
         }

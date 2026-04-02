@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-02T08:31:00+07:00"
+    "last_updated": "2026-04-03T00:46:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -20,10 +20,12 @@
     "core_icons": "Lucide-React (93% coverage, aim 100% in Phase 6)"
   },
   "database_schema": {
-    "summary": "Core: contracts, services, service_categories. Settings: studio_info, employees, notification_preferences, audit_logs.",
+    "summary": "Core: contracts, services, service_categories, printing_orders, labs. Settings: studio_info, employees, notification_preferences, audit_logs.",
     "new_tables": [
       { "name": "services", "columns": ["id", "service_code", "name", "category_id", "selling_price", "status"] },
       { "name": "service_categories", "columns": ["id", "name", "slug"] },
+      { "name": "printing_orders", "columns": ["id", "order_code", "contract_id", "lab_id", "status", "payment_status", "total_amount", "items(jsonb)", "order_date", "expected_date"] },
+      { "name": "labs", "columns": ["id", "lab_name", "contact_person", "phone", "address", "status"] },
       { "name": "employees", "columns": ["id", "auth_user_id", "full_name", "email", "role", "status", "department", "position"] },
       { "name": "audit_logs", "columns": ["id", "user_id", "action", "entity_type", "entity_id", "old_value", "new_value", "created_at"] }
     ]
@@ -37,7 +39,9 @@
     { "type": "Server Action", "path": "app/actions/settings-queries.ts", "actions": ["getStudioInfoAdmin", "getStudioInfo", "getSettingsPageData"] },
     { "type": "Server Action", "path": "app/actions/settings-mutations.ts", "actions": ["updateStudioInfo", "disconnectGoogleCalendar"] },
     { "type": "Server Action", "path": "app/actions/profile-actions.ts", "actions": ["initializeProfile", "updateProfile", "uploadAvatar"] },
-    { "type": "Server Action", "path": "app/actions/notification-actions.ts", "actions": ["updateNotificationPreferences"] }
+    { "type": "Server Action", "path": "app/actions/notification-actions.ts", "actions": ["updateNotificationPreferences"] },
+    { "type": "Server Action", "path": "app/actions/printing-queries.ts", "actions": ["fetchPrintingOrders", "getPrintingOrderStats", "getPrintingOrderDetail"] },
+    { "type": "Server Action", "path": "app/actions/printing-mutations.ts" }
   ],
   "design_system": {
     "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
@@ -52,7 +56,9 @@
       "ServiceMobileList": "Compact row list with active expand state",
       "QuoteModal": "Compact, floating centered card (max-w 340px) vs V1 parity",
       "VisualBuilder": "Grid 7/5 Desktop, Single column Mobile, Canvas with GripVertical icons.",
-      "LayoutStandard": "main-container (full-width), detail-grid (12 columns: 8/4 distribution for main/sidebar)."
+      "LayoutStandard": "main-container (full-width), detail-grid (12 columns: 8/4 distribution for main/sidebar).",
+      "PrintingMobileGrouped": "Contract-grouped vertical cards (code→name→badges→price) with compact child cards. Pattern synced from ServiceMobileList.",
+      "PrintingStatsBar": "Desktop=6 items, Mobile compact=2 items (total + debt). No click-to-filter (filter pills handle that)."
     }
   },
   "knowledge_items": {
@@ -72,6 +78,14 @@
       {
         "name": "Server Actions Separation (Queries vs Mutations)",
         "details": "Read-only actions (settings-queries) employ withAuth/withAdmin but rarely need Zod. Mutating actions (settings-mutations) MUST have strict Zod validation via safeParse, optimistic locking handling, and invoke fireAuditLog immediately upon successful DB operation."
+      },
+      {
+        "name": "Contract-Grouped Mobile Card Pattern",
+        "details": "Printing module groups orders by contract on mobile using vertical cards (service-mobile-list.tsx pattern). Group header: code+chevron → name bold → badge tags → price. Child cards pass compact=true to hide redundant contract info. Expanded section uses subtle bg (bg-bg-subtle/50) with rounded-b-xl."
+      },
+      {
+        "name": "Compact Stats Bar for Mobile",
+        "details": "When a module has both a stats bar AND filter pills showing per-status counts, the stats bar should use compact mode on mobile (show only 2 key metrics). Filter pills already provide status filtering — stats bar click-to-filter is redundant."
       }
     ],
     "gotchas": [

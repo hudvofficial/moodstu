@@ -21,6 +21,11 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+/** Escape LIKE wildcards to prevent search injection (W1 audit fix) */
+function escapeLikePattern(input: string): string {
+  return input.replace(/[%_\\]/g, (char) => `\\${char}`);
+}
+
 type RelationRecord = Record<string, unknown>;
 
 type RawPrintingOrderRow = {
@@ -160,7 +165,8 @@ export async function fetchPrintingOrders(
     }
 
     if (filters.search?.trim()) {
-      query = query.ilike("order_code", `%${filters.search.trim()}%`);
+      const escaped = escapeLikePattern(filters.search.trim());
+      query = query.ilike("order_code", `%${escaped}%`);
     }
 
     if (filters.fromDate) {
@@ -192,43 +198,49 @@ export async function getPrintingOrderStats(): Promise<
   ActionResult<PrintingStats>
 > {
   return withAuth(async (supabase) => {
-    const { data, error } = await supabase
-      .from("printing_orders")
-      .select("status, total_amount, payment_status")
-      .is("deleted_at", null);
+    // C4 audit fix: parallel server-side COUNT instead of fetching all rows
+    const baseQuery = () =>
+      supabase
+        .from("printing_orders")
+        .select("*", { count: "exact", head: true })
+        .is("deleted_at", null);
 
-    if (error) {
-      throw new Error(`Khong the tai thong ke don in: ${error.message}`);
+    const [
+      totalResult,
+      choXuLyResult,
+      dangInResult,
+      daInResult,
+      daNhanResult,
+      costStatsResult,
+    ] = await Promise.all([
+      baseQuery(),
+      baseQuery().eq("status", "cho_xu_ly"),
+      baseQuery().eq("status", "dang_in"),
+      baseQuery().eq("status", "da_in"),
+      baseQuery().eq("status", "da_nhan"),
+      // F3 perf fix: 1 RPC replaces 2 heavy SELECT queries
+      supabase.rpc("get_printing_cost_stats"),
+    ]);
+
+    if (totalResult.error) {
+      throw new Error(`Khong the tai thong ke don in: ${totalResult.error.message}`);
     }
 
-    const rows = data ?? [];
-    const stats: PrintingStats = {
-      total: rows.length,
-      choXuLy: 0,
-      dangIn: 0,
-      daIn: 0,
-      daNhan: 0,
-      totalCost: 0,
-      unpaidCost: 0,
+    const costRow = Array.isArray(costStatsResult.data)
+      ? costStatsResult.data[0]
+      : costStatsResult.data;
+    const totalCost = Number(costRow?.total_cost ?? 0);
+    const unpaidCost = Number(costRow?.unpaid_cost ?? 0);
+
+    return {
+      total: totalResult.count ?? 0,
+      choXuLy: choXuLyResult.count ?? 0,
+      dangIn: dangInResult.count ?? 0,
+      daIn: daInResult.count ?? 0,
+      daNhan: daNhanResult.count ?? 0,
+      totalCost,
+      unpaidCost,
     };
-
-    rows.forEach((row) => {
-      const status = normalizePrintingOrderStatus(row.status);
-      const amount = Number(row.total_amount ?? 0);
-      const paymentStatus = normalizePrintingPaymentStatus(row.payment_status);
-
-      if (status === "cho_xu_ly") stats.choXuLy += 1;
-      if (status === "dang_in") stats.dangIn += 1;
-      if (status === "da_in") stats.daIn += 1;
-      if (status === "da_nhan") stats.daNhan += 1;
-
-      stats.totalCost += amount;
-      if (paymentStatus === "chua_thanh_toan") {
-        stats.unpaidCost += amount;
-      }
-    });
-
-    return stats;
   });
 }
 
@@ -307,34 +319,35 @@ export async function getContractOptions(
       });
     }
 
+    // W2 fix: 2 parallel queries instead of 3-4 sequential
+    const escaped = escapeLikePattern(term);
+
+    const [codeResult, customerResult] = await Promise.all([
+      supabase
+        .from("contracts")
+        .select("id")
+        .is("deleted_at", null)
+        .ilike("contract_code", `%${escaped}%`)
+        .limit(20),
+      supabase
+        .from("customers")
+        .select("id")
+        .is("deleted_at", null)
+        .ilike("full_name", `%${escaped}%`)
+        .limit(20),
+    ]);
+
+    if (codeResult.error) {
+      throw new Error(`Khong the tim hop dong: ${codeResult.error.message}`);
+    }
+    if (customerResult.error) {
+      throw new Error(`Khong the tim khach hang: ${customerResult.error.message}`);
+    }
+
     const contractIds = new Set<string>();
+    (codeResult.data ?? []).forEach((row) => contractIds.add(row.id));
 
-    const { data: codeMatches, error: codeError } = await supabase
-      .from("contracts")
-      .select("id")
-      .is("deleted_at", null)
-      .ilike("contract_code", `%${term}%`)
-      .limit(20);
-
-    if (codeError) {
-      throw new Error(`Khong the tim hop dong: ${codeError.message}`);
-    }
-
-    (codeMatches ?? []).forEach((row) => contractIds.add(row.id));
-
-    const { data: customerMatches, error: customerError } = await supabase
-      .from("customers")
-      .select("id")
-      .is("deleted_at", null)
-      .ilike("full_name", `%${term}%`)
-      .limit(20);
-
-    if (customerError) {
-      throw new Error(`Khong the tim khach hang: ${customerError.message}`);
-    }
-
-    const customerIds = (customerMatches ?? []).map((row) => row.id);
-
+    const customerIds = (customerResult.data ?? []).map((row) => row.id);
     if (customerIds.length > 0) {
       const { data: contractByCustomer, error: contractByCustomerError } =
         await supabase

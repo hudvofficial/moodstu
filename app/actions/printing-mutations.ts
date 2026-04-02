@@ -167,7 +167,7 @@ export async function updatePrintingOrder(
   return withAuth(async (supabase, userId) => {
     const { data: current, error: currentError } = await supabase
       .from("printing_orders")
-      .select("id, order_code, updated_at")
+      .select("id, order_code, updated_at, contract_id")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -215,6 +215,9 @@ export async function updatePrintingOrder(
     });
 
     revalidatePath("/printing");
+    if (current.contract_id) {
+      revalidatePath(`/contracts/${current.contract_id}`);
+    }
     return null;
   });
 }

@@ -1,24 +1,25 @@
 "use client";
 
-import { CalendarClock, FileText, Printer } from "lucide-react";
+import { AlertTriangle, CalendarClock, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusSelect, {
   PRINT_ORDER_STATUS_OPTIONS,
 } from "@/components/ui/status-select";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PrintingOrderRow } from "@/types/printing";
 import {
   PRINTING_PAYMENT_LABELS,
   PRINTING_PAYMENT_VARIANTS,
+  isPendingPrintStatus,
 } from "@/types/printing-constants";
 
-function formatCurrency(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)}d`;
-}
+
 
 interface Props {
   order: PrintingOrderRow;
+  /** Hide contract info when rendered inside a group header */
+  compact?: boolean;
   onEdit: (order: PrintingOrderRow) => void;
   onStatusChange: (
     order: PrintingOrderRow,
@@ -26,17 +27,23 @@ interface Props {
   ) => Promise<void>;
 }
 
-export default function PrintingCard({ order, onEdit, onStatusChange }: Props) {
+export default function PrintingCard({ order, compact, onEdit, onStatusChange }: Props) {
+  const isPending = isPendingPrintStatus(order.status);
+  const isOverdue = isPending && !!order.expectedDate && new Date(order.expectedDate) < new Date();
+  const isMissingDate = isPending && !order.expectedDate;
+
   return (
-    <div className="card-base p-4 space-y-3">
+    <div className={`card-base p-4 space-y-3 ${isOverdue ? "border-l-2 border-error" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-body font-semibold text-text-main">
             {order.orderCode}
           </p>
-          <p className="text-xs text-text-muted">
-            {order.contractCode} - {order.customerName}
-          </p>
+          {!compact && (
+            <p className="text-xs text-text-muted">
+              {order.contractCode} - {order.customerName}
+            </p>
+          )}
         </div>
         <Badge variant={PRINTING_PAYMENT_VARIANTS[order.paymentStatus]}>
           {PRINTING_PAYMENT_LABELS[order.paymentStatus]}
@@ -53,9 +60,14 @@ export default function PrintingCard({ order, onEdit, onStatusChange }: Props) {
           <span>{formatCurrency(order.totalAmount)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <CalendarClock className="w-4 h-4 text-text-muted" />
-          <span>
-            {order.expectedDate ? formatDate(order.expectedDate) : "Chưa có ngày nhận"}
+          {isOverdue ? (
+            <AlertTriangle className="w-4 h-4 text-error" />
+          ) : (
+            <CalendarClock className={`w-4 h-4 ${isMissingDate ? "text-warning" : "text-text-muted"}`} />
+          )}
+          <span className={isOverdue ? "text-error font-semibold" : isMissingDate ? "text-warning" : ""}>
+            {order.expectedDate ? formatDate(order.expectedDate) : "Chưa hẹn ngày"}
+            {isOverdue && " · Quá hạn"}
           </span>
         </div>
       </div>

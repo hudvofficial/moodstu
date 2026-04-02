@@ -2,11 +2,11 @@
 
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { TabsFilter } from "@/components/ui/tabs-filter";
-import type { Lab, PrintingStats } from "@/types/printing";
+import type { LabOption, PrintingStats } from "@/types/printing";
 
 interface Props {
   stats: PrintingStats;
-  labs: Lab[];
+  labs: LabOption[];
   status: string;
   labId: string;
   paymentStatus: string;

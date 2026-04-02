@@ -1,4 +1,4 @@
-import { fetchLabsList } from "@/app/actions/lab-queries";
+import { getLabOptions } from "@/app/actions/lab-queries";
 import {
   fetchPrintingOrders,
   getPrintingOrderStats,
@@ -39,10 +39,10 @@ export default async function PrintingPage({ searchParams }: Props) {
     page: params.page ? Number(params.page) : 1,
   };
 
-  const [ordersResult, statsResult, labsResult] = await Promise.all([
+  const [ordersResult, statsResult, labOptionsResult] = await Promise.all([
     fetchPrintingOrders(filters),
     getPrintingOrderStats(),
-    fetchLabsList(),
+    getLabOptions(),
   ]);
 
   if (!ordersResult.success) {
@@ -53,15 +53,15 @@ export default async function PrintingPage({ searchParams }: Props) {
     throw new Error(statsResult.error);
   }
 
-  if (!labsResult.success) {
-    throw new Error(labsResult.error);
+  if (!labOptionsResult.success) {
+    throw new Error(labOptionsResult.error);
   }
 
   return (
     <PrintingListPage
       initialOrdersPage={ordersResult.data}
       initialStats={statsResult.data}
-      initialLabs={labsResult.data}
+      initialLabOptions={labOptionsResult.data}
     />
   );
 }

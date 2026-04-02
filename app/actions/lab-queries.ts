@@ -88,11 +88,13 @@ export async function fetchLabsList(): Promise<ActionResult<Lab[]>> {
         supabase
           .from("lab_services")
           .select("id, lab_id, item_name, cost_price, created_at, updated_at")
-          .order("item_name"),
+          .order("item_name")
+          .limit(500),
         supabase
           .from("lab_payments")
           .select("id, lab_id, amount, payment_method, note, created_at, created_by")
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .limit(500),
         supabase
           .from("printing_orders")
           .select("lab_id, total_amount")

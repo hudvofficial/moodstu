@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/table";
 import type { Lab } from "@/types/printing";
 import { LAB_STATUS_LABELS, LAB_STATUS_VARIANTS } from "@/types/printing-constants";
+import { formatCurrency } from "@/lib/utils";
 
-function formatCurrency(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)}d`;
-}
+
 
 interface Props {
   labs: Lab[];

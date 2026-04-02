@@ -2,6 +2,10 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createPrintingOrder, getLabs } from "@/app/actions/printing-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
@@ -157,10 +161,10 @@ export default function PrintingOrderForm({
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="label-base">Sản phẩm in</label>
-            <button onClick={addItem} className="btn btn-outline text-xs py-1 px-2">
+            <Button onClick={addItem} variant="outline" size="sm">
               <Plus size={12} />
               Thêm
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-2">
@@ -169,41 +173,40 @@ export default function PrintingOrderForm({
                 key={i}
                 className="grid grid-cols-[1fr_60px_60px_70px_32px] gap-2 items-center"
               >
-                <input
-                  type="text"
+                <Input
                   value={item.name}
                   onChange={(e) => updateItem(i, "name", e.target.value)}
                   placeholder="Tên SP"
-                  className="input-base text-sm"
+                  className="text-sm"
                 />
-                <input
-                  type="text"
+                <Input
                   value={item.size}
                   onChange={(e) => updateItem(i, "size", e.target.value)}
                   placeholder="Size"
-                  className="input-base text-sm"
+                  className="text-sm"
                 />
-                <input
+                <Input
                   type="number"
-                  value={item.quantity}
+                  value={String(item.quantity)}
                   onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 1)}
                   min={1}
-                  className="input-base text-sm text-center"
+                  className="text-sm text-center"
                 />
-                <input
-                  type="number"
-                  value={item.unitPrice || ""}
-                  onChange={(e) => updateItem(i, "unitPrice", parseInt(e.target.value) || 0)}
+                <CurrencyInput
+                  value={item.unitPrice}
+                  onChange={(val) => updateItem(i, "unitPrice", val)}
                   placeholder="Giá"
-                  className="input-base text-sm"
+                  className="text-sm"
                 />
                 {items.length > 1 && (
-                  <button
+                  <Button
                     onClick={() => removeItem(i)}
-                    className="btn-icon text-error"
+                    variant="ghost"
+                    size="sm"
+                    className="text-error p-1"
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
@@ -219,30 +222,29 @@ export default function PrintingOrderForm({
         {/* Notes */}
         <div>
           <label className="label-base mb-1 block">Ghi chú</label>
-          <textarea
+          <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú thêm..."
             rows={2}
-            className="input-base w-full resize-none"
+            className="w-full resize-none"
           />
         </div>
 
         {/* Actions */}
         <div className="form-actions">
-          <button
+          <Button
             onClick={() => { resetForm(); onClose(); }}
-            className="btn btn-outline"
+            variant="outline"
           >
             Đóng
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn btn-primary disabled:opacity-50"
           >
             {loading ? "Đang xử lý..." : "Tạo đơn in"}
-          </button>
+          </Button>
         </div>
       </div>
     </UnifiedModal>
