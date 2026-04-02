@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { loadMoreAuditLogs } from "@/app/actions/audit-log-actions";
+import { fetchAuditLogs } from "@/app/actions/audit-log-actions";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/ui/search-bar";
+import { SelectPill } from "@/components/ui/select/SelectPill";
+import { Pagination } from "@/components/ui/pagination";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ScrollText, Loader2, User, Clock } from "lucide-react";
+import { ScrollText, Clock, User } from "lucide-react";
 import type { BadgeVariant } from "@/components/ui/badge";
 
 /* ═══════════════════════════════════════════
-   AuditLogList — Client Component with infinite load & filter
-   Uses: SSOT Table*, Badge, Button, SearchBar
+   AuditLogList — V2 Gold Standard
+   Fix #1: No local SearchBar (uses Header ?q=)
+   Fix #2: SelectPill instead of native <select>
+   Fix #3: Server-side Pagination
+   Fix #4: Mobile card layout
    ═══════════════════════════════════════════ */
 
 interface AuditLogEmployee {
@@ -35,9 +38,18 @@ interface AuditLog {
 
 interface AuditLogListProps {
   initialLogs: AuditLog[];
+  totalCount: number;
+  pageSize: number;
 }
 
-const LOG_TYPE_OPTIONS = ["ALL", "AUTH", "DATA", "SYSTEM", "ERROR"];
+// ── Constants ──────────────────────────────────────
+const LOG_TYPE_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "AUTH", label: "AUTH" },
+  { value: "DATA", label: "DATA" },
+  { value: "SYSTEM", label: "SYSTEM" },
+  { value: "ERROR", label: "ERROR" },
+];
 
 const SEVERITY_VARIANT: Record<string, BadgeVariant> = {
   info: "info",
@@ -46,6 +58,7 @@ const SEVERITY_VARIANT: Record<string, BadgeVariant> = {
   critical: "error",
 };
 
+// ── Helpers ────────────────────────────────────────
 function formatLogTime(dateStr: string) {
   const d = new Date(dateStr);
   return d.toLocaleDateString("vi-VN", {
@@ -54,155 +67,191 @@ function formatLogTime(dateStr: string) {
   });
 }
 
-/** Safely extract employee name from Supabase FK join (can be object or array) */
 function getEmployeeName(emp: AuditLog["employee"]): string {
   if (!emp) return "Hệ thống";
   if (Array.isArray(emp)) return emp[0]?.full_name || "Hệ thống";
   return emp.full_name || "Hệ thống";
 }
 
-export default function AuditLogList({ initialLogs }: AuditLogListProps) {
+// ── Component ──────────────────────────────────────
+export default function AuditLogList({ initialLogs, totalCount, pageSize }: AuditLogListProps) {
   const [logs, setLogs] = useState<AuditLog[]>(initialLogs);
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("ALL");
-  const [hasMore, setHasMore] = useState(initialLogs.length >= 30);
+  const [total, setTotal] = useState(totalCount);
+  const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState("all");
   const [isPending, startTransition] = useTransition();
 
-  const loadMore = useCallback(() => {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
     startTransition(async () => {
-      const result = await loadMoreAuditLogs(logs.length, 30, typeFilter);
-      if (result.success && Array.isArray(result.data)) {
-        const newLogs = result.data as AuditLog[];
-        setLogs((prev) => [...prev, ...newLogs]);
-        if (newLogs.length < 30) setHasMore(false);
+      const result = await fetchAuditLogs(newPage, typeFilter);
+      if (result.success && result.data) {
+        const { logs: newLogs, total: newTotal } = result.data as { logs: AuditLog[]; total: number };
+        setLogs(newLogs);
+        setTotal(newTotal);
       }
     });
-  }, [logs.length, typeFilter]);
+  }, [typeFilter]);
 
-  // Filter by search term (client-side for current loaded data)
-  const filtered = logs.filter((log) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      log.action?.toLowerCase().includes(q) ||
-      log.description?.toLowerCase().includes(q) ||
-      log.table_name?.toLowerCase().includes(q) ||
-      getEmployeeName(log.employee).toLowerCase().includes(q)
-    );
-  });
+  const handleTypeChange = useCallback((value: string) => {
+    setTypeFilter(value);
+    setPage(1);
+    startTransition(async () => {
+      const result = await fetchAuditLogs(1, value);
+      if (result.success && result.data) {
+        const { logs: newLogs, total: newTotal } = result.data as { logs: AuditLog[]; total: number };
+        setLogs(newLogs);
+        setTotal(newTotal);
+      }
+    });
+  }, []);
 
   return (
-    <div className="main-container pb-28 lg:pb-12">
+    <div className={`main-container pb-28 lg:pb-12 ${isPending ? "opacity-70 pointer-events-none" : ""}`}>
       {/* ── Breadcrumb ── */}
       <Breadcrumb items={[
         { label: "Cài đặt", href: "/settings" },
         { label: "Nhật ký hoạt động" },
       ]} />
 
-      {/* ── Header + Filters ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* ── Header + Filter ── */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ScrollText className="w-5 h-5 text-primary" />
-          <h1 className="text-h3 text-text">Nhật ký hoạt động</h1>
-          <Badge variant="neutral">{filtered.length}</Badge>
+          <h1 className="text-h3 text-text-primary">Nhật ký hoạt động</h1>
+          <Badge variant="neutral">{total}</Badge>
         </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex-1 sm:w-64">
-            <SearchBar
-              placeholder="Tìm theo hành động, mô tả..."
-              value={search}
-              onChange={setSearch}
-            />
-          </div>
-          {/* eslint-disable-next-line react/forbid-elements -- select inside filter bar */}
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setLogs(initialLogs); // reset when filter changes
-              setHasMore(true);
-            }}
-            className="input-base w-auto min-w-[100px]"
-          >
-            {LOG_TYPE_OPTIONS.map((t) => (
-              <option key={t} value={t}>{t === "ALL" ? "Tất cả" : t}</option>
-            ))}
-          </select>
-        </div>
+        <SelectPill
+          value={typeFilter}
+          onChange={handleTypeChange}
+          defaultValue="all"
+          placeholder="Loại"
+          options={LOG_TYPE_OPTIONS}
+        />
       </div>
 
-      {/* ── Table ── */}
-      <TableWrapper>
-        <THead>
-          <tr>
-            <TH>Thời gian</TH>
-            <TH>Người thực hiện</TH>
-            <TH>Hành động</TH>
-            <TH>Bảng</TH>
-            <TH>Mô tả</TH>
-            <TH>Loại</TH>
-            <TH>Mức độ</TH>
-          </tr>
-        </THead>
-        <TBody>
-          {filtered.length === 0 ? (
-            <TR>
-              <td colSpan={7} className="px-4 text-center py-12 text-text-muted">
-                Chưa có nhật ký nào
-              </td>
-            </TR>
-          ) : (
-            filtered.map((log) => (
-              <TR key={log.id}>
-                <TD className="text-text-secondary text-xs whitespace-nowrap">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatLogTime(log.created_at)}
-                  </span>
-                </TD>
-                <TD>
-                  <span className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-text-muted shrink-0" />
-                    <span className="text-sm truncate max-w-[140px]">
-                      {getEmployeeName(log.employee)}
+      {/* ── Desktop Table (hidden on mobile) ── */}
+      <div className="hidden lg:block">
+        <TableWrapper>
+          <THead>
+            <tr>
+              <TH>Thời gian</TH>
+              <TH>Người thực hiện</TH>
+              <TH>Hành động</TH>
+              <TH>Bảng</TH>
+              <TH>Mô tả</TH>
+              <TH>Loại</TH>
+              <TH>Mức độ</TH>
+            </tr>
+          </THead>
+          <TBody>
+            {logs.length === 0 ? (
+              <TR>
+                <td colSpan={7} className="px-4 text-center py-12 text-text-muted">
+                  Chưa có nhật ký nào
+                </td>
+              </TR>
+            ) : (
+              logs.map((log) => (
+                <TR key={log.id}>
+                  <TD className="text-text-secondary text-caption whitespace-nowrap">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatLogTime(log.created_at)}
                     </span>
-                  </span>
-                </TD>
-                <TD className="font-medium text-text">{log.action}</TD>
-                <TD className="text-text-secondary">{log.table_name || "—"}</TD>
-                <TD className="text-text-secondary text-xs max-w-[200px] truncate">
-                  {log.description || "—"}
-                </TD>
-                <TD>
+                  </TD>
+                  <TD>
+                    <span className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-text-muted shrink-0" />
+                      <span className="text-body-sm truncate max-w-[140px]">
+                        {getEmployeeName(log.employee)}
+                      </span>
+                    </span>
+                  </TD>
+                  <TD className="font-medium text-text-primary">{log.action}</TD>
+                  <TD className="text-text-secondary">{log.table_name || "—"}</TD>
+                  <TD className="text-text-secondary text-caption max-w-[200px] truncate">
+                    {log.description || "—"}
+                  </TD>
+                  <TD>
+                    {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
+                  </TD>
+                  <TD>
+                    {log.severity && (
+                      <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
+                        {log.severity}
+                      </Badge>
+                    )}
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </TableWrapper>
+      </div>
+
+      {/* ── Mobile Card List (hidden on desktop) ── */}
+      <div className="lg:hidden space-y-3">
+        {logs.length === 0 ? (
+          <div className="card-base py-12 text-center text-text-muted">
+            Chưa có nhật ký nào
+          </div>
+        ) : (
+          logs.map((log) => (
+            <div key={log.id} className="card-base p-4 space-y-2">
+              {/* Row 1: Time + Badges */}
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-text-secondary text-caption">
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatLogTime(log.created_at)}
+                </span>
+                <div className="flex items-center gap-1.5">
                   {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
-                </TD>
-                <TD>
                   {log.severity && (
                     <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
                       {log.severity}
                     </Badge>
                   )}
-                </TD>
-              </TR>
-            ))
-          )}
-        </TBody>
-      </TableWrapper>
+                </div>
+              </div>
+              {/* Row 2: Employee */}
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-text-muted shrink-0" />
+                <span className="text-body-sm text-text-primary">
+                  {getEmployeeName(log.employee)}
+                </span>
+              </div>
+              {/* Row 3: Action + Table */}
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-text-primary">{log.action}</span>
+                {log.table_name && (
+                  <span className="text-text-secondary text-caption">→ {log.table_name}</span>
+                )}
+              </div>
+              {/* Row 4: Description (if any) */}
+              {log.description && (
+                <p className="text-text-secondary text-caption line-clamp-2">{log.description}</p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
 
-      {/* ── Load More ── */}
-      {hasMore && filtered.length > 0 && (
-        <div className="flex justify-center">
-          <Button
-            variant="secondary"
-            onClick={loadMore}
-            disabled={isPending}
-            className="gap-1.5"
-          >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {isPending ? "Đang tải..." : "Tải thêm"}
-          </Button>
-        </div>
+      {/* ── Pagination ── */}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onChange={handlePageChange}
+        className="mt-6"
+      />
+
+      {/* ── Footer Count ── */}
+      {total > 0 && (
+        <p className="text-center text-caption text-text-muted mt-2">
+          Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} của {total} bản ghi
+        </p>
       )}
     </div>
   );

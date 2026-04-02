@@ -9,7 +9,7 @@ import {
   getUnlinkedEmployees,
 } from "@/app/actions/user-management";
 import { Mail, Loader2 } from "lucide-react";
-import { CustomSelect } from "@/components/ui/select";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import Image from "next/image";
 
 /* ═══════════════════════════════════════════
@@ -142,7 +142,7 @@ export default function LinkEmployeeModal({
           {loading ? (
             <div className="h-11 bg-bg-hover rounded-lg animate-pulse mt-1" />
           ) : (
-            <CustomSelect
+            <SelectForm
               label="Chọn nhân viên"
               value={selectedId}
               onChange={setSelectedId}

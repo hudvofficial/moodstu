@@ -6,7 +6,7 @@ import {
   unlinkUserFromEmployee,
 } from "@/app/actions/user-management";
 import type { AuthUserWithEmployee } from "@/app/actions/user-management";
-import { CustomSelect } from "@/components/ui/select";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import Image from "next/image";
 import LinkEmployeeModal from "./link-employee-modal";
 import { toast } from "sonner";
@@ -135,13 +135,12 @@ export default function MemberCard({
           <div className="flex items-center gap-2 shrink-0">
             {/* Role selector */}
             <div className="relative w-28 shrink-0">
-              <CustomSelect
+              <SelectForm
                 value={user.jwt_role || "User"}
                 onChange={(val) => handleRoleChange(val)}
                 disabled={isCurrentUser || isPending}
-                searchable={false}
                 options={ROLES.map((r) => ({ label: r.label, value: r.value }))}
-                className="[&_.select-trigger]:min-h-xl! [&_.select-trigger]:py-1! [&_.select-trigger]:text-xs! [&_.select-trigger]:font-medium [&_.select-trigger]:bg-transparent"
+                className="[&_button]:min-h-[unset]! [&_button]:py-1! [&_button]:text-xs! [&_button]:font-medium [&_button]:bg-transparent"
               />
             </div>
 

@@ -3,21 +3,34 @@
 import { withAuth } from "@/lib/auth_utils";
 
 // ═══════════════════════════════════════════
-// Audit Log Actions — Paginated loading
-// V1 ref: audit-logs.ts (23 lines)
-// V2: withAuth instead of raw createClient
+// Audit Log Actions — Page-based pagination
+// V2: withAuth + server-side paging + count
 // ═══════════════════════════════════════════
 
-export async function loadMoreAuditLogs(offset: number, limit: number = 30, typeFilter?: string) {
+const PAGE_SIZE = 20;
+
+export async function fetchAuditLogs(
+  page: number = 1,
+  typeFilter?: string
+) {
   return withAuth(async (supabase) => {
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     let query = supabase
       .from("audit_logs")
-      .select("id, action, table_name, record_id, description, log_type, severity, source, created_at, employee:employee_id(full_name, avatar_url)")
+      .select(
+        "id, action, table_name, record_id, description, log_type, severity, source, created_at, employee:employee_id(full_name, avatar_url)",
+        { count: "exact" }
+      )
       .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(from, to);
 
-    if (typeFilter && typeFilter !== "ALL") query = query.eq("log_type", typeFilter);
-    const { data } = await query;
-    return data || [];
+    if (typeFilter && typeFilter !== "all") {
+      query = query.eq("log_type", typeFilter);
+    }
+
+    const { data, count } = await query;
+    return { logs: data || [], total: count || 0, pageSize: PAGE_SIZE };
   });
 }

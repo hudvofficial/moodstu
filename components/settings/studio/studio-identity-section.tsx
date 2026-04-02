@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CustomSelect } from "@/components/ui/select";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import Image from "next/image";
 import { Building2, Upload } from "lucide-react";
 
@@ -131,10 +131,11 @@ export default function StudioIdentitySection({
         />
 
         {/* Timezone */}
-        <CustomSelect
+        <SelectForm
           value={timezone}
           onChange={setTimezone}
           label="Múi giờ"
+          placeholder="Chọn múi giờ"
           options={[
             { value: "Asia/Ho_Chi_Minh", label: "UTC+7 (Hồ Chí Minh)" },
             { value: "Asia/Bangkok", label: "UTC+7 (Bangkok)" },

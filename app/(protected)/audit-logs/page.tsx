@@ -7,6 +7,8 @@ import AuditLogList from "@/components/settings/audit-log-list";
    Route: /audit-logs
    ═══════════════════════════════════════════ */
 
+const PAGE_SIZE = 20;
+
 export default async function AuditLogsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,12 +26,21 @@ export default async function AuditLogsPage() {
     redirect("/settings");
   }
 
-  // Initial load (first 30 logs)
-  const { data: logs } = await supabase
+  // Initial load — page 1
+  const { data: logs, count } = await supabase
     .from("audit_logs")
-    .select("id, action, table_name, record_id, description, log_type, severity, source, created_at, employee:employee_id(full_name, avatar_url)")
+    .select(
+      "id, action, table_name, record_id, description, log_type, severity, source, created_at, employee:employee_id(full_name, avatar_url)",
+      { count: "exact" }
+    )
     .order("created_at", { ascending: false })
-    .limit(30);
+    .range(0, PAGE_SIZE - 1);
 
-  return <AuditLogList initialLogs={logs || []} />;
+  return (
+    <AuditLogList
+      initialLogs={logs || []}
+      totalCount={count || 0}
+      pageSize={PAGE_SIZE}
+    />
+  );
 }

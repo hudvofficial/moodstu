@@ -73,7 +73,8 @@
     "gotchas": [
       "z.ZodError objects expose an .issues array (not .errors). Use parsed.error.issues[0]?.message for formatting safeParse errors.",
       "employees table often lacks columns present in older V1 schemas (e.g., bank info, salary context). Always verify against current DB schema before coding actions.",
-      "Layout Centering Trap: Avoiding max-w-[px] classes on main layout wrappers to maintain consistency with the full-width Gold Standard dashboard."
+      "Layout Centering Trap: Avoiding max-w-[px] classes on main layout wrappers to maintain consistency with the full-width Gold Standard dashboard.",
+      "Mobile Scroll Clipping: Never use `display: none` / `display: flex` purely on CSS for Sidebar duplicating. If sidebar components sit outside the single page scrollable wrapper (like `main-scroll`), they will be completely unviewable on Mobile despite being flex-displayed. The solution is rendering Sidebar elements inline inside the `detail-main` div shielded by an `lg:hidden` wrapper."
     ]
   }
 }

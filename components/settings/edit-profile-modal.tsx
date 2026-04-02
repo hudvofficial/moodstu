@@ -8,8 +8,9 @@ import { updateProfile, uploadAvatar, updateAdminProfileFields } from "@/app/act
 import { toast } from "sonner";
 import { Camera, BadgeCheck, Save, Loader2 } from "lucide-react";
 import type { EmployeeProfile } from "@/types/settings";
+import { GENDER_OPTIONS } from "@/types/employee-constants";
 import { Input } from "@/components/ui/input";
-import { CustomSelect } from "@/components/ui/select";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import Image from "next/image";
 
 /* ═══════════════════════════════════════════
@@ -241,27 +242,23 @@ export default function EditProfileModal({
                 inputMode="tel"
                 placeholder="0912345678"
               />
-              <CustomSelect
+              <SelectForm
                 label="Giới tính"
                 value={gender}
                 onChange={setGender}
-                searchable={false}
-                options={[
-                  { label: "Nam", value: "Nam" },
-                  { label: "Nữ", value: "Nữ" },
-                  { label: "Khác", value: "Khác" },
-                ]}
+                placeholder="Chọn giới tính"
+                options={GENDER_OPTIONS as unknown as { label: string; value: string }[]}
               />
             </div>
 
             {/* Department + Position — Admin only */}
             {isAdmin && (
               <div className="form-grid-2col">
-                <CustomSelect
+                <SelectForm
                   label="Phòng ban"
                   value={department}
                   onChange={setDepartment}
-                  searchable={false}
+                  placeholder="Chọn phòng ban"
                   options={DEPARTMENTS.map((d) => ({
                     label: d,
                     value: d,

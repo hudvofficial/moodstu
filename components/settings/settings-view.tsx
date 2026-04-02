@@ -151,17 +151,17 @@ export default function SettingsView({
           <p className="text-center text-xs text-text-muted pt-2 pb-4">
             Mood Studio v{changelog[0]?.version || "?"}
           </p>
+
+          {/* ── Mobile-only: sidebar content below main ── */}
+          <div className="lg:hidden flex flex-col gap-4">
+            {sidebarContent}
+          </div>
         </div>
 
         {/* Sidebar — Desktop only (detail-sidebar hidden on mobile by CSS) */}
         <div className="detail-sidebar">
           {sidebarContent}
         </div>
-      </div>
-
-      {/* ── Mobile-only: sidebar content (detail-sidebar is hidden < lg) ── */}
-      <div className="lg:hidden flex flex-col gap-4">
-        {sidebarContent}
       </div>
 
       {/* ═══ EDIT PROFILE MODAL ═══ */}
