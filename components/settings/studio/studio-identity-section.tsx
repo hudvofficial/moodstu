@@ -1,15 +1,10 @@
 "use client";
 
+import Image from "next/image";
+import { Building2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SelectForm } from "@/components/ui/select/SelectForm";
-import Image from "next/image";
-import { Building2, Upload } from "lucide-react";
-
-/* ═══════════════════════════════════════════
-   Studio Identity Section — Logo + Name + Hotline + Address
-   Sub-component of StudioInfoForm
-   ═══════════════════════════════════════════ */
 
 interface StudioIdentitySectionProps {
   name: string;
@@ -23,9 +18,6 @@ interface StudioIdentitySectionProps {
   timezone: string;
   setTimezone: (v: string) => void;
   logoUrl?: string | null;
-  logoPreview: string | null;
-  onLogoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  logoInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export default function StudioIdentitySection({
@@ -40,68 +32,45 @@ export default function StudioIdentitySection({
   timezone,
   setTimezone,
   logoUrl,
-  logoPreview,
-  onLogoSelect,
-  logoInputRef,
 }: StudioIdentitySectionProps) {
   return (
     <section className="card-base p-4 lg:p-6">
       <h3 className="section-heading mb-4">
         <Building2 className="w-4 h-4 inline-block mr-1.5 align-middle" />
-        Thông tin Studio
+        Thong tin Studio
       </h3>
 
       <div className="space-y-3">
-        {/* Logo */}
         <div className="flex items-center gap-4 mb-4">
-          {/* eslint-disable-next-line react/forbid-elements -- avatar click area */}
-          <button
-            type="button"
-            onClick={() => logoInputRef.current?.click()}
-            className="relative group shrink-0"
-          >
-            {(logoPreview || logoUrl) ? (
-              <Image
-                src={logoPreview || logoUrl || ""}
-                alt="Logo"
-                width={64}
-                height={64}
-                className="w-16 h-16 rounded-lg object-contain bg-bg-hover"
-                unoptimized={logoPreview ? true : false}
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-lg bg-bg-hover flex items-center justify-center">
-                <Upload className="w-5 h-5 text-text-muted" />
-              </div>
-            )}
-            <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Upload className="w-4 h-4 text-white" />
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt="Logo"
+              width={64}
+              height={64}
+              className="w-16 h-16 rounded-lg object-contain bg-bg-hover shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-lg bg-bg-hover flex items-center justify-center shrink-0">
+              <Upload className="w-5 h-5 text-text-muted" />
             </div>
-          </button>
-          {/* eslint-disable-next-line react/forbid-elements -- file input needs native */}
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/svg+xml"
-            onChange={onLogoSelect}
-            className="hidden"
-          />
+          )}
           <div>
             <p className="text-sm font-medium text-text-primary">Logo</p>
-            <p className="text-xs text-text-muted">PNG, SVG, max 2MB</p>
+            <p className="text-xs text-text-muted">
+              Upload logo tam thoi dang tat cho den khi backend luu file hoan chinh.
+            </p>
           </div>
         </div>
 
-        {/* Name */}
         <Input
           id="studio-name"
-          label="Tên studio *"
+          label="Ten studio *"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Mood Wedding Studio"
         />
 
-        {/* Hotline + Representative */}
         <div className="form-grid-2col">
           <Input
             id="studio-hotline"
@@ -113,31 +82,29 @@ export default function StudioIdentitySection({
           />
           <Input
             id="studio-representative"
-            label="Người đại diện"
+            label="Nguoi dai dien"
             value={representative}
             onChange={(e) => setRepresentative(e.target.value)}
-            placeholder="Nguyễn Văn A"
+            placeholder="Nguyen Van A"
           />
         </div>
 
-        {/* Address */}
         <Textarea
           id="studio-address"
-          label="Địa chỉ"
+          label="Dia chi"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           rows={2}
-          placeholder="123 Đường ABC, Quận 1, TP.HCM"
+          placeholder="123 Duong ABC, Quan 1, TP.HCM"
         />
 
-        {/* Timezone */}
         <SelectForm
           value={timezone}
           onChange={setTimezone}
-          label="Múi giờ"
-          placeholder="Chọn múi giờ"
+          label="Mui gio"
+          placeholder="Chon mui gio"
           options={[
-            { value: "Asia/Ho_Chi_Minh", label: "UTC+7 (Hồ Chí Minh)" },
+            { value: "Asia/Ho_Chi_Minh", label: "UTC+7 (Ho Chi Minh)" },
             { value: "Asia/Bangkok", label: "UTC+7 (Bangkok)" },
             { value: "Asia/Singapore", label: "UTC+8 (Singapore)" },
           ]}

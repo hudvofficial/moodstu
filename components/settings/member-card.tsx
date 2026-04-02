@@ -1,32 +1,30 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
+import { toast } from "sonner";
+import {
+  AlertCircle,
+  Link2,
+  Shield,
+  Unlink,
+} from "lucide-react";
 import {
   updateUserRole,
   unlinkUserFromEmployee,
 } from "@/app/actions/user-management";
 import type { AuthUserWithEmployee } from "@/app/actions/user-management";
+import type { EmployeeRole } from "@/types/employee";
+import { ROLE_LABELS } from "@/types/employee-constants";
 import { SelectForm } from "@/components/ui/select/SelectForm";
-import Image from "next/image";
 import LinkEmployeeModal from "./link-employee-modal";
-import { toast } from "sonner";
-import {
-  Shield,
-  UserCog,
-  User,
-  Link2,
-  Unlink,
-} from "lucide-react";
 
-/* ═══════════════════════════════════════════
-   Member Card — Single auth user management
-   V1 logic 100% + SSOT tokens + lucide icons
-   ═══════════════════════════════════════════ */
-
-const ROLES = [
-  { value: "Admin", label: "Admin", icon: Shield },
-  { value: "Manager", label: "Manager", icon: UserCog },
-  { value: "User", label: "User", icon: User },
+const ROLE_OPTIONS: { value: EmployeeRole; label: string }[] = [
+  { value: "admin", label: ROLE_LABELS.admin },
+  { value: "manager", label: ROLE_LABELS.manager },
+  { value: "sale", label: ROLE_LABELS.sale },
+  { value: "media", label: ROLE_LABELS.media },
+  { value: "ctv", label: ROLE_LABELS.ctv },
 ];
 
 interface MemberCardProps {
@@ -42,8 +40,6 @@ export default function MemberCard({
 }: MemberCardProps) {
   const [isPending, startTransition] = useTransition();
   const [linkOpen, setLinkOpen] = useState(false);
-
-  // ─── Avatar ───
   const linked = user.linked_employee;
   const displayName = linked?.full_name || user.email;
   const avatarUrl = linked?.avatar_url;
@@ -53,22 +49,23 @@ export default function MemberCard({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const selectedRole = user.jwt_role || linked?.role || "ctv";
 
-  // ─── Role change (V1 logic + V2 actions) ───
   const handleRoleChange = (newRole: string) => {
-    if (newRole === user.jwt_role || isCurrentUser) return;
+    const nextRole = newRole as EmployeeRole;
+    if (nextRole === selectedRole || isCurrentUser) return;
+
     startTransition(async () => {
-      const result = await updateUserRole(user.auth_id, newRole);
+      const result = await updateUserRole(user.auth_id, nextRole);
       if (result.success) {
         toast.success(result.data.message);
         onRefresh();
       } else {
-        toast.error(result.error || "Lỗi cập nhật quyền");
+        toast.error(result.error || "Loi cap nhat quyen");
       }
     });
   };
 
-  // ─── Unlink (V1 logic + V2 actions) ───
   const handleUnlink = () => {
     if (!linked) return;
     startTransition(async () => {
@@ -77,7 +74,7 @@ export default function MemberCard({
         toast.success(result.data.message);
         onRefresh();
       } else {
-        toast.error(result.error || "Lỗi hủy liên kết");
+        toast.error(result.error || "Loi huy lien ket");
       }
     });
   };
@@ -90,7 +87,6 @@ export default function MemberCard({
         } ${isPending ? "opacity-60 pointer-events-none" : ""}`}
       >
         <div className="flex items-center gap-3">
-          {/* Avatar */}
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -102,68 +98,78 @@ export default function MemberCard({
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary">
-                {initials}
-              </span>
+              <span className="text-xs font-bold text-primary">{initials}</span>
             </div>
           )}
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-text-primary truncate">
                 {displayName}
               </p>
               {isCurrentUser && (
-                <span className="text-tiny text-primary font-bold">
-                  (Bạn)
-                </span>
+                <span className="text-tiny text-primary font-bold">(Ban)</span>
               )}
             </div>
             <p className="text-xs text-text-muted truncate">{user.email}</p>
-            {linked && (
+
+            {linked ? (
               <div className="flex items-center gap-1 mt-0.5">
-                <Link2 className="w-3 h-3 text-text-muted shrink-0" />
+                <Shield className="w-3 h-3 text-text-muted shrink-0" />
                 <span className="text-tiny text-text-muted">
-                  {linked.role} · {linked.status}
+                  {ROLE_LABELS[linked.role]} · {linked.status}
                 </span>
+              </div>
+            ) : (
+              <div className="mt-1 space-y-1">
+                <div className="flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 text-warning shrink-0" />
+                  <span className="text-tiny text-warning">
+                    Chua lien ket ho so nhan vien
+                  </span>
+                </div>
+                {user.suggested_employee && (
+                  <p className="text-tiny text-text-muted">
+                    Co goi y lien ket theo email:{" "}
+                    <span className="font-medium text-text-secondary">
+                      {user.suggested_employee.full_name}
+                    </span>
+                  </p>
+                )}
               </div>
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Role selector */}
-            <div className="relative w-28 shrink-0">
+            <div className="relative w-32 shrink-0">
               <SelectForm
-                value={user.jwt_role || "User"}
-                onChange={(val) => handleRoleChange(val)}
+                value={selectedRole}
+                onChange={handleRoleChange}
                 disabled={isCurrentUser || isPending}
-                options={ROLES.map((r) => ({ label: r.label, value: r.value }))}
+                options={ROLE_OPTIONS}
                 className="[&_button]:min-h-[unset]! [&_button]:py-1! [&_button]:text-xs! [&_button]:font-medium [&_button]:bg-transparent"
               />
             </div>
 
-            {/* Link/Unlink button */}
             {linked ? (
-              /* eslint-disable-next-line react/forbid-elements -- compact icon-only action */
+              /* eslint-disable-next-line react/forbid-elements -- compact icon action */
               <button
                 onClick={handleUnlink}
                 disabled={isPending || isCurrentUser}
                 className="icon-btn w-8! h-8! hover:bg-red-50! hover:text-red-500!"
-                title="Hủy liên kết"
-                aria-label={`Hủy liên kết ${linked.full_name}`}
+                title="Huy lien ket"
+                aria-label={`Huy lien ket ${linked.full_name}`}
               >
                 <Unlink className="w-3.5 h-3.5" />
               </button>
             ) : (
-              /* eslint-disable-next-line react/forbid-elements -- compact icon-only action */
+              /* eslint-disable-next-line react/forbid-elements -- compact icon action */
               <button
                 onClick={() => setLinkOpen(true)}
                 disabled={isPending}
                 className="icon-btn w-8! h-8! hover:bg-primary/10! hover:text-primary!"
-                title="Liên kết nhân viên"
-                aria-label={`Liên kết ${user.email} với nhân viên`}
+                title="Lien ket nhan vien"
+                aria-label={`Lien ket ${user.email} voi nhan vien`}
               >
                 <Link2 className="w-3.5 h-3.5" />
               </button>
@@ -172,7 +178,6 @@ export default function MemberCard({
         </div>
       </div>
 
-      {/* Link Employee Modal */}
       <LinkEmployeeModal
         isOpen={linkOpen}
         onClose={() => setLinkOpen(false)}

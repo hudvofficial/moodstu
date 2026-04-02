@@ -1,21 +1,17 @@
 "use server";
 
-import { withAdmin } from "@/lib/auth_utils";
-import { fireAuditLog } from "@/lib/audit";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
-/* ═══════════════════════════════════════════
-   User Management — Admin-only actions
-   Port V1 + V2 upgrades: Zod validation + AuditLog
-   ═══════════════════════════════════════════ */
-
-// ─── TYPES ──────────────────────────────────────────
+import { revalidatePath } from "next/cache";
+import { fireAuditLog } from "@/lib/audit";
+import { withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
+import { ROLE_LABELS } from "@/types/employee-constants";
+import type { EmployeeRole } from "@/types/employee";
+import { normalizeEmployeeRole } from "@/types/roles";
 
 export type AuthUserWithEmployee = {
   auth_id: string;
   email: string;
-  jwt_role: string | null;
+  jwt_role: EmployeeRole | null;
   created_at: string;
   last_sign_in_at: string | null;
   is_banned: boolean;
@@ -23,7 +19,7 @@ export type AuthUserWithEmployee = {
     id: string;
     full_name: string;
     email: string | null;
-    role: string;
+    role: EmployeeRole;
     avatar_url: string | null;
     auth_user_id: string;
     status: string;
@@ -32,24 +28,19 @@ export type AuthUserWithEmployee = {
     id: string;
     full_name: string;
     email: string | null;
-    role: string;
+    role: EmployeeRole;
     avatar_url: string | null;
   } | null;
 };
 
-// ─── ZOD SCHEMAS ─────────────────────────────────────
-
-const roleSchema = z.enum(["Admin", "Manager", "User"], {
-  error: "Quyền không hợp lệ. Chỉ chấp nhận: Admin, Manager, User",
+const roleSchema = z.enum(["admin", "manager", "sale", "media", "ctv"], {
+  error: "Quyen khong hop le",
 });
 
-const uuidSchema = z.string().uuid("ID không hợp lệ");
-
-// ─── GET AUTH USERS + EMPLOYEE LINKS ─────────────────
+const uuidSchema = z.string().uuid("ID khong hop le");
 
 export async function getAuthUsers() {
   return withAdmin(async (supabase) => {
-    // 1. Lấy auth users via Admin API
     const { data: authUsersRaw, error: authError } =
       await supabase.auth.admin.listUsers();
 
@@ -58,31 +49,34 @@ export async function getAuthUsers() {
     const authUsers = (authUsersRaw?.users || []).map((u) => ({
       auth_id: u.id,
       email: u.email || "",
-      jwt_role: (u.app_metadata?.role as string) || null,
+      jwt_role: normalizeEmployeeRole(
+        (u.app_metadata?.role as string | undefined) ?? null,
+      ),
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at || null,
       is_banned: !!u.banned_until,
     }));
 
-    // 2. Lấy employees (để match/link)
     const { data: employees } = await supabase
       .from("employees")
       .select("id, full_name, email, role, avatar_url, auth_user_id, status")
       .eq("status", "active")
       .order("full_name");
 
-    // 3. Merge: mỗi auth user → linked employee (nếu có)
     const result: AuthUserWithEmployee[] = authUsers.map((user) => {
       const linked =
         employees?.find(
-          (e: { auth_user_id: string | null }) =>
-            e.auth_user_id === user.auth_id,
+          (employee: { auth_user_id: string | null }) =>
+            employee.auth_user_id === user.auth_id,
         ) || null;
       const emailMatch = !linked
         ? employees?.find(
-            (e: { email: string | null; auth_user_id: string | null }) =>
-              e.email?.toLowerCase() === user.email?.toLowerCase() &&
-              !e.auth_user_id,
+            (employee: {
+              email: string | null;
+              auth_user_id: string | null;
+            }) =>
+              employee.email?.toLowerCase() === user.email.toLowerCase() &&
+              !employee.auth_user_id,
           ) || null
         : null;
 
@@ -97,71 +91,63 @@ export async function getAuthUsers() {
   });
 }
 
-// ─── UPDATE USER ROLE ────────────────────────────────
-
 export async function updateUserRole(authUserId: string, newRole: string) {
   return withAdmin(async (supabase) => {
-    // V2 upgrade: Zod validation
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error(parsedId.error.issues[0]?.message);
 
     const parsedRole = roleSchema.safeParse(newRole);
-    if (!parsedRole.success) throw new Error(parsedRole.error.issues[0]?.message);
+    if (!parsedRole.success) {
+      throw new Error(parsedRole.error.issues[0]?.message);
+    }
 
-    // Update JWT role via admin auth API
-    const { error: authError } = await supabase.auth.admin.updateUserById(
-      parsedId.data,
-      { app_metadata: { role: parsedRole.data } },
-    );
-    if (authError) throw new Error(authError.message);
+    await syncAuthIdentity(supabase, parsedId.data, {
+      role: parsedRole.data,
+    });
 
-    // Update employees.role (if linked)
     await supabase
       .from("employees")
-      .update({ role: parsedRole.data, updated_at: new Date().toISOString() })
+      .update({
+        role: parsedRole.data,
+        updated_at: new Date().toISOString(),
+      })
       .eq("auth_user_id", parsedId.data);
 
-    // V2 upgrade: Audit log
     fireAuditLog({
       action: "UPDATE",
       tableName: "auth.users",
       recordId: parsedId.data,
-      description: `Đổi quyền → ${parsedRole.data}`,
+      description: `Doi quyen -> ${ROLE_LABELS[parsedRole.data]}`,
     });
 
     revalidatePath("/settings");
-    return { message: `Đã cập nhật quyền thành ${parsedRole.data}` };
+    return {
+      message: `Da cap nhat quyen thanh ${ROLE_LABELS[parsedRole.data]}`,
+    };
   });
 }
-
-// ─── LINK USER TO EMPLOYEE ───────────────────────────
 
 export async function linkUserToEmployee(
   authUserId: string,
   employeeId: string,
 ) {
   return withAdmin(async (supabase) => {
-    // V2: Zod validation
     const parsedAuth = uuidSchema.safeParse(authUserId);
-    if (!parsedAuth.success) throw new Error("Auth ID không hợp lệ");
+    if (!parsedAuth.success) throw new Error("Auth ID khong hop le");
 
     const parsedEmp = uuidSchema.safeParse(employeeId);
-    if (!parsedEmp.success) throw new Error("Employee ID không hợp lệ");
+    if (!parsedEmp.success) throw new Error("Employee ID khong hop le");
 
-    // Check employee chưa link với ai khác
     const { data: existing } = await supabase
       .from("employees")
-      .select("auth_user_id, full_name")
+      .select("auth_user_id, full_name, role")
       .eq("id", parsedEmp.data)
       .single();
 
     if (existing?.auth_user_id && existing.auth_user_id !== parsedAuth.data) {
-      throw new Error(
-        `${existing.full_name} đã được liên kết với tài khoản khác`,
-      );
+      throw new Error(`${existing.full_name} da duoc lien ket voi tai khoan khac`);
     }
 
-    // Clear old link (nếu auth user đang link employee khác)
     await supabase
       .from("employees")
       .update({
@@ -171,7 +157,6 @@ export async function linkUserToEmployee(
       .eq("auth_user_id", parsedAuth.data)
       .neq("id", parsedEmp.data);
 
-    // Set new link
     const { error } = await supabase
       .from("employees")
       .update({
@@ -182,27 +167,28 @@ export async function linkUserToEmployee(
 
     if (error) throw new Error(error.message);
 
-    // V2 upgrade: Audit log
+    await syncAuthIdentity(supabase, parsedAuth.data, {
+      fullName: existing?.full_name || null,
+      role: existing?.role || "ctv",
+    });
+
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
       recordId: parsedEmp.data,
-      description: `Liên kết auth user ${parsedAuth.data}`,
+      description: `Lien ket auth user ${parsedAuth.data}`,
     });
 
     revalidatePath("/settings");
-    return { message: "Đã liên kết thành công" };
+    return { message: "Da lien ket thanh cong" };
   });
 }
-
-// ─── UNLINK USER FROM EMPLOYEE ───────────────────────
 
 export async function unlinkUserFromEmployee(authUserId: string) {
   return withAdmin(async (supabase) => {
     const parsedId = uuidSchema.safeParse(authUserId);
-    if (!parsedId.success) throw new Error("Auth ID không hợp lệ");
+    if (!parsedId.success) throw new Error("Auth ID khong hop le");
 
-    // Get employee name for audit before unlinking
     const { data: emp } = await supabase
       .from("employees")
       .select("id, full_name")
@@ -219,22 +205,19 @@ export async function unlinkUserFromEmployee(authUserId: string) {
 
     if (error) throw new Error(error.message);
 
-    // V2 upgrade: Audit log
     if (emp) {
       fireAuditLog({
         action: "UPDATE",
         tableName: "employees",
         recordId: emp.id,
-        description: `Hủy liên kết ${emp.full_name} khỏi auth user`,
+        description: `Huy lien ket ${emp.full_name} khoi auth user`,
       });
     }
 
     revalidatePath("/settings");
-    return { message: "Đã hủy liên kết" };
+    return { message: "Da huy lien ket" };
   });
 }
-
-// ─── GET UNLINKED EMPLOYEES (for dropdown) ───────────
 
 export async function getUnlinkedEmployees() {
   return withAdmin(async (supabase) => {

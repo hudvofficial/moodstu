@@ -1,14 +1,10 @@
 "use client";
 
-import { Calendar, Check, X } from "lucide-react";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Calendar, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-/* ═══════════════════════════════════════════
-   Google Calendar Card — Connect/Disconnect
-   V1 logic 100% + V2 server actions
-   ═══════════════════════════════════════════ */
 
 interface GoogleCalendarCardProps {
   isConnected: boolean;
@@ -21,6 +17,7 @@ export default function GoogleCalendarCard({
   calendarEmail,
   onDisconnect,
 }: GoogleCalendarCardProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleConnect = () => {
@@ -31,9 +28,10 @@ export default function GoogleCalendarCard({
     startTransition(async () => {
       const result = await onDisconnect();
       if (result.success) {
-        toast.success("Đã ngắt kết nối Google Calendar");
+        toast.success("Da ngat ket noi Google Calendar");
+        router.refresh();
       } else {
-        toast.error(result.error || "Lỗi ngắt kết nối");
+        toast.error(result.error || "Loi ngat ket noi");
       }
     });
   };
@@ -53,14 +51,12 @@ export default function GoogleCalendarCard({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Check className="w-3.5 h-3.5 text-green-600" />
                 <span className="text-xs text-green-600 font-medium">
-                  Đã kết nối
+                  Da ket noi
                   {calendarEmail && ` · ${calendarEmail}`}
                 </span>
               </div>
             ) : (
-              <p className="text-xs text-text-muted mt-0.5">
-                Chưa kết nối
-              </p>
+              <p className="text-xs text-text-muted mt-0.5">Chua ket noi</p>
             )}
           </div>
         </div>
@@ -74,7 +70,7 @@ export default function GoogleCalendarCard({
             className="gap-1.5"
           >
             <X className="w-3.5 h-3.5" />
-            {isPending ? "Đang ngắt..." : "Ngắt kết nối"}
+            {isPending ? "Dang ngat..." : "Ngat ket noi"}
           </Button>
         ) : (
           <Button
@@ -84,7 +80,7 @@ export default function GoogleCalendarCard({
             className="gap-1.5"
           >
             <Calendar className="w-3.5 h-3.5" />
-            Kết nối
+            Ket noi
           </Button>
         )}
       </div>

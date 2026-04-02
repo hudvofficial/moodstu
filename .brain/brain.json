@@ -58,6 +58,10 @@
   "knowledge_items": {
     "patterns": [
       {
+        "name": "Global List Search Pattern",
+        "details": "List modules (Contracts, Printing, CRM) MUST use ONLY the global layout header search (⌘K) which syncs to the '?q=' URL parameter. Do not build inline search inputs inside module filter toolbars. Use the universal `useListFilters` hook configured with `q: ''` defaults."
+      },
+      {
         "name": "Explicit Field Selection for Privacy",
         "details": "Always avoid select('*') in server actions that fetch semi-public configuration or profile data to prevent leaking sensitive fields like OAuth tokens or internal metadata."
       },

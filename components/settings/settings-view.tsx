@@ -11,34 +11,25 @@ import type {
   EmployeeProfile,
   NotificationPreferences,
 } from "@/types/settings";
-
 import ProfileCard from "./profile-card";
 import NotificationPrefs from "./notification-prefs";
 import EditProfileModal from "./edit-profile-modal";
 import MembersSection from "./members-section";
 import ChangelogSection from "./changelog-section";
-
-import {
-  Settings,
-  History,
-  ChevronRight,
-} from "lucide-react";
-
-/* ═══════════════════════════════════════════
-   Settings View — Main Client Component
-   V2 = detail-grid 8/4 + SSOT tokens
-   ═══════════════════════════════════════════ */
+import { Settings, History, ChevronRight } from "lucide-react";
 
 interface SettingsViewProps {
   employee: EmployeeProfile;
   notificationPrefs: NotificationPreferences;
-  isAdmin: boolean;
+  canManageSettings: boolean;
+  canManageMembers: boolean;
 }
 
 export default function SettingsView({
   employee,
   notificationPrefs,
-  isAdmin,
+  canManageSettings,
+  canManageMembers,
 }: SettingsViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -46,25 +37,21 @@ export default function SettingsView({
   const [prefs, setPrefs] = useState(notificationPrefs);
   const [isPending, startTransition] = useTransition();
 
-  // ─── Toggle notification preference (optimistic) ───
   const togglePref = useCallback(
     (key: keyof NotificationPreferences, value: boolean) => {
-      // Optimistic update
       setPrefs((prev) => ({ ...prev, [key]: value }));
 
       startTransition(async () => {
         const result = await updateNotificationPreferences({ [key]: value });
         if (!result.success) {
-          // Revert on failure
           setPrefs((prev) => ({ ...prev, [key]: !value }));
-          toast.error(result.error || "Lỗi cập nhật");
+          toast.error(result.error || "Loi cap nhat");
         }
       });
     },
     [],
   );
 
-  // ─── Logout ───
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
@@ -73,20 +60,18 @@ export default function SettingsView({
       router.push("/login");
       router.refresh();
     } catch {
-      toast.error("Lỗi đăng xuất");
+      toast.error("Loi dang xuat");
       setLoggingOut(false);
     }
   };
 
-  // ── Shared sidebar content (reused for mobile) ──
   const sidebarContent = (
     <>
-      {/* Admin Links */}
-      {isAdmin && (
+      {canManageSettings && (
         <section className="card-base p-4 lg:p-6">
           <h3 className="section-heading mb-3">
             <Settings className="w-4 h-4 inline-block mr-1.5 align-middle" />
-            Quản trị hệ thống
+            Quan tri he thong
           </h3>
           <div className="space-y-1">
             <Link
@@ -96,7 +81,7 @@ export default function SettingsView({
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
-                  Cài đặt hệ thống
+                  Cai dat he thong
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />
@@ -108,7 +93,7 @@ export default function SettingsView({
               <div className="flex items-center gap-3">
                 <History className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
-                  Nhật ký hoạt động
+                  Nhat ky hoat dong
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />
@@ -117,8 +102,7 @@ export default function SettingsView({
         </section>
       )}
 
-      {/* Members (Admin only) */}
-      {isAdmin && (
+      {canManageMembers && (
         <MembersSection currentUserEmail={employee.email || ""} />
       )}
     </>
@@ -126,10 +110,8 @@ export default function SettingsView({
 
   return (
     <div className="main-container pb-28 lg:pb-12">
-      {/* ── Desktop: Grid 8/4 ── */}
       <div className="detail-grid">
         <div className="detail-main">
-          {/* ═══ CARD 1: Profile + Logout ═══ */}
           <ProfileCard
             employee={employee}
             onEdit={() => setEditOpen(true)}
@@ -137,42 +119,31 @@ export default function SettingsView({
             loggingOut={loggingOut}
           />
 
-          {/* ═══ CARD 2: Notification Prefs ═══ */}
           <NotificationPrefs
             prefs={prefs}
             onToggle={togglePref}
             disabled={isPending}
           />
 
-          {/* ═══ CARD 3: Changelog ═══ */}
           <ChangelogSection />
 
-          {/* Version */}
           <p className="text-center text-xs text-text-muted pt-2 pb-4">
             Mood Studio v{changelog[0]?.version || "?"}
           </p>
 
-          {/* ── Mobile-only: sidebar content below main ── */}
-          <div className="lg:hidden flex flex-col gap-4">
-            {sidebarContent}
-          </div>
+          <div className="lg:hidden flex flex-col gap-4">{sidebarContent}</div>
         </div>
 
-        {/* Sidebar — Desktop only (detail-sidebar hidden on mobile by CSS) */}
-        <div className="detail-sidebar">
-          {sidebarContent}
-        </div>
+        <div className="detail-sidebar">{sidebarContent}</div>
       </div>
 
-      {/* ═══ EDIT PROFILE MODAL ═══ */}
       <EditProfileModal
         key={String(editOpen)}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
         profile={employee}
-        isAdmin={isAdmin}
+        canManageSettings={canManageSettings}
       />
     </div>
   );
 }
-

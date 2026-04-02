@@ -2,65 +2,53 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { UnifiedModal } from "@/components/ui/unified-modal";
-import { Button } from "@/components/ui/button";
-import { updateProfile, uploadAvatar, updateAdminProfileFields } from "@/app/actions/profile-actions";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Camera, BadgeCheck, Save, Loader2 } from "lucide-react";
-import type { EmployeeProfile } from "@/types/settings";
-import { GENDER_OPTIONS } from "@/types/employee-constants";
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectForm } from "@/components/ui/select/SelectForm";
-import Image from "next/image";
-
-/* ═══════════════════════════════════════════
-   Edit Profile Modal — V2 Gold Standard
-   V1 logic 100% + SSOT tokens + lucide icons
-   ═══════════════════════════════════════════ */
-
-const DEPARTMENTS = [
-  "Ban lãnh đạo",
-  "PHOTO",
-  "MAKEUP",
-  "RETOUCH",
-  "SALES",
-  "LOGISTIC",
-  "FREELANCER",
-];
+import {
+  updateProfile,
+  uploadAvatar,
+  updateAdminProfileFields,
+} from "@/app/actions/profile-actions";
+import type { EmployeeProfile } from "@/types/settings";
+import {
+  DEPARTMENT_OPTIONS,
+  GENDER_OPTIONS,
+} from "@/types/employee-constants";
 
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: EmployeeProfile;
-  isAdmin: boolean;
+  canManageSettings: boolean;
 }
 
 export default function EditProfileModal({
   isOpen,
   onClose,
   profile,
-  isAdmin,
+  canManageSettings,
 }: EditProfileModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // ─── Form state (V1 proven) ───
   const [name, setName] = useState(profile.full_name || "");
   const [phone, setPhone] = useState(profile.phone || "");
   const [gender, setGender] = useState(profile.gender || "");
   const [department, setDepartment] = useState(profile.department || "");
   const [position, setPosition] = useState(profile.position || "");
-
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // ─── Avatar select (V1 logic with blob cleanup) ───
   function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Ảnh không được vượt quá 2MB");
+      toast.error("Anh khong duoc vuot qua 2MB");
       return;
     }
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
@@ -68,28 +56,25 @@ export default function EditProfileModal({
     setAvatarPreview(URL.createObjectURL(file));
   }
 
-  // Cleanup blob URL on unmount
   useEffect(() => {
     return () => {
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [avatarPreview]);
 
-  // ─── Save (V1 logic + V2 server actions) ───
   function handleSave() {
     if (!name.trim()) {
-      toast.error("Tên không được để trống!");
+      toast.error("Ten khong duoc de trong");
       return;
     }
+
     startTransition(async () => {
-      // Upload avatar first if selected
       if (avatarFile) {
         const formData = new FormData();
         formData.append("avatar", avatarFile);
         const avatarResult = await uploadAvatar(formData);
         if (!avatarResult.success) {
-          toast.error(avatarResult.error || "Lỗi upload ảnh");
+          toast.error(avatarResult.error || "Loi upload anh");
           return;
         }
       }
@@ -99,35 +84,38 @@ export default function EditProfileModal({
         phone,
         gender,
       });
+
       if (!result.success) {
-        toast.error(result.error || "Lỗi cập nhật!");
+        toast.error(result.error || "Loi cap nhat");
         return;
       }
 
-      // Admin: update department + position separately
-      if (isAdmin && profile.id) {
+      if (canManageSettings && profile.id) {
         const deptChanged = department !== (profile.department || "");
         const posChanged = position !== (profile.position || "");
+
         if (deptChanged || posChanged) {
           const adminResult = await updateAdminProfileFields({
             employee_id: profile.id,
             department,
             position,
           });
+
           if (!adminResult.success) {
-            toast.error(adminResult.error || "Lỗi cập nhật phòng ban/chức vụ");
+            toast.error(
+              adminResult.error || "Loi cap nhat phong ban/chuc vu",
+            );
             return;
           }
         }
       }
 
-      toast.success("Đã cập nhật hồ sơ!");
+      toast.success("Da cap nhat ho so");
       router.refresh();
       onClose();
     });
   }
 
-  // ─── Avatar display ───
   const currentAvatar = avatarPreview || profile.avatar_url;
   const initials = (profile.full_name || "?")
     .split(" ")
@@ -140,16 +128,12 @@ export default function EditProfileModal({
     <UnifiedModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Chỉnh sửa hồ sơ"
+      title="Chinh sua ho so"
       size="md"
       footer={
         <div className="form-actions">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-            disabled={isPending}
-          >
-            Huỷ
+          <Button variant="secondary" onClick={onClose} disabled={isPending}>
+            Huy
           </Button>
           <Button
             variant="primary"
@@ -162,15 +146,14 @@ export default function EditProfileModal({
             ) : (
               <Save className="w-4 h-4" />
             )}
-            Lưu
+            Luu
           </Button>
         </div>
       }
     >
       <div className="space-y-5">
-        {/* ═══ Avatar Upload ═══ */}
         <div className="flex flex-col items-center gap-2">
-          {/* eslint-disable-next-line react/forbid-elements -- avatar click area not a standard button */}
+          {/* eslint-disable-next-line react/forbid-elements -- avatar click area */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -187,9 +170,7 @@ export default function EditProfileModal({
               />
             ) : (
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xl font-bold text-primary">
-                  {initials}
-                </span>
+                <span className="text-xl font-bold text-primary">{initials}</span>
               </div>
             )}
             <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -204,37 +185,29 @@ export default function EditProfileModal({
             onChange={handleAvatarSelect}
             className="hidden"
           />
-          <p className="text-xs text-text-muted">Bấm để đổi ảnh (max 2MB)</p>
+          <p className="text-xs text-text-muted">Bam de doi anh (max 2MB)</p>
         </div>
 
-        {/* ═══ Section 1: Thông tin cơ bản ═══ */}
         <div>
           <h4 className="section-heading mb-3">
             <BadgeCheck className="w-4 h-4 inline-block mr-1.5" />
-            Thông tin cơ bản
+            Thong tin co ban
           </h4>
           <div className="space-y-3">
-            {/* Name */}
             <Input
               id="edit-name"
-              label="Tên hiển thị *"
+              label="Ten hien thi *"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nhập tên..."
+              placeholder="Nhap ten..."
             />
 
-            {/* Email — read only */}
-            <Input
-              label="Email"
-              value={profile.email || ""}
-              disabled
-            />
+            <Input label="Email" value={profile.email || ""} disabled />
 
-            {/* Phone + Gender — 2 columns */}
             <div className="form-grid-2col">
               <Input
                 id="edit-phone"
-                label="Số điện thoại"
+                label="So dien thoai"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -243,40 +216,37 @@ export default function EditProfileModal({
                 placeholder="0912345678"
               />
               <SelectForm
-                label="Giới tính"
+                label="Gioi tinh"
                 value={gender}
                 onChange={setGender}
-                placeholder="Chọn giới tính"
+                placeholder="Chon gioi tinh"
                 options={GENDER_OPTIONS as unknown as { label: string; value: string }[]}
               />
             </div>
 
-            {/* Department + Position — Admin only */}
-            {isAdmin && (
+            {canManageSettings && (
               <div className="form-grid-2col">
                 <SelectForm
-                  label="Phòng ban"
+                  label="Phong ban"
                   value={department}
                   onChange={setDepartment}
-                  placeholder="Chọn phòng ban"
-                  options={DEPARTMENTS.map((d) => ({
-                    label: d,
-                    value: d,
+                  placeholder="Chon phong ban"
+                  options={DEPARTMENT_OPTIONS.map((item) => ({
+                    label: item.label,
+                    value: item.value,
                   }))}
                 />
                 <Input
                   id="edit-position"
-                  label="Chức vụ"
+                  label="Chuc vu"
                   value={position}
                   onChange={(e) => setPosition(e.target.value)}
-                  placeholder="Nhân viên"
+                  placeholder="Nhan vien"
                 />
               </div>
             )}
           </div>
         </div>
-
-
       </div>
     </UnifiedModal>
   );

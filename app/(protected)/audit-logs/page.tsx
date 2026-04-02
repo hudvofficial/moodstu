@@ -1,40 +1,29 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import AuditLogList from "@/components/settings/audit-log-list";
-
-/* ═══════════════════════════════════════════
-   Audit Logs Page — Admin Only (Server Component)
-   Route: /audit-logs
-   ═══════════════════════════════════════════ */
+import { getAuthenticatedUserContext } from "@/lib/auth_utils";
+import { createAdminClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 20;
 
 export default async function AuditLogsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const context = await getAuthenticatedUserContext();
 
-  if (!user) redirect("/login");
+  if (!context) redirect("/login");
+  if (!context.canManageSettings) redirect("/settings");
 
-  // Check admin role
-  const { data: employee } = await supabase
-    .from("employees")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .single();
-
-  if (!employee || employee.role?.toLowerCase() !== "admin") {
-    redirect("/settings");
-  }
-
-  // Initial load — page 1
-  const { data: logs, count } = await supabase
+  const supabase = await createAdminClient();
+  const { data: logs, count, error } = await supabase
     .from("audit_logs")
     .select(
       "id, action, table_name, record_id, description, log_type, severity, source, created_at, employee:employee_id(full_name, avatar_url)",
-      { count: "exact" }
+      { count: "exact" },
     )
     .order("created_at", { ascending: false })
     .range(0, PAGE_SIZE - 1);
+
+  if (error) {
+    throw new Error(`Loi tai audit logs: ${error.message}`);
+  }
 
   return (
     <AuditLogList

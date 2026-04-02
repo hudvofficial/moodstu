@@ -1,16 +1,3 @@
-/**
- * 📦 Settings Module Types (V2)
- *
- * Centralized types for studio_info, notification_preferences,
- * and Settings module data structures.
- *
- * SSOT: This is the ONLY place StudioInfo is defined.
- * @see docs/specs/settings.md §4.1
- */
-
-// ─── JSONB Sub-Types ──────────────────────────────
-
-/** Bank info (JSONB column in studio_info) */
 export interface BankInfo {
   bank_name?: string;
   account_number?: string;
@@ -18,20 +5,17 @@ export interface BankInfo {
   branch?: string;
 }
 
-/** Social links (JSONB column in studio_info) */
 export interface SocialLinks {
   website?: string;
   facebook?: string;
   instagram?: string;
 }
 
-/** Working hours (JSONB column in studio_info) */
 export interface WorkingHours {
   monday_friday?: string;
   saturday_sunday?: string;
 }
 
-/** Google Calendar OAuth tokens (JSONB column in studio_info) */
 export interface GoogleCalendarAuth {
   access_token: string;
   refresh_token: string;
@@ -39,9 +23,6 @@ export interface GoogleCalendarAuth {
   updated_at: string;
 }
 
-// ─── Studio Info (DB Row) ─────────────────────────
-
-/** Studio info from `studio_info` table (single row) */
 export interface StudioInfo {
   id: string;
   name: string;
@@ -58,9 +39,6 @@ export interface StudioInfo {
   updated_at: string | null;
 }
 
-// ─── Notification Preferences ─────────────────────
-
-/** Notification preferences per employee */
 export interface NotificationPreferences {
   employee_id?: string;
   onsite_reminder: boolean;
@@ -71,16 +49,21 @@ export interface NotificationPreferences {
   updated_at?: string;
 }
 
-// ─── Settings Page Data ───────────────────────────
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  onsite_reminder: true,
+  deadline_reminder: true,
+  overdue_alert: true,
+  task_assignment: true,
+  system_alerts: true,
+};
 
-/** Combined data for the settings page (parallel fetch) */
 export interface SettingsPageData {
   employee: EmployeeProfile;
   notificationPrefs: NotificationPreferences;
-  isAdmin: boolean;
+  canManageSettings: boolean;
+  canManageMembers: boolean;
 }
 
-/** Employee profile fields editable in Settings */
 export interface EmployeeProfile {
   id: string;
   full_name: string;

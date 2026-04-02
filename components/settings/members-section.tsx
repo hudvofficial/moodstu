@@ -1,65 +1,90 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Users, RefreshCw } from "lucide-react";
 import { getAuthUsers } from "@/app/actions/user-management";
 import type { AuthUserWithEmployee } from "@/app/actions/user-management";
 import MemberCard from "./member-card";
-import { Users, RefreshCw } from "lucide-react";
-
-/* ═══════════════════════════════════════════
-   Members Section — Admin only, lazy-loaded
-   V1 logic 100% + SSOT tokens + lucide icons
-   ═══════════════════════════════════════════ */
 
 interface MembersSectionProps {
   currentUserEmail: string;
 }
 
-export default function MembersSection({ currentUserEmail }: MembersSectionProps) {
+export default function MembersSection({
+  currentUserEmail,
+}: MembersSectionProps) {
   const [users, setUsers] = useState<AuthUserWithEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ─── Fetch on mount (lazy-load V1 pattern) ───
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setRefreshing(true);
+    }
+
     const result = await getAuthUsers();
     if (result.success && result.data) {
       setUsers(result.data);
+    } else {
+      setUsers([]);
     }
     setLoading(false);
     setRefreshing(false);
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line -- false positive for async fetch
-    fetchUsers();
+    let ignore = false;
+
+    const loadUsers = async () => {
+      const result = await getAuthUsers();
+      if (ignore) return;
+
+      if (result.success && result.data) {
+        setUsers(result.data);
+      } else {
+        setUsers([]);
+      }
+      setLoading(false);
+      setRefreshing(false);
+    };
+
+    void loadUsers();
+
+    return () => {
+      ignore = true;
+    };
   }, [fetchUsers]);
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchUsers();
+    void fetchUsers();
   };
+
+  const danglingCount = users.filter((user) => !user.linked_employee).length;
 
   return (
     <section className="card-base p-4 lg:p-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="section-heading">
           <Users className="w-4 h-4 inline-block mr-1.5 align-middle" />
-          Thành viên ({users.length})
+          Thanh vien ({users.length})
         </h3>
-        {/* eslint-disable-next-line react/forbid-elements -- icon-only refresh action */}
+        {/* eslint-disable-next-line react/forbid-elements -- compact refresh action */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           className="icon-btn w-8! h-8!"
-          title="Làm mới"
-          aria-label="Làm mới danh sách thành viên"
+          title="Lam moi"
+          aria-label="Lam moi danh sach thanh vien"
         >
-          <RefreshCw
-            className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-          />
+          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {!loading && danglingCount > 0 && (
+        <p className="text-xs text-text-muted mb-3">
+          Co {danglingCount} tai khoan dang nhap chua lien ket voi ho so nhan vien.
+        </p>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -75,7 +100,7 @@ export default function MembersSection({ currentUserEmail }: MembersSectionProps
         </div>
       ) : users.length === 0 ? (
         <p className="text-sm text-text-muted py-4 text-center">
-          Chưa có thành viên nào
+          Chua co thanh vien nao
         </p>
       ) : (
         <div className="space-y-2">

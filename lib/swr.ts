@@ -59,6 +59,12 @@ export const cacheKeys = {
   employees: () => "employees",
   notifications: () => "notifications",
   settings: () => "settings",
+  printingOrders: () => "printing-orders",
+  printingStats: () => "printing-stats",
+  printingDetail: (id: string) => `printing:${id}`,
+  labs: () => "labs",
+  labDetail: (id: string) => `lab:${id}`,
+  labDebts: () => "lab-debts",
 };
 
 // ============================================
