@@ -81,7 +81,7 @@ export default function SettingsView({
   };
 
   return (
-    <div className="px-4 py-4 lg:max-w-2xl lg:mx-auto space-y-4 pb-28 lg:pb-12">
+    <div className="main-container pb-28 lg:pb-12">
       {/* ═══ CARD 1: Profile ═══ */}
       <ProfileCard employee={employee} onEdit={() => setEditOpen(true)} />
 

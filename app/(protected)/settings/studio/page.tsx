@@ -25,7 +25,7 @@ export default function StudioSettingsPage() {
       fallback={
         <div className="min-h-screen bg-bg-base pb-24 lg:pb-12">
           <div className="h-14 bg-bg-card" />
-          <div className="px-4 py-4 lg:max-w-2xl lg:mx-auto space-y-4">
+          <div className="main-container">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="card-base p-6 animate-pulse">
                 <div className="h-5 w-32 bg-bg-hover rounded mb-4" />

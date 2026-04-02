@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { updateStudioInfo } from "@/app/actions/settings-mutations";
 import { disconnectGoogleCalendar } from "@/app/actions/settings-mutations";
 import { Button } from "@/components/ui/button";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import GoogleCalendarCard from "./google-calendar-card";
 import StudioIdentitySection from "./studio/studio-identity-section";
 import StudioBankSection from "./studio/studio-bank-section";
@@ -91,43 +92,76 @@ export default function StudioInfoForm({ studioInfo }: StudioInfoFormProps) {
   }
 
   return (
-    <div className="px-4 py-4 lg:max-w-2xl lg:mx-auto space-y-4 pb-28 lg:pb-12">
-      <StudioIdentitySection
-        name={name} setName={setName}
-        hotline={hotline} setHotline={setHotline}
-        address={address} setAddress={setAddress}
-        representative={representative} setRepresentative={setRepresentative}
-        timezone={timezone} setTimezone={setTimezone}
-        logoUrl={studioInfo.logo_url}
-        logoPreview={logoPreview}
-        onLogoSelect={handleLogoSelect}
-        logoInputRef={logoInputRef}
-      />
+    <div className="main-container pb-28 lg:pb-12">
+      {/* ── Breadcrumb ── */}
+      <Breadcrumb items={[
+        { label: "Cài đặt", href: "/settings" },
+        { label: "Thông tin Studio" },
+      ]} />
 
-      <StudioBankSection bankInfo={bankInfo} setBankInfo={setBankInfo} />
-      <StudioSocialSection socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
-      <StudioHoursSection workingHours={workingHours} setWorkingHours={setWorkingHours} />
+      {/* ── Desktop: Grid 8/4 ── */}
+      <div className="detail-grid">
+        <div className="detail-main">
+          <StudioIdentitySection
+            name={name} setName={setName}
+            hotline={hotline} setHotline={setHotline}
+            address={address} setAddress={setAddress}
+            representative={representative} setRepresentative={setRepresentative}
+            timezone={timezone} setTimezone={setTimezone}
+            logoUrl={studioInfo.logo_url}
+            logoPreview={logoPreview}
+            onLogoSelect={handleLogoSelect}
+            logoInputRef={logoInputRef}
+          />
 
-      <GoogleCalendarCard
-        isConnected={!!studioInfo.google_calendar_auth}
-        onDisconnect={disconnectGoogleCalendar}
-      />
+          <StudioBankSection bankInfo={bankInfo} setBankInfo={setBankInfo} />
+          <StudioSocialSection socialLinks={socialLinks} setSocialLinks={setSocialLinks} />
+          <StudioHoursSection workingHours={workingHours} setWorkingHours={setWorkingHours} />
+        </div>
 
-      {/* ═══ Save Button ═══ */}
-      <div className="flex justify-end">
-        <Button
-          variant="primary"
-          onClick={handleSave}
-          disabled={isPending || !name.trim()}
-          className="gap-1.5"
-        >
-          {isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {isPending ? "Đang lưu..." : "Lưu thay đổi"}
-        </Button>
+        {/* Sidebar — Desktop only (detail-sidebar hidden on mobile) */}
+        <div className="detail-sidebar">
+          <GoogleCalendarCard
+            isConnected={!!studioInfo.google_calendar_auth}
+            onDisconnect={disconnectGoogleCalendar}
+          />
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={isPending || !name.trim()}
+            className="gap-1.5 w-full"
+          >
+            {isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isPending ? "Đang lưu..." : "Lưu thay đổi"}
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Mobile-only: sidebar content (detail-sidebar is hidden < lg) ── */}
+      <div className="lg:hidden flex flex-col gap-4">
+        <GoogleCalendarCard
+          isConnected={!!studioInfo.google_calendar_auth}
+          onDisconnect={disconnectGoogleCalendar}
+        />
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={isPending || !name.trim()}
+            className="gap-1.5"
+          >
+            {isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isPending ? "Đang lưu..." : "Lưu thay đổi"}
+          </Button>
+        </div>
       </div>
     </div>
   );

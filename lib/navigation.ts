@@ -87,10 +87,16 @@ export const DEFAULT_MODULE: ModuleConfig = {
   group: "daily",
 };
 
+/** Alias map: route slugs thuộc module khác (sub-page dùng route riêng) */
+const SLUG_ALIAS: Record<string, string> = {
+  "audit-logs": "settings",
+};
+
 /** Helper: lấy module từ pathname */
 export function getModuleFromPath(pathname: string): ModuleConfig {
   const slug = pathname.split("/")[1] || "dashboard";
-  return MODULE_MAP[slug] || DEFAULT_MODULE;
+  const resolvedSlug = SLUG_ALIAS[slug] || slug;
+  return MODULE_MAP[resolvedSlug] || DEFAULT_MODULE;
 }
 
 /** Helper: lấy ordered unique groups từ MODULES */
