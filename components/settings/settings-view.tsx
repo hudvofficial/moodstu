@@ -22,13 +22,11 @@ import {
   Settings,
   History,
   ChevronRight,
-  LogOut,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 /* ═══════════════════════════════════════════
    Settings View — Main Client Component
-   V2 = V1 SUPERSET + SSOT tokens
+   V2 = detail-grid 8/4 + SSOT tokens
    ═══════════════════════════════════════════ */
 
 interface SettingsViewProps {
@@ -80,19 +78,10 @@ export default function SettingsView({
     }
   };
 
-  return (
-    <div className="main-container pb-28 lg:pb-12">
-      {/* ═══ CARD 1: Profile ═══ */}
-      <ProfileCard employee={employee} onEdit={() => setEditOpen(true)} />
-
-      {/* ═══ CARD 2: Notification Prefs ═══ */}
-      <NotificationPrefs
-        prefs={prefs}
-        onToggle={togglePref}
-        disabled={isPending}
-      />
-
-      {/* ═══ CARD 3: Admin Links (conditional) ═══ */}
+  // ── Shared sidebar content (reused for mobile) ──
+  const sidebarContent = (
+    <>
+      {/* Admin Links */}
       {isAdmin && (
         <section className="card-base p-4 lg:p-6">
           <h3 className="section-heading mb-3">
@@ -128,31 +117,52 @@ export default function SettingsView({
         </section>
       )}
 
-      {/* ═══ CARD 4: Members (Admin only, lazy-loaded) ═══ */}
+      {/* Members (Admin only) */}
       {isAdmin && (
         <MembersSection currentUserEmail={employee.email || ""} />
       )}
+    </>
+  );
 
-      {/* ═══ CARD 5: Changelog ═══ */}
-      <ChangelogSection />
+  return (
+    <div className="main-container pb-28 lg:pb-12">
+      {/* ── Desktop: Grid 8/4 ── */}
+      <div className="detail-grid">
+        <div className="detail-main">
+          {/* ═══ CARD 1: Profile + Logout ═══ */}
+          <ProfileCard
+            employee={employee}
+            onEdit={() => setEditOpen(true)}
+            onLogout={handleLogout}
+            loggingOut={loggingOut}
+          />
 
-      {/* ═══ LOGOUT BUTTON ═══ */}
-      <div className="flex justify-center">
-        <Button
-          variant="danger"
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
-        </Button>
+          {/* ═══ CARD 2: Notification Prefs ═══ */}
+          <NotificationPrefs
+            prefs={prefs}
+            onToggle={togglePref}
+            disabled={isPending}
+          />
+
+          {/* ═══ CARD 3: Changelog ═══ */}
+          <ChangelogSection />
+
+          {/* Version */}
+          <p className="text-center text-xs text-text-muted pt-2 pb-4">
+            Mood Studio v{changelog[0]?.version || "?"}
+          </p>
+        </div>
+
+        {/* Sidebar — Desktop only (detail-sidebar hidden on mobile by CSS) */}
+        <div className="detail-sidebar">
+          {sidebarContent}
+        </div>
       </div>
 
-      {/* ═══ VERSION ═══ */}
-      <p className="text-center text-xs text-text-muted pt-2 pb-4">
-        Mood Studio v{changelog[0]?.version || "?"}
-      </p>
+      {/* ── Mobile-only: sidebar content (detail-sidebar is hidden < lg) ── */}
+      <div className="lg:hidden flex flex-col gap-4">
+        {sidebarContent}
+      </div>
 
       {/* ═══ EDIT PROFILE MODAL ═══ */}
       <EditProfileModal
@@ -165,3 +175,4 @@ export default function SettingsView({
     </div>
   );
 }
+

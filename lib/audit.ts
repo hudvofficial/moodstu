@@ -52,11 +52,23 @@ export async function writeAuditLog(params: BaseLogParams) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Resolve employee_id from auth user (for FK join in audit log display)
+    let employeeId: string | null = null;
+    if (user?.id) {
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .single();
+      employeeId = emp?.id || null;
+    }
+
     // Use admin client for insert (bypass RLS)
     const adminSupabase = await createAdminClient();
 
     await adminSupabase.from("audit_logs").insert({
       performed_by: user?.id || null,
+      employee_id: employeeId,
       action: params.action,
       table_name: params.tableName,
       record_id: params.recordId || null,

@@ -149,6 +149,15 @@
   background: var(--color-bg-hover);
 }
 
+/* Destructive variant — keeps error color, red-tinted hover bg */
+.icon-btn.text-error {
+  color: var(--color-error);
+}
+.icon-btn.text-error:hover {
+  background: rgba(244, 67, 54, 0.08);
+  color: var(--color-error);
+}
+
 .icon-btn:active {
   transform: scale(0.92);
 }

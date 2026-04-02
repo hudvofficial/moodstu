@@ -20,8 +20,14 @@ Cải tổ toàn bộ module Settings để đạt chuẩn V2 Gold Standard:
 |-------|------|--------|----------|
 | 01 | Container Standard | ✅ Complete | 100% |
 | 02 | Detail Grid & Optimistic UI | ⬜ Pending | 0% |
-| 03 | Audit Logs Route | ⬜ Pending | 0% |
+| 03 | Audit Logs Route & Data Fix | ✅ Complete | 100% |
 | 04 | Component Cleanup & Icon Sync | ⬜ Pending | 0% |
+
+## Phase 03 Completed Items
+- ✅ SLUG_ALIAS: `/audit-logs` → Settings header/search context
+- ✅ `lib/audit.ts`: employee_id lookup from performed_by (auth_user_id)
+- ✅ Layout: full-width main-container (đồng bộ với data table pages)
+- ✅ Verified: New audit logs hiện tên nhân viên thay vì "Hệ thống"
 
 ## SSOT Token Map (Phase 01)
 | Element hiện tại | Token SSOT thay thế |
@@ -30,4 +36,5 @@ Cải tổ toàn bộ module Settings để đạt chuẩn V2 Gold Standard:
 | Suspense fallback hardcoded className | `main-container` |
 
 ## Quick Commands
-👉 Bước tiếp theo: `/code phase-01`
+👉 Bước tiếp theo: `/code phase-02` hoặc `/code phase-04`
+

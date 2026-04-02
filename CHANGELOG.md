@@ -3,10 +3,16 @@
 ## [1.1.57] - 2026-04-02
 ### Added
 - **Settings Module V2 Business Logic (Phase 1 & 2)**: Comprehensive refactoring of server actions for profile, notifications, and studio info.
+- **Settings Layout Standardization (Phase 02)**: Refactored main settings to **V2 Gold Standard `detail-grid` (8/4)** layout.
+- **Profile UI Consolidation**: Integrated Logout action directly into `ProfileCard` (top-right icon 🚪), removing redundant footer button.
 - **Auth User ID Lookup Pattern**: Replaced fragile email-based employee lookups with `auth_user_id` linked directly to Supabase Auth UUIDs.
 - **Atomic Optimistic Locking**: Hardened `updateStudioInfo` mutation with atomic version checks (`updated_at`) to prevent race conditions.
 - **Zod Data Integrity**: Implemented `settings.schema.ts` for all mutation actions, ensuring strict type-safety and field validation.
 - **Audit Log Coverage**: Added `recordId` and full `oldData`/`newData` diffing for Settings audit logs.
+
+### Changed
+- **Sidebar Asset Distribution**: Swapped Members list to the 4-column sidebar and moved Changelog/Version to the 8-column main area for optimal readability.
+- **UI Styling (forms.css)**: Added `.icon-btn.text-error` hover variant with red-tinted background matching Apple HIG destructive patterns.
 
 ### Fixed
 - **Auth Core (withAdmin)**: Resolved case-sensitivity in role checking and fixed RLS block in fallback queries by correctly using cached admin client.

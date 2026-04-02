@@ -1,20 +1,22 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Pencil, LogOut } from "lucide-react";
 import type { EmployeeProfile } from "@/types/settings";
 import Image from "next/image";
 
 /* ═══════════════════════════════════════════
-   Profile Card — Avatar + Name + Role + Edit
-   SSOT: card-base, badge, lucide icons
+   Profile Card — Avatar + Name + Role + Edit + Logout
+   SSOT: card-base, badge, btn-ghost, lucide icons
    ═══════════════════════════════════════════ */
 
 interface ProfileCardProps {
   employee: EmployeeProfile;
   onEdit: () => void;
+  onLogout?: () => void;
+  loggingOut?: boolean;
 }
 
-export default function ProfileCard({ employee, onEdit }: ProfileCardProps) {
+export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: ProfileCardProps) {
   // Avatar fallback: initials from full_name
   const initials = employee.full_name
     ? employee.full_name
@@ -64,17 +66,32 @@ export default function ProfileCard({ employee, onEdit }: ProfileCardProps) {
           </div>
         </div>
 
-        {/* Edit button */}
-        {/* eslint-disable-next-line react/forbid-elements -- icon-only action, no Button wrapper needed */}
-        <button
-          onClick={onEdit}
-          className="icon-btn shrink-0"
-          title="Chỉnh sửa hồ sơ"
-          aria-label="Chỉnh sửa hồ sơ"
-        >
-          <Pencil className="w-4.5 h-4.5" />
-        </button>
+        {/* Actions: Edit + Logout */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* eslint-disable-next-line react/forbid-elements -- icon-only action */}
+          <button
+            onClick={onEdit}
+            className="icon-btn"
+            title="Chỉnh sửa hồ sơ"
+            aria-label="Chỉnh sửa hồ sơ"
+          >
+            <Pencil className="w-4.5 h-4.5" />
+          </button>
+          {onLogout && (
+            /* eslint-disable-next-line react/forbid-elements -- icon-only action */
+            <button
+              onClick={onLogout}
+              disabled={loggingOut}
+              className="icon-btn text-error"
+              title="Đăng xuất"
+              aria-label="Đăng xuất"
+            >
+              <LogOut className="w-4.5 h-4.5" />
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );
 }
+
