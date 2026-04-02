@@ -30,7 +30,7 @@ export async function getStudioInfo() {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("studio_info")
-      .select("*")
+      .select("id, name, hotline, address, logo_url, representative, timezone, bank_info, social_links, working_hours, updated_at")
       .limit(1)
       .single();
 
@@ -76,7 +76,7 @@ export async function getSettingsPageData(): Promise<SettingsPageData | null> {
       notificationPrefs: prefsResult.data
         ? { ...defaults, ...prefsResult.data }
         : defaults,
-      isAdmin: empResult.data.role === "Admin",
+      isAdmin: empResult.data.role?.toLowerCase() === "admin",
     } as SettingsPageData;
   });
 

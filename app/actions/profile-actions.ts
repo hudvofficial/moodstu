@@ -1,9 +1,9 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withAuth, withAdmin } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
-import { profileSchema } from "@/lib/validations/settings.schema";
+import { profileSchema, adminProfileSchema } from "@/lib/validations/settings.schema";
 
 // ═══════════════════════════════════════════
 // Profile Actions — Init + Update + Avatar
@@ -130,5 +130,52 @@ export async function uploadAvatar(formData: FormData) {
 
     revalidatePath("/settings");
     return { url: publicUrl };
+  });
+}
+
+// ─── UPDATE ADMIN PROFILE FIELDS ──────────
+
+/** Update department + position (admin only) */
+export async function updateAdminProfileFields(rawData: {
+  employee_id: string;
+  department?: string;
+  position?: string;
+}) {
+  return withAdmin(async (adminClient) => {
+    // ── Zod validation ──
+    const parsed = adminProfileSchema.safeParse(rawData);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ";
+      throw new Error(firstError);
+    }
+
+    const { employee_id, department, position } = parsed.data;
+
+    const updateData: Record<string, string | null> = {};
+    if (department !== undefined) updateData.department = department?.trim() || null;
+    if (position !== undefined) updateData.position = position?.trim() || null;
+
+    // Skip if nothing to update
+    if (Object.keys(updateData).length === 0) return null;
+
+    const { error } = await adminClient
+      .from("employees")
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq("id", employee_id);
+
+    if (error) throw new Error(`Lỗi cập nhật phòng ban/chức vụ: ${error.message}`);
+
+    // Audit: admin profile fields update
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "employees",
+      recordId: employee_id,
+      description: `Admin cập nhật phòng ban/chức vụ`,
+      newData: updateData,
+      source: "server_action",
+    });
+
+    revalidatePath("/settings");
+    return null;
   });
 }

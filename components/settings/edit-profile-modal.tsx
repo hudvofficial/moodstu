@@ -4,9 +4,9 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
-import { updateProfile, uploadAvatar } from "@/app/actions/profile-actions";
+import { updateProfile, uploadAvatar, updateAdminProfileFields } from "@/app/actions/profile-actions";
 import { toast } from "sonner";
-import { Camera, BadgeCheck, Landmark, Save, Loader2 } from "lucide-react";
+import { Camera, BadgeCheck, Save, Loader2 } from "lucide-react";
 import type { EmployeeProfile } from "@/types/settings";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/select";
@@ -50,13 +50,7 @@ export default function EditProfileModal({
   const [gender, setGender] = useState(profile.gender || "");
   const [department, setDepartment] = useState(profile.department || "");
   const [position, setPosition] = useState(profile.position || "");
-  const [bankName, setBankName] = useState(profile.bank_name || "");
-  const [bankAccountNo, setBankAccountNo] = useState(
-    profile.bank_account_no || "",
-  );
-  const [bankAccountName, setBankAccountName] = useState(
-    profile.bank_account_name || "",
-  );
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -104,13 +98,31 @@ export default function EditProfileModal({
         phone,
         gender,
       });
-      if (result.success) {
-        toast.success("Đã cập nhật hồ sơ!");
-        router.refresh();
-        onClose();
-      } else {
+      if (!result.success) {
         toast.error(result.error || "Lỗi cập nhật!");
+        return;
       }
+
+      // Admin: update department + position separately
+      if (isAdmin && profile.id) {
+        const deptChanged = department !== (profile.department || "");
+        const posChanged = position !== (profile.position || "");
+        if (deptChanged || posChanged) {
+          const adminResult = await updateAdminProfileFields({
+            employee_id: profile.id,
+            department,
+            position,
+          });
+          if (!adminResult.success) {
+            toast.error(adminResult.error || "Lỗi cập nhật phòng ban/chức vụ");
+            return;
+          }
+        }
+      }
+
+      toast.success("Đã cập nhật hồ sơ!");
+      router.refresh();
+      onClose();
     });
   }
 
@@ -267,39 +279,7 @@ export default function EditProfileModal({
           </div>
         </div>
 
-        {/* ═══ Section 2: Thông tin ngân hàng ═══ */}
-        <div>
-          <h4 className="section-heading mb-3">
-            <Landmark className="w-4 h-4 inline-block mr-1.5" />
-            Thông tin ngân hàng
-          </h4>
-          <div className="space-y-3">
-            <Input
-              id="edit-bank-name"
-              label="Tên ngân hàng"
-              value={bankName}
-              onChange={(e) => setBankName(e.target.value)}
-              placeholder="VD: Vietcombank, MB Bank..."
-            />
-            <div className="form-grid-2col">
-              <Input
-                id="edit-bank-no"
-                label="Số tài khoản"
-                value={bankAccountNo}
-                onChange={(e) => setBankAccountNo(e.target.value)}
-                placeholder="Nhập số tài khoản"
-              />
-              <Input
-                id="edit-bank-owner"
-                label="Tên chủ tài khoản"
-                value={bankAccountName}
-                onChange={(e) => setBankAccountName(e.target.value)}
-                className="uppercase"
-                placeholder="NGUYEN VAN A"
-              />
-            </div>
-          </div>
-        </div>
+
       </div>
     </UnifiedModal>
   );

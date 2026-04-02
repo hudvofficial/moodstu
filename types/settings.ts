@@ -91,7 +91,4 @@ export interface EmployeeProfile {
   position: string | null;
   role: string | null;
   gender: string | null;
-  bank_name: string | null;
-  bank_account_no: string | null;
-  bank_account_name: string | null;
 }

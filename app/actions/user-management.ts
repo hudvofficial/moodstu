@@ -68,7 +68,7 @@ export async function getAuthUsers() {
     const { data: employees } = await supabase
       .from("employees")
       .select("id, full_name, email, role, avatar_url, auth_user_id, status")
-      .eq("status", "Đang làm")
+      .eq("status", "active")
       .order("full_name");
 
     // 3. Merge: mỗi auth user → linked employee (nếu có)
@@ -242,7 +242,7 @@ export async function getUnlinkedEmployees() {
       .from("employees")
       .select("id, full_name, email, role, avatar_url")
       .is("auth_user_id", null)
-      .eq("status", "Đang làm")
+      .eq("status", "active")
       .order("full_name");
 
     if (error) throw new Error(error.message);

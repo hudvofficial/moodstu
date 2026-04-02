@@ -71,8 +71,10 @@ export async function getNotifications(offset: number = 0, limit: number = 20) {
 // ─── MARK AS READ ─────────────────────────────
 
 export async function markAsRead(id: string) {
-  return withAuth(async (supabase) => {
-    const { error } = await supabase.from("notification_queue").update({ read_at: new Date().toISOString() }).eq("id", id);
+  return withAuth(async (supabase, userId) => {
+    const empId = await getEmployeeId(supabase, userId);
+    if (!empId) throw new Error("Không tìm thấy nhân viên");
+    const { error } = await supabase.from("notification_queue").update({ read_at: new Date().toISOString() }).eq("id", id).eq("employee_id", empId);
     if (error) throw new Error(`Lỗi đánh dấu: ${error.message}`);
     return null;
   });

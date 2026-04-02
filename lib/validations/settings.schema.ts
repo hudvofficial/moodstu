@@ -54,6 +54,16 @@ export const profileSchema = z.object({
 
 export type ValidatedProfile = z.infer<typeof profileSchema>;
 
+// ─── Admin Profile Fields Schema (dept + position) ──────
+
+export const adminProfileSchema = z.object({
+  employee_id: z.string().uuid("Employee ID không hợp lệ"),
+  department: z.string().max(50, "Phòng ban tối đa 50 ký tự").optional(),
+  position: z.string().max(100, "Chức vụ tối đa 100 ký tự").optional(),
+});
+
+export type ValidatedAdminProfile = z.infer<typeof adminProfileSchema>;
+
 // ─── Notification Preferences Schema ────────────────
 
 export const notificationPrefsSchema = z.object({

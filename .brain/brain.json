@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-02T00:30:00+07:00"
+    "last_updated": "2026-04-02T08:31:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -20,11 +20,12 @@
     "core_icons": "Lucide-React (93% coverage, aim 100% in Phase 6)"
   },
   "database_schema": {
-    "summary": "Core: contracts, services, service_categories. Settings: studio_info, employees, notification_preferences.",
+    "summary": "Core: contracts, services, service_categories. Settings: studio_info, employees, notification_preferences, audit_logs.",
     "new_tables": [
       { "name": "services", "columns": ["id", "service_code", "name", "category_id", "selling_price", "status"] },
       { "name": "service_categories", "columns": ["id", "name", "slug"] },
-      { "name": "employees", "columns": ["id", "auth_user_id", "full_name", "email", "role", "status", "department", "position"] }
+      { "name": "employees", "columns": ["id", "auth_user_id", "full_name", "email", "role", "status", "department", "position"] },
+      { "name": "audit_logs", "columns": ["id", "user_id", "action", "entity_type", "entity_id", "old_value", "new_value", "created_at"] }
     ]
   },
   "api_endpoints": [
@@ -50,42 +51,29 @@
       "ServiceTable": "Expandable Table Row Pattern",
       "ServiceMobileList": "Compact row list with active expand state",
       "QuoteModal": "Compact, floating centered card (max-w 340px) vs V1 parity",
-      "VisualBuilder": "Grid 7/5 Desktop, Single column Mobile, Canvas with GripVertical icons."
+      "VisualBuilder": "Grid 7/5 Desktop, Single column Mobile, Canvas with GripVertical icons.",
+      "LayoutStandard": "main-container (full-width), detail-grid (12 columns: 8/4 distribution for main/sidebar)."
     }
   },
   "knowledge_items": {
     "patterns": [
       {
+        "name": "Explicit Field Selection for Privacy",
+        "details": "Always avoid select('*') in server actions that fetch semi-public configuration or profile data to prevent leaking sensitive fields like OAuth tokens or internal metadata."
+      },
+      {
+        "name": "Ownership Validation in API/Actions",
+        "details": "When a resource (e.g., notification) is accessed by ID, always include a filter or validation check against the authenticated user's ID to prevent IDOR vulnerabilities."
+      },
+      {
         "name": "Server Actions Separation (Queries vs Mutations)",
         "details": "Read-only actions (settings-queries) employ withAuth/withAdmin but rarely need Zod. Mutating actions (settings-mutations) MUST have strict Zod validation via safeParse, optimistic locking handling, and invoke fireAuditLog immediately upon successful DB operation."
-      },
-      {
-        "name": "Atomic Optimistic Locking",
-        "details": "When performing updates that depend on a previous state (optimistic locking), combine the version check (e.g., .eq('updated_at', expected)) into the update query itself to ensure atomicity and avoid race conditions."
-      },
-      {
-        "name": "Auth User ID Lookup Pattern",
-        "details": "Never use email to link Auth users to application entities (e.g., employees). Always uses the auth_user_id (UUID) from Supabase. Use a separate column in the target table to map this relationship."
-      },
-      {
-        "name": "Centralized Types Re-export",
-        "details": "Types corresponding to database schemas should exist in a module-focused SSOT type file (e.g., types/settings.ts) and be re-exported individually into dependents to avoid duplication."
-      },
-      {
-        "name": "Icon SSOT Strategy",
-        "details": "Migrate 100% to Lucide-React. Use size={relative_size} instead of text-[px] for better cross-browser SVG scaling."
-      },
-      {
-        "name": "CSS Architecture Restructuring (v1.2)",
-        "details": "Decouple color from typography system. Typography classes MUST ONLY define size/weight. Use utility classes for color. Load utility.css LAST."
       }
     ],
     "gotchas": [
       "z.ZodError objects expose an .issues array (not .errors). Use parsed.error.issues[0]?.message for formatting safeParse errors.",
-      "withAdmin(async (adminClient) => ...) signature: The HOF parameter is not destructured. Do not use { adminClient }.",
       "employees table often lacks columns present in older V1 schemas (e.g., bank info, salary context). Always verify against current DB schema before coding actions.",
-      "Tailwind arbitrary values (like max-w-[340px]) in template literals often fail to generate classes via JIT; use static classes or inline style object props for layout-critical constraints.",
-      "Import order in design-system.css is critical. Utilities MUST load after Typography to allow color overrides."
+      "Layout Centering Trap: Avoiding max-w-[px] classes on main layout wrappers to maintain consistency with the full-width Gold Standard dashboard."
     ]
   }
 }
