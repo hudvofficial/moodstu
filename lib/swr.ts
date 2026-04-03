@@ -50,6 +50,10 @@ export const cacheKeys = {
   calendar: (month?: number, year?: number) =>
     month && year ? `calendar:${month}:${year}` : "calendar",
   jobs: () => "jobs",
+  productivity: (period: string, viewMode: string) =>
+    `productivity:${viewMode}:${period}`,
+  productivityJobDetails: (employeeId: string, start: string, end: string) =>
+    `productivity-detail:${employeeId}:${start}:${end}`,
 
   // Services
   services: () => "services",

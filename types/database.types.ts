@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -2308,28 +2308,37 @@ export type Database = {
           address: string | null
           contact_person: string | null
           created_at: string | null
+          deleted_at: string | null
           id: string
           lab_name: string
           phone: string | null
           status: string
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           address?: string | null
           contact_person?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           lab_name: string
           phone?: string | null
           status?: string
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           address?: string | null
           contact_person?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           lab_name?: string
           phone?: string | null
           status?: string
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -2705,6 +2714,7 @@ export type Database = {
           contract_id: string | null
           created_at: string | null
           created_by: string | null
+          deleted_at: string | null
           delivered_date: string | null
           expected_date: string | null
           id: string
@@ -2718,11 +2728,13 @@ export type Database = {
           status: string | null
           total_amount: number | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           delivered_date?: string | null
           expected_date?: string | null
           id?: string
@@ -2736,11 +2748,13 @@ export type Database = {
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           delivered_date?: string | null
           expected_date?: string | null
           id?: string
@@ -2754,6 +2768,7 @@ export type Database = {
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3070,28 +3085,79 @@ export type Database = {
           },
         ]
       }
+      service_bundles: {
+        Row: {
+          adjustment_price: number | null
+          child_service_id: string
+          created_at: string | null
+          id: string
+          parent_service_id: string
+          quantity: number
+          sort_order: number | null
+        }
+        Insert: {
+          adjustment_price?: number | null
+          child_service_id: string
+          created_at?: string | null
+          id?: string
+          parent_service_id: string
+          quantity?: number
+          sort_order?: number | null
+        }
+        Update: {
+          adjustment_price?: number | null
+          child_service_id?: string
+          created_at?: string | null
+          id?: string
+          parent_service_id?: string
+          quantity?: number
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_bundles_child_service_id_fkey"
+            columns: ["child_service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_bundles_parent_service_id_fkey"
+            columns: ["parent_service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_categories: {
         Row: {
           created_at: string | null
+          icon: string | null
           id: string
           name: string
           parent_id: string | null
+          slug: string | null
           sort_order: number | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          icon?: string | null
           id?: string
           name: string
           parent_id?: string | null
+          slug?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          icon?: string | null
           id?: string
           name?: string
           parent_id?: string | null
+          slug?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
@@ -3143,7 +3209,10 @@ export type Database = {
           category_id: string | null
           cost_price: number | null
           created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
           description: string | null
+          fulfillment_type: string | null
           id: string
           image_url: string | null
           name: string
@@ -3151,18 +3220,18 @@ export type Database = {
           service_code: string
           service_type: string
           status: string | null
-          updated_at: string | null
           unit: string | null
-          fulfillment_type: string | null
-          created_by: string | null
+          updated_at: string | null
           updated_by: string | null
-          deleted_at: string | null
         }
         Insert: {
           category_id?: string | null
           cost_price?: number | null
           created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
           description?: string | null
+          fulfillment_type?: string | null
           id?: string
           image_url?: string | null
           name: string
@@ -3170,18 +3239,18 @@ export type Database = {
           service_code: string
           service_type: string
           status?: string | null
-          updated_at?: string | null
           unit?: string | null
-          fulfillment_type?: string | null
-          created_by?: string | null
+          updated_at?: string | null
           updated_by?: string | null
-          deleted_at?: string | null
         }
         Update: {
           category_id?: string | null
           cost_price?: number | null
           created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
           description?: string | null
+          fulfillment_type?: string | null
           id?: string
           image_url?: string | null
           name?: string
@@ -3189,12 +3258,9 @@ export type Database = {
           service_code?: string
           service_type?: string
           status?: string | null
-          updated_at?: string | null
           unit?: string | null
-          fulfillment_type?: string | null
-          created_by?: string | null
+          updated_at?: string | null
           updated_by?: string | null
-          deleted_at?: string | null
         }
         Relationships: [
           {
@@ -3475,6 +3541,41 @@ export type Database = {
           total_cost: number
         }[]
       }
+      get_my_employee_job_details: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          client_name: string
+          contract_code: string
+          contract_id: string
+          cost: number
+          deadline: string
+          event_date: string
+          service_type: string
+          status: string
+          work_type: string
+        }[]
+      }
+      get_my_employee_productivity: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          active_tasks: number
+          completed_tasks: number
+          employee_id: string
+          full_name: string
+          onsite_hours: number
+          overdue_tasks: number
+          post_production_active: number
+          role: Database["public"]["Enums"]["employee_role_enum"]
+          total_cost: number
+        }[]
+      }
+      get_printing_cost_stats: {
+        Args: never
+        Returns: {
+          total_cost: number
+          unpaid_cost: number
+        }[]
+      }
       nextval_customer_code: { Args: never; Returns: number }
       recalc_contract_totals: {
         Args: { p_contract_id: string }
@@ -3740,3 +3841,4 @@ export const Constants = {
     },
   },
 } as const
+
