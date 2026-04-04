@@ -3,17 +3,17 @@
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatEventDate } from "./utils";
+import { formatEventDate, getWorkTypeLabel } from "./utils";
 
 // ── Skeleton for detail loading state ──
 export function DetailSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3].map((index) => (
-          <div key={index} className="card-base p-4">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="mt-3 h-7 w-24" />
+          <div key={index} className="flex flex-col gap-1.5 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-6 w-20" />
           </div>
         ))}
       </div>
@@ -48,25 +48,25 @@ export function ProductivityOverdueSection({ entries }: ProductivityOverdueSecti
   return (
     <div className="card-base bg-error/5 p-4 shadow-xs">
       <div className="flex items-center gap-2 text-error">
-        <AlertTriangle className="h-4 w-4" />
-        <p className="font-semibold">Task quá hạn</p>
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <p className="font-semibold text-sm">Task quá hạn</p>
       </div>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 flex flex-col gap-2">
         {entries.map((task) => (
           <div
             key={`${task.contract_code}-${task.work_type}-${task.deadline}`}
-            className="rounded-lg bg-bg-card px-3 py-3 shadow-xs"
+            className="rounded-lg bg-bg-main border border-border/50 px-3 py-2.5"
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <p className="font-semibold text-dark">
+                <p className="font-semibold text-sm text-text-main truncate">
                   {task.contract_code} · {task.client_name}
                 </p>
-                <p className="text-sm text-text-secondary">
-                  {task.work_type}
+                <p className="text-xs text-text-secondary mt-0.5">
+                  {getWorkTypeLabel(task.work_type as import("@/types/contract").WorkType)}
                 </p>
               </div>
-              <Badge variant="error">
+              <Badge variant="error" className="shrink-0 text-tiny w-max">
                 Hạn {task.deadline ? formatEventDate(task.deadline) : "—"}
               </Badge>
             </div>

@@ -10,8 +10,8 @@ import DatePicker from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { Textarea } from "@/components/ui/textarea";
-import { UnifiedModal } from "@/components/ui/unified-modal";
-import { getContractOptions } from "@/app/actions/printing-queries";
+import { Drawer } from "@/components/ui/drawer";
+import { getContractOptions } from "@/app/actions/printing-reference-queries";
 import {
   createPrintingOrder,
   deletePrintingOrder,
@@ -19,6 +19,7 @@ import {
 } from "@/app/actions/printing-mutations";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/lib/toast-utils";
+import { Badge } from "@/components/ui/badge";
 import type {
   ContractOption,
   LabOption,
@@ -102,7 +103,7 @@ function formatCurrency(value: number) {
   return `${new Intl.NumberFormat("vi-VN").format(value)}d`;
 }
 
-export default function PrintingFormModal({
+export default function PrintingDetailDrawer({
   isOpen,
   onClose,
   order,
@@ -299,13 +300,208 @@ export default function PrintingFormModal({
 
   return (
     <>
-      <UnifiedModal
+      <Drawer
         isOpen={isOpen}
         onClose={onClose}
-        title={order ? `Sửa đơn in: ${order.orderCode}` : "Tạo đơn in mới"}
-        size="3xl"
-        footer={
-          <div className="form-actions">
+        title={order ? `Chi tiết lệnh in` : "Tạo đơn in mới"}
+        width="650px"
+        titleBadge={
+          order ? (
+            <Badge variant={
+              order.status === "dang_in" ? "warning" :
+              order.status === "da_in" ? "info" :
+              order.status === "da_nhan" ? "success" : "neutral"
+            }>
+              {order.status === "cho_xu_ly" ? "Chờ xử lý" :
+               order.status === "dang_in" ? "Đang in" :
+               order.status === "da_in" ? "Đã in" :
+               order.status === "da_nhan" ? "Đã nhận" : order.status}
+            </Badge>
+          ) : undefined
+        }
+      >
+        <div className="flex flex-col min-h-full">
+          <div className="flex-1 space-y-5">
+            {!order && (
+              <div>
+                <label className="label-base">Tìm hợp đồng</label>
+                <Input
+                  value={contractSearch}
+                  onChange={(event) => setContractSearch(event.target.value)}
+                  placeholder="Nhập mã hợp đồng hoặc tên khách"
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {order && (
+              <div className="p-4 bg-bg-hover rounded-xl mb-4 border border-border flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Mã lệnh in</p>
+                  <p className="text-h3">{order.orderCode}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Khách hàng</p>
+                  <p className="font-medium text-text-main">{order.customerName}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="form-grid-2col">
+              <SelectForm
+                label="Hợp đồng"
+                value={form.contractId}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, contractId: value }))
+                }
+                options={contractOptions.map((contract) => ({
+                  value: contract.id,
+                  label: `${contract.contract_code} - ${contract.customer_name}`,
+                }))}
+                placeholder="Chọn hợp đồng"
+                disabled={!!order}
+              />
+
+              <div className="space-y-2">
+                <SelectForm
+                  label="Lab"
+                  value={form.labId}
+                  onChange={(value) =>
+                    setForm((prev) => ({ ...prev, labId: value }))
+                  }
+                  options={labOptions}
+                  placeholder="Chọn lab"
+                />
+                <Button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, labId: "" }))}
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-text-muted hover:text-text-main px-0!"
+                >
+                  Bỏ chọn lab
+                </Button>
+              </div>
+            </div>
+
+            <div className="form-grid-2col">
+              <DatePicker
+                value={form.expectedDate}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, expectedDate: value }))
+                }
+                label="Ngày dự kiến nhận"
+              />
+
+              <div className="rounded-xl bg-bg-hover p-4 flex items-end">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-text-muted">
+                    Tổng chi phí tạm tính
+                  </p>
+                  <p className="text-h2 text-text-main">
+                    {formatCurrency(totalAmount)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mt-4 border-t border-border pt-5">
+                <h4 className="section-heading">Hạng mục in</h4>
+                <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm hạng mục</span>
+                </Button>
+              </div>
+
+              {form.items.map((item, index) => (
+                <div key={item.tempId} className="rounded-xl bg-bg-hover border border-border p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-text-main">
+                      Hạng mục {index + 1}
+                    </p>
+                    {form.items.length > 1 && (
+                      <Button
+                        type="button"
+                        onClick={() => removeItem(item.tempId)}
+                        variant="ghost"
+                        className="icon-btn rounded-md text-error"
+                        aria-label="Xóa hạng mục"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="form-grid-2col border-t border-border/50 pt-3">
+                    <div>
+                      <label className="label-base">Tên sản phẩm</label>
+                      <Input
+                        value={item.name}
+                        onChange={(event) =>
+                          updateItem(item.tempId, "name", event.target.value)
+                        }
+                        placeholder="Ví dụ: Album 20x30"
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="label-base">Kích thước</label>
+                      <Input
+                        value={item.size}
+                        onChange={(event) =>
+                          updateItem(item.tempId, "size", event.target.value)
+                        }
+                        placeholder="20x30"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-2col">
+                    <div>
+                      <label className="label-base">Số lượng</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={(event) =>
+                          updateItem(
+                            item.tempId,
+                            "quantity",
+                            Number(event.target.value || 1),
+                          )
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                    <CurrencyInput
+                      label="Đơn giá"
+                      value={item.unitPrice}
+                      onChange={(value) =>
+                        updateItem(item.tempId, "unitPrice", value)
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-border pt-5">
+              <label className="label-base">Ghi chú thêm</label>
+              <Textarea
+                value={form.notes}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, notes: event.target.value }))
+                }
+                rows={3}
+                placeholder="Thông tin bổ sung cho đơn in"
+                className="w-full resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="sticky -bottom-6 lg:-bottom-6 -mx-5 lg:-mx-6 -mb-6 mt-6 px-5 lg:px-6 py-4 bg-bg-base/95 backdrop-blur-md border-t border-border flex flex-wrap items-center justify-between gap-3 z-10 shrink-0">
             {order ? (
               <Button
                 onClick={() => setConfirmDeleteOpen(true)}
@@ -317,8 +513,8 @@ export default function PrintingFormModal({
             ) : (
               <div />
             )}
-            <div className="flex items-center gap-2">
-              <Button onClick={onClose} variant="ghost">
+            <div className="flex items-center gap-2 ml-auto">
+              <Button onClick={onClose} variant="ghost" disabled={loading}>
                 Đóng
               </Button>
               <Button
@@ -326,7 +522,7 @@ export default function PrintingFormModal({
                 disabled={loading}
                 variant={nextStepAction && onStatusChange ? "outline" : "primary"}
               >
-                {loading ? "Đang xử lý..." : order ? "Cập nhật" : "Tạo đơn in"}
+                {loading ? "Đang xử lý..." : order ? "Lưu thay đổi" : "Tạo đơn in"}
               </Button>
               {nextStepAction && onStatusChange && (
                 <Button
@@ -340,175 +536,8 @@ export default function PrintingFormModal({
               )}
             </div>
           </div>
-        }
-      >
-        <div className="space-y-4">
-          {!order && (
-            <div>
-              <label className="label-base">Tìm hợp đồng</label>
-              <Input
-                value={contractSearch}
-                onChange={(event) => setContractSearch(event.target.value)}
-                placeholder="Nhập mã hợp đồng hoặc tên khách"
-                className="w-full"
-              />
-            </div>
-          )}
-
-          <div className="form-grid-2col">
-            <SelectForm
-              label="Hợp đồng"
-              value={form.contractId}
-              onChange={(value) =>
-                setForm((prev) => ({ ...prev, contractId: value }))
-              }
-              options={contractOptions.map((contract) => ({
-                value: contract.id,
-                label: `${contract.contract_code} - ${contract.customer_name}`,
-              }))}
-              placeholder="Chọn hợp đồng"
-              disabled={!!order}
-            />
-
-            <div className="space-y-2">
-              <SelectForm
-                label="Lab"
-                value={form.labId}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, labId: value }))
-                }
-                options={labOptions}
-                placeholder="Chọn lab"
-              />
-              <Button
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, labId: "" }))}
-                variant="ghost"
-                size="sm"
-                className="text-xs text-text-muted hover:text-text-main px-0!"
-              >
-                Bỏ chọn lab
-              </Button>
-            </div>
-          </div>
-
-          <div className="form-grid-2col">
-            <DatePicker
-              value={form.expectedDate}
-              onChange={(value) =>
-                setForm((prev) => ({ ...prev, expectedDate: value }))
-              }
-              label="Ngày dự kiến nhận"
-            />
-
-            <div className="rounded-xl bg-bg-hover p-4 flex items-end">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-text-muted">
-                  Tổng tạm tính
-                </p>
-                <p className="text-h2 text-text-main">
-                  {formatCurrency(totalAmount)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="section-heading">Hạng mục in</h4>
-              <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                <span>Thêm hạng mục</span>
-              </Button>
-            </div>
-
-            {form.items.map((item, index) => (
-              <div key={item.tempId} className="rounded-xl bg-bg-hover p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-text-main">
-                    Hạng mục {index + 1}
-                  </p>
-                  {form.items.length > 1 && (
-                    <Button
-                      type="button"
-                      onClick={() => removeItem(item.tempId)}
-                      variant="ghost"
-                      className="btn-icon text-error"
-                      aria-label="Xóa hạng mục"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="form-grid-2col">
-                  <div>
-                    <label className="label-base">Tên sản phẩm</label>
-                    <Input
-                      value={item.name}
-                      onChange={(event) =>
-                        updateItem(item.tempId, "name", event.target.value)
-                      }
-                      placeholder="Ví dụ: Album 20x30"
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="label-base">Kích thước</label>
-                    <Input
-                      value={item.size}
-                      onChange={(event) =>
-                        updateItem(item.tempId, "size", event.target.value)
-                      }
-                      placeholder="20x30"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid-2col">
-                  <div>
-                    <label className="label-base">Số lượng</label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={item.quantity}
-                      onChange={(event) =>
-                        updateItem(
-                          item.tempId,
-                          "quantity",
-                          Number(event.target.value || 1),
-                        )
-                      }
-                      className="w-full"
-                    />
-                  </div>
-                  <CurrencyInput
-                    label="Đơn giá"
-                    value={item.unitPrice}
-                    onChange={(value) =>
-                      updateItem(item.tempId, "unitPrice", value)
-                    }
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <label className="label-base">Ghi chú</label>
-            <Textarea
-              value={form.notes}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, notes: event.target.value }))
-              }
-              rows={3}
-              placeholder="Thông tin bổ sung cho đơn in"
-              className="w-full resize-none"
-            />
-          </div>
         </div>
-      </UnifiedModal>
+      </Drawer>
 
       <ConfirmDialog
         isOpen={confirmDeleteOpen}

@@ -33,10 +33,10 @@ export function ProductivityOverloadBanner({
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-bold text-error">
+            <p className="text-body-sm font-bold text-error">
               Có {overloadedEmployees.length} nhân sự đang quá tải
             </p>
-            <p className="text-sm text-text-secondary">
+            <p className="text-body-sm text-text-secondary">
               {previewNames}
               {overloadedEmployees.length > 3
                 ? ` và ${overloadedEmployees.length - 3} người khác`

@@ -17,10 +17,10 @@ export function ProductivityErrorBanner({ message, onRetry }: ProductivityErrorB
     <div className="card-base bg-warning/5 px-4 py-4 shadow-xs">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="font-semibold text-dark">
+          <p className="font-semibold text-text-main">
             Dữ liệu đang hiển thị có thể chưa mới nhất
           </p>
-          <p className="text-sm text-text-secondary">{message}</p>
+          <p className="text-body-sm text-text-secondary">{message}</p>
         </div>
         <Button type="button" variant="outline" onClick={onRetry}>
           Tải lại
@@ -45,7 +45,7 @@ export function ProductivityPeriodControl({
   onChange,
 }: ProductivityPeriodControlProps) {
   return (
-    <div className="card-base flex flex-col gap-3 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-wrap items-center gap-3 lg:justify-between">
       <div className="flex flex-col gap-2">
         <TabsFilter
           tabs={(
@@ -57,7 +57,7 @@ export function ProductivityPeriodControl({
           activeTab={period}
           onChange={onChange}
         />
-        <p className="text-xs text-text-muted">
+        <p className="max-lg:hidden text-caption text-text-muted">
           {dateRange.start} → {dateRange.end}
           {isPending && (
             <span className="ml-2 inline-flex items-center gap-1">

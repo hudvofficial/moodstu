@@ -7,20 +7,13 @@ import type {
   ProductivitySortDirection,
   ProductivitySortKey,
 } from "@/types/productivity";
+import {
+  PRODUCTIVITY_TASK_LABELS,
+  PRODUCTIVITY_TASK_VARIANTS,
+} from "@/types/productivity-constants";
+export { getServiceLabel, getWorkTypeLabel } from "@/types/contract-constants";
 
-const TASK_STATUS_LABELS: Record<string, string> = {
-  chua_lam: "Chưa làm",
-  dang_lam: "Đang làm",
-  hoan_thanh: "Hoàn thành",
-  da_huy: "Đã hủy",
-};
 
-const TASK_STATUS_VARIANTS: Record<string, BadgeVariant> = {
-  chua_lam: "neutral",
-  dang_lam: "info",
-  hoan_thanh: "success",
-  da_huy: "error",
-};
 
 export function formatHours(value: number): string {
   return `${new Intl.NumberFormat("vi-VN", {
@@ -38,11 +31,11 @@ export function formatRole(role: EmployeeRole): string {
 }
 
 export function getTaskStatusLabel(status: string): string {
-  return TASK_STATUS_LABELS[status] || status;
+  return PRODUCTIVITY_TASK_LABELS[status] || status;
 }
 
 export function getTaskStatusVariant(status: string): BadgeVariant {
-  return TASK_STATUS_VARIANTS[status] || "neutral";
+  return PRODUCTIVITY_TASK_VARIANTS[status] || "neutral";
 }
 
 export function formatEventDate(value: string | null): string {

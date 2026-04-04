@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
 import { AlertTriangle, BriefcaseBusiness, Clock3, RefreshCcw, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,15 @@ import {
   WORKLOAD_LABELS,
 } from "@/types/productivity-constants";
 import type { EmployeeJobGroup, EmployeeProductivity } from "@/types/productivity";
+import type { ServiceType, WorkType } from "@/types/contract";
 import {
   formatEventDate,
   formatHours,
   formatMoney,
+  getServiceLabel,
   getTaskStatusLabel,
   getTaskStatusVariant,
+  getWorkTypeLabel,
 } from "./utils";
 
 interface ProductivityDetailContentProps {
@@ -31,8 +34,7 @@ interface ProductivityDetailContentProps {
   emptyDescription?: string;
 }
 
-
-export function ProductivityDetailContent({
+export const ProductivityDetailContent = memo(function ProductivityDetailContent({
   employee,
   groups,
   canViewCost,
@@ -76,8 +78,8 @@ export function ProductivityDetailContent({
       <div className="card-base flex flex-col items-center gap-3 p-6 text-center">
         <AlertTriangle className="h-10 w-10 text-error" />
         <div className="space-y-1">
-          <p className="font-semibold text-dark">Không tải được chi tiết</p>
-          <p className="text-sm text-text-secondary">{errorMessage}</p>
+          <p className="font-semibold text-text-main">Không tải được chi tiết</p>
+          <p className="text-body-sm text-text-secondary">{errorMessage}</p>
         </div>
         {onRetry && (
           <Button type="button" variant="outline" onClick={onRetry}>
@@ -91,7 +93,7 @@ export function ProductivityDetailContent({
 
   if (!employee) {
     return (
-      <div className="card-base p-6 text-center text-sm text-text-secondary">
+      <div className="card-base p-6 text-center text-body-sm text-text-secondary">
         Chọn một nhân sự để xem chi tiết công việc.
       </div>
     );
@@ -100,55 +102,55 @@ export function ProductivityDetailContent({
   if (groups.length === 0) {
     return (
       <div className="card-base p-6 text-center">
-        <p className="font-semibold text-dark">{emptyTitle}</p>
-        <p className="mt-2 text-sm text-text-secondary">{emptyDescription}</p>
+        <p className="font-semibold text-text-main">{emptyTitle}</p>
+        <p className="mt-2 text-body-sm text-text-secondary">{emptyDescription}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="card-base p-4">
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <BriefcaseBusiness className="h-4 w-4" />
+      <section className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <BriefcaseBusiness className="h-3.5 w-3.5" />
             <span>Tổng job</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-dark">{groups.length}</p>
+          <p className="text-base font-bold text-text-main">{groups.length}</p>
         </div>
 
-        <div className="card-base p-4">
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <Clock3 className="h-4 w-4" />
+        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <Clock3 className="h-3.5 w-3.5" />
             <span>On-set</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-dark">
+          <p className="text-base font-bold text-text-main">
             {formatHours(employee.onsite_hours)}
           </p>
         </div>
 
-        <div className="card-base p-4">
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <Wallet className="h-4 w-4" />
+        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <Wallet className="h-3.5 w-3.5" />
             <span>{canViewCost ? "Chi phí" : "Tải công việc"}</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-dark">
+          <p className="text-base font-bold text-text-main">
             {canViewCost
               ? formatMoney(totalCost)
               : `${Math.round(employee.workload_ratio * 100)}%`}
           </p>
         </div>
-      </div>
+      </section>
 
       <ProductivityOverdueSection entries={overdueEntries} />
 
-      <div className="space-y-3">
+      <section className="space-y-3">
         {groups.map((group) => (
           <div key={group.contract_id} className="card-base p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-dark">
+                  <p className="font-semibold text-text-main">
                     {group.contract_code}
                   </p>
                   <Badge
@@ -165,40 +167,40 @@ export function ProductivityDetailContent({
                       : WORKLOAD_LABELS[employee.workload_level]}
                   </Badge>
                 </div>
-                <p className="text-sm text-text-secondary">
-                  {group.client_name} · {group.service_type || "Chưa phân loại"}
+                <p className="text-body-sm text-text-secondary">
+                  {group.client_name} · {getServiceLabel(group.service_type as ServiceType) || "Chưa phân loại"}
                 </p>
-                <p className="text-sm text-text-muted">
+                <p className="text-body-sm text-text-muted">
                   {formatEventDate(group.event_date)}
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="info">Đang làm {group.active}</Badge>
-                <Badge variant="success">Hoàn thành {group.completed}</Badge>
+              <div className="flex flex-wrap gap-1.5 sm:justify-end mt-2 sm:mt-0">
+                <Badge variant="info" className="text-tiny">Đang làm {group.active}</Badge>
+                <Badge variant="success" className="text-tiny">Xong {group.completed}</Badge>
                 {group.overdue > 0 && (
-                  <Badge variant="error">Quá hạn {group.overdue}</Badge>
+                  <Badge variant="error" className="text-tiny">Trễ {group.overdue}</Badge>
                 )}
                 {canViewCost && group.total_cost !== null && (
-                  <Badge variant="primary">{formatMoney(group.total_cost)}</Badge>
+                  <Badge variant="primary" className="text-tiny">{formatMoney(group.total_cost)}</Badge>
                 )}
               </div>
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 flex flex-col gap-2">
               {group.tasks.map((task) => (
                 <div
                   key={`${group.contract_id}-${task.work_type}-${task.deadline}-${task.status}`}
-                  className="rounded-xl bg-bg-base/50 px-3 py-3 shadow-xs"
+                  className="rounded-lg bg-bg-main border border-border/50 px-3 py-2.5"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="font-medium text-dark">{task.work_type}</p>
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-                        <Badge variant={getTaskStatusVariant(task.status)}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-text-main truncate">{getWorkTypeLabel(task.work_type as WorkType)}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary mt-0.5">
+                        <Badge variant={getTaskStatusVariant(task.status)} className="shrink-0 text-tiny">
                           {getTaskStatusLabel(task.status)}
                         </Badge>
-                        <span>
+                        <span className="truncate">
                           Deadline:{" "}
                           {task.deadline ? formatEventDate(task.deadline) : "—"}
                         </span>
@@ -206,7 +208,7 @@ export function ProductivityDetailContent({
                     </div>
 
                     {canViewCost && task.cost !== null && (
-                      <p className="text-sm font-semibold text-text-main">
+                      <p className="text-sm font-semibold text-text-main shrink-0">
                         {formatMoney(task.cost)}
                       </p>
                     )}
@@ -216,7 +218,7 @@ export function ProductivityDetailContent({
             </div>
           </div>
         ))}
-      </div>
+      </section>
     </div>
   );
-}
+});

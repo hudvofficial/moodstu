@@ -75,7 +75,6 @@ export function useProductivityDetail({
     {
       fallbackData,
       keepPreviousData: true,
-      revalidateOnMount: false,
       revalidateOnFocus: false,
       dedupingInterval: 5000,
     },

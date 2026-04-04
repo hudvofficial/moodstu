@@ -26,11 +26,12 @@ import type {
   PrintingStats,
 } from "@/types/printing";
 import PrintingFiltersBar from "@/components/printing/printing-filters";
-import PrintingFormModal from "@/components/printing/printing-form-modal";
+import PrintingDetailDrawer from "@/components/printing/printing-detail-drawer";
 import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped";
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
 import PrintingTable from "@/components/printing/printing-table";
-import { groupOrdersByContract } from "@/lib/utils/printing-group-utils";
+import PrintingGroupDrawer from "@/components/printing/printing-group-drawer";
+import { groupOrdersByContract, type ContractGroup } from "@/lib/utils/printing-group-utils";
 
 type ActionResult<T> =
   | { success: true; data: T }
@@ -50,6 +51,7 @@ function PrintingListInner({
   const isMobile = useIsMobile();
   const [editingOrder, setEditingOrder] = useState<PrintingOrderRow | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [selectedContractGroup, setSelectedContractGroup] = useState<ContractGroup | null>(null);
   const {
     filters,
     setStatus,
@@ -221,16 +223,13 @@ function PrintingListInner({
         ) : isMobile ? (
           <PrintingMobileGrouped
             groups={contractGroups}
-            onEdit={(selectedOrder) => {
-              setEditingOrder(selectedOrder);
-              setShowForm(true);
-            }}
-            onStatusChange={handleStatusChange}
+            onViewGroup={setSelectedContractGroup}
           />
         ) : (
           <PrintingTable
             orders={ordersPage.orders}
             groups={contractGroups}
+            onViewGroup={setSelectedContractGroup}
             onEdit={(selectedOrder) => {
               setEditingOrder(selectedOrder);
               setShowForm(true);
@@ -256,7 +255,7 @@ function PrintingListInner({
         )}
       </div>
 
-      <PrintingFormModal
+      <PrintingDetailDrawer
         isOpen={showForm}
         onClose={() => {
           setShowForm(false);
@@ -265,6 +264,17 @@ function PrintingListInner({
         order={editingOrder}
         labs={labOptions}
         onSaved={handleSaved}
+        onStatusChange={handleStatusChange}
+      />
+
+      <PrintingGroupDrawer
+        isOpen={!!selectedContractGroup}
+        onClose={() => setSelectedContractGroup(null)}
+        group={selectedContractGroup}
+        onEdit={(selectedOrder) => {
+          setEditingOrder(selectedOrder);
+          setShowForm(true);
+        }}
         onStatusChange={handleStatusChange}
       />
     </>

@@ -103,6 +103,27 @@
   transition: width 700ms ease-out;
 }
 
+.progress-fill-warning {
+  height: 100%;
+  background: var(--color-warning);
+  border-radius: 9999px;
+  transition: width 700ms ease-out;
+}
+
+.progress-fill-error {
+  height: 100%;
+  background: var(--color-error);
+  border-radius: 9999px;
+  transition: width 700ms ease-out;
+}
+
+.progress-fill-info {
+  height: 100%;
+  background: var(--color-info);
+  border-radius: 9999px;
+  transition: width 700ms ease-out;
+}
+
 /* ══════════════════════════════════════
    3. SECTION HEADERS
    ══════════════════════════════════════ */

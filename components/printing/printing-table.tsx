@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
-import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { memo } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusSelect, {
@@ -32,6 +32,7 @@ import {
 interface Props {
   orders: PrintingOrderRow[];
   groups?: ContractGroup[];
+  onViewGroup?: (group: ContractGroup) => void;
   onEdit: (order: PrintingOrderRow) => void;
   onStatusChange: (
     order: PrintingOrderRow,
@@ -42,34 +43,21 @@ interface Props {
 function PrintingTableInner({
   orders,
   groups,
+  onViewGroup,
   onEdit,
   onStatusChange,
 }: Props) {
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-
-  const toggleGroup = useCallback((key: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
-  // Flat mode columns (includes "Hợp đồng")
   const isGrouped = !!groups && groups.length > 0;
 
   return (
     <TableWrapper containerClassName="hidden lg:block">
       <THead>
         <TR className="hover:bg-transparent h-auto">
-          {isGrouped && <TH className="w-10" />}
-          <TH>Đơn in</TH>
-          {!isGrouped && <TH>Hợp đồng</TH>}
-          <TH>Lab</TH>
+          <TH>Đơn in / Hợp đồng</TH>
+          <TH>SL Đơn / Lab</TH>
           <TH>Tổng tiền</TH>
-          <TH>Trạng thái</TH>
-          <TH>Thanh toán</TH>
+          <TH className="w-48">Tiến độ in ấn</TH>
+          <TH>Thanh toán (Lab)</TH>
           <TH>Ngày dự kiến</TH>
           <TH className="text-right">Hành động</TH>
         </TR>
@@ -78,13 +66,10 @@ function PrintingTableInner({
       <TBody>
         {isGrouped
           ? groups.map((group) => (
-              <ContractGroupRows
+              <ContractGroupRow
                 key={group.contractCode}
                 group={group}
-                isExpanded={expanded.has(group.contractCode)}
-                onToggle={() => toggleGroup(group.contractCode)}
-                onEdit={onEdit}
-                onStatusChange={onStatusChange}
+                onClick={() => onViewGroup?.(group)}
               />
             ))
           : orders.map((order) => (
@@ -101,85 +86,84 @@ function PrintingTableInner({
   );
 }
 
-// ── Contract Group Header + Child Rows ────────
+// ── Contract Group Row (Drawer Trigger) ────────
 
 interface ContractGroupProps {
   group: ContractGroup;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onEdit: (order: PrintingOrderRow) => void;
-  onStatusChange: (order: PrintingOrderRow, newStatus: string) => Promise<void>;
+  onClick?: () => void;
 }
 
-const ContractGroupRows = memo(function ContractGroupRows({
+const ContractGroupRow = memo(function ContractGroupRow({
   group,
-  isExpanded,
-  onToggle,
-  onEdit,
-  onStatusChange,
+  onClick,
 }: ContractGroupProps) {
-  const colSpan = 8; // chevron + 7 data columns
-
   return (
-    <>
-      {/* Contract Header Row */}
-      <TR
-        onClick={onToggle}
-        className="bg-bg-subtle/50 hover:bg-bg-hover cursor-pointer"
-      >
-        <TD className="w-10 text-center">
-          {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-text-muted" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-text-muted" />
-          )}
-        </TD>
-        <td colSpan={colSpan - 1} className="px-3 py-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-text-main">
-                {group.contractCode}
+    <TR
+      onClick={onClick}
+      className="bg-bg-main hover:bg-bg-subtle cursor-pointer group transition-colors"
+    >
+      <TD>
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold text-text-main group-hover:text-primary transition-colors">
+            {group.contractCode}
+          </span>
+          <span className="text-sm text-text-secondary line-clamp-1">
+            {group.customerName}
+          </span>
+        </div>
+      </TD>
+      <TD>
+        <span className="text-sm text-text-muted">
+          {group.orderCount} đơn
+        </span>
+      </TD>
+      <TD className="font-semibold text-text-main">
+        {formatCurrency(group.totalAmount)}
+      </TD>
+      <TD>
+        <div className="flex flex-col gap-1.5 w-32">
+          <div className="flex items-center justify-between text-xs font-medium">
+            <span className={group.completedCount === group.orderCount ? "text-success" : "text-text-main"}>
+              {group.completedCount}/{group.orderCount} xong
+            </span>
+            {group.overdueCount > 0 && (
+              <span className="flex items-center gap-1 text-error">
+                <AlertTriangle className="w-3 h-3" />
+                {group.overdueCount} trễ
               </span>
-              <span className="text-sm text-text-secondary">
-                {group.customerName}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-text-muted">
-                {group.orderCount} đơn
-              </span>
-              <span className="font-semibold text-text-main">
-                {formatCurrency(group.totalAmount)}
-              </span>
-              {group.completedCount > 0 && (
-                <span className="text-success text-xs">
-                  {group.completedCount}/{group.orderCount} hoàn thành
-                </span>
-              )}
-              {group.overdueCount > 0 && (
-                <span className="flex items-center gap-1 text-error text-xs font-medium">
-                  <AlertTriangle className="w-3 h-3" />
-                  {group.overdueCount} quá hạn
-                </span>
-              )}
-            </div>
+            )}
           </div>
-        </td>
-      </TR>
-
-      {/* Child Order Rows */}
-      {isExpanded &&
-        group.orders.map((order) => (
-          <OrderRow
-            key={order.id}
-            order={order}
-            showContract={false}
-            onEdit={() => onEdit(order)}
-            onStatusChange={onStatusChange}
-          />
-        ))}
-    </>
+          <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${
+                group.completedCount === group.orderCount ? "bg-success" : 
+                group.overdueCount > 0 ? "bg-error" : "bg-primary"
+              }`}
+              style={{ width: `${Math.max(5, (group.completedCount / group.orderCount) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </TD>
+      <TD>
+        <Badge variant={PRINTING_PAYMENT_VARIANTS[group.paymentStatus]} className="whitespace-nowrap">
+          {PRINTING_PAYMENT_LABELS[group.paymentStatus]}
+        </Badge>
+      </TD>
+      <TD>
+        {group.nearestExpectedDate ? (
+          <span className="text-sm text-text-muted font-medium bg-surface px-2 py-1 rounded-md">
+            {formatDate(group.nearestExpectedDate)}
+          </span>
+        ) : (
+          <span className="text-sm text-text-disabled">—</span>
+        )}
+      </TD>
+      <TD className="text-right">
+         <span className="text-sm text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+           Xem chi tiết &rarr;
+         </span>
+      </TD>
+    </TR>
   );
 });
 

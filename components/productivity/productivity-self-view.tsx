@@ -29,11 +29,11 @@ export function ProductivitySelfView({
         (employee.workload_level === "high" ||
           employee.workload_level === "overloaded") && (
           <div className="card-base bg-warning/5 px-4 py-4 shadow-xs">
-            <p className="font-semibold text-dark">
+            <p className="font-semibold text-text-main">
               Năng suất cá nhân đang ở mức{" "}
               {employee.workload_level === "overloaded" ? "quá tải" : "cao"}
             </p>
-            <p className="mt-1 text-sm text-text-secondary">
+            <p className="mt-1 text-body-sm text-text-secondary">
               Ưu tiên xử lý các task quá hạn và báo quản lý nếu cần phân bổ
               lại công việc.
             </p>

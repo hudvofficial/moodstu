@@ -58,30 +58,17 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 41. **SHARED COMPONENTS FIRST** — Xây móng (Task 4) thật kỹ giúp X2 tốc độ triển khai 11 module sau.
 
 ## Từ Login UI & Auth Fix Session (2026-03-15)
-42-50. Bỏ qua ghi chú cũ để thu gọn, giữ focus vào SSOT & Rules.
-51. **Labels dùng Sentence case, KHÔNG uppercase**.
-52. **SSOT refactoring: PHẢI grep tất cả references cũ**.
-53. **DÙNG CSS CLASSES TỪ design-system.css, KHÔNG HARDCODE**.
-54. **FORM COMPONENTS PHẢI DÙNG CSS CLASS SSOT**.
-55. **CUSTOM CSS CLASS KHÔNG HỖ TRỢ RESPONSIVE PREFIX**.
-56. **KHÔNG INLINE STYLE, LUÔN TẠO CSS CLASS SSOT**.
-57. **CSS CLASS CÓ display OVERRIDE Tailwind responsive**.
-58. **KHÔNG `taskkill /F /IM node.exe`**.
-59. **Server Actions: V1 `withAuth` pattern là SSOT**.
-60. **V2 = V1 SUPERSET, KHÔNG BAO GIỜ V2 < V1**.
-61. **Stitch = STYLE REFERENCE, KHÔNG PHẢI LOGIC SOURCE**.
-62. **TUYỆT ĐỐI KHÔNG TỰ Ý CHỈNH SỬA STYLING/MÃ NGUỒN (User Autonomy Strict Enforcement)**.
-63. **MOBILE RESPONSIVE = max-lg: OVERRIDE, KHÔNG ĐỔI DEFAULT**.
-64. **V2 TUYỆT ĐỐI KHÔNG DÙNG BORDER — CHỈ SHADOW**.
-65. **V2 DB DÙNG snake_case ENUM, KHÔNG PHẢI TIẾNG VIỆT**.
-66. **V2 DB TABLES KHÁC V1**.
+
+42-50. Bỏ qua ghi chú cũ để thu gọn, giữ focus vào SSOT & Rules. 51. **Labels dùng Sentence case, KHÔNG uppercase**. 52. **SSOT refactoring: PHẢI grep tất cả references cũ**. 53. **DÙNG CSS CLASSES TỪ design-system.css, KHÔNG HARDCODE**. 54. **FORM COMPONENTS PHẢI DÙNG CSS CLASS SSOT**. 55. **CUSTOM CSS CLASS KHÔNG HỖ TRỢ RESPONSIVE PREFIX**. 56. **KHÔNG INLINE STYLE, LUÔN TẠO CSS CLASS SSOT**. 57. **CSS CLASS CÓ display OVERRIDE Tailwind responsive**. 58. **KHÔNG `taskkill /F /IM node.exe`**. 59. **Server Actions: V1 `withAuth` pattern là SSOT**. 60. **V2 = V1 SUPERSET, KHÔNG BAO GIỜ V2 < V1**. 61. **Stitch = STYLE REFERENCE, KHÔNG PHẢI LOGIC SOURCE**. 62. **TUYỆT ĐỐI KHÔNG TỰ Ý CHỈNH SỬA STYLING/MÃ NGUỒN (User Autonomy Strict Enforcement)**. 63. **MOBILE RESPONSIVE = max-lg: OVERRIDE, KHÔNG ĐỔI DEFAULT**. 64. **V2 TUYỆT ĐỐI KHÔNG DÙNG BORDER — CHỈ SHADOW**. 65. **V2 DB DÙNG snake_case ENUM, KHÔNG PHẢI TIẾNG VIỆT**. 66. **V2 DB TABLES KHÁC V1**.
 
 ## Từ Contract Form Phase (2026-03-18)
+
 67. **TRIỂN KHAI CODE PHẢI DÙNG TOKEN/HOOK/SHARED COMPONENTS ĐÃ CÓ — TUYỆT ĐỐI KHÔNG INLINE**.
 68. **LESSONS.MD KHÔNG CÓ KHẢ NĂNG NGĂN CHẶN LỖI — CẦN GATE**.
 69. **AUDIT = XEM UI THỰC TẾ + SO STITCH, KHÔNG CHỈ GREP CODE**.
 
 ## Tối ưu Modal / Border Debug / V1 Port (2026-03-19 to 2026-03-23)
+
 70. **ĐO TRƯỚC KHI TỐI ƯU — KHÔNG ĐOÁN ROOT CAUSE QUA CODE DIFF**.
 71. **DEBUG UI = HỎI "KHI NÀO NÓ BIẾN MẤT?" TRƯỚC KHI ĐOÁN ROOT CAUSE**.
 72. **FK `*_by` PHẢI TRỎ `auth.users(id)` — KHÔNG TRỎ `employees(id)`**.
@@ -98,6 +85,7 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 83. **SUPABASE POSTGREST SILENT TRUNCATION Ở 1000 ROWS**.
 
 ## Refactor / UX Fixes (2026-03-26 to 2026-03-31)
+
 84. **PHẢI ĐỌC module-blueprint.md + ĐỐI CHIẾU CONTRACTS GOLD STANDARD TRƯỚC KHI CODE BẤT KỲ MODULE NÀO**.
 85. **"TIẾN HÀNH" ≠ "CODE ĐI" — PHẢI CÓ LỆNH TƯỜNG MINH**.
 86. **KHI USER YÊU CẦU PROMPT → TRẢ 1 BLOCK DUY NHẤT**.
@@ -112,11 +100,17 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 ## Từ Tự Ý Sửa Lỗi Tương Tuân SSOT (2026-03-31)
 
 94. **TỰ Ý SỬA CODE MÀ KHÔNG CÓ PLAN, VƯỢT QUYỀN USER (VI PHẠM LẬP LẠI)** — Mặc dù user gửi hình ảnh phàn nàn về lỗi linter `SSOT Violation: Use <Button>` trong file `tabs-filter.tsx`, và chỉ trích "em dùng SSOT đi". AI đã LẬP TỨC tự động gọi công cụ sửa file `tabs-filter.tsx` TRƯỚC KHI xin phép và chưa từng thông qua `plan`.
-**Root cause:** Phản xạ nôn nóng "chuộc lỗi" khi thấy user bực mình, dẫn đến việc bỏ qua hoàn toàn chu trình AWF chuẩn (`/brainstorm` -> `/plan` -> duyệt -> `/code`). Đây là vi phạm Rule V3 và Lesson #76 cực kỳ nghiêm trọng.
-**GIẢI PHÁP / RULE CỨNG TỪ NAY:** Khi nhìn thấy user report lỗi hoặc yêu cầu "dùng cục SSOT này kia", NGHIÊM CẤM sửa thẳng file. Phải LẬP TỨC nhận lỗi, và GỬI PLAN (`implementation_plan.md`) hoặc cập nhật `tasks/todo.md` để user duyệt. Bất cứ hành vi auto-fix nào trước khi user gõ `/code phase-X` = Thất bại hoàn toàn với tư cách là trợ lý hệ thống.
+    **Root cause:** Phản xạ nôn nóng "chuộc lỗi" khi thấy user bực mình, dẫn đến việc bỏ qua hoàn toàn chu trình AWF chuẩn (`/brainstorm` -> `/plan` -> duyệt -> `/code`). Đây là vi phạm Rule V3 và Lesson #76 cực kỳ nghiêm trọng.
+    **GIẢI PHÁP / RULE CỨNG TỪ NAY:** Khi nhìn thấy user report lỗi hoặc yêu cầu "dùng cục SSOT này kia", NGHIÊM CẤM sửa thẳng file. Phải LẬP TỨC nhận lỗi, và GỬI PLAN (`implementation_plan.md`) hoặc cập nhật `tasks/todo.md` để user duyệt. Bất cứ hành vi auto-fix nào trước khi user gõ `/code phase-X` = Thất bại hoàn toàn với tư cách là trợ lý hệ thống.
 
 ## Từ CSS Architecture Restructure (2026-04-01)
 
 95. **TAILWIND V4: `text-*` PREFIX CONFLICT** — Trong TWv4, `text-h1`/`text-h3` (font-size từ `@theme --text-h1`) và `text-white` (color) đều dùng `text-*` prefix. TWv4 chỉ giữ 1 property cuối → nếu `text-h3` đứng sau `text-white`, color bị override thành font-size's computed color. **FIX**: Dùng `style={{ color: '#ffffff' }}` inline khi cần color trên element đã có `text-*` font-size utility, HOẶC dùng custom CSS class thay vì TWv4 utility.
 
 96. **PER-MODULE CODE GATE > LESSONS.MD** — Lessons.md ghi 95+ lessons, nhưng KHÔNG NGĂN ĐƯỢC lỗi inline/hardcode lặp lại (Lesson #67, #92, #94 = cùng 1 lỗi). **ROOT CAUSE:** Lessons ở cuối file, AI không đọc kỹ mỗi lần viết code. **FIX:** Tạo `tasks/gates/{module}-code-gate.md` chứa: (A) LOOKUP TABLE tra element→token, (B) PRE-WRITE checklist, (C) POST-WRITE grep verification, (D) FORBIDDEN PATTERNS auto-fail list. GATE PHẢI được đọc TRƯỚC mỗi file, và grep PHẢI chạy SAU mỗi file. Không pass gate = không commit.
+
+## Từ Calendar Module Security & Integration (2026-04-03)
+
+97. **BẢO MẬT LUỒNG CHỈNH SỬA (UPDATE RBAC)** — Phải check Role/Ownership trên bản ghi CŨ trước khi merge payload update. Không được tin tưởng `payload.employee_id` từ Client vì User không có quyền hoàn toàn có thể truyền ID nhân sự khác để "vứt" công việc hoặc leo quyền. (VD: Lỗi Non-admin đổi calendar assignees).
+98. **XỬ LÝ EXTERNAL API "BEST EFFORT" PHẢI CÓ FEEDBACK** — Các luồng tích hợp như Google Calendar đồng bộ cần Catch lỗi để không block CRUD nội bộ, NHƯNG tuyệt đối KHÔNG ĐƯỢC im lặng nuốt lỗi (silently fail) bằng console.warn. Trả về field `warning` trong Data Action Result để UI chủ động popup thông báo Toast cảnh báo người dùng. Lỗi im lặng = Trải nghiệm tồi tệ.
+99. **LUÔN CHECK ĐIỀU KIỆN TRƯỚC KHI HIỂN THỊ TOGGLE EXTERNAL** — UI toggle liên quan đến cấu hình hệ thống (như Google Sync) BẮT BUỘC phải được evaluate dựa trên state Connect thực tế từ database (`google_calendar_auth`). Đừng "đóng mở vô điều kiện" rồi thả API fail ở dưới server. Mọi External Toggle đều phải có Gate check SWR/server actions.

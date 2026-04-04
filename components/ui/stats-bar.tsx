@@ -45,10 +45,10 @@ export function StatsBar({
               <span className="text-body font-bold text-text-main">
                 {item.value}
               </span>
-              <span className="text-sm text-text-muted">{item.label}</span>
+              <span className="text-body-sm text-text-muted">{item.label}</span>
               {item.trend !== undefined && item.trend !== 0 && (
                 <span
-                  className={`text-xs font-semibold ${
+                  className={`text-caption font-semibold ${
                     item.trend > 0 ? "text-success" : "text-error"
                   }`}
                 >

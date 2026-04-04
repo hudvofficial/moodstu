@@ -15,6 +15,8 @@ export interface ContractGroup {
   totalAmount: number;
   overdueCount: number;
   completedCount: number;
+  paymentStatus: "chua_thanh_toan" | "da_thanh_toan";
+  nearestExpectedDate: string | null;
 }
 
 /**
@@ -40,6 +42,8 @@ export function groupOrdersByContract(
         totalAmount: 0,
         overdueCount: 0,
         completedCount: 0,
+        paymentStatus: "da_thanh_toan", // Assume paid until a non-paid order is found
+        nearestExpectedDate: null,
       };
       map.set(key, group);
     }
@@ -48,21 +52,33 @@ export function groupOrdersByContract(
     group.orderCount += 1;
     group.totalAmount += order.totalAmount;
 
-    // Count overdue (pending + past expected date)
+    // Aggregate Payment Status
+    if (order.paymentStatus === "chua_thanh_toan") {
+      group.paymentStatus = "chua_thanh_toan";
+    }
+
     const isPending = isPendingPrintStatus(order.status);
-    if (
-      isPending &&
-      order.expectedDate &&
-      new Date(order.expectedDate) < new Date()
-    ) {
+    
+    // Count overdue
+    if (isPending && order.expectedDate && new Date(order.expectedDate) < new Date()) {
       group.overdueCount += 1;
     }
 
+    // Nearest Expected Date (only for pending prints)
+    if (isPending && order.expectedDate) {
+      if (!group.nearestExpectedDate || new Date(order.expectedDate) < new Date(group.nearestExpectedDate)) {
+        group.nearestExpectedDate = order.expectedDate;
+      }
+    }
+
     // Count completed (da_in + da_nhan)
-    if (order.status === "da_in" || order.status === "da_nhan") {
+    if (!isPending) {
       group.completedCount += 1;
     }
   }
+
+  // Finalize processing: handle case where there are no orders or all are paid
+  // The loop logic handles setting unpaid/cong_no correctly.
 
   return Array.from(map.values());
 }

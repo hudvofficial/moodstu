@@ -1,5 +1,5 @@
 import { fetchLabsList } from "@/app/actions/lab-queries";
-import { getLabDebts } from "@/app/actions/printing-queries";
+import { getLabDebts } from "@/app/actions/printing-reference-queries";
 import LabListPage from "@/components/printing/labs/lab-list-page";
 
 export const metadata = {

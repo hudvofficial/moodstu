@@ -11,9 +11,11 @@ import { ProductivityDetailDrawer } from "@/components/productivity/productivity
 import { ProductivitySelfView } from "@/components/productivity/productivity-self-view";
 import { ProductivityStatsBar } from "@/components/productivity/productivity-stats-bar";
 import { ProductivityTeamView } from "@/components/productivity/productivity-team-view";
-import { ProductivityErrorBanner, ProductivityPeriodControl } from "@/components/productivity/productivity-toolbar";
+import { ProductivityErrorBanner } from "@/components/productivity/productivity-toolbar";
 import { formatRole, sortEmployees } from "@/components/productivity/utils";
 import { EmptyState } from "@/components/ui/ux-states";
+import { SelectPill } from "@/components/ui/select/SelectPill";
+import { TabsFilter } from "@/components/ui/tabs-filter";
 import { ProductivityRealtimeBindings } from "@/components/productivity/productivity-realtime";
 import {
   useProductivityDetail,
@@ -26,10 +28,14 @@ import type {
   ProductivityPeriod,
   ProductivitySortDirection,
   ProductivitySortKey,
+  WorkloadLevel,
 } from "@/types/productivity";
 import {
   DEFAULT_PRODUCTIVITY_SORT,
   isProductivityPeriod,
+  PRODUCTIVITY_ROLE_OPTIONS,
+  PRODUCTIVITY_SORT_OPTIONS,
+  WORKLOAD_FILTER_TABS,
 } from "@/types/productivity-constants";
 
 interface ProductivityPageClientProps {
@@ -44,7 +50,7 @@ export default function ProductivityPageClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const searchParamPeriod = searchParams.get("period");
   const normalizedSearchPeriod = isProductivityPeriod(searchParamPeriod || undefined)
@@ -55,6 +61,10 @@ export default function ProductivityPageClient({
   const [sortKey, setSortKey] = useState<ProductivitySortKey>(DEFAULT_PRODUCTIVITY_SORT.key);
   const [sortDirection, setSortDirection] = useState<ProductivitySortDirection>(DEFAULT_PRODUCTIVITY_SORT.direction);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+
+  // ── Filter state (ported from Contract pattern) ──
+  const [workloadFilter, setWorkloadFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   const period = normalizedSearchPeriod as ProductivityPeriod;
 
@@ -122,18 +132,44 @@ export default function ProductivityPageClient({
         ) || null;
   const isDrawerOpen = viewer.viewMode === "team" && Boolean(selectedEmployee);
 
-  const teamEmployees = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const filtered = query
-      ? overview.employees.filter((employee) => {
-          const name = employee.full_name.toLowerCase();
-          const roleLabel = formatRole(employee.role).toLowerCase();
-          return name.includes(query) || roleLabel.includes(query);
-        })
-      : overview.employees;
+  // ── Workload tabs with counts (Contract tabsWithCounts pattern) ──
+  const workloadTabsWithCounts = useMemo(
+    () =>
+      WORKLOAD_FILTER_TABS.map((tab) => ({
+        ...tab,
+        count:
+          tab.value === "all"
+            ? overview.employees.length
+            : overview.employees.filter((e) => e.workload_level === tab.value).length,
+      })),
+    [overview.employees],
+  );
 
-    return sortEmployees(filtered, sortKey, sortDirection);
-  }, [searchQuery, overview.employees, sortDirection, sortKey]);
+  const teamEmployees = useMemo(() => {
+    let result = overview.employees;
+
+    // Workload filter (ported from Contract status filter)
+    if (workloadFilter !== "all") {
+      result = result.filter((e) => e.workload_level === (workloadFilter as WorkloadLevel));
+    }
+
+    // Role filter (ported from Contract service filter)
+    if (roleFilter !== "all") {
+      result = result.filter((e) => e.role === roleFilter);
+    }
+
+    // Search (giữ nguyên)
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter((employee) => {
+        const name = employee.full_name.toLowerCase();
+        const roleLabel = formatRole(employee.role).toLowerCase();
+        return name.includes(query) || roleLabel.includes(query);
+      });
+    }
+
+    return sortEmployees(result, sortKey, sortDirection);
+  }, [searchQuery, overview.employees, sortDirection, sortKey, workloadFilter, roleFilter]);
 
   const overviewErrorMessage = overviewResult && !overviewResult.success
     ? overviewResult.error : overviewError?.message;
@@ -187,19 +223,109 @@ export default function ProductivityPageClient({
           />
         ) : (
           <>
-            <div className="card-base flex items-center justify-between gap-4 px-5 py-3">
+            <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
               <ProductivityStatsBar
                 summary={overview.summary}
                 viewMode={viewer.viewMode}
               />
             </div>
 
-            <ProductivityPeriodControl
-              period={period}
-              dateRange={overview.date_range}
-              isPending={isPending}
-              onChange={handlePeriodChange}
-            />
+            {/* ── MOBILE: Workload pills + Period/Sort/Role pills (Contract mobile pattern) ── */}
+            {viewer.viewMode === "team" && (
+              <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide pb-2 -mb-2">
+                <TabsFilter
+                  tabs={WORKLOAD_FILTER_TABS as unknown as { label: string; value: string }[]}
+                  activeTab={workloadFilter}
+                  onChange={setWorkloadFilter}
+                  variant="pills"
+                />
+                <div className="h-5 border-l border-border shrink-0" />
+                <SelectPill
+                  value={period}
+                  onChange={handlePeriodChange}
+                  defaultValue="month"
+                  placeholder="Thời gian"
+                  options={[
+                    { value: "week", label: "Tuần này" },
+                    { value: "month", label: "Tháng này" },
+                    { value: "quarter", label: "Quý này" }
+                  ]}
+                />
+                <SelectPill
+                  value={sortKey === "default" ? "default" : `${sortKey.replace("_tasks", "").replace("total_", "")}_desc`}
+                  onChange={(v) => {
+                    const map: Record<string, ProductivitySortKey> = {
+                      default: "default",
+                      overdue_desc: "overdue_tasks",
+                      hours_desc: "active_tasks",
+                      cost_desc: "total_cost",
+                    };
+                    const key = map[v] || "default";
+                    setSortKey(key);
+                    if (key !== "default") setSortDirection("desc");
+                  }}
+                  defaultValue="default"
+                  placeholder="Sắp xếp"
+                  options={PRODUCTIVITY_SORT_OPTIONS as unknown as { value: string; label: string }[]}
+                />
+                <SelectPill
+                  value={roleFilter}
+                  onChange={setRoleFilter}
+                  defaultValue="all"
+                  placeholder="Vai trò"
+                  options={PRODUCTIVITY_ROLE_OPTIONS as unknown as { value: string; label: string }[]}
+                />
+              </div>
+            )}
+
+            {/* ── DESKTOP: Workload tabs + Period/Sort/Role pills (Contract desktop pattern) ── */}
+            {viewer.viewMode === "team" && (
+              <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+                <TabsFilter
+                  tabs={workloadTabsWithCounts}
+                  activeTab={workloadFilter}
+                  onChange={setWorkloadFilter}
+                />
+                <div className="flex items-center gap-2">
+                  <SelectPill
+                    value={period}
+                    onChange={handlePeriodChange}
+                    defaultValue="month"
+                    placeholder="Thời gian"
+                    options={[
+                      { value: "week", label: "Tuần này" },
+                      { value: "month", label: "Tháng này" },
+                      { value: "quarter", label: "Quý này" }
+                    ]}
+                  />
+                  <SelectPill
+                    value={sortKey === "default" ? "default" : `${sortKey.replace("_tasks", "").replace("total_", "")}_desc`}
+                    onChange={(v) => {
+                      const map: Record<string, ProductivitySortKey> = {
+                        default: "default",
+                        overdue_desc: "overdue_tasks",
+                        hours_desc: "active_tasks",
+                        cost_desc: "total_cost",
+                      };
+                      const key = map[v] || "default";
+                      setSortKey(key);
+                      if (key !== "default") setSortDirection("desc");
+                    }}
+                    defaultValue="default"
+                    placeholder="Sắp xếp"
+                    options={PRODUCTIVITY_SORT_OPTIONS as unknown as { value: string; label: string }[]}
+                  />
+                  <SelectPill
+                    value={roleFilter}
+                    onChange={setRoleFilter}
+                    defaultValue="all"
+                    placeholder="Vai trò"
+                    options={PRODUCTIVITY_ROLE_OPTIONS as unknown as { value: string; label: string }[]}
+                  />
+                </div>
+              </div>
+            )}
+
 
             {viewer.viewMode === "team" ? (
               <ProductivityTeamView

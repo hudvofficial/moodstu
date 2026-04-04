@@ -30,18 +30,12 @@ interface ProductivityTeamTableProps {
   onSelectEmployee: (employee: EmployeeProductivity) => void;
 }
 
-function getProgressColor(workloadLevel: EmployeeProductivity["workload_level"]) {
-  switch (workloadLevel) {
-    case "overloaded":
-      return "var(--color-error)";
-    case "high":
-      return "var(--color-warning)";
-    case "medium":
-      return "var(--color-info)";
-    default:
-      return "var(--color-text-muted)";
-  }
-}
+const PROGRESS_FILL_CLASS: Record<EmployeeProductivity["workload_level"], string> = {
+  overloaded: "progress-fill-error",
+  high: "progress-fill-warning",
+  medium: "progress-fill-info",
+  low: "progress-fill",
+};
 
 function SortHeader({
   label,
@@ -138,14 +132,14 @@ export function ProductivityTeamTable({
           >
             <TD className="py-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-hover text-sm font-bold text-text-secondary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-hover text-body-sm font-bold text-text-secondary">
                   {getInitials(employee.full_name)}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-dark">
+                  <p className="truncate font-semibold text-text-main">
                     {employee.full_name}
                   </p>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-caption text-text-muted">
                     {employee.post_production_active} task hậu kỳ
                   </p>
                 </div>
@@ -154,7 +148,7 @@ export function ProductivityTeamTable({
             <TD className="py-3">
               <Badge variant="neutral">{formatRole(employee.role)}</Badge>
             </TD>
-            <TD className="py-3 text-sm font-medium text-text-secondary">
+            <TD className="py-3 text-body-sm font-medium text-text-secondary">
               {formatHours(employee.onsite_hours)}
             </TD>
             <TD className="py-3 font-semibold text-text-main">
@@ -175,24 +169,21 @@ export function ProductivityTeamTable({
               </span>
             </TD>
             <TD className="py-3">
-              <div className="min-w-[150px] space-y-2">
+              <div className="min-w-40 space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <Badge
                     variant={WORKLOAD_BADGE_VARIANTS[employee.workload_level]}
                   >
                     {WORKLOAD_LABELS[employee.workload_level]}
                   </Badge>
-                  <span className="text-xs font-semibold text-text-muted">
+                  <span className="text-caption font-semibold text-text-muted">
                     {Math.round(employee.workload_ratio * 100)}%
                   </span>
                 </div>
                 <div className="progress-track h-2">
                   <div
-                    className="progress-fill"
-                    style={{
-                      width: `${Math.min(100, Math.round(employee.workload_ratio * 100))}%`,
-                      background: getProgressColor(employee.workload_level),
-                    }}
+                    className={PROGRESS_FILL_CLASS[employee.workload_level]}
+                    style={{ width: `${Math.min(100, Math.round(employee.workload_ratio * 100))}%` }}
                   />
                 </div>
               </div>

@@ -12,7 +12,7 @@ import { StatsBar } from "@/components/ui/stats-bar";
 import { Button } from "@/components/ui/button";
 import { fetchLabsList } from "@/app/actions/lab-queries";
 import { toggleLabStatus, deleteLab } from "@/app/actions/lab-mutations";
-import { getLabDebts } from "@/app/actions/printing-queries";
+import { getLabDebts } from "@/app/actions/printing-reference-queries";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
