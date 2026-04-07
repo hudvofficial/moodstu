@@ -158,7 +158,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
       {/* Collapse Toggle Button (Desktop Only) */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 bg-bg-card border border-border rounded-full items-center justify-center shadow-sm hover:shadow-md transition-shadow z-30 hidden lg:flex"
+        className="absolute -right-3 top-20 w-6 h-6 bg-bg-card rounded-full items-center justify-center shadow-sm hover:shadow-md transition-shadow z-30 hidden lg:flex"
       >
         {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-primary" /> : <ChevronLeft className="w-3.5 h-3.5 text-primary" />}
       </button>

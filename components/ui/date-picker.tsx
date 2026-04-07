@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/forbid-elements -- DatePicker primitive uses semantic native buttons for calendar matrix */
 import {
   useState,
   useEffect,
@@ -223,13 +224,13 @@ export default function DatePicker({
         !isDesktop
           ? "w-full rounded-md p-3"
           : compact
-            ? "w-[230px] shadow-2xl border border-border rounded-md p-2.5"
-            : "w-full lg:w-[328px] lg:shadow-2xl lg:border lg:border-border rounded-md p-3"
+            ? "w-56 shadow-2xl rounded-md p-2.5"
+            : "w-full lg:w-82 lg:shadow-2xl rounded-md p-3"
       }`}
     >
       {/* Header */}
       <div
-        className={`relative flex items-center justify-between ${compact ? "mb-2 min-h-[28px]" : "mb-2 min-h-xl"}`}
+        className={`relative flex items-center justify-between ${compact ? "mb-2 min-h-7" : "mb-2 min-h-xl"}`}
       >
         {viewMode === "day" ? (
           <button
@@ -304,9 +305,8 @@ export default function DatePicker({
                     flex items-center justify-center transition-colors ${compact ? "w-7 h-7 rounded-full text-xs" : "w-10 h-10 rounded-full text-sm"}
                     ${!isCurrentMonth ? "text-transparent cursor-default" : ""}
                     ${selected ? "bg-primary text-text-inverse font-medium shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main font-normal"}
-                    ${today && !selected ? "text-primary font-medium bg-primary/5" : ""}
+                    ${today && !selected ? "text-primary font-medium bg-primary/5 border-2 border-primary/30" : ""}
                   `}
-                  style={today && !selected ? { border: "2px solid rgba(139,94,60,0.3)" } : undefined}
                 >
                   {isCurrentMonth ? format(day, "d") : ""}
                 </button>
@@ -328,7 +328,7 @@ export default function DatePicker({
                 setViewMode("day");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-[11px]"}
+                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
                 ${monthIdx === viewDate.getMonth() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
               `}
               style={monthIdx !== viewDate.getMonth() ? { border: "1px solid var(--color-border)" } : undefined}
@@ -355,7 +355,7 @@ export default function DatePicker({
                 setViewMode("month");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-[11px]"}
+                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
                 ${year === viewDate.getFullYear() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
               `}
               style={year !== viewDate.getFullYear() ? { border: "1px solid var(--color-border)" } : undefined}
@@ -382,8 +382,7 @@ export default function DatePicker({
         <button
           type="button"
           onClick={handleToday}
-          className={`flex-1 font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
-          style={{ border: "1px solid rgba(139,94,60,0.15)" }}
+          className={`flex-1 font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors border border-primary/15 ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
         >
           Hôm nay
         </button>
@@ -405,7 +404,7 @@ export default function DatePicker({
           ref={triggerRef}
           type="button"
           onClick={toggleOpen}
-          className={`w-full px-3 py-2.5 min-h-[44px] text-left text-xs leading-4 bg-elevated flex items-center justify-between group transition-colors ${isOpen ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border border-border hover:border-primary/50"} ${triggerClassName}`}
+          className={`w-full px-3 py-2.5 min-h-11 text-left text-xs leading-4 bg-elevated flex items-center justify-between group transition-colors ${isOpen ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border border-border hover:border-primary/50"} ${triggerClassName}`}
           style={{ borderRadius: "var(--radius-sm)" }}
         >
           <span

@@ -271,7 +271,7 @@ export default function EventTaskModal({
             compact
             value={isOnSet ? (event.event_date || undefined) : (event.deadline || undefined)}
             placeholder="Chọn ngày"
-            triggerClassName="!min-h-[28px] !py-1 !px-2.5 !text-xs !rounded-full !border-border !font-bold"
+            triggerClassName="!min-h-7 !py-1 !px-2.5 !text-xs !rounded-full !border-border !font-bold"
             onChange={async (dateStr) => {
               if (!dateStr) return;
               try {

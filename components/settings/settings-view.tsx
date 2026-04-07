@@ -76,7 +76,7 @@ export default function SettingsView({
           <div className="space-y-1">
             <Link
               href="/settings/studio"
-              className="flex items-center justify-between py-3 min-h-[44px] hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
+              className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-text-secondary" />
@@ -88,7 +88,7 @@ export default function SettingsView({
             </Link>
             <Link
               href="/audit-logs"
-              className="flex items-center justify-between py-3 min-h-[44px] hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
+              className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
                 <History className="w-5 h-5 text-text-secondary" />

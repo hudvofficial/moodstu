@@ -60,7 +60,7 @@ export function BottomNav({ className }: BottomNavProps) {
 
           {/* Popup */}
           <div
-            className="absolute bottom-20 right-2 bg-bg-card rounded-xl shadow-xl border border-border p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="absolute bottom-20 right-2 bg-bg-card rounded-xl shadow-float p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {MORE_ITEMS.map((item) => {
@@ -92,7 +92,7 @@ export function BottomNav({ className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-bg-card/90 backdrop-blur-lg border-t border-border flex items-center justify-around px-2 z-50 pb-safe shadow-[0_-8px_30px_rgb(0,0,0,0.04)]",
+          "lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 z-50 pb-safe",
           className
         )}
       >
@@ -106,11 +106,11 @@ export function BottomNav({ className }: BottomNavProps) {
               href={item.href}
               onClick={(e) => handleNavClick(e, item.href, isActive)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[64px] transition-all duration-200 py-1",
+                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1",
                 isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"
               )}
             >
-              <Icon className={cn("w-[25px] h-[25px]", isActive && "stroke-[2.5px]")} />
+              <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
               <span className={cn(
                 "text-tiny",
                 isActive ? "font-semibold" : "font-medium"
@@ -122,19 +122,22 @@ export function BottomNav({ className }: BottomNavProps) {
         })}
 
         {/* Nút "Thêm" */}
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setShowMore(!showMore)}
+          onKeyDown={(e) => { if (e.key === "Enter") setShowMore(!showMore); }}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 min-w-[64px] transition-all duration-200 py-1",
+            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer",
             showMore || moreActive
               ? "text-primary"
               : "text-text-muted hover:text-text-secondary"
           )}
         >
           {showMore ? (
-            <X className="w-[25px] h-[25px] stroke-[2.5px]" />
+            <X className="w-6 h-6 stroke-[2.5px]" />
           ) : (
-            <MoreHorizontal className={cn("w-[25px] h-[25px]", moreActive && "stroke-[2.5px]")} />
+            <MoreHorizontal className={cn("w-6 h-6", moreActive && "stroke-[2.5px]")} />
           )}
           <span className={cn(
             "text-tiny",
@@ -142,7 +145,7 @@ export function BottomNav({ className }: BottomNavProps) {
           )}>
             Thêm
           </span>
-        </button>
+        </div>
       </nav>
     </>
   );

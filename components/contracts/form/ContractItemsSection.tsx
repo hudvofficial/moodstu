@@ -156,7 +156,7 @@ function DesktopRow({
   return (
     <TR>
       <TD>
-        <p className="font-medium text-text-primary truncate max-w-[200px]">{item.item_name}</p>
+        <p className="font-medium text-text-primary truncate max-w-50">{item.item_name}</p>
         {item.notes && <p className="text-caption text-text-muted truncate">{item.notes}</p>}
       </TD>
       <TD>

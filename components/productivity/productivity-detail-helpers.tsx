@@ -11,7 +11,7 @@ export function DetailSkeleton() {
     <div className="space-y-4">
       <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3].map((index) => (
-          <div key={index} className="flex flex-col gap-1.5 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+          <div key={index} className="flex flex-col gap-1.5 min-w-30 rounded-xl bg-bg-card shadow-sm p-3 shrink-0">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-6 w-20" />
           </div>
@@ -55,7 +55,7 @@ export function ProductivityOverdueSection({ entries }: ProductivityOverdueSecti
         {entries.map((task) => (
           <div
             key={`${task.contract_code}-${task.work_type}-${task.deadline}`}
-            className="rounded-lg bg-bg-main border border-border/50 px-3 py-2.5"
+            className="rounded-lg bg-bg-main shadow-xs px-3 py-2.5"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>

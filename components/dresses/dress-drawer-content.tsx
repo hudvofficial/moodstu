@@ -82,7 +82,7 @@ function InfoSection({ dress }: { dress: DressItem }) {
           </div>
 
           {/* Prices — tách riêng, shadow separator (Lesson #64: no border) */}
-          <div className="mt-3 pt-3" style={{ boxShadow: "inset 0 1px 0 var(--color-border-light, rgba(0,0,0,0.06))" }}>
+          <div className="mt-3 pt-3" style={{ boxShadow: "inset 0 1px 0 var(--color-border-light)" }}>
             <div className="flex items-baseline justify-between mb-1">
               <span className="text-caption text-text-muted">Giá thuê</span>
               <span className="text-lg font-bold text-primary tracking-tight">{formatPrice(dress.rental_price)}</span>

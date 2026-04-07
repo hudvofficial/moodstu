@@ -92,19 +92,19 @@ function RentalRow({
       <TD>
         <div className="flex items-center gap-1">
           {rental.status === "reserved" && (
-            <button type="button" onClick={() => onStart(rental.id)} className="btn btn-ghost btn-xs gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onStart(rental.id); } }}  onClick={() => onStart(rental.id)}  className="btn btn-ghost btn-xs gap-1">
               <Play size={12} /> Bắt đầu
-            </button>
+            </div>
           )}
           {(rental.status === "renting" || rental.status === "overdue") && (
-            <button type="button" onClick={() => onReturn(rental)} className="btn btn-ghost btn-xs gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onReturn(rental); } }}  onClick={() => onReturn(rental)}  className="btn btn-ghost btn-xs gap-1">
               <CheckCircle size={12} /> Trả
-            </button>
+            </div>
           )}
           {rental.status === "reserved" && (
-            <button type="button" onClick={() => onCancel(rental.id)} className="btn btn-ghost btn-xs text-error gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onCancel(rental.id); } }}  onClick={() => onCancel(rental.id)}  className="btn btn-ghost btn-xs text-error gap-1">
               <XCircle size={12} /> Hủy
-            </button>
+            </div>
           )}
         </div>
       </TD>
@@ -155,19 +155,19 @@ function RentalCard({
         </p>
         <div className="flex items-center gap-1">
           {rental.status === "reserved" && (
-            <button type="button" onClick={() => onStart(rental.id)} className="btn btn-ghost btn-xs gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onStart(rental.id); } }}  onClick={() => onStart(rental.id)}  className="btn btn-ghost btn-xs gap-1">
               <Play size={12} /> Bắt đầu
-            </button>
+            </div>
           )}
           {(rental.status === "renting" || rental.status === "overdue") && (
-            <button type="button" onClick={() => onReturn(rental)} className="btn btn-ghost btn-xs gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onReturn(rental); } }}  onClick={() => onReturn(rental)}  className="btn btn-ghost btn-xs gap-1">
               <CheckCircle size={12} /> Trả
-            </button>
+            </div>
           )}
           {rental.status === "reserved" && (
-            <button type="button" onClick={() => onCancel(rental.id)} className="btn btn-ghost btn-xs text-error gap-1">
+            <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { onCancel(rental.id); } }}  onClick={() => onCancel(rental.id)}  className="btn btn-ghost btn-xs text-error gap-1">
               <XCircle size={12} />
-            </button>
+            </div>
           )}
         </div>
       </div>
@@ -216,9 +216,9 @@ function CalendarView({ rentals }: { rentals: DressRental[] }) {
     <div className="card-base p-4 space-y-3">
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button type="button" onClick={prevMonth} className="btn btn-ghost btn-xs">←</button>
+        <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { prevMonth(); } }}  onClick={prevMonth}  className="btn btn-ghost btn-xs">←</div>
         <span className="text-body-sm font-semibold capitalize">{monthName}</span>
-        <button type="button" onClick={nextMonth} className="btn btn-ghost btn-xs">→</button>
+        <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { nextMonth(); } }}  onClick={nextMonth}  className="btn btn-ghost btn-xs">→</div>
       </div>
 
       {/* Grid */}
@@ -255,7 +255,7 @@ function CalendarView({ rentals }: { rentals: DressRental[] }) {
                       <div key={r.id} className={`w-1.5 h-1.5 rounded-full ${colorClass}`} title={`${r.customer_name} — ${cfg?.label}`} />
                     );
                   })}
-                  {items.length > 3 && <span className="text-[8px] text-text-muted">+{items.length - 3}</span>}
+                  {items.length > 3 && <span className="text-micro text-text-muted">+{items.length - 3}</span>}
                 </div>
               )}
             </div>
@@ -401,22 +401,12 @@ export default function StandaloneRentalsClient() {
           <div className="flex items-center justify-end mt-1">
             {/* View toggle icon only cho mobile */}
             <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => setFilter("view", "list")}
-                className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`}
-                aria-label="Danh sách"
-              >
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Danh sách" >
                 <List size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter("view", "calendar")}
-                className={`p-1.5 rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`}
-                aria-label="Lịch"
-              >
+              </div>
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`p-1.5 rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Lịch" >
                 <Calendar size={16} />
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -431,21 +421,13 @@ export default function StandaloneRentalsClient() {
           <div className="flex items-center justify-end">
             {/* View toggle text + icon cho desktop */}
             <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1">
-              <button
-                type="button"
-                onClick={() => setFilter("view", "list")}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`}
-              >
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
                 Danh sách
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter("view", "calendar")}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`}
-              >
+              </div>
+              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
                 <Calendar size={14} className="inline mr-1" />
                 Lịch
-              </button>
+              </div>
             </div>
           </div>
         </div>

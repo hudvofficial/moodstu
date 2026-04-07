@@ -66,7 +66,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in">
-      <div className="bg-bg-card rounded-soft-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-border">
+      <div className="bg-bg-card rounded-soft-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-border flex items-center justify-between bg-bg-sidebar/50">
           <div>
@@ -122,7 +122,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                     className={`p-3 rounded-soft-md border transition-all cursor-pointer group ${
                       selectedRule?.id === rule.id
                         ? "bg-primary text-white border-primary shadow-md"
-                        : "bg-bg-card border-border hover:border-primary/30"
+                        : "bg-bg-card shadow-xs hover:shadow-md"
                     }`}
                     onClick={() => setSelectedRule(rule)}
                   >
@@ -161,7 +161,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
                         Prio: {rule.priority}
                       </span>
                       <span
-                        className={`text-tiny truncate max-w-[100px] ${
+                        className={`text-tiny truncate max-w-25 ${
                           selectedRule?.id === rule.id ? "text-white/70" : "text-text-muted"
                         }`}
                       >

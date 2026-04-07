@@ -163,7 +163,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         <div>
           <label className="label-base">Ghi chú</label>
           <textarea
-            className="input-base min-h-[60px]"
+            className="input-base min-h-15"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Thông tin thêm..."

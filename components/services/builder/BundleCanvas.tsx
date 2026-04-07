@@ -37,7 +37,7 @@ export default function BundleCanvas({
   const totalPrice = calculation.finalTotal;
 
   return (
-    <div className="flex flex-col h-full bg-elevated rounded-soft-md border border-border overflow-hidden">
+    <div className="flex flex-col h-full bg-elevated rounded-soft-md shadow-xs overflow-hidden">
       <div className="p-3 border-b border-border bg-surface flex justify-between items-center">
         <h3 className="font-bold text-text-main flex items-center gap-2 text-body-sm">
           <ShoppingBag size={20} className="text-text-muted" />
@@ -60,7 +60,7 @@ export default function BundleCanvas({
           items.map((item) => (
             <div
               key={item.id}
-              className="flex gap-3 bg-elevated p-2 rounded-lg border border-border hover:border-primary/30 transition-colors shadow-sm"
+              className="flex gap-3 bg-elevated p-2 rounded-lg hover:shadow-md transition-colors shadow-sm"
             >
               <div className="relative w-16 h-16 bg-surface rounded-md overflow-hidden shrink-0">
                 {item.image_url ? (
@@ -97,7 +97,7 @@ export default function BundleCanvas({
                   <div className="text-body-sm text-primary font-bold">
                     {item.selling_price.toLocaleString()} ₫
                   </div>
-                  <div className="flex items-center gap-2 bg-surface rounded-lg p-1 border border-border">
+                  <div className="flex items-center gap-2 bg-surface rounded-lg p-1 shadow-xs">
                     <Button
                       variant="ghost"
                       type="button"

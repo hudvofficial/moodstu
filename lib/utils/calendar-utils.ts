@@ -48,3 +48,17 @@ export function generateCalendarGroupKey(
   const datePart = dateIsoStr.split("T")[0] || dateIsoStr;
   return `${contractId}_${datePart}`;
 }
+
+export const GOOGLE_COLORS = [
+  { id: "1", label: "Hoa oải hương (Lavender)", color: "bg-[#7986cb]" },
+  { id: "2", label: "Cây xô thơm (Sage)", color: "bg-[#33b679]" },
+  { id: "3", label: "Quả nho (Grape)", color: "bg-[#8e24aa]" },
+  { id: "4", label: "Hồng hạc (Flamingo)", color: "bg-[#e67c73]" },
+  { id: "5", label: "Trái chuối (Banana)", color: "bg-[#f6bf26]" },
+  { id: "6", label: "Quýt (Tangerine)", color: "bg-[#f4511e]" },
+  { id: "7", label: "Con công (Peacock)", color: "bg-[#039be5]" },
+  { id: "8", label: "Than chì (Graphite)", color: "bg-[#616161]" },
+  { id: "9", label: "Việt quất (Blueberry)", color: "bg-[#3f51b5]" },
+  { id: "10", label: "Húng quế (Basil)", color: "bg-[#0b8043]" },
+  { id: "11", label: "Cà chua (Tomato)", color: "bg-[#d50000]" },
+];

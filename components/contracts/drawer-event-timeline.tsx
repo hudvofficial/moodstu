@@ -136,7 +136,7 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
                     {event.location && (
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-text-muted" />
-                        <span className="text-tiny text-text-secondary truncate max-w-[180px]">
+                        <span className="text-tiny text-text-secondary truncate max-w-45">
                           {event.location}
                         </span>
                       </div>

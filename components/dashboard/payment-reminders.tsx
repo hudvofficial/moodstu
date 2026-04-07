@@ -28,7 +28,7 @@ export function PaymentReminders() {
           </div>
           <h3 className="text-h3">Cần thu tiền</h3>
         </div>
-        <button className="text-caption link-base min-h-[44px] flex items-center">Xem tất cả</button>
+        <button className="text-caption link-base min-h-11 flex items-center">Xem tất cả</button>
       </div>
 
       <div className="space-y-3">

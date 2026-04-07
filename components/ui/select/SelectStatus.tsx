@@ -59,7 +59,7 @@ export function SelectStatus({
   const [loading, setLoading] = useState(false);
 
   const currentOption = options.find((o) => o.value === current);
-  const dotColor = currentOption?.color || "#ccc";
+  const dotColor = currentOption?.color || "var(--color-border)";
   const currentLabel = currentOption?.label || current;
 
   const handleChange = useCallback(
@@ -81,8 +81,8 @@ export function SelectStatus({
   const triggerSizeClass = isCompact
     ? "text-xs px-2 py-0.5 min-w-0"
     : size === "sm"
-      ? "text-xs px-2 py-1 min-w-[100px]"
-      : "text-sm px-3 py-1.5 min-w-[120px]";
+      ? "text-xs px-2 py-1 min-w-25"
+      : "text-sm px-3 py-1.5 min-w-30";
 
   const dotSizeClass = size === "sm" || isCompact ? "w-1.5 h-1.5" : "w-2 h-2";
 

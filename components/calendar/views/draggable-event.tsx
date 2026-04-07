@@ -24,9 +24,9 @@ export function DraggableEvent({ event, isOverlay, onClick }: DraggableEventProp
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative group flex flex-col px-2 py-1 rounded-md text-xs border cursor-pointer select-none shrink-0 transition-all hover:brightness-95
+      className={`relative group flex flex-col px-2 py-1 rounded-md text-xs cursor-pointer select-none shrink-0 transition-all hover:brightness-95
         ${event.colorToken}
-        ${isOverlay ? "shadow-xl scale-105 z-50 ring-2 ring-blue-500/50" : "shadow-sm hover:shadow-md"}
+        ${isOverlay ? "shadow-xl scale-105 z-50 ring-2 ring-primary/50" : "shadow-sm hover:shadow-md"}
         ${!event.draggable ? "opacity-75 cursor-default" : ""}
       `}
       onClick={(e) => {
@@ -59,7 +59,7 @@ export function DraggableEvent({ event, isOverlay, onClick }: DraggableEventProp
       
       {/* Visual Indicator of Original Bounds */}
       {event.source === "google" && (
-         <div className="absolute right-1 top-1 w-1.5 h-1.5 rounded-full bg-red-400" title="Google Sync" />
+         <span className="absolute right-0.5 top-0.5 text-micro font-bold leading-none bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded" title="Google Sync">G</span>
       )}
     </div>
   );

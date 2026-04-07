@@ -25,10 +25,10 @@ export default function MobileBottomBar({
     <div
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40
                   bg-bg-primary
-                  shadow-[0_-2px_12px_rgba(0,0,0,0.06)]
+                  shadow-md shadow-black/5
                   px-4 pt-3 pb-8 safe-bottom"
     >
-      <div className="flex gap-3 max-w-[375px] mx-auto">
+      <div className="flex gap-3 max-w-sm mx-auto">
         {/* Sửa HĐ — Link to edit page */}
         <Link
           href={`/contracts/${contractId}/edit`}
@@ -43,8 +43,11 @@ export default function MobileBottomBar({
 
         {/* Thu tiền — opens payment form */}
         {remainingAmount > 0 && (
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={onPaymentClick}
+            onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) onPaymentClick(); }}
             className="flex-1 h-12 flex items-center justify-center
                        rounded-md
                        bg-interactive text-white
@@ -53,7 +56,7 @@ export default function MobileBottomBar({
                        active:scale-[0.98] transition-all"
           >
             Thu tiền
-          </button>
+          </div>
         )}
       </div>
     </div>

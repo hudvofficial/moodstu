@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { CalendarToolbar } from "./calendar-toolbar";
 import { useCalendarData } from "@/hooks/use-calendar-data";
+import { useCalendarKeyboard } from "@/hooks/use-calendar-keyboard";
 import { MonthGrid } from "./views/month-grid";
+import { WeekGrid } from "./views/week-grid";
+import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
 import { EventFormDrawer } from "./drawers/event-form-drawer";
@@ -19,16 +22,45 @@ interface CalendarWrapperProps {
 // Skeleton loading component
 function CalendarSkeleton() {
   return (
-    <div className="w-full h-[600px] flex flex-col gap-4 p-4 animate-pulse">
-      <div className="h-10 w-48 bg-slate-200 rounded-md"></div>
-      <div className="flex-1 w-full bg-slate-100 rounded-lg"></div>
+    <div className="w-full h-150 flex flex-col gap-4 p-4 animate-pulse">
+      <div className="h-10 w-48 bg-bg-input rounded-md"></div>
+      <div className="flex-1 w-full bg-bg-hover rounded-lg"></div>
     </div>
   );
 }
 
 export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: CalendarWrapperProps) {
-  const { currentDate, setCurrentDate, events, isLoading, error, filters, mutate } = useCalendarData();
+  const { currentDate, setCurrentDate, events, eventsByDate, viewMode, setViewMode, isLoading, error, filters, mutate } = useCalendarData();
   const [selectedMobileDate, setSelectedMobileDate] = useState<Date | null>(null);
+
+  // Swipe navigation for mobile
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    // Only navigate if horizontal swipe > 50px and more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      if (deltaX > 0) {
+        // Swipe right → previous month
+        setCurrentDate(new Date(year, month - 1, 1));
+      } else {
+        // Swipe left → next month
+        setCurrentDate(new Date(year, month + 1, 1));
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [currentDate, setCurrentDate]);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarEvent | null>(null);
@@ -45,10 +77,23 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
     setIsFormOpen(true);
   };
 
+  const handleDateClick = (date: Date) => {
+    setSelectedMobileDate(date);
+  };
+
   const [mounted, setMounted] = useState(false);
   
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+
+  // §4.4 Keyboard shortcuts: T=Today, M/W/D=ViewMode, ←→=Navigate, C=Create
+  useCalendarKeyboard({
+    currentDate,
+    viewMode,
+    onDateChange: setCurrentDate,
+    onViewModeChange: setViewMode,
+    onCreateEvent: () => openCreateForm(currentDate),
+  });
   
   useEffect(() => {
     // eslint-disable-next-line
@@ -59,34 +104,67 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
 
   if (error) return <div className="p-4 text-red-500">Lỗi tải dữ liệu lịch: {error}</div>;
 
+  // Desktop view rendering based on viewMode
+  const renderDesktopView = () => {
+    switch (viewMode) {
+      case "week":
+        return (
+          <WeekGrid
+            currentDate={currentDate}
+            eventsByDate={eventsByDate}
+            mutate={mutate}
+            onEventClick={openEditForm}
+            onDateClick={handleDateClick}
+          />
+        );
+      case "day":
+        return (
+          <DayView
+            currentDate={currentDate}
+            eventsByDate={eventsByDate}
+            onEventClick={openEditForm}
+            onCreateEvent={openCreateForm}
+          />
+        );
+      default: // "month"
+        return (
+          <MonthGrid
+            currentDate={currentDate}
+            events={events}
+            mutate={mutate}
+            onEventClick={openEditForm}
+            onDateClick={handleDateClick}
+          />
+        );
+    }
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       <CalendarToolbar 
         currentDate={currentDate} 
         onDateChange={setCurrentDate} 
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         filters={filters} 
         onNewEvent={() => openCreateForm(currentDate)}
       />
-      <div className="flex-1 overflow-auto p-4 relative bg-slate-50/30">
+      <div className="flex-1 overflow-auto relative">
          {(!mounted || isLoading) && (
-            <div className="absolute inset-0 z-20 flex flex-col gap-4 p-4 bg-slate-50/80 backdrop-blur-sm">
+            <div className="absolute inset-0 z-20 flex flex-col gap-4 p-4 bg-bg-base/80 backdrop-blur-sm">
                <CalendarSkeleton />
             </div>
          )}
          
-         <div className="hidden lg:block h-full min-h-[600px]">
-            {mounted && !isSmallScreen && (
-               <MonthGrid 
-                  currentDate={currentDate} 
-                  events={events} 
-                  mutate={mutate} 
-                  onEventClick={openEditForm} 
-                  onDateClick={openCreateForm}
-               />
-            )}
+         <div className="hidden lg:block h-full min-h-150">
+            {mounted && !isSmallScreen && renderDesktopView()}
          </div>
          
-         <div className="block lg:hidden min-h-[400px]">
+         <div
+            className="block lg:hidden min-h-100"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+         >
             {mounted && isSmallScreen && (
                <MobileMonthGrid 
                   currentDate={currentDate} 
@@ -102,6 +180,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
          events={events} 
          onClose={() => setSelectedMobileDate(null)} 
          onEventClick={openEditForm}
+         onCreateEvent={openCreateForm}
       />
 
       <EventFormDrawer

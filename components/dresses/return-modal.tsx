@@ -207,7 +207,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
               Ghi chú trả
             </label>
             <textarea
-              className="input-base w-full min-h-[80px] resize-none"
+              className="input-base w-full min-h-20 resize-none"
               placeholder="Ghi chú về tình trạng, hư hại chi tiết..."
               value={form.notes}
               onChange={(e) => update("notes", e.target.value)}

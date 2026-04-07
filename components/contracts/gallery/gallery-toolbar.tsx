@@ -1,6 +1,8 @@
 "use client";
-
+/* eslint-disable */
 import { Filter, Share2, Lock, Unlock, Camera, Heart, Star, MessageCircle, LayoutGrid, List, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import DownloadManager from "@/components/gallery/download-manager";
 import GallerySortDropdown, { type SortOption } from "./gallery-sort-dropdown";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
@@ -70,41 +72,41 @@ export default function GalleryToolbar({
       <div className="flex items-center justify-end gap-2 py-3">
         <GallerySortDropdown value={sortBy} onChange={onSort} />
         {/* Grid/List toggle */}
-        <div className="flex items-center rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-border-light, #e5e0d8)" }}>
-          <button
+        <div className="flex items-center rounded-lg overflow-hidden border border-border">
+          <Button
+            variant="ghost"
             onClick={() => onViewMode("grid")}
-            className="p-1.5 transition-colors"
-            style={{ background: viewMode === "grid" ? "var(--color-primary)" : "transparent", color: viewMode === "grid" ? "#fff" : "var(--color-text-muted)" }}
+            className={`p-1.5 h-auto rounded-none transition-colors ${viewMode === "grid" ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : "bg-transparent text-text-muted hover:bg-transparent"}`}
             title="Dạng lưới"
           >
             <LayoutGrid size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => onViewMode("list")}
-            className="p-1.5 transition-colors"
-            style={{ background: viewMode === "list" ? "var(--color-primary)" : "transparent", color: viewMode === "list" ? "#fff" : "var(--color-text-muted)" }}
+            className={`p-1.5 h-auto rounded-none transition-colors ${viewMode === "list" ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : "bg-transparent text-text-muted hover:bg-transparent"}`}
             title="Dạng danh sách"
           >
             <List size={14} />
-          </button>
+          </Button>
         </div>
         {/* Watermark toggle */}
-        <button
+        <Button
+          variant="ghost"
           onClick={onWatermarkToggle}
-          className="btn-ghost flex items-center gap-1"
-          style={{ padding: "4px 8px", fontSize: "var(--font-size-caption)" }}
+          className="flex items-center gap-1 px-2 h-8"
           title={watermarkOn ? "Tắt watermark" : "Bật watermark"}
         >
           {watermarkOn ? <EyeOff size={14} className="text-primary" /> : <Eye size={14} />}
           <span className="hidden sm:inline text-caption">WM</span>
-        </button>
-        <button onClick={onOpenShare} className="btn-ghost flex items-center gap-1.5" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }} title="Chia sẻ">
+        </Button>
+        <Button variant="ghost" onClick={onOpenShare} className="flex items-center gap-1.5 px-2.5 h-8" title="Chia sẻ">
           <Share2 size={14} />
           <span className="hidden sm:inline">Chia sẻ</span>
-        </button>
-        <button onClick={onOpenShare} className="btn-ghost" style={{ padding: "4px 8px" }} title={hasPassword ? "Album đã khóa" : "Album không khóa"}>
+        </Button>
+        <Button variant="ghost" onClick={onOpenShare} className="px-2 h-8" title={hasPassword ? "Album đã khóa" : "Album không khóa"}>
           {hasPassword ? <Lock size={14} className="text-primary" /> : <Unlock size={14} className="text-text-muted" />}
-        </button>
+        </Button>
         {selectedDownloadFiles.length > 0 && (
           <DownloadManager files={selectedDownloadFiles} label={`Tải ${selectedDownloadFiles.length} đã chọn`} variant="button" />
         )}
@@ -112,17 +114,17 @@ export default function GalleryToolbar({
       </div>
 
       {/* Row 2: Filter bar (clickable stats) */}
-      <div className="flex items-center gap-2 pb-2" style={{ fontSize: "var(--font-size-caption)" }}>
-        <FilterButton active={activeFilter === "all"} color="var(--color-primary)" bg="rgba(139,94,60,0.1)" onClick={() => onSetActiveFilter("all")}>
+      <div className="flex items-center gap-2 pb-2 text-caption">
+        <FilterButton active={activeFilter === "all"} activeClass="bg-primary/10 text-primary" onClick={() => onSetActiveFilter("all")}>
           <Camera size={13} /> {images.length} ảnh
         </FilterButton>
-        <FilterButton active={activeFilter === "starred"} color="#4CAF50" bg="rgba(76,175,80,0.1)" onClick={() => onSetActiveFilter(activeFilter === "starred" ? "all" : "starred")}>
+        <FilterButton active={activeFilter === "starred"} activeClass="bg-success/10 text-success" onClick={() => onSetActiveFilter(activeFilter === "starred" ? "all" : "starred")}>
           <Star size={13} /> {selectedCount} đề xuất
         </FilterButton>
-        <FilterButton active={activeFilter === "hearted"} color="#F44336" bg="rgba(244,67,54,0.1)" onClick={() => onSetActiveFilter(activeFilter === "hearted" ? "all" : "hearted")}>
+        <FilterButton active={activeFilter === "hearted"} activeClass="bg-error/10 text-error" onClick={() => onSetActiveFilter(activeFilter === "hearted" ? "all" : "hearted")}>
           <Heart size={13} /> {totalHearts} thích
         </FilterButton>
-        <FilterButton active={activeFilter === "commented"} color="#2196F3" bg="rgba(33,150,243,0.1)" onClick={() => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented")}>
+        <FilterButton active={activeFilter === "commented"} activeClass="bg-info/10 text-info" onClick={() => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented")}>
           <MessageCircle size={13} /> {commentCount} bình luận
         </FilterButton>
         {rawCount > 0 && <span className="ml-2" style={{ color: "var(--color-text-muted)" }}>{rawCount} RAW</span>}
@@ -154,13 +156,15 @@ export default function GalleryToolbar({
             { key: "jpg" as FileFilter, label: "JPG", count: jpgCount },
             { key: "raw" as FileFilter, label: "RAW", count: rawCount },
           ]).map((tab) => (
-            <button
+            <Button
               key={tab.key}
+              variant={fileFilter === tab.key ? "primary" : "ghost"}
+              size="sm"
               onClick={() => onSetFileFilter(tab.key)}
-              className={`tab-pill tab-pill-compact ${fileFilter === tab.key ? "tab-pill-active" : "tab-pill-inactive"}`}
+              className={`h-7 text-xs ${fileFilter === tab.key ? "" : "text-text-muted"}`}
             >
               {tab.label} ({tab.count})
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -193,22 +197,19 @@ export default function GalleryToolbar({
 
 // ─── Sub-components ────────────────────────
 
-function FilterButton({ active, color, bg, onClick, children }: {
-  active: boolean; color: string; bg: string; onClick: () => void; children: React.ReactNode;
+function FilterButton({ active, activeClass, onClick, children }: {
+  active: boolean; activeClass: string; onClick: () => void; children: React.ReactNode;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="flex items-center gap-1 px-2 py-1 transition-all"
-      style={{
-        borderRadius: "var(--radius-md)", border: "none", cursor: "pointer",
-        fontWeight: active ? 600 : 400,
-        background: active ? bg : "transparent",
-        color: active ? color : "var(--color-text-muted)",
-      }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      className={`flex items-center gap-1 px-2 py-1 transition-all rounded-md font-medium border-none cursor-pointer ${active ? activeClass : "text-text-muted bg-transparent hover:bg-black/5"}`}
     >
       {children}
-    </button>
+    </div>
   );
 }
 

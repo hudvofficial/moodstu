@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/forbid-elements */
 
 import { useState } from "react";
 import { Heart, Download, Loader2 } from "lucide-react";
@@ -61,23 +62,15 @@ export default function SelectionSummary({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3"
-      style={{
-        background: "rgba(250, 248, 245, 0.95)",
-        backdropFilter: "blur(12px)",
-        boxShadow: "0 -1px 4px rgba(0,0,0,0.06)",
-      }}
+      className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 bg-bg-base/95 backdrop-blur-md shadow-md"
     >
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Heart size={16} fill="#ef4444" className="text-red-500" />
-          <span
-            className="text-sm font-semibold"
-            style={{ color: "var(--color-text-primary, #2c2c2c)" }}
-          >
+          <Heart size={16} className="text-error fill-error" />
+          <span className="text-sm font-semibold text-text-primary">
             Đã chọn {selectedCount} ảnh
           </span>
-          <span className="text-xs" style={{ color: "var(--color-text-muted, #999)" }}>
+          <span className="text-xs text-text-muted">
             / {totalCount}
           </span>
         </div>
@@ -87,12 +80,7 @@ export default function SelectionSummary({
           <button
             onClick={handleBatchDownload}
             disabled={downloading}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200"
-            style={{
-              background: "var(--color-primary, #8B5E3C)",
-              color: "white",
-              opacity: downloading ? 0.7 : 1,
-            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 bg-primary text-text-inverse disabled:opacity-70"
           >
             {downloading ? (
               <Loader2 size={14} className="animate-spin" />

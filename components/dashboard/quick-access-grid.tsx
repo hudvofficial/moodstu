@@ -39,7 +39,7 @@ export function QuickAccessGrid() {
             >
               <div className={cn(
                 "w-14 h-14 rounded-xl flex items-center justify-center",
-                "shadow-[0_2px_6px_rgba(0,0,0,0.14)]",
+                "shadow-md",
                 "group-active:scale-90 transition-all duration-200",
                 color.bg
               )}>

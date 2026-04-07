@@ -4,6 +4,8 @@ import { withAuth } from "@/lib/auth_utils";
 import type { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { generateCalendarGroupKey, getEventColorToken } from "@/lib/utils/calendar-utils";
 import { getGoogleCalendarEvents } from "@/lib/googleCalendarService";
+import { getWorkTypeLabel } from "@/types/contract-constants";
+import type { WorkType } from "@/types/contract";
 
 import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
 
@@ -144,7 +146,7 @@ export async function fetchCalendarEvents(
         id: t.id,
         source: "task",
         sourceId: t.id,
-        title: t.work_type || "Nhiệm vụ",
+        title: getWorkTypeLabel((t.work_type || "khac") as WorkType),
         start: anchorDate,
         end: t.end_time || null,
         allDay: true, // task thường hiển thị dạng ô ngày deadline

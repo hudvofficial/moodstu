@@ -1,9 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSWR, cacheKeys } from "@/lib/swr";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
+import type { CalendarViewMode } from "@/types/calendar.types";
 
 export function useCalendarData() {
   const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   
   // Advanced Filter state
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -62,6 +64,30 @@ export function useCalendarData() {
       });
   }, [rawEvents, selectedEmployees, selectedStatuses, employeesData]);
 
+  // §1.2 — O(1) lookup per cell: Map<YYYY-MM-DD, Event[]>
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, typeof filteredEvents>();
+    for (const ev of filteredEvents) {
+      const key = ev.start.split("T")[0];
+      const arr = map.get(key);
+      if (arr) arr.push(ev);
+      else map.set(key, [ev]);
+    }
+    return map;
+  }, [filteredEvents]);
+
+  // §1.1 — Group tasks by contract+date key
+  const groupedByKey = useMemo(() => {
+    const map = new Map<string, typeof filteredEvents>();
+    for (const ev of filteredEvents) {
+      if (!ev.groupKey) continue;
+      const arr = map.get(ev.groupKey);
+      if (arr) arr.push(ev);
+      else map.set(ev.groupKey, [ev]);
+    }
+    return map;
+  }, [filteredEvents]);
+
   const computedStatuses = useMemo(() => {
     const statusSet = new Set<string>();
     rawEvents.forEach(e => {
@@ -73,6 +99,16 @@ export function useCalendarData() {
     }));
   }, [rawEvents]);
 
+  // §1.4 — URL sync for viewMode
+  const handleSetViewMode = useCallback((mode: CalendarViewMode) => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", mode);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
   return {
     currentDate,
     setCurrentDate,
@@ -80,6 +116,10 @@ export function useCalendarData() {
     year,
     events: filteredEvents,
     rawEvents,
+    eventsByDate,
+    groupedByKey,
+    viewMode,
+    setViewMode: handleSetViewMode,
     isLoading,
     error: error?.message || serverError,
     mutate,

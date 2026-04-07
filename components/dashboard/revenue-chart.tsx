@@ -31,7 +31,7 @@ export function RevenueChart() {
       </div>
 
       {/* Simple bar chart */}
-      <div className="flex items-end gap-3 h-[180px]">
+      <div className="flex items-end gap-3 h-45">
         {MOCK_DATA.map((item) => {
           const height = (item.revenue / max) * 100;
           return (

@@ -61,7 +61,7 @@ export default function GalleryImageList({ groups, onImageClick, reactionCounts,
             className="grid items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 hover:bg-(--color-bg-hover)"
             style={{
               gridTemplateColumns: "80px 1fr 80px 100px 40px 60px",
-              borderBottom: "1px solid var(--color-border-light, #f0ece6)",
+              borderBottom: "1px solid var(--color-border-light)",
             }}
             onClick={() => onImageClick(idx)}
           >
@@ -79,25 +79,21 @@ export default function GalleryImageList({ groups, onImageClick, reactionCounts,
               />
               {img.is_selected && (
                 <div className="absolute top-1 left-1">
-                  <Star size={12} fill="#4CAF50" color="#4CAF50" />
+                  <Star size={12} className="text-success fill-success" />
                 </div>
               )}
               {/* Watermark overlay */}
               {watermarkEnabled && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                  <span style={{ fontSize: "14px", fontWeight: 800, color: "rgba(255,255,255,0.4)", transform: "rotate(-30deg)", letterSpacing: "3px", userSelect: "none" }}>PROOF</span>
+                  <span className="text-white/40 font-extrabold rotate-[-30deg] select-none" style={{ fontSize: "14px", letterSpacing: "3px" }}>PROOF</span>
                 </div>
               )}
               {/* Number badge */}
               <div
-                className="absolute bottom-0.5 right-0.5 flex items-center justify-center"
+                className="absolute bottom-0.5 right-0.5 flex items-center justify-center bg-black/50 text-white font-semibold rounded"
                 style={{
                   width: 18, height: 18,
-                  borderRadius: 4,
-                  background: "rgba(0,0,0,0.5)",
-                  color: "#fff",
                   fontSize: "9px",
-                  fontWeight: 600,
                 }}
               >
                 {idx + 1}
@@ -111,13 +107,8 @@ export default function GalleryImageList({ groups, onImageClick, reactionCounts,
 
             {/* File type */}
             <span
-              className="px-1.5 py-0.5 rounded text-center"
-              style={{
-                fontSize: "10px",
-                fontWeight: 600,
-                background: group.hasRaw ? "rgba(139, 94, 60, 0.1)" : "rgba(0, 0, 0, 0.05)",
-                color: group.hasRaw ? "var(--color-primary)" : "var(--color-text-muted)",
-              }}
+              className={`px-1.5 py-0.5 rounded text-center font-semibold ${group.hasRaw ? "bg-primary/10 text-primary" : "bg-black/5 text-text-muted"}`}
+              style={{ fontSize: "10px" }}
             >
               {fileType}
             </span>
@@ -130,18 +121,20 @@ export default function GalleryImageList({ groups, onImageClick, reactionCounts,
             {/* Star toggle (Admin) */}
             <div className="flex items-center justify-center">
               {onToggleStar && (
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); onToggleStar(img.id, !!img.is_selected); }}
-                  className="flex items-center transition-colors"
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(img.id, !!img.is_selected); }}
+                  className="flex items-center transition-colors cursor-pointer"
+                  style={{ background: "none", border: "none", padding: 0 }}
                   title={img.is_selected ? "Bỏ đề xuất" : "Đề xuất"}
                 >
                   <Star
                     size={14}
-                    fill={img.is_selected ? "#4CAF50" : "none"}
-                    color={img.is_selected ? "#4CAF50" : "var(--color-text-muted)"}
+                    className={img.is_selected ? "text-success fill-success" : "text-text-muted fill-none"}
                   />
-                </button>
+                </div>
               )}
             </div>
 
@@ -149,8 +142,8 @@ export default function GalleryImageList({ groups, onImageClick, reactionCounts,
             <div className="flex items-center justify-center gap-1">
               {hearts > 0 && (
                 <div className="flex items-center gap-0.5">
-                  <Heart size={13} fill="#F44336" color="#F44336" />
-                  <span style={{ fontSize: "11px", color: "#F44336", fontWeight: 600 }}>{hearts}</span>
+                  <Heart size={13} className="text-error fill-error" />
+                  <span className="font-semibold text-error text-micro">{hearts}</span>
                 </div>
               )}
             </div>

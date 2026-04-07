@@ -43,7 +43,7 @@ export default function NotificationPrefs({
         {PREF_ITEMS.map(({ key, label, icon: Icon }) => (
           <div
             key={key}
-            className="flex items-center justify-between py-3 min-h-[44px]"
+            className="flex items-center justify-between py-3 min-h-11"
           >
             <div className="flex items-center gap-3">
               <Icon className="w-5 h-5 text-text-secondary shrink-0" />

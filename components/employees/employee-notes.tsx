@@ -79,7 +79,7 @@ export default function EmployeeNotes({ employeeId, initialNotes }: Props) {
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Ghi chú về nhân viên..."
-        className="input-base w-full min-h-[120px] resize-y"
+        className="input-base w-full min-h-30 resize-y"
       />
     </div>
   );

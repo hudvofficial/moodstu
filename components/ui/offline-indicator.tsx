@@ -26,13 +26,13 @@ export function OfflineIndicator() {
         justifyContent: "center",
         gap: "8px",
         padding: "10px 16px",
-        background: "var(--color-warning, #ff9800)",
-        color: "#fff",
+        background: "var(--color-warning)",
+        color: "var(--color-text-inverse)",
         fontSize: "var(--font-size-body-sm, 14px)",
         fontWeight: 600,
         fontFamily: "var(--font-sans)",
         textAlign: "center" as const,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        
         animation: "slideDown 0.3s ease-out",
       }}
     >

@@ -81,7 +81,7 @@ export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10, fillCar
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`${fillCard ? 'h-full w-full min-h-[200px]' : 'aspect-3/4 w-full max-w-[200px]'} bg-bg-hover border-2 border-dashed border-border rounded-xl overflow-hidden relative group cursor-pointer hover:border-primary/40 transition-colors`}
+        className={`${fillCard ? 'h-full w-full min-h-50' : 'aspect-3/4 w-full max-w-50'} bg-bg-hover border-2 border-dashed border-border rounded-xl overflow-hidden relative group cursor-pointer hover:border-primary/40 transition-colors`}
       >
         {displayUrl ? (
           <>

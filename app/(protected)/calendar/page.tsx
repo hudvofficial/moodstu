@@ -19,8 +19,7 @@ export default async function CalendarPage() {
 
   return (
     <div className="w-full h-full flex flex-col p-4">
-      <h1 className="text-2xl font-bold mb-4">Lịch Studio</h1>
-      <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="flex-1 min-h-0 bg-bg-card rounded-xl shadow-md overflow-hidden">
         <CalendarWrapper userRole={context.shellRole} currentUserId={context.employee?.id} />
       </div>
     </div>

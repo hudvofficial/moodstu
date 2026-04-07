@@ -8,106 +8,222 @@
    ══════════════════════════════════════ */
 
 @keyframes entrance-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.entrance   { animation: entrance-fade-up 0.4s ease-out both; }
-.entrance-1 { animation-delay: 0ms; }
-.entrance-2 { animation-delay: 60ms; }
-.entrance-3 { animation-delay: 120ms; }
-.entrance-4 { animation-delay: 180ms; }
-.entrance-5 { animation-delay: 240ms; }
-.entrance-6 { animation-delay: 300ms; }
-.entrance-7 { animation-delay: 360ms; }
-.entrance-8 { animation-delay: 420ms; }
+.entrance {
+  animation: entrance-fade-up 0.4s ease-out both;
+}
+.entrance-1 {
+  animation-delay: 0ms;
+}
+.entrance-2 {
+  animation-delay: 60ms;
+}
+.entrance-3 {
+  animation-delay: 120ms;
+}
+.entrance-4 {
+  animation-delay: 180ms;
+}
+.entrance-5 {
+  animation-delay: 240ms;
+}
+.entrance-6 {
+  animation-delay: 300ms;
+}
+.entrance-7 {
+  animation-delay: 360ms;
+}
+.entrance-8 {
+  animation-delay: 420ms;
+}
 
 @keyframes stagger-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.stagger-item { animation: stagger-fade-up 0.3s ease-out both; }
-.stagger-item:nth-child(1)    { animation-delay: 20ms; }
-.stagger-item:nth-child(2)    { animation-delay: 40ms; }
-.stagger-item:nth-child(3)    { animation-delay: 60ms; }
-.stagger-item:nth-child(4)    { animation-delay: 80ms; }
-.stagger-item:nth-child(5)    { animation-delay: 100ms; }
-.stagger-item:nth-child(6)    { animation-delay: 120ms; }
-.stagger-item:nth-child(7)    { animation-delay: 140ms; }
-.stagger-item:nth-child(8)    { animation-delay: 160ms; }
-.stagger-item:nth-child(n+9)  { animation-delay: 180ms; }
+.stagger-item {
+  animation: stagger-fade-up 0.3s ease-out both;
+}
+.stagger-item:nth-child(1) {
+  animation-delay: 20ms;
+}
+.stagger-item:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger-item:nth-child(3) {
+  animation-delay: 60ms;
+}
+.stagger-item:nth-child(4) {
+  animation-delay: 80ms;
+}
+.stagger-item:nth-child(5) {
+  animation-delay: 100ms;
+}
+.stagger-item:nth-child(6) {
+  animation-delay: 120ms;
+}
+.stagger-item:nth-child(7) {
+  animation-delay: 140ms;
+}
+.stagger-item:nth-child(8) {
+  animation-delay: 160ms;
+}
+.stagger-item:nth-child(n + 9) {
+  animation-delay: 180ms;
+}
 
 /* ══════════════════════════════════════
    2. CARD & POPOVER ANIMATIONS
    ══════════════════════════════════════ */
 
 @keyframes card-entrance {
-  from { opacity: 0; transform: scale(0.97) translateY(6px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.card-entrance { animation: card-entrance 0.25s ease-out both; }
+.card-entrance {
+  animation: card-entrance 0.25s ease-out both;
+}
 
 @keyframes popover-in {
-  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.animate-popover-in { animation: popover-in 0.18s ease-out both; }
+.animate-popover-in {
+  animation: popover-in 0.18s ease-out both;
+}
 
 /* ══════════════════════════════════════
    3. MODAL & DRAWER ANIMATIONS
    ══════════════════════════════════════ */
 
 @keyframes backdrop-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.animate-backdrop-in { animation: backdrop-fade-in 0.2s ease-out both; }
+.animate-backdrop-in {
+  animation: backdrop-fade-in 0.2s ease-out both;
+}
 
 @keyframes slide-up {
-  from { opacity: 1; transform: translateY(100%); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.animate-slide-up { animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* F/N2: Desktop modal — match V1 modalContent (scale + translateY) */
 @keyframes modal-in {
-  from { opacity: 0; transform: scale(0.97) translateY(8px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.animate-modal-in { animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-modal-in {
+  animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* Modal close animation — mobile bottom sheet */
 @keyframes slide-down {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(100%); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
 }
-.animate-slide-down { animation: slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-down {
+  animation: slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* F: Desktop modal close — match V1 modalContentOut */
 @keyframes modal-out {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to   { opacity: 0; transform: scale(0.97) translateY(8px); }
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
 }
-.animate-modal-out { animation: modal-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
+.animate-modal-out {
+  animation: modal-out 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+}
 
 /* Drawer — desktop slide from right */
 @keyframes drawer-slide-right {
-  from { transform: translateX(100%); }
-  to   { transform: none; }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
 }
-.animate-slide-in-right { animation: drawer-slide-right 0.2s ease-out both; }
+.animate-slide-in-right {
+  animation: drawer-slide-right 0.2s ease-out both;
+}
 
 /* Drawer — mobile bottom sheet slide up */
 @keyframes drawer-slide-up {
-  from { transform: translateY(100%); }
-  to   { transform: none; }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
 }
-.animate-slide-in-up { animation: drawer-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-in-up {
+  animation: drawer-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
 /* ══════════════════════════════════════
    4. SKELETON SHIMMER
@@ -115,13 +231,18 @@
 
 /* Branded skeleton shimmer (earth-tone) */
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .skeleton {
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     rgba(139, 94, 60, 0.04) 25%,
     rgba(139, 94, 60, 0.08) 50%,
     rgba(139, 94, 60, 0.04) 75%
@@ -130,6 +251,51 @@
   animation: shimmer 2s ease-in-out infinite;
 }
 
-.skeleton-text  { height: 16px; border-radius: 4px; }
-.skeleton-title { height: 24px; width: 66%; border-radius: 4px; }
-.skeleton-card  { background: var(--color-bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+.skeleton-text {
+  height: 16px;
+  border-radius: 4px;
+}
+.skeleton-title {
+  height: 24px;
+  width: 66%;
+  border-radius: 4px;
+}
+.skeleton-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════
+   5. CALENDAR SLIDE ANIMATIONS
+   ══════════════════════════════════════ */
+
+@keyframes cal-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cal-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.slide-left {
+  animation: cal-slide-left 0.25s ease-out both;
+}
+.slide-right {
+  animation: cal-slide-right 0.25s ease-out both;
+}

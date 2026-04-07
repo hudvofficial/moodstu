@@ -72,7 +72,7 @@ function applyTheme(resolved: "light" | "dark") {
   // V2: earth-tone meta-theme-color
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", resolved === "dark" ? "#1a1410" : "#FAF7F2");
+    meta.setAttribute("content", resolved === "dark" ? "#1a1a1a" : "#faf8f5");
   }
 }
 

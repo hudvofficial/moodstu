@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.59] - 2026-04-07
+
+### Changed
+
+- **V2 Gold Standard UI Remediation**: Re-audited and standardized all modules (Calendar, Print, Productivity, Settings, Contracts, Dresses) to enforce the "No Border — Only Shadow" rule (Lesson 64). Over 50+ instances of arbitrary `rgba/hex` strings replaced with automated AST Scripts.
+- **SSOT Type-Safety & Styling Compliance**: Resolved Linter errors across `gallery` (converted native `<button>` and `<input>` to centralized Components). Handled strict Typescript event arguments. Swapped all arbitrary typographical values to standard `text-body-sm` / `text-caption`.
+
 ## [1.1.58] - 2026-04-03
 
 ### Changed

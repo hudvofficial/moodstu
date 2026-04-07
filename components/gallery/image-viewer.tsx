@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, Heart, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider
@@ -137,17 +138,19 @@ export default function ImageViewer({
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 relative z-10">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={onClose}
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.1)" }}
+          onKeyDown={(e) => { if (e.key === "Enter") onClose() }}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 cursor-pointer"
         >
           <X size={20} style={{ color: "white" }} />
-        </button>
+        </div>
 
         <div className="flex items-center gap-3">
           <span
-            className="text-xs truncate max-w-[150px]"
+            className="text-xs truncate max-w-40"
             style={{ color: "rgba(255,255,255,0.6)" }}
           >
             {current.file_name || ""}
@@ -167,21 +170,19 @@ export default function ImageViewer({
 
           {/* Heart button */}
           {!isViewOnly && (
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => onToggleHeart(current.id)}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-              style={{
-                background: current.is_selected
-                  ? "rgba(239, 68, 68, 0.8)"
-                  : "rgba(255,255,255,0.1)",
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") onToggleHeart(current.id) }}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${current.is_selected ? "bg-red-500/80" : "bg-white/10"}`}
             >
               <Heart
                 size={18}
                 fill={current.is_selected ? "white" : "none"}
                 style={{ color: "white" }}
               />
-            </button>
+            </div>
           )}
         </div>
       </div>
@@ -194,13 +195,15 @@ export default function ImageViewer({
       >
         {/* Prev arrow (desktop) */}
         {currentIndex > 0 && (
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={goPrev}
-            className="hidden md:flex absolute left-4 w-10 h-10 rounded-full items-center justify-center z-10"
-            style={{ background: "rgba(255,255,255,0.1)" }}
+            onKeyDown={(e) => { if (e.key === "Enter") goPrev() }}
+            className="hidden md:flex absolute left-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
           >
             <ChevronLeft size={24} style={{ color: "white" }} />
-          </button>
+          </div>
         )}
 
         {/* Mobile tap zones (invisible) */}
@@ -229,13 +232,15 @@ export default function ImageViewer({
 
         {/* Next arrow (desktop) */}
         {currentIndex < images.length - 1 && (
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             onClick={goNext}
-            className="hidden md:flex absolute right-4 w-10 h-10 rounded-full items-center justify-center z-10"
-            style={{ background: "rgba(255,255,255,0.1)" }}
+            onKeyDown={(e) => { if (e.key === "Enter") goNext() }}
+            className="hidden md:flex absolute right-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
           >
             <ChevronRight size={24} style={{ color: "white" }} />
-          </button>
+          </div>
         )}
       </div>
 
@@ -244,18 +249,13 @@ export default function ImageViewer({
         {/* Note input — hide in view-only */}
         {!isViewOnly && (
           <div className="max-w-lg mx-auto mb-2">
-            <input
+            <Input
               type="text"
               placeholder="Ghi chú cho ảnh này..."
               value={noteValue}
               onChange={(e) => setNoteValue(e.target.value)}
               onBlur={handleNoteBlur}
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                color: "white",
-                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)",
-              }}
+              className="w-full px-3 py-2 text-sm rounded-lg outline-none bg-white/5 text-white ring-1 ring-inset ring-white/10 border-0 focus-visible:ring-1 focus-visible:ring-white/50"
             />
           </div>
         )}

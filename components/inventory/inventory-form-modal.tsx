@@ -187,7 +187,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         <div>
           <label className="label-base">Ghi chú</label>
           <textarea
-            className="input-base min-h-[80px]"
+            className="input-base min-h-20"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú thêm..."

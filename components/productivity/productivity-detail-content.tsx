@@ -111,7 +111,7 @@ export const ProductivityDetailContent = memo(function ProductivityDetailContent
   return (
     <div className="space-y-4">
       <section className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+        <div className="flex flex-col gap-1 min-w-30 rounded-xl bg-bg-card shadow-sm p-3 shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <BriefcaseBusiness className="h-3.5 w-3.5" />
             <span>Tổng job</span>
@@ -119,7 +119,7 @@ export const ProductivityDetailContent = memo(function ProductivityDetailContent
           <p className="text-base font-bold text-text-main">{groups.length}</p>
         </div>
 
-        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+        <div className="flex flex-col gap-1 min-w-30 rounded-xl bg-bg-card shadow-sm p-3 shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <Clock3 className="h-3.5 w-3.5" />
             <span>On-set</span>
@@ -129,7 +129,7 @@ export const ProductivityDetailContent = memo(function ProductivityDetailContent
           </p>
         </div>
 
-        <div className="flex flex-col gap-1 min-w-[120px] rounded-xl bg-bg-card border border-border p-3 shrink-0">
+        <div className="flex flex-col gap-1 min-w-30 rounded-xl bg-bg-card shadow-sm p-3 shrink-0">
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <Wallet className="h-3.5 w-3.5" />
             <span>{canViewCost ? "Chi phí" : "Tải công việc"}</span>
@@ -191,7 +191,7 @@ export const ProductivityDetailContent = memo(function ProductivityDetailContent
               {group.tasks.map((task) => (
                 <div
                   key={`${group.contract_id}-${task.work_type}-${task.deadline}-${task.status}`}
-                  className="rounded-lg bg-bg-main border border-border/50 px-3 py-2.5"
+                  className="rounded-lg bg-bg-main shadow-xs px-3 py-2.5"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="min-w-0">

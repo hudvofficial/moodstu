@@ -17,6 +17,9 @@ export interface UnifiedCalendarEvent {
   colorToken: string; // Tailwind class
   googleEventId: string | null;
   originalDateField: string; // 'event_date' | 'start_time' | 'deadline'
+  originalGoogleEvent?: { id: string; htmlLink?: string } | null;
+  workTypeLabel?: string;
+  customerName?: string | null;
 }
 
 export type CalendarViewMode = "month" | "week" | "day";

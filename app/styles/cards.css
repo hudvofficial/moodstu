@@ -19,7 +19,9 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  transition:
+    transform 200ms ease-out,
+    box-shadow 200ms ease-out;
   cursor: pointer;
 }
 
@@ -37,7 +39,9 @@
   padding: var(--spacing-base);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  transition:
+    transform 200ms ease-out,
+    box-shadow 200ms ease-out;
   position: relative;
   overflow: hidden;
 }
@@ -68,14 +72,32 @@
 }
 
 /* Variants — chỉ đổi border-left color */
-.accent-card-rose   { border-left: 3px solid #e88ca0; }
-.accent-card-sky    { border-left: 3px solid #7db4d4; }
-.accent-card-gold   { border-left: 3px solid var(--color-accent); }
-.accent-card-green  { border-left: 3px solid #6dba82; }
-.accent-card-orange { border-left: 3px solid var(--color-interactive); }
+.accent-card-rose {
+  border-left: 3px solid #e88ca0;
+}
+.accent-card-sky {
+  border-left: 3px solid #7db4d4;
+}
+.accent-card-gold {
+  border-left: 3px solid var(--color-accent);
+}
+.accent-card-green {
+  border-left: 3px solid #6dba82;
+}
+.accent-card-orange {
+  border-left: 3px solid var(--color-interactive);
+}
 
 /* Accent icon + text colors — no inline Tailwind needed */
-.accent-icon-rose { color: #e88ca0; }
-.accent-text-rose { color: #c0566d; }
-.accent-icon-sky  { color: #7db4d4; }
-.accent-text-sky  { color: #4a8aaf; }
+.accent-icon-rose {
+  color: #e88ca0;
+}
+.accent-text-rose {
+  color: #c0566d;
+}
+.accent-icon-sky {
+  color: #7db4d4;
+}
+.accent-text-sky {
+  color: #4a8aaf;
+}

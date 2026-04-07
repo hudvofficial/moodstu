@@ -70,8 +70,8 @@ export default function ContractTemplate({
         fontFamily: "'Segoe UI', Tahoma, sans-serif",
         fontSize: "9.5px",
         lineHeight: "1.5",
-        color: "#1a1a1a",
-        background: "#fff",
+        color: "var(--color-text-primary)",
+        background: "var(--color-bg-base)",
       }}
     >
       {/* ── HEADER ── */}
@@ -87,19 +87,19 @@ export default function ContractTemplate({
           )}
         </div>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: "14px", fontWeight: 700, color: "#8B5E3C", textTransform: "uppercase" }}>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-primary)", textTransform: "uppercase" }}>
             {studio.name}
           </div>
-          <div style={{ fontSize: "8px", color: "#666", marginTop: "2px" }}>
+          <div style={{ fontSize: "8px", color: "var(--color-text-muted)", marginTop: "2px" }}>
             {studio.address}
           </div>
-          <div style={{ fontSize: "8px", color: "#666" }}>
+          <div style={{ fontSize: "8px", color: "var(--color-text-muted)" }}>
             Hotline: {studio.hotline || "___________"}
           </div>
         </div>
         <div style={{ flex: "0 0 auto", textAlign: "right" }}>
-          <div style={{ fontSize: "7px", color: "#999" }}>Số HĐ</div>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#8B5E3C" }}>
+          <div style={{ fontSize: "7px", color: "var(--color-text-muted)" }}>Số HĐ</div>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-primary)" }}>
             {contract.contract_code}
           </div>
         </div>
@@ -107,16 +107,16 @@ export default function ContractTemplate({
 
       {/* ── TITLE ── */}
       <div style={{ textAlign: "center", marginBottom: "5mm" }}>
-        <div style={{ fontSize: "16px", fontWeight: 700, color: "#8B5E3C", letterSpacing: "1px" }}>
+        <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--color-primary)", letterSpacing: "1px" }}>
           HỢP ĐỒNG DỊCH VỤ
         </div>
-        <div style={{ fontSize: "9px", color: "#666", marginTop: "2px" }}>
+        <div style={{ fontSize: "9px", color: "var(--color-text-muted)", marginTop: "2px" }}>
           Loại: {serviceLabel} — Ngày: {formatDate(contract.contract_date)}
         </div>
       </div>
 
       {/* ── CUSTOMER INFO ── */}
-      <div style={{ border: "1px solid #e5e5e5", borderRadius: "4px", padding: "4mm", marginBottom: "5mm" }}>
+      <div style={{ border: "1px solid var(--color-border)", borderRadius: "4px", padding: "4mm", marginBottom: "5mm" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 8mm" }}>
           <InfoRow label="Khách hàng" value={customer.full_name} bold />
           <InfoRow label="Điện thoại" value={customer.phone || "___________"} />
@@ -134,7 +134,7 @@ export default function ContractTemplate({
       {/* ── SERVICES TABLE ── */}
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "4mm", fontSize: "9px" }}>
         <thead>
-          <tr style={{ background: "#8B5E3C", color: "#fff" }}>
+          <tr style={{ background: "var(--color-primary)", color: "var(--color-bg-base)" }}>
             <Th width="8%">STT</Th>
             <Th width="42%" align="left">Dịch vụ / Sản phẩm</Th>
             <Th width="10%">SL</Th>
@@ -144,11 +144,11 @@ export default function ContractTemplate({
         </thead>
         <tbody>
           {items.map((item, i) => (
-            <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
+            <tr key={item.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
               <Td align="center">{i + 1}</Td>
               <Td align="left">
                 {item.item_name}
-                {item.is_addon && <span style={{ color: "#999", fontSize: "7px" }}> (phát sinh)</span>}
+                {item.is_addon && <span style={{ color: "var(--color-text-muted)", fontSize: "7px" }}> (phát sinh)</span>}
               </Td>
               <Td align="center">{item.quantity}</Td>
               <Td align="right">{formatCurrency(item.unit_price)}</Td>
@@ -158,23 +158,23 @@ export default function ContractTemplate({
         </tbody>
         <tfoot>
           <SumRow label="Tạm tính" amount={subtotal} />
-          {discount > 0 && <SumRow label="Giảm giá" amount={-discount} color="#e74c3c" />}
+          {discount > 0 && <SumRow label="Giảm giá" amount={-discount} color="var(--color-error)" />}
           <SumRow label="Tổng thanh toán" amount={total} bold />
-          <SumRow label="Đã thanh toán" amount={paid} color="#27ae60" />
-          <SumRow label="Còn lại" amount={remaining} bold color="#e74c3c" />
+          <SumRow label="Đã thanh toán" amount={paid} color="var(--color-success)" />
+          <SumRow label="Còn lại" amount={remaining} bold color="var(--color-error)" />
         </tfoot>
       </table>
 
       {/* ── PAYMENT SCHEDULE ── */}
       {paymentPlans.length > 0 && (
         <div style={{ marginBottom: "4mm" }}>
-          <div style={{ fontSize: "10px", fontWeight: 600, marginBottom: "3px", color: "#8B5E3C" }}>
+          <div style={{ fontSize: "10px", fontWeight: 600, marginBottom: "3px", color: "var(--color-primary)" }}>
             Lịch thanh toán
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             {paymentPlans.map((plan, i) => {
               const isPaid = plan.status === "paid";
-              const dotColor = isPaid ? "#27ae60" : i === 0 ? "#f39c12" : "#ccc";
+              const dotColor = isPaid ? "var(--color-success)" : i === 0 ? "var(--color-warning)" : "var(--color-border)";
               return (
                 <div
                   key={plan.id}
@@ -183,7 +183,7 @@ export default function ContractTemplate({
                     alignItems: "center",
                     gap: "4px",
                     fontSize: "8px",
-                    color: "#666",
+                    color: "var(--color-text-muted)",
                   }}
                 >
                   <span
@@ -219,18 +219,18 @@ export default function ContractTemplate({
       >
         <div>
           <div style={{ fontWeight: 600, fontSize: "10px" }}>Khách hàng</div>
-          <div style={{ fontSize: "7px", color: "#999", marginTop: "2px" }}>(Ký và ghi rõ họ tên)</div>
+          <div style={{ fontSize: "7px", color: "var(--color-text-muted)", marginTop: "2px" }}>(Ký và ghi rõ họ tên)</div>
           <div style={{ height: "20mm" }} />
         </div>
         <div>
           <div style={{ fontWeight: 600, fontSize: "10px" }}>Đại diện Studio</div>
-          <div style={{ fontSize: "7px", color: "#999", marginTop: "2px" }}>(Ký và đóng dấu)</div>
+          <div style={{ fontSize: "7px", color: "var(--color-text-muted)", marginTop: "2px" }}>(Ký và đóng dấu)</div>
           <div style={{ height: "20mm" }} />
         </div>
       </div>
 
       {/* ── NOTES ── */}
-      <div style={{ fontSize: "7.5px", color: "#888", borderTop: "1px solid #eee", paddingTop: "3mm" }}>
+      <div style={{ fontSize: "7.5px", color: "var(--color-text-secondary)", borderTop: "1px solid var(--color-border)", paddingTop: "3mm" }}>
         <div style={{ fontWeight: 600, marginBottom: "2px" }}>Lưu ý:</div>
         <ul style={{ margin: 0, paddingLeft: "12px" }}>
           <li>Hợp đồng có giá trị kể từ ngày ký. Mọi thay đổi cần có sự đồng ý của cả hai bên.</li>
@@ -244,9 +244,9 @@ export default function ContractTemplate({
         style={{
           textAlign: "center",
           fontSize: "7px",
-          color: "#999",
+          color: "var(--color-text-muted)",
           marginTop: "4mm",
-          borderTop: "1px dashed #ddd",
+          borderTop: "1px dashed var(--color-border)",
           paddingTop: "2mm",
         }}
       >
@@ -263,7 +263,7 @@ export default function ContractTemplate({
 function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div style={{ display: "flex", gap: "4px" }}>
-      <span style={{ color: "#888", minWidth: "60px" }}>{label}:</span>
+      <span style={{ color: "var(--color-text-secondary)", minWidth: "60px" }}>{label}:</span>
       <span style={{ fontWeight: bold ? 600 : 400 }}>{value}</span>
     </div>
   );

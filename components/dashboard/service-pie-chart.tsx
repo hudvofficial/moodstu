@@ -3,11 +3,11 @@
 import { PieChart as PieChartIcon } from "lucide-react";
 
 const MOCK_DATA = [
-  { name: "Cưới", value: 65, color: "#8B5E3C" },
-  { name: "Baby", value: 15, color: "#C9A96E" },
-  { name: "Concept", value: 10, color: "#3D2B1F" },
-  { name: "Hình thẻ", value: 5, color: "#B8A898" },
-  { name: "Khác", value: 5, color: "#E8DDD0" },
+  { name: "Cưới", value: 65, color: "var(--color-primary)" },
+  { name: "Baby", value: 15, color: "var(--color-secondary)" },
+  { name: "Concept", value: 10, color: "var(--color-text-primary)" },
+  { name: "Hình thẻ", value: 5, color: "var(--color-text-muted)" },
+  { name: "Khác", value: 5, color: "var(--color-bg-hover)" },
 ];
 
 export function ServicePieChart() {
@@ -39,7 +39,7 @@ export function ServicePieChart() {
         {/* Donut */}
         <div className="relative shrink-0">
           <div
-            className="w-[140px] h-[140px] rounded-full"
+            className="w-35 h-35 rounded-full"
             style={{ background: gradient }}
           />
           <div className="absolute inset-[30px] rounded-full bg-bg-card flex items-center justify-center">

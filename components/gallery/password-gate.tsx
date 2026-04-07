@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/forbid-elements */
 
 import { useState, useEffect } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
@@ -71,16 +72,16 @@ export default function PasswordGate({
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--color-gallery-bg, #1a1a1a)" }}>
+        style={{ background: "var(--color-gallery-bg)" }}>
         <div className="animate-pulse text-sm"
-          style={{ color: "var(--color-gallery-text-dim, rgba(201,169,110,0.3))" }}>Đang kiểm tra...</div>
+          style={{ color: "var(--color-gallery-text-dim)" }}>Đang kiểm tra...</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col justify-center relative overflow-hidden px-4"
-      style={{ background: "var(--color-gallery-bg, #1a1a1a)" }}>
+      style={{ background: "var(--color-gallery-bg)" }}>
       {/* Background blur */}
       {coverImage && (
         <div className="absolute inset-0" style={{
@@ -91,22 +92,20 @@ export default function PasswordGate({
       )}
 
       {/* Gate card */}
-      <div className="relative z-10 mx-auto backdrop-blur-2xl rounded-2xl p-8"
+      <div className="relative z-10 w-full max-w-96 mx-auto backdrop-blur-2xl rounded-2xl p-8 shadow-2xl shadow-black/30"
         style={{
-          width: "100%", maxWidth: "384px",
-          background: "var(--color-gallery-card-bg, rgba(201,169,110,0.06))",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          background: "var(--color-gallery-card-bg)",
         }}>
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-            style={{ background: "var(--color-gallery-card-bg, rgba(201,169,110,0.06))" }}>
-            <Lock size={22} style={{ color: "var(--color-gallery-icon, #C9A96E)" }} />
+            style={{ background: "var(--color-gallery-card-bg)" }}>
+            <Lock size={22} style={{ color: "var(--color-gallery-icon)" }} />
           </div>
           <h1 className="text-lg font-bold mb-1"
-            style={{ color: "var(--color-gallery-text, #F5E6D3)" }}>
+            style={{ color: "var(--color-gallery-text)" }}>
             {galleryTitle || "Album Riêng Tư"}
           </h1>
-          <p className="text-xs" style={{ color: "var(--color-gallery-text-muted, rgba(201,169,110,0.6))" }}>
+          <p className="text-xs" style={{ color: "var(--color-gallery-text-muted)" }}>
             {mode === "view" ? "Vui lòng nhập mật khẩu để xem album" : "Vui lòng nhập mật khẩu để xem và chọn ảnh"}
           </p>
         </div>
@@ -121,16 +120,16 @@ export default function PasswordGate({
               autoFocus
               className="w-full px-4 py-3 pr-10 text-sm rounded-xl outline-none transition-all duration-200"
               style={{
-                background: "var(--color-gallery-card-bg, rgba(201,169,110,0.06))",
-                color: "var(--color-gallery-text, #F5E6D3)",
+                background: "var(--color-gallery-card-bg)",
+                color: "var(--color-gallery-text)",
                 boxShadow: error
-                  ? "inset 0 0 0 1px #ef4444"
-                  : "inset 0 0 0 1px var(--color-gallery-border, rgba(201,169,110,0.15))",
+                  ? "inset 0 0 0 1px var(--color-error)"
+                  : "inset 0 0 0 1px var(--color-gallery-border)",
               }}
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
-              style={{ color: "var(--color-gallery-text-dim, rgba(201,169,110,0.3))" }}>
+              style={{ color: "var(--color-gallery-text-dim)" }}>
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
@@ -143,13 +142,13 @@ export default function PasswordGate({
 
           <button type="submit" disabled={loading}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${loading ? "opacity-70" : ""}`}
-            style={{ background: "var(--color-primary, #8b5e3c)", color: "var(--color-gallery-btn-text, #FFF8F0)" }}>
+            style={{ background: "var(--color-primary)", color: "var(--color-gallery-btn-text)" }}>
             {loading ? "Đang kiểm tra..." : "Vào Xem"}
           </button>
         </form>
 
         <p className="text-center mt-6 text-xs"
-          style={{ color: "var(--color-gallery-text-dim, rgba(201,169,110,0.3))" }}>
+          style={{ color: "var(--color-gallery-text-dim)" }}>
           Mood Studio
         </p>
       </div>

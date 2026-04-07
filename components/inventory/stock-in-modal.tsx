@@ -149,7 +149,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
         <div>
           <label className="label-base">Ghi chú</label>
           <textarea
-            className="input-base min-h-[60px]"
+            className="input-base min-h-15"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Thông tin thêm..."

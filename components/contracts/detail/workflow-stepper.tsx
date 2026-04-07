@@ -115,7 +115,7 @@ export default function WorkflowStepper({ contract, events }: Props) {
                     )}
                   </div>
                   <span
-                    className={`text-caption font-medium text-center max-w-[80px] leading-tight line-clamp-2
+                    className={`text-caption font-medium text-center max-w-20 leading-tight line-clamp-2
                       ${isCompleted ? "text-emerald-700" : "text-text-muted"}`}
                   >
                     {step.label}
@@ -158,10 +158,10 @@ export default function WorkflowStepper({ contract, events }: Props) {
         {/* Dots with connecting line */}
         <div className="relative flex items-start justify-between px-1">
           {/* Background line */}
-          <div className="absolute top-[7px] left-4 right-4 h-[2px] bg-bg-hover" />
+          <div className="absolute top-2 left-4 right-4 h-0.5 bg-bg-hover" />
           {/* Filled progress line */}
           <div
-            className="absolute top-[7px] left-4 h-[2px] bg-interactive transition-all duration-500"
+            className="absolute top-2 left-4 h-0.5 bg-interactive transition-all duration-500"
             style={{
               width: isCancelled
                 ? "0%"

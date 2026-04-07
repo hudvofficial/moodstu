@@ -33,7 +33,7 @@ export function Pagination({ page, totalPages, onChange, className }: Pagination
             key={p}
             onClick={() => onChange(p as number)}
             className={cn(
-              "min-w-[36px] h-9 rounded-md text-sm font-semibold transition-all",
+              "min-w-9 h-9 rounded-md text-sm font-semibold transition-all",
               page === p
                 ? "bg-primary text-white shadow-sm"
                 : "text-text-secondary hover:bg-bg-hover"

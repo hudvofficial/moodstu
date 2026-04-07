@@ -85,7 +85,7 @@ export function FormActions({
       )}
 
       {/* Fixed footer — hidden on desktop (right panel handles it) */}
-      <footer className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card shadow-[0_-2px_8px_rgba(0,0,0,0.06)] py-3 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <footer className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card shadow-md shadow-black/5 py-3 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {/* Mobile: 3 buttons in 1 row */}
         <div className="flex items-center gap-2">
           {/* Hủy */}

@@ -37,7 +37,7 @@ export function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: nu
       width: qrSize,
       height: qrSize,
       data: dress.item_code,
-      dotsOptions: { color: "#3d2b1f", type: "rounded" as const },
+      dotsOptions: { color: "var(--color-text-primary)", type: "rounded" as const },
       cornersSquareOptions: { type: "extra-rounded" as const },
       backgroundOptions: { color: "transparent" },
     });

@@ -48,14 +48,14 @@ export default function ComponentSelector({
   return (
     <div className="flex flex-col h-full bg-surface rounded-soft-md overflow-hidden">
       {/* Category Tabs */}
-      <div className="flex overflow-x-auto p-2 bg-elevated border-b border-border gap-2 scrollbar-hide">
+      <div className="flex overflow-x-auto p-2 bg-elevated shadow-sm gap-2 scrollbar-hide">
         <Button
           variant="ghost"
           onClick={() => setSelectedCat("all")}
           className={`h-auto px-3 py-1.5 rounded-lg text-caption font-bold whitespace-nowrap transition-all ${
             selectedCat === "all"
               ? "bg-primary text-white shadow-sm hover:text-white"
-              : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
+              : "bg-surface text-text-secondary hover:bg-surface hover:shadow-xs"
           }`}
         >
           Tất cả
@@ -68,7 +68,7 @@ export default function ComponentSelector({
             className={`h-auto px-3 py-1.5 rounded-lg text-caption font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
               selectedCat === cat.id
                 ? "bg-primary text-white shadow-sm hover:text-white"
-                : "bg-surface text-text-secondary hover:bg-surface border border-transparent hover:border-border"
+                : "bg-surface text-text-secondary hover:bg-surface hover:shadow-xs"
             }`}
           >
             {(() => { const Icon = resolveIcon(cat.icon); return <Icon size={14} />; })()}
@@ -89,7 +89,7 @@ export default function ComponentSelector({
               <div
                 key={service.id}
                 onClick={() => onSelect(service)}
-                className="bg-elevated rounded-lg border border-border p-2 cursor-pointer hover:border-primary hover:shadow-md transition-all group"
+                className="bg-elevated rounded-lg p-2 shadow-xs cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group"
               >
                 <div className="aspect-square bg-surface rounded-md mb-2 relative overflow-hidden">
                   {service.image_url ? (

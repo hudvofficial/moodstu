@@ -217,7 +217,7 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
             Ghi chú
           </label>
           <textarea
-            className="input-base w-full min-h-[80px] resize-none"
+            className="input-base w-full min-h-20 resize-none"
             placeholder="Ghi chú thêm..."
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}

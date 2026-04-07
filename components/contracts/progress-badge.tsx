@@ -120,7 +120,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
   // No tasks
   if (!progress) {
     return (
-      <div className="flex items-center justify-center px-3 py-2 rounded-md min-w-[120px] text-center shadow-xs bg-bg-hover opacity-50">
+      <div className="flex items-center justify-center px-3 py-2 rounded-md min-w-30 text-center shadow-xs bg-bg-hover opacity-50">
         <span className="text-tiny font-medium text-text-muted italic">Chưa có task</span>
       </div>
     );
@@ -130,7 +130,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
     <div ref={badgeRef} className="relative group/tooltip inline-block w-full">
       {/* Main Badge */}
       <div
-        className={`flex flex-col gap-1 px-2 py-1.5 rounded-md min-w-[120px] cursor-help transition-all ${
+        className={`flex flex-col gap-1 px-2 py-1.5 rounded-md min-w-30 cursor-help transition-all ${
           progress.pct === 100
             ? "bg-success/10"
             : progress.isOverdue
@@ -159,7 +159,7 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
               Hoàn tất
             </span>
           ) : progress.nextTask ? (
-            <span className={`text-tiny font-medium truncate max-w-[90px] ${textColor}`}>
+            <span className={`text-tiny font-medium truncate max-w-24 ${textColor}`}>
               → {getWorkTypeLabel(progress.nextTask.work_type as WorkType)}
             </span>
           ) : (

@@ -53,11 +53,11 @@ export default function GallerySortDropdown({ value, onChange }: GallerySortDrop
 
       {open && (
         <div
-          className="absolute top-full right-0 mt-1 min-w-[160px] py-1"
+          className="absolute top-full right-0 mt-1 min-w-40 py-1"
           style={{
-            background: "var(--color-bg-card, #fff)",
+            background: "var(--color-bg-card)",
             borderRadius: "var(--radius-lg, 12px)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+            boxShadow: "0 4px 24px var(--color-black-10)",
             zIndex: 30,
           }}
         >
@@ -68,11 +68,11 @@ export default function GallerySortDropdown({ value, onChange }: GallerySortDrop
               className="w-full text-left px-3 py-2 flex items-center justify-between transition-colors"
               style={{
                 fontSize: "var(--font-size-body-sm, 13px)",
-                color: value === opt.key ? "var(--color-primary, #8B5E3C)" : "var(--color-text-primary, #3D2B1F)",
-                background: value === opt.key ? "var(--color-bg-hover, #F0E8DB)" : "transparent",
+                color: value === opt.key ? "var(--color-primary)" : "var(--color-text-primary)",
+                background: value === opt.key ? "var(--color-bg-hover)" : "transparent",
                 fontWeight: value === opt.key ? 600 : 400,
               }}
-              onMouseEnter={(e) => { if (value !== opt.key) (e.target as HTMLElement).style.background = "var(--color-bg-hover, #F0E8DB)"; }}
+              onMouseEnter={(e) => { if (value !== opt.key) (e.target as HTMLElement).style.background = "var(--color-bg-hover)"; }}
               onMouseLeave={(e) => { if (value !== opt.key) (e.target as HTMLElement).style.background = "transparent"; }}
             >
               <span>{opt.label}</span>

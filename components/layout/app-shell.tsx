@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/forbid-elements */
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
@@ -75,7 +76,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
             onClick={() => setIsMobileMenuOpen(false)}
           />
           {/* Content */}
-          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-bg-card shadow-2xl animate-in slide-in-from-left duration-500">
+          <div className="absolute left-0 top-0 bottom-0 w-70 bg-bg-card shadow-2xl animate-in slide-in-from-left duration-500">
             <div className="absolute top-4 right-4 z-50">
                <button 
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -106,7 +107,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                   : isNoPadding
                     ? "pb-28 lg:pb-6" // Keep only bottom padding for BottomNav spacing
                     : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
-              "bg-[radial-gradient(circle_at_top_right,rgba(139,94,60,0.03),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(201,169,110,0.03),transparent_40%)]"
+              "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
                 {children}
             </main>

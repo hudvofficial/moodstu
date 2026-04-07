@@ -165,14 +165,14 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
                   <TD>
                     <span className="flex items-center gap-2">
                       <User className="w-4 h-4 text-text-muted shrink-0" />
-                      <span className="text-body-sm truncate max-w-[140px]">
+                      <span className="text-body-sm truncate max-w-35">
                         {getEmployeeName(log.employee)}
                       </span>
                     </span>
                   </TD>
                   <TD className="font-medium text-text-primary">{log.action}</TD>
                   <TD className="text-text-secondary">{log.table_name || "—"}</TD>
-                  <TD className="text-text-secondary text-caption max-w-[200px] truncate">
+                  <TD className="text-text-secondary text-caption max-w-50 truncate">
                     {log.description || "—"}
                   </TD>
                   <TD>

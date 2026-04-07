@@ -335,7 +335,7 @@ export default function PrintingDetailDrawer({
             )}
 
             {order && (
-              <div className="p-4 bg-bg-hover rounded-xl mb-4 border border-border flex items-center justify-between">
+              <div className="p-4 bg-bg-hover rounded-xl mb-4 shadow-sm flex items-center justify-between">
                 <div>
                   <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Mã lệnh in</p>
                   <p className="text-h3">{order.orderCode}</p>
@@ -415,7 +415,7 @@ export default function PrintingDetailDrawer({
               </div>
 
               {form.items.map((item, index) => (
-                <div key={item.tempId} className="rounded-xl bg-bg-hover border border-border p-4 space-y-4">
+                <div key={item.tempId} className="rounded-xl bg-bg-hover shadow-sm p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-text-main">
                       Hạng mục {index + 1}

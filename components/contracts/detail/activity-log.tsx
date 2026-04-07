@@ -62,7 +62,7 @@ export default function ActivityLog({ logs }: Props) {
               )}
 
               {/* Dot */}
-              <div className="w-[18px] h-[18px] rounded-full bg-bg-hover flex items-center justify-center shrink-0 mt-0.5 z-10">
+              <div className="w-5 h-5 rounded-full bg-bg-hover flex items-center justify-center shrink-0 mt-0.5 z-10">
                 <div className="w-2 h-2 rounded-full bg-primary" />
               </div>
 

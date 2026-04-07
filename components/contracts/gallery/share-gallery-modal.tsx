@@ -49,7 +49,7 @@ export function ShareGalleryModalContent({
       height: 160,
       data: url,
       dotsOptions: {
-        color: "var(--color-text-primary, #3d2b1f)",
+        color: "var(--color-text-primary)",
         type: "rounded" as const,
       },
       cornersSquareOptions: { type: "extra-rounded" as const },
@@ -181,12 +181,12 @@ export function ShareGalleryModalContent({
             disabled={pwdSaving}
             className="relative w-11 h-6 rounded-full transition-all duration-200"
             style={{
-              background: pwdEnabled ? "var(--color-primary, #8B5E3C)" : "var(--color-bg-hover, #e5e0d8)",
+              background: pwdEnabled ? "var(--color-primary)" : "var(--color-bg-hover)",
             }}
           >
             <div
               className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200"
-              style={{ left: pwdEnabled ? "22px" : "2px", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}
+              style={{ left: pwdEnabled ? "22px" : "2px", boxShadow: "0 1px 3px var(--color-black-10)" }}
             />
           </button>
         </div>
@@ -202,7 +202,7 @@ export function ShareGalleryModalContent({
               style={{
                 background: "var(--color-bg-input)",
                 color: "var(--color-text-primary)",
-                boxShadow: "inset 0 0 0 1px var(--color-border-light, rgba(0,0,0,0.08))",
+                boxShadow: "inset 0 0 0 1px var(--color-border-light)",
               }}
             />
             <button
@@ -276,7 +276,7 @@ function LinkSection({
       <div className="flex items-center gap-3">
         <div
           ref={qrRef}
-          className="w-[160px] h-[160px] rounded-lg flex items-center justify-center"
+          className="w-40 h-40 rounded-lg flex items-center justify-center"
           style={{ background: "var(--color-bg-base)" }}
         />
         <button

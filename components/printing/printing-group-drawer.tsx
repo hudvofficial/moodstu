@@ -45,7 +45,7 @@ function PrintingGroupDrawerInner({
       <div className="flex flex-col min-h-full">
         <div className="flex-1 space-y-5">
           {/* Header Info */}
-          <div className="p-4 bg-bg-hover rounded-xl mb-4 border border-border flex items-center justify-between">
+          <div className="p-4 bg-bg-hover rounded-xl mb-4 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Hợp đồng</p>
               <p className="text-h3 text-primary">{group.contractCode}</p>
@@ -57,7 +57,7 @@ function PrintingGroupDrawerInner({
           </div>
 
           <div className="form-grid-2col mb-4">
-             <div className="rounded-xl bg-bg-hover p-4 border border-border">
+             <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
                 <p className="text-xs uppercase tracking-wide text-text-muted mb-1">
                   Đã hoàn thành
                 </p>
@@ -68,7 +68,7 @@ function PrintingGroupDrawerInner({
                 </div>
              </div>
              
-             <div className="rounded-xl bg-bg-hover p-4 border border-border flex items-end justify-between">
+             <div className="rounded-xl bg-bg-hover p-4 shadow-sm flex items-end justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-text-muted mb-1">
                     Trễ lịch

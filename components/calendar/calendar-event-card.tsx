@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { format } from "date-fns";
 import { Clock, User, FileText } from "lucide-react";
@@ -9,20 +10,20 @@ interface CalendarEventCardProps {
   onClick?: () => void;
 }
 
-export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
+function CalendarEventCardInner({ event, onClick }: CalendarEventCardProps) {
   // Try to parse out the time if available
   const hasTime = event.start.includes("T");
   const timeStr = hasTime ? format(new Date(event.start), "HH:mm") : "Cả ngày";
 
   return (
     <div 
-      className={`p-3 rounded-lg border shadow-sm flex flex-col gap-2 ${event.colorToken} transition-colors cursor-pointer hover:brightness-95`}
+      className={`p-3 rounded-lg shadow-sm flex flex-col gap-2 ${event.colorToken} transition-colors cursor-pointer hover:brightness-95`}
       onClick={onClick}
     >
       <div className="flex justify-between items-start gap-2">
         <h4 className="font-semibold text-sm line-clamp-2 leading-tight">{event.title}</h4>
         {event.source === "google" && (
-           <span className="shrink-0 text-tiny uppercase font-bold tracking-wider bg-white/50 px-1.5 py-0.5 rounded text-red-500">Google</span>
+           <span className="shrink-0 text-tiny font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">G</span>
         )}
       </div>
       
@@ -35,7 +36,7 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
         {event.employeeName && (
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5" />
-            <span className="truncate max-w-[120px]">{event.employeeName}</span>
+            <span className="truncate max-w-30">{event.employeeName}</span>
           </div>
         )}
       </div>
@@ -49,3 +50,5 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
     </div>
   );
 }
+
+export const CalendarEventCard = memo(CalendarEventCardInner);

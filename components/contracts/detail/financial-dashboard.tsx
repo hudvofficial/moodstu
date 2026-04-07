@@ -78,7 +78,7 @@ export default function FinancialDashboard({
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Đã thu
             </p>
-            <p className="text-[14px] font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-emerald-600">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function FinancialDashboard({
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Còn nợ
             </p>
-            <p className="text-[14px] font-semibold text-interactive">
+            <p className="text-sm font-semibold text-interactive">
               {formatCurrency(remainingAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
@@ -128,13 +128,10 @@ export default function FinancialDashboard({
 
         {/* CTA — full width, h-12 */}
         {remainingAmount > 0 && (
-          <button
-            onClick={onPaymentClick}
-            className="btn btn-interactive w-full h-12 text-[15px]"
-          >
+          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) { onPaymentClick(); } }}   onClick={onPaymentClick}  className="btn btn-interactive w-full h-12 text-sm" >
             <Banknote size={20} />
             Thu tiền
-          </button>
+          </div>
         )}
       </div>
 
@@ -249,9 +246,9 @@ export default function FinancialDashboard({
 
         {/* CTA */}
         {remainingAmount > 0 && (
-          <button onClick={onPaymentClick} className="btn-cta">
+          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) { onPaymentClick(); } }}   onClick={onPaymentClick}  className="btn-cta">
             Thu tiền
-          </button>
+          </div>
         )}
 
       </div>

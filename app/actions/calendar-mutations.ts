@@ -321,3 +321,33 @@ export async function deleteCalendarEvent(eventId: string): Promise<ActionResult
     return { success: true, warning: warningMsg };
   });
 }
+
+// ==========================================
+// THÊM: Action cho phép PATCH các external Google Event
+// (ví dụ: đổi màu, nhưng không lưu backend của Mood)
+// ==========================================
+export async function patchGoogleCalendarEvent(
+  googleEventId: string, 
+  updates: Record<string, any>
+): Promise<ActionResult<{ success: boolean; warning?: string }>> {
+  return withAuth(async (supabase, userId) => {
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("id, role")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
+    const role = normalizeRole(employee.role);
+    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
+      throw new Error("Bạn không có quyền chỉnh sửa dữ liệu lịch.");
+    }
+
+    try {
+      await updateGoogleCalendarEvent(googleEventId, updates);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+}

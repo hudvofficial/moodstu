@@ -117,15 +117,16 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
       onDragStart={handleDragStart} 
       onDragEnd={handleDragEnd}
     >
-      <div className="w-full h-full flex flex-col bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="w-full h-full flex flex-col overflow-hidden">
         {/* Header Days */}
-        <div className="grid grid-cols-7 border-b bg-slate-50 sticky top-0 z-10">
+        <div className="grid grid-cols-7 bg-bg-input border-b border-border sticky top-0 z-10">
           {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => (
             <div 
               key={day} 
-              className={`py-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider
-                ${i !== 6 ? "border-r border-slate-200" : ""}
+              className={`py-2 text-center text-xs font-semibold uppercase tracking-wider
+                ${i >= 5 ? "font-bold" : "text-text-muted"}
               `}
+              style={i >= 5 ? { color: "var(--color-text-weekend)" } : undefined}
             >
               {day}
             </div>
@@ -135,7 +136,7 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
         {/* Grid Body */}
         {/* repeat auto-fill để fit Grid chuẩn nhất cho các loại màn hình (minimum 120px 1 ô) */}
         <div className="flex-1 grid grid-cols-7 grid-rows-[repeat(auto-fill,minmax(120px,1fr))] auto-rows-[minmax(120px,1fr)]">
-          {daysInGrid.map((date, idx) => {
+          {daysInGrid.map((date) => {
             const dateIso = format(date, "yyyy-MM-dd");
             const isCurrentMonth = isSameMonth(date, currentDate);
             // So khớp với format YYYY-MM-DD bảo toàn Time
@@ -151,8 +152,6 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
                 dateIso={dateIso}
                 isCurrentMonth={isCurrentMonth}
                 events={eventsForDay}
-                isFirstRow={idx < 7}
-                isLastCol={(idx + 1) % 7 === 0}
                 onEventClick={onEventClick}
                 onDateClick={onDateClick}
               />

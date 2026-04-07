@@ -172,7 +172,7 @@ export default function AddEventModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú cho sự kiện..."
-            className="input-base min-h-[72px] resize-none"
+            className="input-base min-h-18 resize-none"
             rows={2}
           />
         </div>

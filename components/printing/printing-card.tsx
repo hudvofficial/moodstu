@@ -33,7 +33,7 @@ export default function PrintingCard({ order, compact, onEdit, onStatusChange }:
   const isMissingDate = isPending && !order.expectedDate;
 
   return (
-    <div className={`${compact ? "bg-bg-main border border-border/50 rounded-lg p-3" : "card-base p-4 hover-lift"} space-y-2.5 ${isOverdue ? "border-l-2 border-error" : ""}`}>
+    <div className={`${compact ? "bg-bg-main shadow-xs rounded-lg p-3" : "card-base p-4 hover-lift"} space-y-2.5 ${isOverdue ? "border-l-2 border-error" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-text-main">

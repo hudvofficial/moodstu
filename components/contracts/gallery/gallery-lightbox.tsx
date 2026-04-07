@@ -22,7 +22,7 @@ export default function GalleryLightbox({ images, currentIdx, onClose, onPrev, o
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.9)" }}
+      
       onClick={onClose}
     >
       <button

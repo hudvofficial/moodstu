@@ -50,7 +50,7 @@ export default function SmartSuggestions({
   };
 
   return (
-    <div className="bg-elevated rounded-soft-md border border-border overflow-hidden shadow-sm">
+    <div className="bg-elevated rounded-soft-md shadow-sm overflow-hidden">
       <div className="p-3 bg-primary/5 flex items-center gap-2 border-b border-border">
         <Sparkles size={20} className="text-primary" />
         <span className="text-body-sm font-bold text-text-main">
@@ -68,12 +68,12 @@ export default function SmartSuggestions({
           return (
             <div
               key={rel.id}
-              className={`p-3 rounded-lg border transition-all flex items-center justify-between gap-3 ${
+              className={`p-3 rounded-lg transition-all flex items-center justify-between gap-3 ${
                 satisfied
-                  ? "bg-surface border-border opacity-60"
+                  ? "bg-surface opacity-60"
                   : isRequired
-                  ? "bg-state-warning/10 border-state-warning/30 shadow-sm"
-                  : "bg-elevated border-border hover:border-primary/50 cursor-pointer"
+                  ? "bg-state-warning/10 shadow-sm"
+                  : "bg-elevated shadow-xs hover:shadow-md cursor-pointer"
               }`}
               onClick={() => {
                 if (!satisfied && rel.child_service) {
@@ -120,7 +120,7 @@ export default function SmartSuggestions({
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors p-0 border-0 ${
                       isRequired
                         ? "bg-state-warning text-white hover:bg-state-warning/90 shadow-sm"
-                        : "bg-surface border border-border text-text-muted hover:bg-primary hover:text-white hover:border-primary"
+                        : "bg-surface shadow-xs text-text-muted hover:bg-primary hover:text-white hover:shadow-sm"
                     }`}
                   >
                     <Plus size={20} />

@@ -35,7 +35,7 @@ export default function QuoteModernView({
   return (
     <div className="fixed inset-0 z-overlay flex items-center justify-center bg-background/60 animate-fadeIn p-0 md:p-6">
         {/* eslint-disable-next-line no-restricted-syntax -- Artistic print preview: intentional rounded corner */}
-        <div className="bg-elevated w-full max-w-lg h-full md:h-[90vh] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative border border-white/20">
+        <div className="bg-elevated w-full max-w-lg h-full md:h-[90vh] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative">
         {/* Header / Branding */}
         <div className="absolute top-0 left-0 right-0 z-10 p-6 flex justify-between items-center bg-linear-to-b from-elevated/90 to-transparent">
           <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function QuoteModernView({
           {/* Content */}
           <div className="p-6 space-y-8">
             {/* Summary Box */}
-            <div className="bg-surface p-4 rounded-soft-2xl border border-border flex justify-between items-center -mt-12 relative z-20 shadow-xl shadow-primary/5">
+            <div className="bg-surface p-4 rounded-soft-2xl flex justify-between items-center -mt-12 relative z-20 shadow-xl shadow-primary/5">
               <div>
                 <p className="text-caption text-text-muted font-bold uppercase tracking-wider">
                   Tổng giá trị gói
@@ -113,7 +113,7 @@ export default function QuoteModernView({
             {/* Items Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
-                <span className="w-4 h-[2px] bg-primary/30" />
+                <span className="w-4 h-0.5 bg-primary/30" />
                 Chi tiết các hạng mục
               </h3>
               <div className="space-y-3">
@@ -188,8 +188,7 @@ export default function QuoteModernView({
             </Button>
           </div>
           <div className="mt-4 flex items-center justify-center gap-2 opacity-30 grayscale hover:grayscale-0 transition-all cursor-default">
-            {/* eslint-disable-next-line no-restricted-syntax -- Artistic print preview: intentional micro branding text */}
-            <span className="text-[8px] font-black tracking-[0.2em] uppercase">
+            <span className="text-micro font-black tracking-[0.2em] uppercase">
               Built with heart by Moodstudio
             </span>
           </div>

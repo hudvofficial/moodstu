@@ -10,15 +10,20 @@
 
 /* Utility: hide scrollbar but keep scroll functionality */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE/Edge */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
 }
 .no-scrollbar::-webkit-scrollbar {
-  display: none;             /* Chrome/Safari */
+  display: none; /* Chrome/Safari */
 }
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* ══════════════════════════════════════
    2. MODAL BACKDROP
@@ -49,11 +54,11 @@
 }
 
 .inset-success {
-  box-shadow: inset 3px 0 0 var(--color-success, #22c55e);
+  box-shadow: inset 3px 0 0 var(--color-status-success);
 }
 
 .inset-warning {
-  box-shadow: inset 3px 0 0 var(--color-interactive, #ea580c);
+  box-shadow: inset 3px 0 0 var(--color-interactive);
 }
 
 /* ══════════════════════════════════════
@@ -67,6 +72,9 @@
 }
 .text-interactive-light {
   color: var(--color-interactive-light);
+}
+.text-text-weekend {
+  color: var(--color-text-weekend);
 }
 
 /* ══════════════════════════════════════
