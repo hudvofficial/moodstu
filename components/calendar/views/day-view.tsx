@@ -22,9 +22,11 @@ interface TimeSection {
   events: UnifiedCalendarEvent[];
 }
 
+const EMPTY_EVENTS: UnifiedCalendarEvent[] = [];
+
 export function DayView({ currentDate, eventsByDate, onEventClick, onCreateEvent }: DayViewProps) {
   const dateIso = format(currentDate, "yyyy-MM-dd");
-  const allEvents = eventsByDate.get(dateIso) || [];
+  const allEvents = eventsByDate.get(dateIso) ?? EMPTY_EVENTS;
   const today = isToday(currentDate);
   const dayTitle = format(currentDate, "EEEE, dd/MM/yyyy", { locale: vi });
   const lunar = getLunarDate(currentDate.getDate(), currentDate.getMonth() + 1, currentDate.getFullYear());

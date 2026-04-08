@@ -37,7 +37,7 @@ async function refreshAccessToken(
 }
 
 // Google Calendar Standard Colors Mapping
-const GOOGLE_COLORS: Record<string, string> = {
+export const GOOGLE_COLORS: Record<string, string> = {
   "1": "#7986cb", // Lavender
   "2": "#33b679", // Sage
   "3": "#8e24aa", // Grape

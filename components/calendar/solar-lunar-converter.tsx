@@ -112,7 +112,7 @@ export default function SolarLunarConverter({ isOpen, onClose }: Props) {
   return (
     <UnifiedModal isOpen={isOpen} onClose={onClose} size="sm" showCloseButton={false}>
       {/* Tab Switcher */}
-      <div className="bg-bg-hover rounded-lg p-1 flex relative mb-6">
+      <div className="bg-bg-hover rounded-lg p-1 flex relative mb-6 mt-4 lg:mt-6">
         <div
           className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-bg-card rounded-md shadow-sm transition-all duration-300"
           style={{ left: mode === "SolarToLunar" ? 4 : "calc(50% + 2px)" }}
@@ -141,27 +141,40 @@ export default function SolarLunarConverter({ isOpen, onClose }: Props) {
       <p className="text-caption text-text-muted font-semibold uppercase tracking-wider text-center mb-3">
         Nhập ngày {mode === "SolarToLunar" ? "Dương lịch" : "Âm lịch"}
       </p>
-      <div className="flex items-center gap-3 mb-2">
-        {[
-          { label: "Ngày", value: day, set: setDay },
-          { label: "Tháng", value: month, set: setMonth },
-          { label: "Năm", value: year, set: setYear },
-        ].map(({ label, value, set }, i) => (
-          <div key={label} className="flex-1 text-center">
-            {i > 0 && null}
-            {/* eslint-disable-next-line react/forbid-elements -- Number input with input-base, no Input SSOT exists */}
-            <input
-              type="number"
-              value={value}
-              onClick={(e) => e.currentTarget.select()}
-              onChange={(e) => set(Number(e.target.value))}
-              className="input-base text-center text-2xl font-bold py-3 w-full"
-            />
-            <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">
-              {label}
-            </span>
-          </div>
-        ))}
+      <div className="grid grid-cols-4 gap-3 mb-2">
+        <div className="col-span-1 text-center">
+          {/* eslint-disable-next-line react/forbid-elements */}
+          <input
+            type="number"
+            value={day}
+            onClick={(e) => e.currentTarget.select()}
+            onChange={(e) => setDay(Number(e.target.value))}
+            className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
+          />
+          <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Ngày</span>
+        </div>
+        <div className="col-span-1 text-center">
+          {/* eslint-disable-next-line react/forbid-elements */}
+          <input
+            type="number"
+            value={month}
+            onClick={(e) => e.currentTarget.select()}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
+          />
+          <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Tháng</span>
+        </div>
+        <div className="col-span-2 text-center">
+          {/* eslint-disable-next-line react/forbid-elements */}
+          <input
+            type="number"
+            value={year}
+            onClick={(e) => e.currentTarget.select()}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="input-base text-center text-amount px-0! [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
+          />
+          <span className="text-tiny text-text-muted font-medium mt-1 block uppercase">Năm</span>
+        </div>
       </div>
 
       {/* Leap Month Checkbox */}
@@ -188,7 +201,7 @@ export default function SolarLunarConverter({ isOpen, onClose }: Props) {
       </div>
 
       {/* Result Card */}
-      <div className="mt-2 pt-8 pb-5 px-5 bg-bg-hover rounded-lg text-center relative overflow-hidden">
+      <div className="mt-2 mb-6 pt-8 pb-5 px-5 bg-bg-hover rounded-lg text-center relative overflow-hidden">
         {result ? (
           <>
             <p className="text-caption text-text-muted font-semibold uppercase tracking-wider mb-2">

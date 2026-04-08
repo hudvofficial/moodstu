@@ -26,6 +26,7 @@
 
 @layer base {
   .input-base {
+    display: block;
     width: 100%;
     /* Longhand: cho phép Tailwind pl- pr- override từng phía */
     padding-top: 10px;
@@ -39,7 +40,9 @@
     font-size: var(--font-size-body-sm);
     color: var(--color-text-primary);
     outline: none;
-    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+    transition:
+      border-color 150ms ease-out,
+      box-shadow 150ms ease-out;
   }
 
   .input-base::placeholder {
@@ -54,6 +57,12 @@
   .input-base:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* Fix for native date/datetime-local inputs on Webkit where the calendar icon clings to text */
+  .input-base::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-left: auto;
   }
 
   /* Input selected state — V1 pattern: border highlight + bg tint */
@@ -142,7 +151,9 @@
   background: var(--color-bg-input);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color 150ms ease-out, transform 100ms ease-out;
+  transition:
+    background-color 150ms ease-out,
+    transform 100ms ease-out;
 }
 
 .icon-btn:hover {
@@ -295,7 +306,9 @@
   height: 27px;
   border-radius: 9999px;
   background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.1);
   transition: transform 200ms ease-out;
   will-change: transform;
   transform: translateX(2px);

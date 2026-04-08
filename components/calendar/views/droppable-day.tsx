@@ -41,13 +41,13 @@ function DroppableDayInner({
     <div 
       ref={setNodeRef}
       onClick={() => onDateClick?.(date)}
-      className={`min-h-30 max-h-40 border-r border-b border-border p-1.5 flex flex-col gap-1 transition-colors relative cursor-pointer hover:bg-bg-hover/50
+      className={`min-h-0 overflow-hidden border-r border-b border-border p-1.5 flex flex-col gap-1 transition-colors relative cursor-pointer hover:bg-bg-hover/50
         ${!isCurrentMonth ? "bg-bg-input/60 opacity-60" : ""}
         ${today ? "bg-primary/3" : ""}
         ${isOver ? "bg-primary/5 outline-2 outline-primary -outline-offset-2 z-10 rounded-sm" : ""}
       `}
     >
-      <div className="flex items-center justify-between px-1 shrink-0">
+      <div className="flex items-center justify-center gap-1 w-full shrink-0">
         <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full
           ${today ? "bg-primary text-white shadow-sm" : 
             !isCurrentMonth ? "text-text-muted font-medium" : "text-text-main"}
@@ -64,7 +64,7 @@ function DroppableDayInner({
         </span>
       </div>
       
-      <div className="flex-1 flex flex-col gap-1 overflow-hidden pb-1">
+      <div className="flex-1 min-h-0 flex flex-col gap-1 overflow-hidden pb-1">
         {visibleEvents.map((ev) => (
            <DraggableEvent key={ev.id} event={ev} onClick={() => onEventClick?.(ev)} />
         ))}

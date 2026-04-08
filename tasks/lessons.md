@@ -114,3 +114,18 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 97. **BẢO MẬT LUỒNG CHỈNH SỬA (UPDATE RBAC)** — Phải check Role/Ownership trên bản ghi CŨ trước khi merge payload update. Không được tin tưởng `payload.employee_id` từ Client vì User không có quyền hoàn toàn có thể truyền ID nhân sự khác để "vứt" công việc hoặc leo quyền. (VD: Lỗi Non-admin đổi calendar assignees).
 98. **XỬ LÝ EXTERNAL API "BEST EFFORT" PHẢI CÓ FEEDBACK** — Các luồng tích hợp như Google Calendar đồng bộ cần Catch lỗi để không block CRUD nội bộ, NHƯNG tuyệt đối KHÔNG ĐƯỢC im lặng nuốt lỗi (silently fail) bằng console.warn. Trả về field `warning` trong Data Action Result để UI chủ động popup thông báo Toast cảnh báo người dùng. Lỗi im lặng = Trải nghiệm tồi tệ.
 99. **LUÔN CHECK ĐIỀU KIỆN TRƯỚC KHI HIỂN THỊ TOGGLE EXTERNAL** — UI toggle liên quan đến cấu hình hệ thống (như Google Sync) BẮT BUỘC phải được evaluate dựa trên state Connect thực tế từ database (`google_calendar_auth`). Đừng "đóng mở vô điều kiện" rồi thả API fail ở dưới server. Mọi External Toggle đều phải có Gate check SWR/server actions.
+
+### Absolute Bounding Pattern (CSS Grid Height Lock) 
+- **Context**: Khi d�ng CSS Grid \minmax(0, 1fr)\ trong Flex container, c�c tracking sizes (chi?u cao c?t/h�ng) ��i khi b? 'b�ng' (stretch) l�n b?t ch?p \min-h-0\, do tr?nh duy?t t? n?i suy intrinsic min-content height. 
+- **Fix**: �p d?ng **Absolute Bounding Pattern**. C?u tr�c: 
+  1. Root: \<div className="flex-1 relative min-h-0">\ 
+  2. Child: \<div className="absolute inset-0 grid...">\ 
+  => T�ch Grid ra kh?i normal flow c?a Flexbox, �p bu?c Grid ph?i k? th?a chi?u cao v?t l? 100% t?nh ti?n, v� hi?u ho� ho�n to�n \min-content push height\.
+
+
+## Lesson: NO HOTFIXING (Rule V3)
+- Date: 2026-04-08
+- Trigger: User reported layout squeezing on DatePicker.
+- Mistake: Jumped straight to code (replaced Grid with Flex) without issuing a Plan for approval.
+- Rule Enforced: 'TUY?T �?I kh�ng fix ch?y... Plan d� ng?n 5 d?ng c?ng OK, nh�ng PH?I C� v� PH?I ��?C DUY?T'.
+- Action: Always create a Phase X plan, request approval securely, then only execute after the user types '/code phase-X'.

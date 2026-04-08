@@ -3,10 +3,13 @@
 import { withAuth } from "@/lib/auth_utils";
 import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
 import { createGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalendarEvent } from "@/lib/googleCalendarService";
+import { z } from "zod";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+const isoDateSchema = z.string().trim().min(1, "Ngày không hợp lệ").refine(val => !Number.isNaN(new Date(val).getTime()), "Định dạng ngày không hợp lệ");
 
 /**
  * Cập nhật ngày tháng thông qua thao tác Kéo thả (Drag and Drop) ở Lịch.
@@ -22,6 +25,14 @@ export async function updateDragDropDate(
   oldDateIso?: string, // Bắt buộc truyền nếu là schedule để tính toán delta shift
 ): Promise<ActionResult<boolean>> {
   return withAuth(async (supabase, userId) => {
+    // 0. Validate Input
+    const parsed = z.object({
+      eventId: z.string().trim().min(1, "Thiếu ID sự kiện"),
+      source: z.enum(["schedule", "task", "google"], { error: "Nguồn sự kiện không hợp lệ" }),
+      newDateIso: isoDateSchema,
+      oldDateIso: isoDateSchema.optional(),
+    }).parse({ eventId, source, newDateIso, oldDateIso });
+
     // 1. Phân quyền tĩnh RLS-Bypass Application Level
     const { data: employee } = await supabase
       .from("employees")
@@ -40,16 +51,16 @@ export async function updateDragDropDate(
     const isGlobalAdmin = role === "admin" || role === "manager";
 
     // 2. Logic cấm từ Spec Phase 02
-    if (source === "google") {
+    if (parsed.source === "google") {
       throw new Error("Không thể thao tác dời lịch đối với sự kiện Google.");
     }
 
     // 3. Logic Shift Ngày
-    if (source === "schedule") {
+    if (parsed.source === "schedule") {
       const { data: oldRecord } = await supabase
         .from("schedules")
         .select("employee_id, end_date, google_event_id")
-        .eq("id", eventId)
+        .eq("id", parsed.eventId)
         .single();
         
       if (!oldRecord) throw new Error("Không tồn tại dữ liệu sự kiện.");
@@ -58,12 +69,12 @@ export async function updateDragDropDate(
         throw new Error("Không có quyền dời lịch của thao tác người khác.");
       }
 
-      const updates: Record<string, string> = { event_date: newDateIso };
+      const updates: Record<string, string> = { event_date: parsed.newDateIso };
 
       // Chuyển dịch end_date nếu tồn tại bằng DeltaMs
-      if (oldRecord.end_date && oldDateIso) {
-        const oldTime = new Date(oldDateIso).getTime();
-        const newTime = new Date(newDateIso).getTime();
+      if (oldRecord.end_date && parsed.oldDateIso) {
+        const oldTime = new Date(parsed.oldDateIso).getTime();
+        const newTime = new Date(parsed.newDateIso).getTime();
         const currentEndTime = new Date(oldRecord.end_date).getTime();
 
         if (!isNaN(oldTime) && !isNaN(newTime) && !isNaN(currentEndTime)) {
@@ -72,7 +83,7 @@ export async function updateDragDropDate(
         }
       }
 
-      const { error } = await supabase.from("schedules").update(updates).eq("id", eventId);
+      const { error } = await supabase.from("schedules").update(updates).eq("id", parsed.eventId);
       if (error) throw new Error("Thao tác ghi Database thất bại: " + error.message);
       
       if (oldRecord.google_event_id) {
@@ -88,11 +99,11 @@ export async function updateDragDropDate(
       return true;
     }
 
-    if (source === "task") {
+    if (parsed.source === "task") {
       const { data: oldRecord } = await supabase
         .from("work_tasks")
         .select("assigned_to")
-        .eq("id", eventId)
+        .eq("id", parsed.eventId)
         .single();
         
       if (!oldRecord) throw new Error("Không tồn tại dữ liệu nhiệm vụ.");
@@ -101,7 +112,7 @@ export async function updateDragDropDate(
         throw new Error("Không có quyền dời nhiện vụ của người khác.");
       }
 
-      const { error } = await supabase.from("work_tasks").update({ deadline: newDateIso }).eq("id", eventId);
+      const { error } = await supabase.from("work_tasks").update({ deadline: parsed.newDateIso }).eq("id", parsed.eventId);
       if (error) throw new Error("Thao tác trạng cập nhật DB thất bại: " + error.message);
       return true;
     }
@@ -120,8 +131,23 @@ export type CalendarSchedulePayload = {
   sync_to_google?: boolean;
 };
 
+const calendarScheduleSchema = z.object({
+  eventId: z.string().trim().optional(),
+  title: z.string().trim().min(1, "Tiêu đề không được để trống"),
+  event_date: isoDateSchema,
+  end_date: z.string().trim().nullable().optional().refine(val => {
+    if (!val) return true;
+    return !Number.isNaN(new Date(val).getTime());
+  }, "Ngày kết thúc không hợp lệ"),
+  employee_id: z.string().trim().min(1, "Thiếu chuẩn ID nhân sự"),
+  color_id: z.string().trim().optional(),
+  sync_to_google: z.boolean().optional(),
+});
+
 export async function createCalendarEvent(payload: CalendarSchedulePayload): Promise<ActionResult<{ id: string; warning?: string }>> {
   return withAuth(async (supabase, userId) => {
+    const parsed = calendarScheduleSchema.parse(payload);
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -139,18 +165,18 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
     const isGlobalAdmin = role === "admin" || role === "manager";
 
     // Enforcement: Sale/Media can only create for themselves
-    if (!isGlobalAdmin && payload.employee_id !== empId) {
+    if (!isGlobalAdmin && parsed.employee_id !== empId) {
       throw new Error("Không có quyền tạo sự kiện cho nhân sự khác.");
     }
 
     let googleEventId: string | null = null;
     let warningMsg: string | undefined = undefined;
-    if (payload.sync_to_google) {
+    if (parsed.sync_to_google) {
       try {
         const gEvent = await createGoogleCalendarEvent({
-          summary: payload.title,
-          start: { dateTime: new Date(payload.event_date).toISOString() },
-          end: { dateTime: new Date(payload.end_date || payload.event_date).toISOString() },
+          summary: parsed.title,
+          start: { dateTime: new Date(parsed.event_date).toISOString() },
+          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
         });
         googleEventId = gEvent.id;
       } catch (err) {
@@ -160,12 +186,12 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
     }
 
     const insertData = {
-      event_type: payload.title,
-      event_date: payload.event_date,
-      end_date: payload.end_date || null,
-      employee_id: payload.employee_id,
+      event_type: parsed.title,
+      event_date: parsed.event_date,
+      end_date: parsed.end_date || null,
+      employee_id: parsed.employee_id,
       status: 'scheduled',
-      color_id: payload.color_id || 'blue',
+      color_id: parsed.color_id || 'blue',
       google_event_id: googleEventId
     };
 
@@ -182,9 +208,10 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
 }
 
 export async function updateCalendarEvent(payload: CalendarSchedulePayload): Promise<ActionResult<{ success: boolean; warning?: string }>> {
-  if (!payload.eventId) return { success: false, error: "Thiếu ID sự kiện" };
-
   return withAuth(async (supabase, userId) => {
+    const parsed = calendarScheduleSchema.parse(payload);
+    if (!parsed.eventId) throw new Error("Thiếu ID sự kiện");
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -204,7 +231,7 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
     const { data: oldRecord } = await supabase
       .from("schedules")
       .select("employee_id, google_event_id")
-      .eq("id", payload.eventId)
+      .eq("id", parsed.eventId)
       .single();
 
     if (!oldRecord) throw new Error("Không tìm thấy sự kiện");
@@ -213,7 +240,7 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
       throw new Error("Không có quyền sửa sự kiện của người khác.");
     }
 
-    if (!isGlobalAdmin && payload.employee_id && payload.employee_id !== oldRecord.employee_id) {
+    if (!isGlobalAdmin && parsed.employee_id && parsed.employee_id !== oldRecord.employee_id) {
       throw new Error("Không có quyền chuyển giao sự kiện cho nhân sự khác.");
     }
 
@@ -225,11 +252,11 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
       color_id: string;
       google_event_id?: string;
     } = {
-      event_type: payload.title,
-      event_date: payload.event_date,
-      end_date: payload.end_date || null,
-      employee_id: payload.employee_id || oldRecord.employee_id,
-      color_id: payload.color_id || 'blue',
+      event_type: parsed.title,
+      event_date: parsed.event_date,
+      end_date: parsed.end_date || null,
+      employee_id: parsed.employee_id || oldRecord.employee_id,
+      color_id: parsed.color_id || 'blue',
     };
 
     let warningMsg: string | undefined = undefined;
@@ -237,20 +264,20 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
     if (oldRecord.google_event_id) {
        try {
           await updateGoogleCalendarEvent(oldRecord.google_event_id, {
-            summary: payload.title,
-            start: { dateTime: new Date(payload.event_date).toISOString() },
-            end: { dateTime: new Date(payload.end_date || payload.event_date).toISOString() }
+            summary: parsed.title,
+            start: { dateTime: new Date(parsed.event_date).toISOString() },
+            end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
           });
        } catch (err) {
           warningMsg = err instanceof Error ? err.message : String(err);
           console.warn("Best effort Google Sync update failed:", warningMsg);
        }
-    } else if (payload.sync_to_google) {
+    } else if (parsed.sync_to_google) {
        try {
           const gEvent = await createGoogleCalendarEvent({
-             summary: payload.title,
-             start: { dateTime: new Date(payload.event_date).toISOString() },
-             end: { dateTime: new Date(payload.end_date || payload.event_date).toISOString() }
+             summary: parsed.title,
+             start: { dateTime: new Date(parsed.event_date).toISOString() },
+             end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
           });
           updateData.google_event_id = gEvent.id;
        } catch (err) {
@@ -262,7 +289,7 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
     const { error } = await supabase
       .from("schedules")
       .update(updateData)
-      .eq("id", payload.eventId);
+      .eq("id", parsed.eventId);
 
     if (error) throw new Error("Cập nhật sự kiện thất bại: " + error.message);
 
@@ -272,6 +299,8 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
 
 export async function deleteCalendarEvent(eventId: string): Promise<ActionResult<{ success: boolean; warning?: string }>> {
   return withAuth(async (supabase, userId) => {
+    const validEventId = z.string().trim().min(1, "Thiếu ID sự kiện").parse(eventId);
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -291,7 +320,7 @@ export async function deleteCalendarEvent(eventId: string): Promise<ActionResult
     const { data: oldRecord } = await supabase
       .from("schedules")
       .select("employee_id, google_event_id")
-      .eq("id", eventId)
+      .eq("id", validEventId)
       .single();
 
     if (!oldRecord) throw new Error("Không tìm thấy sự kiện");
@@ -303,7 +332,7 @@ export async function deleteCalendarEvent(eventId: string): Promise<ActionResult
     const { error } = await supabase
       .from("schedules")
       .delete()
-      .eq("id", eventId);
+      .eq("id", validEventId);
 
     if (error) throw new Error("Xoá sự kiện thất bại: " + error.message);
 
@@ -328,9 +357,20 @@ export async function deleteCalendarEvent(eventId: string): Promise<ActionResult
 // ==========================================
 export async function patchGoogleCalendarEvent(
   googleEventId: string, 
-  updates: Record<string, any>
+  updates: Record<string, unknown>
 ): Promise<ActionResult<{ success: boolean; warning?: string }>> {
   return withAuth(async (supabase, userId) => {
+    const validGoogleEventId = z.string().trim().min(1, "Thiếu ID sự kiện").parse(googleEventId);
+    
+    // Whitelist only valid Google colors (1-11)
+    const patchGoogleEventSchema = z.object({
+      colorId: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"], {
+        error: "Màu Google Calendar không hợp lệ"
+      })
+    }).strict();
+    
+    // Only extract whitelisted fields
+    const validatedUpdates = patchGoogleEventSchema.parse(updates);
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -344,7 +384,7 @@ export async function patchGoogleCalendarEvent(
     }
 
     try {
-      await updateGoogleCalendarEvent(googleEventId, updates);
+      await updateGoogleCalendarEvent(validGoogleEventId, validatedUpdates);
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) };

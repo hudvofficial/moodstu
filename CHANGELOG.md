@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.60] - 2026-04-08
+
+### Added
+
+- **Calendar V1 Audit Freeze**: Audited and stabilized Calendar Module (Phases 1-4).
+- **Zod Data Integrity**: Solidified `patchGoogleCalendarEvent` relying unconditionally on stricter schema validation configurations using `.strict()`, securing APIs against undocumented payload manipulations.
+- **Timezone Safety Protocol**: Phased out Javascript's native string manipulation mechanics (`.toISOString().split("T")`) in favor of global `date-fns` standards to address daylight shifting issues and local offset bugs on UI DatePicker rendering.
+
+### Fixed
+
+- **ESLint & Hook Constraints**: Corrected React `useMemo` dependency arrays by instituting out-of-component constant fallbacks (like `EMPTY_EVENTS`) resolving invalid lint warnings without `eslint-disable` circumventions.
+
 ## [1.1.59] - 2026-04-07
 
 ### Changed

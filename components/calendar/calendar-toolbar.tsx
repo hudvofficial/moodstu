@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, SlidersHorizontal, Plus, RefreshCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
 import SolarLunarConverter from "./solar-lunar-converter";
 import type { CalendarViewMode } from "@/types/calendar.types";
@@ -154,14 +154,14 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
             <Button
               variant="ghost"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className={`w-10 h-10 p-0 rounded-full relative ${
+              className={`w-10 h-10 p-0 rounded-full bg-bg-card shadow-sm border border-border/50 relative ${
                 hasActiveFilter || showMobileFilters
-                  ? "bg-primary/10 text-primary"
-                  : "text-text-muted"
+                  ? "bg-primary/10 text-primary border-primary/20"
+                  : "text-text-main"
               }`}
               aria-label="Bộ lọc"
             >
-              <SlidersHorizontal className="w-5 h-5" />
+              <SlidersHorizontal size={26} strokeWidth={2.5} className="shrink-0" />
               {hasActiveFilter && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
               )}
@@ -169,17 +169,10 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
             <Button
               variant="ghost"
               onClick={() => setIsConverterOpen(true)}
-              className="w-10 h-10 p-0 rounded-full text-warning hover:bg-warning/10"
+              className="w-10 h-10 p-0 rounded-full bg-bg-card shadow-sm border border-warning/20 text-warning hover:bg-warning/10"
               aria-label="Đổi Âm/Dương"
             >
-              <RefreshCcw className="w-5 h-5" />
-            </Button>
-            <Button
-              onClick={onNewEvent}
-              className="w-10 h-10 p-0 rounded-full shadow-sm"
-              aria-label="Tạo lịch trình"
-            >
-              <Plus className="w-5 h-5" />
+              <RefreshCcw size={26} strokeWidth={2.5} className="shrink-0" />
             </Button>
           </div>
         </div>

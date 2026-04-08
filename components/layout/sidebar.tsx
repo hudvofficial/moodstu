@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Role, ROLE_PERMISSIONS } from "@/types/roles";
 import { MODULES, GROUP_LABELS, getMenuGroups } from "@/lib/navigation";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { logout } from "@/app/actions/auth";
 import packageJson from "@/package.json";
@@ -144,24 +145,26 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
 
           {/* Logout */}
           <form action={logout}>
-            <button
+            <Button
               type="submit"
-              className="flex items-center justify-center w-8 h-8 rounded-sm text-text-muted hover:bg-error/5 hover:text-error transition-all group"
+              variant="ghost"
+              className="w-8 h-8 rounded-sm text-text-muted hover:bg-error/5 hover:text-error transition-all group"
               title="Đăng xuất"
             >
               <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-            </button>
+            </Button>
           </form>
         </div>
       </div>
 
       {/* Collapse Toggle Button (Desktop Only) */}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -right-3 top-20 w-6 h-6 bg-bg-card rounded-full items-center justify-center shadow-sm hover:shadow-md transition-shadow z-30 hidden lg:flex"
       >
         {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-primary" /> : <ChevronLeft className="w-3.5 h-3.5 text-primary" />}
-      </button>
+      </Button>
     </aside>
   );
 }

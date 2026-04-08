@@ -404,15 +404,11 @@ export default function DatePicker({
           ref={triggerRef}
           type="button"
           onClick={toggleOpen}
-          className={`w-full px-3 py-2.5 min-h-11 text-left text-xs leading-4 bg-elevated flex items-center justify-between group transition-colors ${isOpen ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border border-border hover:border-primary/50"} ${triggerClassName}`}
-          style={{ borderRadius: "var(--radius-sm)" }}
+          data-state={isOpen ? "open" : "closed"}
+          className={`input-base flex items-center justify-between group transition-colors text-left ${isOpen ? "border-primary ring-2 ring-primary/20 bg-primary/5" : ""} ${triggerClassName || ""}`}
         >
           <span
-            className={
-              selectedDate
-                ? "text-text-main font-medium"
-                : "text-text-muted font-medium"
-            }
+            className={`font-medium truncate mr-2 ${selectedDate ? "text-text-main" : "text-text-muted"}`}
           >
             {selectedDate
               ? format(selectedDate, "dd/MM/yyyy", { locale: vi })

@@ -1,40 +1,56 @@
-# 💡 BRIEF: Tối Tưu Hóa Services Detail V2 (Standardization & Cross-Platform UX)
+# 💡 BRIEF: Đồng bộ màu sắc sự kiện Google Calendar lên giao diện Mood Studio
 
-**Ngày cập nhật:** 2026-03-31
-**Phạm vi:** `/services/[ID]` & toàn bộ `components/services/form/*`
+**Ngày tạo:** 08/04/2026
+**Workflow:** /brainstorm
+**Tình trạng:** Đang thảo luận ý tưởng
 
 ---
 
-## 1. VẤN ĐỀ CẦN GIẢI QUYẾT (THE PROBLEM)
-Hệ thống Form chi tiết Dịch vụ hiện tại đang vi phạm nghiệm trọng các thiết kế Kiến trúc (Architecture) và Tiêu chuẩn Thiết kế (Design Guidelines) của hệ thống Mood Studio, dẫn đến:
-1. **Rác DOM & Rủi Ro Re-render:** Tái lặp 3 bộ Nút Lưu (Save) cho các màn hình khác nhau, code HTML & Tailwind quá nhiều, thiếu tách bạch.
-2. **Kém Thân Thiện Trên Mobile (UX Flaws):** Người dùng điện thoại không thể xem được phần "Bản xem trước Báo Giá" (`<QuotePreview>`), và thanh Sticky Button dưới cùng đè lên vùng Safe-Area của hệ điều hành.
-3. **Mất Đồng Bộ Giao Diện:** Viết cứng Input, search box, các thẻ `<button>` thủ công mà không tái sử dụng thư viện UI Components chung của toàn hệ thống (Thiếu tính `compernance share`).
-4. **Lỗi Tiềm Ẩn State Array:** Xử lý thêm bớt dịch vụ gói (Bundle) dựa trên Array Index thay vì ID, vi phạm nguyên tắc State Management rủi ro cao.
+## 1. VẤN ĐỀ CẦN GIẢI QUYẾT
+Hiện tại, trên Lưới Lịch (Calendar Grid) của Mood Studio, mọi sự kiện kéo từ Google về đều bị "ép" chung một màu vàng hổ phách (`bg-amber-50`), có kèm logo "G". Mặc dù điều này giúp dễ phân biệt với sự kiện chuẩn của Mood, nó lại đánh mất **mã màu gốc** mà sếp đã phân bổ cẩn thận bên Google Calendar (ví dụ màu Húng quế, Trái chuối, Oải hương...). Điều này gây khó khăn khi sếp muốn dùng màu sắc để phân loại dự án một cách trực quan trên lịch.
 
-## 2. GIẢI PHÁP ĐỀ XUẤT (THE SOLUTION)
-Đại tu lại toàn bộ khu vực chỉnh sửa/thêm mới dịch vụ, tuân thủ **Khung Kiến Trúc Chuẩn Vàng (Gold Standard):**
+## 2. GIẢI PHÁP ĐỀ XUẤT
+**Bê nguyên bảng màu (Color Tokens) của Google Calendar đập thẳng vào thẻ sự kiện (Event Card) trên Mood Studio!**
 
-- **Quy hoạch Layout chuẩn:** Bao trùm bằng `<FullpageFormShell>` để tự chia lưới `8/4` thông minh mà không cần code Tailwind.
-- **Hợp nhất Nút Bấm (Dry Components):** Đưa Nút Action thành Component duy nhất, tự động thả vào Right-Sidebar nếu là PC, hoặc thành Sticky Safe-Area ở Mobile.
-- **Phục hồi Tính Năng Mobile:** Mang màn `<QuotePreview>` về lại với Mobile thông qua thiết kế Cuộn ngang/Accordion phía trên khối xác nhận Tùy chọn (để KH chốt tổng tiền trước khi Save).
-- **Phẫu Thuật State:** Bóc tách mọi Logic API thành các Custom Hook riêng (VD: `useServiceSearch`), và đổi hệ thống xoá Bundle Items sang chuẩn dùng Stable Keys (`item.id`).
+Khi hệ thống tải sự kiện từ API của Google về:
+- Đọc mã `colorId` của Google (từ 1 đến 11).
+- Chuyển thành đúng chuẩn Token Hex Code tương ứng.
+- Sơn lại thẻ sự kiện bằng màu nguyên bản thay vì dùng màu fake `bg-amber-50`.
 
-## 3. TIÊU CHUẨN KỸ THUẬT (TECHNICAL STANDARDS)
-### 🚀 MVP (Bắt buộc đáp ứng):
-- [ ] Tuân thủ tuyệt đối chuẩn Bo Góc (Radius Heirarchy: `rounded-soft-2xl` cho vỏ Form, `rounded-lg` cho nội tại List).
-- [ ] Gỡ sạch mọi nút HTML thường, thay 100% bằng shared `<Button>`.
-- [ ] Xoá sạch thẻ `<div className="lg:hidden ...">` đang kẹp Duplicate nút Save.
-- [ ] Chèn Code chặn `e.stopPropagation()` ở Modal Submit Form để triệt tiêu Event Bubbling.
-- [ ] Cắt (`Cap`) logic số lượng (Quantity) gắt gao ngay trong onChange: `Math.max(1, value)`. 
+## 3. INVENTORY: TÀI SẢN TOKEN ĐANG CÓ
+Dạ thưa sếp, em **CÓ SẴN** toàn bộ 11 token màu gốc của hệ thống Google Event Color API. Em check trong kho `lib/utils/calendar-utils.ts` thì đây là bảng quy chiếu:
 
-### 🎁 Phase 2 (Nên có thêm):
-- [ ] Hiển thị Component Tóm tắt nhanh trên Mobile cho Nút Save (tổng tiền chốt).
-- [ ] Tối ưu hóa API Call cho khung Search Dịch vụ (Toast thay vì console.error).
+| ID | Nhãn Google (Label) | Hex Code (Tailwind) | Trực quan màu |
+|:---|:---|:---|:---|
+| 1 | Lavender (Hoa oải hương) | `#7986cb` | Tím pastel |
+| 2 | Sage (Cây xô thơm) | `#33b679` | Xanh lục nhạt |
+| 3 | Grape (Quả nho) | `#8e24aa` | Tím đậm |
+| 4 | Flamingo (Hồng hạc) | `#e67c73` | Hồng cam |
+| 5 | Banana (Trái chuối) | `#f6bf26` | Vàng nghệ (Trong ảnh sếp gửi là màu này) |
+| 6 | Tangerine (Quýt) | `#f4511e` | Cam đậm |
+| 7 | Peacock (Con công) | `#039be5` | Xanh da trời đậm |
+| 8 | Graphite (Than chì) | `#616161` | Xám tối (Màu của sự kiện Sara MC) |
+| 9 | Blueberry (Việt quất) | `#3f51b5` | Xanh dương đậm |
+| 10 | Basil (Húng quế) | `#0b8043` | Xanh lá đậm |
+| 11 | Tomato (Cà chua) | `#d50000` | Đỏ |
 
-## 4. CHIẾN LƯỢC ĐA NỀN TẢNG (CROSS-PLATFORM STRATEGY)
-- **Desktop (1440px+):** Đổ Layout trải rộng bề ngang, tận dụng phần đất trống bên phải (1/3 màn hình) làm Sticky Panel báo cáo tức thì (Real-time Preview).
-- **Mobile iOS/Android (375px):** Đổ mọi Widget thành cấu trúc Thác nước (Vertical Stack). Ghim cụm Nút xử lý chính xuống cạnh đáy màn hình có chừa ranh giới hệ điều hành (`pb-safe`).
+## 4. TÙY CHỌN HIỂN THỊ (SẾP QUYẾT ĐỊNH)
+
+Lúc đưa các màu này ra Lưới Lịch, sếp muốn theo Style nào?
+
+1️⃣ **Style "Solid" (Giống y hệt Google Calendar sếp vừa chụp):**
+   - Background đậm màu (Solid Hex).
+   - Chữ màu Trắng (`#ffffff`).
+   - *Ưu điểm:* Cực kỳ nổi bật, nhìn phát biết ngay event Google. Giữ độ nguyên bản 100%.
+
+2️⃣ **Style "Pastel / Soft" (Giống giao diện Mood hiện tại):**
+   - Lấy mã màu Google nhưng làm mờ đi một chút (Opacity ~15% làm Background).
+   - Chữ xài lại màu đậm của Google.
+   - *Ưu điểm:* Đồng bộ với sự mềm mại của phần còn lại của Mood Studio (Hợp đồng, Task...). Không bị chói mắt.
 
 ## 5. BƯỚC TIẾP THEO
-→ Review bản **Implementation Plan** và bắt đầu quá trình `/code` để tuốt lại toàn bộ 6 file liên đới.
+Sếp chốt cho em:
+- **Có muốn làm vụ đồng bộ màu này không?**
+- Nếu làm, sếp chọn **Style Solid** mạnh mẽ y hệt Google hay **Style Pastel** cho hợp mắt Mood?
+
+Chốt xong sếp hô `/plan` là em lên bản vẽ kiến trúc ngay!

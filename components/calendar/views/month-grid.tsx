@@ -117,9 +117,9 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
       onDragStart={handleDragStart} 
       onDragEnd={handleDragEnd}
     >
-      <div className="w-full h-full flex flex-col overflow-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col relative overflow-hidden">
         {/* Header Days */}
-        <div className="grid grid-cols-7 bg-bg-input border-b border-border sticky top-0 z-10">
+        <div className="grid grid-cols-7 bg-bg-input border-b border-border sticky top-0 z-10 shrink-0">
           {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => (
             <div 
               key={day} 
@@ -134,8 +134,12 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
         </div>
         
         {/* Grid Body */}
-        {/* repeat auto-fill để fit Grid chuẩn nhất cho các loại màn hình (minimum 120px 1 ô) */}
-        <div className="flex-1 grid grid-cols-7 grid-rows-[repeat(auto-fill,minmax(120px,1fr))] auto-rows-[minmax(120px,1fr)]">
+        {/* Absolute Container để chống phình To Height do tính chất min-content của Flexbox */}
+        <div className="flex-1 relative min-h-0">
+          <div className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${
+             daysInGrid.length === 28 ? 'grid-rows-[repeat(4,25%)]' :
+             daysInGrid.length === 42 ? 'grid-rows-[repeat(6,16.666667%)]' : 'grid-rows-[repeat(5,20%)]'
+          }`}>
           {daysInGrid.map((date) => {
             const dateIso = format(date, "yyyy-MM-dd");
             const isCurrentMonth = isSameMonth(date, currentDate);
@@ -157,6 +161,7 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
               />
             );
           })}
+          </div>
         </div>
       </div>
       

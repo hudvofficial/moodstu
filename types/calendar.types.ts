@@ -15,9 +15,10 @@ export interface UnifiedCalendarEvent {
   groupKey: string | null; // format: "{contractId}_{ISO_Date}"
   groupLabel: string | null;
   colorToken: string; // Tailwind class
+  backgroundColor?: string | null; // Google event hex color from API
   googleEventId: string | null;
   originalDateField: string; // 'event_date' | 'start_time' | 'deadline'
-  originalGoogleEvent?: { id: string; htmlLink?: string } | null;
+  originalGoogleEvent?: { id: string; htmlLink?: string; colorId?: string } | null;
   workTypeLabel?: string;
   customerName?: string | null;
 }

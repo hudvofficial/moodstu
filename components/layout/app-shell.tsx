@@ -16,6 +16,11 @@ import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 // Routes that hide BOTH Header + BottomNav (currently unused)
 const FULLPAGE_PATTERNS: RegExp[] = [];
 
+// Routes that use absolute viewports (ban scrolling)
+const APP_VIEW_PATTERNS = [
+  /^\/calendar(\/.*)?$/,
+];
+
 // Routes that keep Header (via HeaderSlotsContext) but hide BottomNav
 // (form pages have their own fixed footer: Hủy / Lưu nháp / Tạo HĐ)
 const FORM_PAGE_PATTERNS = [
@@ -44,6 +49,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
   const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
+  const isAppView = APP_VIEW_PATTERNS.some(p => p.test(pathname));
   const isFormPage = FORM_PAGE_PATTERNS.some(p => p.test(pathname));
   const isNoPadding = NO_PADDING_PATTERNS.some(p => p.test(pathname));
 
@@ -99,14 +105,15 @@ export function AppShell({ children, role, userName }: AppShellProps) {
               ref={mainRef}
               id="main-scroll"
               className={cn(
-              "flex-1 overflow-y-auto scroll-smooth",
+              "flex-1 scroll-smooth flex flex-col min-h-0",
+              isAppView ? "overflow-hidden" : "overflow-y-auto",
               isFullpage
                 ? "" // FullpageFormShell handles its own padding
                 : isFormPage
                   ? "px-2 py-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
                   : isNoPadding
-                    ? "pb-28 lg:pb-6" // Keep only bottom padding for BottomNav spacing
-                    : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-28 lg:pb-6",
+                    ? "pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6" // Keep only bottom padding for BottomNav spacing
+                    : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
                 {children}

@@ -18,8 +18,8 @@ export default async function CalendarPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col p-4">
-      <div className="flex-1 min-h-0 bg-bg-card rounded-xl shadow-md overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col p-4">
+      <div className="flex-1 min-h-0 flex flex-col bg-bg-card rounded-xl shadow-md overflow-hidden">
         <CalendarWrapper userRole={context.shellRole} currentUserId={context.employee?.id} />
       </div>
     </div>

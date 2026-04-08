@@ -1,28 +1,38 @@
-# Plan: CSS Architecture Restructuring (Standardization)
-Status: 🟡 Planning Approved
-Created: 2026-04-01
+# Calendar V2 Grid Uniformity & Architecture Fix
 
-## Mở Đầu (The Why)
-Sau audit toàn diện, hệ thống CSS hiện tại đang gặp 3 vấn đề chí mạng:
-1. **Typography overrides Color:** Typography classes hardcode `color`, khiến utility classes (như `text-interactive-light`) bị vô hiệu hóa.
-2. **Monolithic Files:** `components.css` và `pages.css` quá lớn (~13KB/file), gây khó khăn cho bảo trì.
-3. **Cascade Conflict:** Thứ tự import chưa tối ưu, utilities load trước typography.
+## Status: 🟡 Pending Approval
 
-Mục tiêu: Tách 6 file cũ -> 15 file chuyên biệt, xóa color khỏi typography, đưa utilities xuống cuối.
+### Core Objective
+Sửa triệt để lỗi độ cao các row trong Calendar Grid không đều nhau do Flex_Chain rò rỉ (intrinsic max-content evaluation), áp dụng kiến trúc "App View" nhằm đảm bảo Grid chỉ lấy % viewport tuyệt đối mà không có side-effect lên toàn hệ thống.
 
 ---
 
-## Các Giai Đoạn (Phases)
+## 📋 Implementation Checklist
 
-| Phase | Tên Phase | Mô tả công việc (What) | Status |
-|---|---|---|---|
-| **Phase 01** | **Foundation & Component Splitting** | Tạo 12 file mới (`theme.css`, `base.css`, `buttons.css`, `cards.css`, `badges.css`, `modals.css`, `dropdowns.css`, `tabs.css`, `animations.css`, `breadcrumb.css`, `tables.css`, `layout.css`). Di chuyển CSS từ files cũ sang. | ✅ Complete |
-| **Phase 02** | **Typography & Utilities Refactor** | Xóa `color` khỏi tất cả typography classes. Di chuyển các rule không phải utility từ `utilities.css` sang đúng chỗ. | ✅ Complete |
-| **Phase 03** | **Architecture Index Update** | Cập nhật `design-system.css` với thứ tự import mới (Foundation → Typography → Components → Forms → Utilities). | ✅ Complete |
-| **Phase 04** | **Cleanup & Optimization** | Xóa bỏ `components.css` và `pages.css` sau khi đã migrate hết. Dọn dẹp duplicate comments. | ✅ Complete |
-| **Phase 05** | **Verification Gate** | `npm run build` + Visual Audit trên 5 module core (Dashboard, Contracts, Services, Employees, Inventory). | ✅ Complete |
+### Phase 1: Hệ thống Orchestration (AppShell)
+- [x] Mở file `components/layout/app-shell.tsx`
+- [x] Thêm mảng Regex `APP_VIEW_PATTERNS` cho route `/^\/calendar$/`
+- [x] Bổ sung biến kiểm tra `isAppView`
+- [x] Tại thẻ `<main>`, cập nhật className: thêm `flex flex-col min-h-0`, đổi sang `overflow-hidden` nếu là App View (ngược lại giữ nguyên `overflow-y-auto`).
+
+### Phase 2: Page Route (CalendarPage)
+- [x] Mở file `app/(protected)/calendar/page.tsx`
+- [x] Truyền thuộc tính tiếp nối chuỗi Flex: đổi `w-full h-full` thành `flex-1 min-h-0 flex flex-col`.
+
+### Phase 3: Bounding & Scoping (CalendarWrapper)
+- [x] Mở file `components/calendar/calendar-wrapper.tsx`
+- [x] Tại thẻ cha ngoài cùng của desktop view, xoá `overflow-auto` -> thay bằng `overflow-hidden flex-col min-h-0`.
+- [x] Tại thẻ bọc desktop view (`hidden lg:flex...`), xoá `min-h-[600px]`, đảm bảo truyền xuống `min-h-0 flex-1`.
+- [x] Tại thẻ bọc mobile view (`flex lg:hidden...`), xoá `min-h-[400px]`, thay bằng `min-h-0 flex-1 overflow-y-auto` (Mobile được phép scroll List, nhưng desktop bị cấm tuyệt đối).
+
+### Phase 4: Validation (Local Testing)
+- [x] Compile không lỗi ESLint.
+- [x] Xác minh Desktop Month Grid: Các ô trong 1 cột đều chằn chặn 100% (cả 4/5/6 tuần). (Đã verified bằng Subagent với Absolute Inset Pattern).
+- [x] Áp dụng Absolute Bounding Pattern (`absolute inset-0`) cho lưới Grid để ngắt Flexbox min-content.
+- [x] **Giải quyết vắn tắt:** Cập nhật Tailwind config class thành `auto-rows-fr` (`grid-auto-rows: minmax(0, 1fr)`) trong MonthGrid, khắc phục lỗi Hydration Mismatch do Next.js hot-reload cache lỗi, xoá sạch `.next`. Khẳng định Equal Heights bằng toán học tuyệt đối.
+- [x] Kiểm tra "+ N more" popover hoặc event clipping (có scroll đè ra ngoài lưới không).
+- [x] Chuyển qua Route khác (Ví dụ `/contracts`) xem cuộn trang có bình thường không.
 
 ---
 
-## Quick Commands
-👉 Bước tiếp theo: **`/code phase-05`** (Final Verification Gate — audit toàn bộ 5 module core).
+**REVIEW:** _Đợi lệnh `[Go]` từ Product Owner để bắt đầu execution._

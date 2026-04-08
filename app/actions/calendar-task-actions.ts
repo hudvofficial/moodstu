@@ -2,10 +2,13 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
+import { z } from "zod";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+const isoDateSchema = z.string().trim().min(1, "Ngày không hợp lệ").refine(val => !Number.isNaN(new Date(val).getTime()), "Định dạng ngày không hợp lệ");
 
 /**
  * §1.3a — Giao việc nhanh: Assign task cho nhân viên
@@ -16,6 +19,11 @@ export async function assignCalendarTask(
   assignToEmployeeId: string,
 ): Promise<ActionResult<boolean>> {
   return withAuth(async (supabase, userId) => {
+    const parsed = z.object({
+      taskId: z.string().trim().min(1, "Thiếu ID công việc"),
+      assignToEmployeeId: z.string().trim().min(1, "Thiếu ID nhân sự nhận việc")
+    }).parse({ taskId, assignToEmployeeId });
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -31,15 +39,28 @@ export async function assignCalendarTask(
 
     const isGlobalAdmin = role === "admin" || role === "manager";
 
-    // Non-admin can only assign to self
-    if (!isGlobalAdmin && assignToEmployeeId !== employee.id) {
-      throw new Error("Không có quyền giao việc cho người khác.");
+    const { data: oldTask } = await supabase
+      .from("work_tasks")
+      .select("assigned_to")
+      .eq("id", parsed.taskId)
+      .single();
+
+    if (!oldTask) throw new Error("Không tìm thấy nhiệm vụ.");
+
+    // Non-admin can only assign to self if task is unassigned or already assigned to them
+    if (!isGlobalAdmin) {
+      if (oldTask.assigned_to !== null && oldTask.assigned_to !== employee.id) {
+        throw new Error("Không có quyền nhận nhiệm vụ của người khác.");
+      }
+      if (parsed.assignToEmployeeId !== employee.id) {
+        throw new Error("Không có quyền giao việc cho người khác.");
+      }
     }
 
     const { error } = await supabase
       .from("work_tasks")
-      .update({ assigned_to: assignToEmployeeId })
-      .eq("id", taskId);
+      .update({ assigned_to: parsed.assignToEmployeeId })
+      .eq("id", parsed.taskId);
 
     if (error) throw new Error("Lỗi giao việc: " + error.message);
 
@@ -56,6 +77,11 @@ export async function checkEmployeeAvailability(
   dateIso: string,
 ): Promise<ActionResult<{ hasConflict: boolean; conflicts: { id: string; title: string; start: string }[] }>> {
   return withAuth(async (supabase, userId) => {
+    const parsed = z.object({
+      employeeId: z.string().trim().min(1, "Thiếu ID nhân sự"),
+      dateIso: isoDateSchema
+    }).parse({ employeeId, dateIso });
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -73,15 +99,15 @@ export async function checkEmployeeAvailability(
     const { data: schedules } = await supabase
       .from("schedules")
       .select("id, event_type, event_date")
-      .eq("employee_id", employeeId)
-      .eq("event_date", dateIso);
+      .eq("employee_id", parsed.employeeId)
+      .eq("event_date", parsed.dateIso);
 
     // Check tasks on the same deadline
     const { data: tasks } = await supabase
       .from("work_tasks")
       .select("id, work_type, deadline")
-      .eq("assigned_to", employeeId)
-      .eq("deadline", dateIso);
+      .eq("assigned_to", parsed.employeeId)
+      .eq("deadline", parsed.dateIso);
 
     const conflicts = [
       ...(schedules || []).map(s => ({
@@ -92,7 +118,7 @@ export async function checkEmployeeAvailability(
       ...(tasks || []).map(t => ({
         id: t.id,
         title: t.work_type || "Nhiệm vụ",
-        start: t.deadline || dateIso,
+        start: t.deadline || parsed.dateIso,
       })),
     ];
 
@@ -116,6 +142,13 @@ export async function updateCalendarTaskDetails(
   },
 ): Promise<ActionResult<{ updated: boolean; autoPrintTriggered: boolean }>> {
   return withAuth(async (supabase, userId) => {
+    const validTaskId = z.string().trim().min(1, "Thiếu ID công việc").parse(taskId);
+    const validatedUpdates = z.object({
+      status: z.string().trim().min(1, "Trạng thái không hợp lệ").optional(),
+      deadline: isoDateSchema.optional(),
+      assigned_to: z.string().trim().min(1, "Người nhận việc không hợp lệ").optional()
+    }).parse(updates);
+
     const { data: employee } = await supabase
       .from("employees")
       .select("id, role")
@@ -135,7 +168,7 @@ export async function updateCalendarTaskDetails(
     const { data: oldTask } = await supabase
       .from("work_tasks")
       .select("assigned_to, contract_id, work_type, status")
-      .eq("id", taskId)
+      .eq("id", validTaskId)
       .single();
 
     if (!oldTask) throw new Error("Không tìm thấy nhiệm vụ.");
@@ -146,11 +179,11 @@ export async function updateCalendarTaskDetails(
 
     // Build update payload (only changed fields)
     const updatePayload: Record<string, string> = {};
-    if (updates.status) updatePayload.status = updates.status;
-    if (updates.deadline) updatePayload.deadline = updates.deadline;
-    if (updates.assigned_to) {
+    if (validatedUpdates.status) updatePayload.status = validatedUpdates.status;
+    if (validatedUpdates.deadline) updatePayload.deadline = validatedUpdates.deadline;
+    if (validatedUpdates.assigned_to) {
       if (!isGlobalAdmin) throw new Error("Không có quyền chuyển giao nhiệm vụ.");
-      updatePayload.assigned_to = updates.assigned_to;
+      updatePayload.assigned_to = validatedUpdates.assigned_to;
     }
 
     if (Object.keys(updatePayload).length === 0) {
@@ -160,24 +193,23 @@ export async function updateCalendarTaskDetails(
     const { error } = await supabase
       .from("work_tasks")
       .update(updatePayload)
-      .eq("id", taskId);
+      .eq("id", validTaskId);
 
     if (error) throw new Error("Cập nhật nhiệm vụ thất bại: " + error.message);
 
     // Auto-print logic: When hậu kỳ tasks complete → check if all tasks done
     let autoPrintTriggered = false;
     const isPostProduction = ["retouch", "dung_phim", "hau_ky_anh"].includes(oldTask.work_type || "");
-    const isCompleting = updates.status === "hoan_thanh" && oldTask.status !== "hoan_thanh";
+    const isCompleting = validatedUpdates.status === "hoan_thanh" && oldTask.status !== "hoan_thanh";
 
     if (isPostProduction && isCompleting && oldTask.contract_id) {
-      // Check if all tasks for this contract are now complete
       const { data: pendingTasks } = await supabase
         .from("work_tasks")
         .select("id")
         .eq("contract_id", oldTask.contract_id)
         .neq("status", "hoan_thanh")
         .neq("status", "da_huy")
-        .neq("id", taskId)
+        .neq("id", validTaskId)
         .limit(1);
 
       if (!pendingTasks || pendingTasks.length === 0) {

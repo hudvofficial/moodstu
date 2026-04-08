@@ -14,6 +14,8 @@ import { GOOGLE_COLORS } from "@/lib/utils/calendar-utils";
 import { ExternalLink, Trash, Edit2, FileText } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import DatePicker from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 interface EventFormDrawerProps {
   open: boolean;
@@ -49,12 +51,11 @@ export function EventFormDrawer({
     if (isoString) {
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return "";
-      return d.toISOString().slice(0, 16);
+      return format(d, "yyyy-MM-dd'T'HH:mm");
     }
     if (date) {
       if (isNaN(date.getTime())) return "";
-      const offset = date.getTimezoneOffset() * 60000;
-      return (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+      return format(date, "yyyy-MM-dd'T'HH:mm");
     }
     return "";
   };
@@ -84,10 +85,12 @@ export function EventFormDrawer({
          // If we open an existing event, default to view mode
          setIsEditMode(false);
          if (source === "google") {
-            // Mapping from tailwind class back to Google format isn't strictly necessary for patching, 
-            // but we can try to find by color in GOOGLE_COLORS if we wanted to
-            const match = GOOGLE_COLORS.find(c => event.colorToken?.includes(c.color.replace('bg-', '')));
-            if (match) setGoogleColor(match.id);
+            if (event.originalGoogleEvent?.colorId) {
+               setGoogleColor(event.originalGoogleEvent.colorId);
+            } else {
+               const match = GOOGLE_COLORS.find(c => event.colorToken?.includes(c.color.replace('bg-', '')));
+               setGoogleColor(match ? match.id : "9");
+            }
          }
       } else {
          const initialDate = defaultDate ? defaultDate : new Date();
@@ -119,8 +122,8 @@ export function EventFormDrawer({
           toast.success("Đã cập nhật màu sự kiện trên Google Calendar!");
           onSuccess?.();
           onOpenChange(false);
-        } catch (err: any) {
-          setError(err.message || "Lỗi giao tiếp máy chủ.");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
         }
       });
       return;
@@ -147,8 +150,8 @@ export function EventFormDrawer({
 
           onSuccess?.();
           onOpenChange(false);
-       } catch (err: any) {
-          setError(err.message || "Lỗi giao tiếp máy chủ.");
+       } catch (err) {
+          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
        }
     });
   };
@@ -164,8 +167,8 @@ export function EventFormDrawer({
            toast.success("Đã xoá sự kiện!");
            onSuccess?.();
            onOpenChange(false);
-       } catch (err: any) {
-          setError(err.message || "Lỗi giao tiếp máy chủ.");
+       } catch (err) {
+          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
        }
     });
   };
@@ -254,25 +257,50 @@ export function EventFormDrawer({
   return (
     <Drawer isOpen={open} onClose={() => onOpenChange(false)} title={isEditing ? (source === "google" ? "Sửa màu Google Event" : "Sửa Sự kiện") : "Tạo Lịch trình"} width="480px">
         <form onSubmit={handleSubmit} className="flex flex-col h-full space-y-4">
-          {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm shrink-0">{error}</div>}
+          {error && <div className="error-text shrink-0">{error}</div>}
           
           <div className="space-y-4 overflow-y-auto pb-4">
             {source !== "google" && (
                <>
                  <div className="space-y-2 shrink-0">
-                   <label className="text-sm font-medium">Tiêu đề Sự kiện</label>
+                   <label className="label-base">Tiêu đề Sự kiện</label>
                    <Input placeholder="VD: Chụp Pre-Wedding" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} disabled={isPending || source === "task"} required />
                  </div>
 
-                 <div className="grid grid-cols-2 gap-4 shrink-0">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Thời gian bắt đầu</label>
-                      <Input type="datetime-local" value={formData.event_date} onChange={(e) => setFormData({...formData, event_date: e.target.value})} disabled={isPending} required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Thời gian kết thúc</label>
-                      <Input type="datetime-local" value={formData.end_date || ""} onChange={(e) => setFormData({...formData, end_date: e.target.value})} disabled={isPending} />
-                    </div>
+                 <div className="form-grid-2col shrink-0">
+                    <DatePicker 
+                      label="Ngày bắt đầu"
+                      compact
+                      value={formData.event_date.split("T")[0]}
+                      onChange={(d) => setFormData({ ...formData, event_date: `${d}T${formData.event_date.split("T")[1] || "09:00"}` })}
+                      className="w-full min-w-0"
+                    />
+                    <Input 
+                      label="Giờ bắt đầu"
+                      type="time" 
+                      value={formData.event_date.split("T")[1] || "09:00"}
+                      onChange={(e) => setFormData({ ...formData, event_date: `${formData.event_date.split("T")[0] || format(new Date(), "yyyy-MM-dd")}T${e.target.value}` })}
+                      disabled={isPending} 
+                      required 
+                    />
+                 </div>
+
+                 <div className="form-grid-2col shrink-0">
+                    <DatePicker 
+                      label="Ngày kết thúc"
+                      compact
+                      placeholder="Không"
+                      value={formData.end_date ? formData.end_date.split("T")[0] : ""}
+                      onChange={(d) => setFormData({ ...formData, end_date: d ? `${d}T${formData.end_date?.split("T")[1] || "10:00"}` : "" })}
+                      className="w-full min-w-0"
+                    />
+                    <Input 
+                      label="Giờ kết thúc"
+                      type="time" 
+                      value={formData.end_date?.split("T")[1] || ""}
+                      onChange={(e) => setFormData({ ...formData, end_date: formData.end_date ? `${formData.end_date.split("T")[0]}T${e.target.value}` : "" })}
+                      disabled={isPending || !formData.end_date} 
+                    />
                  </div>
 
                  <div className="space-y-2 shrink-0">
@@ -284,7 +312,7 @@ export function EventFormDrawer({
             {/* Màu Google Event (Dirty-field patch) */}
             {source === "google" && (
                <div className="space-y-3 shrink-0">
-                  <label className="text-sm font-medium block">Màu sắc sự kiện trên Google</label>
+                  <label className="label-base block">Màu sắc sự kiện trên Google</label>
                   <div className="flex flex-wrap gap-2">
                      {GOOGLE_COLORS.map(c => (
                         <div
@@ -311,7 +339,7 @@ export function EventFormDrawer({
             )}
           </div>
 
-          <div className="mt-auto pt-4 flex items-center justify-between gap-3 shrink-0">
+          <div className="form-actions mt-auto pt-4 shrink-0">
             {isEditing && event?.editable && source === "schedule" ? (
                <Button type="button" variant="danger" disabled={isPending} onClick={handleDelete}>Xoá</Button>
             ) : <div />}

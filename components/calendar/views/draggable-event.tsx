@@ -20,14 +20,22 @@ export function DraggableEvent({ event, isOverlay, onClick }: DraggableEventProp
     opacity: isDragging ? 0.4 : 1,
   } : {};
 
+  // Google events (API hoặc Database Sync): dùng hex color gốc (runtime dynamic)
+  const isGoogleEvent = event.source === "google" || !!event.googleEventId;
+  const googleStyle = isGoogleEvent ? {
+    backgroundColor: event.backgroundColor || '#039be5',
+    color: '#fff',
+  } : undefined;
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, ...googleStyle }}
       className={`relative group flex flex-col px-2 py-1 rounded-md text-xs cursor-pointer select-none shrink-0 transition-all hover:brightness-95
-        ${event.colorToken}
-        ${isOverlay ? "shadow-xl scale-105 z-50 ring-2 ring-primary/50" : "shadow-sm hover:shadow-md"}
-        ${!event.draggable ? "opacity-75 cursor-default" : ""}
+        ${!isGoogleEvent ? `${event.colorToken} border-l-2 lg:border-l-[3px]` : "border-0 shadow-sm"}
+        ${isOverlay ? "shadow-xl scale-105 z-50 ring-2 ring-primary/50" : "hover:shadow-md"}
+        ${!event.draggable && !isGoogleEvent ? "opacity-75 cursor-default" : ""}
+        ${!event.draggable && isGoogleEvent ? "cursor-default" : ""}
       `}
       onClick={(e) => {
         // Chống click lan khi đang kéo hoặc click lan ra ngoài cell day
@@ -51,15 +59,15 @@ export function DraggableEvent({ event, isOverlay, onClick }: DraggableEventProp
         )}
         <span className="font-semibold truncate flex-1 leading-tight">{event.title}</span>
       </div>
-      {(event.employeeName || event.groupLabel) && (
+      {!isGoogleEvent && (event.employeeName || event.groupLabel) && (
         <span className={`truncate text-xs opacity-90 leading-tight mt-0.5 ${event.draggable ? "pl-4" : ""}`}>
           {event.employeeName ? `${event.employeeName}` : event.groupLabel}
         </span>
       )}
       
       {/* Visual Indicator of Original Bounds */}
-      {event.source === "google" && (
-         <span className="absolute right-0.5 top-0.5 text-micro font-bold leading-none bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded" title="Google Sync">G</span>
+      {isGoogleEvent && (
+         <span className="absolute right-0.5 top-0.5 text-micro font-bold leading-none bg-white/20 text-white px-1 py-0.5 rounded" title="Google Sync">G</span>
       )}
     </div>
   );

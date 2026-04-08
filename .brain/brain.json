@@ -86,9 +86,15 @@
       {
         "name": "Compact Stats Bar for Mobile",
         "details": "When a module has both a stats bar AND filter pills showing per-status counts, the stats bar should use compact mode on mobile (show only 2 key metrics). Filter pills already provide status filtering — stats bar click-to-filter is redundant."
+      },
+      {
+        "name": "Strict Zod Payload Guarding",
+        "details": "Always append .strict() at the end of schemas capturing partial mutations matching third-party integration APIs (e.g., Google Calendar Sync) to explicitly block unhandled object property traversals/injections from reaching their execution servers."
       }
     ],
     "gotchas": [
+      "Zod Schema Safety: Do not pass arguments into .strict() validation on aging Zod versions; verify exact syntaxes via TypeScript compiler natively.",
+      "Timezone Bugs: Native timezone manipulation via `.toISOString().split()` is flawed and causes off-by-one daylight shifting. Replace strictly with `date-fns` `format()` to preserve local times across all standard date inputs.",
       "z.ZodError objects expose an .issues array (not .errors). Use parsed.error.issues[0]?.message for formatting safeParse errors.",
       "employees table often lacks columns present in older V1 schemas (e.g., bank info, salary context). Always verify against current DB schema before coding actions.",
       "Layout Centering Trap: Avoiding max-w-[px] classes on main layout wrappers to maintain consistency with the full-width Gold Standard dashboard.",

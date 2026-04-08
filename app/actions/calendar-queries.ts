@@ -3,7 +3,7 @@
 import { withAuth } from "@/lib/auth_utils";
 import type { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { generateCalendarGroupKey, getEventColorToken } from "@/lib/utils/calendar-utils";
-import { getGoogleCalendarEvents } from "@/lib/googleCalendarService";
+import { getGoogleCalendarEvents, GOOGLE_COLORS } from "@/lib/googleCalendarService";
 import { getWorkTypeLabel } from "@/types/contract-constants";
 import type { WorkType } from "@/types/contract";
 
@@ -92,10 +92,14 @@ export async function fetchCalendarEvents(
         groupKey: generateCalendarGroupKey(s.contract_id, s.event_date),
         groupLabel: null,
         colorToken: getEventColorToken("schedule", null),
+        backgroundColor: s.color_id ? GOOGLE_COLORS[s.color_id] || '#039be5' : null,
         googleEventId: s.google_event_id,
         originalDateField: "event_date",
       });
     }
+
+    // Set để khử trùng lặp các sự kiện Google (tránh fetch cả từ db và từ API)
+    const syncedGoogleIds = new Set((schedulesData || []).map(s => s.google_event_id).filter(Boolean));
 
     // ============================================
     // B. FETCH WORK TASKS (Nhiệm vụ hợp đồng)
@@ -169,6 +173,8 @@ export async function fetchCalendarEvents(
     try {
       const googleEvents = await getGoogleCalendarEvents(new Date(startDate).toISOString(), new Date(endDate).toISOString());
       for (const ge of googleEvents) {
+        if (syncedGoogleIds.has(ge.id)) continue; // Bỏ qua nếu sự kiện Google đã được mapping từ DB (schedules)
+
         result.push({
           id: ge.id,
           source: "google",
@@ -185,8 +191,14 @@ export async function fetchCalendarEvents(
           groupKey: null,
           groupLabel: null,
           colorToken: getEventColorToken("google"),
+          backgroundColor: ge.backgroundColor || null,
           googleEventId: ge.id,
           originalDateField: "event_date",
+          originalGoogleEvent: {
+            id: ge.id,
+            htmlLink: ge.htmlLink,
+            colorId: ge.colorId,
+          },
         });
       }
     } catch (err) {
@@ -233,7 +245,19 @@ export async function fetchCalendarFilterEmployees(): Promise<ActionResult<{ id:
  * Trả về true/false để Client ẩn hiện phần Toggle đồng bộ cho phù hợp.
  */
 export async function checkGoogleCalendarStatus(): Promise<ActionResult<boolean>> {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("id, role")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
+    const role = normalizeRole(employee.role);
+    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
+      throw new Error("Bạn không có quyền truy cập dữ liệu lịch.");
+    }
+
     const { data, error } = await supabase
       .from("studio_info")
       .select("google_calendar_auth")

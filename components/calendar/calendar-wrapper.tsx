@@ -10,6 +10,7 @@ import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
 import { EventFormDrawer } from "./drawers/event-form-drawer";
+import { FAB } from "@/components/ui/fab";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
@@ -140,7 +141,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex-1 min-h-0 flex flex-col w-full">
       <CalendarToolbar 
         currentDate={currentDate} 
         onDateChange={setCurrentDate} 
@@ -149,19 +150,19 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
         filters={filters} 
         onNewEvent={() => openCreateForm(currentDate)}
       />
-      <div className="flex-1 overflow-auto relative">
+      <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
          {(!mounted || isLoading) && (
             <div className="absolute inset-0 z-20 flex flex-col gap-4 p-4 bg-bg-base/80 backdrop-blur-sm">
                <CalendarSkeleton />
             </div>
          )}
          
-         <div className="hidden lg:block h-full min-h-150">
+         <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden">
             {mounted && !isSmallScreen && renderDesktopView()}
          </div>
          
          <div
-            className="block lg:hidden min-h-100"
+            className="flex lg:hidden flex-col flex-1 min-h-0 overflow-hidden"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
          >
@@ -194,6 +195,8 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
         isGoogleConnected={filters.isGoogleConnected}
         onSuccess={() => mutate()}
       />
+      
+      <FAB onClick={() => openCreateForm(currentDate)} label="Tạo lịch trình" />
     </div>
   );
 }
