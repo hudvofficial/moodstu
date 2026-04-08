@@ -99,6 +99,7 @@ export interface CrmLead {
   created_by: string | null;
   created_at: string;
   updated_at: string | null;
+  deleted_at: string | null;
   // V2 fields (ported from V1)
   deal_value: number;
   tags: string[];

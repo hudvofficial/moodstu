@@ -4,6 +4,7 @@ import {
   canManageSettingsRole,
   normalizeEmployeeRole,
   normalizeRole,
+  canAccess,
   type Role,
 } from "@/types/roles";
 
@@ -276,4 +277,27 @@ export async function withAdmin<T>(
     const message = err instanceof Error ? err.message : "Loi server";
     return { success: false, error: message };
   }
+}
+
+/**
+ * Gatekeeper function for CRM server actions.
+ * Throws an error if the user lacks the 'crm' permission.
+ * Expected to be caught by the withAuth wrapper.
+ */
+export async function requireCrmAccess(supabase: SupabaseClient, userId: string) {
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .select("id, full_name, role, auth_user_id")
+    .eq("auth_user_id", userId)
+    .single();
+
+  if (error || !employee) {
+    throw new Error("Không tìm thấy thông tin nhân viên");
+  }
+
+  if (!canAccess(employee.role as Role, "crm")) {
+    throw new Error("Bạn không có quyền truy cập CRM");
+  }
+
+  return { employee, role: employee.role as Role };
 }
