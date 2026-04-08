@@ -30,9 +30,53 @@ function CalendarSkeleton() {
   );
 }
 
+const SCROLL_DEBOUNCE_MS = 300;
+
 export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: CalendarWrapperProps) {
   const { currentDate, setCurrentDate, events, eventsByDate, viewMode, setViewMode, isLoading, error, filters, mutate } = useCalendarData();
   const [selectedMobileDate, setSelectedMobileDate] = useState<Date | null>(null);
+
+  // Slide animation direction for month transitions
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const slideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-clear slideDirection after animation completes (250ms matches CSS duration)
+  useEffect(() => {
+    if (slideDirection) {
+      if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+      slideTimerRef.current = setTimeout(() => setSlideDirection(null), 250);
+    }
+    return () => { if (slideTimerRef.current) clearTimeout(slideTimerRef.current); };
+  }, [slideDirection]);
+
+  // Desktop: scroll wheel → navigate month (debounce 300ms)
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (viewMode !== 'month') return;
+    e.preventDefault();
+    if (scrollTimeoutRef.current) return; // debounce
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollTimeoutRef.current = null;
+    }, SCROLL_DEBOUNCE_MS);
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    if (e.deltaY > 0) {
+      setSlideDirection('left');
+      setCurrentDate(new Date(year, month + 1, 1));
+    } else if (e.deltaY < 0) {
+      setSlideDirection('right');
+      setCurrentDate(new Date(year, month - 1, 1));
+    }
+  }, [currentDate, setCurrentDate, viewMode]);
+
+  // Cleanup refs on unmount
+  useEffect(() => {
+    return () => {
+      if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
 
   // Swipe navigation for mobile
   const touchStartX = useRef<number | null>(null);
@@ -53,9 +97,11 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
       const month = currentDate.getMonth();
       if (deltaX > 0) {
         // Swipe right → previous month
+        setSlideDirection('right');
         setCurrentDate(new Date(year, month - 1, 1));
       } else {
         // Swipe left → next month
+        setSlideDirection('left');
         setCurrentDate(new Date(year, month + 1, 1));
       }
     }
@@ -135,6 +181,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
             mutate={mutate}
             onEventClick={openEditForm}
             onDateClick={handleDateClick}
+            slideDirection={slideDirection}
           />
         );
     }
@@ -157,7 +204,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
             </div>
          )}
          
-         <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden">
+         <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden" onWheel={handleWheel}>
             {mounted && !isSmallScreen && renderDesktopView()}
          </div>
          

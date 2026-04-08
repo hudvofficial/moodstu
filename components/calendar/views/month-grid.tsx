@@ -32,9 +32,10 @@ interface MonthGridProps {
   mutate: () => void;
   onEventClick?: (event: UnifiedCalendarEvent) => void;
   onDateClick?: (date: Date) => void;
+  slideDirection?: 'left' | 'right' | null;
 }
 
-export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateClick }: MonthGridProps) {
+export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateClick, slideDirection }: MonthGridProps) {
   const [activeEvent, setActiveEvent] = useState<UnifiedCalendarEvent | null>(null);
 
   // Tạo mảng ngày 7 cột (Bao gồm đầu/cuối của tháng trước/sau nếu cần filler)
@@ -136,9 +137,14 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
         {/* Grid Body */}
         {/* Absolute Container để chống phình To Height do tính chất min-content của Flexbox */}
         <div className="flex-1 relative min-h-0">
-          <div className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${
+          <div
+            key={format(currentDate, 'yyyy-MM')}
+            className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${
              daysInGrid.length === 28 ? 'grid-rows-[repeat(4,25%)]' :
              daysInGrid.length === 42 ? 'grid-rows-[repeat(6,16.666667%)]' : 'grid-rows-[repeat(5,20%)]'
+          } ${
+            slideDirection === 'left' ? 'slide-left' :
+            slideDirection === 'right' ? 'slide-right' : ''
           }`}>
           {daysInGrid.map((date) => {
             const dateIso = format(date, "yyyy-MM-dd");
