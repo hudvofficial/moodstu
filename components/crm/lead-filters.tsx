@@ -18,11 +18,10 @@ const SOURCE_OPTIONS = [
   ...Object.entries(SOURCE_MAP).map(([value, { label }]) => ({ value, label })),
 ];
 
-const SORT_OPTIONS = [
-  { value: "newest", label: "Mới nhất" },
-  { value: "oldest", label: "Cũ nhất" },
-  { value: "score_desc", label: "Điểm cao" },
-  { value: "deal_desc", label: "Giá trị cao" },
+const ASSIGNED_OPTIONS = [
+  { value: "all", label: "Nhân viên (Tất cả)" },
+  { value: "unassigned", label: "Chưa giao" },
+  { value: "me", label: "Của tôi" },
 ];
 
 // ── COMPONENT ──────────────────────────────────────────
@@ -79,11 +78,11 @@ export default function LeadFilters({ stats }: Props) {
           defaultValue="all"
         />
         <SelectPill
-          options={SORT_OPTIONS}
-          value={searchParams.get("sort") || "newest"}
-          onChange={(v) => updateParam("sort", v)}
-          placeholder="Mới nhất"
-          defaultValue="newest"
+          options={ASSIGNED_OPTIONS}
+          value={searchParams.get("assigned") || "all"}
+          onChange={(v) => updateParam("assigned", v)}
+          placeholder="Nhân viên"
+          defaultValue="all"
         />
       </div>
 
@@ -103,11 +102,11 @@ export default function LeadFilters({ stats }: Props) {
             defaultValue="all"
           />
           <SelectPill
-            options={SORT_OPTIONS}
-            value={searchParams.get("sort") || "newest"}
-            onChange={(v) => updateParam("sort", v)}
-            placeholder="Mới nhất"
-            defaultValue="newest"
+            options={ASSIGNED_OPTIONS}
+            value={searchParams.get("assigned") || "all"}
+            onChange={(v) => updateParam("assigned", v)}
+            placeholder="Nhân viên"
+            defaultValue="all"
           />
         </div>
       </div>

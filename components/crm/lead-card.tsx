@@ -44,9 +44,8 @@ export default function LeadCard({ lead, onClick }: Props) {
   const handleClick = () => {
     if (onClick) {
       onClick(lead.id);
-    } else {
-      router.push(`/crm/leads/${lead.id}`);
     }
+    // Phase 02: Do not route to /crm/leads/${lead.id} as it leads to 404. Detail view comes in Phase 03.
   };
 
   return (

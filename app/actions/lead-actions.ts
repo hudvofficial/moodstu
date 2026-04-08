@@ -23,7 +23,7 @@ type ActionResult<T = null> =
 // ----------------------------------------------------
 
 export async function getLeads(params: {
-  search?: string; status?: LeadStatus; source?: string; assigned?: string; page?: number; pageSize?: number;
+  search?: string; status?: LeadStatus; source?: string; assigned_to?: string; page?: number; pageSize?: number;
 }): Promise<ActionResult<{ leads: unknown[]; total: number; page: number; pageSize: number }>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
@@ -40,7 +40,11 @@ export async function getLeads(params: {
     if (parsed.data.search) query = query.or(`contact_name.ilike.%${parsed.data.search}%,phone.ilike.%${parsed.data.search}%`);
     if (parsed.data.status) query = query.eq("status", parsed.data.status);
     if (parsed.data.source) query = query.eq("source", parsed.data.source);
-    if (parsed.data.assigned_to) query = query.eq("assigned_to", parsed.data.assigned_to);
+    if (parsed.data.assigned_to) {
+      if (parsed.data.assigned_to === "unassigned") query = query.is("assigned_to", null);
+      else if (parsed.data.assigned_to === "me") query = query.eq("assigned_to", userId);
+      else query = query.eq("assigned_to", parsed.data.assigned_to);
+    }
 
     const { data, count, error } = await query;
     if (error) throw error;

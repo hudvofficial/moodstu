@@ -37,7 +37,7 @@ export default function LeadTable({ leads, onRowClick }: Props) {
   return (
     <TableWrapper>
       <THead>
-        <tr>
+        <TR>
           <TH className="w-[25%]">Khách hàng</TH>
           <TH className="w-[10%]">Liên hệ</TH>
           <TH className="w-[10%]">Nguồn</TH>
@@ -47,7 +47,7 @@ export default function LeadTable({ leads, onRowClick }: Props) {
           <TH className="w-[10%]">Trạng thái</TH>
           <TH className="w-[8%]">Tiềm năng</TH>
           <TH className="w-auto" />
-        </tr>
+        </TR>
       </THead>
       <TBody>
         {leads.map((lead) => {

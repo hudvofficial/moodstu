@@ -1,4 +1,4 @@
-import { getLeads } from "@/app/actions/lead-actions";
+import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
 import { LeadStatus, CrmLead } from "@/types/crm";
 import LeadListPage from "@/components/crm/lead-list-page";
 
@@ -21,7 +21,7 @@ export default async function LeadsRoute({
     search,
     status,
     source,
-    assigned,
+    assigned_to: assigned,
     page,
     pageSize,
   });
@@ -30,26 +30,19 @@ export default async function LeadsRoute({
     throw new Error(result.error);
   }
 
-  // Create derived stats object to pass to the client component
-  // Since our basic getLeads might not return grouped stats, we fake it temporarily or calculate locally
-  // Phase 02 specifies a stat bar, so we extract known info
-  const total = result.data.total;
+// Fetch stats
+  const statsResult = await getLeadStats();
+  if (!statsResult.success) {
+    throw new Error(statsResult.error);
+  }
   
-  // NOTE: A real implementation would fetch grouped stats. Since Phase 1 didn't write it, 
-  // we pass a minimal stats object that the StatsBar will use.
-  const stats = {
-    total,
-    active: 0,
-    closed: 0,
-    conversionRate: 0,
-    byStatus: {} // Dummy stats object, to be implemented if getLeadStats action exists
-  };
+  const stats = statsResult.data;
 
   return (
     <LeadListPage 
       leads={result.data.leads as CrmLead[]}
       stats={stats}
-      total={total}
+      total={result.data.total}
       page={result.data.page}
       pageSize={result.data.pageSize}
     />
