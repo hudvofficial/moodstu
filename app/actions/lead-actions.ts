@@ -32,7 +32,7 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ GET LEADS (Paginated + Filters) Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 
 export async function getLeads(params: {
   search?: string; status?: LeadStatus; source?: string; assigned?: string; page?: number; pageSize?: number;
@@ -41,7 +41,7 @@ export async function getLeads(params: {
     await requireCrmAccess(supabase, userId);
     
     const parsed = ZodLeadFilter.safeParse(params);
-    if (!parsed.success) throw new Error("Tham sĂ¡Â»â€˜ lĂ¡Â»Âc khÄ‚Â´ng hĂ¡Â»Â£p lĂ¡Â»â€¡");
+    if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
     
     const page = parsed.data.page || 1;
     const pageSize = parsed.data.limit || params.pageSize || 50;
@@ -60,7 +60,7 @@ export async function getLeads(params: {
   });
 }
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ CREATE LEAD Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 
 export async function createLead(data: unknown): Promise<ActionResult<{ lead_id: string }>> {
   return withAuth(async (supabase, userId) => {
@@ -74,7 +74,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
     if (tData.phone?.trim()) {
       const { data: existing } = await supabase.from("crm_leads").select("id, contact_name").eq("phone", tData.phone.trim()).neq("status", "huy").is("deleted_at", null).limit(1);
       if (existing && existing.length > 0) {
-        throw new Error(`SĂ„ÂT nÄ‚Â y Ă„â€˜Ä‚Â£ tĂ¡Â»â€œn tĂ¡ÂºÂ¡i (${existing[0].contact_name}). Vui lòng kiểm tra lại.`);
+        throw new Error(`SĐT này đã tồn tại (${existing[0].contact_name}). Vui lòng kiểm tra lại.`);
       }
     }
 
@@ -114,7 +114,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
   });
 }
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ UPDATE LEAD Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 // ─── UPDATE LEAD ──────────────────────────────
 
 export async function updateLead(id: string, data: unknown): Promise<ActionResult<null>> {
@@ -132,7 +132,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
 
     // Optimistic Locking Check
     if (tData.expectedUpdatedAt && oldData.updated_at && new Date(oldData.updated_at).getTime() > new Date(tData.expectedUpdatedAt).getTime()) {
-      throw new Error("DĂ¡Â»Â¯ liĂ¡Â»â€¡u Ă„â€˜Ä‚Â£ bĂ¡Â»â€¹ thay Ă„â€˜Ă¡Â»â€¢i bĂ¡Â»Å¸i ngĂ†Â°Ă¡Â»Âi khÄ‚Â¡c, vui lòng tải lại trang");
+      throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
     }
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -169,7 +169,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
   });
 }
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ DELETE LEAD (SOFT DELETE) Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 
 export async function deleteLead(id: string): Promise<ActionResult<null>> {
   return withAuth(async (supabase, userId) => {
@@ -207,7 +207,7 @@ export async function deleteLead(id: string): Promise<ActionResult<null>> {
   });
 }
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ GET LEAD BY ID Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 
 export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
   return withAuth(async (supabase, userId) => {
@@ -222,7 +222,7 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
   });
 }
 
-// Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬ LEAD STATS Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬Ă¢â€â‚¬
+// ----------------------------------------------------
 
 export async function getLeadStats(): Promise<ActionResult<{ total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number> }>> {
   return withAuth(async (supabase, userId) => {

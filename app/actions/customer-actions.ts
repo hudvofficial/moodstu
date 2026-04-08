@@ -164,7 +164,7 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
 
     // Optimistic Locking Check
     if (tData.expectedUpdatedAt && oldData.updated_at && new Date(oldData.updated_at).getTime() > new Date(tData.expectedUpdatedAt).getTime()) {
-      throw new Error("Dữ liệu đã bị thay đổi bá»Ÿi ngÆ°á»i khĂ¡c, vui lòng tải lại trang");
+      throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
     }
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
