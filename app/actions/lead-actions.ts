@@ -16,18 +16,6 @@ import {
 // Lead Actions (Re-exports & Core CRUD)
 // ----------------------------------------------------
 
-// Re-export advanced actions to protect public API continuity
-export {
-  moveLeadToStage,
-  updateDealValue,
-  updateLeadScore,
-  updateLeadTags,
-  assignLead,
-  markLeadAsLost,
-  convertLeadToCustomer,
-  addCareLog,
-} from "./lead-lifecycle";
-
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
