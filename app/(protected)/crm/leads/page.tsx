@@ -2,11 +2,10 @@ import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
 import { LeadStatus, CrmLead } from "@/types/crm";
 import LeadListPage from "@/components/crm/lead-list-page";
 
-export default async function LeadsRoute({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function LeadsRoute(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const searchParams = await props.searchParams;
   // Parse searchparams
   const search = typeof searchParams.search === "string" ? searchParams.search : undefined;
   const status = typeof searchParams.status === "string" ? searchParams.status as LeadStatus : undefined;

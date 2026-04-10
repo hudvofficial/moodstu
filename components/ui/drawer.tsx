@@ -11,6 +11,7 @@
 import { useEffect, useCallback, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -23,7 +24,16 @@ interface DrawerProps {
   /** Optional element rendered at the right side of header (e.g. print button) */
   headerRight?: ReactNode;
   children: ReactNode;
-  /** Desktop panel width — default 480px */
+  /** 
+   * Pre-defined sizes ensuring project-wide consistency 
+   * md: 480px (Gold Standard - Default)
+   * lg: 600px (Forms / CRM detail / Multi-column content)
+   */
+  size?: "md" | "lg";
+  /** 
+   * Desktop panel width — deprecated in favor of `size` prop.
+   * Retained for backward-compatibility. 
+   */
   width?: string;
 }
 
@@ -57,9 +67,13 @@ export function Drawer({
   titleBadge,
   headerRight,
   children,
-  width = "480px",
+  size = "md",
+  width,
 }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Resolve width based on size, fallback to explicit 'width' prop if provided
+  const resolvedWidth = width || (size === "lg" ? "600px" : "480px");
 
   // Escape key
   const handleKeyDown = useCallback(
@@ -101,7 +115,7 @@ export function Drawer({
         ref={panelRef}
         tabIndex={-1}
         className="hidden lg:flex flex-col fixed right-0 top-0 h-full bg-bg-base shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
-        style={{ width, outline: 'none' }}
+        style={{ width: resolvedWidth, outline: 'none' }}
       >
         {/* Header */}
         {title && (
@@ -112,13 +126,14 @@ export function Drawer({
             </div>
             <div className="flex items-center gap-1">
               {headerRight}
-              <button
+              <Button
+                variant="ghost"
                 onClick={onClose}
-                className="icon-btn size-8 rounded-md"
+                className="icon-btn size-8 rounded-md p-0"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -147,13 +162,14 @@ export function Drawer({
             </div>
             <div className="flex items-center gap-1">
               {headerRight}
-              <button
+              <Button
+                variant="ghost"
                 onClick={onClose}
-                className="icon-btn size-8 rounded-md"
+                className="icon-btn size-8 rounded-md p-0"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -236,7 +236,11 @@ export async function withAuth<T>(
     return { success: true, data: result };
   } catch (err: unknown) {
     console.error("[withAuth] Error:", err);
-    const message = err instanceof Error ? err.message : "Loi server";
+    const message = err instanceof Error 
+      ? err.message 
+      : (typeof err === "object" && err !== null && "message" in err) 
+        ? String((err as { message: unknown }).message) 
+        : "Loi server";
     return { success: false, error: message };
   }
 }
@@ -274,7 +278,11 @@ export async function withAdmin<T>(
     return { success: true, data: result };
   } catch (err: unknown) {
     console.error("[withAdmin] Error:", err);
-    const message = err instanceof Error ? err.message : "Loi server";
+    const message = err instanceof Error 
+      ? err.message 
+      : (typeof err === "object" && err !== null && "message" in err) 
+        ? String((err as { message: unknown }).message) 
+        : "Loi server";
     return { success: false, error: message };
   }
 }

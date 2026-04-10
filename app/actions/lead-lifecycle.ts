@@ -1,9 +1,9 @@
-"use strict";
 "use server";
 
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import type { LeadStatus } from "@/types/crm";
+import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
 import { writeAuditLog } from "@/lib/audit";
 import { format } from "date-fns";
 import {
@@ -22,15 +22,6 @@ type ActionResult<T = null> =
   | { success: false; error: string };
 
 // ----------------------------------------------------
-
-const VALID_LEAD_TRANSITIONS: Record<string, string[]> = {
-  moi: ["da_lien_he", "huy"],
-  da_lien_he: ["hen_gap", "huy"],
-  hen_gap: ["da_bao_gia", "huy"],
-  da_bao_gia: ["da_chot", "huy"],
-  da_chot: [],
-  huy: ["moi"],
-};
 
 export async function moveLeadToStage(leadId: string, newStatus: LeadStatus): Promise<ActionResult<null>> {
   return withAuth(async (supabase, userId) => {
@@ -157,13 +148,17 @@ export async function assignLead(leadId: string, employeeId: string | null): Pro
     const { data: oldData, error: oldError } = await supabase.from("crm_leads").select("*").eq("id", leadId).is("deleted_at", null).single();
     if (oldError || !oldData) throw new Error("Không tìm thấy lead hoặc lead đã bị xóa");
 
-    // assignLead RBAC: admin/manager assign any. sale can only self-assign if unassigned or self. 
+    // assignLead RBAC: admin/manager assign any. sale can only self-assign if unassigned or self, OR unassign if currently assigned to self.
     if (role === "sale") {
-      if (parsed.data.employeeId !== employee.id) {
-        throw new Error("Tài khoản sale chỉ được quyền tự nhận lead cho mình.");
-      }
-      if (oldData.assigned_to && oldData.assigned_to !== employee.id) {
-        throw new Error("Không thể chiếm lead đã phân công cho người khác.");
+      const isUnassigningSelf = parsed.data.employeeId === null && oldData.assigned_to === employee.id;
+      
+      if (!isUnassigningSelf) {
+        if (parsed.data.employeeId !== employee.id) {
+          throw new Error("Tài khoản sale chỉ được quyền tự nhận lead cho mình hoặc nhả lead đang quản lý.");
+        }
+        if (oldData.assigned_to && oldData.assigned_to !== employee.id) {
+          throw new Error("Không thể chiếm lead đã phân công cho người khác.");
+        }
       }
     }
 
@@ -195,7 +190,12 @@ export async function markLeadAsLost(leadId: string, reason: string): Promise<Ac
     if (oldError || !oldData) throw new Error("Không tìm thấy lead hoặc lead đã bị xóa");
 
     const updatedNotes = [oldData.notes || "", `\n[${format(new Date(), "yyyy-MM-dd")}] Huỷ: ${parsed.data.reason}`].join("").trim();
-    const updateData = { status: "huy", notes: updatedNotes, updated_at: new Date().toISOString() };
+    const updateData = { 
+      status: "huy", 
+      lost_reason: parsed.data.reason,
+      notes: updatedNotes, 
+      updated_at: new Date().toISOString() 
+    };
 
     const { error } = await supabase.from("crm_leads").update(updateData).eq("id", leadId);
     if (error) throw error;
@@ -204,8 +204,7 @@ export async function markLeadAsLost(leadId: string, reason: string): Promise<Ac
       action: "UPDATE",
       tableName: "crm_leads",
       recordId: leadId,
-      
-      oldData: { status: oldData.status, notes: oldData.notes, updated_at: oldData.updated_at },
+      oldData: { status: oldData.status, lost_reason: oldData.lost_reason, notes: oldData.notes, updated_at: oldData.updated_at },
       newData: updateData,
     });
 

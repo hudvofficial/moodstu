@@ -5,6 +5,8 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format, isValid, parseISO } from "date-fns";
+
 
 /** Merge Tailwind classes safely */
 export function cn(...inputs: ClassValue[]) {
@@ -17,6 +19,25 @@ export const CURRENCY_SYMBOL = "VNĐ";
 /** Format number to VND currency */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("vi-VN").format(amount);
+}
+
+/** Format date defensively via date-fns to prevent Invalid Date crash */
+export function safeFormatDate(
+  dateString: string | Date | null | undefined,
+  pattern: string = "dd/MM/yyyy"
+): string {
+  if (!dateString) return "-";
+  
+  let d: Date;
+  if (dateString instanceof Date) {
+    d = dateString;
+  } else {
+    d = parseISO(dateString);
+    if (!isValid(d)) d = new Date(dateString);
+  }
+  
+  if (!isValid(d)) return "-";
+  return format(d, pattern);
 }
 
 /** Format date to Vietnamese locale */

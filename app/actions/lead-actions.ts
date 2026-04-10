@@ -20,6 +20,11 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+/** Escape PostgREST ilike wildcards to prevent pattern injection */
+function escapeSearch(s: string): string {
+  return s.replace(/[%_\\]/g, (c) => `\\${c}`);
+}
+
 // ----------------------------------------------------
 
 export async function getLeads(params: {
@@ -37,7 +42,10 @@ export async function getLeads(params: {
     const to = from + pageSize - 1;
 
     let query = supabase.from("crm_leads").select("*", { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
-    if (parsed.data.search) query = query.or(`contact_name.ilike.%${parsed.data.search}%,phone.ilike.%${parsed.data.search}%`);
+    if (parsed.data.search) {
+      const s = escapeSearch(parsed.data.search);
+      query = query.or(`contact_name.ilike.%${s}%,phone.ilike.%${s}%`);
+    }
     if (parsed.data.status) query = query.eq("status", parsed.data.status);
     if (parsed.data.source) query = query.eq("source", parsed.data.source);
     if (parsed.data.assigned_to) {
@@ -207,7 +215,7 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
     const parsed = ZodUuidId.safeParse({ id });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "ID không hợp lệ");
 
-    const { data, error } = await supabase.from("crm_leads").select("*").eq("id", id).is("deleted_at", null).single();
+    const { data, error } = await supabase.from("crm_leads").select("*, employees!assigned_to(id, full_name)").eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
     if (!data) throw new Error("Không tìm thấy lead");
     return data as CrmLead;
@@ -219,19 +227,24 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
 export async function getLeadStats(): Promise<ActionResult<{ total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number> }>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
-    const { data: leads, error } = await supabase.from("crm_leads").select("status").is("deleted_at", null);
+
+    const { data, error } = await supabase.rpc("get_crm_lead_stats");
     if (error) throw error;
 
-    const all = leads || [];
-    const total = all.length;
-    const closed = all.filter((l: { status: string }) => l.status === "da_chot").length;
-    const cancelled = all.filter((l: { status: string }) => l.status === "huy").length;
-    const active = total - closed - cancelled;
-    const conversionRate = total > 0 ? Math.round((closed / total) * 100) : 0;
-    const byStatus: Record<string, number> = {};
-    all.forEach((l: { status: string }) => { byStatus[l.status] = (byStatus[l.status] || 0) + 1; });
-
-    return { total, active, closed, conversionRate, byStatus };
+    const stats = data as {
+      total?: number;
+      active?: number;
+      closed?: number;
+      conversionRate?: number;
+      byStatus?: Record<string, number>;
+    };
+    return {
+      total: stats.total || 0,
+      active: stats.active || 0,
+      closed: stats.closed || 0,
+      conversionRate: stats.conversionRate || 0,
+      byStatus: stats.byStatus || {}
+    };
   });
 }
 

@@ -129,3 +129,10 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 - Mistake: Jumped straight to code (replaced Grid with Flex) without issuing a Plan for approval.
 - Rule Enforced: 'TUY?T �?I kh�ng fix ch?y... Plan d� ng?n 5 d?ng c?ng OK, nh�ng PH?I C� v� PH?I ��?C DUY?T'.
 - Action: Always create a Phase X plan, request approval securely, then only execute after the user types '/code phase-X'.
+
+## Lesson: NO HOTFIXING LINTER RULES WITHOUT PLAN (Rule V3)
+- Date: 2026-04-11
+- Trigger: User reported layout linter error (bg-gradient and native button).
+- Mistake: Jumped straight to updating the code via replace_file_content to fix the linter error without submitting a short plan for approval first. This directly violated V3 Rule (TUYỆT ĐỐI không fix chay). The blind hotfix also broke the UI causing a hydration error.
+- Rule Enforced: PHẢI: audit full -> viết plan -> user duyệt plan -> rồi mới fix theo plan.
+- Action: Whenever the user points out ANY error, even a simple ESLint fix, STOP and write a plan. Do not execute any code edit unless the user types /code phase-X matching the plan. NEVER blindly fix.

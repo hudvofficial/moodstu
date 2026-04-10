@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface PaymentReminder {
   id: string;
@@ -14,10 +15,6 @@ const MOCK_REMINDERS: PaymentReminder[] = [
   { id: "3", contractCode: "HD-2026-011", customerName: "Chị Phương", remainingAmount: 3200000 },
 ];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
-}
-
 export function PaymentReminders() {
   return (
     <div className="card-base p-5 entrance entrance-6">
@@ -28,7 +25,7 @@ export function PaymentReminders() {
           </div>
           <h3 className="text-h3">Cần thu tiền</h3>
         </div>
-        <button className="text-caption link-base min-h-11 flex items-center">Xem tất cả</button>
+        <Button variant="ghost" className="text-caption link-base flex items-center p-0 h-auto">Xem tất cả</Button>
       </div>
 
       <div className="space-y-3">
@@ -46,7 +43,7 @@ export function PaymentReminders() {
               <p className="text-caption">{item.contractCode}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-body-sm font-bold text-warning">{formatCurrency(item.remainingAmount)}</p>
+              <p className="text-body-sm font-bold text-warning">{formatCurrency(item.remainingAmount)} ₫</p>
             </div>
           </div>
         ))}

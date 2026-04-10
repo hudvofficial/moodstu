@@ -1,20 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ChevronRight, Phone } from "lucide-react";
+import { Phone, CalendarClock, Building2, Ticket, Trash2 } from "lucide-react";
 import type { CrmLead } from "@/types/crm";
-import { LEAD_STATUS_MAP, POTENTIAL_MAP, SOURCE_MAP, getScoreLevel } from "@/types/crm";
-import { formatCurrency, formatPhone, formatDate, getInitials } from "@/lib/utils";
+import { LEAD_STATUS_MAP, POTENTIAL_MAP, SOURCE_MAP } from "@/types/crm";
+import { formatCurrency, formatPhone, formatDate } from "@/lib/utils";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import StatusSelect from "@/components/ui/status-select";
+import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
+import { toast } from "sonner";
 
 // ═══════════════════════════════════════════
 // LeadCard — Mobile card (lg:hidden)
-// Phase 02: strictly adheres to SSOT component tokens
+// Phase 01: Gold Standard Optimization
 // ═══════════════════════════════════════════
 
 interface Props {
   lead: CrmLead;
   onClick?: (id: string) => void;
+  onStatusChange?: (id: string, newStatus: string) => void;
 }
 
 const getStatusVariant = (status: string): BadgeVariant => {
@@ -33,97 +37,134 @@ const getPotentialVariant = (p: string): BadgeVariant => {
   return p === "hot" ? "error" : p === "warm" ? "warning" : "neutral";
 };
 
-export default function LeadCard({ lead, onClick }: Props) {
-  const router = useRouter();
-  
+// Generate options for StatusSelect dynamically from PIPELINE configurations
+const LEAD_STATUS_OPTIONS = Object.entries(LEAD_STATUS_MAP).map(([value, info]) => ({
+  value,
+  label: info.label,
+  color: info.color
+}));
+
+export default function LeadCard({ lead, onClick, onStatusChange }: Props) {
   const statusInfo = LEAD_STATUS_MAP[lead.status] || { label: lead.status };
   const potentialInfo = lead.potential ? (POTENTIAL_MAP[lead.potential] || { label: lead.potential }) : null;
   const sourceInfo = lead.source ? (SOURCE_MAP[lead.source] || { label: lead.source }) : null;
-  const scoreInfo = getScoreLevel(lead.score || 0);
 
   const handleClick = () => {
     if (onClick) {
       onClick(lead.id);
     }
-    // Phase 02: Do not route to /crm/leads/${lead.id} as it leads to 404. Detail view comes in Phase 03.
   };
 
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (onStatusChange) {
+      await onStatusChange(lead.id, newStatus);
+    }
+  };
+
+  const swipeRightActions: SwipeAction[] = [
+    {
+      id: "call",
+      label: "Gọi điện",
+      icon: <Phone className="w-5 h-5" />,
+      className: "bg-success text-inverse",
+      onClick: () => {
+        if (lead.phone) {
+          window.open(`tel:${lead.phone}`, "_self");
+        } else {
+          toast.error("Khách hàng chưa có số điện thoại");
+        }
+      }
+    },
+    {
+      id: "cancel",
+      label: "Huỷ deal",
+      icon: <Trash2 className="w-5 h-5" />,
+      className: "bg-error text-inverse",
+      onClick: () => {
+        handleStatusUpdate("huy");
+        toast.success("Đã huỷ khách hàng");
+      }
+    }
+  ];
+
   return (
-    <div
-      onClick={handleClick}
-      className="card-interactive flex flex-col gap-3"
-    >
-      {/* Top Row: Info + Status */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center justify-center size-10 shrink-0 rounded-full bg-primary/10 text-primary text-sm font-bold">
-            {getInitials(lead.contact_name)}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium text-text truncate">
-              {lead.contact_name}
-            </span>
-            <span className="text-xs text-text-muted truncate">
-              Tạo: {formatDate(lead.created_at)}
-            </span>
-            {lead.phone && (
-              <a
-                href={`tel:${lead.phone}`}
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
-              >
-                <Phone className="w-3 h-3" />
-                {formatPhone(lead.phone)}
-              </a>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <Badge variant={getStatusVariant(lead.status)} dot>
-            {statusInfo.label}
-          </Badge>
+    <SwipeableCard rightActions={swipeRightActions}>
+      <div
+        onClick={handleClick}
+        className="card-base p-4 hover-lift space-y-2.5 cursor-pointer rounded-xl bg-bg-card"
+      >
+        {/* ── HEADER ── */}
+        <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-text-main truncate">
+            {lead.contact_name}
+          </p>
           {potentialInfo && (
-            <Badge variant={getPotentialVariant(lead.potential!)} solid className="text-xs px-1.5 py-0">
-              {potentialInfo.label}
-            </Badge>
+            <div className="mt-1">
+              <Badge variant={getPotentialVariant(lead.potential!)} solid className="text-xs px-1.5 py-0">
+                {potentialInfo.label}
+              </Badge>
+            </div>
           )}
         </div>
+        <Badge variant={getStatusVariant(lead.status)} dot>
+          {statusInfo.label}
+        </Badge>
       </div>
 
-      {/* Needs & Metrics row */}
-      {lead.needs && (
-        <div className="text-xs text-text-secondary bg-bg-base/50 p-2 rounded-lg line-clamp-2">
-          {lead.needs}
-        </div>
-      )}
-
-      {/* Bottom Row: Score, Deal Value, Source */}
-      <div className="flex items-center justify-between pt-1 border-t border-border/40">
-        <div className="flex items-center gap-2">
-          {sourceInfo && (
-            <span className="text-xs text-text-secondary bg-bg-base px-1.5 py-0.5 rounded">
-              {sourceInfo.label}
-            </span>
-          )}
-          {lead.score > 0 && (
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${scoreInfo.color}`}>
-              {lead.score} điểm
-            </span>
-          )}
-        </div>
+      {/* ── DATA GRID ── */}
+      <div className="grid grid-cols-1 gap-2 text-sm text-text-secondary mt-1">
+        {lead.phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-text-muted shrink-0" />
+            <a
+              href={`tel:${lead.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-primary transition-colors truncate"
+            >
+              {formatPhone(lead.phone)}
+            </a>
+          </div>
+        )}
         
-        <div className="flex items-center gap-1">
-          {lead.deal_value > 0 ? (
-            <span className="text-sm font-semibold text-text">
-              {formatCurrency(lead.deal_value)}
-            </span>
-          ) : (
-            <span className="text-sm text-text-muted">—</span>
-          )}
-          <ChevronRight className="w-4 h-4 text-text-muted ml-1" />
+        <div className="flex items-center gap-2">
+          <Ticket className="w-4 h-4 text-text-muted shrink-0" />
+          <span className="truncate">
+            {lead.deal_value > 0 ? formatCurrency(lead.deal_value) : "Chưa có dự toán"}
+          </span>
         </div>
+
+        <div className="flex items-center gap-2">
+          <CalendarClock className="w-4 h-4 text-text-muted shrink-0" />
+          <span className="truncate">Tạo: {formatDate(lead.created_at)}</span>
+        </div>
+
+        {sourceInfo && (
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-text-muted shrink-0" />
+            <span className="truncate">{sourceInfo.label}</span>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* ── BOTTOM ACTIONS ── */}
+      <div 
+        className="flex items-center justify-between gap-3 pt-3 mt-3 border-t border-border"
+        onClick={(e) => e.stopPropagation()} 
+      >
+        <div onClick={(e) => e.stopPropagation()}>
+          <StatusSelect
+            current={lead.status}
+            options={LEAD_STATUS_OPTIONS}
+            variant="compact"
+            onUpdate={handleStatusUpdate}
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={handleClick}>
+          Chi tiết
+        </Button>
+      </div>
+      </div>
+    </SwipeableCard>
   );
 }

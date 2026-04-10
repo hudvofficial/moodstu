@@ -13,26 +13,38 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+/** Escape PostgREST ilike wildcards to prevent pattern injection */
+function escapeSearch(s: string): string {
+  return s.replace(/[%_\\]/g, (c) => `\\${c}`);
+}
+
 // ----------------------------------------------------
 // GET CUSTOMERS (Paginated + Search)
 // ----------------------------------------------------
 
 export async function getCustomers(params: {
   search?: string; page?: number; pageSize?: number; source?: string; tags?: string;
-}): Promise<ActionResult<{ customers: unknown[]; total: number; page: number; pageSize: number }>> {
+}): Promise<ActionResult<{ customers: unknown[]; total: number; totalPages: number; page: number; pageSize: number }>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
     
     const parsed = ZodCustomerFilter.safeParse(params);
     if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
 
-    const { search, page, pageSize, source } = parsed.data;
+    const { search, page, pageSize, source, tags } = parsed.data;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase.from("customers").select("*", { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
-    if (search) query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
+    if (search) {
+      const s = escapeSearch(search);
+      query = query.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%,customer_code.ilike.%${s}%`);
+    }
     if (source) query = query.eq("source", source);
+    if (tags) {
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      if (tagsArray.length > 0) query = query.contains("tags", tagsArray);
+    }
 
     const { data, count, error } = await query;
     if (error) throw error;
@@ -48,7 +60,9 @@ export async function getCustomers(params: {
       });
     }
 
-    return { customers: customers.map((c: { id: string }) => ({ ...c, ltv: ltvMap[c.id] || 0 })), total: count || 0, page, pageSize };
+    const totalPages = Math.ceil((count || 0) / pageSize);
+
+    return { customers: customers.map((c: { id: string }) => ({ ...c, ltv: ltvMap[c.id] || 0 })), total: count || 0, totalPages, page, pageSize };
   });
 }
 
@@ -88,11 +102,18 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
         // UPDATE existing customer
         const updateData = {
           full_name: tData.full_name.trim(), 
-          address: tData.address?.trim() || null, 
+          phone: tData.phone?.trim() || null,
+          alt_phone: tData.alt_phone?.trim() || null, 
           email: tData.email?.trim() || null,
+          address: tData.address?.trim() || null, 
+          gender: tData.gender || null,
+          date_of_birth: tData.date_of_birth || null,
           wedding_date: tData.wedding_date || null, 
           bride_name: tData.bride_name?.trim() || null, 
           groom_name: tData.groom_name?.trim() || null,
+          source: tData.source || null,
+          notes: tData.notes?.trim() || null,
+          tags: tData.tags || [],
           updated_at: new Date().toISOString(),
         };
         const { error: updateError } = await supabase.from("customers").update(updateData).eq("id", existingByPhone.id);
@@ -127,6 +148,9 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
       wedding_date: tData.wedding_date || null,
       bride_name: tData.bride_name?.trim() || null, 
       groom_name: tData.groom_name?.trim() || null,
+      source: tData.source || null,
+      notes: tData.notes?.trim() || null,
+      tags: tData.tags || [],
       created_by: userId,
     };
 
@@ -178,6 +202,9 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
     if (tData.wedding_date !== undefined) updateData.wedding_date = tData.wedding_date || null;
     if (tData.bride_name !== undefined) updateData.bride_name = tData.bride_name?.trim() || null;
     if (tData.groom_name !== undefined) updateData.groom_name = tData.groom_name?.trim() || null;
+    if (tData.source !== undefined) updateData.source = tData.source || null;
+    if (tData.notes !== undefined) updateData.notes = tData.notes?.trim() || null;
+    if (tData.tags !== undefined) updateData.tags = tData.tags || [];
 
     const { error } = await supabase.from("customers").update(updateData).eq("id", tData.id);
     if (error) throw error;
@@ -277,7 +304,7 @@ export async function searchCustomers(query: string) {
       .from("customers")
       .select("id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address")
       .is("deleted_at", null)
-      .or(`full_name.ilike.%${sanitized}%,phone.ilike.%${sanitized}%`)
+      .or(`full_name.ilike.%${escapeSearch(sanitized)}%,phone.ilike.%${escapeSearch(sanitized)}%`)
       .order("full_name")
       .limit(10);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 const MOCK_DATA = [
   { month: "T10", revenue: 32000000 },
@@ -10,10 +11,6 @@ const MOCK_DATA = [
   { month: "T2", revenue: 41000000 },
   { month: "T3", revenue: 45500000 },
 ];
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("vi-VN").format(value);
-}
 
 export function RevenueChart() {
   const max = Math.max(...MOCK_DATA.map((d) => d.revenue));
@@ -31,27 +28,29 @@ export function RevenueChart() {
       </div>
 
       {/* Simple bar chart */}
-      <div className="flex items-end gap-3 h-45">
+      <div className="flex gap-3 h-44">
         {MOCK_DATA.map((item) => {
           const height = (item.revenue / max) * 100;
           return (
             <div
               key={item.month}
-              className="flex-1 flex flex-col items-center gap-2 group"
+              className="flex-1 flex flex-col items-center justify-end group relative"
             >
-              <span className="text-caption opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              {/* Tooltip */}
+              <span className="absolute -top-6 text-caption opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
                 {formatCurrency(item.revenue)} ₫
               </span>
-              <div
-                className="w-full rounded-t-lg bg-primary/15 group-hover:bg-primary/30 transition-colors relative"
-                style={{ height: `${height}%` }}
-              >
+              
+              {/* Bar Track - Fixed Height guarantees % works perfectly */}
+              <div className="w-full h-32 relative flex items-end">
                 <div
-                  className="absolute bottom-0 w-full rounded-t-lg bg-primary/80 transition-all"
-                  style={{ height: `${Math.min(height, 100)}%` }}
+                  className="w-full rounded-t-lg bg-primary transition-all duration-300"
+                  style={{ height: `${height}%`, opacity: 0.4 }}
                 />
               </div>
-              <span className="text-caption font-medium">{item.month}</span>
+              
+              {/* X-Axis Label */}
+              <span className="text-caption font-medium mt-2">{item.month}</span>
             </div>
           );
         })}

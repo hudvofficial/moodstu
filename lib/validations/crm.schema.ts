@@ -131,6 +131,9 @@ export const ZodCustomerCreate = z.object({
   wedding_date: ZodDateString,
   bride_name: z.string().optional(),
   groom_name: z.string().optional(),
+  source: NullableEnum(LEAD_SOURCES),
+  notes: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]).transform(tags => tags.map((t) => t.trim()).filter((t) => t.length > 0)),
 });
 
 export const ZodCustomerUpdate = ZodCustomerCreate.partial().extend({

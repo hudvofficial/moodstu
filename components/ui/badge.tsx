@@ -57,11 +57,16 @@ export function getStatusVariant(status: string): BadgeVariant {
     dang_thuc_hien: "primary",
     hoan_thanh: "success",
     da_huy: "error",
-    // Lead
+    // Lead (V1)
     moi_lien_he: "info",
     dang_tu_van: "warning",
     da_chot: "success",
     mat_lead: "error",
+    // Lead (V2)
+    da_lien_he: "info",
+    hen_gap: "warning",
+    da_bao_gia: "accent",
+    huy: "error",
     // Payment
     chua_thanh_toan: "warning",
     da_thanh_toan: "success",

@@ -27,6 +27,16 @@ export const PIPELINE_STAGES: LeadStatus[] = [
   "moi", "da_lien_he", "hen_gap", "da_bao_gia", "da_chot"
 ];
 
+// ─── VALID LEAD TRANSITIONS (State Machine) ──────────────
+export const VALID_LEAD_TRANSITIONS: Record<LeadStatus | string, LeadStatus[]> = {
+  moi: ["da_lien_he", "huy"],
+  da_lien_he: ["hen_gap", "huy"],
+  hen_gap: ["da_bao_gia", "huy"],
+  da_bao_gia: ["da_chot", "huy"],
+  da_chot: [],
+  huy: ["moi"],
+};
+
 // ─── SOURCE COLOR MAP ────────────────────────────────────
 export const SOURCE_MAP: Record<string, { label: string; color: string; bg: string }> = {
   facebook: { label: "Facebook", color: "#1877F2", bg: "#EBF3FE" },
@@ -39,9 +49,9 @@ export const SOURCE_MAP: Record<string, { label: string; color: string; bg: stri
 
 // ─── POTENTIAL COLOR MAP ─────────────────────────────────
 export const POTENTIAL_MAP: Record<LeadPotential, { label: string; color: string; bg: string }> = {
-  hot:  { label: "Nóng",  color: "#EF4444", bg: "#FEF2F2" },
-  warm: { label: "Ấm",    color: "#F97316", bg: "#FFF7ED" },
-  cold: { label: "Lạnh",  color: "#6B7280", bg: "#F3F4F6" },
+  hot:  { label: "Cao",         color: "#EF4444", bg: "#FEF2F2" },
+  warm: { label: "Trung bình",  color: "#F97316", bg: "#FFF7ED" },
+  cold: { label: "Thấp",        color: "#6B7280", bg: "#F3F4F6" },
 };
 
 // ─── CUSTOMER DATA MODEL ─────────────────────────────────
@@ -76,6 +86,7 @@ export interface Customer {
   created_by: string | null;
   created_at: string;
   updated_at: string | null;
+  ltv?: number;
 }
 
 // ─── LEAD DATA MODEL ─────────────────────────────────────
