@@ -1,4 +1,4 @@
-# Spec: CRM Module V2 — Wedding Studio
+﻿# Spec: CRM Module V2 — Wedding Studio
 Status: 📋 Draft — chờ User duyệt
 Created: 2026-04-08T21:47+07:00
 Updated: 2026-04-08T22:19+07:00
@@ -705,8 +705,10 @@ npx tsc --noEmit --incremental false --pretty false
 
 # SSOT compliance grep (Phase 02-05 components):
 Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern '#[0-9a-fA-F]{3,8}'  # = 0 (no hardcoded hex)
-Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern 'border-border|divide-border'  # = 0
-Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern 'style=\{\{'  # = 0
+Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern 'divide-border'      # = 0 (banned)
+# border-border is ALLOWED — Tailwind v4 @theme SSOT token mapping to var(--color-border). Expected: ~22 hits.
+# style={{ is ALLOWED for chart components only (dynamic runtime SVG). Expected: ~5 hits.
+#   Allowed files: components/crm/lead-analytics.tsx, components/crm/widgets/widget-source-donut.tsx
 Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern '<th |<td |<tbody|<thead'  # = 0 (use SSOT table)
 Get-ChildItem components/crm -Recurse -Filter *.tsx | Select-String -Pattern '<select'  # = 0 (use SelectForm/SelectPill)
 

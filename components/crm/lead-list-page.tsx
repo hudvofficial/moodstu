@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Plus, Users, FilterX, Download, PieChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
@@ -22,8 +23,6 @@ import LeadDetailDrawer from "./lead-detail-drawer";
 import LeadFormModal from "./lead-form-modal";
 import LeadAnalytics from "./lead-analytics";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
-import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
 import { List, Kanban } from "lucide-react";
@@ -41,19 +40,52 @@ interface Props {
   pageSize: number;
 }
 
+type StatusOverride = { from: LeadStatus; to: LeadStatus };
+
 export default function LeadListPage({ leads, stats, total, page, pageSize }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { mutate } = useSWRConfig();
+  const [, startTransition] = useTransition();
+  const isMobile = useIsMobile();
   const [showForm, setShowForm] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, StatusOverride>>({});
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const totalPages = Math.ceil(total / pageSize);
 
-  // Phase 01: Supabase Realtime + SWR Sync
+  const scheduleRefresh = useCallback(
+    (delay = 0) => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = null;
+        startTransition(() => {
+          router.refresh();
+        });
+      }, delay);
+    },
+    [router, startTransition],
+  );
+
+  const visibleLeads = useMemo(
+    () =>
+      leads.map((lead) => {
+        const override = statusOverrides[lead.id];
+        return override && override.from === lead.status ? { ...lead, status: override.to } : lead;
+      }),
+    [leads, statusOverrides],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
+  // Phase 01: Supabase Realtime + throttled server refresh
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -63,7 +95,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
         { event: '*', schema: 'public', table: 'crm_leads' },
         () => {
           // Khi DB có thay đổi (INSERT, UPDATE, DELETE) -> Revalidate
-          mutate(cacheKeys.leads());
+          scheduleRefresh(600);
         }
       )
       .subscribe();
@@ -71,7 +103,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [mutate]);
+  }, [scheduleRefresh]);
 
   // Pagination onChange — update URL param
   const handlePageChange = useCallback(
@@ -79,16 +111,22 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
       const params = new URLSearchParams(searchParams.toString());
       if (newPage > 1) params.set("page", String(newPage));
       else params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`);
+      });
     },
-    [router, pathname, searchParams]
+    [router, pathname, searchParams, startTransition]
   );
 
   // Detect if filters are active
   const hasFilters = searchParams.get("search") || searchParams.get("status") ||
     searchParams.get("source") || searchParams.get("assigned");
 
-  const clearFilters = () => router.push(pathname);
+  const clearFilters = () => {
+    startTransition(() => {
+      router.push(pathname);
+    });
+  };
 
   // Action for creating lead
   const handleCreateLead = () => {
@@ -96,11 +134,32 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
   };
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
+    const nextStatus = newStatus as LeadStatus;
+    const baseLead = leads.find((lead) => lead.id === leadId);
+    if (!baseLead) return;
+
+    const previousOverride = statusOverrides[leadId];
+    setStatusOverrides((current) => ({ ...current, [leadId]: { from: baseLead.status, to: nextStatus } }));
+    const rollbackStatus = () => {
+      setStatusOverrides((current) => {
+        const next = { ...current };
+        if (previousOverride) next[leadId] = previousOverride;
+        else delete next[leadId];
+        return next;
+      });
+    };
+
     try {
-      await moveLeadToStage(leadId, newStatus as LeadStatus);
-      mutate(cacheKeys.leads());
+      const result = await moveLeadToStage(leadId, nextStatus);
+      if (!result.success) {
+        rollbackStatus();
+        toast.error(result.error || "Không thể cập nhật trạng thái");
+        return;
+      }
+      scheduleRefresh();
       toast.success("Đã cập nhật trạng thái");
     } catch (error: unknown) {
+      rollbackStatus();
       if (error instanceof Error) {
         toast.error(error.message || "Không thể cập nhật trạng thái");
       } else {
@@ -109,11 +168,15 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
     }
   };
 
+  const handleDataChanged = useCallback(() => {
+    scheduleRefresh();
+  }, [scheduleRefresh]);
+
   const widgetsContent = (
     <>
+      <WidgetSourceDonut leads={visibleLeads} />
       <WidgetCTA />
       <WidgetUpcoming />
-      <WidgetSourceDonut leads={leads} />
     </>
   );
 
@@ -181,7 +244,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
         </div>
       </div>
 
-      {showAnalytics && <LeadAnalytics leads={leads} />}
+      {showAnalytics && <LeadAnalytics leads={visibleLeads} />}
 
       <FAB onClick={handleCreateLead} label="Thêm Lead" />
 
@@ -189,7 +252,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
       <LeadFilters stats={stats} />
 
       {/* ── Lead List ── */}
-      {leads.length === 0 ? (
+      {visibleLeads.length === 0 ? (
         hasFilters ? (
           <EmptyState
             icon={FilterX}
@@ -209,24 +272,27 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
         )
       ) : (
         <CrmDashboardLayout
-          view={viewMode === "table" ? "list" : "board"}
+          view={isMobile || viewMode === "table" ? "list" : "board"}
           widgets={widgetsContent}
         >
           <div className="flex flex-col gap-2">
-            <div className="hidden lg:flex flex-col gap-2">
+            {isMobile ? (
+              <div className="space-y-2">
+                {visibleLeads.map((lead) => (
+                  <LeadCard key={lead.id} lead={lead} onClick={setSelectedLeadId} onStatusChange={handleStatusChange} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
               {viewMode === "table" ? (
-                leads.map((lead) => (
+                visibleLeads.map((lead) => (
                   <LeadCompactCard key={lead.id} lead={lead} onClick={setSelectedLeadId} />
                 ))
               ) : (
-                <PipelineBoard leads={leads} onStatusChange={handleStatusChange} />
+                <PipelineBoard leads={visibleLeads} onStatusChange={handleStatusChange} />
               )}
-            </div>
-            <div className="lg:hidden space-y-2">
-              {leads.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} onClick={setSelectedLeadId} onStatusChange={handleStatusChange} />
-              ))}
-            </div>
+              </div>
+            )}
             <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} className="mt-4" />
             <p className="text-center text-xs text-text-muted mt-1">
               Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} của {total} leads
@@ -240,14 +306,15 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
       <LeadFormModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        onSaved={() => mutate(cacheKeys.leads())}
+        onSaved={handleDataChanged}
       />
 
       <LeadDetailDrawer 
         leadId={selectedLeadId}
         isOpen={!!selectedLeadId}
         onClose={() => setSelectedLeadId(null)}
-        initialData={leads.find((l) => l.id === selectedLeadId)}
+        initialData={visibleLeads.find((l) => l.id === selectedLeadId)}
+        onChanged={handleDataChanged}
       />
     </>
   );

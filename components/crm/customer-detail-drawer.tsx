@@ -73,6 +73,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Mồi data từ list → SWR fallbackData → zero-loading */
   initialData?: CustomerDetail;
+  onChanged?: () => void;
 }
 
 export default function CustomerDetailDrawer({
@@ -80,6 +81,7 @@ export default function CustomerDetailDrawer({
   open,
   onOpenChange,
   initialData,
+  onChanged,
 }: Props) {
   const { mutate: globalMutate } = useSWRConfig();
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -115,6 +117,7 @@ export default function CustomerDetailDrawer({
       if (res.success) {
         toast.success("Đã xoá khách hàng");
         globalMutate(cacheKeys.customers());
+        onChanged?.();
         onOpenChange(false);
         setIsDeleteOpen(false);
       } else {
@@ -132,6 +135,7 @@ export default function CustomerDetailDrawer({
     if (customerId) {
       globalMutate(cacheKeys.customerDetail(customerId));
       globalMutate(cacheKeys.customers());
+      onChanged?.();
     }
   };
 

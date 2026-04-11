@@ -16,10 +16,11 @@ import { createCustomer, updateCustomer } from "@/app/actions/customer-actions";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSaved?: () => void;
   customer?: Customer | null;
 }
 
-export default function CustomerFormModal({ isOpen, onClose, customer }: Props) {
+export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }: Props) {
   const isEditing = !!customer;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -123,9 +124,8 @@ export default function CustomerFormModal({ isOpen, onClose, customer }: Props) 
         if (!result.success) throw new Error(result.error);
       }
       
-      // We rely on router.refresh() in parent or here
       onClose();
-      window.location.reload(); // Fallback simpler reload for quick update
+      onSaved?.();
     } catch (err: unknown) {
       if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
     } finally {

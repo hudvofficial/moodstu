@@ -15,22 +15,22 @@ export default async function LeadsRoute(props: {
   const page = typeof searchParams.page === "string" ? parseInt(searchParams.page, 10) : 1;
   const pageSize = 50; // Fix to 50 items/page as requested in Spec and confirmed by default
 
-  // Fetch leads
-  const result = await getLeads({
-    search,
-    status,
-    source,
-    assigned_to: assigned,
-    page,
-    pageSize,
-  });
+  const [result, statsResult] = await Promise.all([
+    getLeads({
+      search,
+      status,
+      source,
+      assigned_to: assigned,
+      page,
+      pageSize,
+    }),
+    getLeadStats(),
+  ]);
 
   if (!result.success) {
     throw new Error(result.error);
   }
 
-// Fetch stats
-  const statsResult = await getLeadStats();
   if (!statsResult.success) {
     throw new Error(statsResult.error);
   }

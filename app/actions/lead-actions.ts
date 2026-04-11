@@ -20,6 +20,28 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+const LEAD_LIST_FIELDS = [
+  "id",
+  "contact_date",
+  "contact_name",
+  "phone",
+  "email",
+  "source",
+  "needs",
+  "potential",
+  "status",
+  "next_contact_date",
+  "assigned_to",
+  "created_at",
+  "updated_at",
+  "deal_value",
+  "tags",
+  "score",
+  "pipeline_order",
+  "status_changed_at",
+  "lost_reason",
+].join(", ");
+
 /** Escape PostgREST ilike wildcards to prevent pattern injection */
 function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
@@ -31,7 +53,7 @@ export async function getLeads(params: {
   search?: string; status?: LeadStatus; source?: string; assigned_to?: string; page?: number; pageSize?: number;
 }): Promise<ActionResult<{ leads: unknown[]; total: number; page: number; pageSize: number }>> {
   return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+    const { employee } = await requireCrmAccess(supabase, userId);
     
     const parsed = ZodLeadFilter.safeParse(params);
     if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
@@ -41,7 +63,7 @@ export async function getLeads(params: {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let query = supabase.from("crm_leads").select("*", { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
+    let query = supabase.from("crm_leads").select(LEAD_LIST_FIELDS, { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
     if (parsed.data.search) {
       const s = escapeSearch(parsed.data.search);
       query = query.or(`contact_name.ilike.%${s}%,phone.ilike.%${s}%`);
@@ -50,7 +72,7 @@ export async function getLeads(params: {
     if (parsed.data.source) query = query.eq("source", parsed.data.source);
     if (parsed.data.assigned_to) {
       if (parsed.data.assigned_to === "unassigned") query = query.is("assigned_to", null);
-      else if (parsed.data.assigned_to === "me") query = query.eq("assigned_to", userId);
+      else if (parsed.data.assigned_to === "me") query = query.eq("assigned_to", employee.id);
       else query = query.eq("assigned_to", parsed.data.assigned_to);
     }
 
@@ -215,10 +237,23 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
     const parsed = ZodUuidId.safeParse({ id });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "ID không hợp lệ");
 
-    const { data, error } = await supabase.from("crm_leads").select("*, employees!assigned_to(id, full_name)").eq("id", id).is("deleted_at", null).single();
+    const { data, error } = await supabase.from("crm_leads").select("*").eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
     if (!data) throw new Error("Không tìm thấy lead");
-    return data as CrmLead;
+
+    // Fetch employee separately — no FK dependency
+    let employee: { id: string; full_name: string } | null = null;
+    if (data.assigned_to) {
+      const { data: emp, error: empError } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("id", data.assigned_to)
+        .maybeSingle();
+      if (empError) throw empError;
+      employee = emp ?? null;
+    }
+
+    return { ...data, employees: employee } as CrmLead;
   });
 }
 

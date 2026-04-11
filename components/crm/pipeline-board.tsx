@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -59,9 +59,9 @@ function groupLeadsByStatus(deals: CrmLead[]) {
 export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardProps) {
   // Local state for optimistic UI updates during drag
   const [columns, setColumns] = useState<Record<string, CrmLead[]>>(() => groupLeadsByStatus(leads));
+  const [prevLeads, setPrevLeads] = useState(leads);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeLead, setActiveLead] = useState<CrmLead | null>(null);
-  const [prevLeads, setPrevLeads] = useState(leads);
 
   if (leads !== prevLeads && !activeId) {
     setPrevLeads(leads);
@@ -110,10 +110,11 @@ export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardPr
     }
 
     setColumns((prev) => {
-      const activeItems = prev[activeContainer];
+      const activeItems = prev[activeContainer] || [];
       const overItems = prev[overContainer] || [];
       const activeIndex = activeItems.findIndex((item) => item.id === activeId);
       const overIndex = overItems.findIndex((item) => item.id === overId);
+      if (activeIndex < 0) return prev;
 
       const newIndex = overIndex >= 0 ? overIndex : overItems.length;
 
@@ -168,9 +169,12 @@ export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardPr
     }
   };
 
-  const dropAnimation = {
-    sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0.4" } } }),
-  };
+  const dropAnimation = useMemo(
+    () => ({
+      sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0.4" } } }),
+    }),
+    [],
+  );
 
   return (
     <div className="flex h-[calc(100vh-220px)] w-full gap-4 overflow-x-auto pb-4 custom-scrollbar">

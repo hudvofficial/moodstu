@@ -13,6 +13,28 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+type CustomerListRow = { id: string } & Record<string, unknown>;
+
+const CUSTOMER_LIST_FIELDS = [
+  "id",
+  "customer_code",
+  "full_name",
+  "phone",
+  "alt_phone",
+  "email",
+  "address",
+  "gender",
+  "date_of_birth",
+  "wedding_date",
+  "bride_name",
+  "groom_name",
+  "source",
+  "notes",
+  "tags",
+  "created_at",
+  "updated_at",
+].join(", ");
+
 /** Escape PostgREST ilike wildcards to prevent pattern injection */
 function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
@@ -35,7 +57,7 @@ export async function getCustomers(params: {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    let query = supabase.from("customers").select("*", { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
+    let query = supabase.from("customers").select(CUSTOMER_LIST_FIELDS, { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
     if (search) {
       const s = escapeSearch(search);
       query = query.or(`full_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%,customer_code.ilike.%${s}%`);
@@ -49,12 +71,13 @@ export async function getCustomers(params: {
     const { data, count, error } = await query;
     if (error) throw error;
 
-    const customers = data || [];
-    const customerIds = customers.map((c: { id: string }) => c.id);
+    const customers = (data || []) as unknown as CustomerListRow[];
+    const customerIds = customers.map((c) => c.id);
     const ltvMap: Record<string, number> = {};
 
     if (customerIds.length > 0) {
-      const { data: contracts } = await supabase.from("contracts").select("customer_id, total_value").in("customer_id", customerIds);
+      const { data: contracts, error: contractsError } = await supabase.from("contracts").select("customer_id, total_value").in("customer_id", customerIds);
+      if (contractsError) throw contractsError;
       (contracts || []).forEach((c: { customer_id: string; total_value: number }) => {
         ltvMap[c.customer_id] = (ltvMap[c.customer_id] || 0) + (c.total_value || 0);
       });
@@ -62,7 +85,7 @@ export async function getCustomers(params: {
 
     const totalPages = Math.ceil((count || 0) / pageSize);
 
-    return { customers: customers.map((c: { id: string }) => ({ ...c, ltv: ltvMap[c.id] || 0 })), total: count || 0, totalPages, page, pageSize };
+    return { customers: customers.map((c) => ({ ...c, ltv: ltvMap[c.id] || 0 })), total: count || 0, totalPages, page, pageSize };
   });
 }
 
@@ -267,22 +290,28 @@ export async function getCustomerStats(): Promise<ActionResult<{ total: number; 
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
 
-    const { count: total } = await supabase.from("customers").select("*", { count: "exact", head: true }).is("deleted_at", null);
-
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const { count: newThisMonth } = await supabase.from("customers").select("*", { count: "exact", head: true }).is("deleted_at", null).gte("created_at", startOfMonth.toISOString());
 
-    const { data: contracts } = await supabase.from("contracts").select("customer_id, total_value");
+    const [totalResult, newThisMonthResult, contractsResult] = await Promise.all([
+      supabase.from("customers").select("id", { count: "exact", head: true }).is("deleted_at", null),
+      supabase.from("customers").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("created_at", startOfMonth.toISOString()),
+      supabase.from("contracts").select("customer_id, total_value").not("customer_id", "is", null),
+    ]);
+
+    if (totalResult.error) throw totalResult.error;
+    if (newThisMonthResult.error) throw newThisMonthResult.error;
+    if (contractsResult.error) throw contractsResult.error;
+
     const customerValues: Record<string, number> = {};
-    (contracts || []).forEach((c: { customer_id: string; total_value: number }) => {
+    (contractsResult.data || []).forEach((c: { customer_id: string; total_value: number }) => {
       customerValues[c.customer_id] = (customerValues[c.customer_id] || 0) + (c.total_value || 0);
     });
     const values = Object.values(customerValues);
     const avgLifetimeValue = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
 
-    return { total: total || 0, newThisMonth: newThisMonth || 0, avgLifetimeValue };
+    return { total: totalResult.count || 0, newThisMonth: newThisMonthResult.count || 0, avgLifetimeValue };
   });
 }
 

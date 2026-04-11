@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useTransition } from "react";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { LEAD_STATUS_MAP, SOURCE_MAP, PIPELINE_STAGES } from "@/types/crm";
@@ -30,6 +30,7 @@ export default function LeadFilters({ stats }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -40,9 +41,11 @@ export default function LeadFilters({ stats }: Props) {
         params.delete(key);
       }
       params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`);
+      });
     },
-    [router, pathname, searchParams]
+    [router, pathname, searchParams, startTransition]
   );
 
   // ── Status tabs data ──

@@ -3,7 +3,7 @@
 import { SOURCE_MAP, TAG_PRESETS } from "@/types/crm";
 import { Filter } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useTransition } from "react";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 export default function CustomerFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
 
   const updateFilters = useCallback(
     (key: string, value: string | null) => {
@@ -25,9 +26,11 @@ export default function CustomerFilters() {
         params.delete(key);
       }
       params.set("page", "1");
-      router.push(`?${params.toString()}`);
+      startTransition(() => {
+        router.push(`?${params.toString()}`);
+      });
     },
-    [router, searchParams]
+    [router, searchParams, startTransition]
   );
 
   const activeSource = searchParams.get("source") || "all";
@@ -52,7 +55,9 @@ export default function CustomerFilters() {
   const hasActiveFilters = activeSource !== "all" || activeTags !== "all";
 
   const clearAllFilters = () => {
-    router.push("?");
+    startTransition(() => {
+      router.push("?");
+    });
   };
 
   return (

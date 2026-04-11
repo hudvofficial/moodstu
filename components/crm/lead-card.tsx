@@ -82,7 +82,6 @@ export default function LeadCard({ lead, onClick, onStatusChange }: Props) {
       className: "bg-error text-inverse",
       onClick: () => {
         handleStatusUpdate("huy");
-        toast.success("Đã huỷ khách hàng");
       }
     }
   ];

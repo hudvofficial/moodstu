@@ -79,6 +79,12 @@ export default function CustomerListPage({ initialData, stats }: CustomerListPag
     });
   };
 
+  const handleDataChanged = useCallback(() => {
+    startTransition(() => {
+      router.refresh();
+    });
+  }, [router, startTransition]);
+
   const widgetsContent = (
     <>
       <WidgetCTA />
@@ -153,14 +159,8 @@ export default function CustomerListPage({ initialData, stats }: CustomerListPag
         <CrmDashboardLayout view="list" widgets={widgetsContent}>
           <div className="flex flex-col gap-2">
             <div className={`${isPending ? "opacity-50 pointer-events-none" : "opacity-100"} transition-opacity duration-200`}>
-              {/* Desktop Cards */}
-              <div className="hidden lg:flex flex-col gap-2">
-                {initialData.customers.map((customer) => (
-                  <CustomerCompactCard key={customer.id} customer={customer} onClick={handleRowClick} />
-                ))}
-              </div>
-              {/* Mobile Cards */}
-              <div className="lg:hidden space-y-2">
+              {isMobile ? (
+                <div className="space-y-2">
                 {initialData.customers.map((customer) => (
                   <CustomerCard
                     key={customer.id}
@@ -168,7 +168,14 @@ export default function CustomerListPage({ initialData, stats }: CustomerListPag
                     onClick={handleRowClick}
                   />
                 ))}
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {initialData.customers.map((customer) => (
+                    <CustomerCompactCard key={customer.id} customer={customer} onClick={handleRowClick} />
+                  ))}
+                </div>
+              )}
             </div>
             <div className="mt-4 pointer-events-auto">
               <Pagination page={currentPage} totalPages={totalPages} onChange={handlePageChange} />
@@ -185,12 +192,14 @@ export default function CustomerListPage({ initialData, stats }: CustomerListPag
       <CustomerFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onSaved={handleDataChanged}
       />
 
       <CustomerDetailDrawer
         customerId={selectedCustomer?.id || null}
         open={!!selectedCustomer}
         onOpenChange={(open) => !open && setSelectedCustomer(null)}
+        onChanged={handleDataChanged}
         initialData={
           selectedCustomer
             ? { customer: selectedCustomer, contracts: [], lifetimeValue: 0 }

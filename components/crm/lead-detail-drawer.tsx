@@ -98,6 +98,7 @@ interface Props {
   leadId: string | null;
   /** Mồi data từ list → SWR fallbackData → zero-loading */
   initialData?: CrmLead;
+  onChanged?: () => void;
 }
 
 export default function LeadDetailDrawer({
@@ -105,6 +106,7 @@ export default function LeadDetailDrawer({
   onClose,
   leadId,
   initialData,
+  onChanged,
 }: Props) {
   const router = useRouter();
   const [isLosing, setIsLosing] = useState(false);
@@ -153,6 +155,7 @@ export default function LeadDetailDrawer({
       if (!res.success) throw new Error(res.error);
       globalMutate(cacheKeys.leadDetail(lead.id));
       globalMutate(cacheKeys.leads());
+      onChanged?.();
     } catch (err: unknown) {
       if (err instanceof Error)
         alert(err.message || "Lỗi khi chuyển trạng thái");
@@ -169,6 +172,7 @@ export default function LeadDetailDrawer({
       const result = await convertLeadToCustomer(lead.id);
       if (!result.success) throw new Error(result.error);
       globalMutate(cacheKeys.leads());
+      onChanged?.();
       onClose();
       router.push(result.data.url);
     } catch (err: unknown) {
@@ -189,6 +193,7 @@ export default function LeadDetailDrawer({
       setLostReason("");
       globalMutate(cacheKeys.leadDetail(lead.id));
       globalMutate(cacheKeys.leads());
+      onChanged?.();
     } catch (err: unknown) {
       if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi");
     }
@@ -501,6 +506,7 @@ export default function LeadDetailDrawer({
           onSaved={() => {
             globalMutate(cacheKeys.leads());
             globalMutate(cacheKeys.leadDetail(lead.id));
+            onChanged?.();
             setIsEditOpen(false);
           }}
         />

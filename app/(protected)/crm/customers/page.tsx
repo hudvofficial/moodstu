@@ -19,16 +19,16 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   const source = typeof sp.source === "string" ? sp.source : undefined;
   const tags = typeof sp.tags === "string" ? sp.tags : undefined;
 
-  // Optimistic initial fetch
-  const initialDataReq = await getCustomers({
-    page: page || 1,
-    pageSize: 10,
-    search: search || undefined,
-    source: source || undefined,
-    tags: tags || undefined,
-  });
-
-  const statsReq = await getCustomerStats();
+  const [initialDataReq, statsReq] = await Promise.all([
+    getCustomers({
+      page: page || 1,
+      pageSize: 10,
+      search: search || undefined,
+      source: source || undefined,
+      tags: tags || undefined,
+    }),
+    getCustomerStats(),
+  ]);
 
   const initialData = (initialDataReq.success ? initialDataReq.data : { customers: [], total: 0, totalPages: 1, page: 1, pageSize: 10 }) as unknown as { customers: Customer[]; total: number; totalPages: number; page: number; pageSize: number };
   const stats = statsReq.success ? statsReq.data : { total: 0, newThisMonth: 0, avgLifetimeValue: 0 };
