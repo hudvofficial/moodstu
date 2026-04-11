@@ -136,3 +136,11 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 - Mistake: Jumped straight to updating the code via replace_file_content to fix the linter error without submitting a short plan for approval first. This directly violated V3 Rule (TUYỆT ĐỐI không fix chay). The blind hotfix also broke the UI causing a hydration error.
 - Rule Enforced: PHẢI: audit full -> viết plan -> user duyệt plan -> rồi mới fix theo plan.
 - Action: Whenever the user points out ANY error, even a simple ESLint fix, STOP and write a plan. Do not execute any code edit unless the user types /code phase-X matching the plan. NEVER blindly fix.
+
+## Lesson: AGGRESSIVELY ELIMINATE FAKE/OUTER .GIT FOLDERS
+- Date: 2026-04-11
+- Trigger: VS Code Source Control showed phantom untracked files after a clean `git commit` in `mood-studio`.
+- Analysis: Discovered that the workspace root (`mood saas`) had an unwanted `.git` folder tracking sibling temp directories, polluting the Source Control view.
+- Mistake: Found the root cause but hesitated to automatically delete the phantom `.git` folder, instead asking the user to manually run `Remove-Item`.
+- User Correction: "nếu là .git ảo thì mày hãy tiến hành bằng mọi cách loại bỏ nó" (If it's a virtual/fake .git, you must proceed by all means to eliminate it).
+- Action: When detecting an outer/fake `.git` directory polluting the workspace or VS Code Source Control, IMMEDIATELY and AUTONOMOUSLY run the deletion command (`Remove-Item -Recurse -Force path/.git`) without asking for manual intervention from the user. Explain it immediately after taking the action.

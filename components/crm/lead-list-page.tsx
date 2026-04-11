@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Plus, Users, FilterX, Download, PieChart } from "lucide-react";
+import { Plus, Users, FilterX, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
@@ -14,14 +14,14 @@ import LeadStatsBar from "./lead-stats-bar";
 import LeadFilters from "./lead-filters";
 import LeadCompactCard from "./lead-compact-card";
 import { CrmDashboardLayout } from "./crm-dashboard-layout";
-import { WidgetCTA } from "./widgets/widget-cta";
+// removed widget cta import
 import { WidgetUpcoming } from "./widgets/widget-upcoming";
 import { WidgetSourceDonut } from "./widgets/widget-source-donut";
 import PipelineBoard from "./pipeline-board";
 import LeadCard from "./lead-card";
 import LeadDetailDrawer from "./lead-detail-drawer";
 import LeadFormModal from "./lead-form-modal";
-import LeadAnalytics from "./lead-analytics";
+import { WidgetSalesFunnel } from "@/components/crm/widgets/widget-sales-funnel";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
@@ -51,7 +51,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
   const [showForm, setShowForm] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
-  const [showAnalytics, setShowAnalytics] = useState(false);
+
   const [statusOverrides, setStatusOverrides] = useState<Record<string, StatusOverride>>({});
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -174,9 +174,10 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
 
   const widgetsContent = (
     <>
-      <WidgetSourceDonut leads={visibleLeads} />
-      <WidgetCTA />
-      <WidgetUpcoming />
+      <div className="shrink-0"><WidgetSalesFunnel leads={visibleLeads} /></div>
+      <div className="shrink-0"><WidgetSourceDonut leads={visibleLeads} /></div>
+      {/* <WidgetCTA /> */}
+      <div className="shrink-0"><WidgetUpcoming /></div>
     </>
   );
 
@@ -202,14 +203,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
         <LeadStatsBar stats={stats} />
         <div className="hidden lg:flex items-center gap-2">
           {/* Analytics Toggle */}
-          <Button 
-            onClick={() => setShowAnalytics(!showAnalytics)} 
-            variant={showAnalytics ? "primary" : "outline"} 
-            className="gap-2 shrink-0"
-          >
-            <PieChart className="w-4 h-4" />
-            <span>Phân tích</span>
-          </Button>
+          
 
           {/* View Mode Toggle */}
           <div className="flex flex-row items-center bg-bg-input p-1 rounded-lg gap-1 border border-border/50">
@@ -244,7 +238,7 @@ export default function LeadListPage({ leads, stats, total, page, pageSize }: Pr
         </div>
       </div>
 
-      {showAnalytics && <LeadAnalytics leads={visibleLeads} />}
+
 
       <FAB onClick={handleCreateLead} label="Thêm Lead" />
 

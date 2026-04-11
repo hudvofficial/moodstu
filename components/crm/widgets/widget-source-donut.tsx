@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import type { CrmLead } from "@/types/crm";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface WidgetSourceDonutProps {
   leads: CrmLead[];
 }
 
 export function WidgetSourceDonut({ leads }: WidgetSourceDonutProps) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const totalLeads = leads.length;
 
   // 1. Calculate Source data
@@ -35,29 +39,74 @@ export function WidgetSourceDonut({ leads }: WidgetSourceDonutProps) {
       };
     });
 
+  const visibleData = isExpanded ? sourceData : sourceData.slice(0, 4);
+
   return (
     <div className="card-base p-5 flex flex-col">
       <h3 className="text-h3 mb-1">Nguồn khách (Source)</h3>
-      <p className="text-caption text-text-secondary mb-6">Tỉ trọng phân bổ các kênh</p>
+      <p className="text-caption text-text-secondary mb-4">Tỉ trọng phân bổ các kênh</p>
 
-      <div className="flex-1 flex flex-col items-center justify-center relative py-2">
+      <div className="flex-1 flex flex-col items-center justify-center relative">
         {totalLeads === 0 ? (
           <div className="text-sm text-text-muted py-8">Chưa có dữ liệu</div>
         ) : (
-          <DonutChart data={sourceData} />
+          <DonutChart 
+            data={sourceData} 
+            hoveredIndex={hoveredIndex} 
+            setHoveredIndex={setHoveredIndex} 
+          />
         )}
       </div>
 
       {/* Legend */}
       {totalLeads > 0 && (
-        <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2">
-          {sourceData.map((item) => (
-            <div key={item.source} className="flex items-center gap-1.5 w-[calc(50%-8px)]">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-              <span className="text-tiny text-text-secondary truncate flex-1" title={item.source}>{item.source}</span>
-              <span className="text-xs font-semibold text-text-primary">{item.percent}%</span>
+        <div className="mt-5 flex flex-col gap-1.5">
+          {visibleData.map((item, idx) => (
+            <div 
+              key={item.source} 
+              className={`flex items-center gap-2.5 p-2 -mx-2 rounded-lg cursor-pointer transition-colors duration-200 ${
+                hoveredIndex === idx ? "bg-bg-input" : "hover:bg-bg-input/60"
+              }`}
+              onMouseEnter={() => setHoveredIndex(idx)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              <div 
+                className={`w-2 h-2 rounded-full shrink-0 transition-transform duration-200 ${hoveredIndex === idx ? "scale-125" : ""}`} 
+                style={{ backgroundColor: item.color }} 
+              />
+              <span 
+                className={`text-sm truncate flex-1 transition-colors duration-200 ${
+                  hoveredIndex === idx ? "text-text-primary font-medium" : "text-text-secondary"
+                }`} 
+                title={item.source}
+              >
+                {item.source}
+              </span>
+              <span className="text-xs text-text-muted w-14 text-right shrink-0">{item.count} khách</span>
+              <span 
+                className={`text-sm font-semibold w-10 text-right shrink-0 transition-colors duration-200 ${
+                  hoveredIndex === idx ? "text-primary" : "text-text-primary"
+                }`}
+              >
+                {item.percent}%
+              </span>
             </div>
           ))}
+
+          {/* Show More/Less Button */}
+          {sourceData.length > 4 && (
+            <Button
+              variant="ghost"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center justify-center gap-1.5 h-8 mt-1 text-text-muted hover:text-text-primary hover:bg-bg-input/50 transition-colors duration-200"
+            >
+              {isExpanded ? (
+                <>Thu gọn <ChevronUp className="w-4 h-4" /></>
+              ) : (
+                <>Tất cả {sourceData.length} kênh <ChevronDown className="w-4 h-4" /></>
+              )}
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -66,11 +115,18 @@ export function WidgetSourceDonut({ leads }: WidgetSourceDonutProps) {
 
 // ─── SVG DONUT CHART (Zero Dependencies) ───────────
 
-function DonutChart({ data }: { data: Array<{ source: string; count: number; percent: number; color: string }> }) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+function DonutChart({ 
+  data, 
+  hoveredIndex, 
+  setHoveredIndex 
+}: { 
+  data: Array<{ source: string; count: number; percent: number; color: string }>;
+  hoveredIndex: number | null;
+  setHoveredIndex: (idx: number | null) => void;
+}) {
 
-  const size = 160;
-  const strokeWidth = 28;
+  const size = 140;
+  const strokeWidth = 24;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -98,7 +154,8 @@ function DonutChart({ data }: { data: Array<{ source: string; count: number; per
         {data.map((item, idx) => {
           const { dash, offset } = segments[idx];
           const isHovered = hoveredIndex === idx;
-          const currentStrokeWidth = isHovered ? strokeWidth + 6 : strokeWidth;
+          const isAnyHovered = hoveredIndex !== null;
+          const opacity = isAnyHovered ? (isHovered ? 1 : 0.3) : 1;
 
           return (
             <circle
@@ -108,11 +165,12 @@ function DonutChart({ data }: { data: Array<{ source: string; count: number; per
               r={radius}
               fill="none"
               stroke={item.color}
-              strokeWidth={currentStrokeWidth}
+              strokeWidth={strokeWidth}
               strokeDasharray={`${dash} ${circumference - dash}`}
               strokeDashoffset={-offset}
               strokeLinecap="butt"
-              className="cursor-pointer transition-all duration-300 origin-center"
+              style={{ opacity }}
+              className="cursor-pointer transition-opacity duration-300 origin-center"
               onMouseEnter={() => setHoveredIndex(idx)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
