@@ -21,8 +21,8 @@ export function ServiceDonutChart({ data }: ServiceDonutChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="card-base h-full p-5">
-      <div className="flex items-center gap-2 mb-5">
+    <div className="card-base h-full p-4">
+      <div className="flex items-center gap-2 mb-4">
         <div className="icon-box bg-info/10">
           <PieChartIcon className="w-4 h-4 text-info" />
         </div>

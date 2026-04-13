@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Edit, Landmark, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteInvestment } from "@/app/actions/investment-actions";
@@ -29,6 +29,15 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const key = cacheKeys.financeInvestments();
   const { data, error, isLoading } = useSWR(key, () => requireData(fetchInvestments()), { fallbackData: initialData });
+
+  const handleOpenCreate = useCallback(() => {
+    setEditing(null);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được tài sản.");
@@ -67,7 +76,7 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
             <p className="text-body-sm text-text-secondary">Theo dõi giá trị còn lại, khấu hao và lịch bảo trì.</p>
           </div>
         </div>
-        <Button type="button" onClick={() => { setEditing(null); setIsModalOpen(true); }} className="btn-cta gap-2">
+        <Button type="button" onClick={handleOpenCreate} className="btn-cta gap-2">
           <Plus className="w-4 h-4" />
           Thêm tài sản
         </Button>
@@ -141,7 +150,7 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
       </section>
 
       {isModalOpen && (
-        <InvestmentFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaved={refresh} item={editing} />
+        <InvestmentFormModal isOpen={isModalOpen} onClose={handleCloseModal} onSaved={refresh} item={editing} />
       )}
     </>
   );

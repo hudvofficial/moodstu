@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { deleteReceipt } from "@/app/actions/receipt-actions";
 import { fetchReceipts } from "@/app/actions/finance-operations-queries";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { ReceiptDesktopTable } from "@/components/finance/receipts/receipt-desktop-table";
 import { ReceiptFormModal } from "@/components/finance/receipts/receipt-form-modal";
 import { ReceiptMobileList } from "@/components/finance/receipts/receipt-mobile-list";
@@ -23,7 +24,7 @@ interface ReceiptsClientProps {
   contracts: FinanceContractOption[];
 }
 
-const months = Array.from({ length: 12 }, (_, index) => index + 1);
+
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -39,7 +40,15 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const pageSize = 12;
   const key = cacheKeys.financeReceipts(page, month, year);
-  const years = [initialYear - 1, initialYear, initialYear + 1];
+  const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+  const handleMonthChange = useCallback((value: string) => {
+    setMonth(Number(value));
+    setPage(1);
+  }, []);
+  const handleYearChange = useCallback((value: string) => {
+    setYear(Number(value));
+    setPage(1);
+  }, []);
 
   const { data, error, isLoading } = useSWR(
     key,
@@ -54,10 +63,7 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const receipts = data || initialData;
   const totalPages = Math.max(1, Math.ceil(receipts.total / receipts.pageSize));
 
-  const changeFilter = <T,>(setter: (value: T) => void, value: T) => {
-    setter(value);
-    setPage(1);
-  };
+
 
   const refresh = () => {
     void mutate(key);
@@ -94,13 +100,13 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
         <div className="flex flex-col gap-2 lg:flex-row">
           <SimpleSelect
             value={String(month)}
-            onChange={(value) => changeFilter(setMonth, Number(value))}
-            options={months.map((item) => ({ value: String(item), label: `Tháng ${item}` }))}
+            onChange={handleMonthChange}
+            options={monthOptions}
           />
           <SimpleSelect
             value={String(year)}
-            onChange={(value) => changeFilter(setYear, Number(value))}
-            options={years.map((item) => ({ value: String(item), label: String(item) }))}
+            onChange={handleYearChange}
+            options={yearOptions}
           />
           <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
             <Plus className="w-4 h-4" />

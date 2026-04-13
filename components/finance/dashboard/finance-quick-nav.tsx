@@ -49,12 +49,7 @@ const toneClasses: Record<QuickNavTone, { icon: string; text: string; border: st
 
 export function FinanceQuickNav() {
   return (
-    <section className="space-y-3 entrance entrance-1">
-      <div>
-        <h2 className="section-title">Lối tắt tài chính</h2>
-        <p className="text-caption">Đi thẳng đến nghiệp vụ cần xử lý.</p>
-      </div>
-
+    <section className="entrance entrance-1">
       <div className="grid grid-cols-3 gap-3 lg:grid-cols-9">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;

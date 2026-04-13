@@ -24,7 +24,7 @@ export function ExpenseMobileList({ items, busyId, onApprove, onDelete }: Expens
           <article key={item.id} className="card-base p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-semibold text-text-primary">{item.category_name || "Chưa phân loại"}</div>
+                <div className="text-label text-text-primary">{item.category_name || "Chưa phân loại"}</div>
                 <div className="text-caption text-text-muted">{formatFinanceDate(item.expense_date)}</div>
               </div>
               <span className={item.approved_by ? "badge badge-success" : "badge badge-warning"}>
@@ -37,7 +37,7 @@ export function ExpenseMobileList({ items, busyId, onApprove, onDelete }: Expens
                 <div>{item.recipient || "Không có người nhận"}</div>
                 <div>{financeMethodLabel(item.payment_method)}</div>
               </div>
-              <div className="tabular-nums font-bold text-error">{formatVnd(item.amount)}</div>
+              <div className="text-amount text-error">{formatVnd(item.amount)}</div>
             </div>
 
             <div className="flex items-center justify-between gap-2">

@@ -23,7 +23,16 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
   const isEmpty = chartData.every(d => d.value === 0);
 
   if (!data || isEmpty) {
-    return <div className="h-64 flex items-center justify-center text-text-secondary stats-card">Chưa có công nợ.</div>;
+    return (
+      <div className="stats-card h-full flex flex-col">
+        <div className="mb-4">
+          <h3 className="text-h3">Chất lượng Công Nợ (Tuổi nợ)</h3>
+        </div>
+        <div className="flex-1 w-full min-h-[250px] flex items-center justify-center text-text-secondary">
+          Chưa có công nợ.
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -41,7 +50,7 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
             <Tooltip 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, name: any, props: any) => [formatVnd(Number(value)), `Số lượng: ${props.payload.count} HĐ`]}
-              contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
+              contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />
             <Bar dataKey="value" fill="#8B5E3C" radius={[0, 4, 4, 0]} barSize={20} />
           </BarChart>

@@ -14,7 +14,7 @@ export default async function FinanceLayout({
   if (!canAccess(context.shellRole, "finance")) redirect("/dashboard");
 
   return (
-    <div className="main-container relative">
+    <div className="relative">
       {children}
       <FinanceFAB />
     </div>

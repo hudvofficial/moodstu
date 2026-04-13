@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createReceipt } from "@/app/actions/receipt-actions";
 import { formatVnd } from "@/components/finance/finance-format";
@@ -21,6 +21,17 @@ interface ReceiptFormModalProps {
 }
 
 const today = () => new Date().toISOString().split("T")[0];
+
+const RECEIPT_TYPE_OPTIONS = [
+  { value: "Thu khác", label: "Thu khác" },
+  { value: "Thu hợp đồng", label: "Thu hợp đồng" },
+  { value: "Bán vật tư", label: "Bán vật tư" },
+];
+
+const PAYMENT_TYPE_OPTIONS = [
+  { value: "tien_mat", label: "Tiền mặt" },
+  { value: "chuyen_khoan", label: "Chuyển khoản" },
+];
 
 export function ReceiptFormModal({
   isOpen,
@@ -56,9 +67,13 @@ export function ReceiptFormModal({
   );
   const selectedContract = contracts.find((item) => item.id === form.contract_id);
 
-  const setField = (field: keyof typeof form, value: string | number) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const handleChangeDate = useCallback((value: string) => setForm((curr) => ({ ...curr, receipt_date: value })), []);
+  const handleChangeType = useCallback((value: string) => setForm((curr) => ({ ...curr, receipt_type: value })), []);
+  const handleChangePayment = useCallback((value: string) => setForm((curr) => ({ ...curr, payment_type: value })), []);
+  const handleChangeCategory = useCallback((value: string) => setForm((curr) => ({ ...curr, category_id: value })), []);
+  const handleChangeContract = useCallback((value: string) => setForm((curr) => ({ ...curr, contract_id: value === "none" ? "" : value })), []);
+  const handleChangeAmount = useCallback((value: number) => setForm((curr) => ({ ...curr, receipt_amount: value })), []);
+  const handleChangeNotes = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => setForm((curr) => ({ ...curr, notes: event.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -118,40 +133,33 @@ export function ReceiptFormModal({
     >
       <form id="receipt-form" onSubmit={submit} className="space-y-4">
         <div className="form-grid-2col">
-          <DatePicker label="Ngày thu" value={form.receipt_date} onChange={(value) => setField("receipt_date", value)} required />
+          <DatePicker label="Ngày thu" value={form.receipt_date} onChange={handleChangeDate} required />
           <SimpleSelect
             label="Loại phiếu"
             value={form.receipt_type}
-            onChange={(value) => setField("receipt_type", value)}
-            options={[
-              { value: "Thu khác", label: "Thu khác" },
-              { value: "Thu hợp đồng", label: "Thu hợp đồng" },
-              { value: "Bán vật tư", label: "Bán vật tư" },
-            ]}
+            onChange={handleChangeType}
+            options={RECEIPT_TYPE_OPTIONS}
           />
           <SimpleSelect
             label="Phương thức"
             value={form.payment_type}
-            onChange={(value) => setField("payment_type", value)}
-            options={[
-              { value: "tien_mat", label: "Tiền mặt" },
-              { value: "chuyen_khoan", label: "Chuyển khoản" },
-            ]}
+            onChange={handleChangePayment}
+            options={PAYMENT_TYPE_OPTIONS}
           />
           <SimpleSelect
             label="Danh mục"
             value={form.category_id}
-            onChange={(value) => setField("category_id", value)}
+            onChange={handleChangeCategory}
             options={categoryOptions}
             placeholder="Chọn danh mục thu"
           />
           <SimpleSelect
             label="Hợp đồng"
             value={form.contract_id || "none"}
-            onChange={(value) => setField("contract_id", value === "none" ? "" : value)}
+            onChange={handleChangeContract}
             options={contractOptions}
           />
-          <CurrencyInput label="Số tiền thu" value={form.receipt_amount} onChange={(value) => setField("receipt_amount", value)} required />
+          <CurrencyInput label="Số tiền thu" value={form.receipt_amount} onChange={handleChangeAmount} required />
         </div>
 
         {selectedContract && (
@@ -163,7 +171,7 @@ export function ReceiptFormModal({
           </div>
         )}
 
-        <Textarea label="Ghi chú" value={form.notes} onChange={(event) => setField("notes", event.target.value)} rows={3} />
+        <Textarea label="Ghi chú" value={form.notes} onChange={handleChangeNotes} rows={3} />
       </form>
     </UnifiedModal>
   );

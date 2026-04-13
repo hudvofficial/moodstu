@@ -16,8 +16,8 @@ export function RevenueBarChart({ data, selectedMonth }: RevenueBarChartProps) {
     .slice(-6);
 
   return (
-    <div className="card-base h-full p-5">
-      <div className="flex items-center justify-between gap-3 mb-5">
+    <div className="card-base h-full p-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="icon-box bg-primary/10">
             <TrendingUp className="w-4 h-4 text-primary" />

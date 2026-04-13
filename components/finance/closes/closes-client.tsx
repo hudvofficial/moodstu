@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BookLock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { listCloses } from "@/app/actions/finance-close-actions";
 import { formatFinanceDate, financeStatusLabel, financeStatusVariant } from "@/components/finance/finance-format";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { CloseCreateModal } from "@/components/finance/closes/close-create-modal";
 import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -29,7 +30,10 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
   const [year, setYear] = useState(initialYear);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const key = cacheKeys.financeCloses(year);
-  const years = [initialYear - 1, initialYear, initialYear + 1];
+  const { yearOptions } = useFinanceFilters(initialYear);
+  const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
+  const openModal = useCallback(() => setIsModalOpen(true), []);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
   const { data, error, isLoading } = useSWR(key, () => requireData(listCloses(year)), { fallbackData: initialData });
 
   useEffect(() => {
@@ -53,8 +57,8 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
           </div>
         </div>
         <div className="flex flex-col gap-2 lg:flex-row">
-          <SimpleSelect value={String(year)} onChange={(value) => setYear(Number(value))} options={years.map((item) => ({ value: String(item), label: String(item) }))} />
-          <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
+          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
+          <Button type="button" onClick={openModal} className="btn-cta gap-2">
             <Plus className="w-4 h-4" />
             Tạo kỳ chốt
           </Button>
@@ -109,7 +113,7 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
 
       <CloseCreateModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         onSaved={refresh}
         initialMonth={now.getMonth() + 1}
         initialYear={now.getFullYear()}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Eye, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { deleteSalaryAdjustment } from "@/app/actions/salary-actions";
 import { fetchSalaries } from "@/app/actions/finance-operations-queries";
 import { formatVnd } from "@/components/finance/finance-format";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { SalaryAdjustmentModal } from "@/components/finance/salaries/salary-adjustment-modal";
 import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ interface SalariesClientProps {
   initialData: SalaryPageData;
 }
 
-const months = Array.from({ length: 12 }, (_, index) => index + 1);
+
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -36,7 +37,9 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
   const [adjusting, setAdjusting] = useState<SalaryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const key = cacheKeys.financeSalaries(month, year);
-  const years = [initialYear - 1, initialYear, initialYear + 1];
+  const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+  const handleMonthChange = useCallback((value: string) => setMonth(Number(value)), []);
+  const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
   const { data, error, isLoading } = useSWR(key, () => requireData(fetchSalaries(month, year)), { fallbackData: initialData });
 
   useEffect(() => {
@@ -73,8 +76,8 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
           </div>
         </div>
         <div className="flex gap-2">
-          <SimpleSelect value={String(month)} onChange={(value) => setMonth(Number(value))} options={months.map((item) => ({ value: String(item), label: `Tháng ${item}` }))} />
-          <SimpleSelect value={String(year)} onChange={(value) => setYear(Number(value))} options={years.map((item) => ({ value: String(item), label: String(item) }))} />
+          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
+          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
         </div>
       </div>
 

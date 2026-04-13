@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { CheckCircle, HandCoins, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDebt, updateDebt } from "@/app/actions/debt-actions";
@@ -33,6 +33,10 @@ function debtBadge(item: DebtListItem) {
 export function DebtsClient({ initialData, initialIntegrity }: DebtsClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const handleOpenCreate = useCallback(() => setIsModalOpen(true), []);
+  const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+
   const key = cacheKeys.debts();
   const { data, error, isLoading } = useSWR(key, async () => { const r = await requireData(fetchDebts()); return r.items; }, { fallbackData: initialData });
 
@@ -95,7 +99,7 @@ export function DebtsClient({ initialData, initialIntegrity }: DebtsClientProps)
             <p className="text-body-sm text-text-secondary">Theo dõi phải thu, phải trả và khoản quá hạn.</p>
           </div>
         </div>
-        <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
+        <Button type="button" onClick={handleOpenCreate} className="btn-cta gap-2">
           <Plus className="w-4 h-4" />
           Thêm công nợ
         </Button>
@@ -163,7 +167,7 @@ export function DebtsClient({ initialData, initialIntegrity }: DebtsClientProps)
         </div>
       </section>
 
-      <DebtFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaved={refresh} />
+      <DebtFormModal isOpen={isModalOpen} onClose={handleCloseModal} onSaved={refresh} />
     </>
   );
 }

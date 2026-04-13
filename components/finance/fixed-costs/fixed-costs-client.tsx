@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Edit, Plus, Repeat, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateMonthlyFixedCosts } from "@/app/actions/expense-actions";
@@ -40,10 +40,14 @@ export function FixedCostsClient({ initialData }: FixedCostsClientProps) {
 
   const refresh = () => void mutate(key);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setIsModalOpen(true);
-  };
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
   const runGenerate = async () => {
     setBusy(true);
@@ -145,7 +149,7 @@ export function FixedCostsClient({ initialData }: FixedCostsClientProps) {
       </section>
 
       {isModalOpen && (
-        <FixedCostFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaved={refresh} item={editing} />
+        <FixedCostFormModal isOpen={isModalOpen} onClose={handleCloseModal} onSaved={refresh} item={editing} />
       )}
     </>
   );

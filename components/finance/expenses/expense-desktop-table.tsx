@@ -40,12 +40,12 @@ export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete }: Expe
               <TR key={item.id}>
                 <TD>{formatFinanceDate(item.expense_date)}</TD>
                 <TD>
-                  <div className="font-semibold text-text-primary">{item.category_name || "Chưa phân loại"}</div>
+                  <div className="text-label text-text-primary">{item.category_name || "Chưa phân loại"}</div>
                   <div className="text-caption text-text-muted">{item.description || "Không có mô tả"}</div>
                 </TD>
                 <TD>{item.recipient || "-"}</TD>
                 <TD>{financeMethodLabel(item.payment_method)}</TD>
-                <TD className="text-right tabular-nums font-bold text-error">{formatVnd(item.amount)}</TD>
+                <TD className="text-right text-amount text-error">{formatVnd(item.amount)}</TD>
                 <TD>
                   <span className={item.approved_by ? "badge badge-success" : "badge badge-warning"}>
                     {item.approved_by ? "Đã duyệt" : "Chờ duyệt"}

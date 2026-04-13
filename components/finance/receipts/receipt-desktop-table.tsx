@@ -39,15 +39,15 @@ export function ReceiptDesktopTable({ items, deletingId, onDelete }: ReceiptDesk
               <TR key={item.id}>
                 <TD>{formatFinanceDate(item.receipt_date)}</TD>
                 <TD>
-                  <div className="font-semibold text-text-primary">{item.receipt_type}</div>
+                  <div className="text-label text-text-primary">{item.receipt_type}</div>
                   <div className="text-caption text-text-muted">{item.category_name || item.notes || "Không có ghi chú"}</div>
                 </TD>
                 <TD>
-                  <div className="font-medium">{item.contract_code || "-"}</div>
+                  <div className="text-label">{item.contract_code || "-"}</div>
                   <div className="text-caption text-text-muted">{item.customer_name || ""}</div>
                 </TD>
                 <TD>{financeMethodLabel(item.payment_type)}</TD>
-                <TD className="text-right tabular-nums font-bold text-success">{formatVnd(item.receipt_amount)}</TD>
+                <TD className="text-right text-amount text-success">{formatVnd(item.receipt_amount)}</TD>
                 <TD>
                   <span className={`badge badge-${financeStatusVariant(item.status)}`}>
                     {financeStatusLabel(item.status)}

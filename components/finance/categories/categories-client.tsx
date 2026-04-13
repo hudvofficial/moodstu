@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Edit, FolderTree, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteFinanceCategory } from "@/app/actions/finance-category-actions";
@@ -41,15 +41,19 @@ export function CategoriesClient({ initialData }: CategoriesClientProps) {
     void mutate(cacheKeys.financeCategories("Chi"));
   };
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const openEdit = (item: FinanceCategory) => {
+  const openEdit = useCallback((item: FinanceCategory) => {
     setEditing(item);
     setIsModalOpen(true);
-  };
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
 
   const remove = async (item: FinanceCategory) => {
     if (!window.confirm(`Xóa danh mục ${item.name}?`)) return;
@@ -131,7 +135,7 @@ export function CategoriesClient({ initialData }: CategoriesClientProps) {
       {isModalOpen && (
         <CategoryFormModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleCloseModal}
           onSaved={refresh}
           category={editing}
         />

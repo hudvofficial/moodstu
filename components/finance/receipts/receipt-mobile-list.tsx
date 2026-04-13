@@ -23,7 +23,7 @@ export function ReceiptMobileList({ items, deletingId, onDelete }: ReceiptMobile
           <article key={item.id} className="card-base p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-semibold text-text-primary">{item.receipt_type}</div>
+                <div className="text-label text-text-primary">{item.receipt_type}</div>
                 <div className="text-caption text-text-muted">{formatFinanceDate(item.receipt_date)}</div>
               </div>
               <span className={`badge badge-${financeStatusVariant(item.status)}`}>
@@ -36,7 +36,7 @@ export function ReceiptMobileList({ items, deletingId, onDelete }: ReceiptMobile
                 <div>{item.contract_code || "Thu khác"}</div>
                 <div>{financeMethodLabel(item.payment_type)}</div>
               </div>
-              <div className="tabular-nums font-bold text-success">{formatVnd(item.receipt_amount)}</div>
+              <div className="text-amount text-success">{formatVnd(item.receipt_amount)}</div>
             </div>
 
             <div className="flex items-center justify-between gap-2">

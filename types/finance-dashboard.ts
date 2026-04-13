@@ -49,6 +49,9 @@ export interface ContractProfitRow {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  packageRevenue: number;
+  addonRevenue: number;
+  discount: number;
   taskCost: number;
   printCost: number;
   expenseCost: number;
@@ -76,4 +79,57 @@ export interface PaginatedResult<T> {
   total: number;
   page: number;
   pageSize: number;
+}
+
+// Drawer Interfaces
+export interface ContractDetail {
+  id: string;
+  service_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  item_type?: string | null;
+  addon_category?: string | null;
+  status?: string;
+}
+
+export interface PersonalTask {
+  id: string;
+  work_type: string;
+  cost: number;
+  employees: {
+    full_name: string;
+  } | null;
+}
+
+export interface ProductionOrder {
+  id: string;
+  item_name: string;
+  quantity: number;
+  cost: number;
+  payment_status: string;
+}
+
+export interface OperationalExpense {
+  id: string;
+  description?: string;
+  amount: number;
+  transaction_date?: string;
+}
+
+export interface ContractProfitDetailData {
+  contract: {
+    id: string;
+    total_amount: number;
+    discount: number;
+    subtotal: number;
+    contract_code: string;
+    status: string;
+    created_at: string;
+    customer_name: string;
+  };
+  details: ContractDetail[];
+  tasks: PersonalTask[];
+  orders: ProductionOrder[];
+  expenses: OperationalExpense[];
 }

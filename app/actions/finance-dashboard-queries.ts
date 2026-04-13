@@ -12,7 +12,19 @@ import type {
   PaginatedResult,
   RevenueByMonthItem,
   ServiceDistributionItem,
+  ContractProfitDetailData,
 } from "@/types/finance-dashboard";
+import { 
+  MOCK_DASHBOARD_METRICS, 
+  MOCK_REVENUE_CHART, 
+  MOCK_SERVICE_DIST, 
+  MOCK_CONTRACT_PROFIT, 
+  MOCK_UPCOMING_CONTRACTS,
+  MOCK_PENDING_COLLECTIONS,
+  MOCK_LEDGER
+} from "@/lib/finance-mock-data";
+
+const USE_MOCK = true; // TODO: REMOVE BEFORE PROD
 
 type RpcRow = Record<string, unknown>;
 
@@ -154,7 +166,7 @@ async function getContractProfitReportFallback(
   const to = from + pageSize - 1;
   let query = supabase
     .from("contracts")
-    .select("id, contract_code, contract_date, status, total_amount, paid_amount, remaining_amount, customers(full_name)", { count: "exact" })
+    .select("id, contract_code, contract_date, status, total_amount, discount, paid_amount, remaining_amount, customers(full_name)", { count: "exact" })
     .is("deleted_at", null)
     .order("contract_date", { ascending: false })
     .range(from, to);
@@ -170,19 +182,34 @@ async function getContractProfitReportFallback(
   const taskCost = new Map<string, number>();
   const printCost = new Map<string, number>();
   const expenseCost = new Map<string, number>();
+  const packageRev = new Map<string, number>();
+  const addonRev = new Map<string, number>();
 
   if (ids.length > 0) {
-    const [tasks, prints, expenses] = await Promise.all([
+    const [details, tasks, prints, expenses] = await Promise.all([
+      supabase.from("contract_details").select("contract_id, total_amount, item_type").in("contract_id", ids),
       supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids),
       supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", ids),
       supabase.from("expenses").select("contract_id, amount, description").is("deleted_at", null).in("contract_id", ids),
     ]);
+    if (details.error) throw new Error(details.error.message);
     if (tasks.error) throw new Error(tasks.error.message);
     if (prints.error) throw new Error(prints.error.message);
     if (expenses.error) throw new Error(expenses.error.message);
     addByContract(taskCost, tasks.data, "cost");
     addByContract(printCost, prints.data, "total_amount");
     addByContract(expenseCost, expenses.data, "amount");
+
+    for (const d of details.data || []) {
+      const cId = d.contract_id;
+      if (!cId) continue;
+      const amount = Number(d.total_amount) || 0;
+      if (d.item_type === "ADDON") {
+        addonRev.set(cId, (addonRev.get(cId) || 0) + amount);
+      } else {
+        packageRev.set(cId, (packageRev.get(cId) || 0) + amount);
+      }
+    }
   }
 
   const items = (contracts || []).map((contract) => {
@@ -201,6 +228,9 @@ async function getContractProfitReportFallback(
       totalAmount,
       paidAmount: contract.paid_amount || 0,
       remainingAmount: contract.remaining_amount || 0,
+      packageRevenue: packageRev.get(contract.id) || 0,
+      addonRevenue: addonRev.get(contract.id) || 0,
+      discount: contract.discount || 0,
       taskCost: tasks,
       printCost: prints,
       expenseCost: expenses,
@@ -298,6 +328,7 @@ async function fetchLedgerFallback(
 }
 
 export async function getDashboardMetrics(month: number, year: number) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_DASHBOARD_METRICS };
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
@@ -321,6 +352,7 @@ export async function getDashboardMetrics(month: number, year: number) {
 }
 
 export async function getRevenueByMonth(year: number) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_REVENUE_CHART };
   return withAuth(async (supabase) => {
     const { data, error } = await supabase.rpc("finance_revenue_by_month", {
       p_year: year,
@@ -339,6 +371,7 @@ export async function getRevenueByMonth(year: number) {
 }
 
 export async function getServiceDistribution(month: number, year: number) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_SERVICE_DIST };
   return withAuth(async (supabase) => {
     const { data, error } = await supabase.rpc("finance_service_distribution", {
       p_month: month,
@@ -358,6 +391,7 @@ export async function getServiceDistribution(month: number, year: number) {
 }
 
 export async function getUpcomingContracts(limit: number = 5) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_UPCOMING_CONTRACTS };
   return withAuth(async (supabase) => {
     const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
@@ -374,6 +408,7 @@ export async function getUpcomingContracts(limit: number = 5) {
 }
 
 export async function getPendingCollections(limit: number = 5) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_PENDING_COLLECTIONS };
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("contracts")
@@ -389,6 +424,7 @@ export async function getPendingCollections(limit: number = 5) {
 }
 
 export async function getContractProfitReport(filters: ContractProfitReportParams = {}) {
+  if (USE_MOCK) return { success: true as const, data: { items: MOCK_CONTRACT_PROFIT, total: MOCK_CONTRACT_PROFIT.length, page: 1, pageSize: 10, totalPages: 1 } };
   return withAuth(async (supabase) => {
     const page = filters.page || 1;
     const pageSize = filters.pageSize || 10;
@@ -413,6 +449,9 @@ export async function getContractProfitReport(filters: ContractProfitReportParam
       totalAmount: asNumber(row.total_amount),
       paidAmount: asNumber(row.paid_amount),
       remainingAmount: asNumber(row.remaining_amount),
+      packageRevenue: asNumber(row.package_revenue),
+      addonRevenue: asNumber(row.addon_revenue),
+      discount: asNumber(row.discount),
       taskCost: asNumber(row.task_cost),
       printCost: asNumber(row.print_cost),
       expenseCost: asNumber(row.expense_cost),
@@ -437,6 +476,7 @@ export async function fetchLedger(params: {
   year?: number;
   type?: "in" | "out" | "all";
 }) {
+  if (USE_MOCK) return { success: true as const, data: MOCK_LEDGER };
   return withAuth(async (supabase) => {
     const { data, error } = await supabase.rpc("finance_ledger", {
       p_page: params.page,
@@ -472,3 +512,95 @@ export async function fetchLedger(params: {
     } satisfies PaginatedResult<LedgerItem>;
   });
 }
+
+export async function getContractFinanceDetails(contractId: string) {
+  if (USE_MOCK) {
+    // For MOCK mode, just return a fake structure so Drawer doesn't break
+    return {
+      success: true as const,
+      data: {
+        contract: {
+          id: contractId,
+          total_amount: 10000000,
+          discount: 0,
+          subtotal: 10000000,
+          contract_code: "HD-MOCK",
+          status: "Đang thực hiện",
+          created_at: new Date().toISOString(),
+          customer_name: "Mock Customer",
+        },
+        details: [],
+        tasks: [],
+        orders: [],
+        expenses: [],
+      } satisfies ContractProfitDetailData
+    };
+  }
+  return withAuth(async (supabase) => {
+    const { data: contract, error: contractErr } = await supabase
+      .from("contracts")
+      .select("id, total_amount, discount, contract_code, status, created_at, customers(full_name)")
+      .eq("id", contractId)
+      .single();
+
+    if (contractErr) throw new Error(`Lỗi tải hợp đồng: ${contractErr.message}`);
+
+    const [details, tasks, prints, expenses] = await Promise.all([
+      supabase.from("contract_details").select("id, service_name, quantity, unit_price, total_amount, item_type, addon_category").eq("contract_id", contractId),
+      supabase.from("work_tasks").select("id, work_type, cost, employees(full_name)").eq("contract_id", contractId),
+      supabase.from("printing_orders").select("id, item_name, quantity, cost, payment_status").eq("contract_id", contractId),
+      supabase.from("expenses").select("id, description, amount, transaction_date").eq("contract_id", contractId).is("deleted_at", null).not("description", "like", "[Auto-Print]%"),
+    ]);
+
+    if (details.error) throw new Error(`Lỗi tải chi tiết dịch vụ: ${details.error.message}`);
+    if (tasks.error) throw new Error(`Lỗi tải chi phí nhân sự: ${tasks.error.message}`);
+    if (prints.error) throw new Error(`Lỗi tải chi phí in ấn: ${prints.error.message}`);
+    if (expenses.error) throw new Error(`Lỗi tải chi phí khác: ${expenses.error.message}`);
+
+    const subtotal = asNumber(contract.total_amount) + asNumber(contract.discount);
+
+    const detailData: ContractProfitDetailData = {
+      contract: {
+        id: contract.id,
+        total_amount: asNumber(contract.total_amount),
+        discount: asNumber(contract.discount),
+        subtotal,
+        contract_code: asString(contract.contract_code),
+        status: asString(contract.status),
+        created_at: asString(contract.created_at),
+        customer_name: relationText(contract.customers as unknown, "full_name") || "Khách vãng lai",
+      },
+      details: details.data.map((d: Record<string, unknown>) => ({
+        id: d.id as string,
+        service_name: asString(d.service_name),
+        quantity: asNumber(d.quantity) || 1,
+        unit_price: asNumber(d.unit_price),
+        total_amount: asNumber(d.total_amount),
+        item_type: asString(d.item_type) || null,
+        addon_category: asString(d.addon_category) || null,
+      })),
+      tasks: tasks.data.map((t: Record<string, unknown>) => ({
+        id: t.id as string,
+        work_type: asString(t.work_type),
+        cost: asNumber(t.cost),
+        employees: t.employees ? { full_name: relationText(t.employees as unknown, "full_name") as string } : null,
+      })),
+      orders: prints.data.map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        item_name: asString(p.item_name),
+        quantity: asNumber(p.quantity) || 1,
+        cost: asNumber(p.cost),
+        payment_status: asString(p.payment_status),
+      })),
+      expenses: expenses.data.map((e: Record<string, unknown>) => ({
+        id: e.id as string,
+        description: asString(e.description),
+        amount: asNumber(e.amount),
+        transaction_date: asString(e.transaction_date) || undefined,
+      })),
+    };
+
+    return { success: true as const, data: detailData };
+  });
+}
+

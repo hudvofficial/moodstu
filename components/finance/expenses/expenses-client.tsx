@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { approveExpense, deleteExpense } from "@/app/actions/expense-actions";
 import { fetchExpenses } from "@/app/actions/finance-operations-queries";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { ExpenseDesktopTable } from "@/components/finance/expenses/expense-desktop-table";
 import { ExpenseFormModal } from "@/components/finance/expenses/expense-form-modal";
 import { ExpenseMobileList } from "@/components/finance/expenses/expense-mobile-list";
@@ -22,7 +23,11 @@ interface ExpensesClientProps {
   categories: FinanceCategory[];
 }
 
-const months = Array.from({ length: 12 }, (_, index) => index + 1);
+const APPROVAL_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "pending", label: "Chờ duyệt" },
+  { value: "approved", label: "Đã duyệt" },
+];
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -39,7 +44,19 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const [busyId, setBusyId] = useState<string | null>(null);
   const pageSize = 12;
   const key = cacheKeys.financeExpenses(page, month, year, approval);
-  const years = [initialYear - 1, initialYear, initialYear + 1];
+  const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+  const handleMonthChange = useCallback((value: string) => {
+    setMonth(Number(value));
+    setPage(1);
+  }, []);
+  const handleYearChange = useCallback((value: string) => {
+    setYear(Number(value));
+    setPage(1);
+  }, []);
+  const handleApprovalChange = useCallback((value: string) => {
+    setApproval(value as ApprovalFilter);
+    setPage(1);
+  }, []);
 
   const { data, error, isLoading } = useSWR(
     key,
@@ -54,10 +71,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const expenses = data || initialData;
   const totalPages = Math.max(1, Math.ceil(expenses.total / expenses.pageSize));
 
-  const changeFilter = <T,>(setter: (value: T) => void, value: T) => {
-    setter(value);
-    setPage(1);
-  };
+
 
   const refresh = () => {
     void mutate(key);
@@ -104,16 +118,12 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
         </div>
 
         <div className="flex flex-col gap-2 lg:flex-row">
-          <SimpleSelect value={String(month)} onChange={(value) => changeFilter(setMonth, Number(value))} options={months.map((item) => ({ value: String(item), label: `Tháng ${item}` }))} />
-          <SimpleSelect value={String(year)} onChange={(value) => changeFilter(setYear, Number(value))} options={years.map((item) => ({ value: String(item), label: String(item) }))} />
+          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
+          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
           <SimpleSelect
             value={approval}
-            onChange={(value) => changeFilter(setApproval, value as ApprovalFilter)}
-            options={[
-              { value: "all", label: "Tất cả" },
-              { value: "pending", label: "Chờ duyệt" },
-              { value: "approved", label: "Đã duyệt" },
-            ]}
+            onChange={handleApprovalChange}
+            options={APPROVAL_OPTIONS}
           />
           <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
             <Plus className="w-4 h-4" />

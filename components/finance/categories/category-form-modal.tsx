@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createFinanceCategory, updateFinanceCategory } from "@/app/actions/finance-category-actions";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,11 @@ interface CategoryFormModalProps {
   category: FinanceCategory | null;
 }
 
+const CATEGORY_TYPE_OPTIONS = [
+  { value: "Thu", label: "Thu" },
+  { value: "Chi", label: "Chi" },
+];
+
 export function CategoryFormModal({ isOpen, onClose, onSaved, category }: CategoryFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -23,6 +28,10 @@ export function CategoryFormModal({ isOpen, onClose, onSaved, category }: Catego
     type: category?.type || "Chi",
     category_code: category?.category_code || "",
   });
+
+  const handleChangeName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, name: e.target.value })), []);
+  const handleChangeType = useCallback((value: string) => setForm(c => ({ ...c, type: value })), []);
+  const handleChangeCategoryCode = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, category_code: e.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -65,18 +74,15 @@ export function CategoryFormModal({ isOpen, onClose, onSaved, category }: Catego
       }
     >
       <form id="category-form" onSubmit={submit} className="space-y-4">
-        <Input label="Tên danh mục" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required />
+        <Input label="Tên danh mục" value={form.name} onChange={handleChangeName} required />
         <div className="form-grid-2col">
           <SimpleSelect
             label="Loại"
             value={form.type}
-            onChange={(value) => setForm((current) => ({ ...current, type: value }))}
-            options={[
-              { value: "Thu", label: "Thu" },
-              { value: "Chi", label: "Chi" },
-            ]}
+            onChange={handleChangeType}
+            options={CATEGORY_TYPE_OPTIONS}
           />
-          <Input label="Mã danh mục" value={form.category_code} onChange={(event) => setForm((current) => ({ ...current, category_code: event.target.value }))} />
+          <Input label="Mã danh mục" value={form.category_code} onChange={handleChangeCategoryCode} />
         </div>
       </form>
     </UnifiedModal>

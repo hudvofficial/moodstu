@@ -10,9 +10,6 @@
   font-size: var(--font-size-body-sm);
   font-weight: 700;
   color: var(--color-primary);
-  padding-bottom: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  border-bottom: 1px dashed var(--color-border);
 }
 
 .table-header {

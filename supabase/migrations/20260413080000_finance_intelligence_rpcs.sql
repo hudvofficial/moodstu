@@ -295,14 +295,14 @@ BEGIN
             'count', COALESCE(s.cnt, 0)
         )
     ) INTO v_result
-    FROM expense_categories ec
+    FROM transaction_categories ec
     LEFT JOIN (
         SELECT category_id, SUM(amount) as amt, COUNT(*) as cnt 
         FROM expenses 
         WHERE extract(month from expense_date) = p_month AND extract(year from expense_date) = p_year AND deleted_at IS NULL
         GROUP BY category_id
     ) s ON s.category_id = ec.id
-    WHERE COALESCE(s.amt, 0) > 0;
+    WHERE COALESCE(s.amt, 0) > 0 AND ec.type = 'Chi';
     
     RETURN COALESCE(v_result, '[]'::jsonb);
 END;
@@ -357,7 +357,7 @@ BEGIN
     WITH actuals AS (
         SELECT ec.name as cat_name, SUM(e.amount) as actual_amount 
         FROM expenses e
-        JOIN expense_categories ec ON e.category_id = ec.id
+        JOIN transaction_categories ec ON e.category_id = ec.id
         WHERE extract(month from e.expense_date) = p_month AND extract(year from e.expense_date) = p_year AND e.deleted_at IS NULL
         GROUP BY ec.name
     ), budgets_agg AS (

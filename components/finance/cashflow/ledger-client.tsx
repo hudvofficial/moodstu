@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { ReceiptText } from "lucide-react";
 import { fetchLedger } from "@/app/actions/finance-dashboard-queries";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { LedgerDesktopTable } from "@/components/finance/cashflow/ledger-desktop-table";
 import { LedgerMobileList } from "@/components/finance/cashflow/ledger-mobile-list";
 import { Pagination } from "@/components/ui/pagination";
@@ -21,7 +22,11 @@ interface LedgerClientProps {
   initialLedger: PaginatedResult<LedgerItem>;
 }
 
-const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
+const TYPE_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "in", label: "Thu" },
+  { value: "out", label: "Chi" },
+];
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -35,14 +40,19 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
   const [type, setType] = useState<LedgerType>("all");
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  const years = [initialYear - 1, initialYear, initialYear + 1];
-  const monthOptions = MONTHS.map((item) => ({ value: String(item), label: `Tháng ${item}` }));
-  const yearOptions = years.map((item) => ({ value: String(item), label: String(item) }));
-  const typeOptions = [
-    { value: "all", label: "Tất cả" },
-    { value: "in", label: "Thu" },
-    { value: "out", label: "Chi" },
-  ];
+  const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+  const handleMonthChange = useCallback((value: string) => {
+    setMonth(Number(value));
+    setPage(1);
+  }, []);
+  const handleYearChange = useCallback((value: string) => {
+    setYear(Number(value));
+    setPage(1);
+  }, []);
+  const handleTypeChange = useCallback((value: string) => {
+    setType(value as LedgerType);
+    setPage(1);
+  }, []);
   const key = cacheKeys.financeLedger(page, month, year, type);
 
   const { data, error, isLoading } = useSWR(
@@ -58,10 +68,7 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
   const ledger = data || initialLedger;
   const totalPages = Math.max(1, Math.ceil(ledger.total / ledger.pageSize));
 
-  const changeFilter = <T,>(setter: (value: T) => void, value: T) => {
-    setter(value);
-    setPage(1);
-  };
+
 
   return (
     <>
@@ -77,9 +84,9 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
         </div>
 
         <div className="grid grid-cols-3 gap-2 lg:min-w-[460px]">
-          <SimpleSelect value={String(month)} onChange={(value) => changeFilter(setMonth, Number(value))} options={monthOptions} />
-          <SimpleSelect value={String(year)} onChange={(value) => changeFilter(setYear, Number(value))} options={yearOptions} />
-          <SimpleSelect value={type} onChange={(value) => changeFilter(setType, value as LedgerType)} options={typeOptions} />
+          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
+          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
+          <SimpleSelect value={type} onChange={handleTypeChange} options={TYPE_OPTIONS} />
         </div>
       </div>
 

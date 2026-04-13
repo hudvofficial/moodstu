@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PiggyBank, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteGoal } from "@/app/actions/goal-budget-actions";
@@ -27,6 +27,11 @@ export function GoalsClient({ initialData }: GoalsClientProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [contributing, setContributing] = useState<GoalItem | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const handleOpenCreate = useCallback(() => setIsFormOpen(true), []);
+  const handleCloseForm = useCallback(() => setIsFormOpen(false), []);
+  const handleCloseContribution = useCallback(() => setContributing(null), []);
+
   const key = cacheKeys.goals();
   const { data, error, isLoading } = useSWR(key, async () => { const r = await requireData(fetchGoals()); return r.items; }, { fallbackData: initialData });
 
@@ -62,7 +67,7 @@ export function GoalsClient({ initialData }: GoalsClientProps) {
             <p className="text-body-sm text-text-secondary">Theo dõi tiến độ tích lũy và khoản cần góp mỗi tháng.</p>
           </div>
         </div>
-        <Button type="button" onClick={() => setIsFormOpen(true)} className="btn-cta gap-2">
+        <Button type="button" onClick={handleOpenCreate} className="btn-cta gap-2">
           <Plus className="w-4 h-4" />
           Thêm mục tiêu
         </Button>
@@ -125,8 +130,8 @@ export function GoalsClient({ initialData }: GoalsClientProps) {
         )}
       </section>
 
-      <GoalFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSaved={refresh} />
-      <GoalContributionModal goal={contributing} onClose={() => setContributing(null)} onSaved={refresh} />
+      <GoalFormModal isOpen={isFormOpen} onClose={handleCloseForm} onSaved={refresh} />
+      <GoalContributionModal goal={contributing} onClose={handleCloseContribution} onSaved={refresh} />
     </>
   );
 }

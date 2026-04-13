@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createFixedCost, updateFixedCost } from "@/app/actions/fixed-cost-actions";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,14 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
     description: item?.description || "",
   });
 
-  const setField = (field: keyof typeof form, value: string | number) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const handleChangeCostName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, cost_name: e.target.value })), []);
+  const handleChangeCostCode = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, cost_code: e.target.value })), []);
+  const handleChangeCostType = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, cost_type: e.target.value })), []);
+  const handleChangeMonthlyAmount = useCallback((value: number) => setForm(c => ({ ...c, monthly_amount: value })), []);
+  const handleChangeDepositAmount = useCallback((value: number) => setForm(c => ({ ...c, deposit_amount: value })), []);
+  const handleChangeStartDate = useCallback((value: string) => setForm(c => ({ ...c, start_date: value })), []);
+  const handleChangeEndDate = useCallback((value: string) => setForm(c => ({ ...c, end_date: value })), []);
+  const handleChangeDescription = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(c => ({ ...c, description: e.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -77,15 +82,15 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
     >
       <form id="fixed-cost-form" onSubmit={submit} className="space-y-4">
         <div className="form-grid-2col">
-          <Input label="Tên chi phí" value={form.cost_name} onChange={(event) => setField("cost_name", event.target.value)} required />
-          <Input label="Mã chi phí" value={form.cost_code} onChange={(event) => setField("cost_code", event.target.value)} />
-          <Input label="Loại chi phí" value={form.cost_type} onChange={(event) => setField("cost_type", event.target.value)} />
-          <CurrencyInput label="Số tiền tháng" value={form.monthly_amount} onChange={(value) => setField("monthly_amount", value)} required />
-          <CurrencyInput label="Tiền cọc" value={form.deposit_amount} onChange={(value) => setField("deposit_amount", value)} />
-          <DatePicker label="Bắt đầu" value={form.start_date} onChange={(value) => setField("start_date", value)} />
-          <DatePicker label="Kết thúc" value={form.end_date} onChange={(value) => setField("end_date", value)} />
+          <Input label="Tên chi phí" value={form.cost_name} onChange={handleChangeCostName} required />
+          <Input label="Mã chi phí" value={form.cost_code} onChange={handleChangeCostCode} />
+          <Input label="Loại chi phí" value={form.cost_type} onChange={handleChangeCostType} />
+          <CurrencyInput label="Số tiền tháng" value={form.monthly_amount} onChange={handleChangeMonthlyAmount} required />
+          <CurrencyInput label="Tiền cọc" value={form.deposit_amount} onChange={handleChangeDepositAmount} />
+          <DatePicker label="Bắt đầu" value={form.start_date} onChange={handleChangeStartDate} />
+          <DatePicker label="Kết thúc" value={form.end_date} onChange={handleChangeEndDate} />
         </div>
-        <Textarea label="Mô tả" value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} />
+        <Textarea label="Mô tả" value={form.description} onChange={handleChangeDescription} rows={3} />
       </form>
     </UnifiedModal>
   );

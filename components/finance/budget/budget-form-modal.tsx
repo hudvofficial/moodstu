@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { upsertBudget } from "@/app/actions/goal-budget-actions";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,18 @@ interface BudgetFormModalProps {
 export function BudgetFormModal({ isOpen, onClose, onSaved, month, year }: BudgetFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ category_name: "", budget_amount: 0, notes: "" });
+
+  const handleChangeCategory = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((current) => ({ ...current, category_name: event.target.value }));
+  }, []);
+
+  const handleChangeAmount = useCallback((value: number) => {
+    setForm((current) => ({ ...current, budget_amount: value }));
+  }, []);
+
+  const handleChangeNotes = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setForm((current) => ({ ...current, notes: event.target.value }));
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -62,9 +74,9 @@ export function BudgetFormModal({ isOpen, onClose, onSaved, month, year }: Budge
       }
     >
       <form id="budget-form" onSubmit={submit} className="space-y-4">
-        <Input label="Danh mục ngân sách" value={form.category_name} onChange={(event) => setForm((current) => ({ ...current, category_name: event.target.value }))} required />
-        <CurrencyInput label="Hạn mức" value={form.budget_amount} onChange={(value) => setForm((current) => ({ ...current, budget_amount: value }))} required />
-        <Textarea label="Ghi chú" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} rows={3} />
+        <Input label="Danh mục ngân sách" value={form.category_name} onChange={handleChangeCategory} required />
+        <CurrencyInput label="Hạn mức" value={form.budget_amount} onChange={handleChangeAmount} required />
+        <Textarea label="Ghi chú" value={form.notes} onChange={handleChangeNotes} rows={3} />
       </form>
     </UnifiedModal>
   );

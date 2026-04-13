@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.61] - 2026-04-13
+
+### Added
+
+- **Finance Profitability Reporting (Phase 04)**: Implemented `ContractProfitDetailDrawer` with detailed financial breakdown (Revenue, Payroll, Printing, Operations).
+- **SWR Data Fetching**: Integrated drawing-specific server actions for real-time profitability data retrieval.
+
+### Fixed
+
+- **Responsive Breakpoint Visibility**: Resolved "invisible table" bug caused by using `md:block` (768px) instead of project-standard `lg:block` (1024px) in `ProfitReportTable`.
+- **SSOT Token Alignment**: Performed full hardening of the Profit Drawer, resolving 15 styling violations (raw Tailwind colors → semantic tokens, non-standard font classes → SSOT typography tokens).
+
+### Changed
+
+- **Drawer Standardization**: Standardized all drawer sized to `md=480px` or `lg=600px` based on content density, ensuring project-wide spatial consistency.
+
+
 ## [1.1.60] - 2026-04-08
 
 ### Added

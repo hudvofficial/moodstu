@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { addContribution } from "@/app/actions/goal-budget-actions";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ export function GoalContributionModal({ goal, onClose, onSaved }: GoalContributi
   const [saving, setSaving] = useState(false);
   const [amount, setAmount] = useState(0);
   const [notes, setNotes] = useState("");
+
+  const handleChangeNotes = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -58,7 +60,7 @@ export function GoalContributionModal({ goal, onClose, onSaved }: GoalContributi
     >
       <form id="goal-contribution-form" onSubmit={submit} className="space-y-4">
         <CurrencyInput label="Số tiền góp" value={amount} onChange={setAmount} required />
-        <Textarea label="Ghi chú" value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} />
+        <Textarea label="Ghi chú" value={notes} onChange={handleChangeNotes} rows={3} />
       </form>
     </UnifiedModal>
   );

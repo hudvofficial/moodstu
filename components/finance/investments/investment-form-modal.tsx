@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createInvestment, updateInvestment } from "@/app/actions/investment-actions";
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,15 @@ export function InvestmentFormModal({ isOpen, onClose, onSaved, item }: Investme
     notes: "",
   });
 
-  const setField = (field: keyof typeof form, value: string | number) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const handleChangeName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(curr => ({ ...curr, name: e.target.value })), []);
+  const handleChangeCategory = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(curr => ({ ...curr, category: e.target.value })), []);
+  const handleChangePurchaseDate = useCallback((value: string) => setForm(curr => ({ ...curr, purchase_date: value })), []);
+  const handleChangePurchasePrice = useCallback((value: number) => setForm(curr => ({ ...curr, purchase_price: value })), []);
+  const handleChangeUsefulLife = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(curr => ({ ...curr, useful_life_months: e.target.value.replace(/\D/g, "") })), []);
+  const handleChangeSalvageValue = useCallback((value: number) => setForm(curr => ({ ...curr, salvage_value: value })), []);
+  const handleChangeLocation = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(curr => ({ ...curr, location: e.target.value })), []);
+  const handleChangeMaintenanceDate = useCallback((value: string) => setForm(curr => ({ ...curr, next_maintenance_date: value })), []);
+  const handleChangeNotes = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(curr => ({ ...curr, notes: e.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -85,16 +91,16 @@ export function InvestmentFormModal({ isOpen, onClose, onSaved, item }: Investme
     >
       <form id="investment-form" onSubmit={submit} className="space-y-4">
         <div className="form-grid-2col">
-          <Input label="Tên tài sản" value={form.name} onChange={(event) => setField("name", event.target.value)} required />
-          <Input label="Danh mục" value={form.category} onChange={(event) => setField("category", event.target.value)} required />
-          <DatePicker label="Ngày mua" value={form.purchase_date} onChange={(value) => setField("purchase_date", value)} required />
-          <CurrencyInput label="Giá mua" value={form.purchase_price} onChange={(value) => setField("purchase_price", value)} required />
-          <Input label="Vòng đời tháng" value={form.useful_life_months} inputMode="numeric" onChange={(event) => setField("useful_life_months", event.target.value.replace(/\D/g, ""))} />
-          <CurrencyInput label="Giá trị thu hồi" value={form.salvage_value} onChange={(value) => setField("salvage_value", value)} />
-          <Input label="Vị trí" value={form.location} onChange={(event) => setField("location", event.target.value)} />
-          <DatePicker label="Bảo trì tiếp theo" value={form.next_maintenance_date} onChange={(value) => setField("next_maintenance_date", value)} />
+          <Input label="Tên tài sản" value={form.name} onChange={handleChangeName} required />
+          <Input label="Danh mục" value={form.category} onChange={handleChangeCategory} required />
+          <DatePicker label="Ngày mua" value={form.purchase_date} onChange={handleChangePurchaseDate} required />
+          <CurrencyInput label="Giá mua" value={form.purchase_price} onChange={handleChangePurchasePrice} required />
+          <Input label="Vòng đời tháng" value={form.useful_life_months} inputMode="numeric" onChange={handleChangeUsefulLife} />
+          <CurrencyInput label="Giá trị thu hồi" value={form.salvage_value} onChange={handleChangeSalvageValue} />
+          <Input label="Vị trí" value={form.location} onChange={handleChangeLocation} />
+          <DatePicker label="Bảo trì tiếp theo" value={form.next_maintenance_date} onChange={handleChangeMaintenanceDate} />
         </div>
-        <Textarea label="Ghi chú" value={form.notes} onChange={(event) => setField("notes", event.target.value)} rows={3} />
+        <Textarea label="Ghi chú" value={form.notes} onChange={handleChangeNotes} rows={3} />
       </form>
     </UnifiedModal>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { addSalaryAdjustment } from "@/app/actions/salary-actions";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,19 @@ interface SalaryAdjustmentModalProps {
 
 const today = () => new Date().toISOString().split("T")[0];
 
+const ADJUSTMENT_TYPE_OPTIONS = [
+  { value: "bonus", label: "Thưởng" },
+  { value: "penalty", label: "Phạt" },
+];
+
 export function SalaryAdjustmentModal({ salary, onClose, onSaved }: SalaryAdjustmentModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ type: "bonus", amount: 0, reason: "", date: today() });
+
+  const handleChangeType = useCallback((value: string) => setForm((current) => ({ ...current, type: value })), []);
+  const handleChangeDate = useCallback((value: string) => setForm((current) => ({ ...current, date: value })), []);
+  const handleChangeAmount = useCallback((value: number) => setForm((current) => ({ ...current, amount: value })), []);
+  const handleChangeReason = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => setForm((current) => ({ ...current, reason: event.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -68,16 +78,13 @@ export function SalaryAdjustmentModal({ salary, onClose, onSaved }: SalaryAdjust
           <SimpleSelect
             label="Loại"
             value={form.type}
-            onChange={(value) => setForm((current) => ({ ...current, type: value }))}
-            options={[
-              { value: "bonus", label: "Thưởng" },
-              { value: "penalty", label: "Phạt" },
-            ]}
+            onChange={handleChangeType}
+            options={ADJUSTMENT_TYPE_OPTIONS}
           />
-          <DatePicker label="Ngày" value={form.date} onChange={(value) => setForm((current) => ({ ...current, date: value }))} required />
-          <CurrencyInput label="Số tiền" value={form.amount} onChange={(value) => setForm((current) => ({ ...current, amount: value }))} required />
+          <DatePicker label="Ngày" value={form.date} onChange={handleChangeDate} required />
+          <CurrencyInput label="Số tiền" value={form.amount} onChange={handleChangeAmount} required />
         </div>
-        <Textarea label="Lý do" value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} rows={3} required />
+        <Textarea label="Lý do" value={form.reason} onChange={handleChangeReason} rows={3} required />
       </form>
     </UnifiedModal>
   );

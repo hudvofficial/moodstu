@@ -10,7 +10,7 @@ interface PendingCollectionsProps {
 
 export function PendingCollections({ data }: PendingCollectionsProps) {
   return (
-    <div className="card-base p-5">
+    <div className="card-base p-4">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="icon-box bg-warning/10">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createDebt } from "@/app/actions/debt-actions";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,18 @@ interface DebtFormModalProps {
   onSaved: () => void;
 }
 
+const ENTITY_TYPE_OPTIONS = [
+  { value: "khach_hang", label: "Khách hàng" },
+  { value: "nha_cung_cap", label: "Nhà cung cấp" },
+  { value: "nhan_vien", label: "Nhân viên" },
+  { value: "khac", label: "Khác" },
+];
+
+const DEBT_TYPE_OPTIONS = [
+  { value: "Phải thu", label: "Phải thu" },
+  { value: "Phải trả", label: "Phải trả" },
+];
+
 export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -28,9 +40,12 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
     notes: "",
   });
 
-  const setField = (field: keyof typeof form, value: string | number) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const handleChangeEntityName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setForm(c => ({ ...c, entity_name: e.target.value })), []);
+  const handleChangeEntityType = useCallback((value: string) => setForm(c => ({ ...c, entity_type: value })), []);
+  const handleChangeType = useCallback((value: string) => setForm(c => ({ ...c, type: value })), []);
+  const handleChangeAmount = useCallback((value: number) => setForm(c => ({ ...c, amount: value })), []);
+  const handleChangeDueDate = useCallback((value: string) => setForm(c => ({ ...c, due_date: value })), []);
+  const handleChangeNotes = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(c => ({ ...c, notes: e.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -75,31 +90,23 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
     >
       <form id="debt-form" onSubmit={submit} className="space-y-4">
         <div className="form-grid-2col">
-          <Input label="Đối tượng" value={form.entity_name} onChange={(event) => setField("entity_name", event.target.value)} required />
+          <Input label="Đối tượng" value={form.entity_name} onChange={handleChangeEntityName} required />
           <SimpleSelect
             label="Nhóm"
             value={form.entity_type}
-            onChange={(value) => setField("entity_type", value)}
-            options={[
-              { value: "khach_hang", label: "Khách hàng" },
-              { value: "nha_cung_cap", label: "Nhà cung cấp" },
-              { value: "nhan_vien", label: "Nhân viên" },
-              { value: "khac", label: "Khác" },
-            ]}
+            onChange={handleChangeEntityType}
+            options={ENTITY_TYPE_OPTIONS}
           />
           <SimpleSelect
             label="Loại công nợ"
             value={form.type}
-            onChange={(value) => setField("type", value)}
-            options={[
-              { value: "Phải thu", label: "Phải thu" },
-              { value: "Phải trả", label: "Phải trả" },
-            ]}
+            onChange={handleChangeType}
+            options={DEBT_TYPE_OPTIONS}
           />
-          <CurrencyInput label="Số tiền" value={form.amount} onChange={(value) => setField("amount", value)} required />
-          <DatePicker label="Hạn thanh toán" value={form.due_date} onChange={(value) => setField("due_date", value)} />
+          <CurrencyInput label="Số tiền" value={form.amount} onChange={handleChangeAmount} required />
+          <DatePicker label="Hạn thanh toán" value={form.due_date} onChange={handleChangeDueDate} />
         </div>
-        <Textarea label="Ghi chú" value={form.notes} onChange={(event) => setField("notes", event.target.value)} rows={3} />
+        <Textarea label="Ghi chú" value={form.notes} onChange={handleChangeNotes} rows={3} />
       </form>
     </UnifiedModal>
   );

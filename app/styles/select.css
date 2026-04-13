@@ -115,9 +115,9 @@
 .select-trigger-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-1, 4px);
   height: 32px;
-  padding: 0 10px 0 12px;
+  padding: 0 12px;
   border-radius: var(--radius-md);
   font-size: var(--font-size-body-sm);
   font-weight: 500;

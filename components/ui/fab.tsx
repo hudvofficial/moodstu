@@ -13,20 +13,22 @@ interface FABProps {
   onClick: () => void;
   label?: string;
   className?: string;
+  wrapperClassName?: string;
 }
 
-export function FAB({ icon: Icon = Plus, onClick, label = "Tạo mới", className }: FABProps) {
+export function FAB({ icon: Icon = Plus, onClick, label = "Tạo mới", className, wrapperClassName }: FABProps) {
   return (
-    <div className="lg:hidden fixed bottom-24 right-4 z-40">
+    <div className={cn("lg:hidden fixed bottom-24 right-4 z-40", wrapperClassName)}>
+      {/* eslint-disable-next-line react/forbid-elements -- FAB is an SSOT primitive, bypasses global .btn shape */}
       <button
         onClick={onClick}
         aria-label={label}
         className={cn(
-          "flex items-center justify-center size-12 rounded-full bg-primary text-text-inverse shadow-lg hover:opacity-90 active:scale-95 transition-all",
+          "flex items-center justify-center size-12 rounded-full bg-primary text-text-inverse shadow-float hover:scale-105 active:scale-95 transition-all outline-none border-none cursor-pointer",
           className
         )}
       >
-        <Icon className="w-5 h-5" />
+        <Icon className="w-6 h-6" />
       </button>
     </div>
   );

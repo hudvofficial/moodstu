@@ -12,7 +12,16 @@ interface ExpenseDonutChartProps {
 
 export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
   if (!data || data.length === 0) {
-    return <div className="h-64 flex items-center justify-center text-text-secondary stats-card">Chưa có dữ liệu chi phí.</div>;
+    return (
+      <div className="stats-card h-full flex flex-col">
+        <div className="mb-4">
+          <h3 className="text-h3">Cơ Cấu Chi Phí</h3>
+        </div>
+        <div className="flex-1 w-full min-h-[250px] flex items-center justify-center text-text-secondary">
+          Chưa có dữ liệu chi phí.
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -40,7 +49,7 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
             <Tooltip 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => formatVnd(Number(value))}
-              contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
+              contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />
           </PieChart>
         </ResponsiveContainer>

@@ -16,7 +16,7 @@ function transactionHref(item: LedgerItem) {
 
 export function RecentTransactions({ data }: RecentTransactionsProps) {
   return (
-    <div className="card-base p-5">
+    <div className="card-base p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-primary/10">

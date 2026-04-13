@@ -1,99 +1,99 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Plus, X, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import { FAB } from "@/components/ui/fab";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 export function FinanceFAB() {
   const [isOpen, setIsOpen] = useState(false);
-  const fabRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-
-  // Close when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (fabRef.current && !fabRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleAction = (path: string) => {
-    setIsOpen(false);
-    // You could also open modals here by dispatching global events
-    router.push(path);
-  };
 
   const actions = [
     {
-      label: "Tạo Phiếu thu",
       icon: TrendingUp,
+      label: "Phiếu thu mới",
+      href: "/finance/receipts/new",
       color: "text-success",
-      bg: "bg-success/10",
       delay: "delay-150",
-      onClick: () => handleAction("/finance/receipts"),
     },
     {
-      label: "Tạo Phiếu chi",
       icon: TrendingDown,
+      label: "Phiếu chi mới",
+      href: "/finance/expenses/new",
       color: "text-error",
-      bg: "bg-error/10",
       delay: "delay-100",
-      onClick: () => handleAction("/finance/expenses"),
     },
     {
-      label: "Hỏi Moodie Cố vấn",
       icon: Sparkles,
+      label: "Trợ lý AI",
+      href: "/finance?chat=open",
       color: "text-primary",
-      bg: "bg-primary/10",
       delay: "delay-75",
-      onClick: () => {
-        setIsOpen(false);
-        // Call Moodie global AI command
-        window.dispatchEvent(new CustomEvent("open-moodie-ai", { detail: { mode: "finance" } }));
-      },
     },
   ];
 
   return (
-    <div ref={fabRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none">
-      {/* Action panel */}
-      {isOpen && (
-        <div className="flex flex-col gap-2 mb-2 pointer-events-auto">
-          {actions.map((action) => {
+    <>
+      {/* 1. Backdrop Overlay */}
+      <div 
+        className={cn(
+          "fixed inset-0 z-40 bg-black/20 will-change-opacity transition-opacity duration-300",
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setIsOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* 2. Speed Dial Container */}
+      {/* Vị trí được thiết kế để khớp với thanh Bottom Nav trên Mobile (bottom-24) và Desktop (bottom-8) */}
+      <div className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-50 flex flex-col items-end gap-3 pointer-events-none">
+        
+        {/* Floating Actions List */}
+        <div className="flex flex-col items-end gap-3 mb-2">
+          {actions.map((action, index) => {
             const Icon = action.icon;
             return (
-              <Button
-                key={action.label}
-                variant="outline"
-                onClick={action.onClick}
+              <Link
+                key={index}
+                href={action.href}
+                onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 bg-background shadow-md rounded-full py-2! px-4! transition-transform hover:scale-105 active:scale-95 animate-in slide-in-from-bottom-4 fade-in min-h-[44px]",
-                  action.delay
+                  "flex items-center gap-3 transition-[transform,opacity] duration-300 will-change-transform pointer-events-none group",
+                  isOpen 
+                    ? `opacity-100 translate-y-0 pointer-events-auto ${action.delay}` 
+                    : "opacity-0 translate-y-8"
                 )}
               >
-                <span className="text-body-sm font-medium">{action.label}</span>
-                <div className={cn("p-1.5 rounded-full shrink-0", action.bg)}>
-                  <Icon className={cn("w-4 h-4", action.color)} />
+                <div className="bg-bg-card px-3 py-1.5 rounded-lg shadow-float text-sm font-medium text-text-primary whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity">
+                  {action.label}
                 </div>
-              </Button>
+                {/* eslint-disable-next-line react/forbid-elements -- Override global .btn */}
+                <button
+                  className={cn(
+                    "flex size-12 items-center justify-center rounded-full bg-bg-card shadow-float transition-all hover:scale-105 active:scale-95 border-none outline-none cursor-pointer",
+                    action.color
+                  )}
+                  aria-label={action.label}
+                  tabIndex={-1}
+                >
+                  <Icon className="w-5 h-5" />
+                </button>
+              </Link>
             );
           })}
         </div>
-      )}
 
-      {/* Main button */}
-      <Button
-        variant="primary"
-        onClick={() => setIsOpen(!isOpen)}
-        className="pointer-events-auto w-14 h-14 p-0! rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-      >
-        <Plus className={cn("w-6 h-6 transition-transform duration-300", isOpen ? "rotate-45" : "rotate-0")} />
-      </Button>
-    </div>
+        {/* Main Trigger FAB (Reusing SSOT Primitive) */}
+        <div className="pointer-events-auto">
+          <FAB 
+            icon={isOpen ? X : Plus} 
+            onClick={() => setIsOpen(!isOpen)} 
+            wrapperClassName="relative bottom-0 right-0 block lg:block z-50 transition-transform duration-300 group"
+            className={isOpen ? "rotate-90 bg-bg-card text-text-primary" : ""}
+          />
+        </div>
+      </div>
+    </>
   );
 }

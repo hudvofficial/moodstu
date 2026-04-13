@@ -59,11 +59,7 @@ export function FinanceIntelligenceSection({ month, year }: FinanceIntelligenceS
   );
 
   return (
-    <div className="space-y-6 mt-8">
-      <div>
-        <h2 className="section-title">Trí tuệ Tài chính</h2>
-        <p className="text-body-sm text-text-secondary mb-4">Các chỉ số phân tích chuyên sâu tự động.</p>
-      </div>
+    <div className="space-y-4">
 
       {/* Zone 1: P0 Highlights */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -150,3 +150,8 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 - V2 Architecture Check: Tuy?t �?i KH�NG t? s�ng t?o component UI (nh� Bar, Card) khi ch�a check c�c ph�n h? Gold Standard (nh� /contract, /inventory). Ph?i tr�ch xu?t v� t�i s? d?ng Shared Components (T?t c? common pattern �?u c� ? components/ui/, v� d?: StatsBar, FAB, TabsFilter).
 
 - V2 ENFORCEMENT STANDARD: T� duy Inline Styling v� Hardcode l� KHUY?T T?T. B?t bu?c 100% s? d?ng V2 Design Tokens (Tailwind utility classes, CSS Variables). Qu?n l? state data B?T BU?C b?ng SWR Patterns. M?i logic ph?c t?p, heavy-computation ph?i t?ng xu?ng Supabase RPCs (tr�nh load JS/N+1 queries). Code ph?i TypeScript Strict mode (kh�ng ny, kh�ng ignore l?i). B?t k? ai vi ph?m rule n�y s? ph� v? ki?n tr�c h? th?ng.
+## Finance / Dashboard Hardening (2026-04-13)
+
+94. **RESPONSIVE BREAKPOINT PURGE (TAILWIND V4)**: Đừng bao giờ dùng `md:` cho layout quan trọng nếu dự án đã chuẩn hóa dùng `lg:`. Tailwind v4 sẽ purge `md:block` nếu file đó là component duy nhất sử dụng, khiến element bị ẩn vĩnh viễn (lỗi table biến mất). Luôn dùng `lg:block/hidden` theo Gold Standard.
+95. **ICON-BOX & SEMANTIC COLORS**: Tuyệt đối không dùng raw Tailwind colors (`blue-500`, `orange-500`) cho icon-box. Chỉ dùng semantic tokens (`primary`, `info`, `warning`, `success`, `error`, `accent`) với opacity chuẩn `/10`. Raw strings sẽ làm gãy tính đồng nhất của Design System.
+96. **KHÔNG CÓ CLASS `text-h4`**: Hệ thống typography chỉ định nghĩa đến `text-h3`. Cho các title bên trong drawer/card, hãy dùng `section-heading` (14px/600).

@@ -178,23 +178,23 @@ BEGIN
       AND (p_to IS NULL OR c.contract_date <= p_to)
   ),
   task_totals AS (
-    SELECT contract_id, SUM(COALESCE(cost, 0)) AS amount
-    FROM public.work_tasks
-    GROUP BY contract_id
+    SELECT wt.contract_id, SUM(COALESCE(wt.cost, 0)) AS amount
+    FROM public.work_tasks wt
+    GROUP BY wt.contract_id
   ),
   print_totals AS (
-    SELECT contract_id, SUM(COALESCE(total_amount, 0)) AS amount
-    FROM public.printing_orders
-    WHERE deleted_at IS NULL
-    GROUP BY contract_id
+    SELECT po.contract_id, SUM(COALESCE(po.total_amount, 0)) AS amount
+    FROM public.printing_orders po
+    WHERE po.deleted_at IS NULL
+    GROUP BY po.contract_id
   ),
   expense_totals AS (
-    SELECT contract_id, SUM(COALESCE(amount, 0)) AS amount
-    FROM public.expenses
-    WHERE deleted_at IS NULL
-      AND contract_id IS NOT NULL
-      AND (description IS NULL OR description NOT LIKE '[Auto-Print]%')
-    GROUP BY contract_id
+    SELECT ex.contract_id, SUM(COALESCE(ex.amount, 0)) AS amount
+    FROM public.expenses ex
+    WHERE ex.deleted_at IS NULL
+      AND ex.contract_id IS NOT NULL
+      AND (ex.description IS NULL OR ex.description NOT LIKE '[Auto-Print]%')
+    GROUP BY ex.contract_id
   ),
   enriched AS (
     SELECT
@@ -213,10 +213,10 @@ BEGIN
   )
   SELECT
     e.id,
-    e.contract_code,
-    COALESCE(e.customer_name, 'Khách vãng lai') AS customer_name,
+    e.contract_code::TEXT,
+    COALESCE(e.customer_name, 'Khách vãng lai')::TEXT AS customer_name,
     e.contract_date,
-    e.status,
+    e.status::TEXT,
     e.total_amount,
     e.paid_amount,
     e.remaining_amount,
@@ -226,8 +226,8 @@ BEGIN
     e.task_cost + e.print_cost + e.expense_cost AS total_cost,
     e.total_amount - (e.task_cost + e.print_cost + e.expense_cost) AS profit,
     CASE
-      WHEN e.total_amount = 0 THEN 0
-      ELSE ROUND(((e.total_amount - (e.task_cost + e.print_cost + e.expense_cost)) / e.total_amount) * 100, 1)
+      WHEN e.total_amount = 0 THEN 0::NUMERIC
+      ELSE ROUND(((e.total_amount - (e.task_cost + e.print_cost + e.expense_cost)) / e.total_amount) * 100, 1)::NUMERIC
     END AS profit_margin,
     e.total_count
   FROM enriched e;

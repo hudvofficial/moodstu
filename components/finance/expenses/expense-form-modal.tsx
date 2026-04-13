@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { createExpense } from "@/app/actions/expense-actions";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,11 @@ interface ExpenseFormModalProps {
 
 const today = () => new Date().toISOString().split("T")[0];
 
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "tien_mat", label: "Tiền mặt" },
+  { value: "chuyen_khoan", label: "Chuyển khoản" },
+];
+
 export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: ExpenseFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -37,9 +42,12 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
     [categories],
   );
 
-  const setField = (field: keyof typeof form, value: string | number) => {
-    setForm((current) => ({ ...current, [field]: value }));
-  };
+  const handleChangeDate = useCallback((value: string) => setForm(curr => ({ ...curr, expense_date: value })), []);
+  const handleChangePayment = useCallback((value: string) => setForm(curr => ({ ...curr, payment_method: value })), []);
+  const handleChangeCategory = useCallback((value: string) => setForm(curr => ({ ...curr, category_id: value })), []);
+  const handleChangeAmount = useCallback((value: number) => setForm(curr => ({ ...curr, amount: value })), []);
+  const handleChangeRecipient = useCallback((event: React.ChangeEvent<HTMLInputElement>) => setForm(curr => ({ ...curr, recipient: event.target.value })), []);
+  const handleChangeDescription = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => setForm(curr => ({ ...curr, description: event.target.value })), []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -92,27 +100,24 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
     >
       <form id="expense-form" onSubmit={submit} className="space-y-4">
         <div className="form-grid-2col">
-          <DatePicker label="Ngày chi" value={form.expense_date} onChange={(value) => setField("expense_date", value)} required />
+          <DatePicker label="Ngày chi" value={form.expense_date} onChange={handleChangeDate} required />
           <SimpleSelect
             label="Phương thức"
             value={form.payment_method}
-            onChange={(value) => setField("payment_method", value)}
-            options={[
-              { value: "tien_mat", label: "Tiền mặt" },
-              { value: "chuyen_khoan", label: "Chuyển khoản" },
-            ]}
+            onChange={handleChangePayment}
+            options={PAYMENT_METHOD_OPTIONS}
           />
           <SimpleSelect
             label="Danh mục"
             value={form.category_id}
-            onChange={(value) => setField("category_id", value)}
+            onChange={handleChangeCategory}
             options={categoryOptions}
             placeholder="Chọn danh mục chi"
           />
-          <CurrencyInput label="Số tiền chi" value={form.amount} onChange={(value) => setField("amount", value)} required />
+          <CurrencyInput label="Số tiền chi" value={form.amount} onChange={handleChangeAmount} required />
         </div>
-        <Input label="Người nhận" value={form.recipient} onChange={(event) => setField("recipient", event.target.value)} />
-        <Textarea label="Mô tả" value={form.description} onChange={(event) => setField("description", event.target.value)} rows={3} />
+        <Input label="Người nhận" value={form.recipient} onChange={handleChangeRecipient} />
+        <Textarea label="Mô tả" value={form.description} onChange={handleChangeDescription} rows={3} />
       </form>
     </UnifiedModal>
   );

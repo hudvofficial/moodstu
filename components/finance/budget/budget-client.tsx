@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteBudget, getBudgetsWithActuals } from "@/app/actions/goal-budget-actions";
 import { formatVnd } from "@/components/finance/finance-format";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { BudgetFormModal } from "@/components/finance/budget/budget-form-modal";
 import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
@@ -19,7 +20,7 @@ interface BudgetClientProps {
   initialData: BudgetActualItem[];
 }
 
-const months = Array.from({ length: 12 }, (_, index) => index + 1);
+
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -33,7 +34,11 @@ export function BudgetClient({ initialMonth, initialYear, initialData }: BudgetC
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const key = cacheKeys.financeBudgets(month, year);
-  const years = [initialYear - 1, initialYear, initialYear + 1];
+  const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+  const handleMonthChange = useCallback((value: string) => setMonth(Number(value)), []);
+  const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
+  const openModal = useCallback(() => setIsModalOpen(true), []);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
   const { data, error, isLoading } = useSWR(key, () => requireData(getBudgetsWithActuals(month, year)), { fallbackData: initialData });
 
   useEffect(() => {
@@ -69,9 +74,9 @@ export function BudgetClient({ initialMonth, initialYear, initialData }: BudgetC
           </div>
         </div>
         <div className="flex flex-col gap-2 lg:flex-row">
-          <SimpleSelect value={String(month)} onChange={(value) => setMonth(Number(value))} options={months.map((item) => ({ value: String(item), label: `Tháng ${item}` }))} />
-          <SimpleSelect value={String(year)} onChange={(value) => setYear(Number(value))} options={years.map((item) => ({ value: String(item), label: String(item) }))} />
-          <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
+          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
+          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
+          <Button type="button" onClick={openModal} className="btn-cta gap-2">
             <Plus className="w-4 h-4" />
             Thêm ngân sách
           </Button>

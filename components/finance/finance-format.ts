@@ -4,6 +4,13 @@ export function formatVnd(amount: number): string {
   return `${formatCurrency(amount)}đ`;
 }
 
+export function formatCompactVnd(amount: number): string {
+  if (Math.abs(amount) >= 1_000_000_000) return `${(amount / 1_000_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}B`;
+  if (Math.abs(amount) >= 1_000_000) return `${(amount / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
+  if (Math.abs(amount) >= 1_000) return `${(amount / 1_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+  return `${amount}`;
+}
+
 export function formatFinanceDate(date: string | null | undefined): string {
   return safeFormatDate(date);
 }
