@@ -83,7 +83,16 @@ grep "THAY CHO\|❌ KHÔNG" components/ui/REGISTRY.md
 
 **❌ VI PHẠM = REVERT. Không ngoại lệ.**
 
-### 10. 🚦 NEW TOKEN APPROVAL GATE (BẮT BUỘC)
+### 10. 🧱 V2 ENFORCEMENT STANDARD (BẮT BUỘC KHÔNG NHƯỢNG BỘ)
+> **Tư duy Inline Styling và Hardcode là KHUYẾT TẬT. Bất kỳ suy nghĩ nào hướng đến inline đều bị cấm tuyệt đối.**
+
+- [ ] **Design Tokens:** BẮT BUỘC 100% sử dụng V2 Design Tokens (Tailwind utility classes, CSS Variables) trong TẤT CẢ mọi trường hợp.
+- [ ] **State & Data Fetching:** Quản lý remote data và caching BẮT BUỘC sử dụng **SWR Patterns**. Không dùng `useEffect` kết hợp `useState` để fetch data thủ công.
+- [ ] **Database Logic:** Mọi logic phức tạp, heavy computation, data aggregation phải tống xuống **Supabase RPCs**. TUYỆT ĐỐI tránh JS loop aggregation hay N+1 queries ở Next.js/Browser.
+- [ ] **Type Safety:** Code phải đặt under **TypeScript Strict Mode**. KHÔNG dán `any`, KHÔNG dùng `@ts-ignore` để bưng bít lỗi. Sửa gốc lỗi interface/type.
+- [ ] Tham chiếu rule này trên mọi single line of code được viết ra. **Vi phạm rule này tức là phá vỡ hoàn toàn kiến trúc V2 của toàn bộ hệ thống.**
+
+### 11. 🚦 NEW TOKEN APPROVAL GATE (BẮT BUỘC)
 > **Cần tạo CSS class, component, hoặc hook MỚI? PHẢI hỏi user TRƯỚC.**
 > **KHÔNG ĐƯỢC tự tạo rồi báo sau.**
 
@@ -144,7 +153,7 @@ grep "THAY CHO\|❌ KHÔNG" components/ui/REGISTRY.md
 
 ---
 
-## 11. 🔗 PER-MODULE CODE GATE (Lesson #96)
+## 12. 🔗 PER-MODULE CODE GATE (Lesson #96)
 
 > Ngoài gate chung này, MỖI MODULE có gate riêng với LOOKUP TABLE cụ thể.
 > **PHẢI ĐỌC gate module tương ứng TRƯỚC KHI viết code.**

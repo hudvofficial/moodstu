@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -645,6 +645,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           deal_value: number | null
+          deleted_at: string | null
           email: string | null
           id: string
           lost_reason: string | null
@@ -672,6 +673,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           deal_value?: number | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           lost_reason?: string | null
@@ -699,6 +701,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           deal_value?: number | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           lost_reason?: string | null
@@ -716,7 +719,22 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
@@ -1569,6 +1587,95 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      finance_close_tasks: {
+        Row: {
+          assignee_id: string | null
+          close_id: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: string
+          step_name: string
+          step_number: number
+          updated_at: string | null
+        }
+        Insert: {
+          assignee_id?: string | null
+          close_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          step_name: string
+          step_number: number
+          updated_at?: string | null
+        }
+        Update: {
+          assignee_id?: string | null
+          close_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string
+          step_name?: string
+          step_number?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_close_tasks_close_id_fkey"
+            columns: ["close_id"]
+            isOneToOne: false
+            referencedRelation: "finance_monthly_closes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_monthly_closes: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          notes: string | null
+          period: string
+          snapshot_metrics: Json | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          notes?: string | null
+          period: string
+          snapshot_metrics?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          notes?: string | null
+          period?: string
+          snapshot_metrics?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       financial_goals: {
         Row: {
@@ -3473,6 +3580,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_close_task: {
+        Args: {
+          p_actor_id: string
+          p_close_id: string
+          p_new_status: string
+          p_step_number: number
+        }
+        Returns: undefined
+      }
       append_care_log: {
         Args: { p_content: string; p_lead_id: string; p_type?: string }
         Returns: Json
@@ -3504,6 +3620,7 @@ export type Database = {
         Returns: undefined
       }
       get_contract_balance: { Args: { p_contract_id: string }; Returns: Json }
+      get_crm_lead_stats: { Args: never; Returns: Json }
       get_current_employee_id: { Args: never; Returns: string }
       get_current_employee_role: {
         Args: never
@@ -3576,6 +3693,7 @@ export type Database = {
           unpaid_cost: number
         }[]
       }
+      is_period_locked: { Args: { p_date: string }; Returns: boolean }
       nextval_customer_code: { Args: never; Returns: number }
       recalc_contract_totals: {
         Args: { p_contract_id: string }
@@ -3841,4 +3959,3 @@ export const Constants = {
     },
   },
 } as const
-

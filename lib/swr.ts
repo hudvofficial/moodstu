@@ -44,6 +44,37 @@ export const cacheKeys = {
     month && year ? `expenses:${month}:${year}` : "expenses",
   debts: () => "debts",
   goals: () => "goals",
+  financeCategories: (type = "all") => `finance-categories:${type}`,
+  financeReceipts: (page = 1, month?: number, year?: number) =>
+    month && year ? `finance-receipts:${page}:${year}-${month}` : `finance-receipts:${page}:all`,
+  financeExpenses: (page = 1, month?: number, year?: number, approval = "all") =>
+    month && year
+      ? `finance-expenses:${page}:${year}-${month}:${approval}`
+      : `finance-expenses:${page}:all:${approval}`,
+  financeDashboard: (month: number, year: number) => `finance-dashboard:${year}-${month}`,
+  financeRevenue: (year: number) => `finance-revenue:${year}`,
+  financeServiceDist: (month: number, year: number) => `finance-service-dist:${year}-${month}`,
+  financeUpcoming: () => "finance-upcoming-contracts",
+  financePending: () => "finance-pending-collections",
+  financeProfitReport: (status: string, from: string, to: string, page = 1) =>
+    `finance-profit:${status}:${from}:${to}:${page}`,
+  financeCashflow: (start: string, end: string) => `finance-cashflow:${start}:${end}`,
+  financeLedger: (page: number, month: number, year: number, type?: string) =>
+    `finance-ledger:${page}:${year}-${month}:${type || "all"}`,
+  financeContracts: () => "finance-contract-options",
+  labDebts: () => "lab-debts",
+  financeFixedCosts: () => "finance-fixed-costs",
+  financeInvestments: () => "finance-investments",
+  financeSalaries: (month: number, year: number) => `finance-salaries:${year}-${month}`,
+  financeBudgets: (month: number, year: number) => `finance-budgets:${year}-${month}`,
+  financeCloses: (year: number) => `finance-closes:${year}`,
+  financeCloseDetail: (id: string) => `finance-close:${id}`,
+  financeIntegrity: () => "finance-integrity",
+  financeIntelligence: () => "finance-intelligence",
+  financeCashflowForecast: (days: number) => `finance-cashflow-forecast:${days}`,
+  financeExpenseBreakdown: (month: number, year: number) => `finance-expense-breakdown:${year}-${month}`,
+  financeReceivableAging: () => "finance-receivable-aging",
+  financeBudgetVsActual: (month: number, year: number) => `finance-budget-actual:${year}-${month}`,
 
   // Team & Calendar
   team: () => "team",
@@ -68,7 +99,6 @@ export const cacheKeys = {
   printingDetail: (id: string) => `printing:${id}`,
   labs: () => "labs",
   labDetail: (id: string) => `lab:${id}`,
-  labDebts: () => "lab-debts",
 };
 
 // ============================================

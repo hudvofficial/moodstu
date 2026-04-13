@@ -59,12 +59,23 @@ export function TH({ children, className }: { children?: React.ReactNode, classN
   );
 }
 
-export function TD({ children, className }: { children: React.ReactNode, className?: string }) {
+export function TD({
+  children,
+  className,
+  colSpan,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  colSpan?: number;
+}) {
   return (
-    <td className={cn(
-      "px-4 whitespace-nowrap transition-colors",
-      className
-    )}>
+    <td
+      colSpan={colSpan}
+      className={cn(
+        "px-4 whitespace-nowrap transition-colors",
+        className
+      )}
+    >
       {children}
     </td>
   );

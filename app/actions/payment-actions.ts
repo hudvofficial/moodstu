@@ -1,12 +1,14 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withAuth, withAdmin } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit";
+import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
+import { createPaymentSchema } from "@/lib/validations/finance.schema";
 
 // ═══════════════════════════════════════════
 // Payment Actions — Create receipt + update contract
-// Phase 04B: V1 PaymentReceiptForm logic → V2 server action
-// Atomic: insert payment + update contract + update plan
+// Phase 04B / Phase 02 Hardened
 // ═══════════════════════════════════════════
 
 interface CreatePaymentInput {
@@ -21,92 +23,134 @@ interface CreatePaymentInput {
   updateTotal: boolean; // If true → increase contract total (phát sinh)
 }
 
-/** Create payment receipt + atomically update contract amounts */
-export async function createPaymentReceipt(input: CreatePaymentInput) {
-  if (input.amount <= 0) {
-    return { success: false as const, error: "Số tiền phải lớn hơn 0" };
+type AdminSupabase = Parameters<Parameters<typeof withAdmin>[0]>[0];
+type PaymentResult = { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
+
+async function processContractPaymentFallback(
+  supabase: AdminSupabase,
+  userId: string,
+  input: CreatePaymentInput,
+): Promise<PaymentResult> {
+  const { data: contract, error: contractError } = await supabase
+    .from("contracts")
+    .select("total_amount, paid_amount")
+    .eq("id", input.contractId)
+    .single();
+
+  if (contractError || !contract) throw new Error(`Khong tim thay hop dong: ${contractError?.message || ""}`);
+
+  const totalAmount = (contract.total_amount || 0) + (input.updateTotal ? input.amount : 0);
+  const newPaid = (contract.paid_amount || 0) + input.amount;
+  const newRemaining = Math.max(0, totalAmount - newPaid);
+  const paymentStatus = newRemaining <= 0 ? "da_thanh_toan" : "thanh_toan_mot_phan";
+
+  const { data: payment, error: paymentError } = await supabase
+    .from("payments")
+    .insert({
+      contract_id: input.contractId,
+      amount: input.amount,
+      payment_method: input.paymentMethod,
+      payment_date: input.paymentDate,
+      payment_stage: input.paymentStage || null,
+      category_id: input.categoryId || null,
+      notes: input.notes || null,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+
+  if (paymentError || !payment) throw new Error(`Khong the tao phieu thu hop dong: ${paymentError?.message || ""}`);
+
+  const { error: updateError } = await supabase
+    .from("contracts")
+    .update({
+      total_amount: totalAmount,
+      paid_amount: newPaid,
+      remaining_amount: newRemaining,
+      payment_status: paymentStatus,
+      updated_by: userId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.contractId);
+
+  if (updateError) throw new Error(`Khong the cap nhat cong no hop dong: ${updateError.message}`);
+
+  if (input.paymentPlanId) {
+    const { error: planError } = await supabase
+      .from("payment_plans")
+      .update({ status: "da_thanh_toan" })
+      .eq("id", input.paymentPlanId);
+    if (planError) throw new Error(`Khong the cap nhat dot thanh toan: ${planError.message}`);
   }
 
-  return withAuth(async (supabase, userId) => {
-    const now = new Date().toISOString();
+  return {
+    payment_id: payment.id,
+    new_paid: newPaid,
+    new_remaining: newRemaining,
+    payment_status: paymentStatus,
+  };
+}
 
-    // Step 1: Insert payment
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        contract_id: input.contractId,
-        amount: input.amount,
-        payment_method: input.paymentMethod,
-        payment_date: input.paymentDate,
-        payment_stage: input.paymentStage,
-        category_id: input.categoryId,
-        notes: input.notes,
-        created_by: userId,
-        created_at: now,
-        updated_at: now,
-      })
-      .select("id")
-      .single();
+/** Create payment receipt + atomically update contract amounts (Atomic RPC) */
+export async function createPaymentReceipt(input: CreatePaymentInput) {
+  // W2: Zod validation
+  const parsed = createPaymentSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.issues.map((e: { message: string }) => e.message).join(", ") };
+  }
 
-    if (paymentError) throw new Error(`Lỗi tạo phiếu thu: ${paymentError.message}`);
+  return withAdmin(async (supabase, userId) => {
+    // W3: Period lock — TRƯỚC mutation (audit fix)
+    await checkPeriodLock(supabase, input.paymentDate);
 
-    // Step 2: Get current contract amounts
-    const { data: contract, error: contractError } = await supabase
-      .from("contracts")
-      .select("total_amount, paid_amount, remaining_amount")
-      .eq("id", input.contractId)
-      .single();
+    // Single atomic RPC: lock contract → insert payment → update totals
+    const { data, error } = await supabase.rpc("process_contract_payment", {
+      p_contract_id: input.contractId,
+      p_amount: input.amount,
+      p_payment_method: input.paymentMethod,
+      p_payment_date: input.paymentDate,
+      p_payment_stage: input.paymentStage || null,
+      p_category_id: input.categoryId || null,
+      p_notes: input.notes || null,
+      p_payment_plan_id: input.paymentPlanId || null,
+      p_created_by: userId,
+    });
 
-    if (contractError) throw new Error(`Lỗi lấy HĐ: ${contractError.message}`);
+    if (error && isMissingRpcError(error)) {
+      const fallbackResult = await processContractPaymentFallback(supabase, userId, input);
+      await writeAuditLog({
+        action: "CREATE",
+        tableName: "payments",
+        recordId: fallbackResult.payment_id,
+        newData: input as unknown as Record<string, unknown>,
+        description: `Thu tien hop dong #${input.contractId.substring(0, 8)}: ${input.amount.toLocaleString("vi-VN")} VND`,
+      });
 
-    // Step 3: Calculate new amounts
-    let newTotal = contract.total_amount;
-    if (input.updateTotal) {
-      newTotal += input.amount; // Phát sinh → tăng tổng
+      revalidatePath("/contracts");
+      revalidatePath(`/contracts/${input.contractId}`);
+      revalidatePath("/finance");
+
+      return { paymentId: fallbackResult.payment_id };
     }
-    const newPaid = contract.paid_amount + input.amount;
-    const newRemaining = newTotal - newPaid;
 
-    // Step 4: Determine payment_status
-    let paymentStatus: string;
-    if (newRemaining <= 0) {
-      paymentStatus = "da_thanh_toan";
-    } else if (newPaid > 0) {
-      paymentStatus = newPaid >= newTotal * 0.3 ? "thanh_toan_mot_phan" : "da_coc";
-    } else {
-      paymentStatus = "chua_thanh_toan";
-    }
+    if (error) throw new Error(`Lỗi thanh toán: ${error.message}`);
 
-    // Step 5: Update contract
-    const { error: updateError } = await supabase
-      .from("contracts")
-      .update({
-        total_amount: newTotal,
-        paid_amount: newPaid,
-        remaining_amount: newRemaining,
-        payment_status: paymentStatus,
-        updated_by: userId,
-        updated_at: now,
-      })
-      .eq("id", input.contractId);
+    const result = data as { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
 
-    if (updateError) throw new Error(`Lỗi cập nhật HĐ: ${updateError.message}`);
-
-    // Step 6: If linked to payment plan → mark as paid
-    if (input.paymentPlanId) {
-      await supabase
-        .from("payment_plans")
-        .update({
-          status: "paid",
-          receipt_id: payment.id,
-        })
-        .eq("id", input.paymentPlanId);
-    }
+    // Audit log
+    await writeAuditLog({
+      action: "CREATE",
+      tableName: "payments",
+      recordId: result.payment_id,
+      newData: input as unknown as Record<string, unknown>,
+      description: `Thu tiền hợp đồng #${input.contractId.substring(0,8)}: ${input.amount.toLocaleString("vi-VN")}₫`,
+    });
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${input.contractId}`);
+    revalidatePath("/finance");
 
-    return { paymentId: payment.id };
+    return { paymentId: result.payment_id };
   });
 }
 

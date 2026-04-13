@@ -78,6 +78,17 @@
 }
 
 /* ══════════════════════════════════════
+   7. FINANCE — Quantitative Visual Language
+   SSOT class cho financial figures (S3 audit)
+   ══════════════════════════════════════ */
+
+.finance-figure {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ══════════════════════════════════════
    6. DARK MODE PREP (uncomment khi cần)
    ══════════════════════════════════════ */
 

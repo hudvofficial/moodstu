@@ -2,7 +2,7 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { sanitizeSearch } from "@/lib/utils/service-utils";
-import type { ServiceRecord, ServiceCategory, ServiceBundleItem, ServiceFilters } from "@/types/service";
+import type { ServiceRecord, ServiceCategory, ServiceFilters } from "@/types/service";
 
 // ═══════════════════════════════════════════
 // Service Queries — V2 Gold Standard

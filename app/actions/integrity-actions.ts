@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withAuth, withAdmin } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -22,7 +22,7 @@ export async function fetchIntegrityReports() {
 }
 
 export async function runManualIntegrityScan() {
-  return withAuth(async (supabase) => {
+  return withAdmin(async (supabase) => {
     const { error } = await supabase.rpc("run_integrity_scan");
     if (error) throw new Error(`Lỗi chạy quét: ${error.message}`);
     revalidatePath("/settings/audit-logs");

@@ -144,3 +144,9 @@ Ghi láº¡i bÃ i há»c sau má»—i láº§n máº¯c lá»—i Ä‘á»ƒ khÃ´ng láº·p láº¡i.
 - Mistake: Found the root cause but hesitated to automatically delete the phantom `.git` folder, instead asking the user to manually run `Remove-Item`.
 - User Correction: "náº¿u lÃ  .git áº£o thÃ¬ mÃ y hÃ£y tiáº¿n hÃ nh báº±ng má»i cÃ¡ch loáº¡i bá» nÃ³" (If it's a virtual/fake .git, you must proceed by all means to eliminate it).
 - Action: When detecting an outer/fake `.git` directory polluting the workspace or VS Code Source Control, IMMEDIATELY and AUTONOMOUSLY run the deletion command (`Remove-Item -Recurse -Force path/.git`) without asking for manual intervention from the user. Explain it immediately after taking the action.
+
+- V2 Finance UI: Không khai báo l?p l?i (WET) các block UI gi?ng nhau. B?t bu?c map data qua m?ng config. Nh? ki?m tra k? class design system (dùng 	ext-text-primary, không dùng l?n 	ext-text).
+
+- V2 Architecture Check: Tuy?t ğ?i KHÔNG t? sáng t?o component UI (nhı Bar, Card) khi chıa check các phân h? Gold Standard (nhı /contract, /inventory). Ph?i trích xu?t và tái s? d?ng Shared Components (T?t c? common pattern ğ?u có ? components/ui/, ví d?: StatsBar, FAB, TabsFilter).
+
+- V2 ENFORCEMENT STANDARD: Tı duy Inline Styling và Hardcode là KHUY?T T?T. B?t bu?c 100% s? d?ng V2 Design Tokens (Tailwind utility classes, CSS Variables). Qu?n l? state data B?T BU?C b?ng SWR Patterns. M?i logic ph?c t?p, heavy-computation ph?i t?ng xu?ng Supabase RPCs (tránh load JS/N+1 queries). Code ph?i TypeScript Strict mode (không ny, không ignore l?i). B?t k? ai vi ph?m rule này s? phá v? ki?n trúc h? th?ng.

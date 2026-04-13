@@ -1,0 +1,84 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
+import { addSalaryAdjustment } from "@/app/actions/salary-actions";
+import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import DatePicker from "@/components/ui/date-picker";
+import { SimpleSelect } from "@/components/ui/simple-select";
+import { Textarea } from "@/components/ui/textarea";
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import type { SalaryItem } from "@/types/finance-operations";
+
+interface SalaryAdjustmentModalProps {
+  salary: SalaryItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+const today = () => new Date().toISOString().split("T")[0];
+
+export function SalaryAdjustmentModal({ salary, onClose, onSaved }: SalaryAdjustmentModalProps) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ type: "bonus", amount: 0, reason: "", date: today() });
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!salary) return;
+    setSaving(true);
+    const result = await addSalaryAdjustment({
+      employee_salary_id: salary.id,
+      type: form.type as "bonus" | "penalty",
+      amount: form.amount,
+      reason: form.reason,
+      date: form.date,
+    });
+    setSaving(false);
+
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Đã thêm điều chỉnh lương.");
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <UnifiedModal
+      isOpen={Boolean(salary)}
+      onClose={onClose}
+      title={salary ? `Điều chỉnh ${salary.employee_name}` : "Điều chỉnh lương"}
+      size="lg"
+      footer={
+        <div className="form-actions">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+            Hủy
+          </Button>
+          <Button type="submit" form="salary-adjustment-form" disabled={saving}>
+            {saving ? "Đang lưu" : "Lưu điều chỉnh"}
+          </Button>
+        </div>
+      }
+    >
+      <form id="salary-adjustment-form" onSubmit={submit} className="space-y-4">
+        <div className="form-grid-2col">
+          <SimpleSelect
+            label="Loại"
+            value={form.type}
+            onChange={(value) => setForm((current) => ({ ...current, type: value }))}
+            options={[
+              { value: "bonus", label: "Thưởng" },
+              { value: "penalty", label: "Phạt" },
+            ]}
+          />
+          <DatePicker label="Ngày" value={form.date} onChange={(value) => setForm((current) => ({ ...current, date: value }))} required />
+          <CurrencyInput label="Số tiền" value={form.amount} onChange={(value) => setForm((current) => ({ ...current, amount: value }))} required />
+        </div>
+        <Textarea label="Lý do" value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} rows={3} required />
+      </form>
+    </UnifiedModal>
+  );
+}

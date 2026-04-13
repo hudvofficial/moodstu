@@ -7,10 +7,7 @@ import {
   canAccess,
   type Role,
 } from "@/types/roles";
-
-type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+import type { ActionResult } from "@/types/action-result";
 
 type EmployeeContextRecord = {
   id: string;
