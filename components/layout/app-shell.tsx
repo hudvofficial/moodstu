@@ -14,7 +14,9 @@ import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 
 // Routes that hide BOTH Header + BottomNav (currently unused)
-const FULLPAGE_PATTERNS: RegExp[] = [];
+const FULLPAGE_PATTERNS: RegExp[] = [
+  /\/print(\/.*)?$/, // Hide app frame layout for active printing previews, tolerating trailing slashes or sub-paths
+];
 
 // Routes that use absolute viewports (ban scrolling)
 const APP_VIEW_PATTERNS = [
@@ -64,17 +66,19 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   return (
     <div className="flex h-screen bg-bg-base overflow-hidden">
       {/* 1. Sidebar (Desktop & Tablet) */}
-      <Sidebar 
-        role={role}
-        userName={userName}
-        className={cn(
-          "hidden lg:flex",
-          isTablet && "w-20"
-        )} 
-      />
+      {!isFullpage && (
+        <Sidebar 
+          role={role}
+          userName={userName}
+          className={cn(
+            "hidden lg:flex",
+            isTablet && "w-20"
+          )} 
+        />
+      )}
 
       {/* 2. Mobile Drawer (Sidebar on Mobile) */}
-      {isMobileMenuOpen && (
+      {!isFullpage && isMobileMenuOpen && (
         <div className="fixed inset-0 z-100 lg:hidden animate-in fade-in duration-300">
           {/* Backdrop */}
           <div 

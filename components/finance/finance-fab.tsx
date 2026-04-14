@@ -6,8 +6,14 @@ import { FAB } from "@/components/ui/fab";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+import { usePathname } from "next/navigation";
+
 export function FinanceFAB() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Hide FAB during print mode
+  if (pathname.includes("/print")) return null;
 
   const actions = [
     {

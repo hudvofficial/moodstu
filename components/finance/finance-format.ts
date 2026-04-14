@@ -24,20 +24,23 @@ export function financeStatusLabel(status: string | null | undefined): string {
     dang_thuc_hien: "Đang thực hiện",
     cho_xu_ly: "Chờ xử lý",
     hoan_thanh: "Hoàn thành",
+    completed: "Hoàn thành",
     da_huy: "Đã hủy",
+    cancelled: "Đã hủy",
   };
-  return labels[status || ""] || "Thông tin";
+  return labels[status?.toLowerCase() || ""] || "Thông tin";
 }
 
 export function financeStatusVariant(status: string | null | undefined) {
-  if (status === "approved" || status === "confirmed" || status === "hoan_thanh") {
+  const s = status?.toLowerCase();
+  if (s === "approved" || s === "confirmed" || s === "hoan_thanh" || s === "completed") {
     return "success" as const;
   }
-  if (status === "pending" || status === "dang_thuc_hien" || status === "cho_xu_ly") {
+  if (s === "pending" || s === "dang_thuc_hien" || s === "cho_xu_ly") {
     return "warning" as const;
   }
-  if (status === "da_huy" || status === "cancelled") return "error" as const;
-  if (status === "draft") return "neutral" as const;
+  if (s === "da_huy" || s === "cancelled") return "error" as const;
+  if (s === "draft") return "neutral" as const;
   return "info" as const;
 }
 
@@ -47,6 +50,27 @@ export function financeMethodLabel(method: string | null | undefined): string {
     chuyen_khoan: "Chuyển khoản",
     cash: "Tiền mặt",
     bank_transfer: "Chuyển khoản",
+    card: "Chuyển khoản",
   };
   return labels[method || ""] || method || "-";
+}
+
+export function financeReceiptTypeLabel(type: string | null | undefined): string {
+  const labels: Record<string, string> = {
+    contract_payment: "Thanh toán hợp đồng",
+    contract_deposit: "Cọc hợp đồng",
+    other_income: "Thu nhập khác",
+    service_fee: "Phí dịch vụ",
+    sale_receipt: "Bán vật tư",
+  };
+  return labels[type || ""] || type || "Khoản thu";
+}
+
+export function financeReceiptTypeVariant(type: string | null | undefined) {
+  const t = type?.toLowerCase();
+  if (t === "contract_payment") return "success" as const;
+  if (t === "contract_deposit") return "info" as const;
+  if (t === "sale_receipt") return "warning" as const;
+  if (t === "other_income") return "neutral" as const;
+  return "neutral" as const;
 }

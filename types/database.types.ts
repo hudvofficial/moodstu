@@ -201,6 +201,7 @@ export type Database = {
           budget_amount: number
           category_name: string
           created_at: string | null
+          deleted_at: string | null
           id: string
           notes: string | null
           period_month: number
@@ -211,6 +212,7 @@ export type Database = {
           budget_amount?: number
           category_name: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           period_month: number
@@ -221,6 +223,7 @@ export type Database = {
           budget_amount?: number
           category_name?: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           period_month?: number
@@ -601,6 +604,7 @@ export type Database = {
           card_label: string | null
           created_at: string | null
           credit_limit: number | null
+          deleted_at: string | null
           due_day: number
           due_next_month: boolean | null
           id: string
@@ -613,6 +617,7 @@ export type Database = {
           card_label?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          deleted_at?: string | null
           due_day?: number
           due_next_month?: boolean | null
           id?: string
@@ -625,6 +630,7 @@ export type Database = {
           card_label?: string | null
           created_at?: string | null
           credit_limit?: number | null
+          deleted_at?: string | null
           due_day?: number
           due_next_month?: boolean | null
           id?: string
@@ -848,6 +854,7 @@ export type Database = {
           amount: number
           created_at: string | null
           created_by: string | null
+          deleted_at: string | null
           due_date: string | null
           entity_id: string | null
           entity_name: string
@@ -864,6 +871,7 @@ export type Database = {
           amount: number
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           due_date?: string | null
           entity_id?: string | null
           entity_name: string
@@ -880,6 +888,7 @@ export type Database = {
           amount?: number
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           due_date?: string | null
           entity_id?: string | null
           entity_name?: string
@@ -1683,6 +1692,7 @@ export type Database = {
           created_at: string | null
           current_amount: number
           deadline: string | null
+          deleted_at: string | null
           icon: string | null
           id: string
           name: string
@@ -1696,6 +1706,7 @@ export type Database = {
           created_at?: string | null
           current_amount?: number
           deadline?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           name: string
@@ -1709,6 +1720,7 @@ export type Database = {
           created_at?: string | null
           current_amount?: number
           deadline?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           name?: string
@@ -1726,6 +1738,7 @@ export type Database = {
           cost_type: string | null
           created_at: string | null
           created_by: string | null
+          deleted_at: string | null
           deposit_amount: number | null
           description: string | null
           end_date: string | null
@@ -1740,6 +1753,7 @@ export type Database = {
           cost_type?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           deposit_amount?: number | null
           description?: string | null
           end_date?: string | null
@@ -1754,6 +1768,7 @@ export type Database = {
           cost_type?: string | null
           created_at?: string | null
           created_by?: string | null
+          deleted_at?: string | null
           deposit_amount?: number | null
           description?: string | null
           end_date?: string | null
@@ -2273,6 +2288,7 @@ export type Database = {
           category: string
           condition: string | null
           created_at: string | null
+          deleted_at: string | null
           depreciation_method: string | null
           id: string
           linked_revenue: number | null
@@ -2295,6 +2311,7 @@ export type Database = {
           category?: string
           condition?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           depreciation_method?: string | null
           id?: string
           linked_revenue?: number | null
@@ -2317,6 +2334,7 @@ export type Database = {
           category?: string
           condition?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           depreciation_method?: string | null
           id?: string
           linked_revenue?: number | null
@@ -2949,8 +2967,10 @@ export type Database = {
           contract_code: string | null
           contract_id: string | null
           created_at: string | null
+          created_by: string | null
           customer_name: string | null
           customer_phone: string | null
+          deleted_at: string | null
           id: string
           notes: string | null
           payment_type: string
@@ -2962,6 +2982,7 @@ export type Database = {
           status: string | null
           total_amount: number | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           category_id?: string | null
@@ -2969,8 +2990,10 @@ export type Database = {
           contract_code?: string | null
           contract_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           payment_type?: string
@@ -2982,6 +3005,7 @@ export type Database = {
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           category_id?: string | null
@@ -2989,8 +3013,10 @@ export type Database = {
           contract_code?: string | null
           contract_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          deleted_at?: string | null
           id?: string
           notes?: string | null
           payment_type?: string
@@ -3002,6 +3028,7 @@ export type Database = {
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3611,6 +3638,10 @@ export type Database = {
         Returns: undefined
       }
       convert_lead_to_customer: { Args: { p_lead_id: string }; Returns: Json }
+      create_sale_receipt_atomic: {
+        Args: { p_items: Json; p_receipt: Json }
+        Returns: Json
+      }
       decrement_goal_amount: {
         Args: { p_amount: number; p_goal_id: string }
         Returns: undefined
@@ -3619,6 +3650,102 @@ export type Database = {
         Args: { p_contract_id: string; p_user_id: string }
         Returns: undefined
       }
+      finance_contract_profit_report: {
+        Args: {
+          p_from?: string
+          p_page?: number
+          p_page_size?: number
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          addon_revenue: number
+          contract_code: string
+          contract_date: string
+          customer_name: string
+          discount: number
+          expense_cost: number
+          id: string
+          package_revenue: number
+          paid_amount: number
+          print_cost: number
+          profit: number
+          profit_margin: number
+          remaining_amount: number
+          status: string
+          task_cost: number
+          total_amount: number
+          total_cost: number
+          total_count: number
+        }[]
+      }
+      finance_dashboard_metrics: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          contracts_done: number
+          contracts_new: number
+          month_change_percent: number
+          profit: number
+          total_debt: number
+          total_inflow: number
+          total_outflow: number
+        }[]
+      }
+      finance_lab_debt_summary: {
+        Args: never
+        Returns: {
+          lab_id: string
+          lab_name: string
+          order_count: number
+          remaining: number
+          total_orders: number
+          total_paid: number
+        }[]
+      }
+      finance_ledger: {
+        Args: {
+          p_month?: number
+          p_page?: number
+          p_page_size?: number
+          p_type?: string
+          p_year?: number
+        }
+        Returns: {
+          amount: number
+          category_name: string
+          code: string
+          customer_name: string
+          description: string
+          direction: string
+          id: string
+          payment_method: string
+          source_table: string
+          status: string
+          total_count: number
+          transaction_date: string
+        }[]
+      }
+      finance_revenue_by_month: {
+        Args: { p_year: number }
+        Returns: {
+          month_label: string
+          raw_month: number
+          revenue: number
+        }[]
+      }
+      finance_service_distribution: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          name: string
+          revenue: number
+          value: number
+        }[]
+      }
+      get_budget_vs_actual: {
+        Args: { p_month: number; p_year: number }
+        Returns: Json
+      }
+      get_cashflow_forecast: { Args: { p_days?: number }; Returns: Json }
       get_contract_balance: { Args: { p_contract_id: string }; Returns: Json }
       get_crm_lead_stats: { Args: never; Returns: Json }
       get_current_employee_id: { Args: never; Returns: string }
@@ -3658,6 +3785,11 @@ export type Database = {
           total_cost: number
         }[]
       }
+      get_expense_breakdown: {
+        Args: { p_month: number; p_year: number }
+        Returns: Json
+      }
+      get_finance_intelligence: { Args: never; Returns: Json }
       get_my_employee_job_details: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
@@ -3693,11 +3825,30 @@ export type Database = {
           unpaid_cost: number
         }[]
       }
+      get_receivable_aging: { Args: never; Returns: Json }
       is_period_locked: { Args: { p_date: string }; Returns: boolean }
       nextval_customer_code: { Args: never; Returns: number }
+      process_contract_payment: {
+        Args: {
+          p_amount: number
+          p_category_id?: string
+          p_contract_id: string
+          p_created_by?: string
+          p_notes?: string
+          p_payment_date: string
+          p_payment_method: Database["public"]["Enums"]["payment_method_enum"]
+          p_payment_plan_id?: string
+          p_payment_stage?: string
+        }
+        Returns: Json
+      }
       recalc_contract_totals: {
         Args: { p_contract_id: string }
         Returns: undefined
+      }
+      undo_contribution_atomic: {
+        Args: { p_contribution_id: string }
+        Returns: Json
       }
     }
     Enums: {

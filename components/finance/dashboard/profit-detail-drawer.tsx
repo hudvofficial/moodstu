@@ -22,8 +22,8 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
     open && contractId ? `finance_contract_details_${contractId}` : null,
     async () => {
       const res = await getContractFinanceDetails(contractId);
-      if ("error" in res && !res.success) throw new Error(res.error as string);
-      return ("data" in res ? res.data : (res as any).data) as ContractProfitDetailData;
+      if (!res.success) throw new Error(res.error);
+      return res.data;
     }
   );
 

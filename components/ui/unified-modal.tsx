@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useEscape } from "@/hooks/useEscape";
 import { useSwipeDismiss } from "@/hooks/useSwipeDismiss";
 import { ModalPortal } from "@/components/ui/modal-portal";
+import { Button } from "@/components/ui/button";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -185,13 +186,14 @@ export function UnifiedModal({
                 )}
               </div>
               {showCloseButton && (
-                <button
+                <Button
+                  type="button"
                   onClick={handleClose}
                   aria-label="Đóng"
                   className="modal-close-btn"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               )}
             </div>
           )}

@@ -12,6 +12,12 @@ export const createReceiptSchema = z.object({
 
 export const updateReceiptSchema = createReceiptSchema.partial();
 
+export const updateReceiptWithLockSchema = updateReceiptSchema.extend({
+  id: z.string().uuid(),
+  updated_at: z.string().datetime().nullable().optional(), // For optimistic locking
+  category_name: z.string().optional().nullable(),
+});
+
 export const createExpenseSchema = z.object({
   expense_date: z.string().date(),
   payment_method: z.enum(["tien_mat", "chuyen_khoan"]),

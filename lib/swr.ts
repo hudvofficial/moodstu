@@ -31,6 +31,7 @@ export const cacheKeys = {
 
   // Inventory (consumables)
   inventory: () => "inventory",
+  inventorySaleOptions: () => "inventory:sale-options",
   inventoryStats: () => "inventory-stats",
   inventoryDetail: (id: string) => `inventory:${id}`,
   inventoryHistory: (id: string) => `inventory:${id}:history`,
@@ -47,6 +48,8 @@ export const cacheKeys = {
   financeCategories: (type = "all") => `finance-categories:${type}`,
   financeReceipts: (page = 1, month?: number, year?: number) =>
     month && year ? `finance-receipts:${page}:${year}-${month}` : `finance-receipts:${page}:all`,
+  financeReceiptStats: (month?: number, year?: number) =>
+    month && year ? `finance-receipt-stats:${year}-${month}` : "finance-receipt-stats:all",
   financeExpenses: (page = 1, month?: number, year?: number, approval = "all") =>
     month && year
       ? `finance-expenses:${page}:${year}-${month}:${approval}`

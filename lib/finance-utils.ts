@@ -91,3 +91,56 @@ export async function rpcWithFallback<T>(
   if (error) throw new Error(`RPC ${rpcName} failed: ${error.message}`);
   return data as T;
 }
+
+
+/**
+ * 💰 readMoney — Chuyển số tiền thành chữ (Tiếng Việt)
+ *
+ * [AUDIT FIX #4] Extracted from 4 duplicate copies across finance pages.
+ */
+export function readMoney(number: number): string {
+  if (number === 0) return "không đồng";
+  const units = [
+    "",
+    "một",
+    "hai",
+    "ba",
+    "bốn",
+    "năm",
+    "sáu",
+    "bảy",
+    "tám",
+    "chín",
+  ];
+  const readGroup = (group: number): string => {
+    let res = "";
+    const h = Math.floor(group / 100),
+      t = Math.floor((group % 100) / 10),
+      u = group % 10;
+    if (h > 0) res += units[h] + " trăm ";
+    if (t > 0) {
+      if (t === 1) res += "mười ";
+      else res += units[t] + " mươi ";
+    } else if (h > 0 && u > 0) {
+      res += "lẻ ";
+    }
+    if (u > 0) {
+      if (u === 1 && t > 1) res += "mốt";
+      else if (u === 5 && t > 0) res += "lăm";
+      else res += units[u];
+    }
+    return res.trim();
+  };
+  const groups: number[] = [];
+  let temp = Math.abs(number);
+  while (temp > 0) {
+    groups.push(temp % 1000);
+    temp = Math.floor(temp / 1000);
+  }
+  const labels = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ"];
+  let result = "";
+  for (let i = groups.length - 1; i >= 0; i--)
+    if (groups[i] > 0) result += readGroup(groups[i]) + " " + labels[i] + " ";
+  const final = result.trim() + " đồng chẵn.";
+  return final.charAt(0).toUpperCase() + final.slice(1);
+}

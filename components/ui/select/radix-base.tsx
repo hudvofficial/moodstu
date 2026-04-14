@@ -94,7 +94,14 @@ export const SelectItem = forwardRef<
 SelectItem.displayName = "SelectItem";
 
 // ── Helper: Render flat options list ─────────────────────────
-export function renderOptions(options: SelectOption[]) {
+export function renderOptions(options: SelectOption[], emptyText: string = "Không có dữ liệu") {
+  if (!options || options.length === 0) {
+    return (
+      <div className="py-3 px-2 text-center text-sm text-text-muted italic select-none">
+        {emptyText}
+      </div>
+    );
+  }
   return options.map((opt) => (
     <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
       {opt.label}
@@ -103,7 +110,14 @@ export function renderOptions(options: SelectOption[]) {
 }
 
 // ── Helper: Render grouped options list ──────────────────────
-export function renderGroupedOptions(groups: SelectOptionGroup[]) {
+export function renderGroupedOptions(groups: SelectOptionGroup[], emptyText: string = "Không có dữ liệu") {
+  if (!groups || groups.length === 0) {
+    return (
+      <div className="py-3 px-2 text-center text-sm text-text-muted italic select-none">
+        {emptyText}
+      </div>
+    );
+  }
   return groups.map((g, i) => (
     <SelectGroup key={i}>
       <SelectLabel className="select-group-label">{g.group}</SelectLabel>

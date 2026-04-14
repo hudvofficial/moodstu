@@ -62,6 +62,22 @@ export default function StudioBankSection({
             placeholder="Nguyễn Văn A"
           />
         </div>
+        <div className="form-grid-2col">
+          <Input
+            id="bank-bin"
+            label="Mã BIN ngân hàng"
+            value={bankInfo.bank_bin || ""}
+            onChange={(e) => updateField("bank_bin", e.target.value)}
+            placeholder="970436"
+          />
+          <Input
+            id="bank-qr-url"
+            label="URL QR tĩnh"
+            value={bankInfo.qr_code_url || ""}
+            onChange={(e) => updateField("qr_code_url", e.target.value)}
+            placeholder="https://..."
+          />
+        </div>
       </div>
     </section>
   );

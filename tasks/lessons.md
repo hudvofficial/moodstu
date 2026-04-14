@@ -155,3 +155,5 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 94. **RESPONSIVE BREAKPOINT PURGE (TAILWIND V4)**: Đừng bao giờ dùng `md:` cho layout quan trọng nếu dự án đã chuẩn hóa dùng `lg:`. Tailwind v4 sẽ purge `md:block` nếu file đó là component duy nhất sử dụng, khiến element bị ẩn vĩnh viễn (lỗi table biến mất). Luôn dùng `lg:block/hidden` theo Gold Standard.
 95. **ICON-BOX & SEMANTIC COLORS**: Tuyệt đối không dùng raw Tailwind colors (`blue-500`, `orange-500`) cho icon-box. Chỉ dùng semantic tokens (`primary`, `info`, `warning`, `success`, `error`, `accent`) với opacity chuẩn `/10`. Raw strings sẽ làm gãy tính đồng nhất của Design System.
 96. **KHÔNG CÓ CLASS `text-h4`**: Hệ thống typography chỉ định nghĩa đến `text-h3`. Cho các title bên trong drawer/card, hãy dùng `section-heading` (14px/600).
+97. **TEST BEFORE DONE (AWF GATE -1)**: Tuy?t �?i kh�ng ��?c g? 'Done' n?u ch�a ch?y /test, npm run build, ho?c eslint �? x�c nh?n kh�ng c?n l?i c� ph�p (nh� unused imports). Code xong ph?i t? ch?y 
+px eslint FILE �? qua Visual & Syntax Gate tr�?c khi b�n giao.

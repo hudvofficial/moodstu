@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 import { canAccess } from "@/types/roles";
-import { FinanceFAB } from "@/components/finance/finance-fab";
 
 export default async function FinanceLayout({
   children,
@@ -16,7 +15,6 @@ export default async function FinanceLayout({
   return (
     <div className="relative">
       {children}
-      <FinanceFAB />
     </div>
   );
 }

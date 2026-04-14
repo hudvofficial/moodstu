@@ -36,6 +36,10 @@ function daysOverdue(dueDate: string | null, status: string | null) {
   return Math.floor((today.getTime() - due.getTime()) / 86400000);
 }
 
+function sanitizePostgrestSearch(value: string) {
+  return value.replace(/[%_(),."\\]/g, "").trim().slice(0, 100);
+}
+
 function investmentBookValue(row: {
   purchase_date: string;
   purchase_price: number;
@@ -110,21 +114,33 @@ export async function fetchContractOptions(limit = 60) {
   });
 }
 
-export async function fetchReceipts(params: MonthYearPageParams = {}) {
+export async function fetchReceipts(params: MonthYearPageParams & { search?: string; receiptType?: string } = {}) {
   return withAuth(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
       .from("receipts")
       .select(
-        "id, receipt_date, receipt_type, payment_type, contract_id, contract_code, customer_name, receipt_amount, total_amount, remaining_amount, category_id, category_name, status, notes, created_at",
+        "id, receipt_date, receipt_type, payment_type, contract_id, contract_code, customer_name, receipt_amount, total_amount, remaining_amount, category_id, category_name, status, notes, created_at, updated_at",
         { count: "exact" },
       )
+      .is("deleted_at", null)
       .order("receipt_date", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
     if (window) query = query.gte("receipt_date", window.start).lt("receipt_date", window.end);
+    if (params.receiptType && params.receiptType !== "all") {
+      query = query.eq("receipt_type", params.receiptType);
+    }
+    
+    if (params.search) {
+      const sanitized = sanitizePostgrestSearch(params.search);
+      if (sanitized) {
+        const s = `%${sanitized}%`;
+        query = query.or(`contract_code.ilike.${s},customer_name.ilike.${s},category_name.ilike.${s},notes.ilike.${s}`);
+      }
+    }
 
     const { data, error, count } = await query;
     if (error) throw new Error(`Loi tai phieu thu: ${error.message}`);
@@ -134,6 +150,46 @@ export async function fetchReceipts(params: MonthYearPageParams = {}) {
       page: current,
       pageSize: size,
     } satisfies PaginatedResult<ReceiptListItem>;
+  });
+}
+
+export interface ReceiptStats {
+  totalReceipts: number;
+  totalAmount: number;
+  completedCount: number;
+  pendingCount: number;
+}
+
+export async function fetchReceiptStats(month?: number, year?: number) {
+  return withAuth(async (supabase) => {
+    const window = monthWindowOptional(month, year);
+    let query = supabase
+      .from("receipts")
+      .select("receipt_amount, status", { count: "exact" })
+      .is("deleted_at", null);
+
+    if (window) query = query.gte("receipt_date", window.start).lt("receipt_date", window.end);
+
+    const { data, error, count } = await query;
+    if (error) throw new Error(`Loi tai receipt stats: ${error.message}`);
+
+    const rows = data || [];
+    const totalAmount = rows.reduce((sum, r) => sum + (r.receipt_amount || 0), 0);
+    const doneStatuses = new Set(["completed", "confirmed", "approved", "hoan_thanh"]);
+    const cancelledStatuses = new Set(["cancelled", "da_huy"]);
+    
+    const completedCount = rows.filter((r) => doneStatuses.has((r.status || "").toLowerCase())).length;
+    const pendingCount = rows.filter((r) => {
+      const s = (r.status || "").toLowerCase();
+      return !doneStatuses.has(s) && !cancelledStatuses.has(s);
+    }).length;
+
+    return {
+      totalReceipts: count || rows.length,
+      totalAmount,
+      completedCount,
+      pendingCount,
+    } satisfies ReceiptStats;
   });
 }
 
@@ -397,5 +453,24 @@ export async function fetchGoals(params: { page?: number; pageSize?: number } = 
       };
     }) satisfies GoalItem[];
     return { items, total: count || 0, page: current, pageSize: size } satisfies PaginatedResult<GoalItem>;
+  });
+}
+
+// ─── RECEIPT DETAIL ─────────────────────────
+
+export async function getReceiptDetail(id: string) {
+  return withAuth(async (supabase) => {
+    const { data: receipt, error } = await supabase
+      .from("receipts")
+      .select("*")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (error || !receipt) {
+      throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
+    }
+
+    return receipt;
   });
 }

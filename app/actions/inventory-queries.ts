@@ -219,3 +219,35 @@ export async function getNextInventoryCode(): Promise<string> {
     return "VT-001";
   });
 }
+
+// ─── FETCH FOR SALE (lightweight — for receipt form) ──
+
+export interface InventorySaleOption {
+  id: string;
+  name: string;
+  item_code: string;
+  current_stock: number;
+  sale_price: number;
+  unit: string | null;
+}
+
+export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
+  return withAuth(async (supabase) => {
+    const { data, error } = await supabase
+      .from("inventory_items")
+      .select("id, name, item_code, current_stock, sale_price, unit")
+      .is("deleted_at", null)
+      .eq("status", "active")
+      .gt("current_stock", 0)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("[fetchInventoryForSale]", error);
+      return [];
+    }
+    return (data || []) as InventorySaleOption[];
+  }).then((result) => {
+    if (result.success) return result.data;
+    return [];
+  });
+}

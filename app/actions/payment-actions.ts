@@ -123,6 +123,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
         tableName: "payments",
         recordId: fallbackResult.payment_id,
         newData: input as unknown as Record<string, unknown>,
+        source: "server_action",
         description: `Thu tien hop dong #${input.contractId.substring(0, 8)}: ${input.amount.toLocaleString("vi-VN")} VND`,
       });
 
@@ -143,6 +144,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
       tableName: "payments",
       recordId: result.payment_id,
       newData: input as unknown as Record<string, unknown>,
+      source: "server_action",
       description: `Thu tiền hợp đồng #${input.contractId.substring(0,8)}: ${input.amount.toLocaleString("vi-VN")}₫`,
     });
 

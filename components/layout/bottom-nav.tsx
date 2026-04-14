@@ -47,6 +47,9 @@ export function BottomNav({ className }: BottomNavProps) {
     []
   );
 
+  // Hide BottomNav during print mode
+  if (pathname.includes("/print")) return null;
+
   return (
     <>
       {/* Popup overlay + danh sách module */}

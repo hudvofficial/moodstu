@@ -16,6 +16,8 @@ export const bankInfoSchema = z.object({
   account_number: z.string().max(50, "Số tài khoản tối đa 50 ký tự").optional(),
   account_name: z.string().max(100, "Tên chủ TK tối đa 100 ký tự").optional(),
   branch: z.string().max(100, "Chi nhánh tối đa 100 ký tự").optional(),
+  bank_bin: z.string().max(20, "Mã BIN tối đa 20 ký tự").optional(),
+  qr_code_url: z.string().url("URL QR không hợp lệ").or(z.literal("")).optional(),
 });
 
 export const socialLinksSchema = z.object({

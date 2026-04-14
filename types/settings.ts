@@ -3,6 +3,8 @@ export interface BankInfo {
   account_number?: string;
   account_name?: string;
   branch?: string;
+  bank_bin?: string;
+  qr_code_url?: string;
 }
 
 export interface SocialLinks {

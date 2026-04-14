@@ -51,8 +51,16 @@ export default async function FinanceDashboardPage() {
     getContractProfitReport({ page: 1, pageSize: 8 }),
   ]);
 
+  const isDemo = process.env.NEXT_PUBLIC_FINANCE_DEMO_MODE === "true";
+
   return (
-    <FinanceDashboardClient
+    <>
+      {isDemo && (
+        <div className="card-base border-status-warning bg-status-warning/10 text-body-sm text-center p-2 mb-4">
+          ⚠️ <b>Demo Mode</b> — Dữ liệu hiển thị là dữ liệu mẫu. Không phản ánh tài chính thực tế.
+        </div>
+      )}
+      <FinanceDashboardClient
       initialMonth={month}
       initialYear={year}
       initialMetrics={unwrap(metrics, emptyMetrics)}
@@ -73,5 +81,6 @@ export default async function FinanceDashboardPage() {
         pageSize: 8,
       })}
     />
+    </>
   );
 }
