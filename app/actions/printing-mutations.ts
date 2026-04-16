@@ -46,7 +46,7 @@ async function autoCreatePrintingExpense(params: {
     const { data: category } = await params.supabase
       .from("transaction_categories")
       .select("id")
-      .eq("type", "Chi")
+      .eq("type", "chi")
       .ilike("name", "%in an%")
       .limit(1)
       .maybeSingle();

@@ -8,7 +8,8 @@ import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { LedgerDesktopTable } from "@/components/finance/cashflow/ledger-desktop-table";
 import { LedgerMobileList } from "@/components/finance/cashflow/ledger-mobile-list";
 import { Pagination } from "@/components/ui/pagination";
-import { SimpleSelect } from "@/components/ui/simple-select";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import type { LedgerItem, PaginatedResult } from "@/types/finance-dashboard";
@@ -71,24 +72,29 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
 
 
   return (
-    <>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div className="main-container gap-4!">
+      <Breadcrumb items={[
+        { label: "Tài chính", href: "/finance" },
+        { label: "Sổ cái thu chi" },
+      ]} />
+
+      <section className="entrance entrance-0 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2">
           <div className="icon-box bg-primary/10">
             <ReceiptText className="w-4 h-4 text-primary" />
           </div>
           <div>
             <h1 className="text-h1">Sổ cái thu chi</h1>
-            <p className="text-body-sm text-text-secondary">Dòng tiền từ phiếu thu, thanh toán hợp đồng và phiếu chi.</p>
+            <p className="text-body-sm text-text-secondary hidden sm:block">Dòng tiền từ phiếu thu, thanh toán hợp đồng và phiếu chi.</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 lg:min-w-[460px]">
-          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
-          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
-          <SimpleSelect value={type} onChange={handleTypeChange} options={TYPE_OPTIONS} />
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible">
+          <SelectPill value={String(month)} onChange={handleMonthChange} options={monthOptions} placeholder="Tháng" />
+          <SelectPill value={String(year)} onChange={handleYearChange} options={yearOptions} placeholder="Năm" />
+          <SelectPill value={type} onChange={handleTypeChange} options={TYPE_OPTIONS} placeholder="Loại" />
         </div>
-      </div>
+      </section>
 
       <section className="entrance entrance-1">
         {isLoading && !data ? (
@@ -107,6 +113,6 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
       <p className="text-center text-caption text-text-muted">
         Hiển thị {ledger.items.length} / {ledger.total} giao dịch
       </p>
-    </>
+    </div>
   );
 }

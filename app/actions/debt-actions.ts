@@ -16,7 +16,7 @@ export interface DebtInput {
   type: "Phải thu" | "Phải trả";
   amount: number;
   due_date?: string | null;
-  status?: "dang_no" | "da_thanh_toan";
+  status?: "open" | "closed" | "partial" | "dang_no" | "da_thanh_toan"; // Keep dang_no/da_thanh_toan for retrocompatibility.
   notes?: string | null;
   entity_id?: string | null;
   // Legacy / other fields if needed:
@@ -57,7 +57,7 @@ export async function createDebt(input: DebtInput) {
       .insert({
         entity_name: parsed.data.entity_name,
         entity_type: parsed.data.entity_type,
-        type: parsed.data.type,
+        type: parsed.data.type === "Phải thu" ? "receivable" : "payable",
         amount: parsed.data.amount,
         due_date: parsed.data.due_date || null,
         notes: parsed.data.notes || null,
@@ -66,6 +66,11 @@ export async function createDebt(input: DebtInput) {
         remaining: parsed.data.amount,
         created_by: userId,
         status: parsed.data.status,
+        installment_total: parsed.data.installment_total || null,
+        installment_paid: parsed.data.installment_total ? 0 : null,
+        installment_amount: parsed.data.installment_amount || null,
+        platform: parsed.data.platform || null,
+        card_id: parsed.data.card_id || null,
       })
       .select("id")
       .single();
@@ -110,18 +115,22 @@ export async function updateDebt(
 
     // W3: Period lock check
     await checkPeriodLock(supabase, oldData.updated_at?.split("T")[0] || new Date().toISOString().split("T")[0]);
-    
+
     if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
     }
 
     // 3. Update
-    const finalUpdateData = { ...updateData, updated_at: new Date().toISOString() };
+    const dbUpdateData: Record<string, unknown> = { ...updateData, updated_at: new Date().toISOString() };
+    if (updateData.type) {
+      dbUpdateData.type = updateData.type === "Phải thu" ? "receivable" : "payable";
+    }
+    const finalUpdateData = dbUpdateData;
     const { error } = await supabase
       .from("debts")
       .update(finalUpdateData)
       .eq("id", id);
-      
+
     if (error) throw new Error(`Lỗi cập nhật công nợ: ${error.message}`);
 
     // 4. Audit
@@ -179,16 +188,16 @@ export async function markInstallmentPaid(id: string) {
       .select("installment_paid, installment_total, amount")
       .eq("id", id)
       .single();
-      
+
     if (fetchError || !debt) throw new Error("Không tìm thấy công nợ");
     if (!debt.installment_total) throw new Error("Không phải khoản trả góp");
 
     const newPaid = (debt.installment_paid || 0) + 1;
     const isComplete = newPaid >= debt.installment_total;
-    
+
     const updateData: Record<string, unknown> = { installment_paid: newPaid, updated_at: new Date().toISOString() };
     if (isComplete) {
-      updateData.status = "da_thanh_toan"; // spec fix
+      updateData.status = "closed"; // DB constraint uses 'closed'
       updateData.payment_date = new Date().toISOString().split("T")[0];
     }
 

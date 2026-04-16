@@ -59,7 +59,11 @@ export interface ExpenseListItem {
   description: string | null;
   recipient: string | null;
   approved_by: string | null;
+  created_by: string | null;
+  created_at: string | null;
   updated_at: string | null;
+  contract_id: string | null;
+  image_url: string | null;
 }
 
 export interface DebtListItem {
@@ -75,6 +79,11 @@ export interface DebtListItem {
   notes: string | null;
   updated_at: string | null;
   days_overdue: number;
+  installment_total?: number | null;
+  installment_paid?: number | null;
+  installment_amount?: number | null;
+  platform?: string | null;
+  card_id?: string | null;
 }
 
 export interface LabDebtItem {

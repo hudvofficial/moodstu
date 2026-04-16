@@ -1,21 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { CheckCircle, HandCoins, Plus, Trash2 } from "lucide-react";
+import { Wallet, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDebt, updateDebt } from "@/app/actions/debt-actions";
-import { fetchDebts } from "@/app/actions/finance-operations-queries";
-import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
+import { fetchDebts, fetchDebtStats } from "@/app/actions/finance-operations-queries";
+import { formatVnd } from "@/components/finance/finance-format";
 import { DebtFormModal } from "@/components/finance/debts/debt-form-modal";
+import { DebtDesktopTable } from "@/components/finance/debts/debt-desktop-table";
+import { DebtMobileList } from "@/components/finance/debts/debt-mobile-list";
+import { DebtStatsBar } from "@/components/finance/debts/debt-stats-bar";
 import { GhostScanWidget } from "@/components/finance/integrity/ghost-scan-widget";
 import { Button } from "@/components/ui/button";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Pagination } from "@/components/ui/pagination";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, DebtListItem, IntegrityReportItem } from "@/types/finance-operations";
+import type { PaginatedResult } from "@/types/finance-dashboard";
+import type { DebtStats } from "@/app/actions/finance-operations-queries";
+import type { BankInfo } from "@/types/settings";
 
 interface DebtsClientProps {
-  initialData: DebtListItem[];
+  initialData: PaginatedResult<DebtListItem>;
+  initialStats: DebtStats;
   initialIntegrity: IntegrityReportItem[];
+  bankInfo: BankInfo | null;
 }
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
@@ -24,38 +34,30 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   return result.data;
 }
 
-function debtBadge(item: DebtListItem) {
-  if (item.status === "da_thanh_toan") return { className: "badge badge-success", label: "Đã thanh toán" };
-  if (item.days_overdue > 0) return { className: "badge badge-error", label: `Quá hạn ${item.days_overdue} ngày` };
-  return { className: "badge badge-warning", label: "Đang nợ" };
-}
-
-export function DebtsClient({ initialData, initialIntegrity }: DebtsClientProps) {
+export function DebtsClient({ initialData, initialStats, initialIntegrity, bankInfo }: DebtsClientProps) {
+  const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const handleOpenCreate = useCallback(() => setIsModalOpen(true), []);
   const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
 
-  const key = cacheKeys.debts();
-  const { data, error, isLoading } = useSWR(key, async () => { const r = await requireData(fetchDebts()); return r.items; }, { fallbackData: initialData });
+  const key = cacheKeys.debts(page);
+  const { data, error, isLoading } = useSWR<PaginatedResult<DebtListItem>>(key, async () => { const r = await requireData(fetchDebts({ page, pageSize: 20 })); return r as unknown as PaginatedResult<DebtListItem>; }, { fallbackData: page === 1 ? initialData : undefined });
+
+  const statsKey = cacheKeys.debtStats();
+  const { data: globalStats, error: statsError } = useSWR(statsKey, async () => { const r = await requireData(fetchDebtStats()); return r; }, { fallbackData: initialStats });
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được công nợ.");
-  }, [error]);
+    if (statsError) toast.error(statsError.message || "Không tải được dữ liệu tổng quan công nợ.");
+  }, [error, statsError]);
 
-  const debts = data || initialData;
-  const summary = useMemo(() => {
-    return debts.reduce(
-      (acc, item) => {
-        if (item.type.toLowerCase().includes("thu")) acc.receivable += item.remaining;
-        else acc.payable += item.remaining;
-        if (item.days_overdue > 0) acc.overdue += item.remaining;
-        return acc;
-      },
-      { receivable: 0, payable: 0, overdue: 0 },
-    );
-  }, [debts]);
+  const debtData = data || (page === 1 ? initialData : { items: [], total: 0, page: 1, pageSize: 20 });
+  const debts = debtData.items;
+  const totalPages = Math.ceil(debtData.total / debtData.pageSize) || 1;
+
+  const summary = globalStats || initialStats;
 
   const refresh = () => {
     void mutate(key);
@@ -88,86 +90,75 @@ export function DebtsClient({ initialData, initialIntegrity }: DebtsClientProps)
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="icon-box bg-warning/10">
-            <HandCoins className="w-4 h-4 text-warning" />
-          </div>
-          <div>
-            <h1 className="text-h1">Công nợ khách hàng</h1>
-            <p className="text-body-sm text-text-secondary">Theo dõi phải thu, phải trả và khoản quá hạn.</p>
-          </div>
+    <div className="main-container gap-4!">
+      <Breadcrumb
+        items={[
+          { label: "Tài chính", href: "/finance" },
+          { label: "Công nợ khách hàng", href: "/finance/debts" },
+        ]}
+      />
+
+      <section className="entrance entrance-0 mt-4">
+        <DebtStatsBar stats={summary} />
+      </section>
+
+      <section className="entrance entrance-1 flex items-center justify-between mb-4">
+        <div className="flex-1"></div>
+        <div className="hidden lg:flex shrink-0 items-center gap-3">
+          <GhostScanWidget initialData={initialIntegrity} variant="button" />
+          <Button type="button" onClick={handleOpenCreate} variant="primary" className="gap-2 shadow-sm whitespace-nowrap">
+            <Plus className="w-4 h-4" />
+            Thêm công nợ
+          </Button>
         </div>
-        <Button type="button" onClick={handleOpenCreate} className="btn-cta gap-2">
-          <Plus className="w-4 h-4" />
-          Thêm công nợ
+      </section>
+
+      <section className="entrance entrance-2 mt-4">
+        {isLoading && debts.length === 0 ? (
+          <div className="card-base p-5">
+            <SkeletonCard />
+          </div>
+        ) : (
+          <>
+            <div className="hidden lg:block card-base">
+              <DebtDesktopTable
+                items={debts}
+                bankInfo={bankInfo}
+                busyId={busyId}
+                onMarkPaid={markPaid}
+                onDelete={remove}
+              />
+            </div>
+            <div className="lg:hidden">
+              <DebtMobileList
+                items={debts}
+                bankInfo={bankInfo}
+                busyId={busyId}
+                onMarkPaid={markPaid}
+                onDelete={remove}
+              />
+              {totalPages > 1 && (
+                <div className="mt-4 flex justify-center">
+                  <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* FAB cho mobile giống Receipt */}
+      <div className="lg:hidden fixed bottom-20 right-4 z-50">
+        <Button
+          type="button"
+          onClick={handleOpenCreate}
+          className="h-14 w-14 rounded-full shadow-lg p-0 flex items-center justify-center btn-cta"
+        >
+          <Plus className="w-6 h-6" />
         </Button>
       </div>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 entrance entrance-1">
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Phải thu</div>
-          <div className="text-h2 tabular-nums text-success">{formatVnd(summary.receivable)}</div>
-        </div>
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Phải trả</div>
-          <div className="text-h2 tabular-nums text-error">{formatVnd(summary.payable)}</div>
-        </div>
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Quá hạn</div>
-          <div className="text-h2 tabular-nums text-warning">{formatVnd(summary.overdue)}</div>
-        </div>
-      </section>
-
-      <section className="detail-grid entrance entrance-2">
-        <div className="detail-main space-y-3">
-          {isLoading && !data ? (
-            <SkeletonCard />
-          ) : debts.length === 0 ? (
-            <div className="card-base p-5 text-center text-text-muted">Chưa có công nợ.</div>
-          ) : (
-            debts.map((item) => {
-              const badge = debtBadge(item);
-              return (
-                <article key={item.id} className={item.days_overdue > 0 ? "card-interactive overdue-indicator p-4" : "card-interactive p-4"}>
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-h3">{item.entity_name}</h2>
-                        <span className={badge.className}>{badge.label}</span>
-                        <span className="tag-badge">{item.type}</span>
-                      </div>
-                      <p className="text-body-sm text-text-secondary">
-                        Hạn: {formatFinanceDate(item.due_date)} · Nhóm: {item.entity_type}
-                      </p>
-                    </div>
-                    <div className="text-left lg:text-right">
-                      <div className="tabular-nums font-bold text-h3">{formatVnd(item.remaining)}</div>
-                      <div className="text-caption text-text-muted">Gốc {formatVnd(item.amount)}</div>
-                    </div>
-                    <div className="flex gap-2">
-                      {item.status !== "da_thanh_toan" && (
-                        <Button type="button" variant="interactive" size="sm" onClick={() => markPaid(item)} disabled={busyId === item.id}>
-                          <CheckCircle className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button type="button" variant="ghost" size="sm" onClick={() => remove(item)} disabled={busyId === item.id} className="text-error">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </div>
-        <div className="detail-sidebar">
-          <GhostScanWidget initialData={initialIntegrity} />
-        </div>
-      </section>
-
       <DebtFormModal isOpen={isModalOpen} onClose={handleCloseModal} onSaved={refresh} />
-    </>
+    </div>
   );
 }

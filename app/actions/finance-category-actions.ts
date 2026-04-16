@@ -9,7 +9,7 @@ import { createCategorySchema, updateCategorySchema } from "@/lib/validations/fi
 // Period lock chỉ áp dụng cho transactional mutations (receipts, expenses, debts, etc.) — W7 audit decision
 
 function categoryCode(name: string, type: string) {
-  const prefix = type === "Thu" ? "THU" : "CHI";
+  const prefix = type === "thu" ? "THU" : "CHI";
   const slug = name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -22,7 +22,7 @@ function categoryCode(name: string, type: string) {
 
 export async function createFinanceCategory(input: {
   name: string;
-  type: "Thu" | "Chi";
+  type: "thu" | "chi";
   category_code?: string;
 }) {
   return withAdmin(async (supabase) => {
@@ -62,7 +62,7 @@ export async function createFinanceCategory(input: {
 
 export async function updateFinanceCategory(
   id: string,
-  input: { name: string; type: "Thu" | "Chi"; category_code?: string },
+  input: { name: string; type: "thu" | "chi"; category_code?: string },
 ) {
   return withAdmin(async (supabase) => {
     // W6: Zod validation (audit fix)

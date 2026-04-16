@@ -16,7 +16,7 @@ import NotificationPrefs from "./notification-prefs";
 import EditProfileModal from "./edit-profile-modal";
 import MembersSection from "./members-section";
 import ChangelogSection from "./changelog-section";
-import { Settings, History, ChevronRight } from "lucide-react";
+import { Settings, History, ChevronRight, CreditCard } from "lucide-react";
 
 interface SettingsViewProps {
   employee: EmployeeProfile;
@@ -94,6 +94,18 @@ export default function SettingsView({
                 <History className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
                   Nhat ky hoat dong
+                </span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-text-muted" />
+            </Link>
+            <Link
+              href="/settings/credit-cards"
+              className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-5 h-5 text-text-secondary" />
+                <span className="text-sm text-text-primary">
+                  Quan ly the tin dung
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />

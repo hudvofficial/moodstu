@@ -1,0 +1,37 @@
+"use client";
+
+import { SalaryMobileSwipeCard } from "@/components/finance/salaries/salary-mobile-swipe-card";
+import type { SalaryItem } from "@/types/finance-operations";
+
+interface SalaryMobileListProps {
+    items: SalaryItem[];
+    busyId: string | null;
+    onView: (item: SalaryItem) => void;
+    onAdjust: (item: SalaryItem) => void;
+    onPay: (item: SalaryItem) => void;
+    onDelete: (item: SalaryItem) => void;
+}
+
+export function SalaryMobileList({ items, busyId, onView, onAdjust, onPay, onDelete }: SalaryMobileListProps) {
+    return (
+        <div className="space-y-3 lg:hidden pb-32">
+            {items.length === 0 ? (
+                <div className="card-base p-5 text-center text-text-muted">
+                    Chưa có dữ liệu lương tháng này.
+                </div>
+            ) : (
+                items.map((item) => (
+                    <SalaryMobileSwipeCard
+                        key={item.id}
+                        item={item}
+                        busyId={busyId}
+                        onView={onView}
+                        onAdjust={onAdjust}
+                        onPay={onPay}
+                        onDelete={onDelete}
+                    />
+                ))
+            )}
+        </div>
+    );
+}

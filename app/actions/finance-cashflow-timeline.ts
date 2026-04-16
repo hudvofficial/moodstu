@@ -15,6 +15,7 @@ export async function getCashflowTimeline(startDate: string, endDate: string) {
         .from("receipts")
         .select("receipt_date, receipt_amount")
         .is("contract_id", null)
+        .is("deleted_at", null)
         .gte("receipt_date", startDate)
         .lte("receipt_date", endDate),
       supabase

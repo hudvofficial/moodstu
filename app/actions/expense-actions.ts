@@ -33,20 +33,24 @@ export async function approveExpense(id: string) {
       .single();
 
     if (!expense) throw new Error("Không tìm thấy phiếu chi.");
-    
+
     await checkPeriodLock(supabase, expense.expense_date);
 
     // 2. Perform approve (Update approved_by = userId)
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("expenses")
       .update({ approved_by: userId, updated_at: new Date().toISOString() })
-      .eq("id", id);
-      
+      .eq("id", id)
+      .is("deleted_at", null)
+      .is("approved_by", null)
+      .select("id");
+
     if (error) throw new Error(`Lỗi duyệt chi phí: ${error.message}`);
+    if (!updated || updated.length === 0) throw new Error("Phiếu chi không tồn tại, đã xóa, hoặc đã được duyệt từ trước.");
 
     // 3. Audit log
-    await writeAuditLog({ action: "UPDATE", tableName: "expenses", recordId: id, description: `Duyệt chi phí #${id.substring(0, 8)} (${expense.amount?.toLocaleString("vi-VN")}₫)` });
-    
+    await writeAuditLog({ action: "UPDATE", tableName: "expenses", recordId: id, source: "server_action", description: `Duyệt chi phí #${id.substring(0, 8)} (${expense.amount?.toLocaleString("vi-VN")}₫)` });
+
     // 4. Revalidate cache
     revalidatePath("/finance");
     return null;
@@ -81,6 +85,7 @@ export async function createExpense(input: CreateExpenseInput) {
       action: "CREATE",
       tableName: "expenses",
       recordId: created.id,
+      source: "server_action",
       newData: insertData as unknown as Record<string, unknown>,
       description: `Tạo phiếu chi ${validated.amount.toLocaleString("vi-VN")}₫${validated.recipient ? ` cho ${validated.recipient}` : ""}`,
     });
@@ -96,7 +101,7 @@ export async function createExpense(input: CreateExpenseInput) {
 export async function updateExpense(
   id: string,
   input: Partial<CreateExpenseInput>,
-  expectedUpdatedAt?: string
+  expectedUpdatedAt?: string | null
 ) {
   return withAdmin(async (supabase) => {
     // 1. Zod validation
@@ -115,11 +120,7 @@ export async function updateExpense(
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy phiếu chi cần sửa.");
-    
-    if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
-      throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
-    }
-    
+
     // Check lock for old date, and new date (if changing)
     await checkPeriodLock(supabase, oldData.expense_date);
     if (updateData.expense_date && updateData.expense_date !== oldData.expense_date) {
@@ -128,18 +129,31 @@ export async function updateExpense(
 
     // 3. Update
     const finalUpdateData = { ...updateData, updated_at: new Date().toISOString() };
-    const { error } = await supabase
+
+    let query = supabase
       .from("expenses")
       .update(finalUpdateData)
-      .eq("id", id);
+      .eq("id", id)
+      .is("deleted_at", null)
+      .is("approved_by", null);
+
+    if (expectedUpdatedAt === null) {
+      query = query.is("updated_at", null);
+    } else if (expectedUpdatedAt) {
+      query = query.eq("updated_at", expectedUpdatedAt);
+    }
+
+    const { data: updated, error } = await query.select("id");
 
     if (error) throw new Error(`Lỗi cập nhật phiếu chi: ${error.message}`);
+    if (!updated || updated.length === 0) throw new Error("Không thể cập nhật: dữ liệu đã bị thay đổi, hoặc phiếu chi đã duyệt/đã xóa.");
 
     // 4. Audit
     await writeAuditLog({
       action: "UPDATE",
       tableName: "expenses",
       recordId: id,
+      source: "server_action",
       oldData: oldData as unknown as Record<string, unknown>,
       newData: finalUpdateData as unknown as Record<string, unknown>,
       description: `Cập nhật phiếu chi #${id.substring(0, 8)}`,
@@ -165,20 +179,24 @@ export async function deleteExpense(id: string) {
     if (!oldData) throw new Error("Không tìm thấy phiếu chi cần xoá.");
     await checkPeriodLock(supabase, oldData.expense_date);
 
-    // 2. Delete (soft or hard based on requirements, currently hard delete in old code but usually soft delete is better if deleted_at exists. Let's do soft delete if table has deleted_at, or hard if not. V2 spec says expenses has deleted_at).
-    // The previous code did hard delete: `delete().eq("id", id)`. V2 plans say "Soft delete: IS NULL". Let's update to soft delete.
-    const { error } = await supabase
+    // 2. Soft delete
+    const { data: updated, error } = await supabase
       .from("expenses")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-      
+      .eq("id", id)
+      .is("deleted_at", null)
+      .is("approved_by", null)
+      .select("id");
+
     if (error) throw new Error(`Lỗi xoá phiếu chi: ${error.message}`);
+    if (!updated || updated.length === 0) throw new Error("Không thể xóa: phiếu chi không tồn tại, đã xóa, hoặc đã được duyệt.");
 
     // 3. Audit
     await writeAuditLog({
       action: "DELETE",
       tableName: "expenses",
       recordId: id,
+      source: "server_action",
       oldData: oldData as unknown as Record<string, unknown>,
       description: `Xóa phiếu chi #${id.substring(0, 8)} (${oldData.amount?.toLocaleString("vi-VN")}₫)`,
     });
@@ -245,7 +263,7 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
     const { data: categories } = await supabase
       .from("transaction_categories")
       .select("id, name")
-      .eq("type", "Chi");
+      .eq("type", "chi");
 
     const pattern = `%[Auto-Fixed]%Tháng ${month}/${year}%`;
     const { data: existingExpenses } = await supabase

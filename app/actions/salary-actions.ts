@@ -36,7 +36,7 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
     .select("id, base_salary, product_salary, advance_payment, monthly_salary_id")
     .eq("id", employeeSalaryId)
     .single();
-    
+
   if (!currentSalary) throw new Error("Không tìm thấy bản ghi lương nhân viên");
 
   const base = currentSalary.base_salary || 0;
@@ -47,29 +47,29 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
 
   const { error: updateError } = await supabase
     .from("employee_salaries")
-    .update({ 
-      bonus: totalBonus, 
-      penalty: totalPenalty, 
-      total_salary: newTotal, 
-      net_salary: newNet, 
-      updated_at: new Date().toISOString() 
+    .update({
+      bonus: totalBonus,
+      penalty: totalPenalty,
+      total_salary: newTotal,
+      net_salary: newNet,
+      updated_at: new Date().toISOString()
     })
     .eq("id", employeeSalaryId);
-    
+
   if (updateError) throw updateError;
 
   const { data: allSalaries } = await supabase
     .from("employee_salaries")
     .select("net_salary")
     .eq("monthly_salary_id", currentSalary.monthly_salary_id);
-    
+
   const totalMonth = allSalaries?.reduce((sum: number, item: { net_salary: number }) => sum + (item.net_salary || 0), 0) || 0;
 
   const { error: monthUpdateError } = await supabase
     .from("monthly_salaries")
     .update({ total_salary: totalMonth, updated_at: new Date().toISOString() })
     .eq("id", currentSalary.monthly_salary_id);
-    
+
   if (monthUpdateError) throw monthUpdateError;
 }
 
@@ -85,26 +85,26 @@ export async function addSalaryAdjustment(data: AdjustmentData) {
     }
 
     const { error: insertError } = await supabase.from("salary_adjustments").insert({
-      employee_salary_id: data.employee_salary_id, 
-      type: data.type, 
+      employee_salary_id: data.employee_salary_id,
+      type: data.type,
       amount: data.amount,
-      reason: data.reason, 
-      date: data.date || new Date().toISOString().split("T")[0], 
+      reason: data.reason,
+      date: data.date || new Date().toISOString().split("T")[0],
       created_by: userId,
     });
-    
+
     if (insertError) throw new Error(`Lỗi thêm điều chỉnh: ${insertError.message}`);
 
     // FIX B5: Do not swallow recalculation errors. Bubble them up to the client via withAdmin boundary.
     await recalculateEmployeeSalary(supabase, data.employee_salary_id);
 
-    await writeAuditLog({ 
-      action: "CREATE", 
-      tableName: "salary_adjustments", 
-      recordId: data.employee_salary_id, 
-      description: `Thêm ${data.type === "bonus" ? "thưởng" : "phạt"}: ${data.amount.toLocaleString("vi-VN")}₫ - ${data.reason}` 
+    await writeAuditLog({
+      action: "CREATE",
+      tableName: "salary_adjustments",
+      recordId: data.employee_salary_id,
+      description: `Thêm ${data.type === "bonus" ? "thưởng" : "phạt"}: ${data.amount.toLocaleString("vi-VN")}₫ - ${data.reason}`
     });
-    
+
     revalidatePath("/finance");
     return null;
   });
@@ -132,15 +132,286 @@ export async function deleteSalaryAdjustment(id: string, salaryId: string) {
     // FIX B5: Fail fast if recalculation fails
     await recalculateEmployeeSalary(supabase, salaryId);
 
-    await writeAuditLog({ 
-      action: "DELETE", 
-      tableName: "salary_adjustments", 
-      recordId: id, 
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "salary_adjustments",
+      recordId: id,
       oldData: oldData as unknown as Record<string, unknown>,
-      description: `Xóa khoản điều chỉnh lương #${id.substring(0, 8)}` 
+      description: `Xóa khoản điều chỉnh lương #${id.substring(0, 8)}`
     });
-    
+
     revalidatePath("/finance");
     return null;
   });
 }
+
+export async function payEmployeeSalaryAction(salaryId: string, amount: number) {
+  return withAdmin(async (supabase, userId) => {
+    if (amount <= 0) throw new Error("Số tiền thanh toán phải > 0");
+    const { data: salaryRecord } = await supabase.from("employee_salaries").select("*").eq("id", salaryId).single();
+    if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
+
+    await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
+
+    const newPaid = (salaryRecord.paid_amount || 0) + amount;
+    const newRemaining = salaryRecord.net_salary - newPaid;
+
+    const { error: updateError } = await supabase
+      .from("employee_salaries")
+      .update({
+        paid_amount: newPaid,
+        remaining_amount: Math.max(0, newRemaining),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", salaryId);
+
+    if (updateError) throw updateError;
+
+    await writeAuditLog({
+      action: "UPDATE",
+      tableName: "employee_salaries",
+      recordId: salaryId,
+      description: `Thanh toán lương: +${amount.toLocaleString("vi-VN")}₫. Đã trả: ${newPaid.toLocaleString("vi-VN")}`
+    });
+
+    revalidatePath("/finance/salaries");
+    return null;
+  });
+}
+
+export async function deleteEmployeeMonthlySalaryAction(salaryId: string) {
+  return withAdmin(async (supabase, userId) => {
+    const { data: salaryRecord } = await supabase.from("employee_salaries").select("month, year, employee_name, monthly_salary_id").eq("id", salaryId).single();
+    if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
+
+    await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
+
+    const { error: deleteError } = await supabase.from("employee_salaries").delete().eq("id", salaryId);
+    if (deleteError) throw deleteError;
+
+    // Recalculate monthly total
+    const { data: allSalaries } = await supabase
+      .from("employee_salaries")
+      .select("net_salary")
+      .eq("monthly_salary_id", salaryRecord.monthly_salary_id);
+
+    const totalMonth = allSalaries?.reduce((sum: number, item: { net_salary: number }) => sum + (item.net_salary || 0), 0) || 0;
+    const countRem = allSalaries?.length || 0;
+
+    await supabase.from("monthly_salaries")
+      .update({ total_salary: totalMonth, total_employees: countRem, updated_at: new Date().toISOString() })
+      .eq("id", salaryRecord.monthly_salary_id);
+
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "employee_salaries",
+      recordId: salaryId,
+      description: `Xóa bảng lương của nhân sự: ${salaryRecord.employee_name}`
+    });
+
+    revalidatePath("/finance/salaries");
+    return null;
+  });
+}
+
+// ═══════════════════════════════════════════
+// Salary Generation (Phase 03 - V2 Optimized)
+// ═══════════════════════════════════════════
+
+export async function validatePayrollWarningsAction(month: number, year: number) {
+  return withAdmin(async (supabase) => {
+    try {
+      const startOfMonth = new Date(year, month - 1, 1).toISOString();
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+      const { data: workProgress, error: wpErr } = await supabase
+        .from("work_tasks")
+        .select("assigned_to, cost, contracts(contract_code)")
+        .eq("status", "Hoàn thành")
+        .gte("deadline", startOfMonth)
+        .lte("deadline", endOfMonth);
+
+      if (wpErr) throw wpErr;
+
+      const unassignedTasks: string[] = [];
+      const zeroCostTasks: string[] = [];
+
+      workProgress?.forEach((task: any) => {
+        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
+        if (!task.assigned_to) {
+          unassignedTasks.push(contractRef);
+        }
+        if (task.cost === 0) {
+          zeroCostTasks.push(contractRef);
+        }
+      });
+
+      return {
+        success: true,
+        warnings: {
+          unassignedTasks: Array.from(new Set(unassignedTasks)),
+          zeroCostTasks: Array.from(new Set(zeroCostTasks))
+        }
+      };
+    } catch (error: any) {
+      console.error("Lỗi validate payroll:", error);
+      return { success: false, error: error.message || "Lỗi hệ thống khi check dữ liệu" };
+    }
+  });
+}
+
+export async function generateMonthlySalaryAction(month: number, year: number) {
+  return withAdmin(async (supabase, userId) => {
+    try {
+      // 1. Check Period Lock (Data Integrity)
+      const dateString = `${year}-${String(month).padStart(2, "0")}-01`;
+      await checkPeriodLock(supabase, dateString);
+
+      // 2. Resolve Monthly Salary Record
+      let monthlySalaryId: string;
+      const { data: existingMonthly, error: findMonthErr } = await supabase
+        .from("monthly_salaries")
+        .select("id")
+        .eq("month", month)
+        .eq("year", year)
+        .maybeSingle();
+
+      if (findMonthErr && findMonthErr.code !== "PGRST116") throw findMonthErr;
+
+      if (!existingMonthly) {
+        const { data: newMonth, error: createMonthErr } = await supabase
+          .from("monthly_salaries")
+          .insert({
+            salary_code: `BL-${year}-${String(month).padStart(2, "0")}`,
+            month,
+            year,
+            total_salary: 0,
+            total_employees: 0,
+            created_by: userId,
+          })
+          .select("id")
+          .single();
+
+        if (createMonthErr) throw createMonthErr;
+        monthlySalaryId = newMonth.id;
+      } else {
+        monthlySalaryId = existingMonthly.id;
+      }
+
+      // Check if salaries already generated
+      const { count: existsCount, error: countErr } = await supabase
+        .from("employee_salaries")
+        .select("id", { count: "exact", head: true })
+        .eq("monthly_salary_id", monthlySalaryId);
+
+      if (countErr) throw countErr;
+      if (existsCount && existsCount > 0) {
+        throw new Error("Bảng lương cho tháng này đã được khởi tạo.");
+      }
+
+      // 3. Extract Work Progress data for Product Salary calculations
+      const startOfMonth = new Date(year, month - 1, 1).toISOString();
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+      const { data: workProgress, error: wpErr } = await supabase
+        .from("work_tasks")
+        .select("assigned_to, cost, contracts(contract_code)")
+        .eq("status", "Hoàn thành")
+        .gte("deadline", startOfMonth)
+        .lte("deadline", endOfMonth);
+
+      if (wpErr) throw wpErr;
+
+      // Group costs by employee
+      const taskMap: Record<string, number> = {};
+      let hasWarnings = false;
+      const unassignedTasks: Set<string> = new Set();
+      const zeroCostTasks: Set<string> = new Set();
+
+      workProgress?.forEach((task: any) => {
+        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
+        if (!task.assigned_to) {
+          unassignedTasks.add(contractRef);
+          hasWarnings = true;
+        } else {
+          taskMap[task.assigned_to] = (taskMap[task.assigned_to] || 0) + (task.cost || 0);
+        }
+        if (task.cost === 0) {
+          zeroCostTasks.add(contractRef);
+          hasWarnings = true;
+        }
+      });
+
+      // 4. Fetch Active Employees & insert
+      const { data: employees, error: empErr } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("status", "active");
+
+      if (empErr) throw empErr;
+      if (!employees || employees.length === 0) {
+        throw new Error("Không tìm thấy nhân viên nào đang làm việc");
+      }
+
+      const newRecords = employees.map((emp) => {
+        // Parse JSONB salary_info for V2 compliance
+        const salaryInfoObj = typeof emp.salary_info === "string"
+          ? JSON.parse(emp.salary_info)
+          : (emp.salary_info || {});
+
+        const totalBase = Number(salaryInfoObj?.base_salary) || 0;
+        const productSalary = taskMap[emp.id] || 0;
+        const total = totalBase + productSalary;
+
+        return {
+          monthly_salary_id: monthlySalaryId,
+          employee_id: emp.id,
+          base_salary: totalBase,
+          product_salary: productSalary,
+          year,
+          month,
+          total_salary: total,
+          net_salary: total,
+          bonus: 0,
+          penalty: 0,
+          advance_payment: 0,
+          paid_amount: 0,
+          remaining_amount: total,
+        };
+      });
+
+      const { error: insertErr } = await supabase.from("employee_salaries").insert(newRecords);
+      if (insertErr) throw insertErr;
+
+      // Update Summary
+      const totalSalaries = newRecords.reduce((sum, r) => sum + r.total_salary, 0);
+      const { error: sumErr } = await supabase.from("monthly_salaries")
+        .update({ total_salary: totalSalaries, total_employees: newRecords.length })
+        .eq("id", monthlySalaryId);
+
+      if (sumErr) throw sumErr;
+
+      // 5. Audit Logging (System Pattern)
+      await writeAuditLog({
+        action: "CREATE",
+        tableName: "monthly_salaries",
+        recordId: monthlySalaryId,
+        description: `Khởi tạo bảng lương tháng ${month}/${year} cho ${newRecords.length} nhân sự. Tổng quỹ lương: ${totalSalaries.toLocaleString("vi-VN")}₫`,
+      });
+
+      revalidatePath("/finance/salaries");
+
+      return {
+        success: true,
+        message: hasWarnings
+          ? `Tạo thành công ${newRecords.length} bảng lương. CẢNH BÁO: Phát hiện Job hoàn thành chưa gán nhân sự hoặc lương 0đ.`
+          : `Đã khởi tạo bảng lương thành công cho ${newRecords.length} nhân viên`
+      };
+
+    } catch (error: any) {
+      console.error("Lỗi generate monthly salary:", error);
+      return { success: false, error: error.message || "Lỗi hệ thống khi tạo lương" };
+    }
+  });
+}
+

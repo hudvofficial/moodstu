@@ -17,15 +17,15 @@ interface CategoryFormModalProps {
 }
 
 const CATEGORY_TYPE_OPTIONS = [
-  { value: "Thu", label: "Thu" },
-  { value: "Chi", label: "Chi" },
+  { value: "thu", label: "Thu" },
+  { value: "chi", label: "Chi" },
 ];
 
 export function CategoryFormModal({ isOpen, onClose, onSaved, category }: CategoryFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: category?.name || "",
-    type: category?.type || "Chi",
+    type: category?.type || "chi",
     category_code: category?.category_code || "",
   });
 
@@ -38,7 +38,7 @@ export function CategoryFormModal({ isOpen, onClose, onSaved, category }: Catego
     setSaving(true);
     const payload = {
       name: form.name,
-      type: form.type as "Thu" | "Chi",
+      type: form.type as "thu" | "chi",
       category_code: form.category_code || undefined,
     };
     const result = category

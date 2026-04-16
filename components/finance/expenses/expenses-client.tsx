@@ -1,20 +1,27 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { Plus, WalletCards } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { approveExpense, deleteExpense } from "@/app/actions/expense-actions";
-import { fetchExpenses } from "@/app/actions/finance-operations-queries";
+import { fetchExpenses, fetchExpenseStats } from "@/app/actions/finance-operations-queries";
+import type { ExpenseStats } from "@/app/actions/finance-operations-queries";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { ExpenseDesktopTable } from "@/components/finance/expenses/expense-desktop-table";
+import { ExpenseFilters } from "@/components/finance/expenses/expense-filters";
+import { ExpenseDetailModal } from "@/components/finance/expenses/expense-detail-modal";
 import { ExpenseFormModal } from "@/components/finance/expenses/expense-form-modal";
 import { ExpenseMobileList } from "@/components/finance/expenses/expense-mobile-list";
+import { ExpenseStatsBar } from "@/components/finance/expenses/expense-stats-bar";
 import { Button } from "@/components/ui/button";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { FAB } from "@/components/ui/fab";
 import { Pagination } from "@/components/ui/pagination";
-import { SimpleSelect } from "@/components/ui/simple-select";
+import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
-import type { ActionResult, ApprovalFilter, ExpensePage, FinanceCategory } from "@/types/finance-operations";
+import type { ActionResult, ApprovalFilter, ExpensePage, FinanceCategory, ExpenseListItem } from "@/types/finance-operations";
 
 interface ExpensesClientProps {
   initialMonth: number;
@@ -23,12 +30,6 @@ interface ExpensesClientProps {
   categories: FinanceCategory[];
 }
 
-const APPROVAL_OPTIONS = [
-  { value: "all", label: "Tất cả" },
-  { value: "pending", label: "Chờ duyệt" },
-  { value: "approved", label: "Đã duyệt" },
-];
-
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
   if (!result.success) throw new Error(result.error);
@@ -36,15 +37,22 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 }
 
 export function ExpensesClient({ initialMonth, initialYear, initialData, categories }: ExpensesClientProps) {
+  const router = useRouter();
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
   const [approval, setApproval] = useState<ApprovalFilter>("all");
   const [page, setPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseListItem | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewingExpenseId, setViewingExpenseId] = useState<string | null>(null);
+
   const pageSize = 12;
   const key = cacheKeys.financeExpenses(page, month, year, approval);
+  const statsKey = cacheKeys.financeExpenseStats(month, year);
   const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+
   const handleMonthChange = useCallback((value: string) => {
     setMonth(Number(value));
     setPage(1);
@@ -64,6 +72,11 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
     { fallbackData: initialData },
   );
 
+  const { data: stats } = useSWR<ExpenseStats>(
+    statsKey,
+    () => requireData(fetchExpenseStats(month, year)),
+  );
+
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được phiếu chi.");
   }, [error]);
@@ -71,10 +84,9 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const expenses = data || initialData;
   const totalPages = Math.max(1, Math.ceil(expenses.total / expenses.pageSize));
 
-
-
   const refresh = () => {
     void mutate(key);
+    void mutate(statsKey);
     void mutate(cacheKeys.financeDashboard(month, year));
     void mutate(cacheKeys.financeLedger(1, month, year, "all"));
   };
@@ -104,43 +116,97 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
     refresh();
   };
 
+  const handleEdit = (item: ExpenseListItem) => {
+    setEditingExpense(item);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (id: string) => {
+    setViewingExpenseId(id);
+  };
+
+  const handlePrint = (id: string) => {
+    window.open(`/finance/expenses/${id}/print`, "_blank");
+  };
+
+  const openNewModal = () => {
+    setEditingExpense(null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setEditingExpense(null), 300);
+  };
+
   return (
-    <>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="icon-box bg-error/10">
-            <WalletCards className="w-4 h-4 text-error" />
+    <div className="main-container gap-4!">
+      {/* ── Breadcrumb ── */}
+      <Breadcrumb items={[
+        { label: "Tài chính", href: "/finance" },
+        { label: "Phiếu chi" },
+      ]} />
+
+      {/* ── Stats + Action (unified container) ── */}
+      <section className="entrance entrance-0">
+        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+          <div className="flex-1 min-w-0">
+            <ExpenseStatsBar stats={stats || null} />
           </div>
-          <div>
-            <h1 className="text-h1">Phiếu chi</h1>
-            <p className="text-body-sm text-text-secondary">Quản lý khoản chi theo trạng thái duyệt và kỳ sổ.</p>
+          <div className="hidden lg:flex shrink-0">
+            <Button type="button" onClick={openNewModal} variant="primary" className="gap-2 shadow-sm">
+              <Plus className="w-4 h-4" />
+              Thêm phiếu chi
+            </Button>
           </div>
         </div>
+      </section>
 
-        <div className="flex flex-col gap-2 lg:flex-row">
-          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
-          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
-          <SimpleSelect
-            value={approval}
-            onChange={handleApprovalChange}
-            options={APPROVAL_OPTIONS}
+      {/* ── Filters row ── */}
+      <section className="entrance entrance-1 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <ExpenseFilters activeApproval={approval} onApprovalChange={handleApprovalChange} stats={stats || null} />
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible">
+          <SelectPill
+            value={String(month)}
+            onChange={handleMonthChange}
+            placeholder="Tháng"
+            options={monthOptions}
           />
-          <Button type="button" onClick={() => setIsModalOpen(true)} className="btn-cta gap-2">
-            <Plus className="w-4 h-4" />
-            Thêm phiếu chi
-          </Button>
+          <SelectPill
+            value={String(year)}
+            onChange={handleYearChange}
+            placeholder="Năm"
+            options={yearOptions}
+          />
         </div>
-      </div>
+      </section>
 
-      <section className="entrance entrance-1">
+      {/* ── Data table ── */}
+      <section className="entrance entrance-2">
         {isLoading && !data ? (
           <div className="card-base p-5">
             <SkeletonTable rows={6} />
           </div>
         ) : (
           <>
-            <ExpenseDesktopTable items={expenses.items} busyId={busyId} onApprove={handleApprove} onDelete={handleDelete} />
-            <ExpenseMobileList items={expenses.items} busyId={busyId} onApprove={handleApprove} onDelete={handleDelete} />
+            <ExpenseDesktopTable
+              items={expenses.items}
+              busyId={busyId}
+              onApprove={handleApprove}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onView={handleView}
+              onPrint={handlePrint}
+            />
+            <ExpenseMobileList
+              items={expenses.items}
+              busyId={busyId}
+              onApprove={handleApprove}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onView={handleView}
+              onPrint={handlePrint}
+            />
           </>
         )}
       </section>
@@ -150,7 +216,22 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
         Hiển thị {expenses.items.length} / {expenses.total} phiếu chi
       </p>
 
-      <ExpenseFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaved={refresh} categories={categories} />
-    </>
+      <ExpenseFormModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSaved={refresh}
+        categories={categories}
+        initialData={editingExpense}
+      />
+
+      <ExpenseDetailModal
+        isOpen={viewingExpenseId !== null}
+        onClose={() => setViewingExpenseId(null)}
+        expenseId={viewingExpenseId}
+      />
+
+      {/* FAB Mobile - Shared Component */}
+      <FAB onClick={openNewModal} label="Thêm phiếu chi" />
+    </div>
   );
 }

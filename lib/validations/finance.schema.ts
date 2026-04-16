@@ -39,7 +39,11 @@ export const createDebtSchema = z.object({
   due_date: z.string().date().optional().nullable(),
   notes: z.string().optional().nullable(),
   entity_id: z.string().uuid().optional().nullable(),
-  status: z.enum(["dang_no", "da_thanh_toan"]).default("dang_no"),
+  status: z.enum(["dang_no", "da_thanh_toan", "open", "closed", "partial"]).default("open"),
+  installment_total: z.number().min(0).optional().nullable(),
+  installment_amount: z.number().min(0).optional().nullable(),
+  platform: z.string().optional().nullable(),
+  card_id: z.string().uuid().optional().nullable(),
 });
 
 export const updateDebtSchema = createDebtSchema.partial();
@@ -122,4 +126,13 @@ export const createCategorySchema = z.object({
 
 export const updateCategorySchema = createCategorySchema.partial();
 
+// ─── W7: Credit Card Schema ────────────────────────
+export const createCreditCardSchema = z.object({
+  bank_name: z.string().min(1, "Tên ngân hàng không được để trống").trim(),
+  last_4: z.string().length(4, "Phải nhập đúng 4 số cuối").regex(/^\d+$/, "Chỉ chứa chữ số"),
+  statement_day: z.number().int().min(1).max(31, "Ngày sao kê phải từ 1-31"),
+  due_day: z.number().int().min(1).max(31, "Ngày thanh toán phải từ 1-31"),
+  credit_limit: z.number().min(0, "Hạn mức phải >= 0").optional().nullable(),
+});
 
+export const updateCreditCardSchema = createCreditCardSchema.partial();

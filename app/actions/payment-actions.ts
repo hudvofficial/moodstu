@@ -145,7 +145,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
       recordId: result.payment_id,
       newData: input as unknown as Record<string, unknown>,
       source: "server_action",
-      description: `Thu tiền hợp đồng #${input.contractId.substring(0,8)}: ${input.amount.toLocaleString("vi-VN")}₫`,
+      description: `Thu tiền hợp đồng #${input.contractId.substring(0, 8)}: ${input.amount.toLocaleString("vi-VN")}₫`,
     });
 
     revalidatePath("/contracts");
@@ -157,7 +157,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
 }
 
 /** Get transaction categories for receipt form */
-export async function getTransactionCategories(type: "Thu" | "Chi" = "Thu") {
+export async function getTransactionCategories(type: "thu" | "chi" = "thu") {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("transaction_categories")

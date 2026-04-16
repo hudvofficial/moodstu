@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
 
   const [expenses, categories] = await Promise.all([
     fetchExpenses({ page: 1, pageSize: 12, month, year, approval: "all" }),
-    fetchFinanceCategories("Chi"),
+    fetchFinanceCategories("chi"),
   ]);
 
   return (

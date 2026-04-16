@@ -37,8 +37,8 @@ export function CategoriesClient({ initialData }: CategoriesClientProps) {
 
   const refresh = () => {
     void mutate(key);
-    void mutate(cacheKeys.financeCategories("Thu"));
-    void mutate(cacheKeys.financeCategories("Chi"));
+    void mutate(cacheKeys.financeCategories("thu"));
+    void mutate(cacheKeys.financeCategories("chi"));
   };
 
   const openCreate = useCallback(() => {
@@ -107,7 +107,7 @@ export function CategoriesClient({ initialData }: CategoriesClientProps) {
                 <TR key={item.id}>
                   <TD className="font-semibold text-text-primary">{item.name}</TD>
                   <TD>
-                    <span className={item.type === "Thu" ? "badge badge-success" : "badge badge-error"}>{item.type}</span>
+                    <span className={item.type === "thu" ? "badge badge-success" : "badge badge-error"}>{item.type === "thu" ? "Thu" : "Chi"}</span>
                   </TD>
                   <TD>
                     <span className="tag-badge">{item.category_code}</span>

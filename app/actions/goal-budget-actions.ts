@@ -28,7 +28,7 @@ export async function createGoal(input: { name: string; target_amount: number; d
       color: input.color || "emerald",
       notes: input.notes || null,
     }).select("id").single();
-    
+
     if (error) throw new Error(`Lỗi tạo mục tiêu: ${error.message}`);
 
     await writeAuditLog({ action: "CREATE", tableName: "financial_goals", recordId: data.id, description: `Tạo mục tiêu: ${parsed.data.name}` });
@@ -38,7 +38,7 @@ export async function createGoal(input: { name: string; target_amount: number; d
 }
 
 export async function updateGoal(
-  id: string, 
+  id: string,
   input: { name?: string; target_amount?: number; deadline?: string; icon?: string; color?: string; notes?: string; status?: string },
   expectedUpdatedAt?: string
 ) {
@@ -47,10 +47,10 @@ export async function updateGoal(
     if (!parsed.success) {
       throw new Error(`Dữ liệu không hợp lệ: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
     }
-    
+
     const { data: oldData } = await supabase.from("financial_goals").select("updated_at, name, target_amount").eq("id", id).single();
     if (!oldData) throw new Error("Không tìm thấy mục tiêu");
-    
+
     if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
     }
@@ -123,8 +123,8 @@ export async function addContribution(goalId: string, amount: number, notes?: st
       return null;
     }
     if (error) throw new Error(`Lỗi góp vốn: ${error.message}`);
-    
-    await writeAuditLog({ action: "CREATE", tableName: "goal_contributions", description: `Góp vốn ${amount.toLocaleString("vi-VN")}₫ vào mục tiêu #${goalId.substring(0,8)}` });
+
+    await writeAuditLog({ action: "CREATE", tableName: "goal_contributions", description: `Góp vốn ${amount.toLocaleString("vi-VN")}₫ vào mục tiêu #${goalId.substring(0, 8)}` });
 
     revalidatePath("/finance");
     return null;
@@ -186,12 +186,12 @@ export async function undoContribution(contributionId: string) {
     if (error) throw new Error(`Lỗi hoàn tác: ${error.message}`);
 
     const result = data as { goal_id: string; removed_amount: number; new_current_amount: number; status_reverted: boolean };
-    
-    await writeAuditLog({ 
-      action: "DELETE", 
-      tableName: "goal_contributions", 
-      recordId: contributionId, 
-      description: `Hoàn tác góp vốn ${result.removed_amount.toLocaleString("vi-VN")}₫` 
+
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "goal_contributions",
+      recordId: contributionId,
+      description: `Hoàn tác góp vốn ${result.removed_amount.toLocaleString("vi-VN")}₫`
     });
 
     revalidatePath("/finance");
@@ -211,19 +211,19 @@ export async function upsertBudget(input: { category_name: string; budget_amount
     await checkPeriodLock(supabase, firstDayOfMonth(parsed.data.period_month, parsed.data.period_year));
 
     const { error } = await supabase.from("budgets").upsert(
-      { 
-        category_name: parsed.data.category_name, 
-        budget_amount: parsed.data.budget_amount, 
-        period_month: parsed.data.period_month, 
-        period_year: parsed.data.period_year, 
-        notes: input.notes || null 
+      {
+        category_name: parsed.data.category_name,
+        budget_amount: parsed.data.budget_amount,
+        period_month: parsed.data.period_month,
+        period_year: parsed.data.period_year,
+        notes: input.notes || null
       },
       { onConflict: "category_name,period_month,period_year" },
     );
     if (error) throw new Error(`Lỗi lưu ngân sách: ${error.message}`);
-    
+
     await writeAuditLog({ action: "CREATE", tableName: "budgets", description: `Lưu ngân sách ${parsed.data.category_name} tháng ${parsed.data.period_month}/${parsed.data.period_year}` });
-    
+
     revalidatePath("/finance");
     return null;
   });
@@ -240,7 +240,7 @@ export async function deleteBudget(id: string) {
 
     const { error } = await supabase.from("budgets").delete().eq("id", id);
     if (error) throw new Error(`Lỗi xóa ngân sách: ${error.message}`);
-    
+
     await writeAuditLog({ action: "DELETE", tableName: "budgets", recordId: id, description: `Xóa ngân sách ${oldData?.category_name} tháng ${oldData?.period_month}/${oldData?.period_year}` });
     revalidatePath("/finance");
     return null;
@@ -269,7 +269,7 @@ export async function getBudgetsWithActuals(month: number, year: number) {
       supabase
         .from("transaction_categories")
         .select("id, name")
-        .eq("type", "Chi"),
+        .eq("type", "chi"),
     ]);
 
     if (budgetsResult.error) throw new Error(`Lỗi tải ngân sách: ${budgetsResult.error.message}`);
@@ -285,15 +285,15 @@ export async function getBudgetsWithActuals(month: number, year: number) {
 
     return (budgetsResult.data || []).map((b) => {
       const actual = actualByCategory[b.category_name] || 0;
-      return { 
+      return {
         id: b.id,
         category_name: b.category_name,
         budget_amount: b.budget_amount,
         period_month: b.period_month,
         period_year: b.period_year,
         notes: b.notes,
-        actual_spent: actual, 
-        usage_percent: b.budget_amount > 0 ? Math.round((actual / b.budget_amount) * 100) : 0 
+        actual_spent: actual,
+        usage_percent: b.budget_amount > 0 ? Math.round((actual / b.budget_amount) * 100) : 0
       };
     });
   });

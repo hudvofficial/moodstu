@@ -36,7 +36,7 @@ const RECEIPT_TYPE_OPTIONS = [
 ];
 
 const PAYMENT_TYPE_OPTIONS = [
-  { value: "tien_mat", label: "Tiền mặt" }, 
+  { value: "tien_mat", label: "Tiền mặt" },
   { value: "chuyen_khoan", label: "Chuyển khoản" },
 ];
 
@@ -75,7 +75,7 @@ export function ReceiptFormModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    
+
     // Normalize legacy system values that might be in DB
     let rt = initialData?.receipt_type || "other_income";
     if (rt === "Thanh toán hợp đồng" || rt === "Hợp đồng") rt = "contract_payment";
@@ -101,7 +101,7 @@ export function ReceiptFormModal({
   }, [isOpen, initialData]);
 
   const categoryOptions = useMemo(
-    () => categories.filter((item) => item.type === "Thu").map((item) => ({ value: item.id, label: item.name })),
+    () => categories.filter((item) => item.type === "thu").map((item) => ({ value: item.id, label: item.name })),
     [categories],
   );
   const contractOptions = useMemo(

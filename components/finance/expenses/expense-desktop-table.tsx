@@ -1,8 +1,7 @@
 "use client";
 
-import { Check, Trash2 } from "lucide-react";
 import { formatFinanceDate, formatVnd, financeMethodLabel } from "@/components/finance/finance-format";
-import { Button } from "@/components/ui/button";
+import { ExpenseRowActions } from "./expense-row-actions";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { ExpenseListItem } from "@/types/finance-operations";
 
@@ -11,9 +10,12 @@ interface ExpenseDesktopTableProps {
   busyId: string | null;
   onApprove: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (item: ExpenseListItem) => void;
+  onView: (id: string) => void;
+  onPrint: (id: string) => void;
 }
 
-export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete }: ExpenseDesktopTableProps) {
+export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete, onEdit, onView, onPrint }: ExpenseDesktopTableProps) {
   return (
     <div className="hidden lg:block">
       <TableWrapper>
@@ -25,7 +27,7 @@ export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete }: Expe
             <TH>Phương thức</TH>
             <TH className="text-right">Số tiền</TH>
             <TH>Duyệt</TH>
-            <TH className="text-right">Thao tác</TH>
+            <TH className="text-right w-56">Thao tác</TH>
           </TR>
         </THead>
         <TBody>
@@ -51,30 +53,16 @@ export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete }: Expe
                     {item.approved_by ? "Đã duyệt" : "Chờ duyệt"}
                   </span>
                 </TD>
-                <TD className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {!item.approved_by && (
-                      <Button
-                        type="button"
-                        variant="interactive"
-                        size="sm"
-                        onClick={() => onApprove(item.id)}
-                        disabled={busyId === item.id}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(item.id)}
-                      disabled={busyId === item.id}
-                      className="text-error"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                <TD className="text-right w-56">
+                  <ExpenseRowActions
+                    item={item}
+                    busyId={busyId}
+                    onApprove={onApprove}
+                    onDelete={onDelete}
+                    onEdit={onEdit}
+                    onView={onView}
+                    onPrint={onPrint}
+                  />
                 </TD>
               </TR>
             ))

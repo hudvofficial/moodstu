@@ -29,7 +29,7 @@ function pageWindow(page = 1, pageSize = 12) {
 }
 
 function daysOverdue(dueDate: string | null, status: string | null) {
-  if (!dueDate || status === "da_thanh_toan") return 0;
+  if (!dueDate || status === "da_thanh_toan" || status === "closed") return 0;
   const today = new Date();
   const due = new Date(dueDate);
   if (Number.isNaN(due.getTime()) || due >= today) return 0;
@@ -77,7 +77,7 @@ export async function checkFinancePeriodLocked(date: string) {
   });
 }
 
-export async function fetchFinanceCategories(type: "Thu" | "Chi" | "all" = "all") {
+export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all") {
   return withAuth(async (supabase) => {
     let query = supabase
       .from("transaction_categories")
@@ -133,7 +133,7 @@ export async function fetchReceipts(params: MonthYearPageParams & { search?: str
     if (params.receiptType && params.receiptType !== "all") {
       query = query.eq("receipt_type", params.receiptType);
     }
-    
+
     if (params.search) {
       const sanitized = sanitizePostgrestSearch(params.search);
       if (sanitized) {
@@ -177,7 +177,7 @@ export async function fetchReceiptStats(month?: number, year?: number) {
     const totalAmount = rows.reduce((sum, r) => sum + (r.receipt_amount || 0), 0);
     const doneStatuses = new Set(["completed", "confirmed", "approved", "hoan_thanh"]);
     const cancelledStatuses = new Set(["cancelled", "da_huy"]);
-    
+
     const completedCount = rows.filter((r) => doneStatuses.has((r.status || "").toLowerCase())).length;
     const pendingCount = rows.filter((r) => {
       const s = (r.status || "").toLowerCase();
@@ -200,7 +200,7 @@ export async function fetchExpenses(params: MonthYearPageParams & { approval?: A
     let query = supabase
       .from("expenses")
       .select(
-        "id, expense_date, payment_method, category_id, amount, description, recipient, approved_by, updated_at, category:category_id(name)",
+        "id, expense_date, payment_method, category_id, amount, description, recipient, approved_by, created_by, created_at, updated_at, contract_id, image_url, category:category_id(name)",
         { count: "exact" },
       )
       .is("deleted_at", null)
@@ -224,10 +224,49 @@ export async function fetchExpenses(params: MonthYearPageParams & { approval?: A
       description: row.description,
       recipient: row.recipient,
       approved_by: row.approved_by,
+      created_by: row.created_by,
+      created_at: row.created_at,
       updated_at: row.updated_at,
+      contract_id: row.contract_id,
+      image_url: row.image_url,
     })) satisfies ExpenseListItem[];
 
     return { items, total: count || 0, page: current, pageSize: size } satisfies PaginatedResult<ExpenseListItem>;
+  });
+}
+
+export interface ExpenseStats {
+  totalExpenses: number;
+  totalAmount: number;
+  approvedCount: number;
+  pendingCount: number;
+}
+
+export async function fetchExpenseStats(month?: number, year?: number) {
+  return withAuth(async (supabase) => {
+    const window = monthWindowOptional(month, year);
+    let query = supabase
+      .from("expenses")
+      .select("amount, approved_by", { count: "exact" })
+      .is("deleted_at", null);
+
+    if (window) query = query.gte("expense_date", window.start).lt("expense_date", window.end);
+
+    const { data, error, count } = await query;
+    if (error) throw new Error(`Loi tai expense stats: ${error.message}`);
+
+    const rows = data || [];
+    const totalAmount = rows.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+    const approvedCount = rows.filter((r) => r.approved_by !== null).length;
+    const pendingCount = rows.filter((r) => r.approved_by === null).length;
+
+    return {
+      totalExpenses: count || rows.length,
+      totalAmount,
+      approvedCount,
+      pendingCount,
+    } satisfies ExpenseStats;
   });
 }
 
@@ -236,7 +275,7 @@ export async function fetchDebts(params: { page?: number; pageSize?: number } = 
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
     const { data, error, count } = await supabase
       .from("debts")
-      .select("id, entity_name, entity_type, type, amount, paid_amount, remaining, due_date, status, notes, updated_at", { count: "exact" })
+      .select("id, entity_name, entity_type, type, amount, paid_amount, remaining, due_date, status, notes, updated_at, installment_total, installment_paid, installment_amount, platform, card_id", { count: "exact" })
       .is("deleted_at", null)
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -250,7 +289,7 @@ export async function fetchDebts(params: { page?: number; pageSize?: number } = 
         id: row.id,
         entity_name: row.entity_name,
         entity_type: row.entity_type,
-        type: row.type,
+        type: row.type === 'receivable' ? 'Phải thu' : 'Phải trả',
         amount: row.amount,
         paid_amount: paid,
         remaining,
@@ -259,9 +298,100 @@ export async function fetchDebts(params: { page?: number; pageSize?: number } = 
         notes: row.notes,
         updated_at: row.updated_at,
         days_overdue: daysOverdue(row.due_date, row.status),
+        installment_total: row.installment_total,
+        installment_paid: row.installment_paid,
+        installment_amount: row.installment_amount,
+        platform: row.platform,
+        card_id: row.card_id,
       };
     }) satisfies DebtListItem[];
     return { items, total: count || 0, page: current, pageSize: size } satisfies PaginatedResult<DebtListItem>;
+  });
+}
+
+export interface DebtStats {
+  receivable: number;
+  payable: number;
+  overdue: number;
+  net_debt: number;
+  aging: {
+    not_due: number;
+    days_1_30: number;
+    days_31_60: number;
+    days_61_90: number;
+    over_90: number;
+  };
+}
+
+export async function fetchDebtStats() {
+  return withAuth(async (supabase) => {
+    const { data, error } = await supabase
+      .from("debts")
+      .select("type, remaining, amount, paid_amount, due_date, status")
+      .is("deleted_at", null);
+
+    if (error) throw new Error(`Lỗi tải dữ liệu thống kê công nợ: ${error.message}`);
+
+    const rows = data || [];
+    const stats = rows.reduce(
+      (acc, item) => {
+        const paid = (item.paid_amount as number) || 0;
+        const remaining = item.remaining ?? Math.max(0, (item.amount as number) - paid);
+        if (typeof item.type === "string" && (item.type === "receivable" || item.type.toLowerCase().includes("thu"))) {
+          acc.receivable += remaining;
+        } else {
+          acc.payable += remaining;
+        }
+
+        acc.net_debt = acc.receivable - acc.payable;
+
+        const overdueDays = daysOverdue(item.due_date as string | null, (item.status as string) || null);
+        if (overdueDays > 0) {
+          acc.overdue += remaining;
+          if (overdueDays <= 30) {
+            acc.aging.days_1_30 += remaining;
+          } else if (overdueDays <= 60) {
+            acc.aging.days_31_60 += remaining;
+          } else if (overdueDays <= 90) {
+            acc.aging.days_61_90 += remaining;
+          } else {
+            acc.aging.over_90 += remaining;
+          }
+        } else {
+          acc.aging.not_due += remaining;
+        }
+
+        return acc;
+      },
+      {
+        receivable: 0, payable: 0, overdue: 0, net_debt: 0,
+        aging: { not_due: 0, days_1_30: 0, days_31_60: 0, days_61_90: 0, over_90: 0 }
+      } as DebtStats
+    );
+
+    return stats;
+  });
+}
+// ─── CREDIT CARDS ───────────────────────────
+
+export interface CreditCardOption {
+  id: string;
+  bank_name: string;
+  last_4: string | null;
+  statement_day: number | null;
+  due_day: number | null;
+  credit_limit: number | null;
+}
+
+export async function fetchCreditCards() {
+  return withAuth(async (supabase) => {
+    const { data, error } = await supabase
+      .from("credit_cards")
+      .select("id, bank_name, last_4, statement_day, due_day, credit_limit")
+      .order("bank_name", { ascending: true });
+
+    if (error) throw new Error(`Lỗi tải danh sách thẻ tín dụng: ${error.message}`);
+    return (data || []) as CreditCardOption[];
   });
 }
 
@@ -472,5 +602,54 @@ export async function getReceiptDetail(id: string) {
     }
 
     return receipt;
+  });
+}
+
+// ─── EXPENSE DETAIL ─────────────────────────
+
+export async function getExpenseDetail(id: string) {
+  return withAuth(async (supabase) => {
+    const { data: expense, error } = await supabase
+      .from("expenses")
+      .select(`
+        id,
+        expense_date,
+        payment_method,
+        category_id,
+        amount,
+        description,
+        recipient,
+        approved_by,
+        created_at,
+        updated_at,
+        contract_id,
+        image_url,
+        category:category_id(name),
+        contract:contract_id(contract_code)
+      `)
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (error || !expense) {
+      throw new Error("Không tìm thấy phiếu chi hoặc phiếu chi đã bị xóa.");
+    }
+
+    return {
+      id: expense.id,
+      expense_date: expense.expense_date,
+      payment_method: expense.payment_method,
+      category_id: expense.category_id,
+      amount: expense.amount,
+      description: expense.description,
+      recipient: expense.recipient,
+      approved_by: expense.approved_by,
+      created_at: expense.created_at,
+      updated_at: expense.updated_at,
+      contract_id: expense.contract_id,
+      image_url: expense.image_url,
+      category_name: Array.isArray(expense.category) ? expense.category[0]?.name : ((expense.category as Record<string, unknown>)?.name as string) || null,
+      contract_code: Array.isArray(expense.contract) ? expense.contract[0]?.contract_code : ((expense.contract as Record<string, unknown>)?.contract_code as string) || null,
+    };
   });
 }

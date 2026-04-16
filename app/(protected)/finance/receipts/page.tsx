@@ -18,7 +18,7 @@ export default async function ReceiptsPage() {
 
   const [receipts, categories, contracts, studioInfo] = await Promise.all([
     fetchReceipts({ page: 1, pageSize: 12, month, year }),
-    fetchFinanceCategories("Thu"),
+    fetchFinanceCategories("thu"),
     fetchContractOptions(),
     getStudioInfo(),
   ]);

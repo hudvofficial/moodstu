@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Eye, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { deleteSalaryAdjustment } from "@/app/actions/salary-actions";
+import { Search, Loader2, PlayCircle, RefreshCw } from "lucide-react";
+import { deleteSalaryAdjustment, generateMonthlySalaryAction, validatePayrollWarningsAction, deleteEmployeeMonthlySalaryAction, payEmployeeSalaryAction } from "@/app/actions/salary-actions";
 import { fetchSalaries } from "@/app/actions/finance-operations-queries";
-import { formatVnd } from "@/components/finance/finance-format";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { SalaryAdjustmentModal } from "@/components/finance/salaries/salary-adjustment-modal";
+import { PayslipModal } from "@/components/finance/salaries/payslip-modal";
+import { PaymentConfirmModal } from "@/components/finance/salaries/payment-confirm-modal";
 import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
+import { SelectPill } from "@/components/ui/select/SelectPill";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { SimpleSelect } from "@/components/ui/simple-select";
-import { SkeletonTable } from "@/components/ui/skeleton";
-import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { FAB } from "@/components/ui/fab";
+import { SalaryDesktopTable } from "@/components/finance/salaries/salary-desktop-table";
+import { SalaryMobileList } from "@/components/finance/salaries/salary-mobile-list";
+import { SalaryStatsBar } from "@/components/finance/salaries/salary-stats-bar";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
 
@@ -21,8 +26,6 @@ interface SalariesClientProps {
   initialYear: number;
   initialData: SalaryPageData;
 }
-
-
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -33,13 +36,52 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 export function SalariesClient({ initialMonth, initialYear, initialData }: SalariesClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [viewing, setViewing] = useState<SalaryItem | null>(null);
   const [adjusting, setAdjusting] = useState<SalaryItem | null>(null);
+  const [paying, setPaying] = useState<SalaryItem | null>(null);
+  const [printing, setPrinting] = useState<SalaryItem | null>(null);
+  const [deletingSalary, setDeletingSalary] = useState<SalaryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const key = cacheKeys.financeSalaries(month, year);
   const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
+
   const handleMonthChange = useCallback((value: string) => setMonth(Number(value)), []);
   const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
+
+  const handlePay = useCallback((item: SalaryItem) => setPaying(item), []);
+  const handlePrint = useCallback((item: SalaryItem) => setPrinting(item), []);
+
+  const refresh = () => void mutate(key);
+
+  const handleDelete = useCallback(async (item: SalaryItem) => {
+    if (!window.confirm(`Xác nhận XÓA TẬN GỐC bản ghi lương của nhân sự: ${item.employee_name} ?\nHành động này không thể hoàn tác.`)) return;
+
+    setDeletingId(item.id);
+    const tId = toast.loading(`Đang xóa lương ${item.employee_name}...`);
+    const result = await deleteEmployeeMonthlySalaryAction(item.id);
+    setDeletingId(null);
+    if (!result.success) {
+      toast.error(result.error, { id: tId });
+      return;
+    }
+    toast.success("Xóa bản ghi lương thành công.", { id: tId });
+    refresh();
+  }, [refresh]);
+
+  const onConfirmPayment = async (amount: number) => {
+    if (!paying) return;
+    const tId = toast.loading("Đang ghi nhận thanh toán...");
+    const result = await payEmployeeSalaryAction(paying.id, amount);
+    if (!result.success) {
+      toast.error(result.error, { id: tId });
+      return;
+    }
+    toast.success("Thanh toán lương thành công.", { id: tId });
+    setPaying(null);
+    refresh();
+  };
+
   const { data, error, isLoading } = useSWR(key, () => requireData(fetchSalaries(month, year)), { fallbackData: initialData });
 
   useEffect(() => {
@@ -47,8 +89,6 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
   }, [error]);
 
   const salaryData = data || initialData;
-
-  const refresh = () => void mutate(key);
 
   const deleteAdjustment = async (adjustmentId: string, salaryId: string) => {
     if (!window.confirm("Xóa điều chỉnh này?")) return;
@@ -63,90 +103,147 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
     refresh();
   };
 
-  return (
-    <>
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="icon-box bg-success/10">
-            <Wallet className="w-4 h-4 text-success" />
-          </div>
-          <div>
-            <h1 className="text-h1">Bảng lương</h1>
-            <p className="text-body-sm text-text-secondary">Theo dõi lương theo tháng và điều chỉnh thưởng phạt.</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <SimpleSelect value={String(month)} onChange={handleMonthChange} options={monthOptions} />
-          <SimpleSelect value={String(year)} onChange={handleYearChange} options={yearOptions} />
-        </div>
-      </div>
+  const handleGenerateSalary = async () => {
+    if (!window.confirm(`Khởi tạo bảng lương tháng ${month}/${year} cho toàn bộ nhân sự Đang làm?\n\nChú ý: Lương sẽ được tổng hợp dựa theo KPI (Work Progress) của tháng.`)) return;
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 entrance entrance-1">
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Nhân sự</div>
-          <div className="text-h2 tabular-nums">{salaryData.summary.total_employees}</div>
-        </div>
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Tổng lương</div>
-          <div className="text-h2 tabular-nums">{formatVnd(salaryData.summary.total_salary)}</div>
-        </div>
-        <div className="stats-card">
-          <div className="text-caption text-text-muted">Thưởng - phạt</div>
-          <div className="text-h2 tabular-nums text-success">{formatVnd(salaryData.summary.bonus_total - salaryData.summary.penalty_total)}</div>
+    setIsGenerating(true);
+    const tId = toast.loading("Đang kiểm tra dữ liệu...");
+
+    // 1. Chạy Validate pre-flight để lấy cảnh báo
+    const validateRes = await validatePayrollWarningsAction(month, year);
+    if (!validateRes.success) {
+      toast.error(validateRes.error || "Lỗi kiểm tra dữ liệu kế toán", { id: tId });
+      setIsGenerating(false);
+      return;
+    }
+    const payload = (validateRes as any).data || validateRes;
+    const { unassignedTasks, zeroCostTasks } = payload?.warnings || { unassignedTasks: [], zeroCostTasks: [] };
+    if (unassignedTasks.length > 0 || zeroCostTasks.length > 0) {
+      let warningMsg = `⚠️ CẢNH BÁO DỮ LIỆU CẦN KIỂM TRA:\n\n`;
+      if (unassignedTasks.length > 0) {
+        warningMsg += `1️⃣ Có ${unassignedTasks.length} Hợp đồng hoàn thành nhưng CHƯA GÁN nhân viên:\n   - ${unassignedTasks.slice(0, 5).join("\n   - ")}${unassignedTasks.length > 5 ? "\n   ..." : ""}\n\n`;
+      }
+      if (zeroCostTasks.length > 0) {
+        warningMsg += `2️⃣ Có ${zeroCostTasks.length} Hợp đồng có công việc lương 0đ:\n   - ${zeroCostTasks.slice(0, 5).join("\n   - ")}${zeroCostTasks.length > 5 ? "\n   ..." : ""}\n\n`;
+      }
+      warningMsg += `👉 Những công việc này sẽ KHÔNG được tính vào bảng lương lần này.\nBạn có muốn tiếp tục khởi tạo không?`;
+
+      if (!window.confirm(warningMsg)) {
+        toast.dismiss(tId);
+        setIsGenerating(false);
+        return;
+      }
+    }
+
+    toast.loading("Hệ thống đang tổng hợp dữ liệu lương...", { id: tId });
+    const result = await generateMonthlySalaryAction(month, year);
+    setIsGenerating(false);
+    if (!result.success) {
+      toast.error(result.error, { id: tId });
+    } else if (result.data && typeof result.data === 'object' && 'success' in result.data && result.data.success === false) {
+      toast.error(result.data.error || "Có lỗi bất ngờ xảy ra", { id: tId });
+    } else {
+      const msg = result.data && typeof result.data === 'object' && 'message' in result.data
+        ? result.data.message
+        : "Khởi tạo bảng lương thành công";
+      toast.success(msg as string, { id: tId });
+      refresh();
+    }
+  };
+
+  const filteredItems = salaryData.items || [];
+
+  return (
+    <div className="main-container gap-4!">
+      <Breadcrumb
+        items={[
+          { label: "Tài chính", href: "/finance" },
+          { label: "Bảng lương", href: "/finance/salaries" },
+        ]}
+      />
+
+      {/* ── Stats + Action ── */}
+      <section className="entrance entrance-0">
+        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+          <SalaryStatsBar summary={salaryData.summary} />
+          <div className="hidden lg:flex shrink-0">
+            {!isLoading && (
+              <Button
+                type="button"
+                onClick={handleGenerateSalary}
+                disabled={isGenerating}
+                variant={filteredItems.length === 0 ? "primary" : "secondary"}
+                className={`gap-2 whitespace-nowrap ${filteredItems.length === 0 ? "shadow-sm" : ""}`}
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : filteredItems.length === 0 ? (
+                  <PlayCircle className="w-4 h-4" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                {filteredItems.length === 0 ? `Tạo bảng lương T${month}` : `Cập nhật lương T${month}`}
+              </Button>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="entrance entrance-2">
+      {/* ── Mobile FAB ── */}
+      {!isLoading && (
+        <FAB
+          onClick={handleGenerateSalary}
+          label={filteredItems.length === 0 ? `Tạo lương T${month}` : `Cập nhật T${month}`}
+        />
+      )}
+
+      {/* ── Filters ── */}
+      <section className="entrance entrance-1 mt-4">
+        <div className="flex items-center justify-end gap-2">
+          <SelectPill
+            value={String(month)}
+            onChange={(v) => handleMonthChange(v)}
+            options={monthOptions}
+            placeholder="Tháng"
+          />
+          <SelectPill
+            value={String(year)}
+            onChange={(v) => handleYearChange(v)}
+            options={yearOptions}
+            placeholder="Năm"
+          />
+        </div>
+      </section>
+
+      {/* ── Table/List ── */}
+      <section className="entrance entrance-2 mt-4">
         {isLoading && !data ? (
-          <div className="card-base p-5">
-            <SkeletonTable rows={6} />
+          <div className="space-y-4 pt-4">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
           </div>
         ) : (
-          <TableWrapper>
-            <THead>
-              <TR>
-                <TH>Nhân viên</TH>
-                <TH className="text-right">Cơ bản</TH>
-                <TH className="text-right">Sản phẩm</TH>
-                <TH className="text-right">Thưởng</TH>
-                <TH className="text-right">Phạt</TH>
-                <TH className="text-right">Thực nhận</TH>
-                <TH className="text-right">Thao tác</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {salaryData.items.map((item) => (
-                <TR key={item.id}>
-                  <TD>
-                    <div className="font-semibold text-text-primary">{item.employee_name}</div>
-                    <div className="text-caption text-text-muted">{item.employee_code || "-"} · {item.position || "Chưa có vị trí"}</div>
-                  </TD>
-                  <TD className="text-right tabular-nums">{formatVnd(item.base_salary)}</TD>
-                  <TD className="text-right tabular-nums">{formatVnd(item.product_salary)}</TD>
-                  <TD className="text-right tabular-nums text-success">{formatVnd(item.bonus)}</TD>
-                  <TD className="text-right tabular-nums text-error">{formatVnd(item.penalty)}</TD>
-                  <TD className="text-right tabular-nums font-bold">{formatVnd(item.net_salary)}</TD>
-                  <TD className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setViewing(item)}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button type="button" variant="interactive" size="sm" onClick={() => setAdjusting(item)}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TD>
-                </TR>
-              ))}
-              {salaryData.items.length === 0 && (
-                <TR>
-                  <TD colSpan={7} className="py-7 text-center text-text-muted">
-                    Chưa có dữ liệu lương tháng này.
-                  </TD>
-                </TR>
-              )}
-            </TBody>
-          </TableWrapper>
+          <>
+            <div className="card-base hidden lg:block border-0 shadow-none bg-transparent">
+              <SalaryDesktopTable
+                items={filteredItems}
+                onView={setViewing}
+                onAdjust={setAdjusting}
+                onPay={handlePay}
+                onPrint={handlePrint}
+                onDelete={handleDelete}
+              />
+            </div>
+            <SalaryMobileList
+              items={filteredItems}
+              onView={setViewing}
+              onAdjust={setAdjusting}
+              onPay={handlePay}
+              onDelete={handleDelete}
+              busyId={null}
+            />
+          </>
         )}
       </section>
 
@@ -154,6 +251,12 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
       {adjusting && (
         <SalaryAdjustmentModal salary={adjusting} onClose={() => setAdjusting(null)} onSaved={refresh} />
       )}
-    </>
+      {printing && (
+        <PayslipModal salary={printing} onClose={() => setPrinting(null)} />
+      )}
+      {paying && (
+        <PaymentConfirmModal salary={paying} onConfirm={onConfirmPayment} onClose={() => setPaying(null)} />
+      )}
+    </div>
   );
 }

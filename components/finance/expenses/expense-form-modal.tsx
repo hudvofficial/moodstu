@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState, useCallback, type FormEvent } from "react";
+import { useMemo, useState, useCallback, useEffect, type FormEvent } from "react";
 import { toast } from "sonner";
-import { createExpense } from "@/app/actions/expense-actions";
+import { createExpense, updateExpense } from "@/app/actions/expense-actions";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import DatePicker from "@/components/ui/date-picker";
@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import type { FinanceCategory } from "@/types/finance-operations";
+import type { FinanceCategory, ExpenseListItem } from "@/types/finance-operations";
 
 interface ExpenseFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
   categories: FinanceCategory[];
+  initialData?: ExpenseListItem | null;
 }
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -26,7 +27,7 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "chuyen_khoan", label: "Chuyển khoản" },
 ];
 
-export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: ExpenseFormModalProps) {
+export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initialData }: ExpenseFormModalProps) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     expense_date: today(),
@@ -35,10 +36,39 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
     amount: 0,
     recipient: "",
     description: "",
+    contract_id: "",
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setForm({
+          expense_date: initialData.expense_date,
+          payment_method: initialData.payment_method,
+          category_id: initialData.category_id || "",
+          amount: initialData.amount,
+          description: initialData.description || "",
+          recipient: initialData.recipient || "",
+          contract_id: initialData.contract_id || "",
+        });
+      } else {
+
+        setForm({
+          expense_date: today(),
+          payment_method: "tien_mat",
+          category_id: "",
+          amount: 0,
+          description: "",
+          recipient: "",
+          contract_id: "none",
+        });
+      }
+    }
+  }, [isOpen, initialData]);
+
   const categoryOptions = useMemo(
-    () => categories.filter((item) => item.type === "Chi").map((item) => ({ value: item.id, label: item.name })),
+    () => categories.filter((item) => item.type === "chi").map((item) => ({ value: item.id, label: item.name })),
     [categories],
   );
 
@@ -52,14 +82,20 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
-    const result = await createExpense({
+
+    const payload = {
       expense_date: form.expense_date,
       payment_method: form.payment_method as "tien_mat" | "chuyen_khoan",
       category_id: form.category_id || null,
       amount: form.amount,
       recipient: form.recipient || null,
       description: form.description || null,
-    });
+    };
+
+    const result = initialData
+      ? await updateExpense(initialData.id, payload, initialData.updated_at)
+      : await createExpense(payload);
+
     setSaving(false);
 
     if (!result.success) {
@@ -67,7 +103,7 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
       return;
     }
 
-    toast.success("Đã tạo phiếu chi.");
+    toast.success(initialData ? "Đã cập nhật phiếu chi." : "Đã tạo phiếu chi.");
     setForm({
       expense_date: today(),
       payment_method: "tien_mat",
@@ -75,6 +111,7 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
       amount: 0,
       recipient: "",
       description: "",
+      contract_id: "none",
     });
     onSaved();
     onClose();
@@ -84,8 +121,8 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
     <UnifiedModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm phiếu chi"
-      description="Phiếu mới sẽ ở trạng thái chờ duyệt."
+      title={initialData ? "Sửa phiếu chi" : "Thêm phiếu chi"}
+      description={initialData ? "Sửa thông tin phiếu chi." : "Phiếu mới sẽ ở trạng thái chờ duyệt."}
       size="2xl"
       footer={
         <div className="form-actions">
@@ -93,7 +130,7 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories }: Expen
             Hủy
           </Button>
           <Button type="submit" form="expense-form" disabled={saving}>
-            {saving ? "Đang lưu" : "Lưu phiếu chi"}
+            {saving ? "Đang lưu" : initialData ? "Lưu thay đổi" : "Lưu phiếu chi"}
           </Button>
         </div>
       }

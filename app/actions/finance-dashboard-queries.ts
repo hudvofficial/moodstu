@@ -35,10 +35,10 @@ function normalizeContractRows(data: unknown): FinanceContractListItem[] {
       remaining_amount: asNumber(row.remaining_amount),
       customers: customer
         ? {
-            id: asString((customer as RpcRow).id),
-            full_name: asString((customer as RpcRow).full_name),
-            phone: asString((customer as RpcRow).phone, "") || null,
-          }
+          id: asString((customer as RpcRow).id),
+          full_name: asString((customer as RpcRow).full_name),
+          phone: asString((customer as RpcRow).phone, "") || null,
+        }
         : null,
     };
   });
@@ -156,7 +156,7 @@ async function getContractProfitReportFallback(
   const to = from + pageSize - 1;
   let query = supabase
     .from("contracts")
-    .select("id, contract_code, contract_date, status, total_amount, paid_amount, remaining_amount, customers(full_name)", { count: "exact" })
+    .select("id, contract_code, contract_date, status, total_amount, discount_amount, paid_amount, remaining_amount, customers(full_name)", { count: "exact" })
     .is("deleted_at", null)
     .order("contract_date", { ascending: false })
     .range(from, to);
@@ -176,25 +176,29 @@ async function getContractProfitReportFallback(
   const addonRev = new Map<string, number>();
 
   if (ids.length > 0) {
-    const [details, tasks, prints, expenses] = await Promise.all([
-      supabase.from("contract_details").select("contract_id, total_amount, item_type").in("contract_id", ids),
+    const [items, tasks, prints, expenses] = await Promise.all([
+      supabase.from("contract_items").select("contract_id, total_amount, is_addon").is("deleted_at", null).in("contract_id", ids),
       supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids),
       supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", ids),
       supabase.from("expenses").select("contract_id, amount, description").is("deleted_at", null).in("contract_id", ids),
     ]);
-    if (details.error) throw new Error(details.error.message);
+    if (items.error) throw new Error(items.error.message);
     if (tasks.error) throw new Error(tasks.error.message);
     if (prints.error) throw new Error(prints.error.message);
     if (expenses.error) throw new Error(expenses.error.message);
     addByContract(taskCost, tasks.data, "cost");
     addByContract(printCost, prints.data, "total_amount");
-    addByContract(expenseCost, expenses.data, "amount");
+    addByContract(
+      expenseCost,
+      (expenses.data || []).filter((row) => !row.description?.startsWith("[Auto-Print]")),
+      "amount",
+    );
 
-    for (const d of details.data || []) {
-      const cId = d.contract_id;
+    for (const item of items.data || []) {
+      const cId = item.contract_id;
       if (!cId) continue;
-      const amount = Number(d.total_amount) || 0;
-      if (d.item_type === "ADDON") {
+      const amount = Number(item.total_amount) || 0;
+      if (item.is_addon) {
         addonRev.set(cId, (addonRev.get(cId) || 0) + amount);
       } else {
         packageRev.set(cId, (packageRev.get(cId) || 0) + amount);
@@ -220,7 +224,7 @@ async function getContractProfitReportFallback(
       remainingAmount: contract.remaining_amount || 0,
       packageRevenue: packageRev.get(contract.id) || 0,
       addonRevenue: addonRev.get(contract.id) || 0,
-      discount: 0,
+      discount: contract.discount_amount || 0,
       taskCost: tasks,
       printCost: prints,
       expenseCost: expenses,
@@ -532,7 +536,7 @@ export async function getContractFinanceDetails(contractId: string) {
       contract: {
         id: contract.id,
         total_amount: asNumber(contract.total_amount),
-        discount: 0,
+        discount: asNumber((contract as RpcRow).discount_amount),
         subtotal,
         contract_code: asString(contract.contract_code),
         status: asString(contract.status),

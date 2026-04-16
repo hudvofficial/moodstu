@@ -43,7 +43,8 @@ export const cacheKeys = {
   // Finance
   expenses: (month?: number, year?: number) =>
     month && year ? `expenses:${month}:${year}` : "expenses",
-  debts: () => "debts",
+  debts: (page = 1) => `debts:${page}`,
+  debtStats: () => "debt-stats",
   goals: () => "goals",
   financeCategories: (type = "all") => `finance-categories:${type}`,
   financeReceipts: (page = 1, month?: number, year?: number) =>
@@ -54,6 +55,8 @@ export const cacheKeys = {
     month && year
       ? `finance-expenses:${page}:${year}-${month}:${approval}`
       : `finance-expenses:${page}:all:${approval}`,
+  financeExpenseStats: (month?: number, year?: number) =>
+    month && year ? `finance-expense-stats:${year}-${month}` : "finance-expense-stats:all",
   financeDashboard: (month: number, year: number) => `finance-dashboard:${year}-${month}`,
   financeRevenue: (year: number) => `finance-revenue:${year}`,
   financeServiceDist: (month: number, year: number) => `finance-service-dist:${year}-${month}`,

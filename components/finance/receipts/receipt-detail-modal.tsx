@@ -137,7 +137,7 @@ export function ReceiptDetailModal({ isOpen, onClose, receiptId }: ReceiptDetail
 
         {/* Branding & Header */}
         <div className="relative z-10 flex justify-between items-start border-b border-border pb-4 mb-5 gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="relative w-12 h-12 bg-surface-base border border-border rounded flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
               <Image
                 src={studio?.logo_url || "/logo.png"}
@@ -146,13 +146,13 @@ export function ReceiptDetailModal({ isOpen, onClose, receiptId }: ReceiptDetail
                 className="object-contain p-1.5"
               />
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-text-primary leading-tight">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-text-primary leading-tight truncate">
                 {studio?.name || "Mood Studio"}
               </h2>
-              <div className="text-xs text-text-secondary mt-0.5 max-w-xs md:max-w-md line-clamp-2">
-                <p>{studio?.address || "123 Nguyễn Văn Linh, Quận 7, TP.HCM"}</p>
-                <p>Hotline: {studio?.hotline || "0909 123 456"}</p>
+              <div className="text-xs text-text-secondary mt-0.5">
+                <p className="truncate">{studio?.address || "123 Nguyễn Văn Linh, Quận 7, TP.HCM"}</p>
+                <p className="truncate">Hotline: {studio?.hotline || "0909 123 456"}</p>
               </div>
             </div>
           </div>

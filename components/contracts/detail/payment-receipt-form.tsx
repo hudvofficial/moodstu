@@ -58,7 +58,7 @@ export default function PaymentReceiptForm({
   // ── Fetch categories on mount ──
   useEffect(() => {
     if (!isOpen) return;
-    getTransactionCategories("Thu").then((result) => {
+    getTransactionCategories("thu").then((result) => {
       if (result.success && result.data) {
         setCategories(result.data as CategoryOption[]);
       }
@@ -227,7 +227,7 @@ export default function PaymentReceiptForm({
 
         {/* Category */}
         {categories.length > 0 && (
-            <SimpleSelect
+          <SimpleSelect
             value={categoryId || ""}
             onChange={(v) => setCategoryId(v || null)}
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
