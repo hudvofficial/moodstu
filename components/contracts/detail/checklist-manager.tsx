@@ -14,6 +14,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { getEventTypeLabel } from "@/types/contract-constants";
 import type { EventType } from "@/types/contract";
 
@@ -169,7 +170,7 @@ export default function ContractChecklistManager({
               />
 
               {/* Checkbox icon */}
-              <button
+              <Button unstyled
                 type="button"
                 onClick={() => handleToggle(item)}
                 className="shrink-0"
@@ -179,7 +180,7 @@ export default function ContractChecklistManager({
                 ) : (
                   <Square className="w-5 h-5 text-text-muted group-hover:text-primary" />
                 )}
-              </button>
+              </Button>
 
               {/* Label */}
               <span
@@ -237,7 +238,7 @@ export default function ContractChecklistManager({
             const sp = getStageProgress(groupedByStage[stage]);
             const isActive = activeStage === stage;
             return (
-              <button
+              <Button unstyled
                 key={stage}
                 onClick={() => setActiveStage(stage)}
                 className={`flex-1 py-2 px-3 rounded-md text-caption font-bold transition-all ${
@@ -252,7 +253,7 @@ export default function ContractChecklistManager({
                 <div className={`text-tiny ${sp.pct === 100 ? "text-success" : ""}`}>
                   {sp.done}/{sp.total}
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -287,7 +288,7 @@ export default function ContractChecklistManager({
         return (
           <div key={stage}>
             {/* Stage section header */}
-            <button
+            <Button unstyled
               onClick={() => setActiveStage(activeStage === stage ? null : stage)}
               className="w-full flex items-center justify-between py-2 text-left"
             >
@@ -299,7 +300,7 @@ export default function ContractChecklistManager({
               ) : (
                 <ChevronDown size={14} className="text-text-muted" />
               )}
-            </button>
+            </Button>
 
             <div
               className={`grid gap-3 ${

@@ -12,6 +12,8 @@ import { MessageSquare, Send } from "lucide-react";
 import { addContractNote } from "@/app/actions/note-actions";
 import { useContractNotes } from "@/lib/hooks/use-contract-notes";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -145,7 +147,7 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
 
           {/* Quick input */}
           <div className="flex items-center gap-2">
-            <input
+            <Input unstyled
               ref={inputRef}
               type="text"
               value={input}
@@ -156,13 +158,13 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
               disabled={sending}
               maxLength={500}
             />
-            <button
+            <Button unstyled
               onClick={handleSend}
               disabled={!input.trim() || sending}
               className="btn btn-primary p-2 shrink-0"
             >
               <Send className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </div>
         </>
       )}

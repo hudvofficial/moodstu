@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.1.0",
     "awf_version": "4.0.2",
-    "last_updated": "2026-04-13T18:24:00+07:00"
+    "last_updated": "2026-04-22T00:25:00+07:00"
   },
   "project": {
     "name": "Mood Studio V2",
@@ -42,7 +42,8 @@
     { "type": "Server Action", "path": "app/actions/notification-actions.ts", "actions": ["updateNotificationPreferences"] },
     { "type": "Server Action", "path": "app/actions/printing-queries.ts", "actions": ["fetchPrintingOrders", "getPrintingOrderStats", "getPrintingOrderDetail"] },
     { "type": "Server Action", "path": "app/actions/printing-mutations.ts" },
-    { "type": "Server Action", "path": "app/actions/finance-dashboard-queries.ts", "actions": ["getDashboardMetrics", "getRevenueByMonth", "getServiceDistribution", "getUpcomingContracts", "getPendingCollections", "fetchLedger", "getContractProfitReport", "getContractFinanceDetails"] }
+    { "type": "Server Action", "path": "app/actions/finance-dashboard-queries.ts", "actions": ["getDashboardMetrics", "getRevenueByMonth", "getServiceDistribution", "getUpcomingContracts", "getPendingCollections", "fetchLedger", "getContractProfitReport", "getContractFinanceDetails"] },
+    { "type": "Server Action", "path": "app/actions/goal-budget-actions.ts", "actions": ["fetchGoals", "upsertGoal", "deleteGoal", "contributeToGoal", "undoContribution"] }
   ],
   "design_system": {
     "colors": { "primary": "#8b5e3c", "background": "#FAF7F2" },
@@ -61,7 +62,8 @@
       "PrintingMobileGrouped": "Contract-grouped vertical cards (code→name→badges→price) with compact child cards. Pattern synced from ServiceMobileList.",
       "PrintingStatsBar": "Desktop=6 items, Mobile compact=2 items (total + debt). No click-to-filter (filter pills handle that).",
       "DrawerSizes": "Shared Drawer component: md=480px (Gold Standard default), lg=600px (forms/multi-column). Mobile=Bottom Sheet 85vh. Use size prop, not custom width.",
-      "ResponsiveBreakpoint": "ALWAYS use lg (1024px) for desktop/mobile table switching. NEVER use md (768px). Pattern: hidden lg:block for desktop, lg:hidden for mobile."
+      "ResponsiveBreakpoint": "ALWAYS use lg (1024px) for desktop/mobile table switching. NEVER use md (768px). Pattern: hidden lg:block for desktop, lg:hidden for mobile.",
+      "FinanceGoalsUI": "StatsBar + TabsFilter + SelectPill layout. Cards with progress bars, milestone indicators (25/50/75/100), and dynamic icon/color rendering."
     }
   },
   "knowledge_items": {

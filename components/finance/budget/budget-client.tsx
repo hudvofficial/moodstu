@@ -137,7 +137,7 @@ export function BudgetClient({ initialMonth, initialYear, initialData }: BudgetC
         )}
       </section>
 
-      <BudgetFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaved={refresh} month={month} year={year} />
+      <BudgetFormModal isOpen={isModalOpen} onClose={closeModal} onSaved={refresh} month={month} year={year} />
     </>
   );
 }

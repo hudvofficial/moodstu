@@ -14,6 +14,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Shirt, Calendar, Undo2, Loader2, FileText, ShoppingBag, Play, CheckCircle, XCircle, WashingMachine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { DRESS_CONDITION_MAP, DRESS_STATUS_MAP, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { DressItem, DressReservation } from "@/types/dress";
@@ -130,9 +131,9 @@ function ReservationRow({ r, onRelease, isReleasing }: { r: DressReservation; on
         </p>
       </div>
       {canRelease && (
-        <button onClick={() => onRelease(r.id)} className="btn btn-ghost text-xs gap-1 shrink-0" title="Trả trang phục" disabled={isReleasing}>
+        <Button unstyled onClick={() => onRelease(r.id)} className="btn btn-ghost text-xs gap-1 shrink-0" title="Trả trang phục" disabled={isReleasing}>
           <Undo2 size={14} /> Trả
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -254,39 +255,39 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
 
         {/* Đặt thuê vãng lai */}
         {status === "available" && (
-          <button onClick={() => setShowRentalModal(true)} className="btn btn-primary flex-1 gap-2">
+          <Button unstyled onClick={() => setShowRentalModal(true)} className="btn btn-primary flex-1 gap-2">
             <ShoppingBag size={16} />
             Đặt thuê
-          </button>
+          </Button>
         )}
 
         {/* Bắt đầu thuê */}
         {status === "reserved" && activeRental && (
-          <button
+          <Button unstyled
             onClick={() => handleAction(() => startRental(activeRental.id), "Đã bắt đầu thuê!")}
             disabled={loading}
             className="btn btn-primary w-full gap-2"
           >
             <Play size={16} />
             {loading ? "Đang xử lý..." : "Bắt đầu thuê"}
-          </button>
+          </Button>
         )}
 
         {/* Hủy đặt */}
         {status === "reserved" && activeRental && (
-          <button
+          <Button unstyled
             onClick={() => handleAction(() => cancelRental(activeRental.id), "Đã hủy đặt thuê")}
             disabled={loading}
             className="btn btn-ghost text-error w-full gap-2"
           >
             <XCircle size={16} />
             Hủy đặt
-          </button>
+          </Button>
         )}
 
         {/* Trả váy */}
         {(status === "rented" || status === "overdue") && activeRental && (
-          <button
+          <Button unstyled
             type="button"
             onClick={() => setShowReturnModal(true)}
             disabled={loading}
@@ -294,19 +295,19 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
           >
             <CheckCircle size={16} />
             Trả váy
-          </button>
+          </Button>
         )}
 
         {/* Đã giặt xong */}
         {status === "cleaning" && (
-          <button
+          <Button unstyled
             onClick={() => handleAction(() => markCleaned(dress.id), "Đã giặt xong — sẵn sàng!")}
             disabled={loading}
             className="btn btn-primary w-full gap-2"
           >
             <WashingMachine size={16} />
             {loading ? "Đang xử lý..." : "Đã giặt xong"}
-          </button>
+          </Button>
         )}
 
         {/* Status badge */}

@@ -7,7 +7,7 @@
  * Logic: withAuth() -> Supabase -> Result.
  */
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
 
@@ -28,10 +28,25 @@ function sanitizeSearch(raw: string): string {
     .trim();
 }
 
+function getSortConfig(sort?: string) {
+  switch (sort) {
+    case "oldest":
+      return { column: "created_at", ascending: true };
+    case "amount_desc":
+      return { column: "total_amount", ascending: false };
+    case "amount_asc":
+      return { column: "total_amount", ascending: true };
+    default:
+      return { column: "created_at", ascending: false };
+  }
+}
+
 // ─── getNextContractCode ─────────────────────
 
 export async function getNextContractCode() {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const year = new Date().getFullYear();
     const prefix = `HĐ-${year}-`;
 
@@ -57,11 +72,14 @@ export async function getNextContractCode() {
 // ─── getContractList ──────────────────────────
 
 export async function getContractList(filters: ContractFilters) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const page = filters.page || 1;
     const pageSize = 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const sortConfig = getSortConfig(filters.sort);
 
     let query = supabase
       .from("contracts")
@@ -82,7 +100,7 @@ export async function getContractList(filters: ContractFilters) {
         { count: "estimated" }
       )
       .is("deleted_at", null)
-      .order("created_at", { ascending: false })
+      .order(sortConfig.column, { ascending: sortConfig.ascending })
       .range(from, to);
 
     if (filters.status && filters.status !== "all") {
@@ -125,6 +143,14 @@ export async function getContractList(filters: ContractFilters) {
           .lte("contract_date", toDateString(end));
     }
 
+    if (filters.startDate) {
+      query = query.gte("contract_date", filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query = query.lte("contract_date", filters.endDate);
+    }
+
     const { data, count, error } = await query;
     if (error) throw error;
     return { contracts: data || [], total: count || 0, page, pageSize };
@@ -134,19 +160,16 @@ export async function getContractList(filters: ContractFilters) {
 // ─── getContractStats ────────────────────────
 
 export async function getContractStats() {
-  return withAuth(async (supabase) => {
-    const { count: lifetimeCount } = await supabase
-      .from("contracts")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null);
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
 
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("contracts")
       .select("status, total_amount, remaining_amount")
       .is("deleted_at", null)
-      .gte("created_at", sixMonthsAgo.toISOString());
+      .neq("status", "da_huy");
+
+    if (error) throw error;
 
     const all = data || [];
     let active = 0,
@@ -176,11 +199,13 @@ export async function getContractStats() {
       .from("contracts")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null)
+      .neq("status", "da_huy")
       .gte("created_at", thisMonthStart.toISOString());
     const { count: lastMonthCount } = await supabase
       .from("contracts")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null)
+      .neq("status", "da_huy")
       .gte("created_at", lastMonthStart.toISOString())
       .lte("created_at", lastMonthEnd.toISOString());
 
@@ -190,7 +215,7 @@ export async function getContractStats() {
         : 0;
 
     const stats: ContractStats = {
-      total: lifetimeCount || all.length,
+      total: all.length,
       active,
       pending,
       completed,
@@ -205,7 +230,9 @@ export async function getContractStats() {
 // ─── getContractDetail ────────────────────────
 
 export async function getContractDetail(id: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contracts")
       .select(
@@ -315,7 +342,9 @@ export async function getContractDetail(id: string) {
 // ─── getContractDrawerExtra ──────────────
 
 export async function getContractDrawerExtra(id: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const [
       { data: events },
       { data: checklists },
@@ -363,7 +392,9 @@ export async function getContractDrawerExtra(id: string) {
 // ─── getContractForEdit ──────────────────────
 
 export async function getContractForEdit(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data: contract, error } = await supabase
       .from("contracts")
       .select(

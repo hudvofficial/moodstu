@@ -1,6 +1,7 @@
 "use client";
 
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 // ═══════════════════════════════════════════
@@ -29,41 +30,38 @@ export function ConfirmDialog({
   cancelLabel = "Hủy",
   variant = "danger",
 }: Props) {
-  const confirmClass =
-    variant === "danger"
-      ? "btn btn-danger"
-      : variant === "warning"
-        ? "btn btn-warning"
-        : "btn btn-interactive";
+  const confirmVariant = variant === "danger" ? "danger" : "interactive";
 
   return (
     <UnifiedModal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="space-y-4">
         <div className="flex items-start gap-3">
-          <div className="shrink-0 rounded-radius-sm bg-error/10 p-2">
+          <div className="shrink-0 rounded-sm bg-error/10 p-2">
             <AlertTriangle className="h-5 w-5 text-error" />
           </div>
           <p className="text-body-sm text-text-secondary">{message}</p>
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="btn btn-ghost text-body-sm"
+            variant="ghost"
+            className="text-body-sm"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`${confirmClass} text-body-sm`}
+            variant={confirmVariant}
+            className="text-body-sm"
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </UnifiedModal>

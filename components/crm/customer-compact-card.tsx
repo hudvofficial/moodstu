@@ -1,8 +1,10 @@
 "use client";
 
-import { ChevronRight, CalendarPlus, Building2 } from "lucide-react";
+import { Building2, CalendarPlus, ChevronRight } from "lucide-react";
 import type { Customer } from "@/types/crm";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { CrmRecordCard } from "@/components/crm/crm-record-card";
 import { SOURCE_MAP } from "@/types/crm";
 
 interface Props {
@@ -11,76 +13,76 @@ interface Props {
 }
 
 export default function CustomerCompactCard({ customer, onClick }: Props) {
-  const sourceInfo = customer.source ? (SOURCE_MAP[customer.source] || { label: customer.source }) : null;
+  const sourceInfo = customer.source
+    ? (SOURCE_MAP[customer.source] || { label: customer.source })
+    : null;
 
   return (
-    <div
+    <CrmRecordCard
       onClick={() => onClick(customer)}
-      className="card-base p-4 hover-lift cursor-pointer transition-all w-full"
-    >
-      {/* Row 1: Avatar + Name + Code + LTV */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-          {getInitials(customer.full_name)}
+      avatar={getInitials(customer.full_name)}
+      title={
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-body font-semibold text-text-main">
+            {customer.full_name}
+          </span>
+          <Badge
+            variant="neutral"
+            className="shrink-0 px-1.5 py-0 text-tiny font-bold uppercase tracking-wider"
+          >
+            {customer.customer_code}
+          </Badge>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-body font-semibold text-text-main truncate">
-                {customer.full_name}
-              </span>
-              <span className="px-1.5 py-0.5 text-tiny font-bold tracking-wider rounded bg-bg-muted text-text-muted uppercase shrink-0">
-                {customer.customer_code}
-              </span>
-            </div>
-            <span className="text-body font-bold text-primary shrink-0">
-              {(customer.ltv || 0) > 0 ? formatCurrency(customer.ltv || 0) : "—"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-caption mt-0.5">
-            <span className="text-text-secondary truncate">
-              {customer.phone || "Trống SĐT"}
-            </span>
-            {customer.email && (
-              <>
-                <span className="text-text-muted shrink-0">•</span>
-                <span className="text-text-muted truncate max-w-[160px]">
-                  {customer.email}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Wedding date + Source + Created */}
-      <div className="flex items-center justify-between gap-3 mt-2 pl-[52px]">
-        <div className="flex items-center gap-3 min-w-0 text-caption">
-          {customer.wedding_date ? (
-            <span className="flex items-center gap-1 text-success font-medium shrink-0">
-              <CalendarPlus className="w-3.5 h-3.5" />
-              {formatDate(customer.wedding_date)}
-            </span>
-          ) : (
-            <span className="text-text-muted">Chưa rõ ngày cưới</span>
-          )}
-          {sourceInfo && (
+      }
+      subtitle={
+        <div className="flex items-center gap-1.5 text-caption">
+          <span className="truncate text-text-secondary">
+            {customer.phone || "Trống SĐT"}
+          </span>
+          {customer.email ? (
             <>
-              <span className="text-text-muted shrink-0">•</span>
-              <span className="flex items-center gap-1 text-text-secondary shrink-0">
-                <Building2 className="w-3 h-3 text-text-muted" />
-                {sourceInfo.label}
+              <span className="shrink-0 text-text-muted">•</span>
+              <span className="max-w-[160px] truncate text-text-muted">
+                {customer.email}
               </span>
             </>
-          )}
+          ) : null}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-caption text-text-muted">
-            {formatDate(customer.created_at)}
-          </span>
-          <ChevronRight className="w-4 h-4 text-text-muted" />
+      }
+      headerRight={
+        <span className="shrink-0 text-body font-bold text-primary">
+          {(customer.ltv || 0) > 0 ? formatCurrency(customer.ltv || 0) : "—"}
+        </span>
+      }
+      bottom={
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3 text-caption">
+            {customer.wedding_date ? (
+              <span className="flex shrink-0 items-center gap-1 font-medium text-success">
+                <CalendarPlus className="h-3.5 w-3.5" />
+                {formatDate(customer.wedding_date)}
+              </span>
+            ) : (
+              <span className="text-text-muted">Chưa rõ ngày cưới</span>
+            )}
+            {sourceInfo ? (
+              <>
+                <span className="shrink-0 text-text-muted">•</span>
+                <span className="flex shrink-0 items-center gap-1 text-text-secondary">
+                  <Building2 className="h-3 w-3 text-text-muted" />
+                  {sourceInfo.label}
+                </span>
+              </>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-caption text-text-muted">
+              {formatDate(customer.created_at)}
+            </span>
+            <ChevronRight className="h-4 w-4 text-text-muted" />
+          </div>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

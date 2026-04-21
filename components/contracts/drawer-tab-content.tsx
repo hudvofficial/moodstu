@@ -18,6 +18,7 @@ import {
 } from "@/types/contract-constants";
 import type { ServiceType } from "@/types/contract";
 import type { ContractListItem } from "./contract-drawer";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // DrawerContent + OperationsTabs
@@ -59,7 +60,7 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
 
       {/* ── Section: Khách hàng ── */}
       <section className="card-base p-4">
-        <button onClick={onViewDetail} className="flex items-center gap-3 group w-full text-left">
+        <Button unstyled onClick={onViewDetail} className="flex items-center gap-3 group w-full text-left">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
             {(customer?.full_name || "K")[0].toUpperCase()}
           </div>
@@ -82,7 +83,7 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
               )}
             </div>
           </div>
-        </button>
+        </Button>
 
         {/* Pill cards */}
         <div className="flex gap-2 mt-3">
@@ -187,10 +188,10 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
 
       {/* ── Footer: Action button ── */}
       <div className="pt-2">
-        <button onClick={onViewDetail} className="btn btn-primary w-full gap-2">
+        <Button unstyled onClick={onViewDetail} className="btn btn-primary w-full gap-2">
           <ExternalLink className="w-4 h-4" />
           Xem chi tiết hồ sơ
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -222,7 +223,7 @@ function OperationsTabs({
       {/* Tab buttons */}
       <div className="flex gap-1 mb-3 bg-neutral-100/60 rounded-lg p-1">
         {TABS.map((tab) => (
-          <button
+          <Button unstyled
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
@@ -232,7 +233,7 @@ function OperationsTabs({
             }`}
           >
             {tab.label}
-          </button>
+          </Button>
         ))}
       </div>
 

@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, ScanLine, Camera } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
+import { Button } from "@/components/ui/button";
 
 // ─── TYPES ──────────────────────────────────
 
@@ -116,12 +117,12 @@ export function DressScannerModal({ isOpen, onClose, onScanned }: DressScannerMo
           <ScanLine className="w-5 h-5" />
           <span className="text-body-sm font-semibold">Quét mã QR</span>
         </div>
-        <button
+        <Button unstyled
           onClick={handleClose}
           className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
         >
           <X className="w-5 h-5 text-white" />
-        </button>
+        </Button>
       </div>
 
       {/* Camera viewport */}

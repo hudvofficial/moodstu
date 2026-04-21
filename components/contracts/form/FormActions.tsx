@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // FormActions — Submit + Cancel + Save Draft
@@ -40,36 +41,39 @@ export function FormActions({
         )}
 
         {/* Primary CTA */}
-        <button
+        <Button
           type="button"
+          unstyled
           onClick={onSubmit}
           disabled={isSubmitting}
           className="btn btn-interactive w-full justify-center font-bold shadow-sm shadow-interactive/20"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {isEditMode ? "Cập nhật hợp đồng" : "Tạo hợp đồng"}
-        </button>
+        </Button>
 
         {/* Secondary actions */}
         <div className="flex items-center gap-2">
           {!isEditMode && onSaveDraft && (
-            <button
+            <Button
               type="button"
+              unstyled
               onClick={onSaveDraft}
               disabled={isSubmitting}
               className="btn btn-ghost flex-1 border border-interactive/20 text-interactive hover:bg-interactive/5"
             >
               Lưu nháp
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
+            unstyled
             onClick={onCancel}
             disabled={isSubmitting}
             className="btn btn-ghost flex-1 text-text-secondary"
           >
             Hủy
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -89,37 +93,40 @@ export function FormActions({
         {/* Mobile: 3 buttons in 1 row */}
         <div className="flex items-center gap-2">
           {/* Hủy */}
-          <button
+          <Button
             type="button"
+            unstyled
             onClick={onCancel}
             disabled={isSubmitting}
             className="btn btn-ghost flex-1 h-11 text-sm text-text-secondary border border-border-default"
           >
             Hủy
-          </button>
+          </Button>
 
           {/* Lưu nháp */}
           {!isEditMode && onSaveDraft && (
-            <button
+            <Button
               type="button"
+              unstyled
               onClick={onSaveDraft}
               disabled={isSubmitting}
               className="btn flex-1 h-11 text-sm text-interactive border border-interactive/30 hover:bg-interactive/5"
             >
               Lưu nháp
-            </button>
+            </Button>
           )}
 
           {/* CTA chính */}
-          <button
+          <Button
             type="button"
+            unstyled
             onClick={onSubmit}
             disabled={isSubmitting}
             className="btn btn-interactive flex-1 h-11 text-sm font-semibold shadow-sm"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEditMode ? "Cập nhật" : "Tạo HĐ"}
-          </button>
+          </Button>
         </div>
       </footer>
     </>

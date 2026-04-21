@@ -1,9 +1,12 @@
 "use server";
 
-import { withAuth, withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
-import { profileSchema, adminProfileSchema } from "@/lib/validations/settings.schema";
+import { withAuth, withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
+import {
+  profileSchema,
+  adminProfileSchema,
+} from "@/lib/validations/settings.schema";
 import { normalizeEmployeeRole } from "@/types/roles";
 
 export async function initializeProfile() {
@@ -15,7 +18,7 @@ export async function initializeProfile() {
       .maybeSingle();
 
     if (existingError) {
-      throw new Error(`Loi tai ho so nhan vien: ${existingError.message}`);
+      throw new Error(`Lỗi tải hồ sơ nhân viên: ${existingError.message}`);
     }
 
     if (existing) return { initialized: false };
@@ -26,7 +29,11 @@ export async function initializeProfile() {
     } = await supabase.auth.admin.getUserById(userId);
 
     if (authError || !authUser) {
-      throw new Error(`Loi tai tai khoan dang nhap: ${authError?.message || "Unknown"}`);
+      throw new Error(
+        `Lỗi tải tài khoản đăng nhập: ${
+          authError?.message || "Không xác định"
+        }`,
+      );
     }
 
     const email = authUser.email || "unknown";
@@ -34,7 +41,7 @@ export async function initializeProfile() {
       typeof authUser.user_metadata?.full_name === "string" &&
       authUser.user_metadata.full_name.trim()
         ? authUser.user_metadata.full_name.trim()
-        : email.split("@")[0] || "Nhan vien moi";
+        : email.split("@")[0] || "Nhân viên mới";
     const role = normalizeEmployeeRole(
       (authUser.app_metadata?.role as string | undefined) ??
         (authUser.user_metadata?.role as string | undefined),
@@ -48,7 +55,7 @@ export async function initializeProfile() {
       .maybeSingle();
 
     if (emailMatchError) {
-      throw new Error(`Loi tim ho so theo email: ${emailMatchError.message}`);
+      throw new Error(`Lỗi tìm hồ sơ theo email: ${emailMatchError.message}`);
     }
 
     if (emailMatch) {
@@ -61,7 +68,7 @@ export async function initializeProfile() {
         .eq("id", emailMatch.id);
 
       if (linkError) {
-        throw new Error(`Loi lien ket ho so: ${linkError.message}`);
+        throw new Error(`Lỗi liên kết hồ sơ: ${linkError.message}`);
       }
 
       await syncAuthIdentity(supabase, userId, {
@@ -73,7 +80,7 @@ export async function initializeProfile() {
       return { initialized: true };
     }
 
-    const { data: newEmp, error } = await supabase
+    const { data: newEmployee, error } = await supabase
       .from("employees")
       .insert({
         full_name: fullName,
@@ -81,15 +88,15 @@ export async function initializeProfile() {
         auth_user_id: userId,
         role,
         employee_code: `NV-${Date.now().toString(36).toUpperCase()}`,
-        department: "Chua phan",
-        position: "Nhan vien",
+        department: "Chưa phân",
+        position: "Nhân viên",
         status: "active",
         start_date: new Date().toISOString().split("T")[0],
       })
       .select("id")
       .single();
 
-    if (error) throw new Error(`Loi tao ho so: ${error.message}`);
+    if (error) throw new Error(`Lỗi tạo hồ sơ: ${error.message}`);
 
     await syncAuthIdentity(supabase, userId, {
       fullName,
@@ -99,8 +106,8 @@ export async function initializeProfile() {
     fireAuditLog({
       action: "CREATE",
       tableName: "employees",
-      recordId: newEmp?.id,
-      description: `Khoi tao ho so cho ${email}`,
+      recordId: newEmployee?.id,
+      description: `Khởi tạo hồ sơ cho ${email}`,
       source: "server_action",
     });
 
@@ -118,7 +125,7 @@ export async function updateProfile(rawData: {
     const parsed = profileSchema.safeParse(rawData);
     if (!parsed.success) {
       const firstError =
-        parsed.error.issues[0]?.message || "Du lieu khong hop le";
+        parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ";
       throw new Error(firstError);
     }
 
@@ -128,22 +135,22 @@ export async function updateProfile(rawData: {
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
     if (gender !== undefined) updateData.gender = gender?.trim() || null;
 
-    const { data: emp, error: empError } = await supabase
+    const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("id")
       .eq("auth_user_id", userId)
       .single();
 
-    if (empError || !emp) {
-      throw new Error("Khong tim thay ho so nhan vien");
+    if (employeeError || !employee) {
+      throw new Error("Không tìm thấy hồ sơ nhân viên");
     }
 
     const { error } = await supabase
       .from("employees")
       .update(updateData)
-      .eq("id", emp.id);
+      .eq("id", employee.id);
 
-    if (error) throw new Error(`Loi cap nhat ho so: ${error.message}`);
+    if (error) throw new Error(`Lỗi cập nhật hồ sơ: ${error.message}`);
 
     await syncAuthIdentity(supabase, userId, {
       fullName: full_name,
@@ -152,8 +159,8 @@ export async function updateProfile(rawData: {
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
-      recordId: emp.id,
-      description: `Cap nhat ho so: ${full_name}`,
+      recordId: employee.id,
+      description: `Cập nhật hồ sơ: ${full_name}`,
       newData: updateData,
       source: "server_action",
     });
@@ -166,36 +173,36 @@ export async function updateProfile(rawData: {
 export async function uploadAvatar(formData: FormData) {
   return withAuth(async (supabase, userId) => {
     const file = formData.get("avatar") as File;
-    if (!file || file.size === 0) throw new Error("Chua chon anh");
+    if (!file || file.size === 0) throw new Error("Chưa chọn ảnh");
     if (file.size > 2 * 1024 * 1024) {
-      throw new Error("Anh khong duoc vuot qua 2MB");
+      throw new Error("Ảnh không được vượt quá 2MB");
     }
 
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
-      throw new Error("Chi chap nhan JPG, PNG, WEBP");
+      throw new Error("Chỉ chấp nhận JPG, PNG, WEBP");
     }
 
-    const { data: emp, error: empError } = await supabase
+    const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("id, avatar_url")
       .eq("auth_user_id", userId)
       .single();
 
-    if (empError || !emp) throw new Error("Khong tim thay ho so");
+    if (employeeError || !employee) throw new Error("Không tìm thấy hồ sơ");
 
-    if (emp.avatar_url) {
-      const oldPath = emp.avatar_url.split("/avatars/")[1]?.split("?")[0];
+    if (employee.avatar_url) {
+      const oldPath = employee.avatar_url.split("/avatars/")[1]?.split("?")[0];
       if (oldPath) await supabase.storage.from("avatars").remove([oldPath]);
     }
 
     const ext = file.name.split(".").pop() || "jpg";
-    const filePath = `${emp.id}.${ext}`;
+    const filePath = `${employee.id}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
       .upload(filePath, file, { upsert: true, contentType: file.type });
 
-    if (uploadError) throw new Error(`Loi upload: ${uploadError.message}`);
+    if (uploadError) throw new Error(`Lỗi tải ảnh: ${uploadError.message}`);
 
     const { data: urlData } = supabase.storage
       .from("avatars")
@@ -205,17 +212,17 @@ export async function uploadAvatar(formData: FormData) {
     const { error: updateError } = await supabase
       .from("employees")
       .update({ avatar_url: publicUrl })
-      .eq("id", emp.id);
+      .eq("id", employee.id);
 
     if (updateError) {
-      throw new Error(`Loi cap nhat avatar: ${updateError.message}`);
+      throw new Error(`Lỗi cập nhật avatar: ${updateError.message}`);
     }
 
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
-      recordId: emp.id,
-      description: "Cap nhat avatar",
+      recordId: employee.id,
+      description: "Cập nhật avatar",
       source: "server_action",
     });
 
@@ -233,7 +240,7 @@ export async function updateAdminProfileFields(rawData: {
     const parsed = adminProfileSchema.safeParse(rawData);
     if (!parsed.success) {
       const firstError =
-        parsed.error.issues[0]?.message || "Du lieu khong hop le";
+        parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ";
       throw new Error(firstError);
     }
 
@@ -251,14 +258,14 @@ export async function updateAdminProfileFields(rawData: {
       .eq("id", employee_id);
 
     if (error) {
-      throw new Error(`Loi cap nhat phong ban/chuc vu: ${error.message}`);
+      throw new Error(`Lỗi cập nhật phòng ban/chức vụ: ${error.message}`);
     }
 
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
       recordId: employee_id,
-      description: "Cap nhat phong ban/chuc vu",
+      description: "Cập nhật phòng ban/chức vụ",
       newData: updateData,
       source: "server_action",
     });

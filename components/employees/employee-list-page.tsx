@@ -6,12 +6,14 @@ import { Plus, Users, FilterX } from "lucide-react";
 import type { EmployeeListItem } from "@/types/employee";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import EmployeeStatsBar from "./employee-stats-bar";
 import EmployeeFilters from "./employee-filters";
 import EmployeeTable from "./employee-table";
 import EmployeeCard from "./employee-card";
 import EmployeeFormModal from "./employee-form-modal";
+import EmployeeDetailDrawer from "./employee-detail-drawer";
 
 // ═══════════════════════════════════════════
 // EmployeeListPage — Client wrapper for /employees
@@ -31,6 +33,7 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
   const totalPages = Math.ceil(total / pageSize);
 
   // Pagination onChange — update URL param
@@ -56,10 +59,10 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <EmployeeStatsBar stats={stats} />
         <div className="hidden lg:flex">
-          <button onClick={() => setShowForm(true)} className="btn btn-primary gap-2 shrink-0">
+          <Button unstyled onClick={() => setShowForm(true)} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Thêm nhân viên</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -90,11 +93,15 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
       ) : (
         <>
           <div className="hidden lg:block">
-            <EmployeeTable employees={employees} />
+            <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
           </div>
           <div className="lg:hidden space-y-2">
             {employees.map((emp) => (
-              <EmployeeCard key={emp.id} employee={emp} />
+              <EmployeeCard
+                key={emp.id}
+                employee={emp}
+                onSelect={setSelectedEmployee}
+              />
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} className="mt-4" />
@@ -109,6 +116,13 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSaved={() => router.refresh()}
+      />
+
+      <EmployeeDetailDrawer
+        employee={selectedEmployee}
+        isOpen={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        onChanged={() => router.refresh()}
       />
     </div>
   );

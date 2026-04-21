@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import { CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // CreateServiceModal — Quick create service from ItemModal
@@ -67,7 +69,7 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
       <div className="space-y-4 p-4">
         <div>
           <label className="label-base">Tên dịch vụ *</label>
-          <input
+          <Input unstyled
             type="text"
             value={name}
             onChange={(e) => { setName(e.target.value); setError(""); }}
@@ -96,10 +98,10 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
         {error && <p className="error-text">{error}</p>}
 
         <div className="form-actions">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
+          <Button unstyled type="button" onClick={onClose} className="btn btn-ghost">
             Hủy
-          </button>
-          <button
+          </Button>
+          <Button unstyled
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
@@ -107,7 +109,7 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Tạo dịch vụ
-          </button>
+          </Button>
         </div>
       </div>
     </UnifiedModal>

@@ -1,12 +1,24 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
-import { getAuthenticatedUserContext, withAdmin, withAuth } from "@/lib/auth_utils";
+import {
+  getAuthenticatedUserContext,
+  withAdmin,
+  withAuth,
+} from "@/lib/auth_utils";
+import { fetchMoodieGeminiModelOptions } from "@/lib/moodie/gemini-models";
+import { MOODIE_GEMINI_MODEL_OPTIONS } from "@/lib/moodie/model-options";
+import { getOrCreateStudioInfo } from "@/lib/studio-info";
+import {
+  getMoodieGeminiSettingsSnapshot,
+  getMoodieGeminiStoredApiKey,
+} from "@/lib/system-settings";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
   type SettingsPageData,
   type StudioInfo,
+  type StudioSettingsAdminData,
 } from "@/types/settings";
 
 async function getOrCreateNotificationPreferences(
@@ -22,7 +34,7 @@ async function getOrCreateNotificationPreferences(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Khong the tai cai dat thong bao: ${error.message}`);
+    throw new Error(`Không thể tải cài đặt thông báo: ${error.message}`);
   }
 
   if (data) {
@@ -46,7 +58,9 @@ async function getOrCreateNotificationPreferences(
 
   if (createError || !created) {
     throw new Error(
-      `Khong the khoi tao cai dat thong bao: ${createError?.message || "Unknown"}`,
+      `Không thể khởi tạo cài đặt thông báo: ${
+        createError?.message || "Không xác định"
+      }`,
     );
   }
 
@@ -55,28 +69,61 @@ async function getOrCreateNotificationPreferences(
 
 export async function getStudioInfoAdmin() {
   return withAdmin(async (adminClient) => {
-    const { data, error } = await adminClient
-      .from("studio_info")
-      .select("*")
-      .limit(1)
-      .single();
+    const [studioInfo, moodieAiSettings] = await Promise.all([
+      getOrCreateStudioInfo(adminClient),
+      getMoodieGeminiSettingsSnapshot(adminClient),
+    ]);
 
-    if (error) throw new Error(`Loi lay thong tin studio: ${error.message}`);
-    return data as StudioInfo;
+    return {
+      studioInfo: studioInfo as StudioInfo,
+      moodieAiSettings,
+    } satisfies StudioSettingsAdminData;
+  });
+}
+
+export async function getMoodieGeminiModelOptions(
+  rawData?: Record<string, unknown>,
+) {
+  return withAdmin(async (adminClient) => {
+    const overrideApiKey =
+      typeof rawData?.gemini_api_key === "string"
+        ? rawData.gemini_api_key.trim()
+        : "";
+    const storedApiKey = overrideApiKey
+      ? null
+      : await getMoodieGeminiStoredApiKey(adminClient);
+    const apiKey = overrideApiKey || storedApiKey;
+
+    if (!apiKey) {
+      return {
+        options: [...MOODIE_GEMINI_MODEL_OPTIONS],
+        source: "fallback" as const,
+        message: "Lưu khóa Gemini để tải danh sách model từ API",
+      };
+    }
+
+    try {
+      const options = await fetchMoodieGeminiModelOptions(apiKey);
+      return {
+        options,
+        source: "api" as const,
+        message: "Đã tải danh sách model từ Gemini API",
+      };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Không xác định";
+
+      return {
+        options: [...MOODIE_GEMINI_MODEL_OPTIONS],
+        source: "fallback" as const,
+        message: `Không tải được danh sách từ Gemini API: ${detail}`,
+      };
+    }
   });
 }
 
 export async function getStudioInfo() {
   return withAuth(async (supabase) => {
-    const { data, error } = await supabase
-      .from("studio_info")
-      .select(
-        "id, name, hotline, address, logo_url, representative, timezone, bank_info, social_links, working_hours, updated_at",
-      )
-      .limit(1)
-      .single();
-
-    if (error) throw new Error(`Loi lay thong tin studio: ${error.message}`);
+    const data = await getOrCreateStudioInfo(supabase);
     return data as StudioInfo;
   });
 }
@@ -85,11 +132,11 @@ export async function getSettingsPageData(): Promise<SettingsPageData> {
   const context = await getAuthenticatedUserContext({ bootstrapProfile: true });
 
   if (!context) {
-    throw new Error("Chua dang nhap");
+    throw new Error("Chưa đăng nhập");
   }
 
   if (!context.employee) {
-    throw new Error("Khong the khoi tao ho so nhan vien");
+    throw new Error("Không thể khởi tạo hồ sơ nhân viên");
   }
 
   const adminClient = await createAdminClient();

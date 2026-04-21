@@ -2,9 +2,11 @@
 
 import { UserPlus, X, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import {
   getWorkTypeLabel,
@@ -164,7 +166,7 @@ export function TaskListPanel({
               </div>
 
               {/* Status toggle */}
-              <button
+              <Button unstyled
                 type="button"
                 onClick={() => onToggle(task)}
                 className="shrink-0"
@@ -180,15 +182,15 @@ export function TaskListPanel({
                 >
                   {getTaskStatusLabel(task.status as TaskStatus)}
                 </Badge>
-              </button>
+              </Button>
 
               {/* Delete */}
-              <button
+              <Button unstyled
                 onClick={() => onDelete(task.id)}
                 className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded-full hover:bg-error/10 transition-all"
               >
                 <X size={14} className="text-error" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -239,7 +241,7 @@ export function TaskListPanel({
             <>
               <div>
                 <label className="label-base">Giờ BĐ</label>
-                <input
+                <Input unstyled
                   type="time"
                   value={form.start_time}
                   onChange={(e) => onTimeChange("start_time", e.target.value)}
@@ -248,7 +250,7 @@ export function TaskListPanel({
               </div>
               <div>
                 <label className="label-base">Giờ KT</label>
-                <input
+                <Input unstyled
                   type="time"
                   value={form.end_time}
                   onChange={(e) => onTimeChange("end_time", e.target.value)}
@@ -278,7 +280,7 @@ export function TaskListPanel({
         )}
 
         {/* Add button */}
-        <button
+        <Button unstyled
           onClick={onAdd}
           disabled={submitting || !form.assigned_to}
           className="btn btn-primary w-full mt-3"
@@ -294,7 +296,7 @@ export function TaskListPanel({
               Thêm nhân sự
             </>
           )}
-        </button>
+        </Button>
       </div>
     </>
   );

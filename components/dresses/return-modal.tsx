@@ -14,6 +14,9 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { returnDressRental } from "@/app/actions/rental-mutations";
 import { toast } from "@/lib/toast-utils";
 import { revalidate, cacheKeys } from "@/lib/swr";
@@ -110,15 +113,15 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
   // Footer slot sticky
   const footer = (
     <div className="form-actions">
-      <button type="button" onClick={onClose} className="btn btn-ghost">Đóng</button>
-      <button
+      <Button unstyled type="button" onClick={onClose} className="btn btn-ghost">Đóng</Button>
+      <Button unstyled
         type="button"
         onClick={() => setShowConfirm(true)}
         className="btn btn-primary"
         disabled={saving || !form.return_condition}
       >
         {saving ? "Đang xử lý..." : "Xác nhận trả"}
-      </button>
+      </Button>
     </div>
   );
 
@@ -185,7 +188,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
           {/* Hoàn cọc */}
           {rental.deposit > 0 && (
             <label className="flex items-center gap-3 cursor-pointer p-3 card-base">
-              <input
+              <Input unstyled withBaseStyles={false}
                 type="checkbox"
                 checked={form.deposit_returned}
                 onChange={(e) => update("deposit_returned", e.target.checked)}
@@ -206,7 +209,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
               <StickyNote size={14} className="inline mr-1 text-text-muted" />
               Ghi chú trả
             </label>
-            <textarea
+            <Textarea unstyled
               className="input-base w-full min-h-20 resize-none"
               placeholder="Ghi chú về tình trạng, hư hại chi tiết..."
               value={form.notes}

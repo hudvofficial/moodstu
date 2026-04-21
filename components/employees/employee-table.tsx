@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import type { EmployeeListItem, EmployeeRole } from "@/types/employee";
 import { EMPLOYEE_STATUS_MAP, ROLE_BADGE_MAP } from "@/types/employee-constants";
@@ -16,11 +15,10 @@ import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 
 interface Props {
   employees: EmployeeListItem[];
+  onSelect: (employee: EmployeeListItem) => void;
 }
 
-export default function EmployeeTable({ employees }: Props) {
-  const router = useRouter();
-
+export default function EmployeeTable({ employees, onSelect }: Props) {
   return (
     <TableWrapper>
         <THead>
@@ -44,7 +42,7 @@ export default function EmployeeTable({ employees }: Props) {
             return (
               <TR
                 key={emp.id}
-                onClick={() => router.push(`/employees/${emp.id}`)}
+                onClick={() => onSelect(emp)}
               >
                 <TD>
                   <div className="flex items-center gap-3">
@@ -99,4 +97,3 @@ export default function EmployeeTable({ employees }: Props) {
       </TableWrapper>
   );
 }
-

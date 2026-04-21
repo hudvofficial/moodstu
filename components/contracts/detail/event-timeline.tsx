@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   getEventTypeLabel, isOnSetEvent,
 } from "@/types/contract-constants";
@@ -110,10 +111,10 @@ export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: 
             </div>
           </div>
           {onAddEvent && (
-            <button onClick={onAddEvent} className="btn btn-outline">
+            <Button unstyled onClick={onAddEvent} className="btn btn-outline">
               <Plus size={14} />
               Thêm lịch
-            </button>
+            </Button>
           )}
         </div>
         <div className="py-6 text-center">
@@ -145,10 +146,10 @@ export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: 
           </div>
         </div>
         {onAddEvent && (
-          <button onClick={onAddEvent} className="btn btn-outline">
+          <Button unstyled onClick={onAddEvent} className="btn btn-outline">
             <Plus size={14} />
             Thêm lịch
-          </button>
+          </Button>
         )}
       </div>
 

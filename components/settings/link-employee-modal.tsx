@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
+import { Mail, Loader2 } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import {
   linkUserToEmployee,
   getUnlinkedEmployees,
 } from "@/app/actions/user-management";
-import { Mail, Loader2 } from "lucide-react";
-import { SelectForm } from "@/components/ui/select/SelectForm";
-import Image from "next/image";
-
-/* ═══════════════════════════════════════════
-   Link Employee Modal — V2 Gold Standard
-   V1 logic 100% + SSOT tokens + UnifiedModal
-   ═══════════════════════════════════════════ */
 
 type UnlinkedEmployee = {
   id: string;
@@ -53,14 +48,15 @@ export default function LinkEmployeeModal({
   const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // ─── Fetch unlinked employees khi modal mở (V1 pattern) ───
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    (async () => {
+
+    void (async () => {
       setLoading(true);
       const result = await getUnlinkedEmployees();
       if (cancelled) return;
+
       if (result.success) {
         setEmployees(result.data || []);
         if (suggestedEmployee) {
@@ -71,13 +67,12 @@ export default function LinkEmployeeModal({
       }
       setLoading(false);
     })();
+
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, suggestedEmployee]);
 
-  // Reset khi đóng
   const handleClose = () => {
     setSelectedId("");
     setEmployees([]);
@@ -102,7 +97,7 @@ export default function LinkEmployeeModal({
     });
   };
 
-  const selectedEmp = employees.find((e) => e.id === selectedId);
+  const selectedEmployee = employees.find((employee) => employee.id === selectedId);
 
   return (
     <UnifiedModal
@@ -128,7 +123,6 @@ export default function LinkEmployeeModal({
       }
     >
       <div className="space-y-4">
-        {/* Auth user info */}
         <div className="flex items-center gap-3 p-3 bg-bg-hover rounded-lg">
           <Mail className="w-4 h-4 text-text-secondary" />
           <div>
@@ -139,40 +133,41 @@ export default function LinkEmployeeModal({
           </div>
         </div>
 
-          {loading ? (
-            <div className="h-11 bg-bg-hover rounded-lg animate-pulse mt-1" />
-          ) : (
-            <SelectForm
-              label="Chọn nhân viên"
-              value={selectedId}
-              onChange={setSelectedId}
-              placeholder="— Chọn nhân viên —"
-              options={[
-                ...(suggestedEmployee
-                  ? [
-                      {
-                        value: suggestedEmployee.id,
-                        label: `⭐ ${suggestedEmployee.full_name} (gợi ý - email trùng)`,
-                      },
-                    ]
-                  : []),
-                ...employees
-                  .filter((e) => e.id !== suggestedEmployee?.id)
-                  .map((emp) => ({
-                    value: emp.id,
-                    label: `${emp.full_name}${emp.email ? ` (${emp.email})` : ""}`,
-                  })),
-              ]}
-            />
-          )}
+        {loading ? (
+          <div className="h-11 bg-bg-hover rounded-lg animate-pulse mt-1" />
+        ) : (
+          <SelectForm
+            label="Chọn nhân viên"
+            value={selectedId}
+            onChange={setSelectedId}
+            placeholder="Chọn nhân viên"
+            options={[
+              ...(suggestedEmployee
+                ? [
+                    {
+                      value: suggestedEmployee.id,
+                      label: `⭐ ${suggestedEmployee.full_name} (gợi ý theo email)`,
+                    },
+                  ]
+                : []),
+              ...employees
+                .filter((employee) => employee.id !== suggestedEmployee?.id)
+                .map((employee) => ({
+                  value: employee.id,
+                  label: `${employee.full_name}${
+                    employee.email ? ` (${employee.email})` : ""
+                  }`,
+                })),
+            ]}
+          />
+        )}
 
-        {/* Preview selected employee */}
-        {selectedEmp && (
+        {selectedEmployee && (
           <div className="flex items-center gap-3 p-3 bg-primary/5 ring-1 ring-primary/20 rounded-lg">
-            {selectedEmp.avatar_url ? (
+            {selectedEmployee.avatar_url ? (
               <Image
-                src={selectedEmp.avatar_url}
-                alt={selectedEmp.full_name}
+                src={selectedEmployee.avatar_url}
+                alt={selectedEmployee.full_name}
                 width={40}
                 height={40}
                 className="w-10 h-10 rounded-full object-cover shrink-0"
@@ -181,9 +176,9 @@ export default function LinkEmployeeModal({
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-xs font-bold text-primary">
-                  {selectedEmp.full_name
+                  {selectedEmployee.full_name
                     .split(" ")
-                    .map((w) => w[0])
+                    .map((word) => word[0])
                     .join("")
                     .slice(0, 2)
                     .toUpperCase()}
@@ -192,13 +187,13 @@ export default function LinkEmployeeModal({
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-text-primary truncate">
-                {selectedEmp.full_name}
+                {selectedEmployee.full_name}
               </p>
               <p className="text-xs text-text-secondary truncate">
-                {selectedEmp.email || "Chưa có email"}
+                {selectedEmployee.email || "Chưa có email"}
               </p>
             </div>
-            <span className="badge badge-primary">{selectedEmp.role}</span>
+            <span className="badge badge-primary">{selectedEmployee.role}</span>
           </div>
         )}
       </div>

@@ -1,13 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { Pencil, LogOut } from "lucide-react";
 import type { EmployeeProfile } from "@/types/settings";
-import Image from "next/image";
-
-/* ═══════════════════════════════════════════
-   Profile Card — Avatar + Name + Role + Edit + Logout
-   SSOT: card-base, badge, btn-ghost, lucide icons
-   ═══════════════════════════════════════════ */
 
 interface ProfileCardProps {
   employee: EmployeeProfile;
@@ -16,12 +11,16 @@ interface ProfileCardProps {
   loggingOut?: boolean;
 }
 
-export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: ProfileCardProps) {
-  // Avatar fallback: initials from full_name
+export default function ProfileCard({
+  employee,
+  onEdit,
+  onLogout,
+  loggingOut,
+}: ProfileCardProps) {
   const initials = employee.full_name
     ? employee.full_name
         .split(" ")
-        .map((w) => w[0])
+        .map((word) => word[0])
         .join("")
         .slice(0, 2)
         .toUpperCase()
@@ -30,7 +29,6 @@ export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: 
   return (
     <section className="card-base p-4 lg:p-6">
       <div className="flex items-center gap-4">
-        {/* Avatar */}
         {employee.avatar_url ? (
           <Image
             src={employee.avatar_url}
@@ -46,7 +44,6 @@ export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: 
           </div>
         )}
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-bold text-text-primary truncate">
             {employee.full_name}
@@ -66,7 +63,6 @@ export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: 
           </div>
         </div>
 
-        {/* Actions: Edit + Logout */}
         <div className="flex items-center gap-1 shrink-0">
           {/* eslint-disable-next-line react/forbid-elements -- icon-only action */}
           <button
@@ -94,4 +90,3 @@ export default function ProfileCard({ employee, onEdit, onLogout, loggingOut }: 
     </section>
   );
 }
-

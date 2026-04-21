@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements -- SSOT UI component (combobox) uses native elements internally */
 "use client";
 
 /**
@@ -212,3 +213,5 @@ export function ComboboxSearch({
     </div>
   );
 }
+
+/* eslint-enable react/forbid-elements */

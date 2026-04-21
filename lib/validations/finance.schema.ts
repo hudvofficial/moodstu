@@ -48,13 +48,33 @@ export const createDebtSchema = z.object({
 
 export const updateDebtSchema = createDebtSchema.partial();
 
+const GOAL_ICON_VALUES = [
+  "directions_car",
+  "home",
+  "photo_camera",
+  "computer",
+  "savings",
+  "flight",
+  "school",
+  "storefront",
+] as const;
+
+const GOAL_COLOR_VALUES = ["emerald", "blue", "violet", "amber", "rose"] as const;
+
+const GOAL_STATUS_VALUES = ["active", "completed", "cancelled", "canceled"] as const;
+
 export const createGoalSchema = z.object({
   name: z.string().min(1, "Tên mục tiêu không để trống").trim(),
   target_amount: z.number().positive("Mục tiêu phải > 0"),
   deadline: z.string().date().optional().nullable(),
+  icon: z.enum(GOAL_ICON_VALUES).optional().nullable(),
+  color: z.enum(GOAL_COLOR_VALUES).optional().nullable(),
+  notes: z.string().max(500, "Ghi chú tối đa 500 ký tự").optional().nullable(),
 });
 
-export const updateGoalSchema = createGoalSchema.partial();
+export const updateGoalSchema = createGoalSchema.partial().extend({
+  status: z.enum(GOAL_STATUS_VALUES).optional(),
+});
 
 export const upsertBudgetSchema = z.object({
   category_name: z.string().min(1, "Tên ngân sách không được để trống").trim(),
@@ -76,6 +96,7 @@ export const createInvestmentSchema = z.object({
   depreciation_method: z.string().optional(),
   salvage_value: z.number().min(0).optional(),
   serial_number: z.string().optional().nullable(),
+  linked_revenue: z.number().min(0).optional(),
   location: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   next_maintenance_date: z.string().date().optional().nullable(),

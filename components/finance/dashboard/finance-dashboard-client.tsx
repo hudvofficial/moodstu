@@ -152,7 +152,7 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
             initialYear={props.initialYear}
           />
         </div>
-        
+
         <FinanceIntelligenceSection month={month} year={year} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 mt-4">

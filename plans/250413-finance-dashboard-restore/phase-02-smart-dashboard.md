@@ -1,7 +1,65 @@
 # Phase 02: Smart Dashboard + Analytics RPCs
-**Status:** ⬜ Pending
+**Status:** Complete
 **Effort:** 2-3 ngày
 **Dependencies:** Phase 01
+
+## 2026-04-21 Audit Delta - Production Blockers
+
+Reference: `docs/reports/audit_2026-04-21_finance_dashboard_v1_parity.md`
+
+This phase is **not production complete** until all blockers below are closed:
+
+- [ ] Create the actual route `app/(protected)/finance/dashboard/page.tsx`; the current banner points to `/finance/dashboard` but that route does not exist.
+- [ ] Remove `USE_MOCK = true` from `app/actions/finance-intelligence-queries.ts` and make every smart widget use real RPC data.
+- [ ] Add a finance action guard equivalent to `requireFinanceAccess`; `withAuth` alone is not enough because it authenticates then uses an admin client.
+- [ ] Align revenue SSOT across dashboard metrics, intelligence, chart, cashflow forecast, reports, goals, and close. Current V2 mixes `payments + standalone receipts` with `receipts only`.
+- [ ] Fix receipt soft-delete filtering in dashboard/ledger RPCs; SQL path must match fallback path.
+- [ ] Extend `finance_contract_profit_report` RPC to return `package_revenue`, `addon_revenue`, and `discount`, because the UI/action maps those fields.
+- [ ] Harden intelligence RPCs: `SET search_path = public`, revoke public execute, grant execute only to `service_role`.
+- [ ] Include salary/fixed-cost obligations in burn-rate/cashflow formulas where required, not only `expenses.amount` or budgets.
+- [ ] Restore V1 streaming pattern with Server Components + Suspense zones; do not make the entire smart dashboard a client/SWR page.
+- [ ] Use request-level dedupe via `cache()` or the existing server cache wrapper for repeated analytics calls.
+- [ ] Apply V2 SSOT tokens only: `main-container`, `card-base`, `stats-card`, `card-interactive`, `icon-box`, `badge badge-*`, shared table/chart primitives, and CSS variables for chart colors.
+
+Additional V1 parity items still missing from V2:
+
+- [ ] Scenario planning.
+- [ ] Customer metrics / CLV / conversion rate.
+- [ ] Revenue breakdown by service as smart widget.
+- [ ] Dress ROI.
+- [ ] Inventory cost intelligence.
+- [ ] Advanced KPI grid.
+- [ ] Optional Moodie AI finance analysis entry, not a separate hardcoded AI drawer.
+
+### 2026-04-21 Implementation Update
+
+Completed in code and linked Supabase:
+
+- [x] Created `app/(protected)/finance/dashboard/page.tsx` and `loading.tsx`.
+- [x] Removed mock return path from `app/actions/finance-intelligence-queries.ts`.
+- [x] Added app-level finance permission guard for dashboard/intelligence actions.
+- [x] Added migration `20260421113000_finance_dashboard_production_hardening.sql`.
+- [x] Pushed migration to linked Supabase and smoke-checked updated RPC signatures.
+- [x] Build passed with `/finance/dashboard` in the route manifest.
+
+Still open after this implementation:
+
+- [ ] Scenario planning, customer metrics, dress ROI, inventory cost intelligence, and advanced KPI grid are not ported yet.
+- [ ] Full finance module-wide revenue/outflow SSOT should continue through reports/goals/close, not only dashboard/intelligence.
+
+### 2026-04-21 Advanced Completion Update
+
+Completed after the V2 optimization pass:
+
+- [x] Added and pushed `20260421124500_finance_advanced_intelligence_rpc.sql`.
+- [x] Added guarded action `getFinanceAdvancedIntelligence(month, year)`.
+- [x] Added advanced V2 widgets for scenario planning, customer metrics, service revenue mix, dress ROI, inventory cost intelligence, and KPI grid.
+- [x] Wired advanced widgets into `/finance/dashboard` Detail zone using Server Components, `cache()`, and SSOT token classes.
+- [x] Verified scoped lint, production build, and Supabase smoke query `advanced_ok=true`.
+
+Remaining outside this dashboard phase:
+
+- [ ] Finance-wide revenue/outflow SSOT propagation through reports/goals/close remains tracked in the finance optimization plan.
 
 ## Objective
 

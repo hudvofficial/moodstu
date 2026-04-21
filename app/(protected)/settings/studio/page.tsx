@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getStudioInfoAdmin } from "@/app/actions/settings-queries";
 import StudioInfoForm from "@/components/settings/studio-info-form";
 
+export const dynamic = "force-dynamic";
+
 /* ═══════════════════════════════════════════
    Studio Settings Page — Admin Only
    Server Component with admin guard
@@ -16,7 +18,12 @@ async function StudioDataSection() {
     redirect("/settings");
   }
 
-  return <StudioInfoForm studioInfo={result.data} />;
+  return (
+    <StudioInfoForm
+      studioInfo={result.data.studioInfo}
+      moodieAiSettings={result.data.moodieAiSettings}
+    />
+  );
 }
 
 export default function StudioSettingsPage() {

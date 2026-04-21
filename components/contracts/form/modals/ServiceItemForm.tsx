@@ -6,6 +6,8 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { getAvailableServices } from "@/app/actions/category-actions";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { ItemType } from "@/types/contract";
 
@@ -124,7 +126,7 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
         <p className="text-body-sm font-medium text-text-primary">{editingItem.item_name}</p>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Số lượng">
-            <input type="number" min={1} value={editQty} onChange={(e) => setEditQty(Number(e.target.value) || 1)} className="input-base" />
+            <Input type="number" min={1} value={editQty} onChange={(e) => setEditQty(Number(e.target.value) || 1)} />
           </Field>
           <Field label="Đơn giá">
             <CurrencyInput value={editPrice} onChange={setEditPrice} />
@@ -134,7 +136,7 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
           </Field>
         </div>
         <Field label="Ghi chú">
-          <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Ghi chú..." className="input-base" />
+          <Input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Ghi chú..." />
         </Field>
         <p className="form-total">Thành tiền: {formatCurrency(Math.max(0, total))} {CURRENCY_SYMBOL}</p>
         <ModalActions onCancel={onClose} onSubmit={handleEditSubmit} label="Lưu" />
@@ -148,12 +150,12 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
       {/* Search */}
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-        <input
+        <Input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Tìm dịch vụ..."
-          className="input-base pl-10"
+          className="pl-10"
           autoFocus
         />
       </div>
@@ -168,11 +170,13 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
         {!isSearching && results.map((svc) => {
           const isSelected = selected.some((s) => s.id === svc.id);
           return (
-            <button
+            <Button
               key={svc.id}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => toggleService(svc)}
-              className={`flex w-full items-center justify-between rounded-radius-sm px-3 py-2 text-left transition-colors ${
+              className={`flex w-full items-center justify-between rounded-radius-sm !px-3 !py-2 text-left transition-colors ${
                 isSelected ? "bg-interactive-light" : "hover:bg-bg-hover"
               }`}
             >
@@ -183,7 +187,7 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
               {isSelected && (
                 <span className="ml-2 text-caption font-semibold text-interactive">✓</span>
               )}
-            </button>
+            </Button>
           );
         })}
         {!isSearching && results.length === 0 && (
@@ -192,14 +196,16 @@ export function ServiceItemForm({ isEditing, editingItem, onAdd, onEdit, onClose
       </div>
 
       {/* Quick create link */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onOpenCreateService}
-        className="mt-2 flex w-full items-center gap-1.5 border-t border-border-light px-3 py-2 text-caption font-medium text-interactive hover:bg-interactive-light transition-colors"
+        className="mt-2 flex w-full items-center justify-start gap-1.5 border-t border-border-light !px-3 !py-2 text-caption font-medium text-interactive hover:bg-interactive-light transition-colors"
       >
         <Plus className="h-3.5 w-3.5" />
         Tạo dịch vụ mới
-      </button>
+      </Button>
 
       {/* Batch add footer */}
       {selected.length > 0 && (
@@ -238,12 +244,12 @@ function ModalActions({
 }) {
   return (
     <div className="form-actions mt-4">
-      <button type="button" onClick={onCancel} className="btn btn-ghost">
+      <Button type="button" variant="ghost" onClick={onCancel}>
         {cancelLabel}
-      </button>
-      <button type="button" onClick={onSubmit} className="btn btn-interactive">
+      </Button>
+      <Button type="button" variant="interactive" onClick={onSubmit}>
         {label}
-      </button>
+      </Button>
     </div>
   );
 }

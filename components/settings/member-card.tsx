@@ -3,12 +3,7 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  AlertCircle,
-  Link2,
-  Shield,
-  Unlink,
-} from "lucide-react";
+import { AlertCircle, Link2, Shield, Unlink } from "lucide-react";
 import {
   updateUserRole,
   unlinkUserFromEmployee,
@@ -45,7 +40,7 @@ export default function MemberCard({
   const avatarUrl = linked?.avatar_url;
   const initials = displayName
     .split(" ")
-    .map((w) => w[0])
+    .map((word) => word[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
@@ -61,7 +56,7 @@ export default function MemberCard({
         toast.success(result.data.message);
         onRefresh();
       } else {
-        toast.error(result.error || "Loi cap nhat quyen");
+        toast.error(result.error || "Lỗi cập nhật quyền");
       }
     });
   };
@@ -74,7 +69,7 @@ export default function MemberCard({
         toast.success(result.data.message);
         onRefresh();
       } else {
-        toast.error(result.error || "Loi huy lien ket");
+        toast.error(result.error || "Lỗi hủy liên kết");
       }
     });
   };
@@ -108,7 +103,7 @@ export default function MemberCard({
                 {displayName}
               </p>
               {isCurrentUser && (
-                <span className="text-tiny text-primary font-bold">(Ban)</span>
+                <span className="text-tiny text-primary font-bold">(Bạn)</span>
               )}
             </div>
             <p className="text-xs text-text-muted truncate">{user.email}</p>
@@ -125,12 +120,12 @@ export default function MemberCard({
                 <div className="flex items-center gap-1">
                   <AlertCircle className="w-3 h-3 text-warning shrink-0" />
                   <span className="text-tiny text-warning">
-                    Chua lien ket ho so nhan vien
+                    Chưa liên kết hồ sơ nhân viên
                   </span>
                 </div>
                 {user.suggested_employee && (
                   <p className="text-tiny text-text-muted">
-                    Co goi y lien ket theo email:{" "}
+                    Có gợi ý liên kết theo email:{" "}
                     <span className="font-medium text-text-secondary">
                       {user.suggested_employee.full_name}
                     </span>
@@ -157,8 +152,8 @@ export default function MemberCard({
                 onClick={handleUnlink}
                 disabled={isPending || isCurrentUser}
                 className="icon-btn w-8! h-8! hover:bg-red-50! hover:text-red-500!"
-                title="Huy lien ket"
-                aria-label={`Huy lien ket ${linked.full_name}`}
+                title="Hủy liên kết"
+                aria-label={`Hủy liên kết ${linked.full_name}`}
               >
                 <Unlink className="w-3.5 h-3.5" />
               </button>
@@ -168,8 +163,8 @@ export default function MemberCard({
                 onClick={() => setLinkOpen(true)}
                 disabled={isPending}
                 className="icon-btn w-8! h-8! hover:bg-primary/10! hover:text-primary!"
-                title="Lien ket nhan vien"
-                aria-label={`Lien ket ${user.email} voi nhan vien`}
+                title="Liên kết nhân viên"
+                aria-label={`Liên kết ${user.email} với nhân viên`}
               >
                 <Link2 className="w-3.5 h-3.5" />
               </button>

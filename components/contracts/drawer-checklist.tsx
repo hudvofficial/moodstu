@@ -11,6 +11,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 // ─── TYPES ───────────────────────────────────
 
@@ -177,7 +178,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
           return (
             <div key={cat}>
               {/* Category header */}
-              <button
+              <Button unstyled
                 onClick={() => toggleExpand(cat)}
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-hover/30 ${style.bg}`}
               >
@@ -194,7 +195,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                 }`}>
                   {catDone === catItems.length ? "✓ " : ""}{catDone}/{catItems.length}
                 </span>
-              </button>
+              </Button>
 
               {/* Items */}
               {isExpanded && (

@@ -53,6 +53,77 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_preview: string | null
+          locked_by: string | null
+          locked_until: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_preview?: string | null
+          locked_by?: string | null
+          locked_until?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_preview?: string | null
+          locked_by?: string | null
+          locked_until?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           attendance_code: string | null
@@ -3406,6 +3477,30 @@ export type Database = {
           },
         ]
       }
+      system_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       studio_info: {
         Row: {
           address: string | null
@@ -3842,9 +3937,36 @@ export type Database = {
         }
         Returns: Json
       }
+      process_contract_payment_v2: {
+        Args: {
+          p_amount: number
+          p_category_id?: string
+          p_contract_id: string
+          p_created_by?: string
+          p_notes?: string
+          p_payment_date: string
+          p_payment_method: Database["public"]["Enums"]["payment_method_enum"]
+          p_payment_plan_id?: string
+          p_payment_stage?: string
+          p_update_total?: boolean
+        }
+        Returns: Json
+      }
       recalc_contract_totals: {
         Args: { p_contract_id: string }
         Returns: undefined
+      }
+      save_contract_atomic: {
+        Args: {
+          p_actor_id: string
+          p_contract: Json
+          p_customer: Json
+          p_existing_contract_id?: string
+          p_expected_updated_at?: string
+          p_initial_payment?: Json
+          p_items: Json
+        }
+        Returns: Json
       }
       undo_contribution_atomic: {
         Args: { p_contribution_id: string }

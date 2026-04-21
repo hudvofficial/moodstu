@@ -9,7 +9,6 @@ CREATE INDEX IF NOT EXISTS idx_contracts_status_active
   ON public.contracts(status) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_contracts_remaining_active
   ON public.contracts(remaining_amount) WHERE deleted_at IS NULL;
-
 CREATE OR REPLACE FUNCTION public.finance_dashboard_metrics(
   p_month INT,
   p_year INT
@@ -67,7 +66,6 @@ BEGIN
       WHERE deleted_at IS NULL AND remaining_amount > 0), 0) AS total_debt;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 CREATE OR REPLACE FUNCTION public.finance_revenue_by_month(
   p_year INT
 ) RETURNS TABLE (
@@ -104,7 +102,6 @@ BEGIN
   ORDER BY m.month_start;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 CREATE OR REPLACE FUNCTION public.finance_service_distribution(
   p_month INT,
   p_year INT
@@ -134,7 +131,6 @@ BEGIN
   ORDER BY 2 DESC, 3 DESC;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 CREATE OR REPLACE FUNCTION public.finance_contract_profit_report(
   p_status TEXT DEFAULT 'all',
   p_from DATE DEFAULT NULL,
@@ -233,7 +229,6 @@ BEGIN
   FROM enriched e;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 CREATE OR REPLACE FUNCTION public.finance_ledger(
   p_page INT DEFAULT 1,
   p_page_size INT DEFAULT 20,
@@ -345,13 +340,11 @@ BEGIN
   FROM counted c;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 REVOKE ALL ON FUNCTION public.finance_dashboard_metrics(INT, INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.finance_revenue_by_month(INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.finance_service_distribution(INT, INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.finance_contract_profit_report(TEXT, DATE, DATE, INT, INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.finance_ledger(INT, INT, INT, INT, TEXT) FROM PUBLIC;
-
 GRANT EXECUTE ON FUNCTION public.finance_dashboard_metrics(INT, INT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.finance_revenue_by_month(INT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.finance_service_distribution(INT, INT) TO service_role;

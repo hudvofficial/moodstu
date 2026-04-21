@@ -25,8 +25,9 @@ import { CSS } from "@dnd-kit/utilities";
 import type { CrmLead } from "@/types/crm";
 import { PIPELINE_STAGES, LEAD_STATUS_MAP, POTENTIAL_MAP } from "@/types/crm";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
-import { Phone, Ticket } from "lucide-react";
+import { GripVertical, Phone, Ticket } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // PipelineBoard — Zero-Lag Kanban
@@ -39,6 +40,7 @@ import { Phone, Ticket } from "lucide-react";
 interface PipelineBoardProps {
   leads: CrmLead[];
   onStatusChange: (leadId: string, newStatus: string) => Promise<void>;
+  onOpenLead?: (leadId: string) => void;
 }
 
 // Helper to group leads by status
@@ -56,7 +58,11 @@ function groupLeadsByStatus(deals: CrmLead[]) {
   return grouped;
 }
 
-export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardProps) {
+export default function PipelineBoard({
+  leads,
+  onStatusChange,
+  onOpenLead,
+}: PipelineBoardProps) {
   // Local state for optimistic UI updates during drag
   const [columns, setColumns] = useState<Record<string, CrmLead[]>>(() => groupLeadsByStatus(leads));
   const [prevLeads, setPrevLeads] = useState(leads);
@@ -177,7 +183,7 @@ export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardPr
   );
 
   return (
-    <div className="flex h-[calc(100vh-220px)] w-full gap-4 overflow-x-auto pb-4 custom-scrollbar">
+    <div className="grid w-full min-w-0 grid-cols-1 items-start gap-4 pb-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -191,6 +197,7 @@ export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardPr
             id={stage}
             title={LEAD_STATUS_MAP[stage].label}
             leads={columns[stage] || []}
+            onOpenLead={onOpenLead}
           />
         ))}
 
@@ -205,9 +212,19 @@ export default function PipelineBoard({ leads, onStatusChange }: PipelineBoardPr
 
 // ─── COLUMN COMPONENT ────────────────────────────────────
 
-function PipelineColumn({ id, title, leads }: { id: string; title: string; leads: CrmLead[] }) {
+function PipelineColumn({
+  id,
+  title,
+  leads,
+  onOpenLead,
+}: {
+  id: string;
+  title: string;
+  leads: CrmLead[];
+  onOpenLead?: (leadId: string) => void;
+}) {
   return (
-    <div className="flex w-[320px] shrink-0 flex-col rounded-xl bg-bg-sidebar shadow-xs">
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl bg-bg-sidebar shadow-xs lg:max-h-[calc(100vh-220px)]">
       <div className="flex items-center justify-between p-3 border-b border-border">
         <h3 className="font-semibold text-text-primary text-sm">{title}</h3>
         <Badge variant="neutral" className="text-xs">
@@ -215,15 +232,19 @@ function PipelineColumn({ id, title, leads }: { id: string; title: string; leads
         </Badge>
       </div>
 
-      <div className="flex-1 p-2 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 p-2 lg:overflow-y-auto lg:custom-scrollbar">
         <SortableContext
           id={id}
           items={leads.map((l) => l.id)}
-          strategy={verticalListSortingStrategy}
+            strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-2 min-h-[100px]">
             {leads.map((lead) => (
-              <SortablePipelineCard key={lead.id} lead={lead} />
+              <SortablePipelineCard
+                key={lead.id}
+                lead={lead}
+                onOpenLead={onOpenLead}
+              />
             ))}
           </div>
         </SortableContext>
@@ -234,11 +255,18 @@ function PipelineColumn({ id, title, leads }: { id: string; title: string; leads
 
 // ─── CARD COMPONENT ──────────────────────────────────────
 
-function SortablePipelineCard({ lead }: { lead: CrmLead }) {
+function SortablePipelineCard({
+  lead,
+  onOpenLead,
+}: {
+  lead: CrmLead;
+  onOpenLead?: (leadId: string) => void;
+}) {
   const {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -270,39 +298,94 @@ function SortablePipelineCard({ lead }: { lead: CrmLead }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className="touch-none" // Required to prevent scrolling while dragging on touch devices
+      className="min-w-0"
     >
-      <PipelineCard lead={lead} />
+      <PipelineCard
+        lead={lead}
+        onClick={onOpenLead ? () => onOpenLead(lead.id) : undefined}
+        dragHandle={
+          <Button
+            ref={setActivatorNodeRef}
+            unstyled
+            type="button"
+            {...attributes}
+            {...listeners}
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex h-7 w-7 touch-none items-center justify-center rounded-md border border-border/60 text-text-muted transition-colors hover:bg-bg-input hover:text-text-primary active:cursor-grabbing"
+            aria-label={`Kéo lead ${lead.contact_name}`}
+            title="Kéo để đổi giai đoạn"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
     </div>
   );
 }
 
-function PipelineCard({ lead, isOverlay }: { lead: CrmLead; isOverlay?: boolean }) {
+function PipelineCard({
+  lead,
+  isOverlay,
+  onClick,
+  dragHandle,
+}: {
+  lead: CrmLead;
+  isOverlay?: boolean;
+  onClick?: () => void;
+  dragHandle?: React.ReactNode;
+}) {
   const potentialInfo = lead.potential ? POTENTIAL_MAP[lead.potential] : null;
+  const interactiveProps = onClick
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
 
   return (
     <div
-      className={`relative flex flex-col gap-2 rounded-xl border border-border bg-bg-card p-3 
-      ${isOverlay ? "shadow-lg scale-105 cursor-grabbing" : "shadow-xs cursor-grab hover:border-text-muted"}`}
+      {...interactiveProps}
+      className={`relative flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-bg-card p-3 
+      ${
+        isOverlay
+          ? "scale-105 cursor-grabbing shadow-lg"
+          : onClick
+            ? "cursor-pointer shadow-xs hover:border-text-muted"
+            : "shadow-xs"
+      }`}
     >
-      <div className="flex items-start justify-between">
-        <p className="text-sm font-semibold text-text-primary truncate">{lead.contact_name}</p>
-        {potentialInfo && (
-          <Badge
-            variant={
-              lead.potential === "hot" ? "error" : lead.potential === "warm" ? "warning" : "neutral"
-            }
-            className="px-1.5 py-0 text-xs"
-          >
-            {potentialInfo.label}
-          </Badge>
-        )}
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <p className="min-w-0 truncate text-sm font-semibold text-text-primary">
+          {lead.contact_name}
+        </p>
+        <div className="flex shrink-0 items-center gap-1">
+          {potentialInfo && (
+            <Badge
+              variant={
+                lead.potential === "hot"
+                  ? "error"
+                  : lead.potential === "warm"
+                    ? "warning"
+                    : "neutral"
+              }
+              className="shrink-0 px-1.5 py-0 text-xs"
+            >
+              {potentialInfo.label}
+            </Badge>
+          )}
+          {!isOverlay ? dragHandle : null}
+        </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-text-secondary mt-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <Phone className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">{lead.phone || "---"}</span>
         </div>

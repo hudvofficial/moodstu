@@ -15,6 +15,7 @@ interface TabsFilterProps {
   className?: string;
   /** "tabs" = segmented control (default), "pills" = flat pills for inline scroll */
   variant?: "tabs" | "pills";
+  size?: "default" | "compact";
 }
 
 /**
@@ -23,9 +24,10 @@ interface TabsFilterProps {
  * - pills: Flat pills, no container, no own scroll — sits inside parent scroll (contracts mobile)
  */
 export function TabsFilter({
-  tabs, activeTab, onChange, className = "", variant = "tabs",
+  tabs, activeTab, onChange, className = "", variant = "tabs", size = "default",
 }: TabsFilterProps) {
   const isPills = variant === "pills";
+  const isCompact = size === "compact";
 
   return (
     <div
@@ -52,7 +54,8 @@ export function TabsFilter({
               }
             }}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap shrink-0 select-none cursor-pointer",
+              "rounded-md transition-colors whitespace-nowrap shrink-0 select-none cursor-pointer",
+              isCompact ? "px-3 py-1 text-caption font-semibold" : "px-4 py-1.5 text-sm font-medium",
               isPills
                 ? isActive
                   ? "bg-primary text-white shadow-sm"

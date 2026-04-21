@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS public.finance_monthly_closes (
   updated_at TIMESTAMPTZ DEFAULT now(),
   CONSTRAINT unique_close_period UNIQUE(period)
 );
-
 -- 2. Close Tasks (8-step workflow)
 CREATE TABLE IF NOT EXISTS public.finance_close_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -34,14 +33,12 @@ CREATE TABLE IF NOT EXISTS public.finance_close_tasks (
   updated_at TIMESTAMPTZ DEFAULT now(),
   CONSTRAINT unique_close_step UNIQUE(close_id, step_number)
 );
-
 -- 3. RLS — Admin-only via service_role (all finance reads/writes through withAdmin)
 ALTER TABLE public.finance_monthly_closes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "service_role_closes"
   ON public.finance_monthly_closes FOR ALL
   TO service_role
   USING (true) WITH CHECK (true);
-
 -- NO authenticated read policy: Finance is admin-only module
 
 ALTER TABLE public.finance_close_tasks ENABLE ROW LEVEL SECURITY;
@@ -49,5 +46,4 @@ CREATE POLICY "service_role_close_tasks"
   ON public.finance_close_tasks FOR ALL
   TO service_role
   USING (true) WITH CHECK (true);
-
--- NO authenticated read policy: Finance is admin-only module
+-- NO authenticated read policy: Finance is admin-only module;

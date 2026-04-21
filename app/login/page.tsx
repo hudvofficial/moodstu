@@ -7,6 +7,7 @@ import { login } from "@/app/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import LoginTransition, { LoginSkeleton } from "@/components/auth/login-transition";
 import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ export default function LoginPage() {
             </h3>
             <div className="mt-6 flex items-center gap-4">
               <div className="h-px w-12 bg-white/40" />
-              <p className="text-white/70 font-medium tracking-[0.2em] text-[10px] uppercase">
+              <p className="text-white/70 font-medium tracking-[0.2em] text-caption uppercase">
                 Premium Wedding SaaS Solution
               </p>
             </div>
@@ -112,7 +113,7 @@ export default function LoginPage() {
                 </div>
                 <div className="text-center space-y-1 w-full flex flex-col items-center">
                   <h1 className="text-h1 block w-full">Mood Studio</h1>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.5em] block w-full">Hệ thống Quản lý V2</p>
+                  <p className="text-caption font-bold text-text-muted uppercase tracking-[0.5em] block w-full">Hệ thống Quản lý V2</p>
                 </div>
               </header>
 
@@ -144,7 +145,7 @@ export default function LoginPage() {
                       href="https://zalo.me/0976317031" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-[11px] font-bold text-primary/70 hover:text-primary transition-colors"
+                      className="text-caption font-bold text-primary/70 hover:text-primary transition-colors"
                     >
                       Quên mật khẩu?
                     </a>
@@ -159,13 +160,15 @@ export default function LoginPage() {
                     className="pl-11 pr-12"
                   />
                   <Lock className="absolute left-4 top-[38px] w-4 h-4 text-text-muted" />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-[38px] text-text-muted hover:text-text-primary transition-colors"
+                    className="absolute right-4 top-[38px] !p-0 !h-auto !w-auto text-text-muted hover:text-text-primary hover:bg-transparent transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -173,12 +176,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between px-1">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      name="rememberMe"
-                      className="peer h-4 w-4 appearance-none rounded-md border border-border bg-white checked:bg-primary/10 checked:border-primary transition-all focus:outline-none cursor-pointer"
-                      defaultChecked
-                    />
+                    <Checkbox name="rememberMe" defaultChecked />
                     <svg className="absolute w-3 h-3 text-primary hidden peer-checked:block pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
@@ -207,7 +205,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <footer className="pb-8 lg:pb-12 text-center space-y-6">
-              <p className="text-[11px] font-medium text-text-muted">
+              <p className="text-caption font-medium text-text-muted">
                 Bạn chưa có quyền truy cập?{" "}
                 <a href="https://zalo.me/0976317031" target="_blank" rel="noopener noreferrer" className="font-bold text-primary hover:underline">
                   Liên hệ Quản trị viên

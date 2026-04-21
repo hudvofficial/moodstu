@@ -61,6 +61,10 @@
   box-shadow: inset 3px 0 0 var(--color-interactive);
 }
 
+.inset-divider {
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
 /* ══════════════════════════════════════
    6. TEXT COLOR UTILITIES (interactive palette)
    Tailwind v4 @theme KHÔNG tự sinh text-* từ --color-*.

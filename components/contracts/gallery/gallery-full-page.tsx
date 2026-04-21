@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { reorderImages } from "@/app/actions/gallery-actions";
 import GalleryImageGrid from "./gallery-image-grid";
 import GalleryImageList from "./gallery-image-list";
 import GalleryLightbox from "./gallery-lightbox";
 import GalleryToolbar from "./gallery-toolbar";
 import { useModal } from "@/lib/context/modal-context";
-import { ShareGalleryModalContent } from "./share-gallery-modal";
 import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { FOLDER_LABELS } from "./gallery-helpers";
@@ -46,16 +44,10 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
 
   useEffect(() => {
     setHeaderSlots({
-      leftSlot: (
-        <Link href={`/contracts/${contractId}`} className="lg:hidden btn-icon shrink-0">
-          <ArrowLeft size={20} />
-        </Link>
-      ),
-      titleOverride: galleryTitle,
       hideSearch: true,
     });
     return () => setHeaderSlots({});
-  }, [setHeaderSlots, contractId, galleryTitle]);
+  }, [setHeaderSlots, contractId]);
 
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const { openModal } = useModal();
@@ -64,15 +56,10 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
   const handleOpenShare = () => {
     if (!activeGallery?.access_url) return;
     openModal("SHARE_GALLERY", {
-      title: "Chia sẻ album",
-      content: (
-        <ShareGalleryModalContent
-          accessUrl={activeGallery.access_url}
-          galleryId={activeGallery.id}
-          galleryTitle={activeGallery.title || "Album"}
-          hasPassword={hasPassword}
-        />
-      ),
+      accessUrl: activeGallery.access_url,
+      galleryId: activeGallery.id,
+      galleryTitle: activeGallery.title || "Album",
+      hasPassword,
     });
   };
 
@@ -84,6 +71,11 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     const orderedIds = newGroups.map((g) => g.displayImage.id);
     void reorderImages(orderedIds);
   }, [filteredGroups]);
+  const reorderEnabled = viewMode === "list"
+    && sortBy === "manual"
+    && fileFilter === "all"
+    && activeFilter === "all"
+    && activeAlbumId === null;
 
   if (loading) {
     return (
@@ -97,6 +89,11 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     <div className="min-h-screen bg-bg-base">
       {/* ── Sticky Header Block ── */}
       <GalleryToolbar
+        breadcrumbItems={[
+          { label: "Hợp đồng", href: "/contracts" },
+          { label: "Chi tiết", href: `/contracts/${contractId}` },
+          { label: galleryTitle },
+        ]}
         galleries={galleries}
         images={images}
         groupedImages={groupedImages}
@@ -108,7 +105,6 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         selectedCount={selectedCount}
         totalHearts={totalHearts}
         commentCount={commentCount}
-        hasPassword={hasPassword}
         viewMode={viewMode}
         sortBy={sortBy}
         watermarkOn={watermarkOn}
@@ -139,6 +135,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
           reactionCounts={reactionCounts}
           onToggleStar={handleToggleStar}
           watermarkEnabled={watermarkOn}
+          draggable={reorderEnabled}
+          onReorder={reorderEnabled ? handleReorder : undefined}
         />
       ) : (
         <GalleryImageGrid
@@ -147,8 +145,6 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
           reactionCounts={reactionCounts}
           onToggleStar={handleToggleStar}
           watermarkEnabled={watermarkOn}
-          draggable
-          onReorder={handleReorder}
           onLoadMore={loadMoreImages}
           loadingMore={loadingMore}
           hasMore={hasMoreImages}
@@ -159,10 +155,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
       {lightboxIdx !== null && displayImages[lightboxIdx] && (
         <GalleryLightbox
           images={displayImages}
-          currentIdx={lightboxIdx}
+          initialIdx={lightboxIdx}
           onClose={() => setLightboxIdx(null)}
-          onPrev={() => setLightboxIdx(lightboxIdx - 1)}
-          onNext={() => setLightboxIdx(lightboxIdx + 1)}
         />
       )}
     </div>

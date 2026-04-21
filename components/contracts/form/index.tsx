@@ -16,6 +16,8 @@ import { FullpageFormShell } from "@/components/layout/fullpage-form-shell";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import type { ContractFormMode } from "@/types/contract-form";
 
 // ═══════════════════════════════════════════
@@ -79,12 +81,12 @@ export default function ContractForm({ mode, contractId }: Props) {
       <div className="flex min-h-screen items-center justify-center">
         <div className="mx-auto max-w-2xl rounded-radius-md bg-error/10 p-6 text-center">
           <p className="text-body text-error">{form.errors.load}</p>
-          <button
+          <Button unstyled
             onClick={() => form.handleCancel()}
             className="btn btn-interactive mt-4"
           >
             Quay lại
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -169,7 +171,7 @@ export default function ContractForm({ mode, contractId }: Props) {
         {/* Section 6: Notes */}
         <section className="card-base p-6 space-y-4">
           <h3 className="form-section-heading">6. Ghi chú</h3>
-          <textarea
+          <Textarea unstyled
             value={form.formData.notes}
             onChange={(e) => form.updateField("notes", e.target.value)}
             placeholder="Ghi chú nội bộ hoặc yêu cầu đặc biệt từ khách hàng..."

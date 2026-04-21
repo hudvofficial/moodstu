@@ -1,17 +1,12 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import type { WorkingHours } from "@/types/settings";
-
-/* ═══════════════════════════════════════════
-   Studio Hours Section — Working hours JSONB fields
-   Sub-component of StudioInfoForm
-   ═══════════════════════════════════════════ */
 
 interface StudioHoursSectionProps {
   workingHours: WorkingHours;
-  setWorkingHours: (v: WorkingHours) => void;
+  setWorkingHours: (value: WorkingHours) => void;
 }
 
 export default function StudioHoursSection({
@@ -34,14 +29,14 @@ export default function StudioHoursSection({
           id="hours-weekday"
           label="Thứ 2 - Thứ 6"
           value={workingHours.monday_friday || ""}
-          onChange={(e) => updateField("monday_friday", e.target.value)}
+          onChange={(event) => updateField("monday_friday", event.target.value)}
           placeholder="08:00 - 17:30"
         />
         <Input
           id="hours-weekend"
-          label="Thứ 7 - CN"
+          label="Thứ 7 - Chủ nhật"
           value={workingHours.saturday_sunday || ""}
-          onChange={(e) => updateField("saturday_sunday", e.target.value)}
+          onChange={(event) => updateField("saturday_sunday", event.target.value)}
           placeholder="09:00 - 12:00"
         />
       </div>

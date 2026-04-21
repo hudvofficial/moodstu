@@ -88,7 +88,7 @@ export default function ServiceDetailsBlock({
                     <TR
                       key={item.id}
                       className={idx < items.length - 1
-                        ? "shadow-[inset_0_-1px_0_var(--color-border)]"
+                        ? "inset-divider"
                         : ""}
                     >
                       <TD className="px-6">

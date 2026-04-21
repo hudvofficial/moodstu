@@ -23,6 +23,11 @@ const APP_VIEW_PATTERNS = [
   /^\/calendar(\/.*)?$/,
 ];
 
+// Routes that keep Header but lock the page viewport like a workspace
+const CHAT_VIEW_PATTERNS = [
+  /^\/moodie(\/.*)?$/,
+];
+
 // Routes that keep Header (via HeaderSlotsContext) but hide BottomNav
 // (form pages have their own fixed footer: Hủy / Lưu nháp / Tạo HĐ)
 const FORM_PAGE_PATTERNS = [
@@ -52,6 +57,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
   const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
   const isAppView = APP_VIEW_PATTERNS.some(p => p.test(pathname));
+  const isChatView = CHAT_VIEW_PATTERNS.some(p => p.test(pathname));
   const isFormPage = FORM_PAGE_PATTERNS.some(p => p.test(pathname));
   const isNoPadding = NO_PADDING_PATTERNS.some(p => p.test(pathname));
 
@@ -110,9 +116,11 @@ export function AppShell({ children, role, userName }: AppShellProps) {
               id="main-scroll"
               className={cn(
               "flex-1 scroll-smooth flex flex-col min-h-0",
-              isAppView ? "overflow-hidden" : "overflow-y-auto",
+              isAppView || isChatView ? "overflow-hidden" : "overflow-y-auto",
               isFullpage
                 ? "" // FullpageFormShell handles its own padding
+                : isChatView
+                  ? "p-0"
                 : isFormPage
                   ? "px-2 py-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
                   : isNoPadding
@@ -123,7 +131,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                 {children}
             </main>
 
-            {!(isFullpage || isFormPage) && <BottomNav />}
+            {!(isFullpage || isFormPage || isChatView) && <BottomNav />}
           </ScrollContainerProvider>
         </HeaderSlotsProvider>
       </div>

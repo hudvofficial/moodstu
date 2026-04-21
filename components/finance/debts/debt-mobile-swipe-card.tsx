@@ -5,6 +5,7 @@ import { CheckCircle, QrCode, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
 import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
+import { Badge } from "@/components/ui/badge";
 import { getDebtBadge } from "@/components/finance/debts/debt-desktop-table";
 import { DebtQrPaymentModal } from "@/components/finance/debts/debt-qr-payment-modal";
 import type { DebtListItem } from "@/types/finance-operations";
@@ -111,16 +112,16 @@ export function DebtMobileSwipeCard({
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="tag-badge shrink-0">{item.entity_type} {item.type}</span>
-                                {item.platform && <span className="tag-badge shrink-0 text-[10px] uppercase text-text-muted">{item.platform.replace("_", " ")}</span>}
+                                {item.platform && <span className="tag-badge shrink-0 text-tiny uppercase text-text-muted">{item.platform.replace("_", " ")}</span>}
                                 <span className="text-caption text-text-muted truncate">Hạn: {formatFinanceDate(item.due_date)}</span>
                             </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
-                            <span className={`${badge.className} shrink-0`}>
+                            <Badge variant={badge.variant} className="shrink-0">
                                 {badge.label}
-                            </span>
+                            </Badge>
                             {item.installment_total ? (
-                                <span className="text-[10px] font-medium text-text-muted bg-bg-hover px-1.5 py-0.5 rounded-sm border border-border/50 shrink-0">
+                                <span className="text-tiny font-medium text-text-muted bg-bg-hover px-1.5 py-0.5 rounded-sm border border-border/50 shrink-0">
                                     Kỳ {(item.installment_paid || 0)}/{item.installment_total}
                                 </span>
                             ) : null}
@@ -131,7 +132,7 @@ export function DebtMobileSwipeCard({
                         <div className="text-caption text-text-muted min-w-0 flex-1">
                             Gốc {formatVnd(item.amount)}
                         </div>
-                        <div className="text-amount tabular-nums text-right font-bold text-h3 shrink-0">
+                        <div className="text-amount tabular-nums text-right font-bold text-body shrink-0">
                             {formatVnd(item.remaining)}
                         </div>
                     </div>

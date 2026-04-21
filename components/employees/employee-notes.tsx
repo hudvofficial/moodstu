@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { FileText, Check, Loader2 } from "lucide-react";
 import { updateEmployeeNotes } from "@/app/actions/employee-mutations";
+import { Textarea } from "@/components/ui/textarea";
 
 // ═══════════════════════════════════════════
 // EmployeeNotes — Auto-save notes textarea
@@ -75,7 +76,7 @@ export default function EmployeeNotes({ employeeId, initialNotes }: Props) {
           </span>
         )}
       </div>
-      <textarea
+      <Textarea unstyled
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Ghi chú về nhân viên..."

@@ -2,6 +2,7 @@
 
 import { useState, memo } from "react";
 import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * NotificationBell — Header notification icon
@@ -16,15 +17,17 @@ function NotificationBell() {
 
   return (
     <div className="relative">
-      <button
-        className="icon-btn relative"
+      <Button
+        type="button"
+        variant="icon"
+        className="relative"
         aria-label="Thông báo"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
           <span className="absolute top-2 right-2 size-2 rounded-full bg-error" />
         )}
-      </button>
+      </Button>
     </div>
   );
 }

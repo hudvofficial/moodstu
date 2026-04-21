@@ -2,6 +2,9 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { createPaymentReceipt, getTransactionCategories } from "@/app/actions/payment-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
@@ -208,7 +211,7 @@ export default function PaymentReceiptForm({
           <label className="label-base mb-1 block">Hình thức</label>
           <div className="flex gap-2">
             {(["tien_mat", "chuyen_khoan"] as const).map((m) => (
-              <button
+              <Button unstyled
                 key={m}
                 type="button"
                 onClick={() => setMethod(m)}
@@ -220,7 +223,7 @@ export default function PaymentReceiptForm({
                 style={method === m ? { background: themeColor } : undefined}
               >
                 {m === "tien_mat" ? "Tiền mặt" : "Chuyển khoản"}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -241,7 +244,7 @@ export default function PaymentReceiptForm({
           <label className="label-base mb-1 block">
             {isFullyPaid ? "Lý do phát sinh *" : "Ghi chú"}
           </label>
-          <textarea
+          <Textarea unstyled
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={isFullyPaid ? "Nhập lý do phát sinh..." : "Ghi chú thêm..."}
@@ -253,8 +256,7 @@ export default function PaymentReceiptForm({
         {/* Update total checkbox (phát sinh only) */}
         {isFullyPaid && (
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={updateTotal}
               onChange={(e) => setUpdateTotal(e.target.checked)}
               className="w-4 h-4 rounded"
@@ -267,20 +269,20 @@ export default function PaymentReceiptForm({
 
         {/* Actions */}
         <div className="form-actions">
-          <button
+          <Button unstyled
             onClick={() => { resetForm(); onClose(); }}
             className="btn btn-outline"
           >
             Đóng
-          </button>
-          <button
+          </Button>
+          <Button unstyled
             onClick={handleSubmit}
             disabled={loading || amount <= 0}
             className="btn btn-primary disabled:opacity-50"
             style={{ background: themeColor }}
           >
             {loading ? "Đang xử lý..." : isFullyPaid ? "Tạo phát sinh" : "Tạo phiếu thu"}
-          </button>
+          </Button>
         </div>
       </div>
     </UnifiedModal>

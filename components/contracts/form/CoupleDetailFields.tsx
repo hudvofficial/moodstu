@@ -2,6 +2,7 @@
 
 import { Heart, User } from "lucide-react";
 import type { ContractFormData } from "@/types/contract-form";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // CoupleDetailFields — Bride + Groom info cards
@@ -31,22 +32,20 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="label-base">Họ và tên</label>
-            <input
+            <Input
               type="text"
               value={formData.bride_name}
               onChange={(e) => updateField("bride_name", e.target.value)}
               placeholder="Tên cô dâu"
-              className="input-base"
             />
           </div>
           <div>
             <label className="label-base">Số điện thoại</label>
-            <input
+            <Input
               type="tel"
               value={formData.bride_phone}
               onChange={(e) => updateField("bride_phone", e.target.value)}
               placeholder="09..."
-              className="input-base"
             />
           </div>
         </div>
@@ -56,12 +55,12 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
           <div>
             <label className="label-base">Chiều cao</label>
             <div className="input-with-suffix">
-              <input
+              <Input
                 type="text"
                 inputMode="numeric"
                 value={formData.bride_height}
                 onChange={(e) => updateField("bride_height", e.target.value)}
-                className="input-base input-suffix-field"
+                className="input-suffix-field"
               />
               <span className="input-suffix">cm</span>
             </div>
@@ -69,24 +68,23 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
           <div>
             <label className="label-base">Cân nặng</label>
             <div className="input-with-suffix">
-              <input
+              <Input
                 type="text"
                 inputMode="numeric"
                 value={formData.bride_weight}
                 onChange={(e) => updateField("bride_weight", e.target.value)}
-                className="input-base input-suffix-field"
+                className="input-suffix-field"
               />
               <span className="input-suffix">kg</span>
             </div>
           </div>
           <div>
             <label className="label-base">Size giày</label>
-            <input
+            <Input
               type="text"
               inputMode="numeric"
               value={formData.bride_shoe_size}
               onChange={(e) => updateField("bride_shoe_size", e.target.value)}
-              className="input-base"
             />
           </div>
         </div>
@@ -105,22 +103,20 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="label-base">Họ và tên</label>
-            <input
+            <Input
               type="text"
               value={formData.groom_name}
               onChange={(e) => updateField("groom_name", e.target.value)}
               placeholder="Tên chú rể"
-              className="input-base"
             />
           </div>
           <div>
             <label className="label-base">Số điện thoại</label>
-            <input
+            <Input
               type="tel"
               value={formData.groom_phone}
               onChange={(e) => updateField("groom_phone", e.target.value)}
               placeholder="09..."
-              className="input-base"
             />
           </div>
         </div>
@@ -130,12 +126,12 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
           <div>
             <label className="label-base">Chiều cao</label>
             <div className="input-with-suffix">
-              <input
+              <Input
                 type="text"
                 inputMode="numeric"
                 value={formData.groom_height}
                 onChange={(e) => updateField("groom_height", e.target.value)}
-                className="input-base input-suffix-field"
+                className="input-suffix-field"
               />
               <span className="input-suffix">cm</span>
             </div>
@@ -143,24 +139,23 @@ export function CoupleDetailFields({ formData, updateField }: CoupleFieldsProps)
           <div>
             <label className="label-base">Cân nặng</label>
             <div className="input-with-suffix">
-              <input
+              <Input
                 type="text"
                 inputMode="numeric"
                 value={formData.groom_weight}
                 onChange={(e) => updateField("groom_weight", e.target.value)}
-                className="input-base input-suffix-field"
+                className="input-suffix-field"
               />
               <span className="input-suffix">kg</span>
             </div>
           </div>
           <div>
             <label className="label-base">Size giày</label>
-            <input
+            <Input
               type="text"
               inputMode="numeric"
               value={formData.groom_shoe_size}
               onChange={(e) => updateField("groom_shoe_size", e.target.value)}
-              className="input-base"
             />
           </div>
         </div>

@@ -1,49 +1,31 @@
 "use client";
 
-/**
- * ContractsDropdownFilters
- *
- * MIGRATED: FilterSelect (native <select>) → SelectPill (Radix)
- * Desktop filter bar giờ nhất quán với mobile SelectPill.
- * Không còn native <select> nào.
- */
-
 import { SlidersHorizontal } from "lucide-react";
 import { SelectPill } from "@/components/ui/select/SelectPill";
-
-// ─── OPTIONS ─────────────────────────────────────────
+import { Button } from "@/components/ui/button";
+import { SERVICE_TYPE_MAP } from "@/types/contract-constants";
 
 const TIME_OPTIONS = [
-  { value: "all",        label: "Tất cả" },
+  { value: "all", label: "Tất cả" },
   { value: "this_month", label: "Tháng này" },
   { value: "last_month", label: "Tháng trước" },
-  { value: "this_year",  label: "Năm nay" },
+  { value: "this_year", label: "Năm nay" },
 ];
 
 const SERVICE_OPTIONS = [
-  { value: "all",       label: "Dịch vụ" },
-  { value: "Studio",    label: "Studio" },
-  { value: "Ngày Cưới", label: "Ngày Cưới" },
-  { value: "Combo",     label: "Combo" },
-  { value: "Baby",      label: "Baby" },
-  { value: "Gia đình",  label: "Gia đình" },
-  { value: "Bầu",       label: "Bầu" },
-  { value: "Couple",    label: "Couple" },
-  { value: "Concept",   label: "Concept" },
-  { value: "Kỷ yếu",   label: "Kỷ yếu" },
-  { value: "Sinh Nhật", label: "Sinh Nhật" },
-  { value: "Media",     label: "Media" },
-  { value: "Khác",      label: "Khác" },
+  { value: "all", label: "Dịch vụ" },
+  ...Object.entries(SERVICE_TYPE_MAP).map(([value, { label }]) => ({
+    value,
+    label,
+  })),
 ];
 
 const SORT_OPTIONS = [
-  { value: "newest",     label: "Mới nhất" },
-  { value: "oldest",     label: "Cũ nhất" },
+  { value: "newest", label: "Mới nhất" },
+  { value: "oldest", label: "Cũ nhất" },
   { value: "amount_desc", label: "Giá cao" },
-  { value: "amount_asc",  label: "Giá thấp" },
+  { value: "amount_asc", label: "Giá thấp" },
 ];
-
-// ─── PROPS ──────────────────────────────────────────
 
 interface ContractsDropdownFiltersProps {
   time: string;
@@ -55,8 +37,6 @@ interface ContractsDropdownFiltersProps {
   onToggleAdvanced: () => void;
   isAdvancedOpen: boolean;
 }
-
-// ─── COMPONENT ──────────────────────────────────────
 
 export function ContractsDropdownFilters({
   time,
@@ -70,7 +50,6 @@ export function ContractsDropdownFilters({
 }: ContractsDropdownFiltersProps) {
   return (
     <div className="flex items-center gap-2">
-      {/* Time filter pill */}
       <SelectPill
         options={TIME_OPTIONS}
         value={time}
@@ -79,7 +58,6 @@ export function ContractsDropdownFilters({
         defaultValue="all"
       />
 
-      {/* Service filter pill */}
       <SelectPill
         options={SERVICE_OPTIONS}
         value={service}
@@ -88,7 +66,6 @@ export function ContractsDropdownFilters({
         defaultValue="all"
       />
 
-      {/* Sort filter pill */}
       <SelectPill
         options={SORT_OPTIONS}
         value={sort}
@@ -97,8 +74,8 @@ export function ContractsDropdownFilters({
         defaultValue="newest"
       />
 
-      {/* Advanced Filter toggle — unchanged */}
-      <button
+      <Button
+        unstyled
         onClick={onToggleAdvanced}
         className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
           isAdvancedOpen
@@ -108,7 +85,7 @@ export function ContractsDropdownFilters({
       >
         <SlidersHorizontal className="w-4 h-4" />
         <span className="max-lg:hidden">Lọc nâng cao</span>
-      </button>
+      </Button>
     </div>
   );
 }

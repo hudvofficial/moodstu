@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { format } from "date-fns";
 import { ArrowLeft, Printer, X } from "lucide-react";
 import { formatVnd, financeStatusVariant, financeStatusLabel } from "@/components/finance/finance-format";

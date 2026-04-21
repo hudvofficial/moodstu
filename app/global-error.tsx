@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
   error,
@@ -60,8 +61,10 @@ export default function GlobalError({
             Xin lỗi, có lỗi không mong muốn xảy ra. Đội ngũ kỹ thuật đã được
             thông báo.
           </p>
-          <button
+          <Button
             onClick={reset}
+            type="button"
+            variant="ghost"
             style={{
               padding: "0.75rem 2rem",
               backgroundColor: "#2e7d32",
@@ -71,10 +74,11 @@ export default function GlobalError({
               fontSize: "1rem",
               fontWeight: 500,
               cursor: "pointer",
+              boxShadow: "none",
             }}
           >
             Thử lại
-          </button>
+          </Button>
         </div>
       </body>
     </html>

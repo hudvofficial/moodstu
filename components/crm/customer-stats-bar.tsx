@@ -1,31 +1,35 @@
-import { Users, UserPlus, Banknote } from "lucide-react";
+import { Banknote, UserPlus, Users } from "lucide-react";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
 import { formatCurrency } from "@/lib/utils";
 import type { CustomerStats } from "@/types/crm";
 
 interface Props {
   stats: CustomerStats;
-  /** Mobile compact: only show 2 key metrics */
   compact?: boolean;
 }
 
+type CustomerStatId = "total" | "newThisMonth" | "avgLtv";
+
 export default function CustomerStatsBar({ stats, compact }: Props) {
-  const allItems: StatItem[] = [
+  const allItems: Array<StatItem & { id: CustomerStatId }> = [
     {
+      id: "total",
       icon: Users,
-      label: "tổng KH",
+      label: "Tổng KH",
       value: String(stats.total),
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
     },
     {
+      id: "newThisMonth",
       icon: UserPlus,
-      label: "mới tháng",
+      label: "Mới tháng",
       value: String(stats.newThisMonth),
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },
     {
+      id: "avgLtv",
       icon: Banknote,
       label: "LTV TB",
       value: formatCurrency(stats.avgLifetimeValue),
@@ -34,9 +38,10 @@ export default function CustomerStatsBar({ stats, compact }: Props) {
     },
   ];
 
-  // Mobile compact: only show total + new this month (2 key metrics)
   const items = compact
-    ? allItems.filter((i) => i.label === "tổng KH" || i.label === "mới tháng")
+    ? allItems.filter(
+        (item) => item.id === "total" || item.id === "newThisMonth",
+      )
     : allItems;
 
   return <StatsBar items={items} />;

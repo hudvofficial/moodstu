@@ -1,24 +1,30 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, PlayCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Search, Loader2, PlayCircle, RefreshCw } from "lucide-react";
-import { deleteSalaryAdjustment, generateMonthlySalaryAction, validatePayrollWarningsAction, deleteEmployeeMonthlySalaryAction, payEmployeeSalaryAction } from "@/app/actions/salary-actions";
+import {
+  deleteSalaryAdjustment,
+  deleteEmployeeMonthlySalaryAction,
+  generateMonthlySalaryAction,
+  payEmployeeSalaryAction,
+  validatePayrollWarningsAction,
+} from "@/app/actions/salary-actions";
 import { fetchSalaries } from "@/app/actions/finance-operations-queries";
-import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { SalaryAdjustmentModal } from "@/components/finance/salaries/salary-adjustment-modal";
+import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
+import { SalaryFilters } from "@/components/finance/salaries/salary-filters";
+import { SalaryMobileList } from "@/components/finance/salaries/salary-mobile-list";
 import { PayslipModal } from "@/components/finance/salaries/payslip-modal";
 import { PaymentConfirmModal } from "@/components/finance/salaries/payment-confirm-modal";
-import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
-import { SelectPill } from "@/components/ui/select/SelectPill";
+import { SalaryDesktopTable } from "@/components/finance/salaries/salary-desktop-table";
+import { SalaryStatsBar } from "@/components/finance/salaries/salary-stats-bar";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
-import { SalaryDesktopTable } from "@/components/finance/salaries/salary-desktop-table";
-import { SalaryMobileList } from "@/components/finance/salaries/salary-mobile-list";
-import { SalaryStatsBar } from "@/components/finance/salaries/salary-stats-bar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
+import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
 
 interface SalariesClientProps {
@@ -27,131 +33,274 @@ interface SalariesClientProps {
   initialData: SalaryPageData;
 }
 
+const SORT_OPTIONS = [
+  { value: "default", label: "Sắp xếp" },
+  { value: "remaining_desc", label: "Còn lại cao" },
+  { value: "net_desc", label: "Thực nhận cao" },
+  { value: "name_asc", label: "Tên A-Z" },
+];
+
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
   if (!result.success) throw new Error(result.error);
   return result.data;
 }
 
-export function SalariesClient({ initialMonth, initialYear, initialData }: SalariesClientProps) {
+function hasAdjustments(item: SalaryItem) {
+  return item.adjustments.length > 0 || item.bonus > 0 || item.penalty > 0;
+}
+
+export function SalariesClient({
+  initialMonth,
+  initialYear,
+  initialData,
+}: SalariesClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
+  const [scope, setScope] = useState("all");
+  const [position, setPosition] = useState("all");
+  const [sort, setSort] = useState("default");
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewing, setViewing] = useState<SalaryItem | null>(null);
   const [adjusting, setAdjusting] = useState<SalaryItem | null>(null);
   const [paying, setPaying] = useState<SalaryItem | null>(null);
   const [printing, setPrinting] = useState<SalaryItem | null>(null);
-  const [deletingSalary, setDeletingSalary] = useState<SalaryItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const key = cacheKeys.financeSalaries(month, year);
   const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
 
   const handleMonthChange = useCallback((value: string) => setMonth(Number(value)), []);
   const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
-
   const handlePay = useCallback((item: SalaryItem) => setPaying(item), []);
   const handlePrint = useCallback((item: SalaryItem) => setPrinting(item), []);
+  const refresh = useCallback(() => {
+    void mutate(key);
+  }, [key]);
 
-  const refresh = () => void mutate(key);
+  const handleDelete = useCallback(
+    async (item: SalaryItem) => {
+      if (
+        !window.confirm(
+          `Xác nhận XÓA TẬN GỐC bản ghi lương của nhân sự: ${item.employee_name}?\nHành động này không thể hoàn tác.`,
+        )
+      ) {
+        return;
+      }
 
-  const handleDelete = useCallback(async (item: SalaryItem) => {
-    if (!window.confirm(`Xác nhận XÓA TẬN GỐC bản ghi lương của nhân sự: ${item.employee_name} ?\nHành động này không thể hoàn tác.`)) return;
+      setDeletingId(item.id);
+      const toastId = toast.loading(`Đang xóa lương ${item.employee_name}...`);
+      const result = await deleteEmployeeMonthlySalaryAction(item.id);
+      setDeletingId(null);
 
-    setDeletingId(item.id);
-    const tId = toast.loading(`Đang xóa lương ${item.employee_name}...`);
-    const result = await deleteEmployeeMonthlySalaryAction(item.id);
-    setDeletingId(null);
-    if (!result.success) {
-      toast.error(result.error, { id: tId });
-      return;
-    }
-    toast.success("Xóa bản ghi lương thành công.", { id: tId });
-    refresh();
-  }, [refresh]);
+      if (!result.success) {
+        toast.error(result.error, { id: toastId });
+        return;
+      }
+
+      toast.success("Xóa bản ghi lương thành công.", { id: toastId });
+      refresh();
+    },
+    [refresh],
+  );
 
   const onConfirmPayment = async (amount: number) => {
     if (!paying) return;
-    const tId = toast.loading("Đang ghi nhận thanh toán...");
+
+    const toastId = toast.loading("Đang ghi nhận thanh toán...");
     const result = await payEmployeeSalaryAction(paying.id, amount);
+
     if (!result.success) {
-      toast.error(result.error, { id: tId });
+      toast.error(result.error, { id: toastId });
       return;
     }
-    toast.success("Thanh toán lương thành công.", { id: tId });
+
+    toast.success("Thanh toán lương thành công.", { id: toastId });
     setPaying(null);
     refresh();
   };
 
-  const { data, error, isLoading } = useSWR(key, () => requireData(fetchSalaries(month, year)), { fallbackData: initialData });
+  const { data, error, isLoading } = useSWR(
+    key,
+    () => requireData(fetchSalaries(month, year)),
+    { fallbackData: initialData },
+  );
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được bảng lương.");
   }, [error]);
 
   const salaryData = data || initialData;
+  const allItems = useMemo(() => salaryData.items || [], [salaryData.items]);
+  const hasPayrollData = allItems.length > 0;
+
+  const scopeTabs = useMemo(
+    () => [
+      { label: "Tất cả", value: "all", count: allItems.length },
+      {
+        label: "Cần trả",
+        value: "unpaid",
+        count: allItems.filter((item) => item.remaining_amount > 0).length,
+      },
+      {
+        label: "Đã trả",
+        value: "paid",
+        count: allItems.filter((item) => item.remaining_amount <= 0).length,
+      },
+      {
+        label: "Có điều chỉnh",
+        value: "adjusted",
+        count: allItems.filter(hasAdjustments).length,
+      },
+    ],
+    [allItems],
+  );
+
+  const positionOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of allItems) {
+      const value = item.position?.trim();
+      if (!value) continue;
+      const key = value.toLowerCase();
+      if (!seen.has(key)) seen.set(key, value);
+    }
+
+    return [
+      { value: "all", label: "Vị trí" },
+      ...Array.from(seen.entries())
+        .sort((a, b) => a[1].localeCompare(b[1], "vi"))
+        .map(([value, label]) => ({ value, label })),
+    ];
+  }, [allItems]);
+
+  const filteredItems = useMemo(() => {
+    const next = allItems.filter((item) => {
+      if (scope === "unpaid" && item.remaining_amount <= 0) return false;
+      if (scope === "paid" && item.remaining_amount > 0) return false;
+      if (scope === "adjusted" && !hasAdjustments(item)) return false;
+
+      if (position !== "all") {
+        const current = item.position?.trim().toLowerCase() || "";
+        if (current !== position) return false;
+      }
+
+      return true;
+    });
+
+    if (sort === "remaining_desc") {
+      return [...next].sort((left, right) => right.remaining_amount - left.remaining_amount);
+    }
+
+    if (sort === "net_desc") {
+      return [...next].sort((left, right) => right.net_salary - left.net_salary);
+    }
+
+    if (sort === "name_asc") {
+      return [...next].sort((left, right) =>
+        left.employee_name.localeCompare(right.employee_name, "vi", {
+          sensitivity: "base",
+        }),
+      );
+    }
+
+    return next;
+  }, [allItems, position, scope, sort]);
+
+  const hasActiveFilters = scope !== "all" || position !== "all" || sort !== "default";
+  const shouldShowResultMeta = filteredItems.length > 0 && filteredItems.length !== allItems.length;
+
+  const resetFilters = useCallback(() => {
+    setScope("all");
+    setPosition("all");
+    setSort("default");
+  }, []);
 
   const deleteAdjustment = async (adjustmentId: string, salaryId: string) => {
     if (!window.confirm("Xóa điều chỉnh này?")) return;
+
     setDeletingId(adjustmentId);
     const result = await deleteSalaryAdjustment(adjustmentId, salaryId);
     setDeletingId(null);
+
     if (!result.success) {
       toast.error(result.error);
       return;
     }
+
     toast.success("Đã xóa điều chỉnh.");
     refresh();
   };
 
   const handleGenerateSalary = async () => {
-    if (!window.confirm(`Khởi tạo bảng lương tháng ${month}/${year} cho toàn bộ nhân sự Đang làm?\n\nChú ý: Lương sẽ được tổng hợp dựa theo KPI (Work Progress) của tháng.`)) return;
+    if (
+      !window.confirm(
+        `Khởi tạo bảng lương tháng ${month}/${year} cho toàn bộ nhân sự Đang làm?\n\nChú ý: Lương sẽ được tổng hợp dựa theo KPI (Work Progress) của tháng.`,
+      )
+    ) {
+      return;
+    }
 
     setIsGenerating(true);
-    const tId = toast.loading("Đang kiểm tra dữ liệu...");
+    const toastId = toast.loading("Đang kiểm tra dữ liệu...");
 
-    // 1. Chạy Validate pre-flight để lấy cảnh báo
     const validateRes = await validatePayrollWarningsAction(month, year);
     if (!validateRes.success) {
-      toast.error(validateRes.error || "Lỗi kiểm tra dữ liệu kế toán", { id: tId });
+      toast.error(validateRes.error || "Lỗi kiểm tra dữ liệu kế toán", { id: toastId });
       setIsGenerating(false);
       return;
     }
-    const payload = (validateRes as any).data || validateRes;
-    const { unassignedTasks, zeroCostTasks } = payload?.warnings || { unassignedTasks: [], zeroCostTasks: [] };
+
+    const payload = (validateRes as { data?: { warnings?: { unassignedTasks?: string[]; zeroCostTasks?: string[] } } }).data;
+    const warnings = payload?.warnings || { unassignedTasks: [], zeroCostTasks: [] };
+    const unassignedTasks = warnings.unassignedTasks || [];
+    const zeroCostTasks = warnings.zeroCostTasks || [];
+
     if (unassignedTasks.length > 0 || zeroCostTasks.length > 0) {
-      let warningMsg = `⚠️ CẢNH BÁO DỮ LIỆU CẦN KIỂM TRA:\n\n`;
+      let warningMsg = "CẢNH BÁO DỮ LIỆU CẦN KIỂM TRA:\n\n";
+
       if (unassignedTasks.length > 0) {
-        warningMsg += `1️⃣ Có ${unassignedTasks.length} Hợp đồng hoàn thành nhưng CHƯA GÁN nhân viên:\n   - ${unassignedTasks.slice(0, 5).join("\n   - ")}${unassignedTasks.length > 5 ? "\n   ..." : ""}\n\n`;
+        warningMsg += `1. Có ${unassignedTasks.length} hợp đồng hoàn thành nhưng CHƯA GÁN nhân viên:\n   - ${unassignedTasks.slice(0, 5).join("\n   - ")}${unassignedTasks.length > 5 ? "\n   ..." : ""}\n\n`;
       }
+
       if (zeroCostTasks.length > 0) {
-        warningMsg += `2️⃣ Có ${zeroCostTasks.length} Hợp đồng có công việc lương 0đ:\n   - ${zeroCostTasks.slice(0, 5).join("\n   - ")}${zeroCostTasks.length > 5 ? "\n   ..." : ""}\n\n`;
+        warningMsg += `2. Có ${zeroCostTasks.length} hợp đồng có công việc lương 0đ:\n   - ${zeroCostTasks.slice(0, 5).join("\n   - ")}${zeroCostTasks.length > 5 ? "\n   ..." : ""}\n\n`;
       }
-      warningMsg += `👉 Những công việc này sẽ KHÔNG được tính vào bảng lương lần này.\nBạn có muốn tiếp tục khởi tạo không?`;
+
+      warningMsg += "Những công việc này sẽ KHÔNG được tính vào bảng lương lần này.\nBạn có muốn tiếp tục khởi tạo không?";
 
       if (!window.confirm(warningMsg)) {
-        toast.dismiss(tId);
+        toast.dismiss(toastId);
         setIsGenerating(false);
         return;
       }
     }
 
-    toast.loading("Hệ thống đang tổng hợp dữ liệu lương...", { id: tId });
+    toast.loading("Hệ thống đang tổng hợp dữ liệu lương...", { id: toastId });
     const result = await generateMonthlySalaryAction(month, year);
     setIsGenerating(false);
+
     if (!result.success) {
-      toast.error(result.error, { id: tId });
-    } else if (result.data && typeof result.data === 'object' && 'success' in result.data && result.data.success === false) {
-      toast.error(result.data.error || "Có lỗi bất ngờ xảy ra", { id: tId });
-    } else {
-      const msg = result.data && typeof result.data === 'object' && 'message' in result.data
+      toast.error(result.error, { id: toastId });
+      return;
+    }
+
+    if (
+      result.data
+      && typeof result.data === "object"
+      && "success" in result.data
+      && result.data.success === false
+    ) {
+      toast.error(result.data.error || "Có lỗi bất ngờ xảy ra", { id: toastId });
+      return;
+    }
+
+    const message =
+      result.data && typeof result.data === "object" && "message" in result.data
         ? result.data.message
         : "Khởi tạo bảng lương thành công";
-      toast.success(msg as string, { id: tId });
-      refresh();
-    }
-  };
 
-  const filteredItems = salaryData.items || [];
+    toast.success(message as string, { id: toastId });
+    refresh();
+  };
 
   return (
     <div className="main-container gap-4!">
@@ -162,61 +311,62 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
         ]}
       />
 
-      {/* ── Stats + Action ── */}
       <section className="entrance entrance-0">
-        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+        <div className="flex items-center justify-between gap-4 rounded-xl bg-bg-card px-5 py-3 shadow-xs">
           <SalaryStatsBar summary={salaryData.summary} />
-          <div className="hidden lg:flex shrink-0">
-            {!isLoading && (
+          <div className="hidden shrink-0 lg:flex">
+            {!isLoading ? (
               <Button
                 type="button"
                 onClick={handleGenerateSalary}
                 disabled={isGenerating}
-                variant={filteredItems.length === 0 ? "primary" : "secondary"}
-                className={`gap-2 whitespace-nowrap ${filteredItems.length === 0 ? "shadow-sm" : ""}`}
+                variant={hasPayrollData ? "secondary" : "primary"}
+                className={`gap-2 whitespace-nowrap ${hasPayrollData ? "" : "shadow-sm"}`}
               >
                 {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : filteredItems.length === 0 ? (
-                  <PlayCircle className="w-4 h-4" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : hasPayrollData ? (
+                  <RefreshCw className="h-4 w-4" />
                 ) : (
-                  <RefreshCw className="w-4 h-4" />
+                  <PlayCircle className="h-4 w-4" />
                 )}
-                {filteredItems.length === 0 ? `Tạo bảng lương T${month}` : `Cập nhật lương T${month}`}
+                {hasPayrollData ? `Cập nhật lương T${month}` : `Tạo bảng lương T${month}`}
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
 
-      {/* ── Mobile FAB ── */}
-      {!isLoading && (
+      {!isLoading ? (
         <FAB
           onClick={handleGenerateSalary}
-          label={filteredItems.length === 0 ? `Tạo lương T${month}` : `Cập nhật T${month}`}
+          label={hasPayrollData ? `Cập nhật T${month}` : `Tạo lương T${month}`}
         />
-      )}
+      ) : null}
 
-      {/* ── Filters ── */}
-      <section className="entrance entrance-1 mt-4">
-        <div className="flex items-center justify-end gap-2">
-          <SelectPill
-            value={String(month)}
-            onChange={(v) => handleMonthChange(v)}
-            options={monthOptions}
-            placeholder="Tháng"
-          />
-          <SelectPill
-            value={String(year)}
-            onChange={(v) => handleYearChange(v)}
-            options={yearOptions}
-            placeholder="Năm"
-          />
-        </div>
+      <section className="entrance entrance-1">
+        <SalaryFilters
+          scope={scope}
+          position={position}
+          sort={sort}
+          month={String(month)}
+          year={String(year)}
+          tabs={scopeTabs}
+          positionOptions={positionOptions}
+          sortOptions={SORT_OPTIONS}
+          monthOptions={monthOptions}
+          yearOptions={yearOptions}
+          hasActiveFilters={hasActiveFilters}
+          onScopeChange={setScope}
+          onPositionChange={setPosition}
+          onSortChange={setSort}
+          onMonthChange={handleMonthChange}
+          onYearChange={handleYearChange}
+          onReset={resetFilters}
+        />
       </section>
 
-      {/* ── Table/List ── */}
-      <section className="entrance entrance-2 mt-4">
+      <section className="entrance entrance-2">
         {isLoading && !data ? (
           <div className="space-y-4 pt-4">
             <Skeleton className="h-16 w-full rounded-2xl" />
@@ -225,7 +375,7 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
           </div>
         ) : (
           <>
-            <div className="card-base hidden lg:block border-0 shadow-none bg-transparent">
+            <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
               <SalaryDesktopTable
                 items={filteredItems}
                 onView={setViewing}
@@ -240,23 +390,40 @@ export function SalariesClient({ initialMonth, initialYear, initialData }: Salar
               onView={setViewing}
               onAdjust={setAdjusting}
               onPay={handlePay}
+              onPrint={handlePrint}
               onDelete={handleDelete}
-              busyId={null}
+              busyId={deletingId}
             />
+            {shouldShowResultMeta ? (
+              <p className="text-center text-caption text-text-muted">
+                Hiển thị {filteredItems.length} / {allItems.length} nhân sự
+              </p>
+            ) : null}
           </>
         )}
       </section>
 
-      <SalaryDetailModal item={viewing} onClose={() => setViewing(null)} onDeleteAdjustment={deleteAdjustment} deletingId={deletingId} />
-      {adjusting && (
-        <SalaryAdjustmentModal salary={adjusting} onClose={() => setAdjusting(null)} onSaved={refresh} />
-      )}
-      {printing && (
-        <PayslipModal salary={printing} onClose={() => setPrinting(null)} />
-      )}
-      {paying && (
-        <PaymentConfirmModal salary={paying} onConfirm={onConfirmPayment} onClose={() => setPaying(null)} />
-      )}
+      <SalaryDetailModal
+        item={viewing}
+        onClose={() => setViewing(null)}
+        onDeleteAdjustment={deleteAdjustment}
+        deletingId={deletingId}
+      />
+      {adjusting ? (
+        <SalaryAdjustmentModal
+          salary={adjusting}
+          onClose={() => setAdjusting(null)}
+          onSaved={refresh}
+        />
+      ) : null}
+      {printing ? <PayslipModal salary={printing} onClose={() => setPrinting(null)} /> : null}
+      {paying ? (
+        <PaymentConfirmModal
+          salary={paying}
+          onConfirm={onConfirmPayment}
+          onClose={() => setPaying(null)}
+        />
+      ) : null}
     </div>
   );
 }

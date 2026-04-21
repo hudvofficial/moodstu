@@ -24,7 +24,9 @@ import type { InventoryFilters as InventoryFiltersType, InventoryItem } from "@/
 import { InventoryFormModal } from "@/components/inventory/inventory-form-modal";
 import { StockInModal } from "@/components/inventory/stock-in-modal";
 import { StockOutModal } from "@/components/inventory/stock-out-modal";
+import { InventoryDetailDrawer } from "@/components/inventory/inventory-detail-drawer";
 import { FAB } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { INVENTORY_PAGE_SIZE } from "@/types/inventory-constants";
 
@@ -46,6 +48,7 @@ function InventoryListInner() {
     status: filters.status === "all" ? undefined : filters.status,
     category: filters.category === "all" ? undefined : filters.category,
     search: filters.search || undefined,
+    sort: filters.sort,
     page: filters.page,
   } as InventoryFiltersType), [filters]);
 
@@ -60,13 +63,14 @@ function InventoryListInner() {
   const [showStockIn, setShowStockIn] = useState(false);
   const [showStockOut, setShowStockOut] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [drawerItem, setDrawerItem] = useState<InventoryItem | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // ── Handlers ──
-  const handleRowClick = useCallback((id: string) => {
-    router.push(`/inventory/${id}`);
-  }, [router]);
+  const handleRowClick = useCallback((item: InventoryItem) => {
+    setDrawerItem(item);
+  }, []);
   const handleHover = useCallback((id: string) => prefetchInventory(id), []);
   const handleCreate = useCallback(() => setShowCreate(true), []);
   const handleStockIn = useCallback(() => {
@@ -93,18 +97,18 @@ function InventoryListInner() {
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <InventoryStatsBar stats={stats} />
         <div className="hidden lg:flex gap-2">
-          <button onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+          <Button unstyled onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Khai báo</span>
-          </button>
-          <button onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
+          </Button>
+          <Button unstyled onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
             <ArrowDownToLine className="w-5 h-5" />
             <span>Nhập kho</span>
-          </button>
-          <button onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
+          </Button>
+          <Button unstyled onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
             <ArrowUpFromLine className="w-5 h-5" />
             <span>Xuất kho</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -169,9 +173,21 @@ function InventoryListInner() {
     </div>
 
     {/* ── Modals (key forces remount → clean state each open) ── */}
-    <InventoryFormModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+    {showCreate && (
+      <InventoryFormModal
+        key="create-inventory-item"
+        isOpen
+        onClose={() => setShowCreate(false)}
+      />
+    )}
     {showStockIn && <StockInModal isOpen onClose={() => { setShowStockIn(false); setSelectedItem(null); }} item={selectedItem} items={items} />}
     {showStockOut && <StockOutModal isOpen onClose={() => { setShowStockOut(false); setSelectedItem(null); }} item={selectedItem} items={items} />}
+    <InventoryDetailDrawer
+      item={drawerItem}
+      isOpen={!!drawerItem}
+      onClose={() => setDrawerItem(null)}
+      onChanged={() => router.refresh()}
+    />
     </>
   );
 }

@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { Wallet, Plus } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDebt, updateDebt } from "@/app/actions/debt-actions";
 import { fetchDebts, fetchDebtStats } from "@/app/actions/finance-operations-queries";
-import { formatVnd } from "@/components/finance/finance-format";
 import { DebtFormModal } from "@/components/finance/debts/debt-form-modal";
 import { DebtDesktopTable } from "@/components/finance/debts/debt-desktop-table";
 import { DebtMobileList } from "@/components/finance/debts/debt-mobile-list";
 import { DebtStatsBar } from "@/components/finance/debts/debt-stats-bar";
+import { DebtAgingCard } from "@/components/finance/debts/debt-aging-card";
 import { GhostScanWidget } from "@/components/finance/integrity/ghost-scan-widget";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -98,19 +98,23 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
         ]}
       />
 
-      <section className="entrance entrance-0 mt-4">
-        <DebtStatsBar stats={summary} />
-      </section>
-
-      <section className="entrance entrance-1 flex items-center justify-between mb-4">
-        <div className="flex-1"></div>
-        <div className="hidden lg:flex shrink-0 items-center gap-3">
-          <GhostScanWidget initialData={initialIntegrity} variant="button" />
-          <Button type="button" onClick={handleOpenCreate} variant="primary" className="gap-2 shadow-sm whitespace-nowrap">
-            <Plus className="w-4 h-4" />
-            Thêm công nợ
-          </Button>
+      <section className="entrance entrance-0 mt-4 space-y-4 mb-4">
+        {/* ── Stats + Action (unified container) ── */}
+        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+          <div className="flex-1 min-w-0">
+            <DebtStatsBar stats={summary} />
+          </div>
+          <div className="hidden lg:flex shrink-0 items-center gap-3">
+            <GhostScanWidget initialData={initialIntegrity} variant="button" />
+            <Button type="button" onClick={handleOpenCreate} variant="primary" className="gap-2 shrink-0 shadow-sm">
+              <Plus className="w-4 h-4" />
+              <span>Tạo công nợ</span>
+            </Button>
+          </div>
         </div>
+
+        {/* ── Aging Analysis ── */}
+        <DebtAgingCard stats={summary} />
       </section>
 
       <section className="entrance entrance-2 mt-4">

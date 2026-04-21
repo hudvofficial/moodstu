@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements -- SSOT UI component (search bar) uses native elements internally */
 "use client";
 
 import { Search, X } from "lucide-react";

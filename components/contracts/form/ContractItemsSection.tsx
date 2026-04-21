@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
 import { THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import type { UseContractItemsReturn } from "./hooks/useContractItems";
 import type { ContractItemFormData } from "@/types/contract-form";
@@ -56,21 +57,23 @@ export function ContractItemsSection({ items, error }: Props) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
             onClick={items.openAddAddonModal}
-            className="btn btn-ghost text-sm"
+            variant="ghost"
+            className="text-sm"
           >
             Phụ thu
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={items.openAddServiceModal}
-            className="btn btn-interactive text-sm font-bold shadow-sm shadow-interactive/20"
+            variant="interactive"
+            className="text-sm font-bold shadow-sm shadow-interactive/20"
           >
             <Plus className="h-3.5 w-3.5" />
             Thêm dịch vụ
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -173,12 +176,12 @@ function DesktopRow({
       </TD>
       <TD>
         <div className="flex items-center justify-end gap-1">
-          <button type="button" onClick={onEdit} className="rounded-radius-sm p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary transition-colors">
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="rounded-radius-sm !p-1.5 text-text-muted hover:bg-bg-hover hover:text-text-primary transition-colors">
             <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button type="button" onClick={onRemove} className="rounded-radius-sm p-1.5 text-text-muted hover:bg-error/10 hover:text-error transition-colors">
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="rounded-radius-sm !p-1.5 text-text-muted hover:bg-error/10 hover:text-error transition-colors">
             <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </div>
       </TD>
     </TR>
@@ -210,12 +213,12 @@ function MobileCard({
         </p>
       </div>
       <div className="ml-2 flex items-center gap-1">
-        <button type="button" onClick={onEdit} className="rounded-radius-sm p-1.5 text-text-muted hover:bg-bg-hover transition-colors">
+        <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="rounded-radius-sm !p-1.5 text-text-muted hover:bg-bg-hover transition-colors">
           <Pencil className="h-3.5 w-3.5" />
-        </button>
-        <button type="button" onClick={onRemove} className="rounded-radius-sm p-1.5 text-text-muted hover:text-error transition-colors">
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="rounded-radius-sm !p-1.5 text-text-muted hover:text-error transition-colors">
           <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -226,14 +229,14 @@ function EmptyState({ onAddService }: { onAddService: () => void }) {
   return (
     <div className="card-base flex flex-col items-center justify-center py-10">
       <p className="text-body-sm text-text-muted">Chưa có dịch vụ nào</p>
-      <button
+      <Button
         type="button"
         onClick={onAddService}
-        className="btn btn-interactive"
+        variant="interactive"
       >
         <Plus className="h-4 w-4" />
         Thêm dịch vụ đầu tiên
-      </button>
+      </Button>
     </div>
   );
 }

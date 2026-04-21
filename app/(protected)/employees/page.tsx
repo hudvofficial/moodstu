@@ -35,7 +35,7 @@ export default async function EmployeesPage({ searchParams }: Props) {
 
   return (
     <>
-      <RealtimeSync table="profiles" />
+      <RealtimeSync table="employees" />
       <EmployeeListPage
         employees={list?.employees || []}
         stats={stats || { total: 0, active: 0, inactive: 0, departments: {} }}

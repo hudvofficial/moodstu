@@ -34,6 +34,21 @@ export function isRawFile(filename: string): boolean {
   return RAW_EXTENSIONS.includes(ext);
 }
 
+export function getResponsiveThumbnailUrl(
+  thumbnailUrl: string | null,
+  imageUrl: string,
+  targetSize: number,
+): string {
+  if (!thumbnailUrl) return imageUrl;
+
+  const normalizedSize = Math.max(200, Math.round(targetSize));
+  if (!/drive\.google\.com\/thumbnail/i.test(thumbnailUrl)) {
+    return thumbnailUrl;
+  }
+
+  return thumbnailUrl.replace(/sz=s\d+/i, `sz=s${normalizedSize}`);
+}
+
 /** Group images by file_group (RAW+JPG pairs) */
 export function groupByFileGroup(images: GalleryImage[]): ImageGroup[] {
   const map = new Map<string, GalleryImage[]>();

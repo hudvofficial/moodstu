@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements -- SSOT UI component (image upload) uses native elements internally */
 "use client";
 
 /**
@@ -116,3 +117,5 @@ export function ImageUpload({ value, onChange, onUpload, maxSizeMB = 10, fillCar
     </div>
   );
 }
+
+/* eslint-enable react/forbid-elements */

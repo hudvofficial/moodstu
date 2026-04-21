@@ -4,7 +4,14 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { formatVnd } from "@/components/finance/finance-format";
 import type { ExpenseBreakdownItem } from "@/types/finance-intelligence";
 
-const COLORS = ["#8B5E3C", "#A57652", "#BC8D68", "#D4A37D", "#EBD6C5", "#9B9B9B"];
+const COLORS = [
+  "var(--color-primary)",
+  "var(--color-interactive)",
+  "var(--color-warning)",
+  "var(--color-error)",
+  "var(--color-info)",
+  "var(--color-success)",
+];
 
 interface ExpenseDonutChartProps {
   data: ExpenseBreakdownItem[] | null;

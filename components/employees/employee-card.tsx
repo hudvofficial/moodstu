@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ChevronRight, Phone } from "lucide-react";
 import type { EmployeeListItem, EmployeeRole } from "@/types/employee";
 import { EMPLOYEE_STATUS_MAP, ROLE_BADGE_MAP } from "@/types/employee-constants";
@@ -15,17 +14,17 @@ import { VARIANT_COLORS, VARIANT_DOT } from "@/lib/variant-colors";
 
 interface Props {
   employee: EmployeeListItem;
+  onSelect: (employee: EmployeeListItem) => void;
 }
 
-export default function EmployeeCard({ employee: emp }: Props) {
-  const router = useRouter();
+export default function EmployeeCard({ employee: emp, onSelect }: Props) {
   const effectiveStatus = emp.deleted_at ? "inactive" : emp.status;
   const statusInfo = EMPLOYEE_STATUS_MAP[effectiveStatus] || { label: effectiveStatus, variant: "neutral" };
   const roleBadge = ROLE_BADGE_MAP[emp.role as EmployeeRole];
 
   return (
     <div
-      onClick={() => router.push(`/employees/${emp.id}`)}
+      onClick={() => onSelect(emp)}
       className="flex items-center gap-3 p-3 bg-bg-card rounded-xl shadow-xs hover:bg-hover/30 cursor-pointer transition-colors active:scale-[0.99]"
     >
       {/* Avatar */}
@@ -83,4 +82,3 @@ export default function EmployeeCard({ employee: emp }: Props) {
     </div>
   );
 }
-

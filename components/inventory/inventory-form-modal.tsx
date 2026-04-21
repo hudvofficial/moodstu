@@ -12,6 +12,9 @@ import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { createInventoryItem, updateInventoryItem } from "@/app/actions/inventory-mutations";
 import {
@@ -103,12 +106,12 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
       size="lg"
       footer={
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="btn btn-secondary" disabled={isPending}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
             Hủy
-          </button>
-          <button onClick={handleSubmit} className="btn btn-primary" disabled={isPending}>
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo mới"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -118,8 +121,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         {/* Tên vật tư */}
         <div>
           <label className="label-base">Tên vật tư *</label>
-          <input
-            className="input-base"
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="VD: Album cưới 30x40"
@@ -151,8 +153,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         {/* Tồn kho tối thiểu */}
         <div>
           <label className="label-base">Tồn kho tối thiểu</label>
-          <input
-            className="input-base"
+          <Input
             type="number"
             min={0}
             value={minStock}
@@ -175,8 +176,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         {/* Nhà cung cấp */}
         <div>
           <label className="label-base">Nhà cung cấp</label>
-          <input
-            className="input-base"
+          <Input
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
             placeholder="VD: Công ty ABC"
@@ -186,8 +186,8 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         {/* Ghi chú */}
         <div>
           <label className="label-base">Ghi chú</label>
-          <textarea
-            className="input-base min-h-20"
+          <Textarea
+            className="min-h-20"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú thêm..."

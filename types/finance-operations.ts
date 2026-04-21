@@ -112,8 +112,10 @@ export interface InvestmentItem {
   id: string;
   name: string;
   category: string;
+  serial_number: string | null;
   purchase_date: string;
   purchase_price: number;
+  linked_revenue: number | null;
   salvage_value: number | null;
   useful_life_months: number | null;
   depreciation_method: string | null;
@@ -189,6 +191,9 @@ export interface GoalItem {
   deadline: string | null;
   status: string | null;
   notes: string | null;
+  created_at?: string | null;
+  icon?: string | null;
+  color?: string | null;
   progress_percent: number;
   remaining: number;
   months_left: number | null;

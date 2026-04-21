@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Shirt, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { DressItem } from "@/types/dress";
 import { DRESS_STATUS_MAP } from "@/types/dress-constants";
 import type { DressStatus } from "@/lib/validations/dress.schema";
@@ -52,12 +53,12 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
         </div>
 
         {/* Edit button — hover */}
-        <button
+        <Button unstyled
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
           className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-card/90 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
         >
           <Pencil size={12} />
-        </button>
+        </Button>
       </div>
 
       {/* Info */}

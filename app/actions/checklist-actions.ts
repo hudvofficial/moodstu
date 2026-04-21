@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -10,7 +10,9 @@ import { revalidatePath } from "next/cache";
 
 /** Get all checklist items for a contract */
 export async function getContractChecklists(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contract_checklists")
       .select("id, contract_id, event_stage, category, item_name, is_completed, created_at, updated_at")
@@ -24,7 +26,9 @@ export async function getContractChecklists(contractId: string) {
 
 /** Toggle a checklist item (optimistic-friendly) */
 export async function toggleChecklist(id: string, is_completed: boolean) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contract_checklists")
       .update({ is_completed, updated_at: new Date().toISOString() })
@@ -43,7 +47,9 @@ export async function toggleChecklist(id: string, is_completed: boolean) {
 
 /** Auto-generate checklists from templates for a new contract */
 export async function generateChecklists(contractId: string, serviceType: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     // 1. Check if contract already has checklists (avoid duplicate generation)
     const { count } = await supabase
       .from("contract_checklists")

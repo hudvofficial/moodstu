@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function OfflinePage() {
   return (
@@ -60,8 +61,10 @@ export default function OfflinePage() {
       </div>
 
       {/* Retry button */}
-      <button
+      <Button
         onClick={() => window.location.reload()}
+        type="button"
+        variant="ghost"
         style={{
           padding: "0.75rem 2rem",
           borderRadius: "0.75rem",
@@ -72,10 +75,11 @@ export default function OfflinePage() {
           fontWeight: 600,
           cursor: "pointer",
           transition: "opacity 0.2s",
+          boxShadow: "none",
         }}
       >
         Thử lại
-      </button>
+      </Button>
 
       {/* Home link */}
       <Link

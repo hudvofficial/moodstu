@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import type { WorkType, TaskStatus } from "@/types/contract";
@@ -11,7 +11,9 @@ import type { WorkType, TaskStatus } from "@/types/contract";
 // ═══════════════════════════════════════════
 
 export async function getTasksByEvent(eventId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("work_tasks")
       .select("id, event_id, contract_id, work_type, assigned_to, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department)")
@@ -30,7 +32,9 @@ export async function addTask(input: {
   assignedTo?: string; deadline?: string; startDate?: string;
   startTime?: string; endTime?: string; cost?: number; notes?: string;
 }) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     if (!input.eventId) throw new Error("Thiếu event ID");
 
     const { data, error } = await supabase.from("work_tasks").insert({
@@ -53,7 +57,9 @@ export async function addTask(input: {
 }
 
 export async function deleteTask(taskId: string, eventId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     if (!taskId) throw new Error("Thiếu task ID");
     const { error } = await supabase.from("work_tasks").delete().eq("id", taskId);
     if (error) throw new Error(`Lỗi xóa task: ${error.message}`);
@@ -67,7 +73,9 @@ export async function deleteTask(taskId: string, eventId: string) {
 }
 
 export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, eventId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const updates: Record<string, string | null> = { status: newStatus };
     if (newStatus === "hoan_thanh") updates.completion_date = new Date().toISOString();
     else updates.completion_date = null;

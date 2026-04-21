@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.62] - 2026-04-22
+
+### Added
+
+- **Finance Goals UI & Logic Parity (v1+)**: Full implementation of the Finance Goals module with a premium Apple/Stripe-inspired UI.
+  - **Premium UI**: Integrated `GoalsStatsBar`, `GoalsFilters`, and interactive goal cards with progress tracks and milestone indicators.
+  - **Business Logic**: Support for goal contributions (Commitment, Surplus, Custom), contribution undo/redo (24h window), and goal lifecycle management (Cancel/Restore).
+  - **UX Enhancements**: Added `GoalCelebrationOverlay` for milestone achievements (25/50/75/100%) and dynamic icon/color customization.
+  - **Finance SSOT Sync**: Unified the Realized Inflow/Outflow formula across Dashboard, Reports, and Goals.
+
+### Changed
+
+- **Layout Standardization**: Unified the Finance layout using the standard `StatsBar` + `TabsFilter` + `SelectPill` pattern for all sub-modules.
+
+
 ## [1.1.61] - 2026-04-13
 
 ### Added

@@ -9,6 +9,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Printer, QrCode } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
 import { printDressLabel, printDressLabelBatch } from "@/lib/print-qr-label";
 import type { DressItem } from "@/types/dress";
 
@@ -124,10 +125,10 @@ export function DressQRModal({ dress, dresses, isOpen, onClose }: DressQRModalPr
         size={isBatch ? "lg" : "sm"}
         footer={
           hasValidCode ? (
-            <button onClick={handlePrint} className="btn btn-primary w-full gap-2">
+            <Button unstyled onClick={handlePrint} className="btn btn-primary w-full gap-2">
               <Printer size={16} />
               {isBatch ? `In ${items.length} nhãn` : "In nhãn QR"}
-            </button>
+            </Button>
           ) : undefined
         }
       >

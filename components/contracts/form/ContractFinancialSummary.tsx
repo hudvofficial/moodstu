@@ -3,6 +3,8 @@
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // ContractFinancialSummary — Always-visible totals card
@@ -51,7 +53,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
             <span className="text-body-sm text-text-secondary">Giảm giá</span>
             {/* Toggle VNĐ / % */}
             <div className="flex overflow-hidden rounded-md bg-neutral-100 p-0.5">
-              <button
+              <Button unstyled
                 type="button"
                 onClick={() => { setDiscountType("fixed"); updateDiscount(0); }}
                 className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
@@ -61,8 +63,8 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
                 }`}
               >
                 {CURRENCY_SYMBOL}
-              </button>
-              <button
+              </Button>
+              <Button unstyled
                 type="button"
                 onClick={() => { setDiscountType("percent"); updateDiscount(0); }}
                 className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
@@ -72,7 +74,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
                 }`}
               >
                 %
-              </button>
+              </Button>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -85,7 +87,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
               />
             ) : (
               <>
-                <input
+                <Input unstyled
                   type="number"
                   min={0}
                   max={100}

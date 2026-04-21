@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements -- SSOT UI component (currency input) uses native input internally */
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
@@ -111,3 +112,5 @@ export function CurrencyInput({
     </div>
   );
 }
+
+/* eslint-enable react/forbid-elements */

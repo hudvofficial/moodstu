@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   getStatusLabel,
   CONTRACT_STATUS_MAP,
@@ -84,7 +85,7 @@ export function ContractDrawer({
 
   const headerRight = contractId ? (
     <>
-      <button
+      <Button unstyled
         onClick={() => {
           onClose();
           router.push(`/contracts/${contractId}/edit`);
@@ -93,7 +94,7 @@ export function ContractDrawer({
         title="Sửa hợp đồng"
       >
         <Pencil className="w-4 h-4 text-text-secondary" />
-      </button>
+      </Button>
       <a
         href={`/contracts/${contractId}/print`}
         target="_blank"

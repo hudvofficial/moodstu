@@ -6,12 +6,16 @@
  * Action: stockOut() → decreases current_stock + warns if low
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { ComboboxSearch } from "@/components/ui/combobox-search";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { stockOut } from "@/app/actions/inventory-mutations";
+import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type { InventoryItem } from "@/types/inventory";
 
 interface StockOutModalProps {
@@ -32,10 +36,21 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
 
+  useEffect(() => {
+    if (!isOpen || item) return;
+    let cancelled = false;
+    fetchInventoryPickerItems().then((data) => {
+      if (!cancelled) setPickerItems(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, item, items]);
 
-
-  const handleSubmit = () => {
+  const handleSubmit = (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!activeItem) return;
     if (quantity < 1) { setError("Số lượng phải ≥ 1"); return; }
     if (quantity > activeItem.current_stock) {
@@ -54,23 +69,26 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         notes: notes.trim() || undefined,
       });
 
-      if (result && 'success' in result && result.success) {
+      if (result && "success" in result && result.success) {
         toast.success(`Đã xuất ${quantity} ${activeItem.name}`);
-        // Show low stock warning (from server)
-        if ('warning' in result && result.warning) {
-          toast.warning(result.warning as string);
+        if (result.data?.warning) {
+          toast.warning(result.data.warning);
         }
         await revalidateInventory();
         onClose();
       } else {
-        setError((result && 'error' in result && typeof result.error === 'string') ? result.error : "Không thể xuất kho");
+        setError(
+          result && "error" in result && typeof result.error === "string"
+            ? result.error
+            : "Không thể xuất kho",
+        );
       }
     });
   };
 
   if (!isOpen) return null;
 
-  const itemOptions = (items || []).map(i => ({ value: i.id, label: `${i.item_code} — ${i.name}` }));
+  const itemOptions = pickerItems.map(i => ({ value: i.id, label: `${i.item_code} — ${i.name}` }));
 
   return (
     <UnifiedModal
@@ -81,12 +99,12 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       size="md"
       footer={
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="btn btn-secondary" disabled={isPending}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
             Hủy
-          </button>
-          <button onClick={handleSubmit} className="btn btn-primary" disabled={isPending}>
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Đang xử lý..." : "Xác nhận xuất kho"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -98,7 +116,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
           <div>
             <ComboboxSearch
               label="Chọn vật tư *"
-              onChange={(id) => setPickedItem(items?.find(i => i.id === id) || null)}
+              onChange={(id) => setPickedItem(pickerItems.find(i => i.id === id) || null)}
               options={itemOptions}
               placeholder="Tìm và chọn vật tư..."
             />
@@ -116,8 +134,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
         <div>
           <label className="label-base">Số lượng xuất *</label>
-          <input
-            className="input-base"
+          <Input
             type="number"
             min={1}
             max={activeItem.current_stock}
@@ -131,8 +148,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
         <div>
           <label className="label-base">Lý do xuất</label>
-          <input
-            className="input-base"
+          <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="VD: Dùng cho HĐ #HD-001"
@@ -142,8 +158,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         <div className="form-grid-2col">
           <div>
             <label className="label-base">Tên khách hàng</label>
-            <input
-              className="input-base"
+            <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="(tùy chọn)"
@@ -151,8 +166,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
           </div>
           <div>
             <label className="label-base">SĐT</label>
-            <input
-              className="input-base"
+            <Input
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="(tùy chọn)"
@@ -162,8 +176,8 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
         <div>
           <label className="label-base">Ghi chú</label>
-          <textarea
-            className="input-base min-h-15"
+          <Textarea
+            className="min-h-15"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Thông tin thêm..."

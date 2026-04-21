@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Clock, MapPin, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
 import DatePicker from "@/components/ui/date-picker";
 import { formatCurrency } from "@/lib/utils";
 import { isOnSetEvent } from "@/types/contract-constants";
@@ -250,9 +251,9 @@ export default function EventTaskModal({
           {formatCurrency(totalCost)}
         </p>
       </div>
-      <button onClick={onClose} className="btn btn-secondary">
+      <Button unstyled onClick={onClose} className="btn btn-secondary">
         Đóng
-      </button>
+      </Button>
     </div>
   );
 

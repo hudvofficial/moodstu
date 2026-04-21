@@ -10,6 +10,7 @@
 import { ChevronRight, FileText, CheckCircle, Calendar } from "lucide-react";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
 import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
@@ -102,6 +103,7 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
               <TR
                 key={id}
                 onClick={() => onView(c)}
+                onMouseEnter={() => onHover?.(id)}
                 className={isCancelled ? "opacity-50" : ""}
               >
                 <TD>
@@ -183,7 +185,7 @@ function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps)
         const svc = getServiceBadgeColor(serviceType);
 
         return (
-          <button
+          <Button unstyled
             key={id}
             onClick={() => onView(c)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)} ${isCancelled ? "opacity-50" : ""}`}
@@ -238,7 +240,7 @@ function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps)
                 style={{ width: `${paidPct}%` }}
               />
             </div>
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -48,7 +48,11 @@ export async function updateGoal(
       throw new Error(`Dữ liệu không hợp lệ: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
     }
 
-    const { data: oldData } = await supabase.from("financial_goals").select("updated_at, name, target_amount").eq("id", id).single();
+    const { data: oldData } = await supabase
+      .from("financial_goals")
+      .select("updated_at, name, target_amount, current_amount, status")
+      .eq("id", id)
+      .single();
     if (!oldData) throw new Error("Không tìm thấy mục tiêu");
 
     if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
@@ -59,6 +63,17 @@ export async function updateGoal(
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
     if (parsed.data.target_amount !== undefined) updateData.target_amount = parsed.data.target_amount;
     if (parsed.data.deadline !== undefined) updateData.deadline = parsed.data.deadline;
+
+    if (input.status === undefined && parsed.data.target_amount !== undefined) {
+      const currentAmount = Number(oldData.current_amount) || 0;
+      const nextTarget = Number(parsed.data.target_amount) || 0;
+      const oldStatus = String(oldData.status || "").toLowerCase();
+
+      if (oldStatus !== "cancelled" && oldStatus !== "canceled") {
+        if (nextTarget > 0 && currentAmount >= nextTarget) updateData.status = "completed";
+        if (oldStatus === "completed" && (nextTarget <= 0 || currentAmount < nextTarget)) updateData.status = "active";
+      }
+    }
 
     const { error } = await supabase.from("financial_goals").update(updateData).eq("id", id);
     if (error) throw new Error(`Lỗi cập nhật mục tiêu: ${error.message}`);
@@ -90,14 +105,35 @@ export async function addContribution(goalId: string, amount: number, notes?: st
     // W3: Period lock (contribution date = today)
     await checkPeriodLock(supabase, new Date().toISOString().split("T")[0]);
 
+    const { data: statusRow, error: statusError } = await supabase
+      .from("financial_goals")
+      .select("status")
+      .eq("id", goalId)
+      .single();
+
+    if (statusError || !statusRow) {
+      throw new Error(`Khong tim thay muc tieu: ${statusError?.message || ""}`);
+    }
+
+    const normalizedStatus = String(statusRow.status || "").toLowerCase();
+    if (normalizedStatus === "completed") {
+      throw new Error("Muc tieu da hoan thanh, khong the gop them.");
+    }
+    if (normalizedStatus === "cancelled" || normalizedStatus === "canceled") {
+      throw new Error("Muc tieu da huy, khong the gop them.");
+    }
+
     const { error } = await supabase.rpc("contribute_to_goal", { p_goal_id: goalId, p_amount: amount, p_notes: notes || null });
     if (error && isMissingRpcError(error)) {
       const { data: goal, error: goalError } = await supabase
         .from("financial_goals")
-        .select("current_amount, target_amount")
+        .select("current_amount, target_amount, status")
         .eq("id", goalId)
         .single();
       if (goalError || !goal) throw new Error(`Khong tim thay muc tieu: ${goalError?.message || ""}`);
+      const fallbackStatus = String(goal.status || "").toLowerCase();
+      if (fallbackStatus === "completed") throw new Error("Muc tieu da hoan thanh, khong the gop them.");
+      if (fallbackStatus === "cancelled" || fallbackStatus === "canceled") throw new Error("Muc tieu da huy, khong the gop them.");
 
       const { error: insertError } = await supabase.from("goal_contributions").insert({
         goal_id: goalId,

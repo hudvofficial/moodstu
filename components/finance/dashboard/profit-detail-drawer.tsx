@@ -98,7 +98,7 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
                    <div className="font-semibold text-error tabular-nums">-{formatVnd(data.contract.discount)}</div>
                  </div>
                  <div>
-                   <div className="text-xs text-text-tertiary mb-1">Thực thu (Sau KM)</div>
+                   <div className="text-xs text-text-tertiary mb-1">Doanh thu thuần (sau KM)</div>
                    <div className="font-bold tabular-nums text-text-primary">{formatVnd(data.contract.total_amount)}</div>
                  </div>
                </div>

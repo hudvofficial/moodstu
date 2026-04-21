@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Copy, Download, Check, Link2, Eye, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
 import { setGalleryPassword } from "@/app/actions/gallery-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // ShareGalleryModalContent — 2 links + 2 QR codes
@@ -11,8 +13,8 @@ import { setGalleryPassword } from "@/app/actions/gallery-actions";
 // ═══════════════════════════════════════════
 
 interface ShareGalleryModalContentProps {
-  accessUrl: string;
-  galleryId: string;
+  accessUrl?: string;
+  galleryId?: string;
   galleryTitle?: string;
   hasPassword?: boolean;
 }
@@ -23,6 +25,10 @@ export function ShareGalleryModalContent({
   galleryTitle,
   hasPassword = false,
 }: ShareGalleryModalContentProps) {
+  const safeAccessUrl = accessUrl || "";
+  const safeGalleryId = galleryId || "";
+  const isReady = Boolean(safeAccessUrl && safeGalleryId);
+
   const [copiedSelect, setCopiedSelect] = useState(false);
   const [copiedView, setCopiedView] = useState(false);
   const [pwdEnabled, setPwdEnabled] = useState(hasPassword);
@@ -36,12 +42,13 @@ export function ShareGalleryModalContent({
   const qrViewInstance = useRef<any>(null);
 
   const baseUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/gallery/${accessUrl}`
-    : `/gallery/${accessUrl}`;
+    ? `${window.location.origin}/gallery/${safeAccessUrl}`
+    : `/gallery/${safeAccessUrl}`;
   const viewOnlyUrl = `${baseUrl}?mode=view`;
 
   // ─── QR Code Generation ───────────────────
   const generateQR = useCallback(async () => {
+    if (!isReady) return;
     const QRCodeStyling = (await import("qr-code-styling")).default;
 
     const qrOptions = (url: string) => ({
@@ -69,11 +76,12 @@ export function ShareGalleryModalContent({
       qrViewInstance.current = new QRCodeStyling(qrOptions(viewOnlyUrl));
       qrViewInstance.current.append(qrViewRef.current);
     }
-  }, [baseUrl, viewOnlyUrl]);
+  }, [baseUrl, isReady, viewOnlyUrl]);
 
   useEffect(() => {
+    if (!isReady) return;
     void generateQR();
-  }, [generateQR]);
+  }, [generateQR, isReady]);
 
   // ─── Copy helpers ─────────────────────────
   const handleCopy = async (url: string, type: "select" | "view") => {
@@ -94,10 +102,11 @@ export function ShareGalleryModalContent({
 
   // ─── Password handlers ────────────────────
   const handleTogglePassword = async () => {
+    if (!safeGalleryId) return;
     if (pwdEnabled) {
       // Disable password
       setPwdSaving(true);
-      const res = await setGalleryPassword(galleryId, null);
+      const res = await setGalleryPassword(safeGalleryId, null);
       setPwdSaving(false);
       if (res.success) {
         setPwdEnabled(false);
@@ -112,9 +121,10 @@ export function ShareGalleryModalContent({
   };
 
   const handleSavePassword = async () => {
+    if (!safeGalleryId) return;
     if (!pwdValue.trim()) return;
     setPwdSaving(true);
-    const res = await setGalleryPassword(galleryId, pwdValue.trim());
+    const res = await setGalleryPassword(safeGalleryId, pwdValue.trim());
     setPwdSaving(false);
     if (res.success) {
       toast("Đã lưu mật khẩu!", "success");
@@ -135,6 +145,12 @@ export function ShareGalleryModalContent({
   };
 
   return (
+    !isReady ? (
+      <div className="p-4 bg-error/5 rounded-xl">
+        <p className="text-body-sm font-semibold text-text-primary mb-1">Không thể tạo link chia sẻ</p>
+        <p className="text-caption text-text-muted">Thiếu dữ liệu album. Vui lòng đóng popup và thử lại.</p>
+      </div>
+    ) : (
     <div className="flex flex-col gap-5">
       {/* ── Link Chọn Ảnh ── */}
       <LinkSection
@@ -176,7 +192,7 @@ export function ShareGalleryModalContent({
               <p className="text-caption text-text-muted">Yêu cầu nhập mật khẩu để xem album</p>
             </div>
           </div>
-          <button
+          <Button unstyled
             onClick={handleTogglePassword}
             disabled={pwdSaving}
             className="relative w-11 h-6 rounded-full transition-all duration-200"
@@ -188,12 +204,12 @@ export function ShareGalleryModalContent({
               className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200"
               style={{ left: pwdEnabled ? "22px" : "2px", boxShadow: "0 1px 3px var(--color-black-10)" }}
             />
-          </button>
+          </Button>
         </div>
 
         {pwdEnabled && (
           <div className="flex items-center gap-2">
-            <input
+            <Input unstyled withBaseStyles={false}
               type="text"
               value={pwdValue}
               onChange={(e) => setPwdValue(e.target.value)}
@@ -205,7 +221,7 @@ export function ShareGalleryModalContent({
                 boxShadow: "inset 0 0 0 1px var(--color-border-light)",
               }}
             />
-            <button
+            <Button unstyled
               onClick={handleSavePassword}
               disabled={pwdSaving || !pwdValue.trim()}
               className="btn-ghost shrink-0 flex items-center gap-1.5"
@@ -213,11 +229,12 @@ export function ShareGalleryModalContent({
             >
               {pwdSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               <span>Lưu</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>
     </div>
+    )
   );
 }
 
@@ -262,14 +279,14 @@ function LinkSection({
         >
           {url}
         </div>
-        <button
+        <Button unstyled
           onClick={onCopy}
           className="btn-ghost shrink-0 flex items-center gap-1.5"
           style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
         >
           {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
           <span>{copied ? "Đã chép" : "Sao chép"}</span>
-        </button>
+        </Button>
       </div>
 
       {/* QR + Download */}
@@ -279,14 +296,14 @@ function LinkSection({
           className="w-40 h-40 rounded-lg flex items-center justify-center"
           style={{ background: "var(--color-bg-base)" }}
         />
-        <button
+        <Button unstyled
           onClick={onDownloadQR}
           className="btn-ghost flex items-center gap-1.5"
           style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
         >
           <Download size={14} />
           <span>Tải QR</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

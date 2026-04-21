@@ -16,7 +16,7 @@ export function SmartDashboardBanner() {
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              <span className="text-overline text-white/80">Đang phát triển</span>
+              <span className="text-overline text-white/80">Dữ liệu production</span>
             </div>
             <h2 className="text-h2 text-white">Dashboard Thông Minh</h2>
           </div>

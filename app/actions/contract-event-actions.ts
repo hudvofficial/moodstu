@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { isOnSetEvent } from "@/types/contract-constants";
@@ -32,7 +32,9 @@ export async function updateContractEvent(
   eventId: string,
   updates: EventUpdateFields,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contract_events")
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -181,7 +183,9 @@ export async function addContractEvent(input: {
   location?: string;
   notes?: string;
 }) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     if (!input.contractId) throw new Error("Thiếu contract ID");
     if (!input.title?.trim()) throw new Error("Tên sự kiện không được để trống");
 
@@ -234,7 +238,9 @@ export async function addContractEvent(input: {
 // Chỉ cho xóa event do admin tạo (is_manual_date = true)
 // Cascade: xóa work_tasks liên quan
 export async function deleteContractEvent(eventId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     if (!eventId) throw new Error("Thiếu event ID");
 
     // Guard: only delete manual events

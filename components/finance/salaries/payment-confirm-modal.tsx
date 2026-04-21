@@ -70,13 +70,13 @@ export function PaymentConfirmModal({
                                 {formatVnd(Math.max(0, currentDebt - amount))}
                             </span>
                         </p>
-                        <button
+                        <Button unstyled
                             type="button"
                             onClick={() => setAmount(currentDebt)}
                             className="text-xs font-semibold text-primary hover:underline hover:text-primary-dark transition-colors"
                         >
                             Tất toán
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

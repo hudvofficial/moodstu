@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
@@ -8,43 +8,30 @@ import { parseIntOrNull } from "@/lib/utils";
 import { generateChecklists } from "@/app/actions/checklist-actions";
 import type { ContractStatus } from "@/types/contract";
 
-// ═══════════════════════════════════════════
-// Contract Mutations — Create + Status Update
-// V2: getNextContractCode → contract-queries.ts
-// Cancel/Delete/Reactivate → contract-lifecycle.ts
-// ═══════════════════════════════════════════
+type SaveContractResult = {
+  id: string;
+  contract_code: string;
+  paid_amount: number;
+  remaining_amount: number;
+  payment_status: string;
+};
 
-// ─── createContract ──────────────────────────
-// Atomic: contract upsert + items replace + payment (create only)
 export async function createContract(rawData: unknown) {
   const parsed = contractSubmissionSchema.safeParse(rawData);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
     return {
       success: false as const,
-      error: `Dữ liệu không hợp lệ: ${firstIssue.message} (${firstIssue.path.join(".")})`,
+      error: `Du lieu khong hop le: ${firstIssue.message} (${firstIssue.path.join(".")})`,
     };
   }
 
   const data = parsed.data;
+  const isEdit = Boolean(data.existingContractId);
 
   return withAuth(async (supabase, userId) => {
-    // ── Optimistic lock check (edit mode only) ──
-    if (data.existingContractId && data.expectedUpdatedAt) {
-      const { data: current } = await supabase
-        .from("contracts")
-        .select("updated_at")
-        .eq("id", data.existingContractId)
-        .single();
+    await requireContractAccess(supabase, userId);
 
-      if (current && current.updated_at !== data.expectedUpdatedAt) {
-        throw new Error(
-          "Hợp đồng đã được người khác cập nhật. Vui lòng tải lại trang."
-        );
-      }
-    }
-
-    // ── Build contract payload ──
     const contractPayload = {
       contract_code: data.formData.contract_code,
       customer_id: data.formData.customer_id,
@@ -58,150 +45,69 @@ export async function createContract(rawData: unknown) {
       notes: data.formData.notes || null,
       total_amount: data.financials.total_amount,
       discount_amount: data.financials.discount_amount,
-      paid_amount: data.financials.paid_amount,
-      remaining_amount: data.financials.remaining_amount,
     };
 
-    // ── Update customer with couple detail fields ──
-    // Runs on both create & edit — always syncs latest info
+    const customerPayload = {
+      customer_id: data.formData.customer_id,
+      bride_name: data.formData.bride_name || null,
+      groom_name: data.formData.groom_name || null,
+      bride_phone: data.formData.bride_phone || null,
+      bride_height: parseIntOrNull(data.formData.bride_height),
+      bride_weight: parseIntOrNull(data.formData.bride_weight),
+      bride_shoe_size: parseIntOrNull(data.formData.bride_shoe_size),
+      groom_phone: data.formData.groom_phone || null,
+      groom_height: parseIntOrNull(data.formData.groom_height),
+      groom_weight: parseIntOrNull(data.formData.groom_weight),
+      groom_shoe_size: parseIntOrNull(data.formData.groom_shoe_size),
+    };
 
-    if (data.formData.customer_id) {
-      await supabase
-        .from("customers")
-        .update({
-          bride_name: data.formData.bride_name || null,
-          groom_name: data.formData.groom_name || null,
-          bride_phone: data.formData.bride_phone || null,
-          bride_height: parseIntOrNull(data.formData.bride_height),
-          bride_weight: parseIntOrNull(data.formData.bride_weight),
-          bride_shoe_size: parseIntOrNull(data.formData.bride_shoe_size),
-          groom_phone: data.formData.groom_phone || null,
-          groom_height: parseIntOrNull(data.formData.groom_height),
-          groom_weight: parseIntOrNull(data.formData.groom_weight),
-          groom_shoe_size: parseIntOrNull(data.formData.groom_shoe_size),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", data.formData.customer_id);
+    const itemPayload = data.items.map((item) => ({
+      type: item.type,
+      item_name: item.item_name,
+      service_id: item.service_id || null,
+      dress_id: item.dress_id || null,
+      export_type: item.export_type || null,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      original_price: item.original_price ?? null,
+      discount_amount: item.discount_amount || 0,
+      total_amount: item.total_amount,
+      is_addon: item.is_addon || false,
+      addon_category: item.addon_category || null,
+      notes: item.notes || null,
+    }));
+
+    const initialPayment =
+      !isEdit && data.paymentInfo.amount > 0
+        ? {
+            amount: data.paymentInfo.amount,
+            payment_method: data.paymentInfo.payment_method,
+            payment_stage: data.paymentInfo.payment_stage || null,
+            category_id: data.paymentInfo.category_id || null,
+            payment_date:
+              data.formData.contract_date ||
+              new Date().toISOString().slice(0, 10),
+          }
+        : null;
+
+    const { data: rpcData, error } = await supabase.rpc("save_contract_atomic", {
+      p_contract: contractPayload,
+      p_customer: customerPayload,
+      p_items: itemPayload,
+      p_initial_payment: initialPayment,
+      p_existing_contract_id: data.existingContractId || null,
+      p_expected_updated_at: data.expectedUpdatedAt || null,
+      p_actor_id: userId,
+    });
+
+    if (error) {
+      throw new Error(`Loi luu hop dong: ${error.message}`);
     }
 
-    let contractId = data.existingContractId;
+    const result = rpcData as SaveContractResult;
+    const contractId = result.id;
 
-    if (contractId) {
-      // ── UPDATE existing ──
-      const { error } = await supabase
-        .from("contracts")
-        .update({
-          ...contractPayload,
-          updated_by: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", contractId);
-      if (error) throw new Error(`Lỗi cập nhật HĐ: ${error.message}`);
-
-      // Delete old items → re-insert
-      await supabase
-        .from("contract_items")
-        .delete()
-        .eq("contract_id", contractId);
-    } else {
-      // ── CREATE new ──
-
-      // [V1 PORT] Contract code race prevention (mutations.ts:34-56)
-      // If another user created a contract with this code between
-      // mount (preview) and submit, auto-regenerate up to 3 times.
-      const MAX_CODE_RETRIES = 3;
-      let finalCode = contractPayload.contract_code;
-
-      for (let attempt = 0; attempt < MAX_CODE_RETRIES; attempt++) {
-        const { data: existing } = await supabase
-          .from("contracts")
-          .select("id")
-          .eq("contract_code", finalCode)
-          .maybeSingle();
-
-        if (!existing) break; // Code is unique, proceed
-
-        if (attempt === MAX_CODE_RETRIES - 1) {
-          throw new Error(
-            `Mã hợp đồng trùng sau ${MAX_CODE_RETRIES} lần thử. Vui lòng tải lại trang.`
-          );
-        }
-
-        // Auto-regenerate: fetch next available code
-        const year = new Date().getFullYear();
-        const prefix = `HĐ-${year}-`;
-        const { data: latest } = await supabase
-          .from("contracts")
-          .select("contract_code")
-          .like("contract_code", `${prefix}%`)
-          .order("contract_code", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let nextNum = 1;
-        if (latest?.contract_code) {
-          const parts = latest.contract_code.split("-");
-          const lastNum = parseInt(parts[2]);
-          if (!isNaN(lastNum)) nextNum = lastNum + 1 + attempt;
-        }
-        finalCode = `${prefix}${nextNum.toString().padStart(4, "0")}`;
-      }
-
-      contractPayload.contract_code = finalCode;
-
-      const { data: newContract, error } = await supabase
-        .from("contracts")
-        .insert({ ...contractPayload, created_by: userId })
-        .select("id")
-        .single();
-      if (error) throw new Error(`Lỗi tạo HĐ: ${error.message}`);
-      contractId = newContract.id;
-    }
-
-    // ── Insert items ──
-    if (data.items.length > 0) {
-      const itemRows = data.items.map((item) => ({
-        contract_id: contractId,
-        type: item.type,
-        item_name: item.item_name,
-        service_id: item.service_id || null,
-        dress_id: item.dress_id || null,
-        export_type: item.export_type || null,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        original_price: item.original_price ?? null,
-        discount_amount: item.discount_amount || 0,
-        total_amount: item.total_amount,
-        is_addon: item.is_addon || false,
-        addon_category: item.addon_category || null,
-        notes: item.notes || null,
-        added_by: userId,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("contract_items")
-        .insert(itemRows);
-      if (itemsError)
-        throw new Error(`Lỗi lưu chi tiết HĐ: ${itemsError.message}`);
-    }
-
-    // ── Payment receipt (CREATE only, amount > 0) ──
-    if (!data.existingContractId && data.paymentInfo.amount > 0) {
-      const { error: payError } = await supabase.from("payments").insert({
-        contract_id: contractId,
-        customer_id: data.formData.customer_id,
-        amount: data.paymentInfo.amount,
-        payment_method: data.paymentInfo.payment_method,
-        payment_stage: data.paymentInfo.payment_stage || null,
-        category_id: data.paymentInfo.category_id || null,
-        created_by: userId,
-      });
-      if (payError)
-        throw new Error(`Lỗi tạo phiếu thu: ${payError.message}`);
-    }
-
-    // ── Auto-generate checklists (CREATE only, non-blocking) ──
-    if (!data.existingContractId && contractId && data.formData.service_type) {
+    if (!isEdit && contractId && data.formData.service_type) {
       generateChecklists(contractId, data.formData.service_type).catch((err) => {
         console.error("[createContract] Auto-generate checklists failed:", err);
       });
@@ -211,39 +117,47 @@ export async function createContract(rawData: unknown) {
     revalidatePath(`/contracts/${contractId}`);
 
     fireAuditLog({
-      action: data.existingContractId ? "UPDATE" : "CREATE",
+      action: isEdit ? "UPDATE" : "CREATE",
       tableName: "contracts",
-      recordId: contractId!,
-      description: data.existingContractId
-        ? `Cập nhật HĐ: ${contractPayload.contract_code}`
-        : `Tạo HĐ: ${contractPayload.contract_code}`,
-      newData: contractPayload as Record<string, unknown>,
+      recordId: contractId,
+      description: isEdit
+        ? `Cap nhat hop dong: ${result.contract_code}`
+        : `Tao hop dong: ${result.contract_code}`,
+      newData: {
+        ...contractPayload,
+        paid_amount: result.paid_amount,
+        remaining_amount: result.remaining_amount,
+        payment_status: result.payment_status,
+      },
       source: "server_action",
     });
 
     return {
       id: contractId,
-      contract_code: data.formData.contract_code,
+      contract_code: result.contract_code,
     };
   });
 }
 
-// ─── Status Transition Machine (W1 fix) ──────
-// Valid transitions: prevents random status jumping
 const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
   cho_xu_ly: ["dang_thuc_hien", "da_huy"],
   dang_thuc_hien: ["hoan_thanh", "da_huy"],
-  hoan_thanh: [], // Terminal state — use admin override if needed
-  da_huy: ["cho_xu_ly"], // Reactivate only via reactivateContract()
+  hoan_thanh: [],
+  da_huy: ["cho_xu_ly"],
 };
 
 export async function updateContractStatus(
   id: string,
   newStatus: ContractStatus,
-  adminOverride = false
+  adminOverride = false,
 ) {
   return withAuth(async (supabase, userId) => {
-    // Fetch current status BEFORE updating
+    const access = await requireContractAccess(supabase, userId);
+
+    if (adminOverride && !["admin", "manager"].includes(access.role)) {
+      throw new Error("Ban khong co quyen bo qua quy trinh trang thai");
+    }
+
     const { data: current, error: fetchErr } = await supabase
       .from("contracts")
       .select("status")
@@ -252,18 +166,18 @@ export async function updateContractStatus(
       .single();
 
     if (fetchErr || !current) {
-      throw new Error("Không tìm thấy hợp đồng");
+      throw new Error("Khong tim thay hop dong");
     }
 
     const currentStatus = current.status as ContractStatus;
 
-    // Validate transition (unless admin override)
     if (!adminOverride) {
       const allowed = VALID_TRANSITIONS[currentStatus] || [];
       if (!allowed.includes(newStatus)) {
         throw new Error(
-          `Không thể chuyển từ "${currentStatus}" sang "${newStatus}". ` +
-          `Trạng thái hợp lệ: ${allowed.length > 0 ? allowed.join(", ") : "không có"}`
+          `Khong the chuyen tu "${currentStatus}" sang "${newStatus}". Trang thai hop le: ${
+            allowed.length > 0 ? allowed.join(", ") : "khong co"
+          }`,
         );
       }
     }
@@ -287,7 +201,7 @@ export async function updateContractStatus(
       action: "UPDATE",
       tableName: "contracts",
       recordId: id,
-      description: `Chuyển trạng thái HĐ: ${currentStatus} → ${newStatus}`,
+      description: `Chuyen trang thai hop dong: ${currentStatus} -> ${newStatus}`,
       source: "server_action",
     });
 

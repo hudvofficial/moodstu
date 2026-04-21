@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function DressesError({
   error,
@@ -17,9 +18,9 @@ export default function DressesError({
         <p className="text-body-sm text-text-muted mb-4">
           {error.message || "Không thể tải trang trang phục"}
         </p>
-        <button onClick={reset} className="btn btn-primary">
+        <Button type="button" onClick={reset}>
           Thử lại
-        </button>
+        </Button>
       </div>
     </div>
   );

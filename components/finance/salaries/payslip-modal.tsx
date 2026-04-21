@@ -15,7 +15,7 @@ interface PayslipTask {
     deadline: string;
     cost: number;
     notes: string | null;
-    contracts: { contract_code: string } | null;
+    contracts: Array<{ contract_code: string }> | null;
 }
 
 interface PayslipModalProps {
@@ -60,7 +60,7 @@ export function PayslipModal({
                 .lte("deadline", endOfMonth);
 
             if (error) console.error("Error fetching payslip details:", error);
-            setTasks((data as any) || []);
+            setTasks((data ?? []) as PayslipTask[]);
             setLoading(false);
         };
 
@@ -162,7 +162,7 @@ export function PayslipModal({
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
                                             <span className="font-semibold text-text-main text-xs">
-                                                {task.contracts?.contract_code || "Hợp đồng (Không mã)"}
+                                                {task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)"}
                                             </span>
                                             <span className="text-xs px-1.5 py-0.5 bg-purple-50 text-purple-600 font-semibold rounded-soft">
                                                 {workLabel(task.work_type)}
@@ -273,7 +273,7 @@ export function PayslipModal({
                 </div>
 
                 {/* Signature - compact on mobile, full on print */}
-                <div className="grid grid-cols-2 mt-4 lg:mt-8 text-center text-[10px] lg:text-sm gap-4 print:mt-16 print:text-sm">
+                <div className="grid grid-cols-2 mt-4 lg:mt-8 text-center text-tiny lg:text-sm gap-4 print:mt-16 print:text-sm">
                     <div>
                         <p className="font-bold mb-6 lg:mb-16 text-text-secondary">
                             Người lập phiếu
@@ -292,7 +292,7 @@ export function PayslipModal({
                     </div>
                 </div>
 
-                <div className="mt-4 text-center text-[9px] text-text-secondary opacity-40 print:block hidden">
+                <div className="mt-4 text-center text-micro text-text-secondary opacity-40 print:block hidden">
                     Mood Wedding Studio - In từ hệ thống quản lý
                 </div>
             </div>

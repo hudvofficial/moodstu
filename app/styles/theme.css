@@ -15,4 +15,20 @@
   --header-mobile-h: 3.5rem; /* 56px = h-14 */
   --header-desktop-h: 4rem; /* 64px = h-16 */
   --z-header: 40;
+  --gallery-admin-action-h: 2.25rem;
+  --gallery-admin-tab-h: 1.75rem;
+  --gallery-admin-section-gap: 0.75rem;
+  --gallery-admin-meta-gap: 0.5rem;
+  --gallery-admin-masonry-gap: 1rem;
+  --gallery-admin-tile-radius: var(--radius-xl);
+  --gallery-admin-tile-min: 15rem;
+  --gallery-admin-stats-radius: 1rem;
+  --gallery-admin-menu-width: 13rem;
+  --gallery-admin-overlay-gradient-start: rgba(23, 18, 14, 0.36);
+  --gallery-admin-overlay-gradient-mid: rgba(23, 18, 14, 0.08);
+  --gallery-admin-overlay-chip: rgba(255, 252, 247, 0.94);
+  --gallery-admin-index-bg: rgba(23, 18, 14, 0.48);
+  --gallery-admin-skeleton-base: rgba(139, 94, 60, 0.08);
+  --gallery-admin-skeleton-highlight: rgba(139, 94, 60, 0.16);
+  --gallery-admin-watermark: rgba(255, 255, 255, 0.28);
 }

@@ -90,3 +90,67 @@ export interface BudgetVsActualItem {
   variance: number;
   variance_pct: number;
 }
+
+export interface ScenarioProjection {
+  label: string;
+  type: 'conservative' | 'base' | 'aggressive';
+  nextMonthRevenue: number;
+  nextMonthProfit: number;
+  threeMonthRevenue: number;
+  threeMonthProfit: number;
+  description: string;
+}
+
+export interface CustomerMetrics {
+  totalCustomers: number;
+  avgContractValue: number;
+  repeatCustomerRate: number;
+  estimatedCLV: number;
+  conversionRate: number;
+  totalLeads: number;
+  wonLeads: number;
+}
+
+export interface RevenueBreakdownItem {
+  service_type: string;
+  total: number;
+  count: number;
+  percentage: number;
+}
+
+export interface DressRoiItem {
+  id: string;
+  name: string;
+  code: string;
+  purchasePrice: number;
+  totalRentals: number;
+  totalRevenue: number;
+  roi: number;
+}
+
+export interface InventoryCostItem {
+  category: string;
+  thisMonth: number;
+  lastMonth: number;
+  change: number;
+}
+
+export interface AdvancedKpis {
+  conversionRate: number;
+  avgOrderValue: number;
+  inventoryTurnover: number;
+  cac: number;
+  totalLeads: number;
+  totalContracts: number;
+  totalDresses: number;
+  totalRentals: number;
+}
+
+export interface FinanceAdvancedIntelligenceResult {
+  scenarios: ScenarioProjection[];
+  customerMetrics: CustomerMetrics;
+  revenueBreakdown: RevenueBreakdownItem[];
+  dressROI: DressRoiItem[];
+  inventoryCosts: InventoryCostItem[];
+  advancedKPIs: AdvancedKpis;
+}

@@ -28,10 +28,10 @@ export default function GoogleCalendarCard({
     startTransition(async () => {
       const result = await onDisconnect();
       if (result.success) {
-        toast.success("Da ngat ket noi Google Calendar");
+        toast.success("Đã ngắt kết nối Google Calendar");
         router.refresh();
       } else {
-        toast.error(result.error || "Loi ngat ket noi");
+        toast.error(result.error || "Lỗi ngắt kết nối");
       }
     });
   };
@@ -51,12 +51,12 @@ export default function GoogleCalendarCard({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Check className="w-3.5 h-3.5 text-green-600" />
                 <span className="text-xs text-green-600 font-medium">
-                  Da ket noi
+                  Đã kết nối
                   {calendarEmail && ` · ${calendarEmail}`}
                 </span>
               </div>
             ) : (
-              <p className="text-xs text-text-muted mt-0.5">Chua ket noi</p>
+              <p className="text-xs text-text-muted mt-0.5">Chưa kết nối</p>
             )}
           </div>
         </div>
@@ -70,7 +70,7 @@ export default function GoogleCalendarCard({
             className="gap-1.5"
           >
             <X className="w-3.5 h-3.5" />
-            {isPending ? "Dang ngat..." : "Ngat ket noi"}
+            {isPending ? "Đang ngắt..." : "Ngắt kết nối"}
           </Button>
         ) : (
           <Button
@@ -80,7 +80,7 @@ export default function GoogleCalendarCard({
             className="gap-1.5"
           >
             <Calendar className="w-3.5 h-3.5" />
-            Ket noi
+            Kết nối
           </Button>
         )}
       </div>

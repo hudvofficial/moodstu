@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { logConflict, logError } from "@/lib/audit";
 
 // ═══════════════════════════════════════════
@@ -15,7 +15,9 @@ import { logConflict, logError } from "@/lib/audit";
 export async function checkEmployeeTimeOverlap(
   employeeId: string, eventDate: string, targetStartTime: string, targetEndTime: string, excludeTaskId?: string
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     let query = supabase
       .from("work_tasks")
       .select("id, work_type, start_time, end_time, contract_events!inner(title, event_date)")
@@ -46,7 +48,9 @@ export async function checkEmployeeTimeOverlap(
 export async function checkEmployeeDeadlineOverlap(
   employeeId: string, targetDeadline: string, ignoreTaskId?: string, ignoreContractId?: string
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const deadlineDate = targetDeadline.split("T")[0];
 
     let query = supabase.from("work_tasks").select("id, contract_id, work_type, deadline")

@@ -48,12 +48,12 @@ export function ForecastChart({ data }: ForecastChartProps) {
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8B5E3C" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#8B5E3C" stopOpacity={0}/>
+                <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-            <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} minTickGap={20} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+            <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} dy={10} minTickGap={20} />
             <YAxis 
               tickFormatter={(val) => {
                 if (val === 0) return '0';
@@ -62,14 +62,14 @@ export function ForecastChart({ data }: ForecastChartProps) {
               width={65}
               tickLine={false} 
               axisLine={false} 
-              tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} 
+              tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             />
             <Tooltip 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => formatVnd(Number(value))}
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />
-            <Area type="monotone" dataKey="balance" name="Số dư dự kiến" stroke="#8B5E3C" strokeWidth={2} fillOpacity={1} fill="url(#colorBalance)" />
+            <Area type="monotone" dataKey="balance" name="Số dư dự kiến" stroke="var(--color-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorBalance)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

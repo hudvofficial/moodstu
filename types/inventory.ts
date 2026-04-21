@@ -8,7 +8,7 @@
  * @see docs/specs/inventory.md for full spec
  */
 
-import type { InventoryCategory, InventoryStatus, InventoryUnit } from "@/lib/validations/inventory.schema";
+import type { InventoryCategory, InventoryStatus } from "@/lib/validations/inventory.schema";
 
 // ─── CORE DATA MODEL (inventory_items row) ───────────
 
@@ -40,6 +40,7 @@ export interface InventoryFilters {
   search?: string;
   category?: InventoryCategory | "all";
   status?: InventoryStatus | "all";
+  sort?: "newest" | "name_asc" | "stock_asc" | "stock_desc";
   page?: number;
 }
 

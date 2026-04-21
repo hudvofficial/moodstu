@@ -1,12 +1,11 @@
 "use client";
 
-import { Heart, Star, ImageIcon } from "lucide-react";
+import { useState } from "react";
+import { GripVertical, Heart, ImageIcon, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
-import type { ImageGroup } from "./gallery-helpers";
-
-// ═══════════════════════════════════════════
-// GalleryImageList — List view of gallery images
-// ═══════════════════════════════════════════
+import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
 
 interface GalleryImageListProps {
   groups: ImageGroup[];
@@ -14,142 +13,205 @@ interface GalleryImageListProps {
   reactionCounts?: ReactionCounts;
   onToggleStar?: (imageId: string, currentSelected: boolean) => void;
   watermarkEnabled?: boolean;
+  draggable?: boolean;
+  onReorder?: (fromIdx: number, toIdx: number) => void;
 }
 
-export default function GalleryImageList({ groups, onImageClick, reactionCounts, onToggleStar, watermarkEnabled }: GalleryImageListProps) {
+export default function GalleryImageList({
+  groups,
+  onImageClick,
+  reactionCounts,
+  onToggleStar,
+  watermarkEnabled,
+  draggable = false,
+  onReorder,
+}: GalleryImageListProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   if (groups.length === 0) {
     return (
       <div className="py-16 text-center">
-        <ImageIcon size={48} className="text-text-muted/20 mx-auto mb-3" />
+        <ImageIcon size={48} className="mx-auto mb-3 text-text-muted/20" />
         <p className="text-body-sm text-text-muted">Chưa có ảnh nào</p>
       </div>
     );
   }
 
+  const headerColumns = draggable
+    ? "36px 80px minmax(220px,1fr) 84px 110px 40px 60px"
+    : "80px minmax(220px,1fr) 84px 110px 40px 60px";
+
   return (
-    <div className="p-3 lg:p-4">
-      {/* Header row */}
-      <div
-        className="hidden lg:grid items-center gap-3 px-3 py-2 mb-1"
-        style={{
-          gridTemplateColumns: "80px 1fr 80px 100px 60px",
-          fontSize: "var(--font-size-caption)",
-          color: "var(--color-text-muted)",
-          fontWeight: 600,
-        }}
-      >
-        <span>Ảnh</span>
-        <span>Tên file</span>
-        <span>Loại</span>
-        <span>Ngày tạo</span>
-        <span>⭐</span>
-        <span className="text-center">❤️</span>
-      </div>
+    <div className="overflow-x-auto px-3 py-3 md:px-6 md:py-4">
+      <div style={{ minWidth: 720 }}>
+        <div
+          className="mb-1 hidden items-center gap-3 px-3 py-2 lg:grid"
+          style={{
+            gridTemplateColumns: headerColumns,
+            fontSize: "var(--font-size-caption)",
+            color: "var(--color-text-muted)",
+            fontWeight: 600,
+          }}
+        >
+          {draggable && <span className="text-center">↕</span>}
+          <span>Ảnh</span>
+          <span>Tên file</span>
+          <span>Loại</span>
+          <span>Ngày tạo</span>
+          <span>★</span>
+          <span className="text-center">♥</span>
+        </div>
 
-      {/* Image rows */}
-      {groups.map((group, idx) => {
-        const img = group.displayImage;
-        const hearts = reactionCounts?.[img.id]?.hearts || 0;
-        const fileType = group.hasRaw && group.hasJpg ? "RAW+JPG" : group.hasRaw ? "RAW" : "JPG";
-        const dateStr = img.created_at
-          ? new Date(img.created_at).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
-          : "—";
+        {groups.map((group, index) => {
+          const image = group.displayImage;
+          const hearts = reactionCounts?.[image.id]?.hearts || 0;
+          const fileType = group.hasRaw && group.hasJpg ? "RAW+JPG" : group.hasRaw ? "RAW" : "JPG";
+          const dateLabel = image.created_at
+            ? new Date(image.created_at).toLocaleDateString("vi-VN", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+            : "—";
+          const isDragging = dragIndex === index;
+          const isDragOver = dragOverIndex === index && dragIndex !== index;
 
-        return (
-          <div
-            key={group.fileGroup}
-            className="grid items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 hover:bg-(--color-bg-hover)"
-            style={{
-              gridTemplateColumns: "80px 1fr 80px 100px 40px 60px",
-              borderBottom: "1px solid var(--color-border-light)",
-            }}
-            onClick={() => onImageClick(idx)}
-          >
-            {/* Thumbnail */}
+          return (
             <div
-              className="relative overflow-hidden"
-              style={{ width: 80, height: 56, borderRadius: "var(--radius-sm, 6px)" }}
+              key={group.fileGroup}
+              role="button"
+              tabIndex={0}
+              onClick={() => onImageClick(index)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") onImageClick(index);
+              }}
+              draggable={draggable}
+              onDragStart={draggable ? (event) => {
+                setDragIndex(index);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(index));
+              } : undefined}
+              onDragOver={draggable ? (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setDragOverIndex(index);
+              } : undefined}
+              onDrop={draggable ? (event) => {
+                event.preventDefault();
+                const fromIndex = Number.parseInt(event.dataTransfer.getData("text/plain"), 10);
+                if (!Number.isNaN(fromIndex) && fromIndex !== index && onReorder) {
+                  onReorder(fromIndex, index);
+                }
+                setDragIndex(null);
+                setDragOverIndex(null);
+              } : undefined}
+              onDragEnd={draggable ? () => {
+                setDragIndex(null);
+                setDragOverIndex(null);
+              } : undefined}
+              className="grid cursor-pointer items-center gap-3 rounded-lg border-b border-border-light px-3 py-2 transition-colors duration-150 hover:bg-bg-hover"
+              style={{
+                gridTemplateColumns: headerColumns,
+                opacity: isDragging ? 0.5 : 1,
+                outline: isDragOver ? "2px solid var(--color-primary)" : "none",
+                outlineOffset: -2,
+              }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.thumbnail_url || img.image_url}
-                alt={img.file_name || "Photo"}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              {img.is_selected && (
-                <div className="absolute top-1 left-1">
-                  <Star size={12} className="text-success fill-success" />
+              {draggable && (
+                <div
+                  className="flex items-center justify-center text-text-muted"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <GripVertical size={15} />
                 </div>
               )}
-              {/* Watermark overlay */}
-              {watermarkEnabled && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                  <span className="text-white/40 font-extrabold rotate-[-30deg] select-none" style={{ fontSize: "14px", letterSpacing: "3px" }}>PROOF</span>
+
+              <div className="relative overflow-hidden rounded-md" style={{ width: 80, height: 56 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- Drive thumbnail URL is computed per tile width */}
+                <img
+                  src={getResponsiveThumbnailUrl(image.thumbnail_url, image.image_url, 240)}
+                  alt={image.file_name || "Photo"}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {image.is_selected && (
+                  <div className="absolute left-1 top-1">
+                    <Star size={12} className="fill-success text-success" />
+                  </div>
+                )}
+                {watermarkEnabled && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+                    <span
+                      className="select-none rotate-[-30deg]"
+                      style={{
+                        color: "var(--gallery-admin-watermark)",
+                        fontSize: "14px",
+                        letterSpacing: "3px",
+                        fontWeight: 800,
+                      }}
+                    >
+                      PROOF
+                    </span>
+                  </div>
+                )}
+                <div
+                  className="absolute bottom-0.5 right-0.5 flex items-center justify-center rounded font-semibold text-text-inverse"
+                  style={{
+                    width: 18,
+                    height: 18,
+                    fontSize: "9px",
+                    backgroundColor: "var(--gallery-admin-index-bg)",
+                  }}
+                >
+                  {index + 1}
                 </div>
-              )}
-              {/* Number badge */}
-              <div
-                className="absolute bottom-0.5 right-0.5 flex items-center justify-center bg-black/50 text-white font-semibold rounded"
-                style={{
-                  width: 18, height: 18,
-                  fontSize: "9px",
-                }}
-              >
-                {idx + 1}
+              </div>
+
+              <p className="truncate text-body-sm text-text-primary">
+                {image.file_name || `Photo ${index + 1}`}
+              </p>
+
+              <Badge variant={group.hasRaw ? "primary" : "neutral"}>{fileType}</Badge>
+
+              <span className="text-caption text-text-muted">{dateLabel}</span>
+
+              <div className="flex items-center justify-center">
+                {onToggleStar && (
+                  <Button
+                    unstyled
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleStar(image.id, !!image.is_selected);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.stopPropagation();
+                        onToggleStar(image.id, !!image.is_selected);
+                      }
+                    }}
+                    className="flex items-center justify-center"
+                    title={image.is_selected ? "Bỏ đề xuất" : "Đề xuất"}
+                  >
+                    <Star size={14} className={image.is_selected ? "fill-success text-success" : "text-text-muted"} />
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-1">
+                {hearts > 0 && (
+                  <>
+                    <Heart size={13} className="fill-error text-error" />
+                    <span className="text-micro font-semibold text-error">{hearts}</span>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* File name */}
-            <p className="truncate" style={{ fontSize: "var(--font-size-body-sm)", color: "var(--color-text-primary)" }}>
-              {img.file_name || `Photo ${idx + 1}`}
-            </p>
-
-            {/* File type */}
-            <span
-              className={`px-1.5 py-0.5 rounded text-center font-semibold ${group.hasRaw ? "bg-primary/10 text-primary" : "bg-black/5 text-text-muted"}`}
-              style={{ fontSize: "10px" }}
-            >
-              {fileType}
-            </span>
-
-            {/* Date */}
-            <span style={{ fontSize: "var(--font-size-caption)", color: "var(--color-text-muted)" }}>
-              {dateStr}
-            </span>
-
-            {/* Star toggle (Admin) */}
-            <div className="flex items-center justify-center">
-              {onToggleStar && (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); onToggleStar(img.id, !!img.is_selected); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(img.id, !!img.is_selected); }}
-                  className="flex items-center transition-colors cursor-pointer"
-                  style={{ background: "none", border: "none", padding: 0 }}
-                  title={img.is_selected ? "Bỏ đề xuất" : "Đề xuất"}
-                >
-                  <Star
-                    size={14}
-                    className={img.is_selected ? "text-success fill-success" : "text-text-muted fill-none"}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Heart count (read-only) */}
-            <div className="flex items-center justify-center gap-1">
-              {hearts > 0 && (
-                <div className="flex items-center gap-0.5">
-                  <Heart size={13} className="text-error fill-error" />
-                  <span className="font-semibold text-error text-micro">{hearts}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,16 @@
 **Effort:** 3-4 giờ
 **Dependencies:** Phase 01 (QuickNav)
 
+## 2026-04-21 Audit Delta
+
+Current code has `components/finance/finance-fab.tsx`, but this phase is still **partial**:
+
+- [ ] Mount `FinanceFAB` from `app/(protected)/finance/layout.tsx` or another finance-level shell entry.
+- [ ] Verify action routes exist. Current FAB links to `/finance/receipts/new` and `/finance/expenses/new`; if those routes do not exist, use existing modal/drawer flows instead.
+- [ ] Keep FAB on SSOT primitive `components/ui/fab.tsx`; no custom overlay logic beyond the minimal speed dial.
+- [ ] Avoid finance-specific AI popup duplication; route AI entry to Moodie if needed.
+- [ ] Re-test mobile bottom spacing so the fixed FAB does not cover list/table rows.
+
 ## Objective
 
 Port FinanceFAB — Floating Action Button system cho quick actions.

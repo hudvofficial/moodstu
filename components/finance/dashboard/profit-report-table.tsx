@@ -1,24 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarRange, ChevronRight, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
-import { BarChart3, ChevronRight, Tags } from "lucide-react";
 import { getContractProfitReport } from "@/app/actions/finance-dashboard-queries";
-import { Badge } from "@/components/ui/badge";
+import { formatFinanceDate, formatVnd, financeStatusLabel, financeStatusVariant } from "@/components/finance/finance-format";
+import { ContractProfitDetailDrawer } from "@/components/finance/dashboard/profit-detail-drawer";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import DatePicker from "@/components/ui/date-picker";
 import { Pagination } from "@/components/ui/pagination";
-import { SimpleSelect } from "@/components/ui/simple-select";
+import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { cacheKeys, useSWR } from "@/lib/swr";
-import { financeStatusLabel, financeStatusVariant, formatFinanceDate, formatVnd, formatCompactVnd } from "@/components/finance/finance-format";
+import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/types/action-result";
 import type { ContractProfitRow, PaginatedResult } from "@/types/finance-dashboard";
-import { ContractProfitDetailDrawer } from "./profit-detail-drawer";
 
 interface ProfitReportTableProps {
-  initialData: PaginatedResult<ContractProfitRow>;
+  initialData?: PaginatedResult<ContractProfitRow>;
+  initialStatus?: string;
+  initialFromDate?: string;
+  initialToDate?: string;
 }
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "draft", label: "Nháp" },
+  { value: "dang_thuc_hien", label: "Đang thực hiện" },
+  { value: "hoan_thanh", label: "Hoàn thành" },
+  { value: "da_huy", label: "Đã hủy" },
+];
+
+const EMPTY_RESULT: PaginatedResult<ContractProfitRow> = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 10,
+};
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -26,237 +46,308 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   return result.data;
 }
 
-export function ProfitReportTable({ initialData }: ProfitReportTableProps) {
-  const [status, setStatus] = useState("all");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(1);
-  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
-  
-  const pageSize = 8;
-  const key = cacheKeys.financeProfitReport(status, fromDate, toDate, page);
+function getMarginVariant(value: number): BadgeVariant {
+  if (value >= 30) return "success";
+  if (value >= 15) return "primary";
+  if (value >= 0) return "warning";
+  return "error";
+}
 
-  const { data, error, isLoading } = useSWR(
+function getCollectionVariant(row: ContractProfitRow): BadgeVariant {
+  if (row.remainingAmount <= 0) return "success";
+  if (row.paidAmount > 0) return "warning";
+  return "error";
+}
+
+function getCollectionLabel(row: ContractProfitRow): string {
+  if (row.remainingAmount <= 0) return "Đã thu đủ";
+  if (row.paidAmount > 0) return "Cần thu thêm";
+  return "Chưa thu";
+}
+
+function formatPercent(value: number) {
+  return `${value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
+}
+
+function ProfitDesktopTable({
+  items,
+  onSelect,
+}: {
+  items: ContractProfitRow[];
+  onSelect: (contractId: string) => void;
+}) {
+  return (
+    <TableWrapper containerClassName="hidden lg:block">
+      <THead>
+        <TR>
+          <TH>Hợp đồng</TH>
+          <TH>Khách hàng</TH>
+          <TH>Trạng thái</TH>
+          <TH className="text-right">Doanh thu</TH>
+          <TH className="text-right">Chi phí</TH>
+          <TH className="text-right">Lợi nhuận</TH>
+          <TH>Biên LN</TH>
+          <TH className="text-right">Thu tiền</TH>
+        </TR>
+      </THead>
+      <TBody>
+        {items.length === 0 ? (
+          <TR>
+            <TD colSpan={8} className="py-8 text-center text-text-muted">
+              Chưa có hợp đồng nào khớp bộ lọc hiện tại.
+            </TD>
+          </TR>
+        ) : (
+          items.map((item) => (
+            <TR key={item.id} onClick={() => onSelect(item.id)}>
+              <TD>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-text-primary">{item.contractCode || "Không có mã"}</span>
+                  <span className="text-caption text-text-muted">{formatFinanceDate(item.contractDate)}</span>
+                </div>
+              </TD>
+              <TD>
+                <div className="max-w-44 truncate font-medium text-text-primary">{item.customerName || "Khách vãng lai"}</div>
+              </TD>
+              <TD>
+                <Badge variant={financeStatusVariant(item.status)}>{financeStatusLabel(item.status)}</Badge>
+              </TD>
+              <TD className="text-right">
+                <div className="flex flex-col items-end">
+                  <span className="tabular-nums font-semibold text-text-primary">{formatVnd(item.totalAmount)}</span>
+                  <span className="text-caption text-text-muted">
+                    Gói {formatVnd(item.packageRevenue)} · PS {formatVnd(item.addonRevenue)}
+                  </span>
+                </div>
+              </TD>
+              <TD className="text-right">
+                <div className="flex flex-col items-end">
+                  <span className="tabular-nums font-semibold text-text-primary">{formatVnd(item.totalCost)}</span>
+                  <span className="text-caption text-text-muted">
+                    Lương {formatVnd(item.taskCost)} · In {formatVnd(item.printCost)}
+                  </span>
+                </div>
+              </TD>
+              <TD className="text-right">
+                <div className="flex flex-col items-end">
+                  <span className={cn("tabular-nums font-bold", item.profit >= 0 ? "text-success" : "text-error")}>
+                    {item.profit >= 0 ? "+" : ""}
+                    {formatVnd(item.profit)}
+                  </span>
+                  <span className="text-caption text-text-muted">Đã thu {formatVnd(item.paidAmount)}</span>
+                </div>
+              </TD>
+              <TD>
+                <Badge variant={getMarginVariant(item.profitMargin)}>{formatPercent(item.profitMargin)}</Badge>
+              </TD>
+              <TD className="text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant={getCollectionVariant(item)}>{getCollectionLabel(item)}</Badge>
+                  <span className="tabular-nums text-caption text-text-muted">Còn {formatVnd(item.remainingAmount)}</span>
+                </div>
+              </TD>
+            </TR>
+          ))
+        )}
+      </TBody>
+    </TableWrapper>
+  );
+}
+
+function ProfitMobileList({
+  items,
+  onSelect,
+}: {
+  items: ContractProfitRow[];
+  onSelect: (contractId: string) => void;
+}) {
+  return (
+    <div className="space-y-3 lg:hidden">
+      {items.length === 0 ? (
+        <div className="card-base p-5 text-center text-text-muted">Chưa có hợp đồng nào khớp bộ lọc hiện tại.</div>
+      ) : (
+        items.map((item) => (
+          <Button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.id)}
+            unstyled
+            className="card-interactive stagger-item w-full p-4 text-left"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-body-sm font-semibold text-text-primary">{item.contractCode || "Không có mã"}</p>
+                <p className="text-caption text-text-muted">
+                  {item.customerName || "Khách vãng lai"} · {formatFinanceDate(item.contractDate)}
+                </p>
+              </div>
+              <Badge variant={financeStatusVariant(item.status)}>{financeStatusLabel(item.status)}</Badge>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-caption text-text-muted">Doanh thu</p>
+                <p className="tabular-nums font-semibold text-text-primary">{formatVnd(item.totalAmount)}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-muted">Chi phí</p>
+                <p className="tabular-nums font-semibold text-text-primary">{formatVnd(item.totalCost)}</p>
+              </div>
+              <div>
+                <p className="text-caption text-text-muted">Lợi nhuận</p>
+                <p className={cn("tabular-nums font-bold", item.profit >= 0 ? "text-success" : "text-error")}>
+                  {item.profit >= 0 ? "+" : ""}
+                  {formatVnd(item.profit)}
+                </p>
+              </div>
+              <div>
+                <p className="text-caption text-text-muted">Cần thu</p>
+                <p className="tabular-nums font-semibold text-text-primary">{formatVnd(item.remainingAmount)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={getMarginVariant(item.profitMargin)}>Biên {formatPercent(item.profitMargin)}</Badge>
+                <Badge variant={getCollectionVariant(item)}>{getCollectionLabel(item)}</Badge>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" />
+            </div>
+          </Button>
+        ))
+      )}
+    </div>
+  );
+}
+
+export function ProfitReportTable({
+  initialData,
+  initialStatus = "all",
+  initialFromDate = "",
+  initialToDate = "",
+}: ProfitReportTableProps) {
+  const [status, setStatus] = useState(initialStatus);
+  const [fromDate, setFromDate] = useState(initialFromDate);
+  const [toDate, setToDate] = useState(initialToDate);
+  const [page, setPage] = useState(initialData?.page || 1);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+
+  const pageSize = initialData?.pageSize || EMPTY_RESULT.pageSize;
+  const initialKey = useMemo(
+    () => cacheKeys.financeProfitReport(initialStatus, initialFromDate, initialToDate, initialData?.page || 1),
+    [initialData?.page, initialFromDate, initialStatus, initialToDate],
+  );
+  const key = cacheKeys.financeProfitReport(status, fromDate, toDate, page);
+  const isInitialQuery = key === initialKey;
+
+  const report = useSWR(
     key,
-    () => requireData(getContractProfitReport({ status, fromDate, toDate, page, pageSize })),
-    { fallbackData: initialData }
+    () =>
+      requireData(
+        getContractProfitReport({
+          status,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          page,
+          pageSize,
+        }),
+      ),
+    isInitialQuery && initialData ? { fallbackData: initialData } : undefined,
   );
 
   useEffect(() => {
-    if (error) toast.error(error.message || "Không tải được báo cáo lợi nhuận.");
-  }, [error]);
+    if (report.error) {
+      toast.error(report.error.message || "Không tải được báo cáo lợi nhuận.");
+    }
+  }, [report.error]);
 
-  const result = data || initialData;
-  const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
-  const statusOptions = [
-    { value: "all", label: "Tất cả trạng thái" },
-    { value: "dang_thuc_hien", label: "Đang thực hiện" },
-    { value: "hoan_thanh", label: "Hoàn thành" },
-    { value: "da_huy", label: "Đã hủy" },
-  ];
+  const data = report.data ?? (isInitialQuery ? initialData : undefined) ?? EMPTY_RESULT;
+  const totalPages = Math.max(1, Math.ceil(data.total / Math.max(data.pageSize, 1)));
 
-  const updateFilter = (setter: (value: string) => void, value: string) => {
-    setter(value);
+  const handleStatusChange = (value: string) => {
+    setStatus(value);
+    setPage(1);
+  };
+
+  const handleFromDateChange = (value: string) => {
+    setFromDate(value);
+    setPage(1);
+  };
+
+  const handleToDateChange = (value: string) => {
+    setToDate(value);
     setPage(1);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="icon-box bg-success/10">
-            <BarChart3 className="w-4 h-4 text-success" />
+    <>
+      <div className="space-y-3">
+        <div className="card-base p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="icon-box bg-primary/10">
+                  <ReceiptText className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-h3">Lợi nhuận theo hợp đồng</h3>
+                  <p className="text-caption text-text-muted">Đọc theo cùng một semantic doanh thu, chi phí và biên lợi nhuận.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Badge variant="primary">{data.total} hợp đồng</Badge>
+              {fromDate && toDate && (
+                <Badge variant="info">
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarRange className="h-3.5 w-3.5" />
+                    {fromDate} đến {toDate}
+                  </span>
+                </Badge>
+              )}
+            </div>
           </div>
-          <div>
-            <h3 className="section-title">Báo cáo lợi nhuận theo HĐ</h3>
-            <p className="text-caption">Doanh thu, chi phí và margin theo từng hợp đồng.</p>
+
+          <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
+            <SelectPill
+              value={status}
+              onChange={handleStatusChange}
+              options={STATUS_OPTIONS}
+              placeholder="Trạng thái"
+              defaultValue="all"
+            />
+            <DatePicker value={fromDate} onChange={handleFromDateChange} placeholder="Từ ngày" className="w-full lg:w-40" />
+            <DatePicker value={toDate} onChange={handleToDateChange} placeholder="Đến ngày" className="w-full lg:w-40" />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:min-w-[520px]">
-          <div className="col-span-2 sm:col-span-1">
-            <SimpleSelect value={status} onChange={(value) => updateFilter(setStatus, value)} options={statusOptions} />
+        {report.isLoading && data.items.length === 0 ? (
+          <div className="card-base p-4">
+            <SkeletonTable rows={6} />
           </div>
-          <DatePicker value={fromDate} onChange={(value) => updateFilter(setFromDate, value)} placeholder="Từ ngày" />
-          <DatePicker value={toDate} onChange={(value) => updateFilter(setToDate, value)} placeholder="Đến ngày" />
+        ) : (
+          <>
+            <ProfitDesktopTable items={data.items} onSelect={setSelectedContractId} />
+            <ProfitMobileList items={data.items} onSelect={setSelectedContractId} />
+          </>
+        )}
+
+        <div className="card-base flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <p className="text-body-sm text-text-secondary">
+            Trang {data.page} / {totalPages} · {data.items.length} / {data.total} hợp đồng
+          </p>
+          <Pagination page={data.page} totalPages={totalPages} onChange={setPage} />
         </div>
       </div>
 
-      {isLoading && !data ? (
-        <div className="card-base p-4">
-          <SkeletonTable rows={5} />
-        </div>
-      ) : (
-        <>
-          {/* DESKTOP VIEW: PREMIUM HIG COMPLIANT TABLE */}
-          <div className="hidden lg:block">
-            <TableWrapper>
-              <THead>
-                <tr>
-                  <TH>Hợp đồng</TH>
-                  <TH>Khách hàng</TH>
-                  <TH className="text-right">Thực thu</TH>
-                  <TH className="text-right">Chi phí</TH>
-                  <TH className="text-right">Lợi nhuận</TH>
-                  <TH className="w-32">Margin</TH>
-                  <TH>Trạng thái</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {result.items.length === 0 ? (
-                  <TR>
-                    <TD className="text-text-muted text-center" colSpan={7}>
-                      Chưa có dữ liệu phù hợp với bộ lọc.
-                    </TD>
-                  </TR>
-                ) : (
-                  result.items.map((row) => (
-                    <TR 
-                      key={row.id} 
-                      className="group cursor-pointer hover:bg-content-hover/30 transition-colors"
-                      onClick={() => setSelectedContractId(row.id)}
-                    >
-                      <TD>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-text-primary">{row.contractCode}</span>
-                          <span className="text-xs text-text-tertiary">{formatFinanceDate(row.contractDate)}</span>
-                        </div>
-                      </TD>
-                      <TD>
-                        <span className="font-medium">{row.customerName}</span>
-                      </TD>
-                      <TD className="text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="tabular-nums font-bold text-text-primary">
-                            {formatVnd(row.totalAmount)}
-                          </span>
-                          <div className="flex items-center gap-1 text-xs text-text-tertiary">
-                            <span>Gói: {formatCompactVnd(row.packageRevenue)}</span>
-                            <span>•</span>
-                            <span>PS: {formatCompactVnd(row.addonRevenue)}</span>
-                            {row.discount > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="text-error flex items-center" title="Khuyến mãi">
-                                  <Tags className="w-3 h-3 mr-0.5" />
-                                  -{formatCompactVnd(row.discount)}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </TD>
-                      <TD className="text-right">
-                        <span className="tabular-nums font-bold text-error">
-                          {formatVnd(row.totalCost)}
-                        </span>
-                      </TD>
-                      <TD className="text-right">
-                        <span className={`tabular-nums font-bold ${row.profit >= 0 ? "text-success" : "text-error"}`}>
-                          {row.profit >= 0 ? "+" : ""}{formatVnd(row.profit)}
-                        </span>
-                      </TD>
-                      <TD>
-                        <div className="flex flex-col gap-1 w-full max-w-[100px] ml-auto mr-0">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className={row.profitMargin >= 0 ? "text-success font-medium" : "text-error font-medium"}>
-                              {row.profitMargin}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-border/40 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${row.profitMargin >= 0 ? "bg-success" : "bg-error"}`} 
-                              style={{ width: `${Math.min(100, Math.max(0, Math.abs(row.profitMargin)))}%` }}
-                            />
-                          </div>
-                        </div>
-                      </TD>
-                      <TD>
-                        <div className="flex items-center justify-between gap-2">
-                           <Badge variant={financeStatusVariant(row.status)}>{financeStatusLabel(row.status)}</Badge>
-                           <ChevronRight className="w-4 h-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                      </TD>
-                    </TR>
-                  ))
-                )}
-              </TBody>
-            </TableWrapper>
-          </div>
-
-          {/* MOBILE VIEW: HIG CARD BASED LIST */}
-          <div className="lg:hidden space-y-3">
-            {result.items.length === 0 ? (
-               <div className="card-base p-6 text-center text-text-muted">Chưa có dữ liệu phù hợp với bộ lọc.</div>
-            ) : (
-               result.items.map((row) => (
-                 <div 
-                   key={row.id} 
-                   className="card-base p-4 cursor-pointer active:scale-[0.98] transition-transform flex flex-col gap-3 relative overflow-hidden"
-                   onClick={() => setSelectedContractId(row.id)}
-                 >
-                   <div className="flex justify-between items-start">
-                     <div>
-                       <div className="font-semibold text-text-primary text-base">{row.contractCode}</div>
-                       <div className="text-xs text-text-secondary">{formatFinanceDate(row.contractDate)} • {row.customerName}</div>
-                     </div>
-                     <Badge variant={financeStatusVariant(row.status)}>{financeStatusLabel(row.status)}</Badge>
-                   </div>
-                   
-                   <div className="bg-background-secondary/50 rounded-lg p-3 grid grid-cols-2 gap-3">
-                     <div>
-                       <div className="text-xs text-text-tertiary mb-1">Thực thu</div>
-                       <div className="font-bold text-text-primary tabular-nums text-base">{formatVnd(row.totalAmount)}</div>
-                     </div>
-                     <div>
-                       <div className="text-xs text-text-tertiary mb-1">Chi phí</div>
-                       <div className="font-bold text-error tabular-nums text-base">{formatVnd(row.totalCost)}</div>
-                     </div>
-                   </div>
-
-                   <div className="flex items-center justify-between pt-1">
-                      <div>
-                        <div className="text-xs text-text-tertiary">Lợi nhuận</div>
-                        <div className={`font-bold tabular-nums text-lg ${row.profit >= 0 ? "text-success" : "text-error"}`}>
-                           {row.profit >= 0 ? "+" : ""}{formatVnd(row.profit)}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-1 min-w-[70px]">
-                         <span className={`text-sm font-bold ${row.profitMargin >= 0 ? "text-success" : "text-error"}`}>
-                           {row.profitMargin}%
-                         </span>
-                         <div className="w-16 bg-border/40 rounded-full h-1.5 overflow-hidden">
-                           <div 
-                             className={`h-full rounded-full ${row.profitMargin >= 0 ? "bg-success" : "bg-error"}`} 
-                             style={{ width: `${Math.min(100, Math.max(0, Math.abs(row.profitMargin)))}%` }}
-                           />
-                         </div>
-                      </div>
-                   </div>
-
-                   {row.discount > 0 && (
-                     <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none">
-                       <div className="absolute -top-4 -right-4 w-8 h-8 bg-error rotate-45" />
-                     </div>
-                   )}
-                 </div>
-               ))
-            )}
-          </div>
-        </>
-      )}
-
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-      
-      {/* Dummy placeholder for Phase 04 ContractProfitDetailDrawer */}
-      {selectedContractId && (
-        <ContractProfitDetailDrawer 
-          contractId={selectedContractId} 
-          open={!!selectedContractId} 
-          onOpenChange={(isOpen: boolean) => !isOpen && setSelectedContractId(null)} 
-        />
-      )}
-    </div>
+      <ContractProfitDetailDrawer
+        contractId={selectedContractId || ""}
+        open={Boolean(selectedContractId)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedContractId(null);
+        }}
+      />
+    </>
   );
 }

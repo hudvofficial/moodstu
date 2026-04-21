@@ -1,28 +1,27 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
-  parseDriveFolderUrl, fetchDriveFiles,
-  getDriveThumbnailUrl, getDriveImageUrl, extractFileGroup,
+  parseDriveFolderUrl,
+  fetchDriveFiles,
+  getDriveThumbnailUrl,
+  getDriveImageUrl,
+  extractFileGroup,
 } from "@/lib/google-drive";
 import {
-  Gallery, generateAccessUrl, isValidUUID, MAX_NOTE_LENGTH,
+  type Gallery,
+  generateAccessUrl,
+  isValidUUID,
+  MAX_NOTE_LENGTH,
 } from "@/types/gallery";
 
-// ═══════════════════════════════════════════
-// Gallery Server Actions — Core CRUD + Public
-// Paginated server action → gallery-image-helpers.ts
-// ═══════════════════════════════════════════
-
-// Helper: paginated fetch bypasses PostgREST max_rows=1000
-const IMAGE_COLS = "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
-
-// RAW file extensions — filter khỏi public gallery (admin vẫn thấy full)
+const IMAGE_COLS =
+  "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
 const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|raf|dng|rw2|orf|pef)$/i;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function filterRawFiles(images: any[]) {
+
+function filterRawFiles(images: Array<{ file_name?: string | null }>) {
   return images.filter((img) => !RAW_EXTENSIONS.test(img.file_name || ""));
 }
 
@@ -34,61 +33,88 @@ async function fetchAllGalleryImages(
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const all: any[] = [];
-  const PAGE = 1000;
+  const pageSize = 1000;
   let from = 0;
   let hasMore = true;
+
   while (hasMore) {
-    const { data: batch } = await supabase
+    const { data: batch, error } = await supabase
       .from("gallery_images")
       .select(columns)
       .eq("gallery_id", galleryId)
       .order("sort_order", { ascending: true })
-      .range(from, from + PAGE - 1);
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Khong the tai anh gallery: ${error.message}`);
+    }
+
     if (batch && batch.length > 0) {
       all.push(...batch);
       from += batch.length;
-      hasMore = batch.length === PAGE;
+      hasMore = batch.length === pageSize;
     } else {
       hasMore = false;
     }
   }
+
   return all;
 }
 
-// ─── ADMIN ACTIONS ─────────────────────────
-
-export async function createGallery(contractId: string, title: string, driveUrl: string) {
+export async function createGallery(
+  contractId: string,
+  title: string,
+  driveUrl: string,
+) {
   return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const folderId = parseDriveFolderUrl(driveUrl);
-    if (!folderId) throw new Error("Link không hợp lệ. Hãy dán link folder Google Drive.");
+    if (!folderId) {
+      throw new Error("Link khong hop le. Hay dan link folder Google Drive.");
+    }
 
     const driveFiles = await fetchDriveFiles(folderId);
-    if (driveFiles.length === 0) throw new Error("Folder này chưa có ảnh nào.");
+    if (driveFiles.length === 0) {
+      throw new Error("Folder nay chua co anh nao.");
+    }
 
     const accessUrl = generateAccessUrl();
     const { data: gallery, error: galleryError } = await supabase
       .from("galleries")
       .insert({
-        contract_id: contractId, title, access_url: accessUrl,
-        drive_folder_id: folderId, drive_folder_url: driveUrl,
-        status: "draft", created_by: userId,
+        contract_id: contractId,
+        title,
+        access_url: accessUrl,
+        drive_folder_id: folderId,
+        drive_folder_url: driveUrl,
+        status: "draft",
+        created_by: userId,
       })
-      .select("id").single();
+      .select("id")
+      .single();
 
-    if (galleryError) throw new Error(`Lỗi tạo gallery: ${galleryError.message}`);
+    if (galleryError || !gallery) {
+      throw new Error(`Loi tao gallery: ${galleryError?.message || "Unknown"}`);
+    }
 
     const imageRows = driveFiles.map((file, index) => ({
-      gallery_id: gallery.id, drive_file_id: file.id, file_name: file.name,
+      gallery_id: gallery.id,
+      drive_file_id: file.id,
+      file_name: file.name,
       file_group: extractFileGroup(file.name),
       image_url: getDriveImageUrl(file.id),
       thumbnail_url: getDriveThumbnailUrl(file.id, 400),
       sort_order: index,
     }));
 
-    const { error: imagesError } = await supabase.from("gallery_images").insert(imageRows);
+    const { error: imagesError } = await supabase
+      .from("gallery_images")
+      .insert(imageRows);
+
     if (imagesError) {
       await supabase.from("galleries").delete().eq("id", gallery.id);
-      throw new Error(`Lỗi lưu ảnh: ${imagesError.message}`);
+      throw new Error(`Loi luu anh: ${imagesError.message}`);
     }
 
     revalidatePath(`/contracts/${contractId}`);
@@ -97,23 +123,28 @@ export async function createGallery(contractId: string, title: string, driveUrl:
 }
 
 export async function getGalleriesByContract(contractId: string) {
-  return withAuth(async (supabase) => {
-    // 1) Fetch galleries (without embedded images — avoids PostgREST 1000 row limit)
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data: galleries, error } = await supabase
       .from("galleries")
       .select("*")
       .eq("contract_id", contractId)
       .order("created_at", { ascending: true });
 
-    if (error) throw new Error(`Lỗi lấy galleries: ${error.message}`);
-    if (!galleries || galleries.length === 0) return [] as Gallery[];
+    if (error) {
+      throw new Error(`Loi lay galleries: ${error.message}`);
+    }
 
-    // 2) Fetch ALL images for each gallery via pagination (bypasses PostgREST max_rows=1000)
+    if (!galleries || galleries.length === 0) {
+      return [] as Gallery[];
+    }
+
     const galleriesWithImages = await Promise.all(
-      galleries.map(async (g) => {
-        const images = await fetchAllGalleryImages(supabase, g.id);
-        return { ...g, gallery_images: images };
-      }),
+      galleries.map(async (gallery) => ({
+        ...gallery,
+        gallery_images: await fetchAllGalleryImages(supabase, gallery.id),
+      })),
     );
 
     return galleriesWithImages as Gallery[];
@@ -121,13 +152,19 @@ export async function getGalleriesByContract(contractId: string) {
 }
 
 export async function getGalleryByContract(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("galleries")
       .select("*")
-      .eq("contract_id", contractId).maybeSingle();
+      .eq("contract_id", contractId)
+      .maybeSingle();
 
-    if (error) throw new Error(`Lỗi lấy gallery: ${error.message}`);
+    if (error) {
+      throw new Error(`Loi lay gallery: ${error.message}`);
+    }
+
     if (!data) return null;
 
     const images = await fetchAllGalleryImages(supabase, data.id);
@@ -136,183 +173,346 @@ export async function getGalleryByContract(contractId: string) {
 }
 
 export async function syncDriveFolder(galleryId: string) {
-  return withAuth(async (supabase) => {
-    const { data: gallery, error: galleryError } = await supabase
-      .from("galleries").select("id, drive_folder_id, contract_id")
-      .eq("id", galleryId).single();
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
 
-    if (galleryError || !gallery) throw new Error("Gallery không tồn tại.");
-    if (!gallery.drive_folder_id) throw new Error("Gallery chưa có Drive folder ID.");
+    const { data: gallery, error: galleryError } = await supabase
+      .from("galleries")
+      .select("id, drive_folder_id, contract_id")
+      .eq("id", galleryId)
+      .single();
+
+    if (galleryError || !gallery) {
+      throw new Error("Gallery khong ton tai.");
+    }
+
+    if (!gallery.drive_folder_id) {
+      throw new Error("Gallery chua co Drive folder ID.");
+    }
 
     const driveFiles = await fetchDriveFiles(gallery.drive_folder_id);
-    const existingImages = await fetchAllGalleryImages(supabase, galleryId, "drive_file_id");
-
-    const existingFileIds = new Set(
-      existingImages.map((img: { drive_file_id: string } | Record<string, unknown>) => (img as { drive_file_id: string }).drive_file_id),
+    const existingImages = await fetchAllGalleryImages(
+      supabase,
+      galleryId,
+      "drive_file_id",
     );
+    const existingFileIds = new Set(
+      existingImages.map(
+        (img: { drive_file_id: string } | Record<string, unknown>) =>
+          (img as { drive_file_id: string }).drive_file_id,
+      ),
+    );
+
     const newFiles = driveFiles.filter((file) => !existingFileIds.has(file.id));
 
     if (newFiles.length > 0) {
       const maxOrder = existingImages.length;
       const newRows = newFiles.map((file, index) => ({
-        gallery_id: galleryId, drive_file_id: file.id, file_name: file.name,
+        gallery_id: galleryId,
+        drive_file_id: file.id,
+        file_name: file.name,
         file_group: extractFileGroup(file.name),
         image_url: getDriveImageUrl(file.id),
         thumbnail_url: getDriveThumbnailUrl(file.id, 400),
         sort_order: maxOrder + index,
       }));
+
       const { error } = await supabase.from("gallery_images").insert(newRows);
-      if (error) throw new Error(`Lỗi thêm ảnh mới: ${error.message}`);
+      if (error) {
+        throw new Error(`Loi them anh moi: ${error.message}`);
+      }
     }
 
     revalidatePath(`/contracts/${gallery.contract_id}`);
-    return { totalImages: driveFiles.length, newImages: newFiles.length, existingImages: existingFileIds.size };
+    return {
+      totalImages: driveFiles.length,
+      newImages: newFiles.length,
+      existingImages: existingFileIds.size,
+    };
   });
 }
 
 export async function shareGallery(galleryId: string) {
-  return withAuth(async (supabase) => {
-    const { data, error } = await supabase.from("galleries")
-      .update({ status: "shared", shared_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("id", galleryId).select("id, access_url, contract_id, password").single();
-    if (error) throw new Error(`Lỗi chia sẻ gallery: ${error.message}`);
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { data, error } = await supabase
+      .from("galleries")
+      .update({
+        status: "shared",
+        shared_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", galleryId)
+      .select("id, access_url, contract_id, password")
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Loi chia se gallery: ${error?.message || "Unknown"}`);
+    }
+
     revalidatePath(`/contracts/${data.contract_id}`);
-    return { accessUrl: data.access_url, galleryId: data.id, hasPassword: !!data.password };
+    return {
+      accessUrl: data.access_url,
+      galleryId: data.id,
+      hasPassword: !!data.password,
+    };
   });
 }
 
 export async function deleteGallery(galleryId: string) {
-  return withAuth(async (supabase) => {
-    const { data: gallery } = await supabase.from("galleries").select("contract_id").eq("id", galleryId).single();
-    await supabase.from("gallery_images").delete().eq("gallery_id", galleryId);
-    const { error } = await supabase.from("galleries").delete().eq("id", galleryId);
-    if (error) throw new Error(`Lỗi xóa gallery: ${error.message}`);
-    if (gallery?.contract_id) revalidatePath(`/contracts/${gallery.contract_id}`);
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { data: gallery, error: galleryError } = await supabase
+      .from("galleries")
+      .select("contract_id")
+      .eq("id", galleryId)
+      .single();
+
+    if (galleryError || !gallery) {
+      throw new Error(`Loi tim gallery: ${galleryError?.message || "Unknown"}`);
+    }
+
+    const { error: imageDeleteError } = await supabase
+      .from("gallery_images")
+      .delete()
+      .eq("gallery_id", galleryId);
+
+    if (imageDeleteError) {
+      throw new Error(`Loi xoa anh gallery: ${imageDeleteError.message}`);
+    }
+
+    const { error } = await supabase
+      .from("galleries")
+      .delete()
+      .eq("id", galleryId);
+
+    if (error) {
+      throw new Error(`Loi xoa gallery: ${error.message}`);
+    }
+
+    revalidatePath(`/contracts/${gallery.contract_id}`);
     return null;
   });
 }
 
 export async function getSelectedImages(galleryId: string) {
-  return withAuth(async (supabase) => {
-    const { data, error } = await supabase.from("gallery_images")
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { data, error } = await supabase
+      .from("gallery_images")
       .select("id, file_name, drive_file_id, client_note, selected_at")
-      .eq("gallery_id", galleryId).eq("is_selected", true)
+      .eq("gallery_id", galleryId)
+      .eq("is_selected", true)
       .order("sort_order", { ascending: true });
-    if (error) throw new Error(`Lỗi lấy ảnh đã chọn: ${error.message}`);
+
+    if (error) {
+      throw new Error(`Loi lay anh da chon: ${error.message}`);
+    }
+
     return data || [];
   });
 }
 
-export async function setGalleryPassword(galleryId: string, password: string | null) {
-  return withAuth(async (supabase) => {
-    if (!galleryId || !isValidUUID(galleryId)) throw new Error("ID không hợp lệ.");
-    const { error } = await supabase.from("galleries")
+export async function setGalleryPassword(
+  galleryId: string,
+  password: string | null,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID khong hop le.");
+    }
+
+    const { error } = await supabase
+      .from("galleries")
       .update({ password: password?.trim() || null })
       .eq("id", galleryId);
-    if (error) throw new Error(`Lỗi cập nhật mật khẩu: ${error.message}`);
+
+    if (error) {
+      throw new Error(`Loi cap nhat mat khau: ${error.message}`);
+    }
+
     return { password: password?.trim() || null };
   });
 }
 
-// ─── PUBLIC ACTIONS (NO AUTH) ──────────────
-
 export async function getPublicGallery(accessUrl: string) {
   try {
-    // Admin client to bypass RLS — anonymous users have no employee role
     const supabase = await createAdminClient();
-    const { data, error } = await supabase.from("galleries")
+    const { data, error } = await supabase
+      .from("galleries")
       .select("id, title, status, selection_deadline, password")
-      .eq("access_url", accessUrl).eq("status", "shared").maybeSingle();
+      .eq("access_url", accessUrl)
+      .eq("status", "shared")
+      .maybeSingle();
 
-    if (error) return { success: false as const, error: `Lỗi tải gallery: ${error.message}` };
-    if (!data) return { success: false as const, error: "Album chưa sẵn sàng hoặc không tồn tại." };
+    if (error) {
+      return { success: false as const, error: `Loi tai gallery: ${error.message}` };
+    }
 
-    // Password-protected gallery → return minimal info
+    if (!data) {
+      return {
+        success: false as const,
+        error: "Album chua san sang hoac khong ton tai.",
+      };
+    }
+
     if (data.password) {
       return {
         success: true as const,
-        data: { id: data.id, title: data.title, status: data.status, selection_deadline: data.selection_deadline, needsPassword: true as const },
+        data: {
+          id: data.id,
+          title: data.title,
+          status: data.status,
+          selection_deadline: data.selection_deadline,
+          needsPassword: true as const,
+        },
       };
     }
 
     const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _pwd, ...galleryWithoutPwd } = data;
-    return { success: true as const, data: { ...galleryWithoutPwd, gallery_images: images, needsPassword: false as const } as Gallery & { needsPassword: false } };
+    const { password: _password, ...galleryWithoutPassword } = data;
+
+    return {
+      success: true as const,
+      data: {
+        ...galleryWithoutPassword,
+        gallery_images: images,
+        needsPassword: false as const,
+      } as Gallery & { needsPassword: false },
+    };
   } catch (err) {
     console.error("[getPublicGallery] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
+    return { success: false as const, error: "Loi server." };
   }
 }
 
-export async function verifyGalleryPassword(galleryId: string, password: string) {
+export async function verifyGalleryPassword(
+  galleryId: string,
+  password: string,
+) {
   try {
-    if (!galleryId || !isValidUUID(galleryId)) return { success: false as const, error: "ID không hợp lệ." };
-    if (!password) return { success: false as const, error: "Vui lòng nhập mật khẩu." };
+    if (!galleryId || !isValidUUID(galleryId)) {
+      return { success: false as const, error: "ID khong hop le." };
+    }
+
+    if (!password) {
+      return { success: false as const, error: "Vui long nhap mat khau." };
+    }
 
     const supabase = await createAdminClient();
-    const { data, error } = await supabase.from("galleries")
+    const { data, error } = await supabase
+      .from("galleries")
       .select("id, title, status, selection_deadline")
-      .eq("id", galleryId).eq("status", "shared").maybeSingle();
+      .eq("id", galleryId)
+      .eq("status", "shared")
+      .maybeSingle();
 
-    if (error || !data) return { success: false as const, error: "Gallery không tồn tại." };
+    if (error || !data) {
+      return { success: false as const, error: "Gallery khong ton tai." };
+    }
 
-    // Check password via separate query (password is not in public select)
-    const { data: pwdData } = await supabase.from("galleries").select("password").eq("id", galleryId).maybeSingle();
-    if (!pwdData || pwdData.password !== password) {
-      return { success: false as const, error: "Mật khẩu không đúng." };
+    const { data: passwordData } = await supabase
+      .from("galleries")
+      .select("password")
+      .eq("id", galleryId)
+      .maybeSingle();
+
+    if (!passwordData || passwordData.password !== password) {
+      return { success: false as const, error: "Mat khau khong dung." };
     }
 
     const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
-    return { success: true as const, data: { ...data, gallery_images: images } as Gallery };
+    return {
+      success: true as const,
+      data: { ...data, gallery_images: images } as Gallery,
+    };
   } catch (err) {
     console.error("[verifyGalleryPassword] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
+    return { success: false as const, error: "Loi server." };
   }
 }
 
 export async function toggleImageSelection(imageId: string, selected: boolean) {
   try {
-    if (!imageId || !isValidUUID(imageId)) return { success: false as const, error: "ID ảnh không hợp lệ." };
+    if (!imageId || !isValidUUID(imageId)) {
+      return { success: false as const, error: "ID anh khong hop le." };
+    }
+
     const supabase = await createAdminClient();
-    const { error } = await supabase.from("gallery_images")
-      .update({ is_selected: selected, selected_at: selected ? new Date().toISOString() : null })
+    const { error } = await supabase
+      .from("gallery_images")
+      .update({
+        is_selected: selected,
+        selected_at: selected ? new Date().toISOString() : null,
+      })
       .eq("id", imageId);
-    if (error) return { success: false as const, error: `Lỗi cập nhật: ${error.message}` };
+
+    if (error) {
+      return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+    }
+
     return { success: true as const, data: null };
   } catch (err) {
     console.error("[toggleImageSelection] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
+    return { success: false as const, error: "Loi server." };
   }
 }
 
 export async function updateClientNote(imageId: string, note: string) {
   try {
-    if (!imageId || !isValidUUID(imageId)) return { success: false as const, error: "ID ảnh không hợp lệ." };
+    if (!imageId || !isValidUUID(imageId)) {
+      return { success: false as const, error: "ID anh khong hop le." };
+    }
+
     const sanitizedNote = note ? note.trim().slice(0, MAX_NOTE_LENGTH) : null;
     const supabase = await createAdminClient();
-    const { error } = await supabase.from("gallery_images").update({ client_note: sanitizedNote }).eq("id", imageId);
-    if (error) return { success: false as const, error: `Lỗi cập nhật: ${error.message}` };
+    const { error } = await supabase
+      .from("gallery_images")
+      .update({ client_note: sanitizedNote })
+      .eq("id", imageId);
+
+    if (error) {
+      return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+    }
+
     return { success: true as const, data: null };
   } catch (err) {
     console.error("[updateClientNote] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
+    return { success: false as const, error: "Loi server." };
   }
 }
 
-/** Reorder images — bulk update sort_order */
 export async function reorderImages(orderedIds: string[]) {
-  try {
-    if (!orderedIds.length) return { success: false as const, error: "Danh sách rỗng." };
-    const supabase = await createAdminClient();
-    // Batch update sort_order for each image
-    const updates = orderedIds.map((id, index) =>
-      supabase.from("gallery_images").update({ sort_order: index }).eq("id", id)
-    );
-    await Promise.all(updates);
-    return { success: true as const, data: null };
-  } catch (err) {
-    console.error("[reorderImages] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
+  if (!orderedIds.length) {
+    return { success: false as const, error: "Danh sach rong." };
   }
+
+  const result = await withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const updates = orderedIds.map((id, index) =>
+      supabase.from("gallery_images").update({ sort_order: index }).eq("id", id),
+    );
+    const responses = await Promise.all(updates);
+    const failed = responses.find((response) => response.error);
+
+    if (failed?.error) {
+      throw new Error(`Khong the sap xep anh: ${failed.error.message}`);
+    }
+
+    return null;
+  });
+
+  if (!result.success) {
+    console.error("[reorderImages] Error:", result.error);
+    return { success: false as const, error: result.error };
+  }
+
+  return { success: true as const, data: null };
 }

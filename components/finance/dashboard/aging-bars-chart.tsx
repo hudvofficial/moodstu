@@ -44,15 +44,15 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
       <div className="flex-1 w-full min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-            <XAxis type="number" tickFormatter={(val) => `${val / 1000000}M`} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
-            <YAxis dataKey="name" type="category" width={110} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
+            <XAxis type="number" tickFormatter={(val) => `${val / 1000000}M`} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
+            <YAxis dataKey="name" type="category" width={110} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
             <Tooltip 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, name: any, props: any) => [formatVnd(Number(value)), `Số lượng: ${props.payload.count} HĐ`]}
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />
-            <Bar dataKey="value" fill="#8B5E3C" radius={[0, 4, 4, 0]} barSize={20} />
+            <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} />
           </BarChart>
         </ResponsiveContainer>
       </div>

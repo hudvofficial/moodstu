@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { MessageSquare, Send, Trash2 } from "lucide-react";
 import { getContractNotes, addContractNote, deleteContractNote } from "@/app/actions/note-actions";
 import { toast } from "@/lib/toast-utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // Notes Timeline — Chat-style collapsible
@@ -114,7 +116,7 @@ export default function NotesTimeline({ contractId }: Props) {
   return (
     <div className="card-base p-4 lg:p-5">
       {/* Header — click to expand */}
-      <button
+      <Button unstyled
         onClick={() => setExpanded((v) => !v)}
         className="flex items-center justify-between w-full"
       >
@@ -127,7 +129,7 @@ export default function NotesTimeline({ contractId }: Props) {
         <span className="text-caption text-text-muted">
           {expanded ? "Thu gọn ▲" : `${notes.length > 0 ? notes.length + " ghi chú" : "Mở rộng"} ▼`}
         </span>
-      </button>
+      </Button>
 
       {/* Expanded content */}
       {expanded && (
@@ -156,13 +158,13 @@ export default function NotesTimeline({ contractId }: Props) {
                       {note.content}
                     </p>
                     {!note.id.startsWith("temp-") && (
-                      <button
+                      <Button unstyled
                         onClick={() => handleDelete(note.id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity
                                    btn-icon shrink-0 text-error"
                       >
                         <Trash2 size={12} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                   <p className="text-xs text-text-muted mt-1">
@@ -186,7 +188,7 @@ export default function NotesTimeline({ contractId }: Props) {
 
           {/* Input */}
           <div className="flex gap-2">
-            <input
+            <Input unstyled
               type="text"
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
@@ -195,13 +197,13 @@ export default function NotesTimeline({ contractId }: Props) {
               className="input-base flex-1"
               autoFocus
             />
-            <button
+            <Button unstyled
               onClick={handleAdd}
               disabled={!newNote.trim() || loading}
               className="btn btn-primary px-3 disabled:opacity-50"
             >
               <Send size={16} />
-            </button>
+            </Button>
           </div>
         </div>
       )}

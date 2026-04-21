@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Radar, RefreshCw, AlertTriangle } from "lucide-react";
+import { Radar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { fetchIntegrityReports, runManualIntegrityScan } from "@/app/actions/integrity-actions";
 import { formatFinanceDate } from "@/components/finance/finance-format";

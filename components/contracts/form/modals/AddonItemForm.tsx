@@ -6,6 +6,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { AddonCategory } from "@/types/addon-history";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // AddonItemForm — Free-text addon with category
@@ -82,7 +84,7 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
       {/* Name */}
       <div>
         <label className="label-base">Tên phụ thu *</label>
-        <input
+        <Input unstyled
           type="text"
           value={name}
           onChange={(e) => { setName(e.target.value); setError(""); }}
@@ -104,7 +106,7 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="label-base">Số lượng</label>
-          <input type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value) || 1)} className="input-base" />
+          <Input unstyled type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value) || 1)} className="input-base" />
         </div>
         <div>
           <label className="label-base">Đơn giá</label>
@@ -119,7 +121,7 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
       {/* Notes */}
       <div>
         <label className="label-base">Ghi chú</label>
-        <input
+        <Input unstyled
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -135,12 +137,12 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
 
       {/* Actions */}
       <div className="form-actions">
-        <button type="button" onClick={onClose} className="btn btn-ghost">
+        <Button unstyled type="button" onClick={onClose} className="btn btn-ghost">
           Hủy
-        </button>
-        <button type="button" onClick={handleSubmit} className="btn btn-interactive">
+        </Button>
+        <Button unstyled type="button" onClick={handleSubmit} className="btn btn-interactive">
           {isEditing ? "Lưu" : "Thêm phụ thu"}
-        </button>
+        </Button>
       </div>
     </div>
   );

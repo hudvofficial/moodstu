@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "interactive";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "interactive" | "icon";
   size?: "sm" | "md" | "lg";
+  /** When true, skips SSOT styling (use with SSOT token classes like `tab-pill`, `btn-primary`, ...) */
+  unstyled?: boolean;
 }
 
 const sizeMap = {
@@ -15,13 +17,16 @@ const sizeMap = {
 
 /* eslint-disable react/forbid-elements -- This IS the <Button> SSOT wrapper */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", unstyled = false, ...props }, ref) => {
+    const baseClassName = unstyled ? "" : variant === "icon" ? "icon-btn" : `btn btn-${variant}`;
+    const sizeClassName = unstyled || variant === "icon" ? "" : sizeMap[size];
+
     return (
       <button
         ref={ref}
         className={cn(
-          `btn btn-${variant}`,
-          sizeMap[size],
+          baseClassName,
+          sizeClassName,
           className
         )}
         {...props}

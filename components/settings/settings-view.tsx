@@ -45,7 +45,7 @@ export default function SettingsView({
         const result = await updateNotificationPreferences({ [key]: value });
         if (!result.success) {
           setPrefs((prev) => ({ ...prev, [key]: !value }));
-          toast.error(result.error || "Loi cap nhat");
+          toast.error(result.error || "Lỗi cập nhật");
         }
       });
     },
@@ -60,7 +60,7 @@ export default function SettingsView({
       router.push("/login");
       router.refresh();
     } catch {
-      toast.error("Loi dang xuat");
+      toast.error("Lỗi đăng xuất");
       setLoggingOut(false);
     }
   };
@@ -71,7 +71,7 @@ export default function SettingsView({
         <section className="card-base p-4 lg:p-6">
           <h3 className="section-heading mb-3">
             <Settings className="w-4 h-4 inline-block mr-1.5 align-middle" />
-            Quan tri he thong
+            Quản trị hệ thống
           </h3>
           <div className="space-y-1">
             <Link
@@ -81,7 +81,7 @@ export default function SettingsView({
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
-                  Cai dat he thong
+                  Cài đặt hệ thống
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />
@@ -93,7 +93,7 @@ export default function SettingsView({
               <div className="flex items-center gap-3">
                 <History className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
-                  Nhat ky hoat dong
+                  Nhật ký hoạt động
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />
@@ -105,7 +105,7 @@ export default function SettingsView({
               <div className="flex items-center gap-3">
                 <CreditCard className="w-5 h-5 text-text-secondary" />
                 <span className="text-sm text-text-primary">
-                  Quan ly the tin dung
+                  Quản lý thẻ tín dụng
                 </span>
               </div>
               <ChevronRight className="w-5 h-5 text-text-muted" />

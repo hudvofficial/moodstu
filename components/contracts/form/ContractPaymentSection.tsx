@@ -3,6 +3,7 @@
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Input } from "@/components/ui/input";
 import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials";
 import {
   PAYMENT_METHOD_MAP,
@@ -97,7 +98,7 @@ export function ContractPaymentSection({ financials }: Props) {
             <label className="label-base">
               Ghi chú thanh toán
             </label>
-            <input
+            <Input unstyled
               type="text"
               value={paymentForm.notes}
               onChange={(e) => updatePaymentForm("notes", e.target.value)}

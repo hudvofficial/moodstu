@@ -6,6 +6,8 @@ import { Loader2, ChevronDown } from "lucide-react";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import DatePicker from "@/components/ui/date-picker";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createEmployee, updateEmployee } from "@/app/actions/employee-mutations";
 import type { EmployeeDetail, EmployeeRole } from "@/types/employee";
 import { DEPARTMENT_OPTIONS, ROLE_LABELS, GENDER_OPTIONS } from "@/types/employee-constants";
@@ -122,11 +124,13 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
 
   const footer = (
     <div className="flex items-center justify-end gap-2 w-full">
-      <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>Hủy</button>
-      <button onClick={handleSubmit} className="btn btn-primary gap-1.5" disabled={submitting}>
+      <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+        Hủy
+      </Button>
+      <Button type="button" onClick={handleSubmit} className="gap-1.5" disabled={submitting}>
         {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
         {isEdit ? "Cập nhật" : "Thêm"}
-      </button>
+      </Button>
     </div>
   );
 
@@ -145,7 +149,7 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
           <div className="form-grid-2col">
             <div>
               <label className="label-base">Họ tên <span className="text-error">*</span></label>
-              <input className="input-base w-full" value={form.full_name} onChange={(e) => setField("full_name", e.target.value)} placeholder="Nguyễn Văn A" />
+              <Input className="w-full" value={form.full_name} onChange={(e) => setField("full_name", e.target.value)} placeholder="Nguyễn Văn A" />
             </div>
             <SelectForm
               label="Giới tính"
@@ -155,12 +159,12 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
             />
             <div>
               <label className="label-base">Số điện thoại</label>
-              <input className="input-base w-full" value={form.phone} onChange={(e) => { setField("phone", e.target.value); setErrors((p) => ({ ...p, phone: "" })); }} placeholder="0912 345 678" />
+              <Input className="w-full" value={form.phone} onChange={(e) => { setField("phone", e.target.value); setErrors((p) => ({ ...p, phone: "" })); }} placeholder="0912 345 678" />
               {errors.phone && <p className="error-text">{errors.phone}</p>}
             </div>
             <div>
               <label className="label-base">Email</label>
-              <input className="input-base w-full" type="email" value={form.email} onChange={(e) => { setField("email", e.target.value); setErrors((p) => ({ ...p, email: "" })); }} placeholder="email@example.com" />
+              <Input className="w-full" type="email" value={form.email} onChange={(e) => { setField("email", e.target.value); setErrors((p) => ({ ...p, email: "" })); }} placeholder="email@example.com" />
               {errors.email && <p className="error-text">{errors.email}</p>}
             </div>
           </div>
@@ -180,7 +184,7 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
             />
             <div>
               <label className="label-base">Chức vụ</label>
-              <input className="input-base w-full" value={form.position} onChange={(e) => setField("position", e.target.value)} placeholder="Photographer" />
+              <Input className="w-full" value={form.position} onChange={(e) => setField("position", e.target.value)} placeholder="Photographer" />
             </div>
             <SelectForm
               label="Vai trò"
@@ -194,28 +198,28 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
 
         {/* ── Section 3: Thông tin lương (collapsible) ── */}
         <div>
-          <button type="button" onClick={() => setShowSalary(!showSalary)} className="flex items-center gap-2 section-heading hover:text-primary transition-colors">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowSalary(!showSalary)} className="flex items-center gap-2 section-heading hover:text-primary transition-colors !p-0 hover:bg-transparent">
             <ChevronDown className={`w-4 h-4 transition-transform ${showSalary ? "rotate-180" : ""}`} />
             Thông tin lương
-          </button>
+          </Button>
           {showSalary && (
             <div className="form-grid-2col mt-3">
               <div>
                 <label className="label-base">Lương cơ bản</label>
-                <input className="input-base w-full" type="number" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" />
+                <Input className="w-full" type="number" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" />
                 {errors.base_salary && <p className="error-text">{errors.base_salary}</p>}
               </div>
               <div>
                 <label className="label-base">Ngân hàng</label>
-                <input className="input-base w-full" value={form.bank_name} onChange={(e) => setField("bank_name", e.target.value)} placeholder="Vietcombank" />
+                <Input className="w-full" value={form.bank_name} onChange={(e) => setField("bank_name", e.target.value)} placeholder="Vietcombank" />
               </div>
               <div>
                 <label className="label-base">Số tài khoản</label>
-                <input className="input-base w-full" value={form.bank_account_no} onChange={(e) => setField("bank_account_no", e.target.value)} placeholder="1234567890" />
+                <Input className="w-full" value={form.bank_account_no} onChange={(e) => setField("bank_account_no", e.target.value)} placeholder="1234567890" />
               </div>
               <div>
                 <label className="label-base">Tên tài khoản</label>
-                <input className="input-base w-full" value={form.bank_account_name} onChange={(e) => setField("bank_account_name", e.target.value)} placeholder="NGUYEN VAN A" />
+                <Input className="w-full" value={form.bank_account_name} onChange={(e) => setField("bank_account_name", e.target.value)} placeholder="NGUYEN VAN A" />
               </div>
             </div>
           )}

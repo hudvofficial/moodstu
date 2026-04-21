@@ -1,8 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
-import { createAdminClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 
 // ═══════════════════════════════════════════
 // Gallery Album Server Actions
@@ -22,7 +20,9 @@ export interface GalleryAlbum {
 
 /** Create a new album in a gallery */
 export async function createAlbum(galleryId: string, title: string, description?: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     // Get max sort_order
     const { data: maxOrder } = await supabase
       .from("gallery_albums")
@@ -53,7 +53,9 @@ export async function updateAlbum(
   albumId: string,
   updates: { title?: string; description?: string; cover_image_id?: string | null }
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const updateData: Record<string, unknown> = {};
     if (updates.title !== undefined) updateData.title = updates.title.trim();
     if (updates.description !== undefined) updateData.description = updates.description?.trim() || null;
@@ -71,7 +73,9 @@ export async function updateAlbum(
 
 /** Delete an album (images go back to null album) */
 export async function deleteAlbum(albumId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     // Images with this album_id will be set to null via ON DELETE SET NULL
     const { error } = await supabase
       .from("gallery_albums")
@@ -85,8 +89,8 @@ export async function deleteAlbum(albumId: string) {
 
 /** Get all albums for a gallery with image counts */
 export async function getAlbumsByGallery(galleryId: string): Promise<GalleryAlbum[]> {
-  try {
-    const supabase = await createAdminClient();
+  const result = await withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
 
     const { data: albums, error } = await supabase
       .from("gallery_albums")
@@ -94,7 +98,7 @@ export async function getAlbumsByGallery(galleryId: string): Promise<GalleryAlbu
       .eq("gallery_id", galleryId)
       .order("sort_order", { ascending: true });
 
-    if (error || !albums) return [];
+    if (error || !albums) return [] as GalleryAlbum[];
 
     // Get image counts per album
     const { data: counts } = await supabase
@@ -113,15 +117,21 @@ export async function getAlbumsByGallery(galleryId: string): Promise<GalleryAlbu
     }
 
     return albums.map((a) => ({ ...a, image_count: countMap[a.id] || 0 }));
-  } catch (error) {
-    console.error("getAlbumsByGallery error:", error);
+  });
+
+  if (!result.success) {
+    console.error("getAlbumsByGallery error:", result.error);
     return [];
   }
+
+  return result.data || [];
 }
 
 /** Assign images to an album */
 export async function assignImagesToAlbum(imageIds: string[], albumId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { error } = await supabase
       .from("gallery_images")
       .update({ album_id: albumId })
@@ -134,7 +144,9 @@ export async function assignImagesToAlbum(imageIds: string[], albumId: string) {
 
 /** Remove images from their album (set album_id to null) */
 export async function removeImagesFromAlbum(imageIds: string[]) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { error } = await supabase
       .from("gallery_images")
       .update({ album_id: null })

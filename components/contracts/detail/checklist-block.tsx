@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CheckSquare, Circle, CheckCircle2, Clock } from "lucide-react";
 import type { WorkTask } from "@/types/contract";
 import { getWorkTypeLabel } from "@/types/contract-constants";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // ChecklistBlock — Work tasks as checklist
@@ -69,13 +70,13 @@ export default function ChecklistBlock({ tasks }: Props) {
           { key: "pending" as TabKey, label: "Cần làm" },
           { key: "done" as TabKey, label: "Xong" },
         ]).map((t) => (
-          <button
+          <Button unstyled
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`tab-pill py-1 px-3 text-caption ${tab === t.key ? "tab-pill-active" : "tab-pill-inactive"}`}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 

@@ -41,6 +41,17 @@ export interface StudioInfo {
   updated_at: string | null;
 }
 
+export interface MoodieAiSettings {
+  hasGeminiKey: boolean;
+  geminiKeyMasked: string;
+  geminiModel: string;
+}
+
+export interface StudioSettingsAdminData {
+  studioInfo: StudioInfo;
+  moodieAiSettings: MoodieAiSettings;
+}
+
 export interface NotificationPreferences {
   employee_id?: string;
   onsite_reminder: boolean;

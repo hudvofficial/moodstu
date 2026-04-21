@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import {
   parseDriveFolderUrl, fetchDriveFiles, fetchDriveSubfolders,
@@ -19,7 +19,9 @@ export async function createMultiFolderGalleries(
   contractId: string,
   parentDriveUrl: string,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const parentFolderId = parseDriveFolderUrl(parentDriveUrl);
     if (!parentFolderId) {
       throw new Error("Link không hợp lệ. Hãy dán link folder Google Drive.");
@@ -120,7 +122,9 @@ export async function updateDriveFolderUrl(
   galleryId: string,
   newDriveUrl: string,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const folderId = parseDriveFolderUrl(newDriveUrl);
     if (!folderId) {
       throw new Error("Link không hợp lệ.");
@@ -147,7 +151,9 @@ export async function updateDriveFolderUrl(
 // ─── getRetouchProgress ────────────────────
 // So sánh ảnh đã chọn (folder gốc) vs ảnh đã sửa (folder da_sua)
 export async function getRetouchProgress(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data: galleries } = await supabase
       .from("galleries")
       .select("id, folder_type")
@@ -191,7 +197,9 @@ export async function getRetouchProgress(contractId: string) {
 // ─── getDeliveryDate ───────────────────────
 // Lấy ngày trả file từ event "hau_ky" trong contract_events
 export async function getDeliveryDate(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contract_events")
       .select("deadline, event_date")

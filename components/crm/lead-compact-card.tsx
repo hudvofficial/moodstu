@@ -4,7 +4,13 @@ import { ChevronRight } from "lucide-react";
 import type { CrmLead } from "@/types/crm";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { LEAD_STATUS_MAP, SOURCE_MAP, POTENTIAL_MAP, getScoreLevel } from "@/types/crm";
+import { CrmRecordCard } from "@/components/crm/crm-record-card";
+import {
+  LEAD_STATUS_MAP,
+  POTENTIAL_MAP,
+  SOURCE_MAP,
+  getScoreLevel,
+} from "@/types/crm";
 
 interface Props {
   lead: CrmLead;
@@ -23,80 +29,95 @@ const getStatusVariant = (status: string): BadgeVariant => {
   return map[status] || "neutral";
 };
 
-const getPotentialVariant = (p: string): BadgeVariant => {
-  return p === "hot" ? "error" : p === "warm" ? "warning" : "neutral";
+const getPotentialVariant = (potential: string): BadgeVariant => {
+  return potential === "hot"
+    ? "error"
+    : potential === "warm"
+      ? "warning"
+      : "neutral";
 };
 
 export default function LeadCompactCard({ lead, onClick }: Props) {
   const statusInfo = LEAD_STATUS_MAP[lead.status] || { label: lead.status };
-  const potentialInfo = lead.potential ? (POTENTIAL_MAP[lead.potential] || { label: lead.potential }) : null;
-  const sourceInfo = lead.source ? (SOURCE_MAP[lead.source] || { label: lead.source }) : null;
+  const potentialInfo = lead.potential
+    ? (POTENTIAL_MAP[lead.potential] || { label: lead.potential })
+    : null;
+  const sourceInfo = lead.source
+    ? (SOURCE_MAP[lead.source] || { label: lead.source })
+    : null;
   const scoreInfo = getScoreLevel(lead.score || 0);
 
   return (
-    <div
-      onClick={() => onClick && onClick(lead.id)}
-      className="card-base p-4 hover-lift cursor-pointer transition-all w-full"
-    >
-      {/* Row 1: Avatar + Name + Status/Value */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-          {getInitials(lead.contact_name)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-body font-semibold text-text-main truncate">
-              {lead.contact_name}
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {lead.potential ? (
-                <Badge variant={getPotentialVariant(lead.potential)} solid className="px-1.5 py-0 text-tiny">
-                  {potentialInfo?.label}
-                </Badge>
-              ) : null}
-              <Badge variant={getStatusVariant(lead.status)} dot>
-                {statusInfo.label}
-              </Badge>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-caption mt-0.5">
-            <span className="text-text-secondary truncate">
-              {lead.phone || "Chưa có SĐT"}
-            </span>
-            <span className="text-text-muted shrink-0">•</span>
-            <span className="text-text-muted shrink-0">
-              {formatDate(lead.created_at)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 2: Tags + Needs + Value */}
-      <div className="flex items-center justify-between gap-3 mt-2 pl-[52px]">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {sourceInfo ? (
-            <Badge variant="neutral" className="font-normal text-tiny px-1.5 py-0 shrink-0">
-              {sourceInfo.label}
-            </Badge>
-          ) : null}
-          {lead.score > 0 ? (
-            <span className={`inline-flex items-center px-1.5 py-0 rounded text-tiny font-medium shrink-0 ${scoreInfo.color}`}>
-              {lead.score}pt
-            </span>
-          ) : null}
-          <span className="text-caption text-text-secondary truncate" title={lead.needs || ""}>
-            {lead.needs || "Chưa rõ nhu cầu"}
+    <CrmRecordCard
+      onClick={onClick ? () => onClick(lead.id) : undefined}
+      avatar={getInitials(lead.contact_name)}
+      title={
+        <span className="block truncate text-body font-semibold text-text-main">
+          {lead.contact_name}
+        </span>
+      }
+      subtitle={
+        <div className="flex items-center gap-1.5 text-caption">
+          <span className="truncate text-text-secondary">
+            {lead.phone || "Chưa có SĐT"}
+          </span>
+          <span className="shrink-0 text-text-muted">•</span>
+          <span className="shrink-0 text-text-muted">
+            {formatDate(lead.created_at)}
           </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {lead.deal_value > 0 ? (
-            <span className="text-sm font-semibold text-text-main">
-              {formatCurrency(lead.deal_value)}
-            </span>
+      }
+      headerRight={
+        <>
+          {lead.potential ? (
+            <Badge
+              variant={getPotentialVariant(lead.potential)}
+              solid
+              className="px-1.5 py-0 text-tiny"
+            >
+              {potentialInfo?.label}
+            </Badge>
           ) : null}
-          <ChevronRight className="w-4 h-4 text-text-muted" />
+          <Badge variant={getStatusVariant(lead.status)} dot>
+            {statusInfo.label}
+          </Badge>
+        </>
+      }
+      bottom={
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {sourceInfo ? (
+              <Badge
+                variant="neutral"
+                className="shrink-0 px-1.5 py-0 text-tiny font-normal"
+              >
+                {sourceInfo.label}
+              </Badge>
+            ) : null}
+            {lead.score > 0 ? (
+              <span
+                className={`inline-flex shrink-0 items-center rounded px-1.5 py-0 text-tiny font-medium ${scoreInfo.color}`}
+              >
+                {lead.score}pt
+              </span>
+            ) : null}
+            <span
+              className="truncate text-caption text-text-secondary"
+              title={lead.needs || ""}
+            >
+              {lead.needs || "Chưa rõ nhu cầu"}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {lead.deal_value > 0 ? (
+              <span className="text-body-sm font-semibold text-text-main">
+                {formatCurrency(lead.deal_value)}
+              </span>
+            ) : null}
+            <ChevronRight className="h-4 w-4 text-text-muted" />
+          </div>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }

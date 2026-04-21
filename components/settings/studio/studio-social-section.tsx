@@ -1,17 +1,12 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Globe } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import type { SocialLinks } from "@/types/settings";
-
-/* ═══════════════════════════════════════════
-   Studio Social Section — Social links JSONB fields
-   Sub-component of StudioInfoForm
-   ═══════════════════════════════════════════ */
 
 interface StudioSocialSectionProps {
   socialLinks: SocialLinks;
-  setSocialLinks: (v: SocialLinks) => void;
+  setSocialLinks: (value: SocialLinks) => void;
 }
 
 export default function StudioSocialSection({
@@ -34,7 +29,7 @@ export default function StudioSocialSection({
           id="social-website"
           label="Website"
           value={socialLinks.website || ""}
-          onChange={(e) => updateField("website", e.target.value)}
+          onChange={(event) => updateField("website", event.target.value)}
           placeholder="https://moodstudio.vn"
         />
         <div className="form-grid-2col">
@@ -42,14 +37,14 @@ export default function StudioSocialSection({
             id="social-facebook"
             label="Facebook"
             value={socialLinks.facebook || ""}
-            onChange={(e) => updateField("facebook", e.target.value)}
+            onChange={(event) => updateField("facebook", event.target.value)}
             placeholder="facebook.com/moodstudio"
           />
           <Input
             id="social-instagram"
             label="Instagram"
             value={socialLinks.instagram || ""}
-            onChange={(e) => updateField("instagram", e.target.value)}
+            onChange={(event) => updateField("instagram", event.target.value)}
             placeholder="@moodstudio"
           />
         </div>

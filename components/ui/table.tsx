@@ -81,10 +81,16 @@ export function TD({
   );
 }
 
-export function TR({ children, className, onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) {
+export function TR({
+  children,
+  className,
+  onClick,
+  ...props
+}: React.HTMLAttributes<HTMLTableRowElement> & { children: React.ReactNode }) {
   return (
-    <tr 
+    <tr
       onClick={onClick}
+      {...props}
       className={cn(
         "group transition-colors hover:bg-bg-hover h-14",
         onClick && "cursor-pointer",

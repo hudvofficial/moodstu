@@ -4,6 +4,9 @@ import { useState, useCallback, useRef } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createCustomer } from "@/app/actions/customer-actions";
 import { searchCustomers } from "@/app/actions/customer-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import type { CustomerFormData } from "@/types/crm";
 
@@ -134,18 +137,17 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
         <fieldset disabled={isSubmitting} className="space-y-4">
         {/* Full name */}
         <FormField label="Tên khách hàng *">
-          <input
+          <Input
             type="text"
             value={form.full_name}
             onChange={(e) => updateField("full_name", e.target.value)}
             placeholder="Nguyễn Văn A"
-            className="input-base"
           />
         </FormField>
 
         {/* Phone + dedup */}
         <FormField label="Số điện thoại *">
-          <input
+          <Input
             type="tel"
             value={form.phone}
             onChange={(e) => {
@@ -157,7 +159,6 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
               }, 500);
             }}
             placeholder="0901234567"
-            className="input-base"
           />
           {phoneDupWarning && (
             <p className="warning-text">
@@ -170,21 +171,19 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
         {/* Email + Address row */}
         <div className="form-grid-2col">
           <FormField label="Email">
-            <input
+            <Input
               type="email"
               value={form.email || ""}
               onChange={(e) => updateField("email", e.target.value)}
               placeholder="email@example.com"
-              className="input-base"
             />
           </FormField>
           <FormField label="Địa chỉ">
-            <input
+            <Input
               type="text"
               value={form.address || ""}
               onChange={(e) => updateField("address", e.target.value)}
               placeholder="Quận, Thành phố"
-              className="input-base"
             />
           </FormField>
         </div>
@@ -195,21 +194,19 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
         {showCoupleFields && (
           <div className="form-grid-2col">
             <FormField label="Tên cô dâu">
-              <input
+              <Input
                 type="text"
                 value={form.bride_name || ""}
                 onChange={(e) => updateField("bride_name", e.target.value)}
                 placeholder="Tên cô dâu"
-                className="input-base"
               />
             </FormField>
             <FormField label="Tên chú rể">
-              <input
+              <Input
                 type="text"
                 value={form.groom_name || ""}
                 onChange={(e) => updateField("groom_name", e.target.value)}
                 placeholder="Tên chú rể"
-                className="input-base"
               />
             </FormField>
           </div>
@@ -217,12 +214,12 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
 
         {/* Notes */}
         <FormField label="Ghi chú">
-          <textarea
+          <Textarea
             value={form.notes || ""}
             onChange={(e) => updateField("notes", e.target.value)}
             placeholder="Ghi chú thêm..."
             rows={2}
-            className="input-base resize-none"
+            className="resize-none"
           />
         </FormField>
 
@@ -234,22 +231,21 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
 
         {/* Actions */}
         <div className="form-actions">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="btn btn-ghost"
           >
             Hủy
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="btn btn-interactive"
+            variant="interactive"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Tạo khách hàng
-          </button>
+          </Button>
         </div>
       </div>
     </UnifiedModal>

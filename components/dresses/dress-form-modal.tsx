@@ -6,6 +6,9 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { createDress, updateDress, deleteDress, uploadDressImage, deleteDressImage, checkItemCodeExists } from "@/app/actions/dress-mutations";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.schema";
@@ -180,12 +183,16 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
         footer={
           <div className="form-actions">
             {editItem && (
-              <button onClick={() => setConfirmOpen(true)} className="btn btn-danger" disabled={loading}>Xóa</button>
+              <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)} disabled={loading}>
+                Xóa
+              </Button>
             )}
-            <button onClick={onClose} className="btn btn-ghost">Đóng</button>
-            <button onClick={handleSubmit} className="btn btn-primary" disabled={loading}>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Đóng
+            </Button>
+            <Button type="button" onClick={handleSubmit} disabled={loading}>
               {loading ? "Đang xử lý..." : editItem ? "Cập nhật" : "Thêm"}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -206,18 +213,18 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
                 <div ref={qrContainerRef}>
                   <QRLabel dress={editItem} qrSize={72} />
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     const canvas = qrContainerRef.current?.querySelector("canvas");
                     const qrDataUrl = canvas ? canvas.toDataURL("image/png") : undefined;
                     printDressLabel(editItem, qrDataUrl);
                   }}
-                  className="btn btn-primary gap-1.5 w-full"
+                  className="gap-1.5 w-full"
                 >
                   <Printer size={14} />
                   In nhãn QR
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -225,24 +232,34 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
           {/* Name */}
           <div>
             <label className="label-base">Tên trang phục *</label>
-            <input type="text" value={form.name} onChange={(e) => update({ name: e.target.value })}
-              placeholder="VD: Váy cưới Đuôi cá Luxury" className="input-base w-full" />
+            <Input
+              type="text"
+              value={form.name}
+              onChange={(e) => update({ name: e.target.value })}
+              placeholder="VD: Váy cưới Đuôi cá Luxury"
+              className="w-full"
+            />
           </div>
 
           {/* Category chips */}
           <div>
-            <label className="label-base mb-1.5">Phân loại</label>
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5">
-              {DRESS_CATEGORIES.map((cat) => (
-                <button key={cat} type="button" onClick={() => update({ category: cat })}
-                  className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-caption font-semibold transition-all ${
+              <label className="label-base mb-1.5">Phân loại</label>
+              <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5">
+                {DRESS_CATEGORIES.map((cat) => (
+                <Button
+                  key={cat}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => update({ category: cat })}
+                  className={`flex flex-col items-center gap-0.5 !p-2 rounded-lg text-caption font-semibold transition-all ${
                     form.category === cat
                       ? "bg-primary/10 text-primary ring-1 ring-primary"
                       : "bg-bg-hover text-text-muted hover:bg-bg-secondary"
                   }`}>
                   {(() => { const Icon = CATEGORY_ICON_MAP[cat] || Shapes; return <Icon size={16} />; })()}
                   {DRESS_CATEGORY_MAP[cat].label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -255,7 +272,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
                 <span className="inline-flex items-center px-2.5 bg-bg-hover text-text-muted text-sm font-mono rounded-l-lg border border-r-0 border-border-primary">
                   {CATEGORY_PREFIX_MAP[form.category] || "K"}-
                 </span>
-                <input
+                <Input
                   type="text"
                   value={form.item_code.replace(/^[A-Z]+-?/i, "")}
                   onChange={(e) => {
@@ -266,15 +283,15 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
                   }}
                   onBlur={() => validateItemCode(form.item_code)}
                   placeholder="Tự gen"
-                  className="input-base w-full font-mono rounded-l-none"
+                  className="w-full font-mono rounded-l-none"
                 />
               </div>
               {codeError && <p className="text-xs text-error mt-1">{codeError}</p>}
             </div>
             <div>
               <label className="label-base">Màu sắc</label>
-              <input type="text" value={form.color} onChange={(e) => update({ color: e.target.value })}
-                placeholder="Trắng, Kem..." className="input-base w-full" />
+              <Input type="text" value={form.color} onChange={(e) => update({ color: e.target.value })}
+                placeholder="Trắng, Kem..." className="w-full" />
             </div>
           </div>
 
@@ -282,8 +299,8 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
           <div className="form-grid-2col">
             <div>
               <label className="label-base">Size</label>
-              <input type="text" value={form.size} onChange={(e) => update({ size: e.target.value })}
-                placeholder="S, M, L..." className="input-base w-full" />
+              <Input type="text" value={form.size} onChange={(e) => update({ size: e.target.value })}
+                placeholder="S, M, L..." className="w-full" />
             </div>
             <SelectForm
               label="Tình trạng"
@@ -310,8 +327,8 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
           {/* Notes */}
           <div>
             <label className="label-base">Ghi chú</label>
-            <textarea value={form.notes} onChange={(e) => update({ notes: e.target.value })}
-              rows={2} placeholder="Phụ kiện đi kèm, tình trạng..." className="input-base w-full resize-none" />
+            <Textarea value={form.notes} onChange={(e) => update({ notes: e.target.value })}
+              rows={2} placeholder="Phụ kiện đi kèm, tình trạng..." className="w-full resize-none" />
           </div>
         </div>
       </UnifiedModal>

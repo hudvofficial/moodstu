@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { Button } from "@/components/ui/button";
 import { CONTRACT_DETAIL_TABS } from "./top-action-bar";
 
 // ═══════════════════════════════════════════
@@ -69,13 +70,13 @@ export default function MobileTabNav({
         {CONTRACT_DETAIL_TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
-            <button
+            <Button unstyled
               key={tab.key}
               onClick={() => onTabClick(tab)}
               className={`tab-pill ${isActive ? "tab-pill-active" : "tab-pill-inactive"}`}
             >
               {tab.label}
-            </button>
+            </Button>
           );
         })}
       </div>

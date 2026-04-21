@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements -- SSOT UI component (pagination) uses native buttons internally */
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -63,3 +64,5 @@ function getVisiblePages(current: number, total: number): (number | "...")[] {
   if (current >= total - 2) return [1, "...", total - 3, total - 2, total - 1, total];
   return [1, "...", current - 1, current, current + 1, "...", total];
 }
+
+/* eslint-enable react/forbid-elements */

@@ -19,7 +19,10 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const [loading, setLoading] = useState(true);
   const [activeGalleryId, setActiveGalleryId] = useState<string | null>(galleryId);
   const [fileFilter, setFileFilter] = useState<FileFilter>("all");
-  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    if (typeof window !== "undefined") return (localStorage.getItem("gallery_sort_mode") as SortOption) || "manual";
+    return "manual";
+  });
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
   const [commentCount, setCommentCount] = useState(0);
   const [commentCountsPerImage, setCommentCountsPerImage] = useState<Record<string, number>>({});
@@ -54,7 +57,10 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     });
   };
 
-  const handleSort = (newSort: SortOption) => { setSortBy(newSort); };
+  const handleSort = (newSort: SortOption) => {
+    setSortBy(newSort);
+    if (typeof window !== "undefined") localStorage.setItem("gallery_sort_mode", newSort);
+  };
 
   const handleViewMode = (mode: "grid" | "list") => {
     setViewMode(mode);
@@ -159,6 +165,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       const dateA = new Date(a.displayImage.created_at).getTime();
       const dateB = new Date(b.displayImage.created_at).getTime();
       switch (sortBy) {
+        case "manual": return 0;
         case "name-asc": return nameA.localeCompare(nameB);
         case "name-desc": return nameB.localeCompare(nameA);
         case "date-desc": return dateB - dateA;

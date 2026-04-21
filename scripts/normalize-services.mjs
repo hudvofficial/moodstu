@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-function determineNewType(name, currentType) {
+function determineNewType(name) {
   const lc = name.toLowerCase();
   
   if (lc.includes('baby') || lc.includes('newborn')) return 'baby';
@@ -46,7 +46,7 @@ async function main() {
     const validTypes = ["studio", "ngay_cuoi", "combo", "baby", "gia_dinh", "sinh_nhat", "bau", "concept", "couple", "ky_yeu", "media", "khac"];
     
     if (!validTypes.includes(service.service_type)) {
-      const newType = determineNewType(service.name, service.service_type);
+      const newType = determineNewType(service.name);
       return {
         id: service.id,
         name: service.name,

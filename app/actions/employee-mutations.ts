@@ -1,32 +1,63 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
-import { getNextEmployeeCode } from "./employee-queries";
+import { syncAuthIdentity, withAdmin } from "@/lib/auth_utils";
+import {
+  employeeCreateSchema,
+  employeeNotesSchema,
+  employeeUpdateSchema,
+} from "@/lib/validations/employee.schema";
 import { ALLOWED_FIELDS } from "@/types/employee-form";
-import { employeeCreateSchema } from "@/lib/validations/employee.schema";
 import type { SalaryInfo } from "@/types/employee";
 
-// ═══════════════════════════════════════════
-// Employee Mutations — Create, Update, Delete
-// Follow V2 Template: mutations separate from queries
-// Hybrid Gold Standard: Employees scaffold + Contracts patterns
-// ═══════════════════════════════════════════
-
 type EmployeePayload = Record<string, string | number | object | null | undefined>;
+type CleanEmployeePayload = Record<string, string | number | object | null>;
 
-function sanitizePayload(raw: EmployeePayload): Record<string, string | number | object | null> {
-  const clean: Record<string, string | number | object | null> = {};
+const uuidSchema = z.string().uuid("Employee ID không hợp lệ");
+
+function sanitizePayload(raw: EmployeePayload): CleanEmployeePayload {
+  const clean: CleanEmployeePayload = {};
   for (const field of ALLOWED_FIELDS) {
-    if (raw[field] !== undefined) clean[field] = raw[field] as string | number | object | null;
+    if (raw[field] !== undefined) {
+      clean[field] = raw[field] as string | number | object | null;
+    }
   }
   return clean;
 }
 
-// ─── createEmployee ──────────────────────────
+function normalizeEmptyStrings(payload: CleanEmployeePayload) {
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === "string" && value.trim() === "") {
+      payload[key] = null;
+    }
+  }
+  return payload;
+}
+
+async function generateNextEmployeeCode(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("employees")
+    .select("employee_code")
+    .ilike("employee_code", "NV-%")
+    .range(0, 4999);
+
+  if (error) {
+    throw new Error(`Không thể tạo mã nhân viên: ${error.message}`);
+  }
+
+  const maxNumber = (data || []).reduce((max, row) => {
+    const match = String(row.employee_code || "").match(/^NV-(\d+)$/);
+    if (!match) return max;
+    return Math.max(max, Number(match[1]) || 0);
+  }, 0);
+
+  return `NV-${String(maxNumber + 1).padStart(3, "0")}`;
+}
+
 export async function createEmployee(payload: EmployeePayload) {
-  // Zod validation (Gap C fix — industry standard)
   const parsed = employeeCreateSchema.safeParse(payload);
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
@@ -36,128 +67,210 @@ export async function createEmployee(payload: EmployeePayload) {
     };
   }
 
-  return withAuth(async (supabase) => {
-    const data = sanitizePayload(parsed.data as EmployeePayload);
+  return withAdmin(async (supabase) => {
+    const data = normalizeEmptyStrings(
+      sanitizePayload(parsed.data as EmployeePayload),
+    );
 
-    // Auto-generate employee_code
-    const employeeCode = await getNextEmployeeCode();
-    data.employee_code = employeeCode;
+    let lastError: { code?: string; message?: string } | null = null;
 
-    const { data: created, error } = await supabase
-      .from("employees")
-      .insert(data)
-      .select("id, full_name, employee_code")
-      .single();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      data.employee_code = await generateNextEmployeeCode(supabase);
 
-    if (error) {
-      if (error.code === "23505") throw new Error("Mã nhân viên đã tồn tại. Vui lòng thử lại.");
-      throw new Error(`Lỗi tạo nhân viên: ${error.message}`);
+      const { data: created, error } = await supabase
+        .from("employees")
+        .insert(data)
+        .select("id, full_name, employee_code")
+        .single();
+
+      if (!error && created) {
+        fireAuditLog({
+          action: "CREATE",
+          tableName: "employees",
+          recordId: created.id,
+          description: `Tạo nhân viên: ${created.full_name} (${created.employee_code})`,
+          newData: data,
+          source: "server_action",
+        });
+
+        revalidatePath("/employees");
+        return { id: created.id, employee_code: created.employee_code };
+      }
+
+      lastError = error;
+      if (error?.code !== "23505") break;
     }
 
-    fireAuditLog({
-      action: "CREATE", tableName: "employees", recordId: created.id,
-      description: `Tạo nhân viên: ${created.full_name} (${created.employee_code})`,
-      newData: data,
-    });
+    if (lastError?.code === "23505") {
+      throw new Error("Mã nhân viên đã tồn tại. Vui lòng thử lại.");
+    }
 
-    revalidatePath("/employees");
-    return { id: created.id, employee_code: created.employee_code };
+    throw new Error(
+      `Lỗi tạo nhân viên: ${lastError?.message || "Không xác định"}`,
+    );
   });
 }
 
-// ─── updateEmployee ──────────────────────────
 export async function updateEmployee(id: string, payload: EmployeePayload) {
-  return withAuth(async (supabase) => {
-    const data = sanitizePayload(payload);
+  const parsedId = uuidSchema.safeParse(id);
+  if (!parsedId.success) {
+    return { success: false as const, error: parsedId.error.issues[0]?.message };
+  }
 
-    // JSONB merge for salary_info — read existing, spread merge, NEVER overwrite
+  const parsed = employeeUpdateSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      error: `Dữ liệu không hợp lệ: ${parsed.error.issues[0]?.message}`,
+    };
+  }
+
+  return withAdmin(async (supabase) => {
+    const data = normalizeEmptyStrings(
+      sanitizePayload(parsed.data as EmployeePayload),
+    );
+
+    const { data: current, error: currentError } = await supabase
+      .from("employees")
+      .select("id, full_name, role, auth_user_id, salary_info")
+      .eq("id", parsedId.data)
+      .single();
+
+    if (currentError || !current) {
+      throw new Error("Không tìm thấy nhân viên");
+    }
+
     if (data.salary_info && typeof data.salary_info === "object") {
-      const { data: current } = await supabase
-        .from("employees")
-        .select("salary_info")
-        .eq("id", id)
-        .single();
-
-      const existing = (current?.salary_info as SalaryInfo) || {};
+      const existing = (current.salary_info as SalaryInfo) || {};
       data.salary_info = { ...existing, ...(data.salary_info as SalaryInfo) };
     }
 
-    // Do NOT set updated_at — DB trigger handles it
-    const { error } = await supabase.from("employees").update(data).eq("id", id);
+    const { error } = await supabase
+      .from("employees")
+      .update(data)
+      .eq("id", parsedId.data);
+
     if (error) throw new Error(`Lỗi cập nhật: ${error.message}`);
 
+    if (current.auth_user_id && (data.full_name || data.role)) {
+      await syncAuthIdentity(supabase, current.auth_user_id, {
+        fullName:
+          typeof data.full_name === "string" ? data.full_name : current.full_name,
+        role: typeof data.role === "string" ? data.role : current.role,
+      });
+    }
+
     fireAuditLog({
-      action: "UPDATE", tableName: "employees", recordId: id,
-      description: `Cập nhật nhân viên: ${(data.full_name as string) || id}`,
+      action: "UPDATE",
+      tableName: "employees",
+      recordId: parsedId.data,
+      description: `Cập nhật nhân viên: ${
+        (data.full_name as string) || current.full_name || parsedId.data
+      }`,
+      newData: data,
+      source: "server_action",
     });
 
     revalidatePath("/employees");
-    revalidatePath(`/employees/${id}`);
-    return { id };
+    revalidatePath(`/employees/${parsedId.data}`);
+    revalidatePath("/settings");
+    return { id: parsedId.data };
   });
 }
 
-// ─── softDeleteEmployee ──────────────────────
 export async function softDeleteEmployee(id: string) {
-  return withAuth(async (supabase) => {
+  const parsedId = uuidSchema.safeParse(id);
+  if (!parsedId.success) {
+    return { success: false as const, error: parsedId.error.issues[0]?.message };
+  }
+
+  return withAdmin(async (supabase) => {
     const { data: emp } = await supabase
       .from("employees")
       .select("full_name, employee_code")
-      .eq("id", id)
+      .eq("id", parsedId.data)
       .single();
 
     const { error } = await supabase
       .from("employees")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+      .update({
+        deleted_at: new Date().toISOString(),
+        status: "inactive",
+      })
+      .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi cho nghỉ việc: ${error.message}`);
 
     fireAuditLog({
-      action: "DELETE", tableName: "employees", recordId: id,
+      action: "DELETE",
+      tableName: "employees",
+      recordId: parsedId.data,
       oldData: emp ?? undefined,
-      description: `Cho nghỉ việc: ${emp?.full_name || id} (${emp?.employee_code || ""})`,
+      description: `Cho nghỉ việc: ${emp?.full_name || parsedId.data} (${emp?.employee_code || ""})`,
       severity: "WARNING",
+      source: "server_action",
     });
 
     revalidatePath("/employees");
+    revalidatePath(`/employees/${parsedId.data}`);
     return null;
   });
 }
 
-// ─── restoreEmployee ─────────────────────────
 export async function restoreEmployee(id: string) {
-  return withAuth(async (supabase) => {
+  const parsedId = uuidSchema.safeParse(id);
+  if (!parsedId.success) {
+    return { success: false as const, error: parsedId.error.issues[0]?.message };
+  }
+
+  return withAdmin(async (supabase) => {
     const { error } = await supabase
       .from("employees")
-      .update({ deleted_at: null })
-      .eq("id", id);
+      .update({
+        deleted_at: null,
+        status: "active",
+      })
+      .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi khôi phục: ${error.message}`);
 
     fireAuditLog({
-      action: "UPDATE", tableName: "employees", recordId: id,
-      description: `Khôi phục nhân viên #${id.substring(0, 8)}`,
+      action: "UPDATE",
+      tableName: "employees",
+      recordId: parsedId.data,
+      description: `Khôi phục nhân viên #${parsedId.data.substring(0, 8)}`,
+      source: "server_action",
     });
 
     revalidatePath("/employees");
-    revalidatePath(`/employees/${id}`);
+    revalidatePath(`/employees/${parsedId.data}`);
     return null;
   });
 }
 
-// ─── updateEmployeeNotes ─────────────────────
-// Uses dedicated `notes` column (NOT salary_info JSONB)
 export async function updateEmployeeNotes(id: string, notes: string | null) {
-  return withAuth(async (supabase) => {
+  const parsedId = uuidSchema.safeParse(id);
+  if (!parsedId.success) {
+    return { success: false as const, error: parsedId.error.issues[0]?.message };
+  }
+
+  const parsedNotes = employeeNotesSchema.safeParse(notes);
+  if (!parsedNotes.success) {
+    return {
+      success: false as const,
+      error: parsedNotes.error.issues[0]?.message || "Ghi chú không hợp lệ",
+    };
+  }
+
+  return withAdmin(async (supabase) => {
     const { error } = await supabase
       .from("employees")
-      .update({ notes })
-      .eq("id", id);
+      .update({ notes: parsedNotes.data })
+      .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi cập nhật ghi chú: ${error.message}`);
 
-    revalidatePath(`/employees/${id}`);
+    revalidatePath(`/employees/${parsedId.data}`);
     return null;
   });
 }

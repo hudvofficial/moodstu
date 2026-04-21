@@ -24,9 +24,10 @@ export function FAB({ icon: Icon = Plus, onClick, label = "Tạo mới", classNa
         onClick={onClick}
         aria-label={label}
         className={cn(
-          "flex items-center justify-center size-12 rounded-full bg-primary text-text-inverse shadow-float hover:scale-105 active:scale-95 transition-all outline-none border-none cursor-pointer",
+          "flex items-center justify-center size-12 !rounded-full bg-primary text-text-inverse shadow-float hover:scale-105 active:scale-95 transition-all outline-none border-none cursor-pointer",
           className
         )}
+        style={{ borderRadius: "50%" }}
       >
         <Icon className="w-6 h-6" />
       </button>

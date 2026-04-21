@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 export default function ServicesError({
   error,
   reset,
@@ -14,9 +16,9 @@ export default function ServicesError({
         <p className="text-sm text-text-muted mb-6">
           {error.message || "Không thể tải danh sách dịch vụ"}
         </p>
-        <button onClick={reset} className="btn-primary px-6 py-2.5 rounded-xl">
+        <Button type="button" onClick={reset} className="px-6 py-2.5 rounded-xl">
           Thử lại
-        </button>
+        </Button>
       </div>
     </div>
   );

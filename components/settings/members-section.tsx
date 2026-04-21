@@ -66,15 +66,15 @@ export default function MembersSection({
       <div className="flex items-center justify-between mb-3">
         <h3 className="section-heading">
           <Users className="w-4 h-4 inline-block mr-1.5 align-middle" />
-          Thanh vien ({users.length})
+          Thành viên ({users.length})
         </h3>
         {/* eslint-disable-next-line react/forbid-elements -- compact refresh action */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           className="icon-btn w-8! h-8!"
-          title="Lam moi"
-          aria-label="Lam moi danh sach thanh vien"
+          title="Làm mới"
+          aria-label="Làm mới danh sách thành viên"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
         </button>
@@ -82,7 +82,7 @@ export default function MembersSection({
 
       {!loading && danglingCount > 0 && (
         <p className="text-xs text-text-muted mb-3">
-          Co {danglingCount} tai khoan dang nhap chua lien ket voi ho so nhan vien.
+          Có {danglingCount} tài khoản đăng nhập chưa liên kết với hồ sơ nhân viên.
         </p>
       )}
 
@@ -100,7 +100,7 @@ export default function MembersSection({
         </div>
       ) : users.length === 0 ? (
         <p className="text-sm text-text-muted py-4 text-center">
-          Chua co thanh vien nao
+          Chưa có thành viên nào
         </p>
       ) : (
         <div className="space-y-2">

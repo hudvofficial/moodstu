@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createInvestmentSchema, updateInvestmentSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
+import { getTodayInTimeZone } from "@/lib/studio-date";
 
 // ═══════════════════════════════════════════
 // Investment Actions — CRUD + Maintenance Logs
@@ -22,6 +23,7 @@ export interface CreateInvestmentInput {
   depreciation_method?: string;
   salvage_value?: number;
   serial_number?: string;
+  linked_revenue?: number;
   location?: string;
   notes?: string;
   next_maintenance_date?: string;
@@ -57,6 +59,7 @@ export async function createInvestment(input: CreateInvestmentInput) {
       depreciation_method: parsed.data.depreciation_method || "straight_line",
       salvage_value: parsed.data.salvage_value || 0,
       serial_number: parsed.data.serial_number || null,
+      linked_revenue: parsed.data.linked_revenue ?? null,
       location: parsed.data.location || null,
       notes: parsed.data.notes || null,
       next_maintenance_date: parsed.data.next_maintenance_date || null,
@@ -95,14 +98,17 @@ export async function updateInvestment(
     // H4: Optimistic lock — fetch old data + check updated_at
     const { data: oldData } = await supabase
       .from("investments")
-      .select("name, purchase_price, status, updated_at")
+      .select("name, purchase_price, status, purchase_date, updated_at")
       .eq("id", id)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy tài sản cần sửa.");
 
     // W3: Period lock
-    await checkPeriodLock(supabase, oldData.updated_at?.split("T")[0] || new Date().toISOString().split("T")[0]);
+    await checkPeriodLock(supabase, oldData.purchase_date || getTodayInTimeZone());
+    if (parsed.data.purchase_date && parsed.data.purchase_date !== oldData.purchase_date) {
+      await checkPeriodLock(supabase, parsed.data.purchase_date);
+    }
 
     if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
@@ -140,7 +146,7 @@ export async function deleteInvestment(id: string) {
     if (!oldData) throw new Error("Không tìm thấy tài sản.");
 
     // W3: Period lock
-    await checkPeriodLock(supabase, oldData.purchase_date || new Date().toISOString().split("T")[0]);
+    await checkPeriodLock(supabase, oldData.purchase_date || getTodayInTimeZone());
 
     const { error } = await supabase.from("investments").delete().eq("id", id);
     if (error) throw new Error(`Lỗi xóa tài sản: ${error.message}`);

@@ -181,7 +181,6 @@ DECLARE
         );
     END;
 $$;
-
 -- 2. get_cashflow_forecast
 CREATE OR REPLACE FUNCTION get_cashflow_forecast(p_days integer DEFAULT 30)
 RETURNS json
@@ -274,7 +273,6 @@ DECLARE
         );
     END;
 $$;
-
 -- 3. get_expense_breakdown
 CREATE OR REPLACE FUNCTION get_expense_breakdown(p_month integer, p_year integer)
 RETURNS json
@@ -307,7 +305,6 @@ BEGIN
     RETURN COALESCE(v_result, '[]'::jsonb);
 END;
 $$;
-
 -- 4. get_receivable_aging
 CREATE OR REPLACE FUNCTION get_receivable_aging()
 RETURNS json
@@ -344,7 +341,6 @@ BEGIN
     RETURN COALESCE(v_result, '{"0_30":{"total":0,"count":0},"31_60":{"total":0,"count":0},"61_90":{"total":0,"count":0},"90_plus":{"total":0,"count":0}}'::jsonb);
 END;
 $$;
-
 -- 5. get_budget_vs_actual
 CREATE OR REPLACE FUNCTION get_budget_vs_actual(p_month integer, p_year integer)
 RETURNS json

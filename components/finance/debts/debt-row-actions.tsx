@@ -62,7 +62,7 @@ export function DebtRowActions({
                     variant="ghost"
                     onClick={() => setIsQrOpen(true)}
                     disabled={isClosed || isDeleting}
-                    className={`${linkClassName} text-[#3b82f6] hover:bg-blue-50`}
+                    className={`${linkClassName} text-info hover:bg-info/10`}
                     style={btnStyle}
                     aria-label="Mã QR Thanh toán"
                     title="Mã QR"
@@ -74,7 +74,7 @@ export function DebtRowActions({
                     variant="ghost"
                     onClick={copyZaloReminder}
                     disabled={isClosed || isDeleting}
-                    className={`${linkClassName} text-[#f59e0b] hover:bg-orange-50`}
+                    className={`${linkClassName} text-warning hover:bg-warning/10`}
                     style={btnStyle}
                     aria-label="Nhắc nợ Zalo"
                     title="Copy Zalo Remind"

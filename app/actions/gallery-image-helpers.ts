@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import type { GalleryImage } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
@@ -15,7 +15,9 @@ export async function getGalleryImagesPaginated(
   page: number,
   pageSize = 200,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const from = page * pageSize;
     const to = from + pageSize - 1;
 

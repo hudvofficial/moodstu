@@ -4,8 +4,11 @@ import { useState } from "react";
 import { CalendarPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { EVENT_TYPE_MAP, isOnSetEvent } from "@/types/contract-constants";
 import { addContractEvent } from "@/app/actions/contract-event-actions";
 import type { EventType } from "@/types/contract";
@@ -89,10 +92,10 @@ export default function AddEventModal({
   // ─── Footer ──────────────────────────────
   const footer = (
     <div className="flex items-center justify-end gap-2 w-full">
-      <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>
+      <Button unstyled onClick={onClose} className="btn btn-secondary" disabled={submitting}>
         Hủy
-      </button>
-      <button
+      </Button>
+      <Button unstyled
         onClick={handleSubmit}
         disabled={submitting || !title.trim()}
         className="btn btn-primary"
@@ -108,7 +111,7 @@ export default function AddEventModal({
             Thêm sự kiện
           </>
         )}
-      </button>
+      </Button>
     </div>
   );
 
@@ -126,7 +129,7 @@ export default function AddEventModal({
           <label className="label-base">
             Tên sự kiện <span className="text-error">*</span>
           </label>
-          <input
+          <Input unstyled
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -156,7 +159,7 @@ export default function AddEventModal({
         {/* Địa điểm — optional */}
         <div>
           <label className="label-base">Địa điểm</label>
-          <input
+          <Input unstyled
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
@@ -168,7 +171,7 @@ export default function AddEventModal({
         {/* Ghi chú — optional */}
         <div>
           <label className="label-base">Ghi chú</label>
-          <textarea
+          <Textarea unstyled
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi chú cho sự kiện..."

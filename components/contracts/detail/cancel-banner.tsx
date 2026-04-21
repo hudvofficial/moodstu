@@ -5,6 +5,7 @@ import { AlertTriangle, RotateCcw, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { reactivateContract } from "@/app/actions/contract-lifecycle";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // Cancel Banner — Warning when contract is cancelled
@@ -60,7 +61,7 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
           Cập nhật: {formatDate(updatedAt, "long")}
         </p>
       </div>
-      <button
+      <Button unstyled
         onClick={handleReactivate}
         disabled={isReactivating}
         className="shrink-0 flex items-center gap-1.5 rounded-radius-md bg-red-100 px-3 py-1.5 text-caption font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors"
@@ -71,7 +72,7 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
           <RotateCcw size={14} />
         )}
         Kích hoạt lại
-      </button>
+      </Button>
     </div>
   );
 }

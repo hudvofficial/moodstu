@@ -3,6 +3,7 @@
 import { useModal } from "@/lib/context/modal-context";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DriveLinkModalContent } from "@/components/contracts/detail/drive-link-modal";
 import { ShareGalleryModalContent } from "@/components/contracts/gallery/share-gallery-modal";
 
@@ -39,7 +40,7 @@ export function GlobalModal() {
       case "QUICK_SEARCH":
         return (
           <div className="animate-in fade-in zoom-in-95 duration-200">
-             <input 
+             <Input
                 autoFocus
                 className="w-full bg-bg-base border-none text-lg p-0 focus:ring-0 placeholder:text-text-muted"
                 placeholder="Tìm khách hàng, hợp đồng..."

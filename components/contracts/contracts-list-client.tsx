@@ -12,6 +12,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
@@ -151,10 +152,10 @@ function ContractsListInner() {
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
         <div className="hidden lg:flex">
-          <button onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
+          <Button unstyled onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Tạo hợp đồng</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -219,13 +220,13 @@ function ContractsListInner() {
             onChange={(date) => setLocalEndDate(date)}
           />
           <div className="flex items-end">
-            <button
+            <Button unstyled
               onClick={handleApplyDateRange}
               disabled={isPending}
               className="btn btn-primary w-full"
             >
               {isPending ? "Đang áp dụng..." : "Áp dụng bộ lọc"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

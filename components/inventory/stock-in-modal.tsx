@@ -6,13 +6,17 @@
  * Action: stockIn() → updates current_stock + average_unit_price
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { ComboboxSearch } from "@/components/ui/combobox-search";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { stockIn } from "@/app/actions/inventory-mutations";
+import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type { InventoryItem } from "@/types/inventory";
 
 interface StockInModalProps {
@@ -33,10 +37,21 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
 
+  useEffect(() => {
+    if (!isOpen || item) return;
+    let cancelled = false;
+    fetchInventoryPickerItems().then((data) => {
+      if (!cancelled) setPickerItems(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, item, items]);
 
-
-  const handleSubmit = () => {
+  const handleSubmit = (event?: React.FormEvent) => {
+    event?.preventDefault();
     if (!activeItem) return;
     if (quantity < 1) { setError("Số lượng phải ≥ 1"); return; }
 
@@ -51,12 +66,16 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
         notes: notes.trim() || undefined,
       });
 
-      if (result && 'success' in result && result.success) {
+      if (result && "success" in result && result.success) {
         toast.success(`Đã nhập ${quantity} ${activeItem.name} vào kho`);
         await revalidateInventory();
         onClose();
       } else {
-        setError((result && 'error' in result && typeof result.error === 'string') ? result.error : "Không thể nhập kho");
+        setError(
+          result && "error" in result && typeof result.error === "string"
+            ? result.error
+            : "Không thể nhập kho",
+        );
       }
     });
   };
@@ -64,7 +83,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
   if (!isOpen) return null;
 
   // Item picker options
-  const itemOptions = (items || []).map(i => ({ value: i.id, label: `${i.item_code} — ${i.name}` }));
+  const itemOptions = pickerItems.map(i => ({ value: i.id, label: `${i.item_code} — ${i.name}` }));
 
   return (
     <UnifiedModal
@@ -75,12 +94,12 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
       size="md"
       footer={
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="btn btn-secondary" disabled={isPending}>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
             Hủy
-          </button>
-          <button onClick={handleSubmit} className="btn btn-primary" disabled={isPending}>
+          </Button>
+          <Button type="button" onClick={handleSubmit} disabled={isPending}>
             {isPending ? "Đang xử lý..." : "Xác nhận nhập kho"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -93,7 +112,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
             <ComboboxSearch
               label="Chọn vật tư *"
               onChange={(id) => {
-                const found = items?.find(i => i.id === id) || null;
+                const found = pickerItems.find(i => i.id === id) || null;
                 setPickedItem(found);
                 if (found) {
                   setUnitCost(found.purchase_price || 0);
@@ -112,8 +131,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
         <div className="form-grid-2col">
           <div>
             <label className="label-base">Số lượng *</label>
-            <input
-              className="input-base"
+            <Input
               type="number"
               min={1}
               value={quantity}
@@ -128,8 +146,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
         <div>
           <label className="label-base">Nhà cung cấp</label>
-          <input
-            className="input-base"
+          <Input
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
             placeholder="VD: Công ty ABC"
@@ -138,8 +155,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
         <div>
           <label className="label-base">Lý do nhập</label>
-          <input
-            className="input-base"
+          <Input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="VD: Bổ sung hàng tháng 3"
@@ -148,8 +164,8 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
         <div>
           <label className="label-base">Ghi chú</label>
-          <textarea
-            className="input-base min-h-15"
+          <Textarea
+            className="min-h-15"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Thông tin thêm..."

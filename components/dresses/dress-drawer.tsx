@@ -11,6 +11,7 @@ import { useState } from "react";
 import { Pencil, QrCode } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DRESS_STATUS_MAP } from "@/types/dress-constants";
 import type { DressStatus } from "@/lib/validations/dress.schema";
 import type { DressItem } from "@/types/dress";
@@ -41,7 +42,7 @@ export function DressDrawer({ dress, isOpen, onClose, onEdit }: DressDrawerProps
 
   const headerRight = (
     <>
-      <button
+      <Button unstyled
         onClick={() => {
           if (onEdit) { onClose(); onEdit(dress); }
         }}
@@ -49,14 +50,14 @@ export function DressDrawer({ dress, isOpen, onClose, onEdit }: DressDrawerProps
         title="Sửa trang phục"
       >
         <Pencil className="w-4 h-4 text-text-secondary" />
-      </button>
-      <button
+      </Button>
+      <Button unstyled
         onClick={() => setQrOpen(true)}
         className="btn-icon"
         title="Mã QR"
       >
         <QrCode className="w-4 h-4 text-text-secondary" />
-      </button>
+      </Button>
     </>
   );
 

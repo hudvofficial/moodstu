@@ -35,9 +35,10 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "settings",
     "services",
     "dresses",
+    "moodie",
   ],
-  sale: ["dashboard", "contracts", "crm", "calendar", "dresses"],
-  media: ["dashboard", "productivity", "calendar"],
+  sale: ["dashboard", "contracts", "crm", "calendar", "dresses", "moodie"],
+  media: ["dashboard", "productivity", "calendar", "moodie"],
   viewer: ["dashboard", "moodie"],
 };
 

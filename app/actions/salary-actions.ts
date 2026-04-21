@@ -18,6 +18,12 @@ interface AdjustmentData {
   date?: string;
 }
 
+type WorkProgressRow = {
+  assigned_to: string | null;
+  cost: number | null;
+  contracts: Array<{ contract_code?: string | null }> | null;
+};
+
 async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalaryId: string) {
   const { data: adjustments } = await supabase
     .from("salary_adjustments")
@@ -146,7 +152,7 @@ export async function deleteSalaryAdjustment(id: string, salaryId: string) {
 }
 
 export async function payEmployeeSalaryAction(salaryId: string, amount: number) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase) => {
     if (amount <= 0) throw new Error("Số tiền thanh toán phải > 0");
     const { data: salaryRecord } = await supabase.from("employee_salaries").select("*").eq("id", salaryId).single();
     if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
@@ -180,7 +186,7 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number) 
 }
 
 export async function deleteEmployeeMonthlySalaryAction(salaryId: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase) => {
     const { data: salaryRecord } = await supabase.from("employee_salaries").select("month, year, employee_name, monthly_salary_id").eq("id", salaryId).single();
     if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
 
@@ -236,8 +242,8 @@ export async function validatePayrollWarningsAction(month: number, year: number)
       const unassignedTasks: string[] = [];
       const zeroCostTasks: string[] = [];
 
-      workProgress?.forEach((task: any) => {
-        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
+      workProgress?.forEach((task: WorkProgressRow) => {
+        const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
         if (!task.assigned_to) {
           unassignedTasks.push(contractRef);
         }
@@ -253,9 +259,14 @@ export async function validatePayrollWarningsAction(month: number, year: number)
           zeroCostTasks: Array.from(new Set(zeroCostTasks))
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Lỗi validate payroll:", error);
-      return { success: false, error: error.message || "Lỗi hệ thống khi check dữ liệu" };
+      const message = error instanceof Error
+        ? error.message
+        : (typeof error === "object" && error !== null && "message" in error)
+          ? String((error as { message: unknown }).message)
+          : "Lỗi hệ thống khi check dữ liệu";
+      return { success: false, error: message };
     }
   });
 }
@@ -328,8 +339,8 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
       const unassignedTasks: Set<string> = new Set();
       const zeroCostTasks: Set<string> = new Set();
 
-      workProgress?.forEach((task: any) => {
-        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
+      workProgress?.forEach((task: WorkProgressRow) => {
+        const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
         if (!task.assigned_to) {
           unassignedTasks.add(contractRef);
           hasWarnings = true;
@@ -408,10 +419,14 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
           : `Đã khởi tạo bảng lương thành công cho ${newRecords.length} nhân viên`
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Lỗi generate monthly salary:", error);
-      return { success: false, error: error.message || "Lỗi hệ thống khi tạo lương" };
+      const message = error instanceof Error
+        ? error.message
+        : (typeof error === "object" && error !== null && "message" in error)
+          ? String((error as { message: unknown }).message)
+          : "Lỗi hệ thống khi tạo lương";
+      return { success: false, error: message };
     }
   });
 }
-

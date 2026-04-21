@@ -1,8 +1,7 @@
 "use client";
 
-import { CheckCircle, Trash2 } from "lucide-react";
 import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
-import { Button } from "@/components/ui/button";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { DebtListItem } from "@/types/finance-operations";
 import type { BankInfo } from "@/types/settings";
@@ -16,10 +15,10 @@ interface DebtDesktopTableProps {
     onDelete: (item: DebtListItem) => void;
 }
 
-export function getDebtBadge(item: DebtListItem) {
-    if (item.status === "closed" || item.status === "da_thanh_toan") return { className: "badge badge-success", label: "Đã thanh toán" };
-    if (item.days_overdue > 0) return { className: "badge badge-error", label: `Quá hạn ${item.days_overdue} ngày` };
-    return { className: "badge badge-warning", label: "Đang nợ" };
+export function getDebtBadge(item: DebtListItem): { variant: BadgeVariant; label: string } {
+    if (item.status === "closed" || item.status === "da_thanh_toan") return { variant: "success", label: "Đã thanh toán" };
+    if (item.days_overdue > 0) return { variant: "error", label: `Quá hạn ${item.days_overdue} ngày` };
+    return { variant: "warning", label: "Đang nợ" };
 }
 
 export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onDelete }: DebtDesktopTableProps) {
@@ -60,19 +59,19 @@ export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onDelete
                                         <span className="text-body-sm block">{item.type}</span>
                                         {item.platform && (
                                             <div className="mt-1 flex items-center gap-1.5">
-                                                <span className="tag-badge text-[10px] uppercase font-bold text-text-muted">{item.platform.replace("_", " ")}</span>
+                                                <span className="tag-badge text-tiny uppercase font-bold text-text-muted">{item.platform.replace("_", " ")}</span>
                                             </div>
                                         )}
                                     </TD>
                                     <TD className="text-right">
-                                        <div className="tabular-nums font-bold text-h3">{formatVnd(item.remaining)}</div>
+                                        <div className="tabular-nums font-bold text-body">{formatVnd(item.remaining)}</div>
                                         <div className="text-caption text-text-muted">Gốc {formatVnd(item.amount)}</div>
                                     </TD>
                                     <TD>
                                         <div className="flex flex-col items-start gap-1.5">
-                                            <span className={badge.className}>{badge.label}</span>
+                                            <Badge variant={badge.variant}>{badge.label}</Badge>
                                             {item.installment_total ? (
-                                                <span className="text-[11px] font-medium text-text-muted bg-bg-hover px-1.5 py-0.5 rounded-sm border border-border/50">
+                                                <span className="text-caption font-medium text-text-muted bg-bg-hover px-1.5 py-0.5 rounded-sm border border-border/50">
                                                     Kỳ {(item.installment_paid || 0)}/{item.installment_total}
                                                 </span>
                                             ) : null}

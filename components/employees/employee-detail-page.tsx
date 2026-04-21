@@ -10,6 +10,7 @@ import { formatCurrency, formatDate, formatPhone, getInitials } from "@/lib/util
 import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-mutations";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import EmployeeInfoCard from "./employee-info-card";
 import EmployeeNotes from "./employee-notes";
 import EmployeeFormModal from "./employee-form-modal";
@@ -25,10 +26,11 @@ export default function EmployeeDetailPage({ employee }: { employee: EmployeeDet
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const statusInfo = EMPLOYEE_STATUS_MAP[employee.status] || { label: employee.status, variant: "neutral" };
+  const isDeleted = !!employee.deleted_at;
+  const effectiveStatus = isDeleted ? "inactive" : employee.status;
+  const statusInfo = EMPLOYEE_STATUS_MAP[effectiveStatus] || { label: effectiveStatus, variant: "neutral" };
   const roleBadge = ROLE_BADGE_MAP[employee.role as EmployeeRole];
   const salary = (employee.salary_info || {}) as SalaryInfo;
-  const isDeleted = !!employee.deleted_at;
 
   const personalItems = [
     { label: "Giới tính", value: employee.gender },
@@ -116,20 +118,20 @@ export default function EmployeeDetailPage({ employee }: { employee: EmployeeDet
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0">
           {isDeleted ? (
-            <button onClick={handleRestore} disabled={actionLoading} className="btn btn-secondary gap-1.5">
+            <Button unstyled onClick={handleRestore} disabled={actionLoading} className="btn btn-secondary gap-1.5">
               {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
               <span className="hidden sm:inline">Khôi phục</span>
-            </button>
+            </Button>
           ) : (
             <>
-              <button onClick={() => setShowForm(true)} className="btn btn-secondary gap-1.5">
+              <Button unstyled onClick={() => setShowForm(true)} className="btn btn-secondary gap-1.5">
                 <Pencil className="w-4 h-4" />
                 <span className="hidden sm:inline">Sửa</span>
-              </button>
-              <button onClick={handleSoftDelete} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
+              </Button>
+              <Button unstyled onClick={handleSoftDelete} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
                 <span className="hidden sm:inline">Cho nghỉ</span>
-              </button>
+              </Button>
             </>
           )}
         </div>

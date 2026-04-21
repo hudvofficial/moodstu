@@ -3,6 +3,20 @@ Status: ⬜ Pending
 Dependencies: Phase 02 ✅ (actions hardened, dashboard queries ready)
 Stitch Mockup: `projects/6640710053908312506` (Desktop + Mobile)
 
+## 2026-04-21 Audit Delta - Dashboard/Ledger Hardening
+
+Reference: `docs/reports/audit_2026-04-21_finance_dashboard_v1_parity.md`
+
+Do not close this phase until these finance SSOT gates pass:
+
+- [ ] Dashboard, ledger, reports, goals, and intelligence use one revenue formula.
+- [ ] Dashboard/ledger SQL RPCs filter `receipts.deleted_at IS NULL` wherever receipts are aggregated or unioned.
+- [ ] Profit report SQL returns every UI column: package revenue, addon revenue, discount, task cost, print cost, expense cost, total cost, profit, margin.
+- [ ] Finance server actions enforce finance access in addition to login.
+- [ ] `/finance/dashboard` route exists or banner CTA is disabled; no production 404.
+- [ ] Smart dashboard uses real RPC data, not mock data.
+- [ ] Server rendering uses Suspense/cache for expensive analytics and dynamic chart islands for Recharts.
+
 ## Objective
 Dựng layout chính module Finance, Dashboard page **đầy đủ 6 sections** (khớp V1 feature parity), và Ledger view (paginated read-only).
 

@@ -39,6 +39,8 @@ export const cacheKeys = {
   // Dashboard
   dashboard: () => "dashboard",
   dashboardStats: () => "dashboard:stats",
+  reportsSnapshot: (periodKey: string) => `reports:${periodKey}`,
+  reportsLedger: (start: string, end: string, type = "all") => `reports-ledger:${start}:${end}:${type}`,
 
   // Finance
   expenses: (month?: number, year?: number) =>
@@ -46,6 +48,8 @@ export const cacheKeys = {
   debts: (page = 1) => `debts:${page}`,
   debtStats: () => "debt-stats",
   goals: () => "goals",
+  goalsCashflow: () => "goals-cashflow",
+  goalContributions: (goalId: string, page = 1) => `goal-contributions:${goalId}:${page}`,
   financeCategories: (type = "all") => `finance-categories:${type}`,
   financeReceipts: (page = 1, month?: number, year?: number) =>
     month && year ? `finance-receipts:${page}:${year}-${month}` : `finance-receipts:${page}:all`,
@@ -81,6 +85,7 @@ export const cacheKeys = {
   financeExpenseBreakdown: (month: number, year: number) => `finance-expense-breakdown:${year}-${month}`,
   financeReceivableAging: () => "finance-receivable-aging",
   financeBudgetVsActual: (month: number, year: number) => `finance-budget-actual:${year}-${month}`,
+  financeAdvancedIntelligence: (month: number, year: number) => `finance-advanced-intelligence:${year}-${month}`,
 
   // Team & Calendar
   team: () => "team",

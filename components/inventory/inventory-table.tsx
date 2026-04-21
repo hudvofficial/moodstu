@@ -9,6 +9,7 @@
 
 import { ChevronRight, Package, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
@@ -54,7 +55,7 @@ function getUnitLabel(unit: string | null): string {
 
 interface InventoryTableProps {
   items: InventoryItem[];
-  onRowClick: (id: string) => void;
+  onRowClick: (item: InventoryItem) => void;
   onHover?: (id: string) => void;
   onStockIn?: (item: InventoryItem) => void;
   onStockOut?: (item: InventoryItem) => void;
@@ -83,7 +84,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
             return (
               <TR
                 key={item.id}
-                onClick={() => onRowClick(item.id)}
+                onClick={() => onRowClick(item)}
               >
                 <TD>
                   <span className="font-mono text-text-muted">{item.item_code}</span>
@@ -113,22 +114,22 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
                 <TD className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     {onStockIn && (
-                      <button
+                      <Button unstyled
                         onClick={(e) => { e.stopPropagation(); onStockIn(item); }}
                         className="w-7 h-7 inline-flex items-center justify-center rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary transition-all"
                         title="Nhập kho"
                       >
                         <ArrowDownToLine className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     )}
                     {onStockOut && (
-                      <button
+                      <Button unstyled
                         onClick={(e) => { e.stopPropagation(); onStockOut(item); }}
                         className="w-7 h-7 inline-flex items-center justify-center rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-warning/10 hover:text-warning transition-all"
                         title="Xuất kho"
                       >
                         <ArrowUpFromLine className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     )}
                     <div className="h-8 w-8 inline-flex items-center justify-center rounded-md shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
                       <ChevronRight className="w-4 h-4" />
@@ -152,9 +153,9 @@ function MobileCardList({ items, onRowClick }: InventoryTableProps) {
       {items.map((item, i) => {
         const status = getStatusDisplay(item);
         return (
-          <button
+          <Button unstyled
             key={item.id}
-            onClick={() => onRowClick(item.id)}
+            onClick={() => onRowClick(item)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)}`}
           >
             {/* Row 1: Mã vật tư + Status badge */}
@@ -186,7 +187,7 @@ function MobileCardList({ items, onRowClick }: InventoryTableProps) {
             <p className="text-sm font-semibold text-text-main">
               {fmt(item.average_unit_price || 0)}
             </p>
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -1,0 +1,26 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export type CheckboxProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;
+
+/* eslint-disable react/forbid-elements -- This IS the <Checkbox> SSOT wrapper */
+const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <input
+        ref={ref}
+        type="checkbox"
+        className={cn(
+          "peer h-4 w-4 appearance-none rounded-md border border-border bg-white checked:bg-primary/10 checked:border-primary transition-all focus:outline-none cursor-pointer",
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
+/* eslint-enable react/forbid-elements */
+
+Checkbox.displayName = "Checkbox";
+
+export { Checkbox };

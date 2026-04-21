@@ -110,7 +110,7 @@ export async function getGoogleCalendarEvents(
           .from("studio_info")
           .select("id, google_calendar_auth")
           .limit(1)
-          .single();
+          .maybeSingle();
         return data;
       },
       ["google-calendar-studio-info"],
@@ -192,7 +192,7 @@ export async function createGoogleCalendarEvent(eventData: {
       .from("studio_info")
       .select("id, google_calendar_auth")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 
@@ -241,7 +241,7 @@ export async function updateGoogleCalendarEvent(
       .from("studio_info")
       .select("id, google_calendar_auth")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 
@@ -280,7 +280,7 @@ export async function deleteGoogleCalendarEvent(eventId: string) {
       .from("studio_info")
       .select("id, google_calendar_auth")
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 

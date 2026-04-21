@@ -4,18 +4,12 @@ import { Switch } from "@/components/ui/switch";
 import type { NotificationPreferences } from "@/types/settings";
 import { Calendar, Clock, AlertTriangle, UserCheck, Info } from "lucide-react";
 
-/* ═══════════════════════════════════════════
-   Notification Preferences — V2 Gold Standard
-   V1 logic 100% + Radix Switch + SSOT tokens
-   ═══════════════════════════════════════════ */
-
 interface NotificationPrefsProps {
   prefs: NotificationPreferences;
   onToggle: (key: keyof NotificationPreferences, value: boolean) => void;
   disabled: boolean;
 }
 
-// ─── Pref config (SSOT — single source for label + icon + key)
 const PREF_ITEMS: {
   key: keyof NotificationPreferences;
   label: string;
@@ -51,7 +45,7 @@ export default function NotificationPrefs({
             </div>
             <Switch
               checked={!!prefs[key]}
-              onCheckedChange={(v) => onToggle(key, v)}
+              onCheckedChange={(value) => onToggle(key, value)}
               disabled={disabled}
               id={`pref-${key}`}
               aria-label={label}

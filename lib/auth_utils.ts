@@ -306,3 +306,111 @@ export async function requireCrmAccess(supabase: SupabaseClient, userId: string)
 
   return { employee, role: employee.role as Role };
 }
+
+/**
+ * Gatekeeper function for Moodie server actions.
+ * Moodie is user-facing, but skill access is still constrained by shell role.
+ */
+export async function requireMoodieAccess(supabase: SupabaseClient, userId: string) {
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .select("id, full_name, role, auth_user_id")
+    .eq("auth_user_id", userId)
+    .single();
+
+  if (error || !employee) {
+    throw new Error("Không tìm thấy thông tin nhân viên");
+  }
+
+  if (!canAccess(employee.role as Role, "moodie")) {
+    throw new Error("Bạn không có quyền truy cập Moodie");
+  }
+
+  return { employee, role: employee.role as Role };
+}
+
+/**
+ * Gatekeeper function for Finance server actions.
+ * Finance reads use the admin client for RPC/service-role access, so each action
+ * must still enforce app-level finance permission after authentication.
+ */
+export async function requireFinanceAccess(supabase: SupabaseClient, userId: string) {
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .select("id, full_name, role, auth_user_id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Khong tim thay thong tin nhan vien");
+  }
+
+  let roleSource = employee?.role ?? null;
+
+  if (!roleSource) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.admin.getUserById(userId);
+
+    if (userError || !user) {
+      throw new Error("Khong tim thay tai khoan dang nhap");
+    }
+
+    roleSource =
+      (user.app_metadata?.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined) ??
+      null;
+  }
+
+  const role = normalizeRole(roleSource);
+
+  if (!canAccess(role, "finance")) {
+    throw new Error("Ban khong co quyen truy cap Tai chinh");
+  }
+
+  return { employee, role };
+}
+
+/**
+ * Gatekeeper for Contract server actions.
+ * Contract actions use the admin client after authentication, so they must
+ * enforce module permission explicitly instead of relying on RLS.
+ */
+export async function requireContractAccess(supabase: SupabaseClient, userId: string) {
+  const { data: employee, error } = await supabase
+    .from("employees")
+    .select("id, full_name, role, auth_user_id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Khong tim thay thong tin nhan vien");
+  }
+
+  let roleSource = employee?.role ?? null;
+
+  if (!roleSource) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.admin.getUserById(userId);
+
+    if (userError || !user) {
+      throw new Error("Khong tim thay tai khoan dang nhap");
+    }
+
+    roleSource =
+      (user.app_metadata?.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined) ??
+      null;
+  }
+
+  const role = normalizeRole(roleSource);
+
+  if (!canAccess(role, "contracts")) {
+    throw new Error("Ban khong co quyen truy cap Hop dong");
+  }
+
+  return { employee, role };
+}

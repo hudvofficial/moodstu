@@ -5,6 +5,8 @@ import { Search, UserPlus, UserCheck, Phone, MapPin, X } from "lucide-react";
 import type { UseContractCustomerReturn } from "./hooks/useContractCustomer";
 import type { ContractFormData } from "@/types/contract-form";
 import { CoupleDetailFields } from "./CoupleDetailFields";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
 // ContractCustomerSection — Search + Select + Couple Fields
@@ -72,13 +74,13 @@ export function ContractCustomerSection({
               </p>
             )}
           </div>
-          <button
+          <Button unstyled
             type="button"
             onClick={customer.clearCustomer}
             className="btn btn-ghost text-body-sm ml-3"
           >
             Đổi
-          </button>
+          </Button>
         </div>
 
         {/* Couple fields (conditional) */}
@@ -108,7 +110,7 @@ export function ContractCustomerSection({
               ) : (
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               )}
-              <input
+              <Input unstyled
                 type="text"
                 value={customer.searchQuery}
                 onChange={(e) => customer.setSearchQuery(e.target.value)}
@@ -118,14 +120,14 @@ export function ContractCustomerSection({
               />
               {/* T3: Clear button — V1 pattern */}
               {(customer.selectedCustomer || customer.isNewCustomer) && (
-                <button
+                <Button unstyled
                   type="button"
                   onClick={customer.clearCustomer}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-error transition-colors"
                   title="Bỏ chọn"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </Button>
               )}
               {/* Spinner khi đang search */}
               {customer.isSearching && !customer.selectedCustomer && (
@@ -144,7 +146,7 @@ export function ContractCustomerSection({
                     <ul className="max-h-48 overflow-y-auto">
                       {customer.searchResults.map((c) => (
                         <li key={c.id}>
-                          <button
+                          <Button unstyled
                             type="button"
                             onClick={() => customer.selectCustomer(c)}
                             className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-bg-hover transition-colors"
@@ -159,7 +161,7 @@ export function ContractCustomerSection({
                                 </p>
                               )}
                             </div>
-                          </button>
+                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -173,7 +175,7 @@ export function ContractCustomerSection({
                 )}
 
                 {/* Sticky bottom: "Tạo KH mới" với context — V1 pattern */}
-                <button
+                <Button unstyled
                   type="button"
                   onClick={customer.openCreateCustomer}
                   className="dropdown-create-action"
@@ -189,21 +191,21 @@ export function ContractCustomerSection({
                       </p>
                     )}
                   </div>
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
           {/* T5: Inline button — chỉ hiện khi dropdown đóng */}
           {!customer.showDropdown && (
-            <button
+            <Button unstyled
               type="button"
               onClick={customer.openCreateCustomer}
               className="flex items-center gap-1.5 text-interactive text-sm font-semibold hover:underline whitespace-nowrap shrink-0"
             >
               <UserPlus className="h-4 w-4" />
               <span className="max-lg:hidden">Tạo khách hàng mới</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -220,4 +222,3 @@ export function ContractCustomerSection({
     </section>
   );
 }
-

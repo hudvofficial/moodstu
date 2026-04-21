@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Contract, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
 import type { Customer } from "@/types/crm";
 import ContractTemplate from "./contract-template";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // Print Contract Client — wrapper with controls
@@ -90,21 +91,21 @@ export default function PrintContractClient({
           </Link>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button unstyled
               onClick={handlePrint}
               className="btn btn-outline"
             >
               <Printer size={16} />
               <span>In ngay</span>
-            </button>
-            <button
+            </Button>
+            <Button unstyled
               onClick={handleDownload}
               disabled={!isPdfReady || isGenerating}
               className="btn btn-primary disabled:opacity-50"
             >
               <Download size={16} />
               <span>{isGenerating ? "Đang tạo..." : "Tải PDF (A5)"}</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { SalaryRowActions } from "./salary-row-actions";
 import { formatVnd } from "@/components/finance/finance-format";
-import { Button } from "@/components/ui/button";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { SalaryItem } from "@/types/finance-operations";

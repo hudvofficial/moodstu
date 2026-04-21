@@ -1,6 +1,5 @@
 -- Drop the existing function first since we are changing the return table signature
 DROP FUNCTION IF EXISTS public.finance_contract_profit_report(TEXT, DATE, DATE, INT, INT);
-
 CREATE OR REPLACE FUNCTION public.finance_contract_profit_report(
   p_status TEXT DEFAULT 'all',
   p_from DATE DEFAULT NULL,
@@ -117,6 +116,5 @@ BEGIN
   FROM enriched e;
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 REVOKE ALL ON FUNCTION public.finance_contract_profit_report(TEXT, DATE, DATE, INT, INT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.finance_contract_profit_report(TEXT, DATE, DATE, INT, INT) TO service_role;

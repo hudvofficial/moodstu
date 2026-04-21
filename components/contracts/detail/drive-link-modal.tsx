@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Link as LinkIcon, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createMultiFolderGalleries } from "@/app/actions/gallery-drive-actions";
 import { createGallery } from "@/app/actions/gallery-actions";
 import { toast } from "@/lib/toast-utils";
@@ -74,18 +76,22 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
     <div className="space-y-4">
       {/* Mode tabs */}
       <div className="flex gap-1">
-        <button
+        <Button
+          type="button"
+          unstyled
           onClick={() => setMode("auto")}
           className={`tab-pill tab-pill-compact ${mode === "auto" ? "tab-pill-active" : "tab-pill-inactive"}`}
         >
           🔍 Tự phát hiện
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          unstyled
           onClick={() => setMode("manual")}
           className={`tab-pill tab-pill-compact ${mode === "manual" ? "tab-pill-active" : "tab-pill-inactive"}`}
         >
           ✍️ Nhập thủ công
-        </button>
+        </Button>
       </div>
 
       {/* Form content */}
@@ -94,12 +100,12 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
           <p className="text-caption text-text-muted">
             Dán link folder cha — hệ thống tự tìm subfolder &quot;Ảnh gốc&quot;, &quot;Ảnh đã sửa&quot;, &quot;Ảnh chọn in&quot;.
           </p>
-          <input
+          <Input
             type="url"
             placeholder="Dán link Google Drive folder..."
             value={parentUrl}
             onChange={(e) => setParentUrl(e.target.value)}
-            className="input-base w-full"
+            className="w-full"
             onKeyDown={(e) => e.key === "Enter" && handleAutoDetect()}
           />
         </>
@@ -111,12 +117,12 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
           {FOLDER_TYPES.map((ft) => (
             <div key={ft.key} className="space-y-1">
               <label className="text-caption font-medium text-text-primary">{ft.label}</label>
-              <input
+              <Input
                 type="url"
                 placeholder={ft.placeholder}
                 value={manualUrls[ft.key]}
                 onChange={(e) => setManualUrls((prev) => ({ ...prev, [ft.key]: e.target.value }))}
-                className="input-base w-full"
+                className="w-full"
               />
             </div>
           ))}
@@ -125,10 +131,12 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
 
       {/* Action buttons */}
       <div className="flex gap-3 justify-end pt-2">
-        <button onClick={onClose} className="btn-ghost" disabled={loading}>
+        <Button type="button" unstyled onClick={onClose} className="btn-ghost" disabled={loading}>
           Hủy
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          unstyled
           onClick={mode === "auto" ? handleAutoDetect : handleManualSubmit}
           disabled={loading}
           className="btn-primary"
@@ -144,7 +152,7 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
               <span>Gán Link Drive</span>
             </>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

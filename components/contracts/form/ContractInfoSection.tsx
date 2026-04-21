@@ -6,6 +6,8 @@ import type { ServiceType } from "@/types/contract";
 import DatePicker from "@/components/ui/date-picker";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Fingerprint } from "lucide-react";
 
 // ═══════════════════════════════════════════
@@ -91,7 +93,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
         )}
 
         <Field label="Nhân viên phụ trách">
-          <input
+          <Input unstyled
             type="text"
             value={formData.assigned_to}
             onChange={(e) => updateField("assigned_to", e.target.value)}
@@ -105,7 +107,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
 
       {/* Description */}
       <Field label="Mô tả">
-        <textarea
+        <Textarea unstyled
           value={formData.description}
           onChange={(e) => updateField("description", e.target.value)}
           placeholder="Mô tả gói dịch vụ, yêu cầu đặc biệt..."

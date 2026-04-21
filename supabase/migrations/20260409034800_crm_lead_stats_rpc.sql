@@ -59,5 +59,4 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_crm_lead_stats() TO authenticated;

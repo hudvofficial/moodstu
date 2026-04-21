@@ -13,6 +13,7 @@ import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { DressesStatsBar } from "./dresses-stats-bar";
 import DressesFilters from "./dresses-filters";
@@ -117,19 +118,19 @@ function DressesListInner() {
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <DressesStatsBar stats={stats || { total: 0, available: 0, reserved: 0, rented: 0, maintenance: 0 }} />
         <div className="hidden lg:flex items-center gap-2">
-          <button onClick={() => setScanOpen(true)} className="btn btn-outline gap-2">
+          <Button unstyled onClick={() => setScanOpen(true)} className="btn btn-outline gap-2">
             <ScanLine className="w-4 h-4" />
             <span>Quét mã</span>
-          </button>
+          </Button>
 
           <Link href="/dresses/rentals" className="btn btn-outline gap-2">
             <CalendarDays className="w-4 h-4" />
             <span>Xem lịch</span>
           </Link>
-          <button onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
+          <Button unstyled onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
             <Plus className="w-5 h-5" />
             <span>Thêm trang phục</span>
-          </button>
+          </Button>
         </div>
       </div>
 

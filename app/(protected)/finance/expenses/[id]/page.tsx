@@ -9,11 +9,6 @@ import { PrintActions } from "./print-actions";
 import { notFound } from "next/navigation";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 
-function formatOptionalDateTime(value: string | null | undefined) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : format(date, "dd/MM/yyyy HH:mm");
-}
 export default async function ExpenseDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {

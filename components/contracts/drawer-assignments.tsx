@@ -13,6 +13,7 @@ import { useState } from "react";
 import { UserCircle } from "lucide-react";
 import { WORK_TYPE_MAP, TASK_STATUS_MAP } from "@/types/contract-constants";
 import type { WorkType, TaskStatus } from "@/types/contract";
+import { Button } from "@/components/ui/button";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -140,14 +141,14 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
             </div>
           ))}
           {hiddenAssignedCount > 0 && (
-            <button
+            <Button unstyled
               onClick={() => setExpanded(!expanded)}
               className="text-tiny text-primary hover:text-primary/80 text-center py-0.5 w-full transition-colors"
             >
               {expanded
                 ? "Thu gọn"
                 : `+${hiddenAssignedCount} nhân sự khác`}
-            </button>
+            </Button>
           )}
         </div>
       )}

@@ -6,6 +6,7 @@ import {
   Shirt,
   MessageSquare,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // QuickActionsGrid — 6 quick action icons
@@ -37,7 +38,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
           {ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
-              <button
+              <Button unstyled
                 key={action.key}
                 onClick={() => onAction?.(action.key)}
                 className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
@@ -55,7 +56,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
                 <span className="text-caption font-bold text-text-secondary group-hover:text-text-primary transition-colors">
                   {action.label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -70,7 +71,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
           {ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
-              <button
+              <Button unstyled
                 key={action.key}
                 onClick={() => onAction?.(action.key)}
                 className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
@@ -89,7 +90,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
                 <span className="text-caption font-medium text-text-secondary group-hover:text-text-primary transition-colors">
                   {action.label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

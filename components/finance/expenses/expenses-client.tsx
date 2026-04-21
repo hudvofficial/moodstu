@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +36,6 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 }
 
 export function ExpensesClient({ initialMonth, initialYear, initialData, categories }: ExpensesClientProps) {
-  const router = useRouter();
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
   const [approval, setApproval] = useState<ApprovalFilter>("all");

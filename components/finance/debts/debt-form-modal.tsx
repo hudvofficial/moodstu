@@ -182,7 +182,7 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
       <form id="debt-form" onSubmit={submit} className="space-y-4">
         {/* Mode Toggle */}
         <div className="flex gap-1 p-1 rounded-lg bg-bg-input">
-          <button
+          <Button unstyled
             type="button"
             onClick={() => switchMode("standard")}
             className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${mode === "standard"
@@ -191,8 +191,8 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
               }`}
           >
             Khoản thường
-          </button>
-          <button
+          </Button>
+          <Button unstyled
             type="button"
             onClick={() => switchMode("installment")}
             className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${mode === "installment"
@@ -202,7 +202,7 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
           >
             <CreditCard className="w-3.5 h-3.5" />
             Trả góp
-          </button>
+          </Button>
         </div>
 
         {/* Common fields */}
@@ -266,7 +266,7 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
               <label className="label-base mb-1.5 block">Số kỳ trả góp</label>
               <div className="flex flex-wrap gap-2">
                 {PRESET_PERIODS.map((p) => (
-                  <button
+                  <Button unstyled
                     key={p}
                     type="button"
                     onClick={() => handlePresetPeriod(p)}
@@ -276,7 +276,7 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
                       }`}
                   >
                     {p} kỳ
-                  </button>
+                  </Button>
                 ))}
                 <Input
                   value={form.installment_total > 0 && !PRESET_PERIODS.includes(form.installment_total) ? String(form.installment_total) : ""}

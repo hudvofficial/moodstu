@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, Download, QrCode, Settings, Share2 } from "lucide-react";

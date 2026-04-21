@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withAdmin } from "@/lib/auth_utils";
 import type {
   InventoryItem,
   InventoryFilters,
@@ -14,7 +14,7 @@ import { INVENTORY_PAGE_SIZE, TRANSACTION_PAGE_SIZE } from "@/types/inventory-co
 // ═══════════════════════════════════════════
 // Inventory Queries — Read-only server actions
 // DB: inventory_items, inventory_transactions
-// Pattern: withAuth + return empty on error
+// Pattern: withAdmin + return empty on error
 // ═══════════════════════════════════════════
 
 const ITEM_SELECT = `
@@ -24,38 +24,71 @@ const ITEM_SELECT = `
   created_by, updated_by, created_at, updated_at, deleted_at
 `;
 
+const validStatuses = new Set(["active", "discontinued"]);
+const validCategories = new Set([
+  "khung_anh",
+  "album",
+  "hoa",
+  "tieu_hao",
+  "trang_tri",
+]);
+
+function normalizePage(value: number | undefined) {
+  if (!value || !Number.isFinite(value)) return 1;
+  return Math.max(1, Math.trunc(value));
+}
+
+function normalizeSearch(value: string | undefined) {
+  return value?.trim().replace(/[%(),]/g, " ").slice(0, 80) || "";
+}
+
 // ─── FETCH LIST (paginated + filtered) ───────────────
 
 export async function fetchInventoryList(
   filters: InventoryFilters = {}
 ): Promise<{ data: InventoryItem[]; count: number }> {
-  return withAuth(async (supabase) => {
-    const page = filters.page || 1;
+  return withAdmin(async (supabase) => {
+    const page = normalizePage(filters.page);
     const from = (page - 1) * INVENTORY_PAGE_SIZE;
     const to = from + INVENTORY_PAGE_SIZE - 1;
 
     let query = supabase
       .from("inventory_items")
       .select(ITEM_SELECT, { count: "exact" })
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
+      .is("deleted_at", null);
 
     // Status filter
-    if (filters.status && filters.status !== "all") {
+    if (
+      filters.status &&
+      filters.status !== "all" &&
+      validStatuses.has(filters.status)
+    ) {
       query = query.eq("status", filters.status);
     }
 
     // Category filter
-    if (filters.category && filters.category !== "all") {
+    if (
+      filters.category &&
+      filters.category !== "all" &&
+      validCategories.has(filters.category)
+    ) {
       query = query.eq("category", filters.category);
     }
 
     // Search (name or code)
-    if (filters.search?.trim()) {
-      const s = filters.search.trim().replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const s = normalizeSearch(filters.search);
+    if (s) {
       query = query.or(`name.ilike.%${s}%,item_code.ilike.%${s}%`);
     }
 
+    const sortMap: Record<string, { column: string; ascending: boolean }> = {
+      newest: { column: "created_at", ascending: false },
+      name_asc: { column: "name", ascending: true },
+      stock_asc: { column: "current_stock", ascending: true },
+      stock_desc: { column: "current_stock", ascending: false },
+    };
+    const sort = sortMap[filters.sort || "newest"] || sortMap.newest;
+    query = query.order(sort.column, { ascending: sort.ascending });
     query = query.range(from, to);
 
     const { data, count, error } = await query;
@@ -74,7 +107,7 @@ export async function fetchInventoryList(
 // ─── FETCH DETAIL (single item + recent transactions) ──
 
 export async function fetchInventoryDetail(id: string): Promise<InventoryDetail | null> {
-  return withAuth(async (supabase) => {
+  return withAdmin(async (supabase) => {
     // Parallel: item + transactions
     const [itemRes, txnRes] = await Promise.all([
       supabase
@@ -108,8 +141,8 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
 export async function fetchTransactionHistory(
   filters: TransactionFilters = {}
 ): Promise<{ data: InventoryTransaction[]; count: number }> {
-  return withAuth(async (supabase) => {
-    const page = filters.page || 1;
+  return withAdmin(async (supabase) => {
+    const page = normalizePage(filters.page);
     const from = (page - 1) * TRANSACTION_PAGE_SIZE;
     const to = from + TRANSACTION_PAGE_SIZE - 1;
 
@@ -162,7 +195,7 @@ export async function fetchTransactionHistory(
 // ─── STATS ───────────────────────────────────────────
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-  return withAuth(async (supabase) => {
+  return withAdmin(async (supabase) => {
     const [itemsRes, txnRes] = await Promise.all([
       supabase
         .from("inventory_items")
@@ -199,21 +232,22 @@ export async function getInventoryStats(): Promise<InventoryStats> {
 // ─── NEXT INVENTORY CODE (auto-gen VT-XXX) ───────────
 
 export async function getNextInventoryCode(): Promise<string> {
-  return withAuth(async (supabase) => {
-    const { data: maxRow } = await supabase
+  return withAdmin(async (supabase) => {
+    const { data, error } = await supabase
       .from("inventory_items")
       .select("item_code")
-      .like("item_code", "VT-%")
-      .order("item_code", { ascending: false })
-      .limit(1)
-      .single();
+      .ilike("item_code", "VT-%")
+      .range(0, 4999);
 
-    let nextNum = 1;
-    if (maxRow?.item_code) {
-      const match = maxRow.item_code.match(/(\d+)$/);
-      if (match) nextNum = parseInt(match[1], 10) + 1;
-    }
-    return `VT-${String(nextNum).padStart(3, "0")}`;
+    if (error) throw new Error(`Không thể tạo mã vật tư: ${error.message}`);
+
+    const maxNumber = (data || []).reduce((max, row) => {
+      const match = String(row.item_code || "").match(/^VT-(\d+)$/);
+      if (!match) return max;
+      return Math.max(max, Number(match[1]) || 0);
+    }, 0);
+
+    return `VT-${String(maxNumber + 1).padStart(3, "0")}`;
   }).then((result) => {
     if (result.success) return result.data;
     return "VT-001";
@@ -232,7 +266,7 @@ export interface InventorySaleOption {
 }
 
 export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
-  return withAuth(async (supabase) => {
+  return withAdmin(async (supabase) => {
     const { data, error } = await supabase
       .from("inventory_items")
       .select("id, name, item_code, current_stock, sale_price, unit")
@@ -246,6 +280,27 @@ export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
       return [];
     }
     return (data || []) as InventorySaleOption[];
+  }).then((result) => {
+    if (result.success) return result.data;
+    return [];
+  });
+}
+
+export async function fetchInventoryPickerItems(): Promise<InventoryItem[]> {
+  return withAdmin(async (supabase) => {
+    const { data, error } = await supabase
+      .from("inventory_items")
+      .select(ITEM_SELECT)
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .range(0, 999);
+
+    if (error) {
+      console.error("[fetchInventoryPickerItems]", error);
+      return [];
+    }
+
+    return (data || []) as InventoryItem[];
   }).then((result) => {
     if (result.success) return result.data;
     return [];

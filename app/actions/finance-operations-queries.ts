@@ -1,7 +1,8 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
-import { isMissingRpcError, monthWindowOptional, relationText } from "@/lib/finance-utils";
+import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
+import { getTodayInTimeZone } from "@/lib/studio-date";
 import type { PaginatedResult } from "@/types/finance-dashboard";
 import type {
   ApprovalFilter,
@@ -462,11 +463,11 @@ export async function fetchInvestments() {
   return withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("investments")
-      .select("id, name, category, purchase_date, purchase_price, salvage_value, useful_life_months, depreciation_method, status, condition, location, next_maintenance_date, updated_at")
+      .select("id, name, category, serial_number, purchase_date, purchase_price, linked_revenue, salvage_value, useful_life_months, depreciation_method, status, condition, location, next_maintenance_date, updated_at")
       .order("purchase_date", { ascending: false });
 
     if (error) throw new Error(`Loi tai tai san: ${error.message}`);
-    const today = new Date().toISOString().split("T")[0];
+    const today = getTodayInTimeZone();
     return (data || []).map((row) => {
       const value = investmentBookValue(row);
       return {
@@ -539,14 +540,25 @@ export async function fetchSalaries(month: number, year: number) {
   });
 }
 
-export async function fetchGoals(params: { page?: number; pageSize?: number } = {}) {
+export async function fetchGoals(
+  params: { page?: number; pageSize?: number; includeContributions?: boolean } = {},
+) {
   return withAuth(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
-    const { data, error, count } = await supabase
-      .from("financial_goals")
-      .select("id, name, target_amount, current_amount, deadline, status, notes, updated_at, goal_contributions(id, goal_id, amount, contribution_date, notes, created_at)", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const { data, error, count } = params.includeContributions
+      ? await supabase
+          .from("financial_goals")
+          .select(
+            "id, name, target_amount, current_amount, deadline, status, notes, created_at, icon, color, updated_at, goal_contributions(id, goal_id, amount, contribution_date, notes, created_at)",
+            { count: "exact" },
+          )
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      : await supabase
+          .from("financial_goals")
+          .select("id, name, target_amount, current_amount, deadline, status, notes, created_at, icon, color, updated_at", { count: "exact" })
+          .order("created_at", { ascending: false })
+          .range(from, to);
 
     if (error) throw new Error(`Lỗi tải mục tiêu: ${error.message}`);
     const now = new Date();
@@ -573,16 +585,148 @@ export async function fetchGoals(params: { page?: number; pageSize?: number } = 
         deadline: goal.deadline,
         status: goal.status,
         notes: goal.notes,
+        created_at: (goal as Record<string, unknown>).created_at as string | null | undefined,
+        icon: (goal as Record<string, unknown>).icon as string | null | undefined,
+        color: (goal as Record<string, unknown>).color as string | null | undefined,
         progress_percent: target > 0 ? Math.min(100, Math.round((current_amt / target) * 100)) : 0,
         remaining,
         months_left: monthsLeft,
         monthly_needed: monthlyNeeded,
-        contributions: (((goal as Record<string, unknown>).goal_contributions as GoalContributionItem[] | undefined) || [])
-          .sort((a, b) => (b.contribution_date || "").localeCompare(a.contribution_date || "")),
+        contributions: params.includeContributions
+          ? (((goal as Record<string, unknown>).goal_contributions as GoalContributionItem[] | undefined) || [])
+              .sort((a, b) => (b.contribution_date || "").localeCompare(a.contribution_date || ""))
+          : [],
         updated_at: goal.updated_at,
       };
     }) satisfies GoalItem[];
     return { items, total: count || 0, page: current, pageSize: size } satisfies PaginatedResult<GoalItem>;
+  });
+}
+
+export interface GoalsCashflowData {
+  month: number;
+  year: number;
+  monthlyIncome: number;
+  monthlyExpense: number;
+  salaryComponent: number;
+  fixedCostComponent: number;
+  netCashflow: number;
+  availableForGoals: number;
+  currentPeriod: string;
+}
+
+export async function fetchGoalsCashflow(params: { month?: number; year?: number } = {}) {
+  return withAuth(async (supabase) => {
+    const today = getTodayInTimeZone();
+    const year = params.year || Number(today.slice(0, 4));
+    const month = params.month || Number(today.slice(5, 7));
+
+    if (!Number.isFinite(month) || !Number.isFinite(year) || month < 1 || month > 12) {
+      throw new Error("Tháng/năm không hợp lệ.");
+    }
+
+    const window = monthWindow(month, year);
+
+    const [paymentsResult, receiptsResult, expensesResult, salaryResult, fixedCostsResult] = await Promise.all([
+      supabase
+        .from("payments")
+        .select("amount")
+        .is("deleted_at", null)
+        .gte("payment_date", window.start)
+        .lt("payment_date", window.end),
+      supabase
+        .from("receipts")
+        .select("receipt_amount")
+        .is("deleted_at", null)
+        .is("contract_id", null)
+        .gte("receipt_date", window.start)
+        .lt("receipt_date", window.end),
+      supabase
+        .from("expenses")
+        .select("amount")
+        .is("deleted_at", null)
+        .gte("expense_date", window.start)
+        .lt("expense_date", window.end),
+      supabase
+        .from("monthly_salaries")
+        .select("total_salary")
+        .eq("month", month)
+        .eq("year", year)
+        .maybeSingle(),
+      supabase
+        .from("fixed_costs")
+        .select("monthly_amount, start_date, end_date")
+        .is("deleted_at", null),
+    ]);
+
+    if (paymentsResult.error) throw new Error(`Lỗi tải thu vào: ${paymentsResult.error.message}`);
+    if (receiptsResult.error) throw new Error(`Lỗi tải phiếu thu: ${receiptsResult.error.message}`);
+    if (expensesResult.error) throw new Error(`Lỗi tải chi phí: ${expensesResult.error.message}`);
+    if (salaryResult.error) throw new Error(`Lỗi tải bảng lương: ${salaryResult.error.message}`);
+
+    if (fixedCostsResult.error) throw new Error(`Loi tai chi phi co dinh: ${fixedCostsResult.error.message}`);
+
+    const payments = paymentsResult.data || [];
+    const receipts = receiptsResult.data || [];
+    const expenses = expensesResult.data || [];
+    const salaryComponent = Number((salaryResult.data as { total_salary?: unknown } | null)?.total_salary) || 0;
+    const fixedCostComponent = (fixedCostsResult.data || []).reduce((sum, row) => {
+      const amount = Number(row.monthly_amount) || 0;
+      if (!amount) return sum;
+      if (row.start_date && row.start_date >= window.end) return sum;
+      if (row.end_date && row.end_date < window.start) return sum;
+      return sum + amount;
+    }, 0);
+
+    const monthlyIncome =
+      payments.reduce((sum, row) => sum + (row.amount || 0), 0)
+      + receipts.reduce((sum, row) => sum + (row.receipt_amount || 0), 0);
+
+    const monthlyExpense = expenses.reduce((sum, row) => sum + (row.amount || 0), 0);
+
+    const netCashflow = monthlyIncome - monthlyExpense - salaryComponent - fixedCostComponent;
+    const availableForGoals = Math.max(0, netCashflow);
+
+    return {
+      month,
+      year,
+      monthlyIncome,
+      monthlyExpense,
+      salaryComponent,
+      fixedCostComponent,
+      netCashflow,
+      availableForGoals,
+      currentPeriod: `${month}/${year}`,
+    } satisfies GoalsCashflowData;
+  });
+}
+
+// ─── GOAL CONTRIBUTIONS ──────────────────────
+
+export async function fetchGoalContributions(
+  goalId: string,
+  params: { page?: number; pageSize?: number } = {},
+) {
+  return withAuth(async (supabase) => {
+    if (!goalId?.trim()) throw new Error("Goal ID khong hop le");
+
+    const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
+    const { data, error, count } = await supabase
+      .from("goal_contributions")
+      .select("id, goal_id, amount, contribution_date, notes, created_at", { count: "exact" })
+      .eq("goal_id", goalId)
+      .order("contribution_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) throw new Error(`Loi tai lich su gop: ${error.message}`);
+
+    return {
+      items: (data || []) as GoalContributionItem[],
+      total: count || 0,
+      page: current,
+      pageSize: size,
+    } satisfies PaginatedResult<GoalContributionItem>;
   });
 }
 

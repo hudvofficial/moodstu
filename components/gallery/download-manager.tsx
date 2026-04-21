@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Download, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-
-// ═══════════════════════════════════════════
-// DownloadManager — Tải ảnh gốc từ Drive proxy
-// Single file, batch selected, batch all
-// Mobile: file tự save, toast thông báo
-// ═══════════════════════════════════════════
+import { useCallback, useRef, useState } from "react";
+import { AlertCircle, CheckCircle, Download, Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DownloadFile {
   driveFileId: string;
@@ -18,6 +14,7 @@ interface DownloadManagerProps {
   files: DownloadFile[];
   label?: string;
   variant?: "icon" | "button" | "full";
+  className?: string;
 }
 
 interface DownloadState {
@@ -30,7 +27,12 @@ interface DownloadState {
 }
 
 const INITIAL_STATE: DownloadState = {
-  active: false, total: 0, completed: 0, currentFile: "", failed: [], cancelled: false,
+  active: false,
+  total: 0,
+  completed: 0,
+  currentFile: "",
+  failed: [],
+  cancelled: false,
 };
 
 async function downloadSingleFile(fileId: string, fileName: string): Promise<boolean> {
@@ -40,12 +42,12 @@ async function downloadSingleFile(fileId: string, fileName: string): Promise<boo
 
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
     return true;
   } catch {
@@ -53,7 +55,12 @@ async function downloadSingleFile(fileId: string, fileName: string): Promise<boo
   }
 }
 
-export default function DownloadManager({ files, label, variant = "button" }: DownloadManagerProps) {
+export default function DownloadManager({
+  files,
+  label,
+  variant = "button",
+  className,
+}: DownloadManagerProps) {
   const [state, setState] = useState<DownloadState>(INITIAL_STATE);
   const cancelRef = useRef(false);
 
@@ -61,99 +68,142 @@ export default function DownloadManager({ files, label, variant = "button" }: Do
     if (files.length === 0) return;
     cancelRef.current = false;
 
-    setState({ active: true, total: files.length, completed: 0, currentFile: files[0].fileName, failed: [], cancelled: false });
+    setState({
+      active: true,
+      total: files.length,
+      completed: 0,
+      currentFile: files[0].fileName,
+      failed: [],
+      cancelled: false,
+    });
 
     const failed: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
+    for (let index = 0; index < files.length; index += 1) {
       if (cancelRef.current) {
-        setState((s) => ({ ...s, cancelled: true, active: false }));
+        setState((prev) => ({ ...prev, cancelled: true, active: false }));
         return;
       }
 
-      const file = files[i];
-      setState((s) => ({ ...s, currentFile: file.fileName, completed: i }));
+      const file = files[index];
+      setState((prev) => ({ ...prev, currentFile: file.fileName, completed: index }));
 
       const ok = await downloadSingleFile(file.driveFileId, file.fileName);
       if (!ok) failed.push(file.fileName);
 
-      // Small delay between downloads to avoid overwhelming
-      if (i < files.length - 1) {
-        await new Promise((r) => setTimeout(r, 300));
+      if (index < files.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
     }
 
-    setState({ active: false, total: files.length, completed: files.length, currentFile: "", failed, cancelled: false });
+    setState({
+      active: false,
+      total: files.length,
+      completed: files.length,
+      currentFile: "",
+      failed,
+      cancelled: false,
+    });
   }, [files]);
 
   const handleCancel = () => {
     cancelRef.current = true;
   };
 
-  // ─── Icon variant (single file) ──────────
   if (variant === "icon") {
     return (
-      <button
-        onClick={(e) => { e.stopPropagation(); startDownload(); }}
+      <Button
+        unstyled
+        onClick={(event) => {
+          event.stopPropagation();
+          startDownload();
+        }}
         disabled={state.active}
-        className="btn-icon"
+        className={cn("btn-icon", className)}
         style={{ width: 28, height: 28 }}
         title={`Tải ${files[0]?.fileName || "file"}`}
       >
         {state.active ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-      </button>
+      </Button>
     );
   }
 
-  // ─── Button variant ──────────────────────
   if (variant === "button") {
     return (
-      <button onClick={startDownload} disabled={state.active || files.length === 0} className="btn-ghost" style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}>
+      <Button
+        unstyled
+        onClick={startDownload}
+        disabled={state.active || files.length === 0}
+        className={cn("btn-ghost", className)}
+        style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
+      >
         {state.active ? (
-          <><Loader2 size={14} className="animate-spin" /><span>Đang tải {state.completed}/{state.total}...</span></>
+          <>
+            <Loader2 size={14} className="animate-spin" />
+            <span>Đang tải {state.completed}/{state.total}...</span>
+          </>
         ) : (
-          <><Download size={14} /><span>{label || `Tải ${files.length} ảnh`}</span></>
+          <>
+            <Download size={14} />
+            <span>{label || `Tải ${files.length} ảnh`}</span>
+          </>
         )}
-      </button>
+      </Button>
     );
   }
 
-  // ─── Full variant (with progress) ────────
   return (
     <div>
       {!state.active && state.completed === 0 && (
-        <button onClick={startDownload} disabled={files.length === 0} className="btn-primary w-full" style={{ justifyContent: "center" }}>
+        <Button
+          unstyled
+          onClick={startDownload}
+          disabled={files.length === 0}
+          className={cn("btn-primary w-full", className)}
+          style={{ justifyContent: "center" }}
+        >
           <Download size={16} />
           <span>{label || `Tải ${files.length} ảnh gốc`}</span>
-        </button>
+        </Button>
       )}
 
       {state.active && (
-        <div className="p-3 rounded-lg space-y-2" style={{ background: "var(--color-bg-secondary)" }}>
+        <div className="space-y-2 rounded-lg p-3" style={{ background: "var(--color-bg-secondary)" }}>
           <div className="flex items-center justify-between">
             <span className="text-body-sm font-medium text-text-primary">
               Đang tải {state.completed + 1}/{state.total}...
             </span>
-            <button onClick={handleCancel} className="btn-icon" style={{ width: 24, height: 24 }}>
+            <Button unstyled onClick={handleCancel} className="btn-icon" style={{ width: 24, height: 24 }}>
               <X size={14} />
-            </button>
+            </Button>
           </div>
-          <p className="text-caption text-text-muted truncate">{state.currentFile}</p>
-          <div className="w-full h-1.5 rounded-full" style={{ background: "var(--color-bg-tertiary)" }}>
+          <p className="truncate text-caption text-text-muted">{state.currentFile}</p>
+          <div className="h-1.5 w-full rounded-full" style={{ background: "var(--color-bg-tertiary)" }}>
             <div
               className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${((state.completed + 1) / state.total) * 100}%`, background: "var(--color-primary)" }}
+              style={{
+                width: `${((state.completed + 1) / state.total) * 100}%`,
+                background: "var(--color-primary)",
+              }}
             />
           </div>
         </div>
       )}
 
       {!state.active && state.completed > 0 && (
-        <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: "var(--color-bg-secondary)" }}>
+        <div className="flex items-center gap-2 rounded-lg p-2" style={{ background: "var(--color-bg-secondary)" }}>
           {state.failed.length === 0 ? (
-            <><CheckCircle size={16} className="text-green-500" /><span className="text-caption text-text-primary">Đã tải {state.completed} ảnh</span></>
+            <>
+              <CheckCircle size={16} className="text-green-500" />
+              <span className="text-caption text-text-primary">Đã tải {state.completed} ảnh</span>
+            </>
           ) : (
-            <><AlertCircle size={16} className="text-amber-500" /><span className="text-caption text-text-primary">Tải {state.completed - state.failed.length}/{state.total} ảnh (lỗi {state.failed.length})</span></>
+            <>
+              <AlertCircle size={16} className="text-amber-500" />
+              <span className="text-caption text-text-primary">
+                Tải {state.completed - state.failed.length}/{state.total} ảnh (lỗi {state.failed.length})
+              </span>
+            </>
           )}
         </div>
       )}
@@ -161,5 +211,4 @@ export default function DownloadManager({ files, label, variant = "button" }: Do
   );
 }
 
-// ─── Export helper for single download ─────
 export { downloadSingleFile };

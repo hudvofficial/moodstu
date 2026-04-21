@@ -5,7 +5,6 @@
 
 -- Drop old function signature (3 params) if exists
 DROP FUNCTION IF EXISTS public.advance_close_task(UUID, INT, TEXT);
-
 CREATE OR REPLACE FUNCTION public.advance_close_task(
   p_close_id UUID,
   p_step_number INT,
@@ -84,11 +83,9 @@ BEGIN
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
 -- Grant: chỉ service_role (server actions call), KHÔNG cho anonymous
 REVOKE ALL ON FUNCTION public.advance_close_task(UUID, INT, TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.advance_close_task(UUID, INT, TEXT, UUID) TO service_role;
-
 -- -------------------------------------------------------------
 -- RPC: is_period_locked
 -- -------------------------------------------------------------
@@ -102,7 +99,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql STABLE SET search_path = public;
-
 -- Cho phép authenticated users check (dùng trong form validation)
 GRANT EXECUTE ON FUNCTION public.is_period_locked TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_period_locked TO service_role;

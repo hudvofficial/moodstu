@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -10,7 +10,9 @@ import { revalidatePath } from "next/cache";
 
 /** Get all notes for a contract */
 export async function getContractNotes(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contract_notes")
       .select("id, content, created_by, created_at")
@@ -29,6 +31,8 @@ export async function addContractNote(contractId: string, content: string) {
   }
 
   return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const now = new Date().toISOString();
 
     const { data, error } = await supabase
@@ -52,7 +56,9 @@ export async function addContractNote(contractId: string, content: string) {
 
 /** Delete a contract note */
 export async function deleteContractNote(noteId: string, contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { error } = await supabase
       .from("contract_notes")
       .delete()

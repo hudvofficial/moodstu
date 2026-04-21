@@ -29,7 +29,7 @@ export default async function EmployeeDetailRoute(props: {
 
   return (
     <>
-      <RealtimeSync table="profiles" />
+      <RealtimeSync table="employees" />
       <EmployeeDetailPage employee={result.data as EmployeeDetail} />
     </>
   );

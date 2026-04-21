@@ -12,6 +12,9 @@ import { useState, useCallback, useEffect } from "react";
 import { User, Phone, StickyNote } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import DatePicker from "@/components/ui/date-picker";
 import { createRental } from "@/app/actions/rental-mutations";
 import { toast } from "@/lib/toast-utils";
@@ -111,10 +114,10 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
   // W2: Footer slot — sticky, không scroll cùng body (clone dress-form-modal.tsx)
   const footer = (
     <div className="form-actions">
-      <button type="button" onClick={onClose} className="btn btn-ghost">Đóng</button>
-      <button type="button" onClick={handleSubmit} className="btn btn-primary" disabled={saving}>
+      <Button type="button" variant="ghost" onClick={onClose}>Đóng</Button>
+      <Button type="button" onClick={handleSubmit} disabled={saving}>
         {saving ? "Đang lưu..." : "Xác nhận đặt thuê"}
-      </button>
+      </Button>
     </div>
   );
 
@@ -136,9 +139,8 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
               <User size={14} className="inline mr-1 text-text-muted" />
               Tên khách <span className="text-error">*</span>
             </label>
-            <input
+            <Input
               type="text"
-              className="input-base w-full"
               placeholder="Nguyễn Văn A"
               value={form.customer_name}
               onChange={(e) => update("customer_name", e.target.value)}
@@ -151,9 +153,8 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
               <Phone size={14} className="inline mr-1 text-text-muted" />
               Số điện thoại <span className="text-error">*</span>
             </label>
-            <input
+            <Input
               type="tel"
-              className="input-base w-full"
               placeholder="0901 234 567"
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
@@ -202,9 +203,8 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
 
         <div>
           <label className="label-base">Phụ kiện đi kèm</label>
-          <input
+          <Input
             type="text"
-            className="input-base w-full"
             placeholder="VD: Vương miện, khăn voan, giày..."
             value={form.accessories}
             onChange={(e) => update("accessories", e.target.value)}
@@ -216,8 +216,8 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
             <StickyNote size={14} className="inline mr-1 text-text-muted" />
             Ghi chú
           </label>
-          <textarea
-            className="input-base w-full min-h-20 resize-none"
+          <Textarea
+            className="w-full min-h-20 resize-none"
             placeholder="Ghi chú thêm..."
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}

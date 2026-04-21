@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 
@@ -21,6 +21,8 @@ export async function cancelContract(
   }
 
   return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { error } = await supabase.rpc("cancel_contract_cascade", {
       p_contract_id: contractId,
       p_reason: reason.trim(),
@@ -49,6 +51,8 @@ export async function cancelContract(
 // Uses DB-level transaction, consistent soft delete strategy (C2 fix)
 export async function deleteContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { error } = await supabase.rpc("delete_contract_cascade", {
       p_contract_id: contractId,
       p_user_id: userId,
@@ -76,6 +80,8 @@ export async function deleteContract(contractId: string) {
 // W2 fix: also reactivate cancelled payment_plans
 export async function reactivateContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const now = new Date().toISOString();
 
     const { error } = await supabase

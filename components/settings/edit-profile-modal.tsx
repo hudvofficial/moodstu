@@ -44,11 +44,11 @@ export default function EditProfileModal({
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  function handleAvatarSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Anh khong duoc vuot qua 2MB");
+      toast.error("Ảnh không được vượt quá 2MB");
       return;
     }
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
@@ -64,7 +64,7 @@ export default function EditProfileModal({
 
   function handleSave() {
     if (!name.trim()) {
-      toast.error("Ten khong duoc de trong");
+      toast.error("Tên không được để trống");
       return;
     }
 
@@ -74,7 +74,7 @@ export default function EditProfileModal({
         formData.append("avatar", avatarFile);
         const avatarResult = await uploadAvatar(formData);
         if (!avatarResult.success) {
-          toast.error(avatarResult.error || "Loi upload anh");
+          toast.error(avatarResult.error || "Lỗi tải ảnh");
           return;
         }
       }
@@ -86,7 +86,7 @@ export default function EditProfileModal({
       });
 
       if (!result.success) {
-        toast.error(result.error || "Loi cap nhat");
+        toast.error(result.error || "Lỗi cập nhật");
         return;
       }
 
@@ -103,14 +103,14 @@ export default function EditProfileModal({
 
           if (!adminResult.success) {
             toast.error(
-              adminResult.error || "Loi cap nhat phong ban/chuc vu",
+              adminResult.error || "Lỗi cập nhật phòng ban/chức vụ",
             );
             return;
           }
         }
       }
 
-      toast.success("Da cap nhat ho so");
+      toast.success("Đã cập nhật hồ sơ");
       router.refresh();
       onClose();
     });
@@ -119,7 +119,7 @@ export default function EditProfileModal({
   const currentAvatar = avatarPreview || profile.avatar_url;
   const initials = (profile.full_name || "?")
     .split(" ")
-    .map((w) => w[0])
+    .map((word) => word[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
@@ -128,12 +128,12 @@ export default function EditProfileModal({
     <UnifiedModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Chinh sua ho so"
+      title="Chỉnh sửa hồ sơ"
       size="md"
       footer={
         <div className="form-actions">
           <Button variant="secondary" onClick={onClose} disabled={isPending}>
-            Huy
+            Hủy
           </Button>
           <Button
             variant="primary"
@@ -146,7 +146,7 @@ export default function EditProfileModal({
             ) : (
               <Save className="w-4 h-4" />
             )}
-            Luu
+            Lưu
           </Button>
         </div>
       }
@@ -185,21 +185,21 @@ export default function EditProfileModal({
             onChange={handleAvatarSelect}
             className="hidden"
           />
-          <p className="text-xs text-text-muted">Bam de doi anh (max 2MB)</p>
+          <p className="text-xs text-text-muted">Bấm để đổi ảnh (tối đa 2MB)</p>
         </div>
 
         <div>
           <h4 className="section-heading mb-3">
             <BadgeCheck className="w-4 h-4 inline-block mr-1.5" />
-            Thong tin co ban
+            Thông tin cơ bản
           </h4>
           <div className="space-y-3">
             <Input
               id="edit-name"
-              label="Ten hien thi *"
+              label="Tên hiển thị *"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nhap ten..."
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Nhập tên..."
             />
 
             <Input label="Email" value={profile.email || ""} disabled />
@@ -207,30 +207,32 @@ export default function EditProfileModal({
             <div className="form-grid-2col">
               <Input
                 id="edit-phone"
-                label="So dien thoai"
+                label="Số điện thoại"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(event) => setPhone(event.target.value)}
                 pattern="[0-9]{10,11}"
                 inputMode="tel"
                 placeholder="0912345678"
               />
               <SelectForm
-                label="Gioi tinh"
+                label="Giới tính"
                 value={gender}
                 onChange={setGender}
-                placeholder="Chon gioi tinh"
-                options={GENDER_OPTIONS as unknown as { label: string; value: string }[]}
+                placeholder="Chọn giới tính"
+                options={
+                  GENDER_OPTIONS as unknown as { label: string; value: string }[]
+                }
               />
             </div>
 
             {canManageSettings && (
               <div className="form-grid-2col">
                 <SelectForm
-                  label="Phong ban"
+                  label="Phòng ban"
                   value={department}
                   onChange={setDepartment}
-                  placeholder="Chon phong ban"
+                  placeholder="Chọn phòng ban"
                   options={DEPARTMENT_OPTIONS.map((item) => ({
                     label: item.label,
                     value: item.value,
@@ -238,10 +240,10 @@ export default function EditProfileModal({
                 />
                 <Input
                   id="edit-position"
-                  label="Chuc vu"
+                  label="Chức vụ"
                   value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  placeholder="Nhan vien"
+                  onChange={(event) => setPosition(event.target.value)}
+                  placeholder="Nhân viên"
                 />
               </div>
             )}

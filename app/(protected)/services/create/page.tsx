@@ -3,6 +3,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import ServiceForm from "@/components/services/form";
 import { getServiceCategories } from "@/app/actions/service-queries";
 
+export const dynamic = "force-dynamic";
+
 // ═══════════════════════════════════════════
 // /services/create — Create Service Page (SSR)
 // Fetches categories server-side, passes to form

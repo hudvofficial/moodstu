@@ -9,6 +9,7 @@ import { getGalleriesByContract, syncDriveFolder, shareGallery } from "@/app/act
 import { getRetouchProgress, getDeliveryDate } from "@/app/actions/gallery-drive-actions";
 import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
+import { Button } from "@/components/ui/button";
 
 // ═══════════════════════════════════════════
 // DriveGalleryBlock V2 — Compact card, no inline grid
@@ -134,10 +135,10 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           <FolderOpen size={16} className="text-primary" />
           <h3 className="text-body-sm font-bold text-text-primary">Quản lý File ảnh & Drive</h3>
         </div>
-        <button onClick={() => openModal("DRIVE_LINK", { contractId, onSuccess: loadData })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
+        <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId, onSuccess: loadData })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
           <Plus size={12} />
           <span>{hasGalleries ? "Thêm link" : "Gán Link Drive"}</span>
-        </button>
+        </Button>
       </div>
 
       {/* ── Empty state ── */}
@@ -167,7 +168,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                 {/* Actions */}
                 <div className="flex items-center gap-1">
                   {/* Share indicator + button */}
-                  <button
+                  <Button unstyled
                     onClick={(e) => { e.stopPropagation(); void handleShare(g.id, g.title); }}
                     disabled={sharing === g.id}
                     className="btn-icon relative"
@@ -181,10 +182,10 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                         style={{ background: "var(--color-success)" }}
                       />
                     )}
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 28, height: 28 }} title="Đồng bộ lại">
+                  </Button>
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 28, height: 28 }} title="Đồng bộ lại">
                     <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-                  </button>
+                  </Button>
                   {g.drive_folder_url && (
                     <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon" style={{ width: 28, height: 28 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
                       <ExternalLink size={12} />

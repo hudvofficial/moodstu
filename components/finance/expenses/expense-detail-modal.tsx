@@ -220,35 +220,35 @@ export function ExpenseDetailModal({ isOpen, onClose, expenseId }: ExpenseDetail
                 {/* Signatures */}
                 <div className="mt-6 grid grid-cols-4 gap-2 text-center pt-4">
                     <div className="flex flex-col items-center">
-                        <p className="font-bold text-text-primary text-[11px] mb-0.5 leading-tight">Ban giám đốc</p>
-                        <p className="text-[10px] text-text-secondary italic mb-2">(Ký, họ tên)</p>
+                        <p className="font-bold text-text-primary text-caption mb-0.5 leading-tight">Ban giám đốc</p>
+                        <p className="text-caption text-text-secondary italic mb-2">(Ký, họ tên)</p>
                         <div className="h-10 w-full flex items-center justify-center opacity-80">
                             {expense.approved_by && (
-                                <div className="border border-success text-success px-1.5 py-0.5 rounded font-semibold text-[10px] transform -rotate-12">
+                                <div className="border border-success text-success px-1.5 py-0.5 rounded font-semibold text-caption transform -rotate-12">
                                     ĐÃ DUYỆT
                                 </div>
                             )}
                         </div>
                     </div>
                     <div className="flex flex-col items-center">
-                        <p className="font-bold text-text-primary text-[11px] mb-0.5 leading-tight">Kế toán</p>
-                        <p className="text-[10px] text-text-secondary italic mb-2">(Ký, họ tên)</p>
+                        <p className="font-bold text-text-primary text-caption mb-0.5 leading-tight">Kế toán</p>
+                        <p className="text-caption text-text-secondary italic mb-2">(Ký, họ tên)</p>
                         <div className="h-10 w-full flex items-center justify-center text-text-muted">
                             {/* Chưa ký */}
                         </div>
                     </div>
                     <div className="flex flex-col items-center">
-                        <p className="font-bold text-text-primary text-[11px] mb-0.5 leading-tight">Thủ quỹ</p>
-                        <p className="text-[10px] text-text-secondary italic mb-2">(Ký, đóng dấu)</p>
+                        <p className="font-bold text-text-primary text-caption mb-0.5 leading-tight">Thủ quỹ</p>
+                        <p className="text-caption text-text-secondary italic mb-2">(Ký, đóng dấu)</p>
                         <div className="h-10 w-full flex items-center justify-center">
-                            <div className="border border-error text-error px-1.5 py-0.5 rounded font-semibold text-[10px] transform rotate-6">
+                            <div className="border border-error text-error px-1.5 py-0.5 rounded font-semibold text-caption transform rotate-6">
                                 ĐÃ CHI
                             </div>
                         </div>
                     </div>
                     <div className="flex flex-col items-center">
-                        <p className="font-bold text-text-primary text-[11px] mb-0.5 leading-tight">Người nhận</p>
-                        <p className="text-[10px] text-text-secondary italic mb-2">(Ký, họ tên)</p>
+                        <p className="font-bold text-text-primary text-caption mb-0.5 leading-tight">Người nhận</p>
+                        <p className="text-caption text-text-secondary italic mb-2">(Ký, họ tên)</p>
                         <div className="h-10 w-full flex items-center justify-center">
                             <span className="font-serif italic text-xs max-w-full truncate px-0.5">{expense.recipient || "K/H"}</span>
                         </div>
@@ -257,7 +257,7 @@ export function ExpenseDetailModal({ isOpen, onClose, expenseId }: ExpenseDetail
 
                 {/* Footer Meta */}
                 <div className="mt-8 text-center border-t border-dashed border-border pt-3 opacity-50 flex flex-col gap-1">
-                    <p className="text-[10px] text-text-secondary font-mono">
+                    <p className="text-caption text-text-secondary font-mono">
                         ID: {expense.id.split("-")[0]} • Ref: {refCode} • Created: {expense.created_at ? format(new Date(expense.created_at), "dd/MM/yyyy HH:mm") : "N/A"}
                     </p>
                 </div>

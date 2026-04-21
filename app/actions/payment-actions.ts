@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth, withAdmin } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
@@ -16,14 +16,14 @@ interface CreatePaymentInput {
   amount: number;
   paymentDate: string;
   paymentMethod: "tien_mat" | "chuyen_khoan";
-  paymentStage: string | null;
-  categoryId: string | null;
-  notes: string | null;
-  paymentPlanId: string | null;
+  paymentStage?: string | null;
+  categoryId?: string | null;
+  notes?: string | null;
+  paymentPlanId?: string | null;
   updateTotal: boolean; // If true → increase contract total (phát sinh)
 }
 
-type AdminSupabase = Parameters<Parameters<typeof withAdmin>[0]>[0];
+type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
 type PaymentResult = { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
 
 async function processContractPaymentFallback(
@@ -78,8 +78,9 @@ async function processContractPaymentFallback(
   if (input.paymentPlanId) {
     const { error: planError } = await supabase
       .from("payment_plans")
-      .update({ status: "da_thanh_toan" })
-      .eq("id", input.paymentPlanId);
+      .update({ status: "paid", receipt_id: payment.id })
+      .eq("id", input.paymentPlanId)
+      .eq("contract_id", input.contractId);
     if (planError) throw new Error(`Khong the cap nhat dot thanh toan: ${planError.message}`);
   }
 
@@ -99,36 +100,40 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
     return { success: false as const, error: parsed.error.issues.map((e: { message: string }) => e.message).join(", ") };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  const paymentInput = parsed.data;
+
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
     // W3: Period lock — TRƯỚC mutation (audit fix)
-    await checkPeriodLock(supabase, input.paymentDate);
+    await checkPeriodLock(supabase, paymentInput.paymentDate);
 
     // Single atomic RPC: lock contract → insert payment → update totals
-    const { data, error } = await supabase.rpc("process_contract_payment", {
-      p_contract_id: input.contractId,
-      p_amount: input.amount,
-      p_payment_method: input.paymentMethod,
-      p_payment_date: input.paymentDate,
-      p_payment_stage: input.paymentStage || null,
-      p_category_id: input.categoryId || null,
-      p_notes: input.notes || null,
-      p_payment_plan_id: input.paymentPlanId || null,
+    const { data, error } = await supabase.rpc("process_contract_payment_v2", {
+      p_contract_id: paymentInput.contractId,
+      p_amount: paymentInput.amount,
+      p_payment_method: paymentInput.paymentMethod,
+      p_payment_date: paymentInput.paymentDate,
+      p_payment_stage: paymentInput.paymentStage || null,
+      p_category_id: paymentInput.categoryId || null,
+      p_notes: paymentInput.notes || null,
+      p_payment_plan_id: paymentInput.paymentPlanId || null,
+      p_update_total: paymentInput.updateTotal,
       p_created_by: userId,
     });
 
     if (error && isMissingRpcError(error)) {
-      const fallbackResult = await processContractPaymentFallback(supabase, userId, input);
+      const fallbackResult = await processContractPaymentFallback(supabase, userId, paymentInput);
       await writeAuditLog({
         action: "CREATE",
         tableName: "payments",
         recordId: fallbackResult.payment_id,
-        newData: input as unknown as Record<string, unknown>,
+        newData: paymentInput as unknown as Record<string, unknown>,
         source: "server_action",
-        description: `Thu tien hop dong #${input.contractId.substring(0, 8)}: ${input.amount.toLocaleString("vi-VN")} VND`,
+        description: `Thu tien hop dong #${paymentInput.contractId.substring(0, 8)}: ${paymentInput.amount.toLocaleString("vi-VN")} VND`,
       });
 
       revalidatePath("/contracts");
-      revalidatePath(`/contracts/${input.contractId}`);
+      revalidatePath(`/contracts/${paymentInput.contractId}`);
       revalidatePath("/finance");
 
       return { paymentId: fallbackResult.payment_id };
@@ -143,13 +148,13 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
       action: "CREATE",
       tableName: "payments",
       recordId: result.payment_id,
-      newData: input as unknown as Record<string, unknown>,
+      newData: paymentInput as unknown as Record<string, unknown>,
       source: "server_action",
-      description: `Thu tiền hợp đồng #${input.contractId.substring(0, 8)}: ${input.amount.toLocaleString("vi-VN")}₫`,
+      description: `Thu tiền hợp đồng #${paymentInput.contractId.substring(0, 8)}: ${paymentInput.amount.toLocaleString("vi-VN")} VND`,
     });
 
     revalidatePath("/contracts");
-    revalidatePath(`/contracts/${input.contractId}`);
+    revalidatePath(`/contracts/${paymentInput.contractId}`);
     revalidatePath("/finance");
 
     return { paymentId: result.payment_id };
@@ -158,7 +163,9 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
 
 /** Get transaction categories for receipt form */
 export async function getTransactionCategories(type: "thu" | "chi" = "thu") {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("transaction_categories")
       .select("id, name, type")

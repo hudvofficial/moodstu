@@ -4,6 +4,9 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Trash2, AlertTriangle } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cancelContract, deleteContract } from "@/app/actions/contract-lifecycle";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
@@ -86,23 +89,27 @@ export default function ContractActionsMenu({
       {/* ── Trigger Buttons (rendered by parent) ── */}
       <div className="flex items-center gap-1">
         {/* Cancel */}
-        <button
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => setShowCancel(true)}
-          className="btn btn-outline text-warning hover:text-warning"
+          className="text-warning hover:text-warning"
         >
           <Ban size={14} />
           <span className="max-lg:hidden">Huỷ HĐ</span>
-        </button>
+        </Button>
 
         {/* Delete — only if no receipts */}
-        {!hasReceipts && (
-          <button
+          {!hasReceipts && (
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => setShowDelete(true)}
-            className="btn btn-outline text-error hover:text-error"
+            className="text-error hover:text-error"
           >
             <Trash2 size={14} />
             <span className="max-lg:hidden">Xoá</span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -123,31 +130,34 @@ export default function ContractActionsMenu({
 
         {/* Reason */}
         <label className="label-base mb-2 block">Lý do hủy *</label>
-        <textarea
+        <Textarea
           value={cancelReason}
           onChange={(e) => setCancelReason(e.target.value)}
           placeholder="VD: Khách huỷ do thay đổi kế hoạch..."
           rows={3}
-          className="input-base w-full resize-none"
+          className="w-full resize-none"
           autoFocus
         />
 
         {/* Actions */}
         <div className="flex gap-3 mt-6">
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => { setShowCancel(false); setCancelReason(""); }}
-            className="btn btn-outline flex-1"
+            className="flex-1"
           >
             Đóng
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={handleCancel}
             disabled={!cancelReason.trim() || loading}
-            className="btn btn-primary flex-1 bg-warning! hover:bg-warning/90!
+            className="flex-1 bg-warning! hover:bg-warning/90!
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Đang xử lý..." : "Xác nhận huỷ"}
-          </button>
+          </Button>
         </div>
       </UnifiedModal>
 
@@ -171,31 +181,34 @@ export default function ContractActionsMenu({
         <label className="label-base mb-2 block">
           Nhập mã <strong>{contractCode}</strong> để xác nhận
         </label>
-        <input
+        <Input
           type="text"
           value={confirmCode}
           onChange={(e) => setConfirmCode(e.target.value)}
           placeholder={contractCode}
-          className="input-base w-full"
+          className="w-full"
           autoFocus
         />
 
         {/* Actions */}
         <div className="flex gap-3 mt-6">
-          <button
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => { setShowDelete(false); setConfirmCode(""); }}
-            className="btn btn-outline flex-1"
+            className="flex-1"
           >
             Đóng
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={handleDelete}
             disabled={confirmCode !== contractCode || loading}
-            className="btn btn-primary flex-1 bg-error! hover:bg-error/90!
+            className="flex-1 bg-error! hover:bg-error/90!
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Đang xử lý..." : "Xoá vĩnh viễn"}
-          </button>
+          </Button>
         </div>
       </UnifiedModal>
     </>

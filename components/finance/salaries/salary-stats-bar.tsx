@@ -15,8 +15,8 @@ export function SalaryStatsBar({ summary }: SalaryStatsBarProps) {
             icon: User,
             label: "tổng nhân sự",
             value: summary.total_employees.toString(),
-            iconBg: "bg-surface-elevated",
-            iconColor: "text-text-muted",
+            iconBg: "bg-primary/10",
+            iconColor: "text-primary",
         },
         {
             icon: Wallet,

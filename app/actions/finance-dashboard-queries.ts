@@ -1,7 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { withAuth } from "@/lib/auth_utils";
+import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
 import type {
   ContractProfitReportParams,
@@ -146,6 +146,32 @@ function addByContract(map: Map<string, number>, rows: unknown[] | null | undefi
   }
 }
 
+function summarizePrintingItems(rawItems: unknown, fallbackLabel: string) {
+  if (!Array.isArray(rawItems)) {
+    return { label: fallbackLabel, quantity: 0 };
+  }
+
+  const parsed = rawItems
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as RpcRow;
+      const name = asString(record.name);
+      const quantity = asNumber(record.quantity) || 1;
+      if (!name) return null;
+      return { name, quantity };
+    })
+    .filter((item): item is { name: string; quantity: number } => item !== null);
+
+  if (parsed.length === 0) {
+    return { label: fallbackLabel, quantity: 0 };
+  }
+
+  return {
+    label: parsed.length === 1 ? parsed[0].name : fallbackLabel,
+    quantity: parsed.reduce((sum, item) => sum + item.quantity, 0),
+  };
+}
+
 async function getContractProfitReportFallback(
   supabase: SupabaseClient,
   filters: ContractProfitReportParams,
@@ -239,7 +265,15 @@ async function getContractProfitReportFallback(
 
 async function fetchLedgerFallback(
   supabase: SupabaseClient,
-  params: { page: number; pageSize: number; month?: number; year?: number; type?: "in" | "out" | "all" },
+  params: {
+    page: number;
+    pageSize: number;
+    month?: number;
+    year?: number;
+    fromDate?: string;
+    toDate?: string;
+    type?: "in" | "out" | "all";
+  },
 ): Promise<PaginatedResult<LedgerItem>> {
   const window = params.month && params.year ? monthWindow(params.month, params.year) : null;
   let paymentsQuery = supabase.from("payments").select("id, payment_date, amount, receipt_code, notes, payment_stage, payment_method, approved_by, created_at").is("deleted_at", null);
@@ -250,6 +284,12 @@ async function fetchLedgerFallback(
     paymentsQuery = paymentsQuery.gte("payment_date", window.start).lt("payment_date", window.end);
     receiptsQuery = receiptsQuery.gte("receipt_date", window.start).lt("receipt_date", window.end);
     expensesQuery = expensesQuery.gte("expense_date", window.start).lt("expense_date", window.end);
+  }
+
+  if (params.fromDate && params.toDate) {
+    paymentsQuery = paymentsQuery.gte("payment_date", params.fromDate).lte("payment_date", params.toDate);
+    receiptsQuery = receiptsQuery.gte("receipt_date", params.fromDate).lte("receipt_date", params.toDate);
+    expensesQuery = expensesQuery.gte("expense_date", params.fromDate).lte("expense_date", params.toDate);
   }
 
   const [payments, receipts, expenses] = await Promise.all([paymentsQuery, receiptsQuery, expensesQuery]);
@@ -323,7 +363,9 @@ async function fetchLedgerFallback(
 
 export async function getDashboardMetrics(month: number, year: number) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const { data, error } = await supabase
       .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
       .single();
@@ -347,7 +389,9 @@ export async function getDashboardMetrics(month: number, year: number) {
 
 export async function getRevenueByMonth(year: number) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const { data, error } = await supabase.rpc("finance_revenue_by_month", {
       p_year: year,
     });
@@ -366,7 +410,9 @@ export async function getRevenueByMonth(year: number) {
 
 export async function getServiceDistribution(month: number, year: number) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const { data, error } = await supabase.rpc("finance_service_distribution", {
       p_month: month,
       p_year: year,
@@ -386,7 +432,9 @@ export async function getServiceDistribution(month: number, year: number) {
 
 export async function getUpcomingContracts(limit: number = 5) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const today = new Date().toISOString().split("T")[0];
     const { data, error } = await supabase
       .from("contracts")
@@ -403,7 +451,9 @@ export async function getUpcomingContracts(limit: number = 5) {
 
 export async function getPendingCollections(limit: number = 5) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("contracts")
       .select("id, contract_code, remaining_amount, contract_date, status, customers(id, full_name, phone)")
@@ -419,7 +469,9 @@ export async function getPendingCollections(limit: number = 5) {
 
 export async function getContractProfitReport(filters: ContractProfitReportParams = {}) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const page = filters.page || 1;
     const pageSize = filters.pageSize || 10;
     const { data, error } = await supabase.rpc("finance_contract_profit_report", {
@@ -468,10 +520,18 @@ export async function fetchLedger(params: {
   pageSize: number;
   month?: number;
   year?: number;
+  fromDate?: string;
+  toDate?: string;
   type?: "in" | "out" | "all";
 }) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
+    if (params.fromDate && params.toDate) {
+      return fetchLedgerFallback(supabase, params);
+    }
+
     const { data, error } = await supabase.rpc("finance_ledger", {
       p_page: params.page,
       p_page_size: params.pageSize,
@@ -509,19 +569,29 @@ export async function fetchLedger(params: {
 
 export async function getContractFinanceDetails(contractId: string) {
 
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+
     const { data: contract, error: contractErr } = await supabase
       .from("contracts")
-      .select("id, total_amount, contract_code, status, created_at, customers(full_name)")
+      .select("id, total_amount, discount_amount, contract_code, status, contract_date, created_at, customers(full_name)")
       .eq("id", contractId)
       .single();
 
     if (contractErr) throw new Error(`Lỗi tải hợp đồng: ${contractErr.message}`);
 
     const [details, tasks, prints, expenses] = await Promise.all([
-      supabase.from("contract_details").select("id, service_name, quantity, unit_price, total_amount, item_type, addon_category").eq("contract_id", contractId),
+      supabase
+        .from("contract_items")
+        .select("id, item_name, quantity, unit_price, total_amount, type, is_addon, addon_category")
+        .eq("contract_id", contractId)
+        .is("deleted_at", null),
       supabase.from("work_tasks").select("id, work_type, cost, employees(full_name)").eq("contract_id", contractId),
-      supabase.from("printing_orders").select("id, item_name, quantity, cost, payment_status").eq("contract_id", contractId),
+      supabase
+        .from("printing_orders")
+        .select("id, order_code, items, total_amount, payment_status")
+        .eq("contract_id", contractId)
+        .is("deleted_at", null),
       supabase.from("expenses").select("id, description, amount, expense_date").eq("contract_id", contractId).is("deleted_at", null).not("description", "like", "[Auto-Print]%"),
     ]);
 
@@ -540,16 +610,16 @@ export async function getContractFinanceDetails(contractId: string) {
         subtotal,
         contract_code: asString(contract.contract_code),
         status: asString(contract.status),
-        created_at: asString(contract.created_at),
+        created_at: asString((contract as RpcRow).contract_date) || asString(contract.created_at),
         customer_name: relationText(contract.customers as unknown, "full_name") || "Khách vãng lai",
       },
       details: details.data.map((d: Record<string, unknown>) => ({
         id: d.id as string,
-        service_name: asString(d.service_name),
+        service_name: asString(d.item_name),
         quantity: asNumber(d.quantity) || 1,
         unit_price: asNumber(d.unit_price),
         total_amount: asNumber(d.total_amount),
-        item_type: asString(d.item_type) || null,
+        item_type: (d.is_addon ? "ADDON" : asString(d.type)) || null,
         addon_category: asString(d.addon_category) || null,
       })),
       tasks: tasks.data.map((t: Record<string, unknown>) => ({
@@ -558,13 +628,18 @@ export async function getContractFinanceDetails(contractId: string) {
         cost: asNumber(t.cost),
         employees: t.employees ? { full_name: relationText(t.employees as unknown, "full_name") as string } : null,
       })),
-      orders: prints.data.map((p: Record<string, unknown>) => ({
-        id: p.id as string,
-        item_name: asString(p.item_name),
-        quantity: asNumber(p.quantity) || 1,
-        cost: asNumber(p.cost),
-        payment_status: asString(p.payment_status),
-      })),
+      orders: prints.data.map((p: Record<string, unknown>) => {
+        const fallbackLabel = asString(p.order_code, "Đơn in");
+        const summary = summarizePrintingItems(p.items, fallbackLabel);
+
+        return {
+          id: p.id as string,
+          item_name: summary.label,
+          quantity: summary.quantity || 1,
+          cost: asNumber(p.total_amount),
+          payment_status: asString(p.payment_status),
+        };
+      }),
       expenses: expenses.data.map((e: Record<string, unknown>) => ({
         id: e.id as string,
         description: asString(e.description),

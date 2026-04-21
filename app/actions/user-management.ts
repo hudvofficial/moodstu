@@ -34,10 +34,10 @@ export type AuthUserWithEmployee = {
 };
 
 const roleSchema = z.enum(["admin", "manager", "sale", "media", "ctv"], {
-  error: "Quyen khong hop le",
+  error: "Quyền không hợp lệ",
 });
 
-const uuidSchema = z.string().uuid("ID khong hop le");
+const uuidSchema = z.string().uuid("ID không hợp lệ");
 
 export async function getAuthUsers() {
   return withAdmin(async (supabase) => {
@@ -46,15 +46,15 @@ export async function getAuthUsers() {
 
     if (authError) throw new Error(authError.message);
 
-    const authUsers = (authUsersRaw?.users || []).map((u) => ({
-      auth_id: u.id,
-      email: u.email || "",
+    const authUsers = (authUsersRaw?.users || []).map((user) => ({
+      auth_id: user.id,
+      email: user.email || "",
       jwt_role: normalizeEmployeeRole(
-        (u.app_metadata?.role as string | undefined) ?? null,
+        (user.app_metadata?.role as string | undefined) ?? null,
       ),
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at || null,
-      is_banned: !!u.banned_until,
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at || null,
+      is_banned: !!user.banned_until,
     }));
 
     const { data: employees } = await supabase
@@ -117,12 +117,12 @@ export async function updateUserRole(authUserId: string, newRole: string) {
       action: "UPDATE",
       tableName: "auth.users",
       recordId: parsedId.data,
-      description: `Doi quyen -> ${ROLE_LABELS[parsedRole.data]}`,
+      description: `Đổi quyền -> ${ROLE_LABELS[parsedRole.data]}`,
     });
 
     revalidatePath("/settings");
     return {
-      message: `Da cap nhat quyen thanh ${ROLE_LABELS[parsedRole.data]}`,
+      message: `Đã cập nhật quyền thành ${ROLE_LABELS[parsedRole.data]}`,
     };
   });
 }
@@ -133,10 +133,10 @@ export async function linkUserToEmployee(
 ) {
   return withAdmin(async (supabase) => {
     const parsedAuth = uuidSchema.safeParse(authUserId);
-    if (!parsedAuth.success) throw new Error("Auth ID khong hop le");
+    if (!parsedAuth.success) throw new Error("Auth ID không hợp lệ");
 
     const parsedEmp = uuidSchema.safeParse(employeeId);
-    if (!parsedEmp.success) throw new Error("Employee ID khong hop le");
+    if (!parsedEmp.success) throw new Error("Employee ID không hợp lệ");
 
     const { data: existing } = await supabase
       .from("employees")
@@ -145,7 +145,9 @@ export async function linkUserToEmployee(
       .single();
 
     if (existing?.auth_user_id && existing.auth_user_id !== parsedAuth.data) {
-      throw new Error(`${existing.full_name} da duoc lien ket voi tai khoan khac`);
+      throw new Error(
+        `${existing.full_name} đã được liên kết với tài khoản khác`,
+      );
     }
 
     await supabase
@@ -176,20 +178,20 @@ export async function linkUserToEmployee(
       action: "UPDATE",
       tableName: "employees",
       recordId: parsedEmp.data,
-      description: `Lien ket auth user ${parsedAuth.data}`,
+      description: `Liên kết auth user ${parsedAuth.data}`,
     });
 
     revalidatePath("/settings");
-    return { message: "Da lien ket thanh cong" };
+    return { message: "Đã liên kết thành công" };
   });
 }
 
 export async function unlinkUserFromEmployee(authUserId: string) {
   return withAdmin(async (supabase) => {
     const parsedId = uuidSchema.safeParse(authUserId);
-    if (!parsedId.success) throw new Error("Auth ID khong hop le");
+    if (!parsedId.success) throw new Error("Auth ID không hợp lệ");
 
-    const { data: emp } = await supabase
+    const { data: employee } = await supabase
       .from("employees")
       .select("id, full_name")
       .eq("auth_user_id", parsedId.data)
@@ -205,17 +207,17 @@ export async function unlinkUserFromEmployee(authUserId: string) {
 
     if (error) throw new Error(error.message);
 
-    if (emp) {
+    if (employee) {
       fireAuditLog({
         action: "UPDATE",
         tableName: "employees",
-        recordId: emp.id,
-        description: `Huy lien ket ${emp.full_name} khoi auth user`,
+        recordId: employee.id,
+        description: `Hủy liên kết ${employee.full_name} khỏi auth user`,
       });
     }
 
     revalidatePath("/settings");
-    return { message: "Da huy lien ket" };
+    return { message: "Đã hủy liên kết" };
   });
 }
 

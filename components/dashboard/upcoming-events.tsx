@@ -1,5 +1,6 @@
 import { Calendar, Camera, Heart, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const SERVICE_ICON: Record<string, typeof Camera> = {
   cuoi: Heart,
@@ -47,7 +48,7 @@ export function UpcomingEventsList() {
           </div>
           <h3 className="text-h3">Hợp đồng sắp chụp</h3>
         </div>
-        <button className="text-caption link-base min-h-11 flex items-center">Xem tất cả</button>
+        <Button unstyled className="text-caption link-base min-h-11 flex items-center">Xem tất cả</Button>
       </div>
 
       <div className="space-y-3">

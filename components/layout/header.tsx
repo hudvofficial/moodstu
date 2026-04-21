@@ -9,6 +9,8 @@ import { getModuleFromPath } from "@/lib/navigation";
 import { useScrollDirection } from "@/hooks/use-scroll-direction";
 import { useScrollContainer } from "@/contexts/scroll-container";
 import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { useHeaderSlotsContext } from "@/contexts/header-slots-context";
@@ -105,7 +107,7 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-              <input
+              <Input
                 ref={searchRef}
                 type="text"
                 placeholder={searchPlaceholder}
@@ -114,13 +116,14 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
                 className="search-input pl-9"
               />
             </div>
-            <button
+            <Button
+              type="button"
+              variant="icon"
               onClick={handleClearSearch}
-              className="icon-btn"
               aria-label="Đóng tìm kiếm"
             >
               <X className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -176,13 +179,14 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
             ) : (
               !hideSearch && (
                 <div className="lg:hidden">
-                  <button
+                  <Button
+                    type="button"
+                    variant="icon"
                     onClick={() => setIsSearchVisible(true)}
-                    className="icon-btn"
                     aria-label="Tìm kiếm"
                   >
                     <Search className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </div>
               )
             )}
@@ -194,7 +198,7 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
                   {!searchTerm && (
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
                   )}
-                  <input
+                  <Input
                     type="text"
                     placeholder={searchPlaceholder}
                     value={searchTerm}

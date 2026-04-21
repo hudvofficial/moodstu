@@ -129,10 +129,10 @@ export function Drawer({
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="icon-btn size-8 rounded-md p-0"
+                className="icon-btn size-9 rounded-lg p-0"
                 aria-label="Đóng"
               >
-                <X className="w-4 h-4" />
+                <X className="size-[18px]" />
               </Button>
             </div>
           </div>
@@ -165,10 +165,10 @@ export function Drawer({
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="icon-btn size-8 rounded-md p-0"
+                className="icon-btn size-9 rounded-lg p-0"
                 aria-label="Đóng"
               >
-                <X className="w-4 h-4" />
+                <X className="size-[18px]" />
               </Button>
             </div>
           </div>

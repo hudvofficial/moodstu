@@ -40,3 +40,42 @@ Chiến lược: **Port business logic + tối ưu** (KHÔNG copy paste).
 - Verified: scoped ESLint passed and `npm run build` passed.
 - Remaining: Phase 02 Smart Dashboard page `/finance/dashboard`; Phase 03 FAB quick actions.
 - 2026-04-13 UPDATE: Phase 02 & 03 completed. Phase 04 Compact Stats Bar integrated perfectly, effectively cleaning up legacy 6-card UI.
+
+## 2026-04-21 Re-audit Correction
+
+Audit source: `docs/reports/audit_2026-04-21_finance_dashboard_v1_parity.md`
+
+Current production status is **not 100% done**:
+
+- Phase 01 is mostly done for `/finance` hub, but compact stats currently expose only 4 headline metrics; keep KPI formula parity under review.
+- Phase 02 is **reopened / production-blocked**: `/finance/dashboard` route is missing, `finance-intelligence-queries.ts` still uses mock data, and the RPC formulas are not yet aligned to the finance SSOT.
+- Phase 03 is **partial**: `components/finance/finance-fab.tsx` exists, but it is not mounted from the finance layout and its route targets still need verification.
+- Phase 04 UI polish is only valid after Phase 02 production wiring is complete.
+
+Decision: do not mark the finance smart dashboard as complete until route, real data, business formulas, SSOT tokens, and performance gates all pass.
+
+## 2026-04-21 Implementation Update
+
+Completed after re-audit:
+
+- Created production route `/finance/dashboard` with Server Component + Suspense streaming zones.
+- Removed mock intelligence action path and wired actions to real RPC data.
+- Added finance permission guard for dashboard/intelligence server actions.
+- Added and pushed Supabase migration `20260421113000_finance_dashboard_production_hardening.sql`.
+- Verified build: `/finance/dashboard` appears as a dynamic route.
+
+Remaining parity work:
+
+- Phase 02 is usable but not full V1 parity until scenario/customer/dress/inventory/advanced KPI widgets are ported.
+- Finance-wide revenue/outflow SSOT still needs propagation into reports/goals/close if those modules use separate formulas.
+
+## 2026-04-21 Advanced Completion Update
+
+Completed after the V2 optimization pass:
+
+- Added production RPC `get_finance_advanced_intelligence(month, year)` through migration `20260421124500_finance_advanced_intelligence_rpc.sql`.
+- Added scenario planning, customer metrics/CLV/conversion, service revenue mix, dress ROI, inventory cost intelligence, and advanced KPI grid to `/finance/dashboard`.
+- Kept the page as Server Components with Suspense zones and request-level `cache()` dedupe.
+- Verified scoped lint, production build, migration push, and smoke query `advanced_ok=true`.
+
+Current status: `/finance/dashboard` V1 parity + V2 optimization is complete. Finance-wide formula propagation across reports/goals/close remains tracked separately in the optimization plan.

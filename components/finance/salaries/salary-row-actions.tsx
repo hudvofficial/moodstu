@@ -1,14 +1,14 @@
-import React from "react";
 import { Eye, Printer, Trash2, Banknote, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { SalaryItem } from "@/types/finance-operations";
 
 interface SalaryRowActionsProps {
-    item: any;
-    onPay: (item: any) => void;
-    onPrint: (item: any) => void;
-    onView: (item: any) => void;
-    onAdjust: (item: any) => void;
-    onDelete: (item: any) => void;
+    item: SalaryItem;
+    onPay: (item: SalaryItem) => void;
+    onPrint: (item: SalaryItem) => void;
+    onView: (item: SalaryItem) => void;
+    onAdjust: (item: SalaryItem) => void;
+    onDelete: (item: SalaryItem) => void;
 }
 
 export function SalaryRowActions({ item, onPay, onPrint, onView, onAdjust, onDelete }: SalaryRowActionsProps) {
