@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, Pencil, RotateCcw, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -23,6 +22,7 @@ import {
 } from "@/types/employee-constants";
 import type { EmployeeDetail, EmployeeListItem, EmployeeRole, SalaryInfo } from "@/types/employee";
 import { formatCurrency, formatDate, formatPhone, getInitials } from "@/lib/utils";
+import { revalidateEmployeeCaches } from "@/lib/cache-invalidation";
 import EmployeeFormModal from "./employee-form-modal";
 import EmployeeInfoCard from "./employee-info-card";
 import EmployeeNotes from "./employee-notes";
@@ -53,7 +53,6 @@ export default function EmployeeDetailDrawer({
   onClose,
   onChanged,
 }: EmployeeDetailDrawerProps) {
-  const router = useRouter();
   const [detail, setDetail] = useState<EmployeeDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -116,8 +115,8 @@ export default function EmployeeDetailDrawer({
       const result = await softDeleteEmployee(detail.id);
       if (!result.success) throw new Error(result.error || "Lỗi cho nghỉ việc");
       toast.success("Đã cho nghỉ việc");
+      await revalidateEmployeeCaches(detail.id);
       onChanged?.();
-      router.refresh();
       onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi xử lý");
@@ -135,8 +134,8 @@ export default function EmployeeDetailDrawer({
       if (!result.success) throw new Error(result.error || "Lỗi khôi phục");
       toast.success("Đã khôi phục nhân viên");
       await refreshDrawer();
+      await revalidateEmployeeCaches(detail.id);
       onChanged?.();
-      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi khôi phục");
     } finally {
@@ -343,8 +342,8 @@ export default function EmployeeDetailDrawer({
         onClose={() => setShowForm(false)}
         onSaved={async () => {
           await refreshDrawer();
+          await revalidateEmployeeCaches(detail?.id);
           onChanged?.();
-          router.refresh();
         }}
         editEmployee={detail}
       />

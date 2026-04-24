@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { returnDressRental } from "@/app/actions/rental-mutations";
 import { toast } from "@/lib/toast-utils";
-import { revalidate, cacheKeys } from "@/lib/swr";
+import { revalidate, revalidateByPrefixes, cacheKeys } from "@/lib/swr";
 import type { DressRental } from "@/types/dress";
 
 // ═══════════════════════════════════════════
@@ -93,7 +93,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
         toast(result.error || "Có lỗi xảy ra", "error");
       } else {
         toast("Trả trang phục thành công!", "success");
-        revalidate(cacheKeys.dresses());
+        revalidateByPrefixes(cacheKeys.dresses());
         revalidate(cacheKeys.dressStats());
         onSaved();
         onClose();

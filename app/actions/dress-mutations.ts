@@ -6,6 +6,31 @@ import { fireAuditLog } from "@/lib/audit";
 import { dressCreateSchema, dressUpdateSchema, reserveDressSchema } from "@/lib/validations/dress.schema";
 import { CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
 
+const ACTIVE_RESERVATION_STATUSES = ["reserved", "in_use", "rented"] as const;
+
+type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
+
+async function refreshDressStatus(supabase: AdminSupabase, dressId: string) {
+  const { data: activeReservations } = await supabase
+    .from("dress_reservations")
+    .select("status")
+    .eq("dress_id", dressId)
+    .in("status", [...ACTIVE_RESERVATION_STATUSES]);
+
+  const nextStatus = (activeReservations || []).some((row) =>
+    row.status === "in_use" || row.status === "rented"
+  )
+    ? "rented"
+    : (activeReservations || []).length > 0
+      ? "reserved"
+      : "available";
+
+  await supabase
+    .from("dresses")
+    .update({ status: nextStatus, updated_at: new Date().toISOString() })
+    .eq("id", dressId);
+}
+
 // ═══════════════════════════════════════════
 // Dress Mutations — Create/Update/Delete
 // DB: dresses
@@ -178,7 +203,7 @@ export async function deleteDress(id: string) {
       .from("dress_reservations")
       .select("id")
       .eq("dress_id", id)
-      .in("status", ["reserved", "rented"])
+      .in("status", [...ACTIVE_RESERVATION_STATUSES])
       .limit(1);
 
     if (reservations && reservations.length > 0) {
@@ -236,7 +261,7 @@ export async function reserveDressForContract(rawData: unknown) {
       .from("dress_reservations")
       .select("id")
       .eq("dress_id", input.dressId)
-      .in("status", ["reserved", "rented"])
+      .in("status", [...ACTIVE_RESERVATION_STATUSES])
       .lte("start_date", input.endDate)
       .gte("end_date", input.startDate)
       .limit(1);
@@ -328,6 +353,43 @@ export async function reserveDressForContract(rawData: unknown) {
   });
 }
 
+export async function updateReservationStatus(
+  reservationId: string,
+  status: string,
+  contractId?: string,
+) {
+  if (!reservationId) return { success: false as const, error: "ID khong hop le" };
+
+  return withAuth(async (supabase) => {
+    const validStatuses = ["reserved", "in_use", "rented", "returned", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      throw new Error("Trang thai trang phuc khong hop le");
+    }
+
+    const { data: reservation, error: fetchError } = await supabase
+      .from("dress_reservations")
+      .select("id, dress_id, contract_id")
+      .eq("id", reservationId)
+      .single();
+
+    if (fetchError || !reservation) {
+      throw new Error("Khong tim thay dat trang phuc");
+    }
+
+    const { error } = await supabase
+      .from("dress_reservations")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", reservationId);
+
+    if (error) throw new Error(`Loi cap nhat trang thai trang phuc: ${error.message}`);
+
+    await refreshDressStatus(supabase, reservation.dress_id);
+
+    // ⚡ No revalidatePath — client uses optimistic UI + Realtime for sync
+    return null;
+  });
+}
+
 export async function releaseReservation(reservationId: string) {
   if (!reservationId) return { success: false as const, error: "ID không hợp lệ" };
 
@@ -351,22 +413,7 @@ export async function releaseReservation(reservationId: string) {
       .eq("id", reservationId);
     if (updateErr) throw new Error(`Lỗi trả trang phục: ${updateErr.message}`);
 
-    // 3. Check if item has other active reservations
-    const { data: otherActive } = await supabase
-      .from("dress_reservations")
-      .select("id")
-      .eq("dress_id", reservation.dress_id)
-      .in("status", ["reserved", "rented"])
-      .neq("id", reservationId)
-      .limit(1);
-
-    // Restore item status only if no other active reservations
-    if (!otherActive || otherActive.length === 0) {
-      await supabase
-        .from("dresses")
-        .update({ status: "available", updated_at: now })
-        .eq("id", reservation.dress_id);
-    }
+    await refreshDressStatus(supabase, reservation.dress_id);
 
     // 4. Reverse addon billing if applicable (JOIN contract_items for is_addon + unit_price)
     if (reservation.contract_item_id && reservation.contract_id) {

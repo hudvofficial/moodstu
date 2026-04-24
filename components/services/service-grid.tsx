@@ -11,9 +11,10 @@ interface Props {
   services: ServiceRecord[];
   onQuote: (service: ServiceRecord) => void;
   onEdit: (id: string) => void;
+  onPrefetch?: (id: string) => void;
 }
 
-function ServiceGridInner({ services, onQuote, onEdit }: Props) {
+function ServiceGridInner({ services, onQuote, onEdit, onPrefetch }: Props) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -23,6 +24,8 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
         return (
           <div
             key={service.id}
+            onMouseEnter={() => onPrefetch?.(service.id)}
+            onFocus={() => onPrefetch?.(service.id)}
             className="card-base group relative overflow-hidden flex flex-col entrance stagger-item"
           >
             {/* Image / placeholder */}
@@ -54,6 +57,8 @@ function ServiceGridInner({ services, onQuote, onEdit }: Props) {
                 {/* eslint-disable-next-line react/forbid-elements */}
                 <button
                   onClick={() => onEdit(service.id)}
+                  onMouseEnter={() => onPrefetch?.(service.id)}
+                  onFocus={() => onPrefetch?.(service.id)}
                   className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-caption font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <Pencil className="w-3 h-3" /> Sửa

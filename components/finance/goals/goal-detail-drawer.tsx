@@ -101,6 +101,7 @@ export function GoalDetailDrawer({
 
     toast.success("Đã hoàn tác khoản góp.");
     await mutate(cacheKeys.goals());
+    await mutate(cacheKeys.goalsCashflow());
     if (goal?.id) await mutate(cacheKeys.goalContributions(goal.id));
     setConfirmingUndo(null);
   };

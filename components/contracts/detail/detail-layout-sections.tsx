@@ -1,25 +1,57 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import SummaryCard from "./summary-card";
 import CustomerInfoBlock from "./customer-info-block";
-import ServiceDetailsBlock from "./service-details-block";
 import FinancialDashboard from "./financial-dashboard";
-import EventTimeline from "./event-timeline";
 import WorkflowStepper from "./workflow-stepper";
-import CostumesBlock from "./costumes-block";
-import PrintOrdersBlock from "./print-orders-block";
-import ActivityLog from "./activity-log";
-import DriveGalleryBlock from "./drive-gallery-block";
 import QuickActionsGrid from "./quick-actions-grid";
 import MobileTabNav from "./mobile-tab-nav";
-import NotesTimeline from "./notes-timeline";
+import { SkeletonCard } from "@/components/ui/skeleton";
 import type {
   Contract,
   Payment,
   DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
+  TaskStatus,
 } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
+
+const ActivityLog = dynamic(() => import("./activity-log"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
+
+const CostumesBlock = dynamic(() => import("./costumes-block"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
+
+const DriveGalleryBlock = dynamic(() => import("./drive-gallery-block"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
+
+const EventTimeline = dynamic(() => import("./event-timeline"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-80" />,
+});
+
+const NotesTimeline = dynamic(() => import("./notes-timeline"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
+
+const PrintOrdersBlock = dynamic(() => import("./print-orders-block"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
+
+const ServiceDetailsBlock = dynamic(() => import("./service-details-block"), {
+  ssr: false,
+  loading: () => <SkeletonCard className="h-64" />,
+});
 
 // ═══════════════════════════════════════════
 // Detail Layout Sections — Desktop + Mobile
@@ -33,10 +65,13 @@ interface LayoutProps {
   reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
   auditLogs: AuditLogEntry[];
+  activeEmployees?: ActiveEmployee[];
   refreshContract: () => void;
+  onTaskStatusChange: (taskId: string, eventId: string, status: TaskStatus) => void;
   onPaymentClick: () => void;
   onAddEvent: () => void;
   onQuickAction: (key: string) => void;
+  onMuteRealtime?: () => void;
 }
 
 // ─── Desktop Layout (65/35 grid) ──────────
@@ -46,10 +81,13 @@ export function DesktopLayout({
   reservations,
   printOrders,
   auditLogs,
+  activeEmployees,
   refreshContract,
+  onTaskStatusChange,
   onPaymentClick,
   onAddEvent,
   onQuickAction,
+  onMuteRealtime,
 }: LayoutProps) {
   return (
     <div className="max-lg:hidden">
@@ -89,7 +127,9 @@ export function DesktopLayout({
           <EventTimeline
             events={contract.contract_events || []}
             tasks={contract.work_tasks || []}
+            activeEmployees={activeEmployees}
             onRefresh={refreshContract}
+            onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
           />
 
@@ -104,10 +144,10 @@ export function DesktopLayout({
           />
 
           {/* Trang phục */}
-          <CostumesBlock reservations={reservations} contractId={contract.id} />
+          <CostumesBlock reservations={reservations} contractId={contract.id} onStatusChange={onMuteRealtime} />
 
           {/* In ấn */}
-          <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
+          <PrintOrdersBlock orders={printOrders} contractId={contract.id} onStatusChange={onMuteRealtime} />
         </div>
 
         {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
@@ -152,10 +192,13 @@ export function MobileLayout({
   reservations,
   printOrders,
   auditLogs,
+  activeEmployees,
   refreshContract,
+  onTaskStatusChange,
   onPaymentClick,
   onAddEvent,
   onQuickAction,
+  onMuteRealtime,
   headerVisible,
   tabsMerged,
   activeTab,
@@ -204,7 +247,9 @@ export function MobileLayout({
           <EventTimeline
             events={contract.contract_events || []}
             tasks={contract.work_tasks || []}
+            activeEmployees={activeEmployees}
             onRefresh={refreshContract}
+            onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
           />
         </div>
@@ -227,10 +272,10 @@ export function MobileLayout({
           discountAmount={contract.discount_amount}
         />
 
-        <CostumesBlock reservations={reservations} contractId={contract.id} />
+        <CostumesBlock reservations={reservations} contractId={contract.id} onStatusChange={onMuteRealtime} />
 
         <div id="section-print">
-          <PrintOrdersBlock orders={printOrders} contractId={contract.id} />
+          <PrintOrdersBlock orders={printOrders} contractId={contract.id} onStatusChange={onMuteRealtime} />
         </div>
 
         <ActivityLog logs={auditLogs} />

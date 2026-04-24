@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, FilterX, Kanban, List, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
 import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
-import { createClient } from "@/lib/supabase/client";
+import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
@@ -17,7 +20,6 @@ import LeadStatsBar from "./lead-stats-bar";
 import LeadFilters from "./lead-filters";
 import LeadCompactCard from "./lead-compact-card";
 import LeadCard from "./lead-card";
-import PipelineBoard from "./pipeline-board";
 import LeadDetailDrawer from "./lead-detail-drawer";
 import LeadFormModal from "./lead-form-modal";
 import { WidgetSourceDonut } from "./widgets/widget-source-donut";
@@ -26,6 +28,15 @@ import { WidgetSalesFunnel } from "./widgets/widget-sales-funnel";
 import { CrmSubnav } from "./crm-subnav";
 import { CrmToolbarSurface } from "./crm-toolbar-surface";
 import { CrmViewSwitch } from "./crm-view-switch";
+
+const PipelineBoard = dynamic(() => import("./pipeline-board"), {
+  ssr: false,
+  loading: () => (
+    <div className="card-base grid min-h-[360px] place-items-center text-body-sm text-text-muted">
+      Đang tải Kanban...
+    </div>
+  ),
+});
 
 interface Props {
   leads: CrmLead[];
@@ -43,11 +54,11 @@ const LEAD_VIEW_ITEMS = [
 ] as const;
 
 export default function LeadListPage({
-  leads,
-  stats,
-  total,
-  page,
-  pageSize,
+  leads: initialLeads,
+  stats: initialStats,
+  total: initialTotal,
+  page: initialPage,
+  pageSize: initialPageSize,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -63,7 +74,69 @@ export default function LeadListPage({
   >({});
 
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const totalPages = Math.ceil(total / pageSize);
+  const search = searchParams.get("search") || undefined;
+  const status = (searchParams.get("status") || undefined) as LeadStatus | undefined;
+  const source = searchParams.get("source") || undefined;
+  const assigned = searchParams.get("assigned") || undefined;
+  const pageParam = Number(searchParams.get("page") || initialPage || 1);
+
+  const fallbackList = useMemo(
+    () => ({
+      leads: initialLeads,
+      total: initialTotal,
+      page: initialPage,
+      pageSize: initialPageSize,
+    }),
+    [initialLeads, initialTotal, initialPage, initialPageSize],
+  );
+
+  const listQuery = useSWR(
+    [
+      cacheKeys.leads(),
+      search || "",
+      status || "",
+      source || "",
+      assigned || "",
+      String(pageParam),
+      String(initialPageSize),
+    ],
+    async () => {
+      const result = await getLeads({
+        search,
+        status,
+        source,
+        assigned_to: assigned,
+        page: pageParam,
+        pageSize: initialPageSize,
+      });
+      if (!result.success) throw new Error(result.error);
+      return {
+        leads: result.data.leads as CrmLead[],
+        total: result.data.total,
+        page: result.data.page,
+        pageSize: result.data.pageSize,
+      };
+    },
+    { fallbackData: fallbackList },
+  );
+
+  const statsQuery = useSWR(
+    `${cacheKeys.leads()}:stats`,
+    async () => {
+      const result = await getLeadStats();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    { fallbackData: initialStats },
+  );
+
+  const listData = listQuery.data || fallbackList;
+  const leads = listData.leads;
+  const stats = statsQuery.data || initialStats;
+  const total = listData.total;
+  const page = listData.page;
+  const pageSize = listData.pageSize;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const scheduleRefresh = useCallback(
     (delay = 0) => {
@@ -71,11 +144,11 @@ export default function LeadListPage({
       refreshTimerRef.current = setTimeout(() => {
         refreshTimerRef.current = null;
         startTransition(() => {
-          router.refresh();
+          void revalidateByPrefixes(cacheKeys.leads());
         });
       }, delay);
     },
-    [router, startTransition],
+    [startTransition],
   );
 
   const visibleLeads = useMemo(
@@ -89,29 +162,16 @@ export default function LeadListPage({
     [leads, statusOverrides],
   );
 
+  useRealtime("crm_leads", {
+    prefixes: cacheKeys.leads(),
+    debounceMs: 600,
+  });
+
   useEffect(() => {
     return () => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("public:crm_leads")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "crm_leads" },
-        () => {
-          scheduleRefresh(600);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [scheduleRefresh]);
 
   const handlePageChange = useCallback(
     (newPage: number) => {

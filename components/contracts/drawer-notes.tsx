@@ -10,6 +10,7 @@
 import { useState, useRef, useCallback } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { addContractNote } from "@/app/actions/note-actions";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { useContractNotes } from "@/lib/hooks/use-contract-notes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,8 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
       const res = await addContractNote(contractId, trimmed);
       if (!res.success) {
         toast.error("Lỗi khi gửi ghi chú");
+      } else {
+        await revalidateContractCaches(contractId);
       }
       // Revalidate from server to get real data
       await mutate();

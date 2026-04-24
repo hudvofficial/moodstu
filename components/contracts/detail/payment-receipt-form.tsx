@@ -196,7 +196,7 @@ export default function PaymentReceiptForm({
             value={selectedPlanId || "custom"}
             onChange={(v) => handlePlanChange(v)}
             options={[
-              ...paymentPlans.map((plan) => ({
+              ...unpaidPlans.map((plan) => ({
                 value: plan.id,
                 label: `${plan.status === "paid" ? "✅ " : ""}${plan.stage_name} — ${formatCurrency(plan.amount)} ${CURRENCY_SYMBOL}`,
               })),

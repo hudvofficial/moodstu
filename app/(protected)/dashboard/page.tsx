@@ -11,13 +11,38 @@ import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { PaymentReminders } from "@/components/dashboard/payment-reminders";
 import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
 import { RealtimeSync } from "@/components/shared/realtime-sync";
+import { DashboardWarmup } from "@/components/dashboard/dashboard-warmup";
 
 export default function DashboardPage() {
   return (
     <div className="main-container">
+      <DashboardWarmup />
       {/* 📡 Realtime — live KPI updates */}
-      <RealtimeSync table="contracts" />
-      <RealtimeSync table="receipts" />
+      <RealtimeSync
+        table="contracts"
+        prefixes={[
+          "dashboard",
+          "contracts",
+          "finance-dashboard",
+          "finance-revenue",
+          "finance-service-dist",
+          "finance-upcoming-contracts",
+          "finance-pending-collections",
+        ]}
+      />
+      <RealtimeSync
+        table="receipts"
+        prefixes={[
+          "dashboard",
+          "receipts",
+          "finance-dashboard",
+          "finance-ledger",
+          "finance-receipts",
+          "finance-receipt-stats",
+          "reports",
+          "reports-ledger",
+        ]}
+      />
       {/* ── Quick Access Grid (mobile only) ── */}
       <QuickAccessGrid />
 

@@ -3,11 +3,14 @@
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Users, FilterX } from "lucide-react";
+import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
 import type { EmployeeListItem } from "@/types/employee";
+import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
+import { SkeletonTable } from "@/components/ui/skeleton";
 import EmployeeStatsBar from "./employee-stats-bar";
 import EmployeeFilters from "./employee-filters";
 import EmployeeTable from "./employee-table";
@@ -21,19 +24,84 @@ import EmployeeDetailDrawer from "./employee-detail-drawer";
 // ═══════════════════════════════════════════
 
 interface Props {
-  employees: EmployeeListItem[];
-  stats: { total: number; active: number; inactive: number; departments: Record<string, number> };
-  total: number;
-  page: number;
-  pageSize: number;
+  employees?: EmployeeListItem[];
+  stats?: { total: number; active: number; inactive: number; departments: Record<string, number> };
+  total?: number;
+  page?: number;
+  pageSize?: number;
 }
 
-export default function EmployeeListPage({ employees, stats, total, page, pageSize }: Props) {
+const EMPTY_STATS = { total: 0, active: 0, inactive: 0, departments: {} };
+
+export default function EmployeeListPage({
+  employees: initialEmployees = [],
+  stats: initialStats = EMPTY_STATS,
+  total: initialTotal = 0,
+  page: initialPage = 1,
+  pageSize: initialPageSize = 20,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
+  const search = searchParams.get("search") || undefined;
+  const status = searchParams.get("status") || undefined;
+  const department = searchParams.get("dept") || undefined;
+  const role = searchParams.get("role") || undefined;
+  const sort = searchParams.get("sort") || undefined;
+  const pageParam = searchParams.get("page") || undefined;
+  const listKey = [
+    cacheKeys.employees(),
+    search || "",
+    status || "",
+    department || "",
+    role || "",
+    sort || "",
+    pageParam || "1",
+  ];
+  const listQuery = useSWR(
+    listKey,
+    async () => {
+      const result = await getEmployeeList({
+        search,
+        status,
+        department,
+        role,
+        sort,
+        page: pageParam,
+      });
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    initialEmployees.length
+      ? {
+          fallbackData: {
+            employees: initialEmployees,
+            total: initialTotal,
+            page: initialPage,
+            pageSize: initialPageSize,
+          },
+        }
+      : undefined,
+  );
+  const statsQuery = useSWR(cacheKeys.employees() + ":stats", async () => {
+    const result = await getEmployeeStats();
+    if (!result.success) throw new Error(result.error);
+    return result.data;
+  }, initialStats.total ? { fallbackData: initialStats } : undefined);
+
+  const list = listQuery.data || {
+    employees: initialEmployees,
+    total: initialTotal,
+    page: initialPage,
+    pageSize: initialPageSize,
+  };
+  const employees = list.employees || [];
+  const stats = statsQuery.data || initialStats;
+  const total = list.total || 0;
+  const page = list.page || 1;
+  const pageSize = list.pageSize || 20;
   const totalPages = Math.ceil(total / pageSize);
 
   // Pagination onChange — update URL param
@@ -52,6 +120,10 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
     searchParams.get("role") || searchParams.get("status");
 
   const clearFilters = () => router.push(pathname);
+
+  const refreshEmployees = useCallback(() => {
+    void revalidateByPrefixes(cacheKeys.employees());
+  }, []);
 
   return (
     <div className="main-container gap-3!">
@@ -72,7 +144,11 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
       <EmployeeFilters stats={{ total: stats.total, active: stats.active, inactive: stats.inactive }} />
 
       {/* ── Employee List ── */}
-      {employees.length === 0 ? (
+      {listQuery.isLoading && !listQuery.data ? (
+        <div className="card-base p-5">
+          <SkeletonTable rows={6} />
+        </div>
+      ) : employees.length === 0 ? (
         hasFilters ? (
           <EmptyState
             icon={FilterX}
@@ -115,14 +191,14 @@ export default function EmployeeListPage({ employees, stats, total, page, pageSi
       <EmployeeFormModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        onSaved={() => router.refresh()}
+        onSaved={refreshEmployees}
       />
 
       <EmployeeDetailDrawer
         employee={selectedEmployee}
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
-        onChanged={() => router.refresh()}
+        onChanged={refreshEmployees}
       />
     </div>
   );

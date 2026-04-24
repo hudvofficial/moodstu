@@ -40,6 +40,11 @@ const EMPTY_RESULT: PaginatedResult<ContractProfitRow> = {
   pageSize: 10,
 };
 
+const HYDRATED_FALLBACK_OPTIONS = {
+  revalidateOnMount: false,
+  revalidateIfStale: false,
+} as const;
+
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
   if (!result.success) throw new Error(result.error);
@@ -252,7 +257,9 @@ export function ProfitReportTable({
           pageSize,
         }),
       ),
-    isInitialQuery && initialData ? { fallbackData: initialData } : undefined,
+    isInitialQuery && initialData
+      ? { fallbackData: initialData, ...HYDRATED_FALLBACK_OPTIONS }
+      : undefined,
   );
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { createCustomer } from "@/app/actions/customer-actions";
 import { searchCustomers } from "@/app/actions/customer-actions";
@@ -55,6 +55,13 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
   const [error, setError] = useState("");
   const [phoneDupWarning, setPhoneDupWarning] = useState("");
   const phoneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({ full_name: initialName, phone: "" });
+    setError("");
+    setPhoneDupWarning("");
+  }, [initialName, isOpen]);
 
   const updateField = useCallback(
     <K extends keyof CustomerFormData>(field: K, value: CustomerFormData[K]) => {

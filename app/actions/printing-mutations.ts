@@ -286,8 +286,7 @@ export async function updatePrintingOrderStatus(
       source: "server_action",
     });
 
-    revalidatePath("/printing");
-    revalidatePath(`/contracts/${contractId}`);
+    // ⚡ No revalidatePath — client uses optimistic UI + Realtime for sync
     return null;
   });
 }

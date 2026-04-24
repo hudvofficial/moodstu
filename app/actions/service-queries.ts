@@ -1,6 +1,7 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
 import { sanitizeSearch } from "@/lib/utils/service-utils";
 import type { ServiceRecord, ServiceCategory, ServiceFilters } from "@/types/service";
 
@@ -18,7 +19,7 @@ const DEFAULT_LIMIT = 50;
 // ─── getServices (paginated, filtered) ───────────
 
 export async function getServices(filters: ServiceFilters = {}) {
-  return withAuth(async (supabase) => {
+  return profileAction("services.getServices", () => withAuth(async (supabase) => {
     const { search, category, status, fulfillment_type, page = 1, limit = DEFAULT_LIMIT } = filters;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -59,13 +60,13 @@ export async function getServices(filters: ServiceFilters = {}) {
       page,
       limit,
     };
-  });
+  }));
 }
 
 // ─── getServiceById ──────────────────────────────
 
 export async function getServiceById(id: string) {
-  return withAuth(async (supabase) => {
+  return profileAction("services.getServiceById", () => withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("services")
       .select("*, category:service_categories(id, name, icon)")
@@ -75,13 +76,13 @@ export async function getServiceById(id: string) {
 
     if (error) throw new Error(`Lỗi tải dịch vụ: ${error.message}`);
     return data as ServiceRecord;
-  });
+  }));
 }
 
 // ─── getServiceCategories ────────────────────────
 
 export async function getServiceCategories() {
-  return withAuth(async (supabase) => {
+  return profileAction("services.getServiceCategories", () => withAuth(async (supabase) => {
     const { data, error } = await supabase
       .from("service_categories")
       .select("*")
@@ -90,7 +91,7 @@ export async function getServiceCategories() {
 
     if (error) throw new Error(`Lỗi tải danh mục: ${error.message}`);
     return (data || []) as ServiceCategory[];
-  });
+  }));
 }
 
 // ─── getBundleItems ──────────────────────────────

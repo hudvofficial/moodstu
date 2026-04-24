@@ -36,7 +36,7 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
       <div className="mb-4">
         <h3 className="text-h3">Cơ Cấu Chi Phí</h3>
       </div>
-      <div className="flex-1 w-full min-h-[250px] relative">
+      <div className="chart-focus-reset relative flex-1 w-full min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

@@ -12,7 +12,8 @@ import {
   getEventTypeLabel, isOnSetEvent,
 } from "@/types/contract-constants";
 import EventTaskModal from "@/components/contracts/detail/event-task-modal";
-import type { ContractEvent, WorkTask, EventType } from "@/types/contract";
+import type { ContractEvent, WorkTask, EventType, TaskStatus } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
 
 // ═══════════════════════════════════════════
 // EventTimeline — V2 Horizontal Grid Cards
@@ -24,7 +25,9 @@ import type { ContractEvent, WorkTask, EventType } from "@/types/contract";
 interface Props {
   events: ContractEvent[];
   tasks: WorkTask[];
+  activeEmployees?: ActiveEmployee[];
   onRefresh?: () => void;
+  onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
   onAddEvent?: () => void;
 }
 
@@ -78,13 +81,23 @@ function getCardStyles(event: ContractEvent, isActive: boolean) {
 }
 
 // ─── Main Component ──────────────────────────────────
-export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: Props) {
+export default function EventTimeline({
+  events,
+  tasks,
+  activeEmployees,
+  onRefresh,
+  onTaskStatusChange,
+  onAddEvent,
+}: Props) {
   const [modalEvent, setModalEvent] = useState<ContractEvent | null>(null);
 
   // Sort by sort_order (V1 business logic), fallback to date
   const sorted = [...events].sort((a, b) => {
     if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-    return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+    return (
+      new Date(a.event_date || a.deadline || "9999-12-31").getTime() -
+      new Date(b.event_date || b.deadline || "9999-12-31").getTime()
+    );
   });
 
   // Auto-highlight: first non-complete event = active
@@ -282,8 +295,11 @@ export default function EventTimeline({ events, tasks, onRefresh, onAddEvent }: 
             status: modalEvent.status,
           }}
           contractId={modalEvent.contract_id}
+          prefetchedTasks={tasks.filter(t => t.event_id === modalEvent.id)}
+          prefetchedEmployees={activeEmployees}
           onClose={() => setModalEvent(null)}
           onSaved={() => onRefresh?.()}
+          onTaskStatusChange={onTaskStatusChange}
         />
       )}
     </div>

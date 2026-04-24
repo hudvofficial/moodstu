@@ -4,7 +4,7 @@ import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { isOnSetEvent } from "@/types/contract-constants";
-import type { EventType } from "@/types/contract";
+import type { EventType, ServiceType } from "@/types/contract";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 // ═══════════════════════════════════════════
@@ -24,6 +24,147 @@ type EventUpdateFields = Partial<{
   notes: string | null;
   is_manual_date: boolean;
 }>;
+
+type EventTemplateRow = {
+  event_type: EventType;
+  event_name: string | null;
+  default_days_offset: number | null;
+  sort_order: number | null;
+};
+
+function addDays(base: Date, offset: number): string {
+  const date = new Date(base);
+  date.setDate(date.getDate() + offset);
+  return date.toISOString().split("T")[0];
+}
+
+function fallbackEventTemplates(serviceType: ServiceType): EventTemplateRow[] {
+  const serviceLabel: Partial<Record<ServiceType, string>> = {
+    studio: "Studio",
+    ngay_cuoi: "Ngay cuoi",
+    combo: "Combo",
+    baby: "Baby",
+    gia_dinh: "Gia dinh",
+    sinh_nhat: "Sinh nhat",
+    bau: "Bau",
+    concept: "Concept",
+    couple: "Couple",
+    ky_yeu: "Ky yeu",
+    media: "Media",
+    khac: "Du an",
+  };
+
+  const label = serviceLabel[serviceType] || "Du an";
+  if (serviceType === "ngay_cuoi") {
+    return [
+      { event_type: "ngay_to_chuc", event_name: label, default_days_offset: 0, sort_order: 1 },
+      { event_type: "hau_ky", event_name: `Hau ky ${label}`, default_days_offset: 5, sort_order: 2 },
+      { event_type: "giao_san_pham", event_name: "Giao san pham", default_days_offset: 10, sort_order: 3 },
+    ];
+  }
+
+  return [
+    { event_type: "ngay_chup", event_name: `Thuc hien ${label}`, default_days_offset: 0, sort_order: 1 },
+    { event_type: "hau_ky", event_name: `Hau ky ${label}`, default_days_offset: 3, sort_order: 2 },
+    { event_type: "giao_san_pham", event_name: "Giao san pham", default_days_offset: 7, sort_order: 3 },
+  ];
+}
+
+function buildContractEvents(
+  contractId: string,
+  serviceType: ServiceType,
+  workDate: string | null | undefined,
+  templates: EventTemplateRow[],
+) {
+  const baseDate = workDate ? new Date(workDate) : null;
+  const knownCeremonyDate = serviceType === "ngay_cuoi" && baseDate;
+  let lastOnSetType: EventType | null = null;
+
+  return templates.map((template, index) => {
+    const eventType = template.event_type;
+    const offset = template.default_days_offset ?? 0;
+    const isOnSet = isOnSetEvent(eventType);
+    let eventDate: string | null = null;
+    let deadline: string | null = null;
+
+    if (isOnSet) {
+      lastOnSetType = eventType;
+      if (baseDate && (eventType !== "ngay_to_chuc" || knownCeremonyDate)) {
+        eventDate = addDays(baseDate, offset);
+      }
+    } else if (baseDate && (lastOnSetType !== "ngay_to_chuc" || knownCeremonyDate)) {
+      deadline = addDays(baseDate, offset);
+    }
+
+    return {
+      contract_id: contractId,
+      event_type: eventType,
+      title: template.event_name || eventType,
+      event_date: eventDate,
+      deadline,
+      status: "chua_lam",
+      sort_order: template.sort_order ?? index + 1,
+      is_manual_date: false,
+    };
+  });
+}
+
+export async function generateContractEvents(
+  contractId: string,
+  serviceType: ServiceType,
+  workDate?: string | null,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { count, error: countError } = await supabase
+      .from("contract_events")
+      .select("id", { count: "exact", head: true })
+      .eq("contract_id", contractId)
+      .is("deleted_at", null);
+
+    if (countError) throw new Error(`Loi kiem tra event: ${countError.message}`);
+    if (count && count > 0) {
+      return { generated: 0, message: "Contract events already exist" };
+    }
+
+    const { data: templates, error: templateError } = await supabase
+      .from("event_templates")
+      .select("event_type, event_name, default_days_offset, sort_order")
+      .eq("service_type", serviceType)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    if (templateError) throw new Error(`Loi doc event templates: ${templateError.message}`);
+
+    const rows = buildContractEvents(
+      contractId,
+      serviceType,
+      workDate,
+      (templates as EventTemplateRow[] | null)?.length
+        ? (templates as EventTemplateRow[])
+        : fallbackEventTemplates(serviceType),
+    );
+
+    const { data, error } = await supabase
+      .from("contract_events")
+      .insert(rows)
+      .select("id, event_type, title, sort_order");
+
+    if (error) throw new Error(`Loi tao event tu dong: ${error.message}`);
+
+    fireAuditLog({
+      action: "CREATE",
+      tableName: "contract_events",
+      recordId: contractId,
+      description: `Auto generated ${data?.length || 0} contract events`,
+      source: "server_action",
+    });
+
+    revalidatePath(`/contracts/${contractId}`);
+    return { generated: data?.length || 0, message: "Contract events generated" };
+  });
+}
 
 // ─── UPDATE CONTRACT EVENT ───────────────────────
 // V1 ref: crud.ts L238-285

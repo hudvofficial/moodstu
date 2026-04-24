@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { withAdmin, withAuth } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
+import { isMissingRpcError } from "@/lib/finance-utils";
 import type {
   ActiveEmployee,
   EmployeeDetail,
@@ -37,7 +39,7 @@ function normalizeSearch(value: string | undefined) {
 }
 
 export async function getEmployeeList(params: EmployeeListParams = {}) {
-  return withAdmin(async (supabase) => {
+  return profileAction("employees.getEmployeeList", () => withAdmin(async (supabase) => {
     const page = normalizePage(params.page);
     const pageSize = normalizePageSize(params.pageSize);
     const from = (page - 1) * pageSize;
@@ -101,10 +103,11 @@ export async function getEmployeeList(params: EmployeeListParams = {}) {
       page,
       pageSize,
     };
-  });
+  }));
 }
 
 export async function getEmployeeById(id: string) {
+  return profileAction("employees.getEmployeeById", async () => {
   const parsedId = uuidSchema.safeParse(id);
   if (!parsedId.success) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
@@ -120,10 +123,34 @@ export async function getEmployeeById(id: string) {
     if (error || !data) throw new Error("Không tìm thấy nhân viên");
     return data as EmployeeDetail;
   });
+  });
 }
 
 export async function getEmployeeStats() {
-  return withAdmin(async (supabase) => {
+  return profileAction("employees.getEmployeeStats", () => withAdmin(async (supabase) => {
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("employee_stats")
+      .maybeSingle();
+
+    if (!rpcError && rpcData) {
+      const row = rpcData as Record<string, unknown>;
+      const departments =
+        row.departments && typeof row.departments === "object" && !Array.isArray(row.departments)
+          ? (row.departments as Record<string, number>)
+          : {};
+
+      return {
+        total: Number(row.total) || 0,
+        active: Number(row.active) || 0,
+        inactive: Number(row.inactive) || 0,
+        departments,
+      };
+    }
+
+    if (rpcError && !isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai thong ke: ${rpcError.message}`);
+    }
+
     const { data, error } = await supabase
       .from("employees")
       .select("department, status")
@@ -154,7 +181,7 @@ export async function getEmployeeStats() {
       inactive: inactiveCount || 0,
       departments: deptCounts,
     };
-  });
+  }));
 }
 
 export async function getNextEmployeeCode() {

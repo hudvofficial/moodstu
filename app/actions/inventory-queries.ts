@@ -1,6 +1,7 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
 import type {
   InventoryItem,
   InventoryFilters,
@@ -47,7 +48,7 @@ function normalizeSearch(value: string | undefined) {
 export async function fetchInventoryList(
   filters: InventoryFilters = {}
 ): Promise<{ data: InventoryItem[]; count: number }> {
-  return withAdmin(async (supabase) => {
+  return profileAction("inventory.fetchInventoryList", () => withAdmin(async (supabase) => {
     const page = normalizePage(filters.page);
     const from = (page - 1) * INVENTORY_PAGE_SIZE;
     const to = from + INVENTORY_PAGE_SIZE - 1;
@@ -101,13 +102,13 @@ export async function fetchInventoryList(
     if (result.success) return result.data;
     console.error("[fetchInventoryList] auth error:", result.error);
     return { data: [], count: 0 };
-  });
+  }));
 }
 
 // ─── FETCH DETAIL (single item + recent transactions) ──
 
 export async function fetchInventoryDetail(id: string): Promise<InventoryDetail | null> {
-  return withAdmin(async (supabase) => {
+  return profileAction("inventory.fetchInventoryDetail", () => withAdmin(async (supabase) => {
     // Parallel: item + transactions
     const [itemRes, txnRes] = await Promise.all([
       supabase
@@ -133,7 +134,7 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
   }).then((result) => {
     if (result.success) return result.data;
     return null;
-  });
+  }));
 }
 
 // ─── TRANSACTION HISTORY (full log, filtered) ────────
@@ -141,7 +142,7 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
 export async function fetchTransactionHistory(
   filters: TransactionFilters = {}
 ): Promise<{ data: InventoryTransaction[]; count: number }> {
-  return withAdmin(async (supabase) => {
+  return profileAction("inventory.fetchTransactionHistory", () => withAdmin(async (supabase) => {
     const page = normalizePage(filters.page);
     const from = (page - 1) * TRANSACTION_PAGE_SIZE;
     const to = from + TRANSACTION_PAGE_SIZE - 1;
@@ -189,13 +190,13 @@ export async function fetchTransactionHistory(
     if (result.success) return result.data;
     console.error("[fetchTransactionHistory] auth error:", result.error);
     return { data: [], count: 0 };
-  });
+  }));
 }
 
 // ─── STATS ───────────────────────────────────────────
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-  return withAdmin(async (supabase) => {
+  return profileAction("inventory.getInventoryStats", () => withAdmin(async (supabase) => {
     const [itemsRes, txnRes] = await Promise.all([
       supabase
         .from("inventory_items")
@@ -226,7 +227,7 @@ export async function getInventoryStats(): Promise<InventoryStats> {
   }).then((result) => {
     if (result.success) return result.data;
     return { total: 0, active: 0, lowStock: 0, totalValue: 0, transactionsThisMonth: 0 };
-  });
+  }));
 }
 
 // ─── NEXT INVENTORY CODE (auto-gen VT-XXX) ───────────

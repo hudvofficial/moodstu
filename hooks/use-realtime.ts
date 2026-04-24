@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { revalidate, revalidateMultiple } from "@/lib/swr";
+import { revalidate, revalidateByPrefixes, revalidateMultiple } from "@/lib/swr";
 import { useRouter } from "next/navigation";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export type ConnectionStatus =
   | "connecting"
@@ -11,14 +12,18 @@ export type ConnectionStatus =
   | "disconnected"
   | "retrying";
 
+export type RealtimePayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
+
 export type RealtimeOptions = {
-  /** SWR cache keys to revalidate; omit to router.refresh() */
-  cacheKeys?: string[];
+  /** Exact SWR cache keys to revalidate. Prefer keys/prefixes over route refresh. */
+  cacheKeys?: string[] | ((payload: RealtimePayload) => string[] | undefined);
+  prefixes?: string | string[] | ((payload: RealtimePayload) => string | string[] | undefined);
   eventTypes?: ("INSERT" | "UPDATE" | "DELETE" | "*")[];
   filter?: string;
   debounceMs?: number;
   schema?: string;
   channelName?: string;
+  onChange?: (payload: RealtimePayload) => void | Promise<void>;
 };
 
 /**
@@ -27,7 +32,7 @@ export type RealtimeOptions = {
  * Source: V1 useRealtime.ts (147 lines)
  * Adapted: React Query → SWR (revalidate/revalidateMultiple)
  *
- * On postgres_changes → revalidate SWR cache keys or router.refresh()
+ * On postgres_changes -> revalidate SWR keys/prefixes, or refresh only as a last resort.
  * Features: auth check, debounce (300ms), filtered events, row-level filter
  */
 export function useRealtime(
@@ -37,6 +42,9 @@ export function useRealtime(
   const router = useRouter();
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onChangeRef = useRef<RealtimeOptions["onChange"]>(undefined);
+  const cacheKeysRef = useRef<RealtimeOptions["cacheKeys"]>(undefined);
+  const prefixesRef = useRef<RealtimeOptions["prefixes"]>(undefined);
 
   const isOptions =
     cacheKeysOrOptions &&
@@ -48,7 +56,7 @@ export function useRealtime(
     : {};
 
   // Backward compat: second arg as string array = cache keys
-  const keys = isOptions
+  const keys: RealtimeOptions["cacheKeys"] = isOptions
     ? options.cacheKeys
     : (cacheKeysOrOptions as string[] | undefined);
 
@@ -69,6 +77,10 @@ export function useRealtime(
 
   const eventTypesKey = useMemo(() => eventTypes.join(","), [eventTypes]);
 
+  onChangeRef.current = options.onChange;
+  cacheKeysRef.current = keys;
+  prefixesRef.current = options.prefixes;
+
   useEffect(() => {
     let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
     const supabase = createClient();
@@ -84,15 +96,26 @@ export function useRealtime(
 
       channel = supabase.channel(channelName);
 
-      const handler = () => {
+      const handler = (payload: RealtimePayload) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
-          if (keys && keys.length > 0) {
-            if (keys.length === 1) {
-              revalidate(keys[0]);
+          const currentKeys = cacheKeysRef.current;
+          const targetKeys =
+            typeof currentKeys === "function" ? currentKeys(payload) : currentKeys;
+          const currentPrefixes = prefixesRef.current;
+          const targetPrefixes =
+            typeof currentPrefixes === "function" ? currentPrefixes(payload) : currentPrefixes;
+
+          if (targetKeys && targetKeys.length > 0) {
+            if (targetKeys.length === 1) {
+              revalidate(targetKeys[0]);
             } else {
-              revalidateMultiple(keys);
+              revalidateMultiple(targetKeys);
             }
+          } else if (targetPrefixes) {
+            void revalidateByPrefixes(targetPrefixes);
+          } else if (onChangeRef.current) {
+            void onChangeRef.current(payload);
           } else {
             router.refresh();
           }

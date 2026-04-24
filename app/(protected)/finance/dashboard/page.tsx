@@ -14,20 +14,22 @@ import {
   getServiceDistribution,
 } from "@/app/actions/finance-dashboard-queries";
 import { AdvancedKpiGrid } from "@/components/finance/dashboard/advanced-kpi-grid";
-import { AgingBarsChart } from "@/components/finance/dashboard/aging-bars-chart";
 import { BreakEvenCard } from "@/components/finance/dashboard/break-even-card";
 import { BudgetVsActualList } from "@/components/finance/dashboard/budget-vs-actual-list";
 import { CashflowRunwayCard } from "@/components/finance/dashboard/cashflow-runway-card";
 import { CustomerMetricsCard } from "@/components/finance/dashboard/customer-metrics-card";
 import { DressRoiCard } from "@/components/finance/dashboard/dress-roi-card";
-import { ExpenseDonutChart } from "@/components/finance/dashboard/expense-donut-chart";
-import { ForecastChart } from "@/components/finance/dashboard/forecast-chart";
 import { HealthScoreCard } from "@/components/finance/dashboard/health-score-card";
 import { InventoryCostsCard } from "@/components/finance/dashboard/inventory-costs-card";
-import { RevenueBarChart } from "@/components/finance/dashboard/revenue-bar-chart";
 import { RevenueBreakdownCard } from "@/components/finance/dashboard/revenue-breakdown-card";
 import { ScenarioPlanningCard } from "@/components/finance/dashboard/scenario-planning-card";
-import { ServiceDonutChart } from "@/components/finance/dashboard/service-donut-chart";
+import {
+  LazyAgingBarsChart,
+  LazyExpenseDonutChart,
+  LazyForecastChart,
+  LazyRevenueBarChart,
+  LazyServiceDonutChart,
+} from "@/components/finance/dashboard/lazy-charts";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import type { ActionResult } from "@/types/action-result";
 
@@ -69,7 +71,7 @@ async function CriticalIntelligenceZone() {
   const intelligence = unwrap(await getCachedFinanceIntelligence(), null);
 
   return (
-    <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <section className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
       <HealthScoreCard data={intelligence} />
       <CashflowRunwayCard data={intelligence} />
       <BreakEvenCard data={intelligence} />
@@ -90,13 +92,13 @@ async function ForecastZone() {
   const aging = unwrap(agingResult, null);
 
   return (
-    <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <div className="xl:col-span-2">
-        <ForecastChart data={forecast} />
+    <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3">
+      <div className="min-w-0 xl:col-span-2">
+        <LazyForecastChart data={forecast} />
       </div>
-      <ExpenseDonutChart data={expenses} />
-      <div className="xl:col-span-3">
-        <AgingBarsChart data={aging} />
+      <LazyExpenseDonutChart data={expenses} />
+      <div className="min-w-0 xl:col-span-3">
+        <LazyAgingBarsChart data={aging} />
       </div>
     </section>
   );
@@ -117,34 +119,34 @@ async function DetailIntelligenceZone() {
   const advanced = unwrap(advancedResult, null);
 
   return (
-    <section className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <div className="xl:col-span-2">
+    <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-5">
+      <div className="min-w-0 xl:col-span-2">
         <BudgetVsActualList data={budget} />
       </div>
-      <div className="xl:col-span-3">
-        <RevenueBarChart data={revenue} selectedMonth={month} />
+      <div className="min-w-0 xl:col-span-3">
+        <LazyRevenueBarChart data={revenue} selectedMonth={month} />
       </div>
-      <div className="xl:col-span-5">
-        <ServiceDonutChart data={services} title="Doanh thu theo dịch vụ" />
+      <div className="col-span-full min-w-0">
+        <LazyServiceDonutChart data={services} title="Doanh thu theo dịch vụ" />
       </div>
       {advanced ? (
         <>
-          <div className="xl:col-span-5">
+          <div className="col-span-full min-w-0">
             <AdvancedKpiGrid data={advanced.advancedKPIs} />
           </div>
-          <div className="xl:col-span-5">
+          <div className="col-span-full min-w-0">
             <ScenarioPlanningCard data={advanced.scenarios} />
           </div>
-          <div className="xl:col-span-2">
+          <div className="min-w-0 xl:col-span-2">
             <CustomerMetricsCard data={advanced.customerMetrics} />
           </div>
-          <div className="xl:col-span-3">
+          <div className="min-w-0 xl:col-span-3">
             <RevenueBreakdownCard data={advanced.revenueBreakdown} />
           </div>
-          <div className="xl:col-span-2">
+          <div className="min-w-0 xl:col-span-2">
             <DressRoiCard data={advanced.dressROI} />
           </div>
-          <div className="xl:col-span-3">
+          <div className="min-w-0 xl:col-span-3">
             <InventoryCostsCard data={advanced.inventoryCosts} />
           </div>
         </>

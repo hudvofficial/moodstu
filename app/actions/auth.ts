@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { normalizeAuthIdentifier } from "@/lib/validations/auth.schema";
 
 // ═══════════════════════════════════════════
 // Auth Server Actions — Copy from V1 (proven)
@@ -38,7 +39,7 @@ export async function login(formData: FormData): Promise<LoginResult> {
   const supabase = await createClient();
 
   // 2. Smart Username Logic: Append @moodwedding.com if no @ is present
-  const finalEmail = email.includes("@") ? email : `${email}@moodwedding.com`;
+  const finalEmail = normalizeAuthIdentifier(email);
 
   // 3. Rate Limiting Check (Database-backed)
   const { data: attempt } = await supabase

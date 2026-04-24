@@ -1,23 +1,58 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { Shirt, CalendarDays } from "lucide-react";
 import type { DressReservationRow } from "@/types/contract";
 import { formatDate } from "@/lib/utils";
 import StatusSelect, { RESERVATION_STATUS_OPTIONS } from "@/components/ui/status-select";
-import { updateReservationStatus } from "@/app/actions/printing-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { updateReservationStatus } from "@/app/actions/dress-mutations";
 import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════
 // CostumesBlock — Trang phục đã chọn
 // Phase 04e: dress_reservations JOIN dresses
+// ⚡ Optimistic UI: instant status update, fire-and-forget API
 // ═══════════════════════════════════════════
 
 interface Props {
   reservations: DressReservationRow[];
   contractId: string;
+  onStatusChange?: () => void;
 }
 
-export default function CostumesBlock({ reservations, contractId }: Props) {
+export default function CostumesBlock({ reservations, contractId, onStatusChange }: Props) {
+  const [localReservations, setLocalReservations] = useState(reservations);
+
+  // Sync with parent when data refreshes (e.g., Realtime update from another user)
+  if (reservations !== localReservations && reservations.length !== localReservations.length) {
+    setLocalReservations(reservations);
+  }
+
+  const handleStatusUpdate = (reservationId: string, newStatus: string) => {
+    const previous = localReservations.find(r => r.id === reservationId)?.status;
+    if (!previous || previous === newStatus) return;
+
+    // 1. Optimistic update — instant UI
+    setLocalReservations(prev =>
+      prev.map(r => r.id === reservationId ? { ...r, status: newStatus } : r)
+    );
+
+    // 2. Notify parent to mute Realtime echo
+    onStatusChange?.();
+
+    // 3. Fire-and-forget — rollback on error
+    updateReservationStatus(reservationId, newStatus, contractId).then(result => {
+      if (!result.success) {
+        // Rollback
+        setLocalReservations(prev =>
+          prev.map(r => r.id === reservationId ? { ...r, status: previous } : r)
+        );
+        toast(result.error || "Lỗi cập nhật", "error");
+      }
+    });
+  };
+
   return (
     <div className="card-base p-4 lg:p-5">
       {/* Header */}
@@ -28,15 +63,15 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
             Trang phục
           </h3>
         </div>
-        {reservations.length > 0 && (
+        {localReservations.length > 0 && (
           <span className="text-caption text-text-muted">
-            {reservations.length} bộ
+            {localReservations.length} bộ
           </span>
         )}
       </div>
 
       {/* Content */}
-      {reservations.length === 0 ? (
+      {localReservations.length === 0 ? (
         <div className="py-6 text-center">
           <Shirt size={28} className="text-text-muted/40 mx-auto mb-2" />
           <p className="text-caption text-text-muted">
@@ -45,7 +80,7 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-          {reservations.map((r) => {
+          {localReservations.map((r) => {
             const item = r.dresses;
             return (
               <div
@@ -78,15 +113,7 @@ export default function CostumesBlock({ reservations, contractId }: Props) {
                       variant="compact"
                       current={r.status || "reserved"}
                       options={[...RESERVATION_STATUS_OPTIONS]}
-                      onUpdate={async (newStatus) => {
-                        const result = await updateReservationStatus(r.id, newStatus, contractId);
-                        if (result.success) {
-                          toast("Cập nhật thành công", "success");
-                          await revalidateContractCaches(contractId);
-                        } else {
-                          toast(result.error || "Lỗi cập nhật", "error");
-                        }
-                      }}
+                      onUpdate={async (newStatus) => handleStatusUpdate(r.id, newStatus)}
                     />
                   </div>
                   {/* Row 2: Code + Size */}

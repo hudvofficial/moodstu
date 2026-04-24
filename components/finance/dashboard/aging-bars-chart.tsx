@@ -41,7 +41,7 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
         <h3 className="text-h3">Chất lượng Công Nợ (Tuổi nợ)</h3>
       </div>
 
-      <div className="flex-1 w-full min-h-[250px]">
+      <div className="chart-focus-reset flex-1 w-full min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />

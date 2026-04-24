@@ -1,0 +1,89 @@
+"use client";
+
+import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { MODULES } from "@/lib/navigation";
+import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
+import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
+
+const WARMUP_ORDER = [
+  "/dashboard",
+  "/contracts",
+  "/calendar",
+  "/crm/leads",
+  "/finance",
+  "/services",
+  "/inventory",
+  "/employees",
+  "/dresses",
+  "/printing",
+  "/reports",
+  "/productivity",
+  "/settings",
+  "/moodie",
+];
+
+type IdleWindow = Window &
+  typeof globalThis & {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+
+function scheduleIdle(callback: () => void) {
+  const w = window as IdleWindow;
+
+  if (typeof w.requestIdleCallback === "function") {
+    const id = w.requestIdleCallback(callback, { timeout: 2000 });
+    return () => w.cancelIdleCallback?.(id);
+  }
+
+  const id = window.setTimeout(callback, 800);
+  return () => window.clearTimeout(id);
+}
+
+export function NavigationWarmup({ role }: { role: Role }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const hrefs = React.useMemo(() => {
+    const allowed = new Set(ROLE_PERMISSIONS[role] || []);
+    const moduleHrefs = MODULES.filter((item) => allowed.has(item.id)).map(
+      (item) => item.href,
+    );
+
+    return ["/dashboard", ...moduleHrefs]
+      .filter((href, index, list) => list.indexOf(href) === index)
+      .filter((href) => pathname !== href && !pathname.startsWith(`${href}/`))
+      .sort((a, b) => WARMUP_ORDER.indexOf(a) - WARMUP_ORDER.indexOf(b));
+  }, [pathname, role]);
+
+  React.useEffect(() => {
+    if (hrefs.length === 0) return;
+
+    let cancelled = false;
+    const timeoutIds: number[] = [];
+
+    const cancelIdle = scheduleIdle(() => {
+      hrefs.slice(0, 8).forEach((href, index) => {
+        const id = window.setTimeout(() => {
+          if (!cancelled) {
+            router.prefetch(href);
+            if (index < 4) prewarmRouteData(href);
+          }
+        }, index * 140);
+        timeoutIds.push(id);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdle();
+      timeoutIds.forEach((id) => window.clearTimeout(id));
+    };
+  }, [hrefs, router]);
+
+  return null;
+}

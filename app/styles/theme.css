@@ -15,6 +15,10 @@
   --header-mobile-h: 3.5rem; /* 56px = h-14 */
   --header-desktop-h: 4rem; /* 64px = h-16 */
   --z-header: 40;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-outline: rgba(139, 94, 60, 0.72);
+  --focus-ring-shadow: rgba(139, 94, 60, 0.18);
   --gallery-admin-action-h: 2.25rem;
   --gallery-admin-tab-h: 1.75rem;
   --gallery-admin-section-gap: 0.75rem;

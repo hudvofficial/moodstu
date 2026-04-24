@@ -13,36 +13,19 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getEventTypeLabel } from "@/types/contract-constants";
 import type { EventType } from "@/types/contract";
+import { ChecklistCategoryCard } from "./checklist-category-card";
 
-// ─── TYPES ───────────────────────────────────
-
-interface ChecklistItem {
+export interface ChecklistItem {
   id: string;
   event_stage: string | null;
   category: string;
   item_name: string;
   is_completed: boolean;
-}
-
-// ─── CATEGORY STYLES ─────────────────────────
-
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; accent: string }> = {
-  "lễ tân": { bg: "bg-warning/10", text: "text-warning", accent: "bg-warning" },
-  "makeup": { bg: "bg-accent/10", text: "text-accent", accent: "bg-accent" },
-  "photo":  { bg: "bg-info/10", text: "text-info", accent: "bg-info" },
-};
-
-function getCategoryStyle(category: string) {
-  const key = Object.keys(CATEGORY_STYLES).find((k) =>
-    category.toLowerCase().includes(k)
-  );
-  return key
-    ? CATEGORY_STYLES[key]
-    : { bg: "bg-bg-hover", text: "text-text-secondary", accent: "bg-text-muted" };
 }
 
 // ─── STAGE SORT ──────────────────────────────
@@ -112,7 +95,11 @@ export default function ContractChecklistManager({
     );
 
     try {
-      await toggleChecklist(item.id, newVal);
+      const res = await toggleChecklist(item.id, newVal);
+      if (!res.success) {
+        throw new Error(res.error);
+      }
+      await revalidateContractCaches(res.data.contract_id);
     } catch {
       setItems((prev) =>
         prev.map((i) => (i.id === item.id ? { ...i, is_completed: !newVal } : i))
@@ -132,72 +119,6 @@ export default function ContractChecklistManager({
       </div>
     );
   }
-
-  // ── Render a single category card ──
-  const renderCategory = (category: string, catItems: ChecklistItem[]) => {
-    const style = getCategoryStyle(category);
-    const catDone = catItems.filter((i) => i.is_completed).length;
-    const allDone = catDone === catItems.length;
-
-    return (
-      <div key={category} className="rounded-md shadow-xs overflow-hidden">
-        {/* Category header */}
-        <div className={`flex items-center justify-between px-3 py-2 ${style.bg}`}>
-          <span className={`text-tiny font-bold ${style.text}`}>
-            {category}
-          </span>
-          <span className={`text-tiny font-bold ${allDone ? "text-success" : style.text} opacity-80`}>
-            {catDone}/{catItems.length}
-          </span>
-        </div>
-
-        {/* Items */}
-        <div className="px-2 py-2 space-y-1">
-          {catItems.map((item) => (
-            <label
-              key={item.id}
-              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer transition-all group ${
-                item.is_completed
-                  ? "bg-bg-hover/30 opacity-60"
-                  : "bg-bg-card shadow-xs hover:shadow-sm"
-              }`}
-            >
-              {/* Accent bar */}
-              <div
-                className={`w-1 rounded-full transition-all self-stretch ${
-                  item.is_completed ? "bg-border" : style.accent
-                }`}
-              />
-
-              {/* Checkbox icon */}
-              <Button unstyled
-                type="button"
-                onClick={() => handleToggle(item)}
-                className="shrink-0"
-              >
-                {item.is_completed ? (
-                  <CheckSquare className="w-5 h-5 text-success" />
-                ) : (
-                  <Square className="w-5 h-5 text-text-muted group-hover:text-primary" />
-                )}
-              </Button>
-
-              {/* Label */}
-              <span
-                className={`text-body-sm leading-snug select-none transition-all ${
-                  item.is_completed
-                    ? "line-through text-text-muted"
-                    : "text-text-main font-medium group-hover:text-primary"
-                }`}
-              >
-                {item.item_name}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   // ── Stage progress helper ──
   const getStageProgress = (cats: Record<string, ChecklistItem[]>) => {
@@ -279,7 +200,14 @@ export default function ContractChecklistManager({
                     : "grid-cols-1"
               }`}
             >
-              {catEntries.map(([cat, catItems]) => renderCategory(cat, catItems))}
+              {catEntries.map(([cat, catItems]) => (
+                <ChecklistCategoryCard
+                  key={cat}
+                  category={cat}
+                  items={catItems}
+                  onToggle={handleToggle}
+                />
+              ))}
             </div>
           );
         }
@@ -311,7 +239,14 @@ export default function ContractChecklistManager({
                     : "grid-cols-1"
               }`}
             >
-              {catEntries.map(([cat, catItems]) => renderCategory(cat, catItems))}
+              {catEntries.map(([cat, catItems]) => (
+                <ChecklistCategoryCard
+                  key={cat}
+                  category={cat}
+                  items={catItems}
+                  onToggle={handleToggle}
+                />
+              ))}
             </div>
           </div>
         );

@@ -1,35 +1,24 @@
 import { Layers3 } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
+import { EmptyState } from "@/components/ui/ux-states";
+import { getServiceLabel } from "@/types/contract-constants";
+import type { ServiceType } from "@/types/contract";
 import type { RevenueBreakdownItem } from "@/types/finance-intelligence";
 
 interface RevenueBreakdownCardProps {
   data: RevenueBreakdownItem[];
 }
 
-const serviceLabels: Record<string, string> = {
-  studio: "Studio",
-  ngay_cuoi: "Ngày cưới",
-  combo: "Combo",
-  baby: "Baby",
-  gia_dinh: "Gia đình",
-  sinh_nhat: "Sinh nhật",
-  bau: "Bầu",
-  concept: "Concept",
-  couple: "Couple",
-  ky_yeu: "Kỷ yếu",
-  media: "Media",
-  khac: "Khác",
-};
-
-function getServiceLabel(value: string) {
-  return serviceLabels[value] || value || "Khác";
+function formatServiceType(value: string) {
+  if (!value) return "Khác";
+  return getServiceLabel(value as ServiceType);
 }
 
 export function RevenueBreakdownCard({ data }: RevenueBreakdownCardProps) {
   const total = data.reduce((sum, item) => sum + Number(item.total || 0), 0);
 
   return (
-    <div className="card-base h-full p-4">
+    <div className="card-base h-full min-w-0 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-overline text-text-muted">Revenue mix</p>
@@ -41,8 +30,12 @@ export function RevenueBreakdownCard({ data }: RevenueBreakdownCardProps) {
       </div>
 
       {data.length === 0 || total === 0 ? (
-        <div className="grid h-48 place-items-center text-body-sm text-text-muted">
-          Chưa có hợp đồng trong tháng.
+        <div className="dashboard-surface">
+          <EmptyState
+            compact
+            title="Chưa có hợp đồng trong tháng"
+            description="Cần thêm hợp đồng phát sinh để phân tích cơ cấu doanh thu."
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -56,15 +49,15 @@ export function RevenueBreakdownCard({ data }: RevenueBreakdownCardProps) {
               const pct = Math.min(Math.max(Number(item.percentage || 0), 0), 100);
 
               return (
-                <div key={item.service_type}>
-                  <div className="mb-1 flex items-center justify-between gap-3 text-body-sm">
-                    <span className="truncate font-medium">{getServiceLabel(item.service_type)}</span>
+                <div key={item.service_type} className="dashboard-surface min-w-0 space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-body-sm">
+                    <span className="truncate font-medium">{formatServiceType(item.service_type)}</span>
                     <span className="tabular-nums text-caption text-text-muted">{pct}%</span>
                   </div>
                   <div className="progress-track">
                     <div className="h-full rounded-full bg-info" style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="mt-1 flex items-center justify-between gap-3 text-caption text-text-secondary">
+                  <div className="flex items-center justify-between gap-3 text-caption text-text-secondary">
                     <span>{item.count} hợp đồng</span>
                     <span className="tabular-nums">{formatVnd(item.total)}</span>
                   </div>

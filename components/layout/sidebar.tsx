@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { logout } from "@/app/actions/auth";
 import packageJson from "@/package.json";
+import { clearSWRPersistCache } from "@/lib/swr-persist";
+import { usePrefetchOnHover } from "@/lib/hooks/use-prefetch-on-hover";
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: "Ban lãnh đạo",
@@ -29,12 +31,22 @@ interface SidebarProps {
 export function Sidebar({ role, userName, className }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const prefetchOnHover = usePrefetchOnHover();
 
   const filteredMenu = MODULES.filter((item) =>
     ROLE_PERMISSIONS[role]?.includes(item.id)
   );
 
   const groups = getMenuGroups();
+  const isRouteActive = React.useCallback(
+    (href: string, matchPrefix?: string) =>
+      pathname === href ||
+      pathname.startsWith(`${href}/`) ||
+      (matchPrefix
+        ? pathname === matchPrefix || pathname.startsWith(`${matchPrefix}/`)
+        : false),
+    [pathname],
+  );
 
   return (
     <aside
@@ -47,6 +59,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
       {/* Logo Section — Click → Dashboard */}
       <Link
         href="/dashboard"
+        prefetch
         className="p-4 flex items-center gap-3 overflow-hidden text-nowrap group hover:opacity-90 transition-opacity"
       >
         {/* Logo icon — V1 style: bo vuông nhẹ, nền primary, logo trắng */}
@@ -92,13 +105,16 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
               {/* Menu items */}
               <div className="space-y-0.5">
                 {groupItems.map((item) => {
-                  const isActive = pathname.startsWith(item.href);
+                  const isActive = isRouteActive(item.href, item.matchPrefix);
                   const Icon = item.icon;
 
                   return (
                     <Link
                       key={item.id}
                       href={item.href}
+                      prefetch
+                      onPointerEnter={() => prefetchOnHover(item.href)}
+                      aria-current={isActive ? "page" : undefined}
                       className={cn(
                         "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 active:scale-[0.98]",
                         isActive
@@ -148,6 +164,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
             <Button
               type="submit"
               variant="ghost"
+              onClick={() => void clearSWRPersistCache()}
               className="w-8 h-8 rounded-sm text-text-muted hover:bg-error/5 hover:text-error transition-all group"
               title="Đăng xuất"
             >

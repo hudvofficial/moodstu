@@ -37,7 +37,24 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getSession();
 
   // Public routes — no auth needed
-  const publicRoutes = ["/login", "/offline", "/api/auth", "/gallery"];
+  const publicRoutes = [
+    "/login",
+    "/forgot-password",
+    "/reset-password",
+    "/auth",
+    "/offline",
+    "/api/auth",
+    "/gallery",
+    "/manifest.json",
+    "/sw.js",
+    "/workbox-",
+    "/fallback-",
+    "/swe-worker-",
+    "/favicon.ico",
+    "/icon.png",
+    "/apple-icon.png",
+    "/icons/",
+  ];
   const isPublicRoute = publicRoutes.some((r) =>
     request.nextUrl.pathname.startsWith(r)
   );

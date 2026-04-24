@@ -33,12 +33,56 @@ function fmt(amount: number): string {
 
 // ─── CONTENT ─────────────────────────────────────
 
+// ─── TYPES ───────────────────────────────────────
+
+export interface DrawerEvent {
+  id: string;
+  event_type?: string;
+  title?: string;
+  event_date?: string;
+  end_date?: string;
+  location?: string;
+  status?: string;
+  notes?: string;
+}
+
+export interface DrawerChecklist {
+  id: string;
+  event_stage?: string;
+  category?: string;
+  item_name?: string;
+  is_completed?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DrawerWorkTask {
+  id: string;
+  contract_id?: string;
+  event_id?: string;
+  work_type?: string;
+  status?: string;
+  assignees?: { user_id: string; full_name?: string; role_in_task?: string }[];
+}
+
 interface DrawerContentProps {
   contract: ContractListItem;
+  extra?: {
+    events: DrawerEvent[];
+    checklists: DrawerChecklist[];
+    workTasks: DrawerWorkTask[];
+    paymentPlans: unknown[];
+  };
+  isLoadingExtra?: boolean;
   onViewDetail: () => void;
 }
 
-export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps) {
+export function DrawerContent({
+  contract: c,
+  extra,
+  isLoadingExtra = false,
+  onViewDetail,
+}: DrawerContentProps) {
   const totalAmount = c.total_amount || 0;
   const paidAmount = c.paid_amount || 0;
   const remainingAmount = c.remaining_amount || 0;
@@ -49,11 +93,15 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
   const customer = c.customers;
   const workDate = c.work_date;
 
-  // All drawer sections from list data (0ms)
-  const events = c.contract_events || [];
-  const checklists = c.contract_checklists || [];
-  const workTasks = c.work_tasks || [];
-  const paymentPlans = c.payment_plans || [];
+  // Heavy drawer sections are lazy-loaded; list data remains a lightweight fallback.
+  const events = extra?.events?.length ? extra.events : c.contract_events || [];
+  const checklists = extra?.checklists?.length
+    ? extra.checklists
+    : c.contract_checklists || [];
+  const workTasks = extra?.workTasks?.length ? extra.workTasks : c.work_tasks || [];
+  const paymentPlans = extra?.paymentPlans?.length
+    ? extra.paymentPlans
+    : c.payment_plans || [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -181,6 +229,7 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
         events={events}
         checklists={checklists}
         workTasks={workTasks}
+        isLoading={isLoadingExtra}
       />
 
       {/* ── Section: Ghi chú ── */}
@@ -190,7 +239,7 @@ export function DrawerContent({ contract: c, onViewDetail }: DrawerContentProps)
       <div className="pt-2">
         <Button unstyled onClick={onViewDetail} className="btn btn-primary w-full gap-2">
           <ExternalLink className="w-4 h-4" />
-          Xem chi tiết hồ sơ
+          Chi tiết hợp đồng
         </Button>
       </div>
     </div>
@@ -211,10 +260,12 @@ function OperationsTabs({
   events,
   checklists,
   workTasks,
+  isLoading,
 }: {
-  events: Record<string, unknown>[];
-  checklists: Record<string, unknown>[];
-  workTasks: Record<string, unknown>[];
+  events: DrawerEvent[];
+  checklists: DrawerChecklist[];
+  workTasks: DrawerWorkTask[];
+  isLoading: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<TabKey>("events");
 
@@ -238,17 +289,20 @@ function OperationsTabs({
       </div>
 
       {/* Tab content */}
+      {isLoading && (
+        <div className="mb-3 flex flex-col gap-2 rounded-lg bg-bg-subtle p-3">
+          <div className="skeleton skeleton-text w-full" />
+          <div className="skeleton skeleton-text w-3/4" />
+        </div>
+      )}
       {activeTab === "events" && (
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-        <DrawerEventTimeline events={events as any[]} />
+        <DrawerEventTimeline events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]} />
       )}
       {activeTab === "checklist" && (
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-        <DrawerChecklist items={checklists as any[]} />
+        <DrawerChecklist items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} />
       )}
       {activeTab === "staff" && (
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-        <DrawerAssignments tasks={workTasks as any[]} />
+        <DrawerAssignments tasks={workTasks as unknown as React.ComponentProps<typeof DrawerAssignments>["tasks"]} />
       )}
     </div>
   );

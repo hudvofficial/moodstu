@@ -18,6 +18,7 @@ import {
   updatePrintingOrder,
 } from "@/app/actions/printing-mutations";
 import { useDebounce } from "@/hooks/use-debounce";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import { Badge } from "@/components/ui/badge";
 import type {
@@ -247,6 +248,7 @@ export default function PrintingDetailDrawer({
       }
 
       await onSaved();
+      await revalidateContractCaches(order?.contractId || form.contractId);
       onClose();
     } catch (error) {
       toast(
@@ -287,6 +289,7 @@ export default function PrintingDetailDrawer({
 
       toast("Đã xóa đơn in", "success");
       await onSaved();
+      if (order.contractId) await revalidateContractCaches(order.contractId);
       onClose();
     } catch (error) {
       toast(

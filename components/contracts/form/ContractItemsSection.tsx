@@ -72,7 +72,7 @@ export function ContractItemsSection({ items, error }: Props) {
             className="text-sm font-bold shadow-sm shadow-interactive/20"
           >
             <Plus className="h-3.5 w-3.5" />
-            Thêm dịch vụ
+            Thêm dịch vụ / sản phẩm
           </Button>
         </div>
       </div>
@@ -235,7 +235,7 @@ function EmptyState({ onAddService }: { onAddService: () => void }) {
         variant="interactive"
       >
         <Plus className="h-4 w-4" />
-        Thêm dịch vụ đầu tiên
+        Thêm dịch vụ / sản phẩm
       </Button>
     </div>
   );

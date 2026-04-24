@@ -16,6 +16,7 @@ import {
 } from "@/app/actions/printing-queries";
 import { usePrintingFilters } from "@/hooks/usePrintingFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import type {
@@ -147,6 +148,7 @@ function PrintingListInner({
 
     toast("Cập nhật trạng thái thành công", "success");
     await handleSaved();
+    await revalidateContractCaches(order.contractId);
   };
 
 

@@ -91,6 +91,9 @@ export const reserveDressSchema = z.object({
   isAddon: z.boolean().default(false),
   rentalPrice: z.number().min(0).default(0),
   notes: z.string().max(1000).optional(),
+}).refine((data) => data.endDate >= data.startDate, {
+  message: "NgĂ y káº¿t thĂºc pháº£i sau hoáº·c báº±ng ngĂ y báº¯t Ä‘áº§u",
+  path: ["endDate"],
 });
 
 export type ReserveDressInput = z.infer<typeof reserveDressSchema>;

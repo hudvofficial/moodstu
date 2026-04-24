@@ -7,20 +7,27 @@
  * No more MOCK data. All filter/sort/pagination handled server-side.
  */
 
-import { useState, Suspense } from "react";
+import { useCallback, useState, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtime, type RealtimePayload } from "@/hooks/use-realtime";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
-import { useContracts, useContractStats, prefetchContract } from "@/lib/hooks/use-contracts";
+import {
+  revalidateContractCaches,
+  useContracts,
+  useContractStats,
+  prefetchContract,
+  prefetchContractDetail,
+} from "@/lib/hooks/use-contracts";
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
-import { ContractDrawer, type ContractListItem } from "@/components/contracts/contract-drawer";
+import type { ContractListItem } from "@/components/contracts/contract-drawer";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
@@ -28,6 +35,12 @@ import DatePicker from "@/components/ui/date-picker";
 import {
   SERVICE_TYPE_MAP,
 } from "@/types/contract-constants";
+import type { ContractFilters, ContractStats } from "@/types/contract";
+
+const ContractDrawer = dynamic(
+  () => import("@/components/contracts/contract-drawer").then((mod) => mod.ContractDrawer),
+  { ssr: false, loading: () => null },
+);
 
 // ─── CONSTANTS (V2 snake_case enum values) ───────────
 
@@ -57,7 +70,19 @@ const MOBILE_SORT_OPTIONS = [
 
 // ─── INNER COMPONENT ─────────────────────────────────
 
-function ContractsListInner() {
+interface ContractsInitialData {
+  contracts: Record<string, unknown>[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface ContractsListClientProps {
+  initialData?: ContractsInitialData;
+  initialStats?: ContractStats;
+}
+
+function ContractsListInner({ initialData, initialStats }: ContractsListClientProps) {
   const router = useRouter();
   const {
     filters,
@@ -77,14 +102,29 @@ function ContractsListInner() {
 
   // ── SWR: Real data from Server Actions ──
   // Cast: ContractFilterState uses `string`, ContractFilters uses typed enums
-  const swrFilters = filters as unknown as import("@/types/contract").ContractFilters;
+  const swrFilters = filters as unknown as ContractFilters;
   const { contracts, total, page, pageSize, isLoading, error } = useContracts(
-    swrFilters
+    swrFilters,
+    initialData,
   );
-  const { stats } = useContractStats();
+  const { stats } = useContractStats(initialStats);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  useRealtime("contracts");
+  const refreshContractCaches = useCallback((
+    payload: RealtimePayload,
+    idField: "id" | "contract_id" = "contract_id",
+  ) => {
+    const row = (payload.new ?? payload.old) as Record<string, unknown> | null;
+    const value = row?.[idField];
+    void revalidateContractCaches(typeof value === "string" ? value : undefined);
+  }, []);
+
+  useRealtime("contracts", { onChange: (payload) => refreshContractCaches(payload, "id") });
+  useRealtime("contract_checklists", { onChange: refreshContractCaches });
+  useRealtime("contract_notes", { onChange: refreshContractCaches });
+  useRealtime("contract_events", { onChange: refreshContractCaches });
+  useRealtime("work_tasks", { onChange: refreshContractCaches });
+  useRealtime("payment_plans", { onChange: refreshContractCaches });
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -105,9 +145,17 @@ function ContractsListInner() {
 
   // Handlers
   const handleView = (contractRecord: Record<string, unknown>) => {
+    const id = (contractRecord.id as string) || "";
+    if (id) {
+      prefetchContract(id);
+      prefetchContractDetail(id);
+      router.prefetch(`/contracts/${id}`);
+      router.prefetch(`/contracts/${id}/edit`);
+    }
+
     // Build ContractListItem from Record — ALL data for 0ms drawer
     const item: ContractListItem = {
-      id: (contractRecord.id as string) || "",
+      id,
       contract_code: (contractRecord.contract_code as string) || null,
       status: (contractRecord.status as ContractListItem["status"]) || null,
       service_type: (contractRecord.service_type as string) || null,
@@ -119,16 +167,24 @@ function ContractsListInner() {
       customer_id: (contractRecord.customer_id as string) || null,
       customers: contractRecord.customers as ContractListItem["customers"] ?? null,
       // Drawer sections (from list query JOINs)
-      contract_events: (contractRecord.contract_events as Record<string, unknown>[]) || [],
-      contract_checklists: (contractRecord.contract_checklists as Record<string, unknown>[]) || [],
-      work_tasks: (contractRecord.work_tasks as Record<string, unknown>[]) || [],
+      contract_events: (contractRecord.contract_events as unknown as ContractListItem["contract_events"]) || [],
+      contract_checklists: (contractRecord.contract_checklists as unknown as ContractListItem["contract_checklists"]) || [],
+      work_tasks: (contractRecord.work_tasks as unknown as ContractListItem["work_tasks"]) || [],
       payment_plans: (contractRecord.payment_plans as Record<string, unknown>[]) || [],
       contract_notes: (contractRecord.contract_notes as ContractListItem["contract_notes"]) || [],
     };
     setSelectedContract(item);
   };
-  const handleHover = (id: string) => prefetchContract(id);
-  const handleEdit = (id: string) => router.push(`/contracts/${id}/edit`);
+  const handleHover = (id: string) => {
+    prefetchContract(id);
+    prefetchContractDetail(id);
+    router.prefetch(`/contracts/${id}`);
+    router.prefetch(`/contracts/${id}/edit`);
+  };
+  const handleEdit = (id: string) => {
+    router.prefetch(`/contracts/${id}/edit`);
+    router.push(`/contracts/${id}/edit`);
+  };
   const handleDelete = (id: string) => void id; // Delete handled via drawer lifecycle actions
 
   const handleApplyDateRange = () => {
@@ -152,7 +208,13 @@ function ContractsListInner() {
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
         <div className="hidden lg:flex">
-          <Button unstyled onClick={() => router.push('/contracts/create')} className="btn btn-primary gap-2 shrink-0">
+          <Button
+            unstyled
+            onPointerEnter={() => router.prefetch("/contracts/create")}
+            onFocus={() => router.prefetch("/contracts/create")}
+            onClick={() => router.push('/contracts/create')}
+            className="btn btn-primary gap-2 shrink-0"
+          >
             <Plus className="w-5 h-5" />
             <span>Tạo hợp đồng</span>
           </Button>
@@ -291,10 +353,10 @@ function ContractsListInner() {
 
 // ─── MAIN EXPORT ─────────────────────────────────
 
-export default function ContractsListClient() {
+export default function ContractsListClient(props: ContractsListClientProps) {
   return (
     <Suspense>
-      <ContractsListInner />
+      <ContractsListInner {...props} />
     </Suspense>
   );
 }

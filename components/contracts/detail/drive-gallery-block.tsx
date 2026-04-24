@@ -136,7 +136,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           <h3 className="text-body-sm font-bold text-text-primary">Quản lý File ảnh & Drive</h3>
         </div>
         <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId, onSuccess: loadData })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
-          <Plus size={12} />
+          <Plus size={14} />
           <span>{hasGalleries ? "Thêm link" : "Gán Link Drive"}</span>
         </Button>
       </div>
@@ -175,7 +175,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                     style={{ width: 28, height: 28 }}
                     title={g.status === "shared" ? "Đã chia sẻ — bấm để xem link" : "Chia sẻ album"}
                   >
-                    <Share2 size={12} className={sharing === g.id ? "animate-pulse" : ""} />
+                    <Share2 size={14} className={sharing === g.id ? "animate-pulse" : ""} />
                     {g.status === "shared" && (
                       <span
                         className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
@@ -184,11 +184,11 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                     )}
                   </Button>
                   <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 28, height: 28 }} title="Đồng bộ lại">
-                    <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+                    <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
                   </Button>
                   {g.drive_folder_url && (
-                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon" style={{ width: 28, height: 28 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
-                      <ExternalLink size={12} />
+                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex items-center justify-center" style={{ width: 28, height: 28 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
+                      <ExternalLink size={14} />
                     </a>
                   )}
                 </div>
@@ -210,8 +210,8 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           {/* Delivery date */}
           {deliveryDate && (
             <div className="flex items-center justify-between">
-              <span className="text-caption text-text-muted flex items-center gap-1">
-                <Calendar size={12} /> Ngày trả file
+              <span className="text-caption text-text-muted flex items-center gap-1.5">
+                <Calendar size={14} /> Ngày trả file
               </span>
               <span className="text-caption font-medium text-text-primary">
                 {new Date(deliveryDate).toLocaleDateString("vi-VN")}

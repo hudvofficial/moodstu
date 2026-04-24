@@ -51,10 +51,12 @@ export async function generateChecklists(contractId: string, serviceType: string
     await requireContractAccess(supabase, userId);
 
     // 1. Check if contract already has checklists (avoid duplicate generation)
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("contract_checklists")
       .select("id", { count: "exact", head: true })
       .eq("contract_id", contractId);
+
+    if (countError) throw new Error(`Loi kiem tra checklist: ${countError.message}`);
 
     if (count && count > 0) {
       return { generated: 0, message: "Checklists đã tồn tại" };

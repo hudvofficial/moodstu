@@ -6,7 +6,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { updateNotificationPreferences } from "@/app/actions/notification-actions";
 import { toast } from "sonner";
-import { changelog } from "@/data/changelog";
 import type {
   EmployeeProfile,
   NotificationPreferences,
@@ -36,6 +35,8 @@ export default function SettingsView({
   const [loggingOut, setLoggingOut] = useState(false);
   const [prefs, setPrefs] = useState(notificationPrefs);
   const [isPending, startTransition] = useTransition();
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "?";
+  const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
 
   const togglePref = useCallback(
     (key: keyof NotificationPreferences, value: boolean) => {
@@ -140,7 +141,12 @@ export default function SettingsView({
           <ChangelogSection />
 
           <p className="text-center text-xs text-text-muted pt-2 pb-4">
-            Mood Studio v{changelog[0]?.version || "?"}
+            Mood Studio v{appVersion}
+            {buildDate ? (
+              <span className="block mt-1">
+                Build {new Date(buildDate).toLocaleString("vi-VN")}
+              </span>
+            ) : null}
           </p>
 
           <div className="lg:hidden flex flex-col gap-4">{sidebarContent}</div>

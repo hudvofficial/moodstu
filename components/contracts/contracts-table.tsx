@@ -166,7 +166,7 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
 
 // ─── MOBILE CARD LIST ────────────────────────────
 
-function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps) {
+function MobileCardList({ contracts, customerMap, onView, onHover }: ContractsTableProps) {
   return (
     <div className="lg:hidden flex flex-col gap-3 pt-1">
       {contracts.map((c, i) => {
@@ -188,6 +188,8 @@ function MobileCardList({ contracts, customerMap, onView }: ContractsTableProps)
           <Button unstyled
             key={id}
             onClick={() => onView(c)}
+            onPointerEnter={() => onHover?.(id)}
+            onFocus={() => onHover?.(id)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)} ${isCancelled ? "opacity-50" : ""}`}
           >
             {/* Row 1: Mã HĐ + Status badge */}

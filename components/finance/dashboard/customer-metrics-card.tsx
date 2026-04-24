@@ -14,7 +14,7 @@ export function CustomerMetricsCard({ data }: CustomerMetricsCardProps) {
   if (!data) return null;
 
   return (
-    <div className="card-base h-full p-4">
+    <div className="card-base h-full min-w-0 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-overline text-text-muted">Customer economics</p>
@@ -25,8 +25,8 @@ export function CustomerMetricsCard({ data }: CustomerMetricsCardProps) {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-bg-hover p-3">
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="dashboard-surface min-w-0">
           <div className="mb-2 flex items-center gap-2 text-caption text-text-muted">
             <Users className="h-3.5 w-3.5" />
             Tổng khách
@@ -34,7 +34,7 @@ export function CustomerMetricsCard({ data }: CustomerMetricsCardProps) {
           <p className="tabular-nums text-h3">{data.totalCustomers}</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-bg-hover p-3">
+        <div className="dashboard-surface min-w-0">
           <div className="mb-2 flex items-center gap-2 text-caption text-text-muted">
             <Repeat2 className="h-3.5 w-3.5" />
             Tỷ lệ quay lại
@@ -42,7 +42,7 @@ export function CustomerMetricsCard({ data }: CustomerMetricsCardProps) {
           <p className="tabular-nums text-h3">{percent(data.repeatCustomerRate)}</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-bg-hover p-3">
+        <div className="dashboard-surface min-w-0">
           <div className="mb-2 flex items-center gap-2 text-caption text-text-muted">
             <Target className="h-3.5 w-3.5" />
             Conversion

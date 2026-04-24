@@ -168,7 +168,7 @@ export default function ServiceDetailsBlock({
             {discountAmount > 0 && (
               <div className="flex justify-between text-body-sm">
                 <span className="text-text-secondary">Giảm giá</span>
-                <span className="font-semibold text-red-600">
+                <span className="font-semibold text-error">
                   −{formatCurrency(discountAmount)}
                 </span>
               </div>

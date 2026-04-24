@@ -26,7 +26,7 @@ import { fetchRentalsByItem, fetchActiveRental } from "@/app/actions/rental-quer
 import type { DressRental } from "@/types/dress";
 import { RentalModal } from "@/components/dresses/rental-modal";
 import { ReturnModal } from "@/components/dresses/return-modal";
-import { cacheKeys, revalidate } from "@/lib/swr";
+import { cacheKeys, revalidate, revalidateByPrefixes } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import { useState } from "react";
 
@@ -162,7 +162,7 @@ function ReservationsSection({ dressId }: { dressId: string }) {
       } else {
         toast("Đã trả trang phục", "success");
         mutateDetail();
-        revalidate(cacheKeys.dresses());
+        revalidateByPrefixes(cacheKeys.dresses());
         revalidate(cacheKeys.dressStats());
       }
     } catch {
@@ -229,7 +229,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         toast(result.error || "Có lỗi xảy ra", "error");
       } else {
         toast(successMsg, "success");
-        revalidate(cacheKeys.dresses());
+        revalidateByPrefixes(cacheKeys.dresses());
         revalidate(cacheKeys.dressStats());
         mutateActive();
       }
@@ -327,7 +327,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         dress={dress}
         onSaved={() => {
           mutateActive();
-          revalidate(cacheKeys.dresses());
+          revalidateByPrefixes(cacheKeys.dresses());
           revalidate(cacheKeys.dressStats());
         }}
       />
@@ -340,7 +340,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
           rental={activeRental}
           onSaved={() => {
             mutateActive();
-            revalidate(cacheKeys.dresses());
+            revalidateByPrefixes(cacheKeys.dresses());
             revalidate(cacheKeys.dressStats());
           }}
         />

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
 import { resolveIcon } from "@/lib/utils/icon-map";
@@ -10,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { upsertCategory, deleteCategory } from "@/app/actions/category-actions";
+import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
 import type { ServiceCategory } from "@/types/service";
 
 interface Props {
@@ -20,8 +20,6 @@ interface Props {
 }
 
 export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCreated }: Props) {
-  const router = useRouter();
-  
   // -- Local State for Optimistic Updates --
   const [localCategories, setLocalCategories] = useState<ServiceCategory[]>(categories);
 
@@ -115,7 +113,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
       }
       
       toast.success(isEditing ? "Cập nhật thành công" : "Tạo danh mục mới thành công");
-      router.refresh(); // Sync back the real cache invisibly
+      await revalidateByPrefixes([cacheKeys.categories(), cacheKeys.services()]);
       
     } catch (error: unknown) {
       // 3. Rollback on failure
@@ -142,7 +140,7 @@ export function CategoryManagerModal({ isOpen, onClose, categories, onCategoryCr
         throw new Error(response.error);
       }
       toast.success("Đã xóa danh mục");
-      router.refresh();
+      await revalidateByPrefixes([cacheKeys.categories(), cacheKeys.services()]);
     } catch (error: unknown) {
       // Rollback
       const e = error as Error;

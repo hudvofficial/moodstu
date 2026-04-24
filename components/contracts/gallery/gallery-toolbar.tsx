@@ -1,31 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import {
   Camera,
   Eye,
   EyeOff,
   Heart,
-  LayoutGrid,
-  List,
   MessageCircle,
-  MoreHorizontal,
-  Plus,
   Share2,
   Star,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Input } from "@/components/ui/input";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
-import { TabsFilter } from "@/components/ui/tabs-filter";
 import DownloadManager from "@/components/gallery/download-manager";
 import GallerySortDropdown, { type SortOption } from "./gallery-sort-dropdown";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
 import { type FileFilter, type StatsFilter, FOLDER_LABELS, type ImageGroup } from "./gallery-helpers";
 import type { Gallery, GalleryImage } from "@/types/gallery";
-import { cn } from "@/lib/utils";
+
+import { MobilePrimaryStatCard, MobileSecondaryStatChip } from "./gallery-toolbar-stats";
+import { GalleryFilterTabs, GalleryDesktopFilterGroup, DesktopFilterDivider } from "./gallery-toolbar-filters";
+import {
+  ActionButton,
+  ViewModeToggle,
+  GalleryMoreMenu,
+  AlbumCreateInput,
+  desktopActionClassName,
+  mobileIconActionClassName,
+} from "./gallery-toolbar-actions";
+
+// ═══════════════════════════════════════════
+// GalleryToolbar — Main toolbar orchestrator
+// Sub-components extracted to:
+//   gallery-toolbar-stats.tsx (MobilePrimaryStatCard, MobileSecondaryStatChip)
+//   gallery-toolbar-filters.tsx (GalleryFilterTabs, GalleryDesktopFilterGroup)
+//   gallery-toolbar-actions.tsx (ActionButton, ViewModeToggle, MoreMenu, AlbumInput)
+// ═══════════════════════════════════════════
+
+const compactDownloadClassName = "h-9 min-w-[7.5rem] flex-1 justify-center px-3 text-caption font-semibold whitespace-nowrap sm:flex-none";
+const ALL_ALBUMS_TAB = "__all_albums__";
 
 interface GalleryToolbarProps {
   breadcrumbItems?: Array<{ label: string; href?: string }>;
@@ -61,52 +75,6 @@ interface GalleryToolbarProps {
   onSetNewAlbumName: (name: string) => void;
   onCreateAlbum: () => void;
 }
-
-const desktopActionClassName = "btn-ghost h-9 px-3 text-caption font-semibold whitespace-nowrap";
-const mobileIconActionClassName = "btn-icon h-9 w-9 min-w-9 shrink-0";
-const compactDownloadClassName = "h-9 min-w-[7.5rem] flex-1 justify-center px-3 text-caption font-semibold whitespace-nowrap sm:flex-none";
-const ALL_ALBUMS_TAB = "__all_albums__";
-
-type MobileStatTone = NonNullable<StatItem["tone"]>;
-
-const MOBILE_STAT_STYLES: Record<MobileStatTone, { iconBg: string; iconColor: string; activeBg: string; activeText: string }> = {
-  primary: {
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-    activeBg: "border-primary/25 bg-primary/5 shadow-primary/10",
-    activeText: "text-primary",
-  },
-  success: {
-    iconBg: "bg-success/10",
-    iconColor: "text-success",
-    activeBg: "border-success/25 bg-success/5 shadow-success/10",
-    activeText: "text-success",
-  },
-  error: {
-    iconBg: "bg-error/10",
-    iconColor: "text-error",
-    activeBg: "border-error/25 bg-error/5 shadow-error/10",
-    activeText: "text-error",
-  },
-  info: {
-    iconBg: "bg-info/10",
-    iconColor: "text-info",
-    activeBg: "border-info/25 bg-info/5 shadow-info/10",
-    activeText: "text-info",
-  },
-  neutral: {
-    iconBg: "bg-bg-hover",
-    iconColor: "text-text-secondary",
-    activeBg: "border-border bg-bg-hover shadow-none",
-    activeText: "text-text-main",
-  },
-  accent: {
-    iconBg: "bg-accent/15",
-    iconColor: "text-accent",
-    activeBg: "border-accent/25 bg-accent/5 shadow-accent/10",
-    activeText: "text-accent",
-  },
-};
 
 export default function GalleryToolbar({
   breadcrumbItems,
@@ -399,269 +367,5 @@ export default function GalleryToolbar({
         )}
       </div>
     </div>
-  );
-}
-
-function MobilePrimaryStatCard({ item }: { item: StatItem }) {
-  const tone = MOBILE_STAT_STYLES[item.tone || "primary"];
-
-  return (
-    <Button
-      unstyled
-      type="button"
-      onClick={item.onClick}
-      className={cn(
-        "flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
-        item.active ? cn("shadow-sm", tone.activeBg) : "border-border/70 bg-elevated/80 hover:bg-bg-hover"
-      )}
-    >
-      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", item.iconBg || tone.iconBg)}>
-        <item.icon className={cn("h-4 w-4", item.iconColor || tone.iconColor)} />
-      </div>
-      <div className="min-w-0">
-        <div className={cn("text-body font-bold leading-none", item.active ? tone.activeText : "text-text-main")}>
-          {item.value}
-        </div>
-        <div className={cn("mt-1 text-caption leading-none", item.active ? tone.activeText : "text-text-muted")}>
-          {item.label}
-        </div>
-      </div>
-    </Button>
-  );
-}
-
-function MobileSecondaryStatChip({ item }: { item: StatItem }) {
-  const tone = MOBILE_STAT_STYLES[item.tone || "primary"];
-
-  return (
-    <Button
-      unstyled
-      type="button"
-      onClick={item.onClick}
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-caption font-semibold transition-colors",
-        item.active
-          ? tone.activeBg
-          : "border-border/70 bg-elevated/70 text-text-secondary hover:bg-bg-hover hover:text-text-main"
-      )}
-    >
-      <item.icon className={cn("h-3.5 w-3.5", item.iconColor || tone.iconColor)} />
-      <span className={item.active ? tone.activeText : "text-text-main"}>{item.value}</span>
-      <span className={item.active ? tone.activeText : "text-text-muted"}>{item.label}</span>
-    </Button>
-  );
-}
-
-function ActionButton({
-  children,
-  onClick,
-  title,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  title?: string;
-}) {
-  return (
-    <Button unstyled onClick={onClick} className={desktopActionClassName} title={title}>
-      {children}
-    </Button>
-  );
-}
-
-function GalleryFilterTabs({
-  tabs,
-  activeTab,
-  onChange,
-  trailing,
-}: {
-  tabs: Array<{ label: string; value: string; count?: number }>;
-  activeTab: string;
-  onChange: (value: string) => void;
-  trailing?: React.ReactNode;
-}) {
-  return (
-    <>
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide lg:hidden">
-        <TabsFilter tabs={tabs} activeTab={activeTab} onChange={onChange} variant="pills" size="compact" />
-        {trailing ? <div className="shrink-0">{trailing}</div> : null}
-      </div>
-
-      <div className="hidden lg:flex lg:items-center lg:gap-3">
-        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-          <TabsFilter tabs={tabs} activeTab={activeTab} onChange={onChange} className="min-w-max" />
-        </div>
-        {trailing ? <div className="shrink-0">{trailing}</div> : null}
-      </div>
-    </>
-  );
-}
-
-function GalleryDesktopFilterGroup({
-  tabs,
-  activeTab,
-  onChange,
-}: {
-  tabs: Array<{ label: string; value: string; count?: number }>;
-  activeTab: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <TabsFilter
-      tabs={tabs}
-      activeTab={activeTab}
-      onChange={onChange}
-      className="min-w-max rounded-none bg-transparent p-0 shadow-none"
-    />
-  );
-}
-
-function DesktopFilterDivider() {
-  return <div className="h-6 w-px shrink-0 bg-border/70" />;
-}
-
-function ViewModeToggle({
-  viewMode,
-  onChange,
-}: {
-  viewMode: "grid" | "list";
-  onChange: (mode: "grid" | "list") => void;
-}) {
-  return (
-    <div className="flex items-center rounded-lg border border-border bg-bg-card p-1">
-      <Button
-        unstyled
-        onClick={() => onChange("grid")}
-        className={`flex h-7 items-center gap-1 rounded-md px-2 transition-colors ${viewMode === "grid" ? "bg-primary text-white" : "text-text-muted hover:bg-bg-hover"}`}
-        title="Dạng lưới"
-      >
-        <LayoutGrid size={14} />
-      </Button>
-      <Button
-        unstyled
-        onClick={() => onChange("list")}
-        className={`flex h-7 items-center gap-1 rounded-md px-2 transition-colors ${viewMode === "list" ? "bg-primary text-white" : "text-text-muted hover:bg-bg-hover"}`}
-        title="Dạng danh sách"
-      >
-        <List size={14} />
-      </Button>
-    </div>
-  );
-}
-
-function GalleryMoreMenu({
-  allDownloadFiles,
-  viewMode,
-  onViewMode,
-  watermarkOn,
-  onWatermarkToggle,
-}: {
-  allDownloadFiles: { driveFileId: string; fileName: string }[];
-  viewMode: "grid" | "list";
-  onViewMode: (mode: "grid" | "list") => void;
-  watermarkOn: boolean;
-  onWatermarkToggle: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown, true);
-    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative ml-auto">
-      <Button unstyled onClick={() => setOpen((prev) => !prev)} className={mobileIconActionClassName} title="Tác vụ khác">
-        <MoreHorizontal size={16} />
-      </Button>
-
-      {open && (
-        <div className="card-base absolute right-0 top-full z-30 mt-2 w-52 space-y-2 p-2">
-          <ViewModeToggle viewMode={viewMode} onChange={onViewMode} />
-          <Button
-            unstyled
-            onClick={() => {
-              onWatermarkToggle();
-              setOpen(false);
-            }}
-            className="btn-ghost flex h-9 w-full items-center justify-start px-3 text-caption font-semibold"
-          >
-            {watermarkOn ? <EyeOff size={15} /> : <Eye size={15} />}
-            <span>{watermarkOn ? "Tắt watermark" : "Bật watermark"}</span>
-          </Button>
-          <DownloadManager
-            files={allDownloadFiles}
-            label="Tải tất cả"
-            variant="button"
-            className="h-9 w-full justify-start px-3 text-caption font-semibold"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AlbumCreateInput({
-  show,
-  name,
-  onSetShow,
-  onSetName,
-  onCreate,
-  placeholder,
-}: {
-  show: boolean;
-  name: string;
-  onSetShow: (show: boolean) => void;
-  onSetName: (name: string) => void;
-  onCreate: () => void;
-  placeholder?: string;
-}) {
-  if (show) {
-    return (
-      <div className="ml-1 flex items-center gap-1">
-        <Input
-          value={name}
-          onChange={(event) => onSetName(event.target.value)}
-          onKeyDown={(event) => event.key === "Enter" && onCreate()}
-          placeholder={placeholder || "Tên album..."}
-          autoFocus
-          className="h-7 w-40 text-caption"
-        />
-        <Button unstyled onClick={onCreate} className="btn-ghost h-7 px-2" title="Tạo album">
-          <Plus size={14} />
-        </Button>
-        <Button
-          unstyled
-          onClick={() => {
-            onSetShow(false);
-            onSetName("");
-          }}
-          className="btn-ghost h-7 px-2"
-          title="Đóng tạo album"
-        >
-          <X size={14} />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <Button
-      unstyled
-      onClick={() => onSetShow(true)}
-      className="btn-icon h-7 w-7 min-w-7 shrink-0 rounded-md border border-border bg-elevated text-text-muted hover:bg-hover hover:text-text-main lg:h-8 lg:w-8 lg:min-w-8 lg:border-0 lg:bg-bg-card lg:shadow-xs"
-      title="Tạo album mới"
-      aria-label="Tạo album mới"
-    >
-      <Plus size={12} />
-    </Button>
   );
 }

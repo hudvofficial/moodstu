@@ -1,6 +1,7 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 import type { PaginatedResult } from "@/types/finance-dashboard";
@@ -116,7 +117,7 @@ export async function fetchContractOptions(limit = 60) {
 }
 
 export async function fetchReceipts(params: MonthYearPageParams & { search?: string; receiptType?: string } = {}) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.fetchReceipts", () => withAuth(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
@@ -151,7 +152,7 @@ export async function fetchReceipts(params: MonthYearPageParams & { search?: str
       page: current,
       pageSize: size,
     } satisfies PaginatedResult<ReceiptListItem>;
-  });
+  }));
 }
 
 export interface ReceiptStats {
@@ -162,7 +163,28 @@ export interface ReceiptStats {
 }
 
 export async function fetchReceiptStats(month?: number, year?: number) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.fetchReceiptStats", () => withAuth(async (supabase) => {
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("finance_receipt_stats", {
+        p_month: month ?? null,
+        p_year: year ?? null,
+      })
+      .maybeSingle();
+
+    if (!rpcError && rpcData) {
+      const row = rpcData as Record<string, unknown>;
+      return {
+        totalReceipts: Number(row.total_receipts) || 0,
+        totalAmount: Number(row.total_amount) || 0,
+        completedCount: Number(row.completed_count) || 0,
+        pendingCount: Number(row.pending_count) || 0,
+      } satisfies ReceiptStats;
+    }
+
+    if (rpcError && !isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai receipt stats: ${rpcError.message}`);
+    }
+
     const window = monthWindowOptional(month, year);
     let query = supabase
       .from("receipts")
@@ -191,11 +213,11 @@ export async function fetchReceiptStats(month?: number, year?: number) {
       completedCount,
       pendingCount,
     } satisfies ReceiptStats;
-  });
+  }));
 }
 
 export async function fetchExpenses(params: MonthYearPageParams & { approval?: ApprovalFilter } = {}) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.fetchExpenses", () => withAuth(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
@@ -233,7 +255,7 @@ export async function fetchExpenses(params: MonthYearPageParams & { approval?: A
     })) satisfies ExpenseListItem[];
 
     return { items, total: count || 0, page: current, pageSize: size } satisfies PaginatedResult<ExpenseListItem>;
-  });
+  }));
 }
 
 export interface ExpenseStats {
@@ -244,7 +266,28 @@ export interface ExpenseStats {
 }
 
 export async function fetchExpenseStats(month?: number, year?: number) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.fetchExpenseStats", () => withAuth(async (supabase) => {
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("finance_expense_stats", {
+        p_month: month ?? null,
+        p_year: year ?? null,
+      })
+      .maybeSingle();
+
+    if (!rpcError && rpcData) {
+      const row = rpcData as Record<string, unknown>;
+      return {
+        totalExpenses: Number(row.total_expenses) || 0,
+        totalAmount: Number(row.total_amount) || 0,
+        approvedCount: Number(row.approved_count) || 0,
+        pendingCount: Number(row.pending_count) || 0,
+      } satisfies ExpenseStats;
+    }
+
+    if (rpcError && !isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai expense stats: ${rpcError.message}`);
+    }
+
     const window = monthWindowOptional(month, year);
     let query = supabase
       .from("expenses")
@@ -268,7 +311,7 @@ export async function fetchExpenseStats(month?: number, year?: number) {
       approvedCount,
       pendingCount,
     } satisfies ExpenseStats;
-  });
+  }));
 }
 
 export async function fetchDebts(params: { page?: number; pageSize?: number } = {}) {
@@ -733,7 +776,7 @@ export async function fetchGoalContributions(
 // ─── RECEIPT DETAIL ─────────────────────────
 
 export async function getReceiptDetail(id: string) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.getReceiptDetail", () => withAuth(async (supabase) => {
     const { data: receipt, error } = await supabase
       .from("receipts")
       .select("*")
@@ -746,13 +789,13 @@ export async function getReceiptDetail(id: string) {
     }
 
     return receipt;
-  });
+  }));
 }
 
 // ─── EXPENSE DETAIL ─────────────────────────
 
 export async function getExpenseDetail(id: string) {
-  return withAuth(async (supabase) => {
+  return profileAction("finance.getExpenseDetail", () => withAuth(async (supabase) => {
     const { data: expense, error } = await supabase
       .from("expenses")
       .select(`
@@ -795,5 +838,5 @@ export async function getExpenseDetail(id: string) {
       category_name: Array.isArray(expense.category) ? expense.category[0]?.name : ((expense.category as Record<string, unknown>)?.name as string) || null,
       contract_code: Array.isArray(expense.contract) ? expense.contract[0]?.contract_code : ((expense.contract as Record<string, unknown>)?.contract_code as string) || null,
     };
-  });
+  }));
 }

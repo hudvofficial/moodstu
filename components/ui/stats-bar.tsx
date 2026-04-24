@@ -31,6 +31,11 @@ const TONE_STYLES: Record<StatTone, { iconBg: string; iconColor: string; activeT
   accent: { iconBg: "bg-accent/15", iconColor: "text-accent", activeText: "text-accent" },
 };
 
+function toSentenceLabel(label: string) {
+  if (!label) return label;
+  return label.charAt(0).toLocaleUpperCase("vi-VN") + label.slice(1);
+}
+
 export function StatsBar({ items, className, showDividers = true }: StatsBarProps) {
   return (
     <div className={cn("min-w-0 flex-1 overflow-hidden", className)}>
@@ -66,7 +71,7 @@ export function StatsBar({ items, className, showDividers = true }: StatsBarProp
                   item.onClick && !item.active && "group-hover/stat:text-text-secondary"
                 )}
               >
-                {item.label}
+                {toSentenceLabel(item.label)}
               </span>
               {item.trend !== undefined && item.trend !== 0 && (
                 <span className={cn("text-caption font-semibold", item.trend > 0 ? "text-success" : "text-error")}>

@@ -1,12 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { ModalProvider } from "@/lib/context/modal-context";
 import { GlobalModal } from "@/components/providers/modal-renderer";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
+import { DevServiceWorkerReset } from "@/components/layout/dev-service-worker-reset";
+import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
+import { SWRProvider } from "@/components/providers/swr-provider";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -15,12 +19,49 @@ const inter = localFont({
   weight: "100 900",
 });
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const splashScript = `
+(function () {
+  try {
+    if (sessionStorage.getItem("ms_v2_loaded")) return;
+    sessionStorage.setItem("ms_v2_loaded", "1");
+
+    var splash = document.createElement("div");
+    splash.id = "splash-screen";
+    splash.innerHTML = '<img src="/logo.png" alt="Mood Studio" width="80" height="80" />';
+    document.documentElement.appendChild(splash);
+
+    var done = false;
+    function removeSplash() {
+      if (done) return;
+      done = true;
+      splash.style.opacity = "0";
+      window.setTimeout(function () {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 300);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", removeSplash, { once: true });
+    } else {
+      removeSplash();
+    }
+    window.setTimeout(removeSplash, 4000);
+  } catch (error) {}
+})();
+`;
+
 export const metadata: Metadata = {
   title: "Mood Studio — Quản lý studio cưới",
   description: "Hệ thống quản lý studio cưới chuyên nghiệp",
   icons: {
-    icon: "/logo.png",
-    apple: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/icons/icon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/icons/icon-192x192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -45,27 +86,71 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={inter.variable} suppressHydrationWarning>
+      <head>
+        {supabaseUrl ? (
+          <>
+            <link rel="dns-prefetch" href={supabaseUrl} />
+            <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />
+          </>
+        ) : null}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              #splash-screen {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                display: grid;
+                place-items: center;
+                background: var(--color-primary, #8B5E3C);
+                opacity: 1;
+                transition: opacity 300ms ease;
+              }
+              #splash-screen img {
+                object-fit: contain;
+                filter: brightness(0) invert(1);
+                animation: splashPulse 1200ms ease-in-out infinite;
+              }
+              @keyframes splashPulse {
+                0%, 100% { opacity: 0.72; }
+                50% { opacity: 1; }
+              }
+            `,
+          }}
+        />
+        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <NuqsAdapter>
-            <ModalProvider>
-              <OfflineIndicator />
-              {children}
-              <GlobalModal />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  style: {
-                    background: "var(--color-bg-card)",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text-primary)",
-                    borderRadius: "16px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                  },
-                }}
-              />
-            </ModalProvider>
+            <SWRProvider>
+              <ModalProvider>
+                <NextTopLoader
+                  color="var(--color-primary)"
+                  height={3}
+                  showSpinner={false}
+                  speed={300}
+                />
+                <WebVitalsReporter />
+                <DevServiceWorkerReset />
+                <OfflineIndicator />
+                {children}
+                <GlobalModal />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    style: {
+                      background: "var(--color-bg-card)",
+                      border: "1px solid var(--color-border)",
+                      color: "var(--color-text-primary)",
+                      borderRadius: "16px",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    },
+                  }}
+                />
+              </ModalProvider>
+            </SWRProvider>
           </NuqsAdapter>
         </ThemeProvider>
       </body>

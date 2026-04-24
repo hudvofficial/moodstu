@@ -14,7 +14,7 @@ import { Calendar, Loader2, FilterX } from "lucide-react";
 import { fetchRentalHistory } from "@/app/actions/dress-queries";
 import { RENTAL_HISTORY_PAGE_SIZE, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { RentalHistoryFilters, RentalHistoryRow } from "@/types/dress";
-import { cacheKeys } from "@/lib/swr";
+import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
@@ -127,7 +127,11 @@ export default function RentalHistoryClient() {
   const filters: RentalHistoryFilters = { status, item_id: itemId, page };
 
   // 📡 Realtime — auto-refresh on reservation changes
-  useRealtime("dress_reservations");
+  useRealtime("dress_reservations", {
+    onChange: () => {
+      void revalidateByPrefixes(cacheKeys.dressRentals());
+    },
+  });
 
   // ── SWR data ──
   const { data, isLoading, error } = useSWR(

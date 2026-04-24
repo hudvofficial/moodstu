@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { useContractDetail } from "@/lib/hooks/use-contracts";
-import { toast } from "@/lib/toast-utils";
+import {
+  revalidateContractDetailCaches,
+  useContractDetail,
+} from "@/lib/hooks/use-contracts";
 import type {
   Contract,
   Payment,
@@ -14,17 +17,38 @@ import type {
   DressReservationRow,
   PrintingOrder,
   AuditLogEntry,
+  TaskStatus,
 } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
 import TopActionBar from "./top-action-bar";
 import ContractActionsMenu from "./contract-actions-menu";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import CancelBanner from "./cancel-banner";
 import MobileBottomBar from "./mobile-bottom-bar";
-import PaymentReceiptForm from "./payment-receipt-form";
-import PrintingOrderForm from "./printing-order-form";
-import DressReservationForm from "./dress-reservation-form";
-import AddEventModal from "./add-event-modal";
 import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
+
+const PaymentReceiptForm = dynamic(() => import("./payment-receipt-form"), {
+  ssr: false,
+});
+
+const PrintingOrderForm = dynamic(() => import("./printing-order-form"), {
+  ssr: false,
+});
+
+const DressReservationForm = dynamic(() => import("./dress-reservation-form"), {
+  ssr: false,
+});
+
+const AddEventModal = dynamic(() => import("./add-event-modal"), {
+  ssr: false,
+});
+
+const QuickNoteModal = dynamic(() => import("./quick-note-modal"), {
+  ssr: false,
+});
+
+const CONTRACT_DETAIL_REFRESH_SETTLE_MS = 160;
+const LOCAL_MUTATION_ECHO_MUTE_MS = 2000;
 
 // ═══════════════════════════════════════════
 // Contract Detail Client — SWR wrapper + state
@@ -32,23 +56,28 @@ import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
 // ═══════════════════════════════════════════
 
 interface Props {
+  contractId?: string;
   initialContract: Contract;
   initialPayments: Payment[];
   initialPaymentPlans: PaymentPlan[];
   initialReservations: DressReservationRow[];
   initialPrintOrders: PrintingOrder[];
   initialAuditLogs: AuditLogEntry[];
+  activeEmployees?: ActiveEmployee[];
 }
 
 export default function ContractDetailClient({
+  contractId,
   initialContract,
   initialPayments,
   initialPaymentPlans,
   initialReservations,
   initialPrintOrders,
   initialAuditLogs,
+  activeEmployees,
 }: Props) {
   const params = useParams<{ id: string }>();
+  const id = contractId || params.id;
   const {
     contract: liveContract,
     payments: livePayments,
@@ -56,12 +85,57 @@ export default function ContractDetailClient({
     reservations: liveReservations,
     printOrders: livePrintOrders,
     auditLogs: liveAuditLogs,
-    mutate: refreshContract,
-  } = useContractDetail(params.id);
+    mutate: mutateContractDetail,
+  } = useContractDetail(
+    id,
+    initialContract
+      ? {
+          contract: initialContract,
+          payments: initialPayments,
+          paymentPlans: initialPaymentPlans,
+          reservations: initialReservations,
+          printOrders: initialPrintOrders,
+          auditLogs: initialAuditLogs,
+        }
+      : undefined,
+  );
+
+  const refreshCooldownUntilRef = useRef(0);
+  const refreshSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const muteRealtimeUntilRef = useRef(0);
+
+  const muteRealtimeEcho = useCallback(() => {
+    muteRealtimeUntilRef.current = Math.max(
+      muteRealtimeUntilRef.current,
+      Date.now() + LOCAL_MUTATION_ECHO_MUTE_MS,
+    );
+    if (refreshSettleTimerRef.current) {
+      clearTimeout(refreshSettleTimerRef.current);
+      refreshSettleTimerRef.current = null;
+    }
+  }, []);
 
   // 📡 Realtime — auto-refresh on contract or receipt changes
-  useRealtime("contracts");
-  useRealtime("receipts");
+  const refreshContractCaches = useCallback(() => {
+    if (Date.now() < muteRealtimeUntilRef.current) return;
+
+    const now = Date.now();
+
+    if (now >= refreshCooldownUntilRef.current) {
+      refreshCooldownUntilRef.current = now + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
+      void revalidateContractDetailCaches(id);
+      return;
+    }
+
+    if (refreshSettleTimerRef.current) return;
+
+    refreshSettleTimerRef.current = setTimeout(() => {
+      refreshSettleTimerRef.current = null;
+      refreshCooldownUntilRef.current = Date.now() + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
+      void revalidateContractDetailCaches(id);
+    }, Math.max(refreshCooldownUntilRef.current - now, 0));
+  }, [id]);
+
   // SWR fallback
   const contract = (liveContract as unknown as Contract) || initialContract;
   const payments = (livePayments as unknown as Payment[]) || initialPayments;
@@ -70,6 +144,78 @@ export default function ContractDetailClient({
   const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders;
   const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
   const isCancelled = contract.status === "da_huy";
+
+  const applyTaskStatusOptimistic = useCallback(
+    (taskId: string, eventId: string, nextStatus: TaskStatus) => {
+      muteRealtimeEcho();
+      const completionDate =
+        nextStatus === "hoan_thanh" ? new Date().toISOString() : null;
+
+      void mutateContractDetail(
+        (current) => {
+          // SWR fallbackData doesn't populate cache → current may be undefined.
+          // Fall back to building from current rendered props.
+          const base = current ?? {
+            contract,
+            payments,
+            paymentPlans,
+            reservations,
+            printOrders,
+            auditLogs,
+          };
+          if (!base.contract) return current;
+
+          const nextTasks = (base.contract.work_tasks || []).map((task) =>
+            task.id === taskId
+              ? { ...task, status: nextStatus, completion_date: completionDate }
+              : task,
+          );
+          const eventTasks = nextTasks.filter((task) => task.event_id === eventId);
+          const allDone =
+            eventTasks.length > 0 &&
+            eventTasks.every((task) => task.status === "hoan_thanh");
+          const anyInProgress = eventTasks.some((task) => task.status === "dang_lam");
+          const nextEventStatus: TaskStatus = allDone
+            ? "hoan_thanh"
+            : anyInProgress
+              ? "dang_lam"
+              : "chua_lam";
+          const nextEvents = (base.contract.contract_events || []).map((event) =>
+            event.id === eventId ? { ...event, status: nextEventStatus } : event,
+          );
+
+          return {
+            ...base,
+            contract: {
+              ...base.contract,
+              work_tasks: nextTasks,
+              contract_events: nextEvents,
+            },
+          };
+        },
+        { revalidate: false },
+      );
+    },
+    [muteRealtimeEcho, mutateContractDetail, contract, payments, paymentPlans, reservations, printOrders, auditLogs],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (refreshSettleTimerRef.current) {
+        clearTimeout(refreshSettleTimerRef.current);
+      }
+    };
+  }, []);
+
+  useRealtime("contracts", { filter: `id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("receipts", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("contract_checklists", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("contract_notes", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("contract_events", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("work_tasks", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("payment_plans", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("dress_reservations", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("printing_orders", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
 
   // ── Set header slots for mobile ──
   const setHeaderSlots = useSetHeaderSlots();
@@ -100,6 +246,7 @@ export default function ContractDetailClient({
   const [showPrintForm, setShowPrintForm] = useState(false);
   const [showCostumeForm, setShowCostumeForm] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
 
   const handleQuickAction = useCallback((key: string) => {
     switch (key) {
@@ -126,7 +273,7 @@ export default function ContractDetailClient({
         break;
       }
       case "note":
-        toast("Tính năng đang phát triển", "info");
+        setShowNoteModal(true);
         break;
     }
   }, []);
@@ -199,10 +346,13 @@ export default function ContractDetailClient({
     reservations,
     printOrders,
     auditLogs,
-    refreshContract: () => refreshContract(),
+    activeEmployees,
+    refreshContract: refreshContractCaches,
+    onTaskStatusChange: applyTaskStatusOptimistic,
     onPaymentClick: () => setShowPaymentForm(true),
     onAddEvent: () => setShowAddEventModal(true),
     onQuickAction: handleQuickAction,
+    onMuteRealtime: muteRealtimeEcho,
   };
 
   return (
@@ -246,32 +396,48 @@ export default function ContractDetailClient({
       />
 
       {/* ── Quick Action Modals ── */}
-      <PaymentReceiptForm
-        isOpen={showPaymentForm}
-        onClose={() => setShowPaymentForm(false)}
-        contractId={contract.id}
-        contractCode={contract.contract_code}
-        remainingAmount={contract.remaining_amount}
-        paymentPlans={paymentPlans}
-      />
-      <PrintingOrderForm
-        isOpen={showPrintForm}
-        onClose={() => setShowPrintForm(false)}
-        contractId={contract.id}
-        contractCode={contract.contract_code}
-      />
-      <DressReservationForm
-        isOpen={showCostumeForm}
-        onClose={() => setShowCostumeForm(false)}
-        contractId={contract.id}
-        contractCode={contract.contract_code}
-      />
-      <AddEventModal
-        isOpen={showAddEventModal}
-        contractId={contract.id}
-        onClose={() => setShowAddEventModal(false)}
-        onSaved={() => refreshContract()}
-      />
+      {showPaymentForm && (
+        <PaymentReceiptForm
+          isOpen={showPaymentForm}
+          onClose={() => setShowPaymentForm(false)}
+          contractId={contract.id}
+          contractCode={contract.contract_code}
+          remainingAmount={contract.remaining_amount}
+          paymentPlans={paymentPlans}
+        />
+      )}
+      {showPrintForm && (
+        <PrintingOrderForm
+          isOpen={showPrintForm}
+          onClose={() => setShowPrintForm(false)}
+          contractId={contract.id}
+          contractCode={contract.contract_code}
+        />
+      )}
+      {showCostumeForm && (
+        <DressReservationForm
+          isOpen={showCostumeForm}
+          onClose={() => setShowCostumeForm(false)}
+          contractId={contract.id}
+          contractCode={contract.contract_code}
+        />
+      )}
+      {showAddEventModal && (
+        <AddEventModal
+          isOpen={showAddEventModal}
+          contractId={contract.id}
+          onClose={() => setShowAddEventModal(false)}
+          onSaved={refreshContractCaches}
+        />
+      )}
+      {showNoteModal && (
+        <QuickNoteModal
+          isOpen={showNoteModal}
+          contractId={contract.id}
+          onClose={() => setShowNoteModal(false)}
+          onSaved={refreshContractCaches}
+        />
+      )}
     </div>
   );
 }

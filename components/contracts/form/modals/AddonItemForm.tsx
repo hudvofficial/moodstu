@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { AddonCategory } from "@/types/addon-history";
+import { searchAddonHistory, type AddonHistoryItem } from "@/app/actions/addon-actions";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +41,33 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
   const [discount, setDiscount] = useState(editingItem?.discount_amount || 0);
   const [notes, setNotes] = useState(editingItem?.notes || "");
   const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState<AddonHistoryItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const total = Math.max(0, qty * price - discount);
+  const visibleSuggestions =
+    showSuggestions && name.trim().length >= 2 ? suggestions : [];
+
+  useEffect(() => {
+    if (isEditing || name.trim().length < 2) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const result = await searchAddonHistory(name.trim(), category);
+      setSuggestions(result);
+      setShowSuggestions(result.length > 0);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [category, isEditing, name]);
+
+  const applySuggestion = useCallback((item: AddonHistoryItem) => {
+    setName(item.addon_name);
+    setCategory(item.addon_category as AddonCategory);
+    setPrice(item.last_price || 0);
+    setShowSuggestions(false);
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!name.trim()) {
@@ -51,7 +77,12 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
 
     if (isEditing) {
       onEdit({
+        service_id: null,
+        dress_id: null,
         item_name: name.trim(),
+        type: "phat_sinh",
+        export_type: null,
+        is_addon: true,
         addon_category: category,
         quantity: qty,
         unit_price: price,
@@ -69,13 +100,14 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
         original_price: price,
         discount_amount: discount,
         total_amount: total,
-        type: category === "trang_phuc" ? "trang_phuc" : "phat_sinh",
-        export_type: category === "trang_phuc" ? "xuat_thue" : null,
+        type: "phat_sinh",
+        export_type: null,
         is_addon: true,
         addon_category: category,
         notes,
       });
     }
+    setShowSuggestions(false);
     onClose();
   }, [name, category, qty, price, discount, total, notes, isEditing, onAdd, onEdit, onClose]);
 
@@ -87,11 +119,32 @@ export function AddonItemForm({ isEditing, editingItem, onAdd, onEdit, onClose }
         <Input unstyled
           type="text"
           value={name}
-          onChange={(e) => { setName(e.target.value); setError(""); }}
+          onChange={(e) => { setName(e.target.value); setError(""); setShowSuggestions(true); }}
+          onFocus={() => setShowSuggestions(name.trim().length >= 2 && suggestions.length > 0)}
           placeholder="VD: Thêm 1 bộ vest, Makeup cô dâu..."
           className="input-base"
           autoFocus
         />
+        {visibleSuggestions.length > 0 && (
+          <div className="mt-1 max-h-36 overflow-y-auto rounded-radius-md border border-border-light bg-bg-card shadow-sm">
+            {visibleSuggestions.map((item) => (
+              <Button
+                unstyled
+                key={item.id}
+                type="button"
+                onClick={() => applySuggestion(item)}
+                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-body-sm hover:bg-bg-hover"
+              >
+                <span className="min-w-0 flex-1 truncate font-medium text-text-primary">
+                  {item.addon_name}
+                </span>
+                <span className="shrink-0 text-caption text-text-muted">
+                  {formatCurrency(item.last_price || 0)} {CURRENCY_SYMBOL} - {item.usage_count || 0}x
+                </span>
+              </Button>
+            ))}
+          </div>
+        )}
         {error && <p className="error-text">{error}</p>}
       </div>
 

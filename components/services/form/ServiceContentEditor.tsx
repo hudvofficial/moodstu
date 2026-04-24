@@ -138,7 +138,7 @@ function ServiceContentEditorInner({ value, onChange }: Props) {
               placeholder="Tiêu đề mục (VD: Ngày chụp)"
               value={section.title}
               onChange={(e) => updateTitle(sIdx, e.target.value)}
-              className="flex-1 bg-transparent text-sm font-semibold border-b border-transparent focus:border-primary px-1 py-1 h-auto"
+              className="flex-1 bg-transparent text-sm font-semibold border-b border-transparent px-1 py-1 h-auto"
             />
             <Button
               type="button"

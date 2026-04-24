@@ -40,8 +40,8 @@ function buildSteps(contract: Contract, events: ContractEvent[]): StepData[] {
 
   // Sort events by date, then by type priority
   const sorted = [...events].sort((a, b) => {
-    const dateA = new Date(a.event_date).getTime();
-    const dateB = new Date(b.event_date).getTime();
+    const dateA = new Date(a.event_date || a.deadline || "9999-12-31").getTime();
+    const dateB = new Date(b.event_date || b.deadline || "9999-12-31").getTime();
     if (dateA !== dateB) return dateA - dateB;
     return (EVENT_TYPE_PRIORITY[a.event_type] ?? 99) - (EVENT_TYPE_PRIORITY[b.event_type] ?? 99);
   });
@@ -100,7 +100,7 @@ export default function WorkflowStepper({ contract, events }: Props) {
                     className={`${manySteps ? "w-7 h-7" : "w-8 h-8"} rounded-full flex items-center justify-center text-xs font-bold
                       transition-colors duration-300
                       ${isCompleted
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-success text-white"
                         : isCancelled
                           ? "bg-bg-hover text-text-muted"
                           : "bg-bg-hover text-text-secondary"
@@ -116,7 +116,7 @@ export default function WorkflowStepper({ contract, events }: Props) {
                   </div>
                   <span
                     className={`text-caption font-medium text-center max-w-20 leading-tight line-clamp-2
-                      ${isCompleted ? "text-emerald-700" : "text-text-muted"}`}
+                      ${isCompleted ? "text-success" : "text-text-muted"}`}
                   >
                     {step.label}
                   </span>
@@ -128,7 +128,7 @@ export default function WorkflowStepper({ contract, events }: Props) {
                     <div
                       className={`h-0.5 rounded-full transition-colors duration-300
                         ${!isCancelled && step.status === "completed"
-                          ? "bg-emerald-400"
+                          ? "bg-success"
                           : "bg-bg-hover"
                         }
                       `}
@@ -188,8 +188,8 @@ export default function WorkflowStepper({ contract, events }: Props) {
                       : isCurrent
                         ? "bg-interactive ring-4 ring-interactive/20"
                         : isPending
-                          ? "bg-slate-200"
-                          : "bg-slate-200"
+                          ? "bg-bg-hover"
+                          : "bg-bg-hover"
                     }`}
                 />
                 {/* Show label: always for ≤7 steps, only current for 8+ steps */}

@@ -61,7 +61,7 @@ export function PaymentConfirmModal({
                     <CurrencyInput
                         value={amount}
                         onChange={setAmount}
-                        className="w-full text-xl font-bold border-2 border-primary/20 rounded-soft-lg py-3 pl-4 focus:border-primary text-primary min-h-[44px]"
+                        className="w-full text-xl font-bold border-2 border-primary/20 rounded-soft-lg py-3 pl-4 text-primary min-h-[44px]"
                     />
                     <div className="flex justify-between items-center mt-2">
                         <p className="text-xs text-text-secondary italic">

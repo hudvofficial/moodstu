@@ -1,7 +1,40 @@
-/* ═══════════════════════════════════════════
-   base.css — Base element resets and defaults
-   Part of: Mood Studio Design System
-   
-   Placeholder cho Phase 02:
-   Sẽ chứa base element styles nếu cần tách từ globals.css.
-   ═══════════════════════════════════════════ */
+/* Base element defaults and shared interaction states */
+
+:where(
+  a[href],
+  button,
+  summary,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  [role="button"],
+  [role="link"],
+  [tabindex]:not([tabindex="-1"])
+):focus {
+  outline: none;
+}
+
+:where(
+  a[href],
+  button,
+  summary,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  [role="button"],
+  [role="link"],
+  [tabindex]:not([tabindex="-1"])
+):not([data-focus-ring="custom"]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-outline);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 calc(var(--focus-ring-width) + 2px) var(--focus-ring-shadow);
+}
+
+:where(
+  input:not([type="hidden"]),
+  select,
+  textarea
+):not([data-focus-ring="custom"]):focus-visible {
+  outline: none;
+  box-shadow: none;
+}

@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 
 const STATUS_ICON_CONFIG: Record<string, { icon: typeof Circle; color: string }> = {
   chua_lam: { icon: Circle, color: "text-text-muted" },
-  dang_lam: { icon: Clock, color: "text-amber-500" },
-  hoan_thanh: { icon: CheckCircle2, color: "text-emerald-500" },
-  da_huy: { icon: Circle, color: "text-red-400" },
+  dang_lam: { icon: Clock, color: "text-warning" },
+  hoan_thanh: { icon: CheckCircle2, color: "text-success" },
+  da_huy: { icon: Circle, color: "text-error" },
 };
 
 type TabKey = "all" | "pending" | "done";
@@ -56,7 +56,7 @@ export default function ChecklistBlock({ tasks }: Props) {
         <div className="mb-3">
           <div className="h-1.5 rounded-full bg-bg-hover overflow-hidden">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              className="h-full rounded-full bg-success transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>

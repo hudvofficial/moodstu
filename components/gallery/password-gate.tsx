@@ -118,7 +118,7 @@ export default function PasswordGate({
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
               placeholder="Mật khẩu..."
               autoFocus
-              className="w-full px-4 py-3 pr-10 text-sm rounded-xl outline-none transition-all duration-200"
+              className="w-full px-4 py-3 pr-10 text-sm rounded-xl outline-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{
                 background: "var(--color-gallery-card-bg)",
                 color: "var(--color-gallery-text)",
@@ -128,7 +128,7 @@ export default function PasswordGate({
               }}
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{ color: "var(--color-gallery-text-dim)" }}>
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -141,7 +141,7 @@ export default function PasswordGate({
           )}
 
           <button type="submit" disabled={loading}
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${loading ? "opacity-70" : ""}`}
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${loading ? "opacity-70" : ""}`}
             style={{ background: "var(--color-primary)", color: "var(--color-gallery-btn-text)" }}>
             {loading ? "Đang kiểm tra..." : "Vào Xem"}
           </button>

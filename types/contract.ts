@@ -129,7 +129,7 @@ export interface ContractEvent {
   contract_id: string;
   event_type: EventType;
   title: string | null;
-  event_date: string;
+  event_date: string | null;
   end_date: string | null;
   location: string | null;
   status: TaskStatus;

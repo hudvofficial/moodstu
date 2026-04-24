@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { DebtStatsBar } from "@/components/finance/debts/debt-stats-bar";
-import { ReportsCashflowView } from "@/components/reports/reports-cashflow-view";
 import { ReportsDebtsView } from "@/components/reports/reports-debts-view";
 import { exportReportsWorkbook } from "@/components/reports/reports-export";
 import { ReportsFilters } from "@/components/reports/reports-filters";
@@ -42,6 +41,11 @@ import type {
 
 const ProfitReportTable = dynamic(
   () => import("@/components/finance/dashboard/profit-report-table").then((mod) => mod.ProfitReportTable),
+  { ssr: false, loading: () => <SkeletonCard className="h-96" /> },
+);
+
+const ReportsCashflowView = dynamic(
+  () => import("@/components/reports/reports-cashflow-view").then((mod) => mod.ReportsCashflowView),
   { ssr: false, loading: () => <SkeletonCard className="h-96" /> },
 );
 

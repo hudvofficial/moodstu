@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import { useRealtime } from "@/hooks/use-realtime";
 
 import { useInventoryFilters } from "@/hooks/useInventoryFilters";
-import { useInventory, useInventoryStats, prefetchInventory } from "@/lib/hooks/use-inventory";
+import { useInventory, useInventoryStats, prefetchInventory, revalidateInventory } from "@/lib/hooks/use-inventory";
 import { InventoryStatsBar } from "@/components/inventory/inventory-stats-bar";
 import { InventoryFilters as InventoryFiltersBar } from "@/components/inventory/inventory-filters";
 import { InventoryTable } from "@/components/inventory/inventory-table";
@@ -56,7 +56,12 @@ function InventoryListInner() {
   const { stats } = useInventoryStats();
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  useRealtime("inventory_items");
+  const refreshInventoryCaches = useCallback(() => {
+    void revalidateInventory();
+  }, []);
+
+  useRealtime("inventory_items", { onChange: refreshInventoryCaches });
+  useRealtime("inventory_transactions", { onChange: refreshInventoryCaches });
 
   // ── Modal states ──
   const [showCreate, setShowCreate] = useState(false);
@@ -71,7 +76,10 @@ function InventoryListInner() {
   const handleRowClick = useCallback((item: InventoryItem) => {
     setDrawerItem(item);
   }, []);
-  const handleHover = useCallback((id: string) => prefetchInventory(id), []);
+  const handleHover = useCallback((id: string) => {
+    prefetchInventory(id);
+    router.prefetch(`/inventory/${id}`);
+  }, [router]);
   const handleCreate = useCallback(() => setShowCreate(true), []);
   const handleStockIn = useCallback(() => {
     setSelectedItem(null);
@@ -186,7 +194,6 @@ function InventoryListInner() {
       item={drawerItem}
       isOpen={!!drawerItem}
       onClose={() => setDrawerItem(null)}
-      onChanged={() => router.refresh()}
     />
     </>
   );

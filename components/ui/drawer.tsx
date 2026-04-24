@@ -8,7 +8,7 @@
  * Portal rendered, overlay click + Escape to close, body scroll lock.
  */
 
-import { useEffect, useCallback, useRef, type ReactNode } from "react";
+import { useEffect, useCallback, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,10 +70,21 @@ export function Drawer({
   size = "md",
   width,
 }: DrawerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  
+  const desktopPanelRef = useRef<HTMLElement>(null);
+  const mobilePanelRef = useRef<HTMLElement>(null);
+  const titleId = useId();
+  const desktopTitleId = `${titleId}-desktop`;
+  const mobileTitleId = `${titleId}-mobile`;
+
   // Resolve width based on size, fallback to explicit 'width' prop if provided
   const resolvedWidth = width || (size === "lg" ? "600px" : "480px");
+
+  const getActivePanel = useCallback(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+      return desktopPanelRef.current;
+    }
+    return mobilePanelRef.current;
+  }, []);
 
   // Escape key
   const handleKeyDown = useCallback(
@@ -92,12 +103,38 @@ export function Drawer({
   // Body scroll lock
   useBodyScrollLock(isOpen);
 
-  // Focus trap — focus panel on open
+  // Restore focus and move focus into the active panel when opened.
   useEffect(() => {
-    if (isOpen && panelRef.current) {
-      panelRef.current.focus();
+    if (!isOpen) return;
+
+    const previousActive = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const rafId = window.requestAnimationFrame(() => {
+      getActivePanel()?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      previousActive?.focus();
+    };
+  }, [getActivePanel, isOpen]);
+
+  const trapFocus = useCallback((container: HTMLElement, backwards: boolean, preventDefault: () => void) => {
+    const focusables = container.querySelectorAll<HTMLElement>(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+    );
+    if (focusables.length === 0) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+
+    if (backwards && document.activeElement === first) {
+      preventDefault();
+      last.focus();
+    } else if (!backwards && document.activeElement === last) {
+      preventDefault();
+      first.focus();
     }
-  }, [isOpen]);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -112,24 +149,33 @@ export function Drawer({
 
       {/* ── Desktop: Side panel from right ── */}
       <aside
-        ref={panelRef}
+        ref={desktopPanelRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? desktopTitleId : undefined}
+        aria-label={title ? undefined : "Chi tiết"}
+        onKeyDown={(e) => {
+          if (e.key === "Tab") {
+            trapFocus(e.currentTarget, e.shiftKey, () => e.preventDefault());
+          }
+        }}
         className="hidden lg:flex flex-col fixed right-0 top-0 h-full bg-bg-base shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
-        style={{ width: resolvedWidth, outline: 'none' }}
+        style={{ width: resolvedWidth, outline: "none" }}
       >
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-border">
             <div className="flex items-center gap-2.5 min-w-0">
-              <h2 className="text-h3 truncate">{title}</h2>
+              <h2 id={desktopTitleId} className="text-h3 truncate">{title}</h2>
               {titleBadge}
             </div>
             <div className="flex items-center gap-1">
               {headerRight}
               <Button
-                variant="ghost"
+                unstyled
                 onClick={onClose}
-                className="icon-btn size-9 rounded-lg p-0"
+                className="flex size-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary"
                 aria-label="Đóng"
               >
                 <X className="size-[18px]" />
@@ -144,8 +190,18 @@ export function Drawer({
 
       {/* ── Mobile: Bottom sheet ── */}
       <aside
+        ref={mobilePanelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? mobileTitleId : undefined}
+        aria-label={title ? undefined : "Chi tiết"}
+        onKeyDown={(e) => {
+          if (e.key === "Tab") {
+            trapFocus(e.currentTarget, e.shiftKey, () => e.preventDefault());
+          }
+        }}
         className="lg:hidden flex flex-col fixed bottom-0 left-0 right-0 bg-bg-base shadow-md rounded-t-2xl z-10 animate-slide-in-up outline-none"
-        style={{ height: '85vh', outline: 'none' }}
+        style={{ height: "85vh", outline: "none" }}
         tabIndex={-1}
       >
         {/* Drag handle */}
@@ -157,15 +213,15 @@ export function Drawer({
         {title && (
           <div className="flex items-center justify-between px-5 pb-3 shrink-0 border-b border-border">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-h3 truncate">{title}</h2>
+              <h2 id={mobileTitleId} className="text-h3 truncate">{title}</h2>
               {titleBadge}
             </div>
             <div className="flex items-center gap-1">
               {headerRight}
               <Button
-                variant="ghost"
+                unstyled
                 onClick={onClose}
-                className="icon-btn size-9 rounded-lg p-0"
+                className="flex size-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary"
                 aria-label="Đóng"
               >
                 <X className="size-[18px]" />

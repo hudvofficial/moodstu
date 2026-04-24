@@ -9,33 +9,35 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SERVICE_TYPES, SERVICE_TYPE_LABELS } from "@/types/service-constants";
+import type { ItemType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // CreateServiceModal — Quick create service from ItemModal
 // Minimal fields: name, type, price
 // ═══════════════════════════════════════════
 
-const SERVICE_TYPES = [
-  { value: "chup_anh", label: "Chụp ảnh" },
-  { value: "quay_phim", label: "Quay phim" },
-  { value: "makeup", label: "Makeup" },
-  { value: "trang_phuc", label: "Trang phục" },
-  { value: "dich_vu", label: "Dịch vụ khác" },
-  { value: "san_pham", label: "Sản phẩm" },
-];
+type QuickCreateItemType = Exclude<ItemType, "trang_phuc" | "phat_sinh">;
+
+const SERVICE_TYPE_OPTIONS = SERVICE_TYPES.map((type) => ({
+  value: type,
+  label: SERVICE_TYPE_LABELS[type],
+}));
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: (service: { id: string; service_name: string; selling_price: number; service_type: string }) => void;
+  itemType: QuickCreateItemType;
+  onCreated: (service: { id: string; service_name: string; selling_price: number; service_type: string; unit?: string | null }) => void;
 }
 
-export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
+export function CreateServiceModal({ isOpen, onClose, itemType, onCreated }: Props) {
   const [name, setName] = useState("");
-  const [type, setType] = useState("chup_anh");
+  const [type, setType] = useState("khac");
   const [price, setPrice] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const title = itemType === "san_pham" ? "Tạo sản phẩm mới" : "Tạo dịch vụ mới";
 
   const handleSubmit = useCallback(async () => {
     if (!name.trim()) {
@@ -48,6 +50,7 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
       const result = await quickCreateService({
         service_name: name,
         service_type: type,
+        item_type: itemType,
         selling_price: price,
       });
       if (!result.success) {
@@ -62,10 +65,10 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [name, type, price, onCreated]);
+  }, [itemType, name, type, price, onCreated]);
 
   return (
-    <UnifiedModal isOpen={isOpen} onClose={onClose} title="Tạo dịch vụ mới">
+    <UnifiedModal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="space-y-4 p-4">
         <div>
           <label className="label-base">Tên dịch vụ *</label>
@@ -83,8 +86,8 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
           <SimpleSelect
             value={type}
             onChange={(v) => setType(v)}
-            options={SERVICE_TYPES}
-            label="Loại dịch vụ"
+            options={SERVICE_TYPE_OPTIONS}
+            label="Nhóm dịch vụ"
           />
           <div>
             <label className="label-base">Giá bán ({CURRENCY_SYMBOL})</label>
@@ -108,7 +111,7 @@ export function CreateServiceModal({ isOpen, onClose, onCreated }: Props) {
             className="btn btn-interactive"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Tạo dịch vụ
+            {itemType === "san_pham" ? "Tạo sản phẩm" : "Tạo dịch vụ"}
           </Button>
         </div>
       </div>

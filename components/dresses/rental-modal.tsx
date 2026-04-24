@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import DatePicker from "@/components/ui/date-picker";
 import { createRental } from "@/app/actions/rental-mutations";
 import { toast } from "@/lib/toast-utils";
-import { revalidate, cacheKeys } from "@/lib/swr";
+import { revalidate, revalidateByPrefixes, cacheKeys } from "@/lib/swr";
 import type { DressItem } from "@/types/dress";
 
 // ═══════════════════════════════════════════
@@ -99,7 +99,7 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
         toast(result.error || "Có lỗi xảy ra", "error");
       } else {
         toast("Đặt thuê thành công!", "success");
-        revalidate(cacheKeys.dresses());
+        revalidateByPrefixes(cacheKeys.dresses());
         revalidate(cacheKeys.dressStats());
         onSaved();
         onClose();

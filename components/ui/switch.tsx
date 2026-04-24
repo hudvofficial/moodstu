@@ -27,6 +27,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
         onCheckedChange={onCheckedChange}
         disabled={disabled}
         id={id}
+        data-focus-ring="custom"
         className={`switch-root${className ? ` ${className}` : ""}`}
         {...props}
       >

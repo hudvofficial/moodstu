@@ -64,7 +64,7 @@ export function SelectForm({
           className={`
             input-base w-full flex items-center justify-between gap-2
             cursor-pointer text-left data-disabled:opacity-50 data-disabled:cursor-not-allowed
-            ${error ? "border-error focus:ring-error/20" : ""}
+            ${error ? "border-error" : ""}
           `}
           aria-label={label}
         >

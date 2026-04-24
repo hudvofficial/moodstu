@@ -17,7 +17,8 @@ import {
 import { getActiveEmployees } from "@/app/actions/employee-queries";
 import { checkEmployeeTimeOverlap } from "@/app/actions/task-overlap-actions";
 import { updateContractEvent } from "@/app/actions/contract-event-actions";
-import type { WorkType, TaskStatus, EventType } from "@/types/contract";
+import type { WorkType, TaskStatus, EventType, WorkTask } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
 import { TaskListPanel } from "./task-list-panel";
 import type { TaskRow, Employee, ConflictItem } from "./task-list-panel";
 
@@ -44,24 +45,25 @@ interface Props {
   isOpen: boolean;
   event: EventForModal;
   contractId: string;
+  prefetchedTasks?: WorkTask[];
+  prefetchedEmployees?: ActiveEmployee[];
   onClose: () => void;
   onSaved: () => void;
+  onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
 }
 
-// ─── STATUS CYCLE (V1 logic) ──────────────
-const STATUS_CYCLE: Record<string, TaskStatus> = {
-  chua_lam: "dang_lam",
-  dang_lam: "hoan_thanh",
-  hoan_thanh: "chua_lam",
-};
+// ─── STATUS CYCLE REMOVED (V2 uses SelectStatus) ─
 
 // ─── Component ────────────────────────────
 export default function EventTaskModal({
   isOpen,
   event,
   contractId,
+  prefetchedTasks,
+  prefetchedEmployees,
   onClose,
   onSaved,
+  onTaskStatusChange,
 }: Props) {
   const isOnSet = isOnSetEvent(event.event_type);
 
@@ -87,18 +89,32 @@ export default function EventTaskModal({
   const formRef = useRef(form);
   formRef.current = form;
 
-  // Debounced toggle ref (V1 optimistic pattern)
-  const pendingRef = useRef<
-    Map<string, { original: string; timer: ReturnType<typeof setTimeout> }>
-  >(new Map());
+  // Track if initial prefetch has been used
+  const usedPrefetchRef = useRef(false);
+
+  // Reset prefetch flag when event changes
+  useEffect(() => {
+    usedPrefetchRef.current = false;
+  }, [event.id]);
 
   // ─── Fetch data ───────────────────────
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceRefresh = false) => {
+    // Instant-load: use prefetched data on first open (zero network)
+    if (!forceRefresh && !usedPrefetchRef.current && prefetchedTasks && prefetchedEmployees?.length) {
+      setTasks(prefetchedTasks as unknown as TaskRow[]);
+      setEmployees(prefetchedEmployees as unknown as Employee[]);
+      setLoading(false);
+      usedPrefetchRef.current = true;
+      return;
+    }
+
     setLoading(true);
     try {
       const [taskResult, empResult] = await Promise.all([
         getTasksByEvent(event.id),
-        getActiveEmployees(),
+        prefetchedEmployees?.length
+          ? Promise.resolve({ success: true as const, data: prefetchedEmployees })
+          : getActiveEmployees(),
       ]);
       if (taskResult.success && taskResult.data) {
         setTasks(taskResult.data as TaskRow[]);
@@ -111,11 +127,13 @@ export default function EventTaskModal({
     } finally {
       setLoading(false);
     }
-  }, [event.id]);
+    usedPrefetchRef.current = true;
+  }, [event.id, prefetchedTasks, prefetchedEmployees]);
 
   useEffect(() => {
     if (isOpen) loadData();
-  }, [isOpen, loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, event.id]);
 
   // ─── Check time overlap ───────────────
   const doConflictCheck = useCallback(
@@ -171,7 +189,7 @@ export default function EventTaskModal({
     }
     setSubmitting(true);
     try {
-      await addTask({
+      const result = await addTask({
         contractId,
         eventId: event.id,
         workType: form.work_type,
@@ -181,10 +199,11 @@ export default function EventTaskModal({
         startTime: isOnSet && form.start_time ? form.start_time : undefined,
         endTime: isOnSet && form.end_time ? form.end_time : undefined,
       });
+      if (!result.success) throw new Error(result.error);
       toast.success("Đã thêm nhân sự!");
       setForm((prev) => ({ ...prev, assigned_to: "", cost: 0 }));
       setConflicts([]);
-      loadData();
+      loadData(true);
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm task");
@@ -196,45 +215,38 @@ export default function EventTaskModal({
   // ─── Delete task ──────────────────────
   const handleDelete = async (taskId: string) => {
     try {
-      await deleteTask(taskId, event.id);
+      const result = await deleteTask(taskId, event.id);
+      if (!result.success) throw new Error(result.error);
       toast.success("Đã xóa");
-      loadData();
+      loadData(true);
       onSaved();
     } catch {
       toast.error("Lỗi xóa");
     }
   };
 
-  // ─── Toggle status (optimistic + debounced) ──
-  const handleToggle = (task: TaskRow) => {
-    const currentStatus = task.status;
-    const newStatus = STATUS_CYCLE[currentStatus] || "chua_lam";
+  // ─── Update status (Optimistic UI) ─────────────
+  const handleStatusUpdate = async (taskId: string, newStatus: string) => {
+    const previousStatus = tasks.find((t) => t.id === taskId)?.status;
+    if (!previousStatus || previousStatus === newStatus) return;
 
-    const existing = pendingRef.current.get(task.id);
-    const originalStatus = existing ? existing.original : currentStatus;
-    if (existing) clearTimeout(existing.timer);
-
+    // 1. Cập nhật UI ngay lập tức (Instant Feedback)
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     );
+    onTaskStatusChange?.(taskId, event.id, newStatus as TaskStatus);
 
-    const timer = setTimeout(async () => {
-      try {
-        await toggleTaskStatus(task.id, newStatus as TaskStatus, event.id);
-        onSaved();
-      } catch {
+    // 2. Chạy API ngầm (Fire-and-forget)
+    toggleTaskStatus(taskId, newStatus as TaskStatus, event.id).then((result) => {
+      if (!result.success) {
+        // Rollback nếu lỗi
         setTasks((prev) =>
-          prev.map((t) =>
-            t.id === task.id ? { ...t, status: originalStatus } : t
-          )
+          prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
         );
-        toast.error("Lỗi cập nhật");
-      } finally {
-        pendingRef.current.delete(task.id);
+        onTaskStatusChange?.(taskId, event.id, previousStatus as TaskStatus);
+        toast.error("Lỗi cập nhật: " + result.error);
       }
-    }, 300);
-
-    pendingRef.current.set(task.id, { original: originalStatus, timer });
+    });
   };
 
   // ─── Total cost ─────────────────────────
@@ -323,7 +335,7 @@ export default function EventTaskModal({
           employees={employees}
           conflicts={conflicts}
           submitting={submitting}
-          onToggle={handleToggle}
+          onStatusUpdate={handleStatusUpdate}
           onDelete={handleDelete}
           onAdd={handleAdd}
           onEmployeeChange={handleEmployeeChange}

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { SupabaseClient, type User } from "@supabase/supabase-js";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
@@ -49,6 +50,31 @@ async function getEmployeeByAuthUserId(
 
   return (data as EmployeeContextRecord | null) ?? null;
 }
+
+const getVerifiedUser = cache(async (): Promise<User | null> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user ?? null;
+});
+
+const getEmployeeContextByAuthUserId = cache(
+  async (userId: string): Promise<EmployeeContextRecord | null> => {
+    const adminSupabase = await createAdminClient();
+    return getEmployeeByAuthUserId(adminSupabase, userId);
+  },
+);
+
+const canCurrentUserManageSettings = cache(
+  async (userId: string, jwtRole: string | null): Promise<boolean> => {
+    if (canManageSettingsRole(jwtRole)) return true;
+
+    const employee = await getEmployeeContextByAuthUserId(userId);
+    return !!employee && canManageSettingsRole(employee.role);
+  },
+);
 
 export async function syncAuthIdentity(
   supabase: SupabaseClient,
@@ -177,52 +203,51 @@ async function bootstrapEmployeeProfile(
   return data as EmployeeContextRecord;
 }
 
+const getAuthenticatedUserContextCached = cache(
+  async (bootstrapProfile: boolean): Promise<AuthenticatedUserContext | null> => {
+    const user = await getVerifiedUser();
+    if (!user) return null;
+
+    const adminSupabase = await createAdminClient();
+    let employee = await getEmployeeContextByAuthUserId(user.id);
+
+    if (!employee && bootstrapProfile) {
+      employee = await bootstrapEmployeeProfile(adminSupabase, user);
+    }
+
+    const roleSource =
+      employee?.role ??
+      (user.app_metadata?.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined);
+
+    return {
+      user,
+      employee,
+      shellRole: normalizeRole(roleSource),
+      userName:
+        employee?.full_name ||
+        (typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name
+          : undefined) ||
+        user.email?.split("@")[0] ||
+        "User",
+      canManageSettings: canManageSettingsRole(roleSource),
+      canManageMembers: canManageSettingsRole(roleSource),
+    };
+  },
+);
+
 export async function getAuthenticatedUserContext(options?: {
   bootstrapProfile?: boolean;
 }): Promise<AuthenticatedUserContext | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const adminSupabase = await createAdminClient();
-  let employee = await getEmployeeByAuthUserId(adminSupabase, user.id);
-
-  if (!employee && options?.bootstrapProfile) {
-    employee = await bootstrapEmployeeProfile(adminSupabase, user);
-  }
-
-  const roleSource =
-    employee?.role ??
-    (user.app_metadata?.role as string | undefined) ??
-    (user.user_metadata?.role as string | undefined);
-
-  return {
-    user,
-    employee,
-    shellRole: normalizeRole(roleSource),
-    userName:
-      employee?.full_name ||
-      (typeof user.user_metadata?.full_name === "string"
-        ? user.user_metadata.full_name
-        : undefined) ||
-      user.email?.split("@")[0] ||
-      "User",
-    canManageSettings: canManageSettingsRole(roleSource),
-    canManageMembers: canManageSettingsRole(roleSource),
-  };
+  return getAuthenticatedUserContextCached(options?.bootstrapProfile === true);
 }
 
 export async function withAuth<T>(
   action: (supabase: SupabaseClient, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getVerifiedUser();
 
     if (!user) {
       return { success: false, error: "Chua dang nhap" };
@@ -246,28 +271,17 @@ export async function withAdmin<T>(
   action: (supabase: SupabaseClient, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getVerifiedUser();
 
     if (!user) {
       return { success: false, error: "Chua dang nhap" };
     }
 
-    const jwtRole = user.app_metadata?.role as string | undefined;
+    const jwtRole = (user.app_metadata?.role as string | undefined) ?? null;
+    const canManage = await canCurrentUserManageSettings(user.id, jwtRole);
 
-    if (!canManageSettingsRole(jwtRole)) {
-      const adminFallback = await createAdminClient();
-      const { data: employee } = await adminFallback
-        .from("employees")
-        .select("role")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-
-      if (!employee || !canManageSettingsRole(employee.role)) {
-        return { success: false, error: "Ban khong co quyen thuc hien thao tac nay" };
-      }
+    if (!canManage) {
+      return { success: false, error: "Ban khong co quyen thuc hien thao tac nay" };
     }
 
     const adminSupabase = await createAdminClient();

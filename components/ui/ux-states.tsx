@@ -11,6 +11,7 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   className?: string;
+  compact?: boolean;
 }
 
 export function EmptyState({
@@ -19,25 +20,41 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
-  className
+  className,
+  compact = false,
 }: EmptyStateProps) {
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in duration-700",
+      "flex flex-col items-center justify-center text-center animate-in fade-in duration-700",
+      compact ? "py-8 px-4" : "py-20 px-4",
       className
     )}>
-      <div className="w-20 h-20 bg-bg-hover rounded-full flex items-center justify-center mb-6 border border-border/50">
-        <Icon className="w-10 h-10 text-text-muted" strokeWidth={1.5} />
+      <div className={cn(
+        "bg-bg-hover rounded-full flex items-center justify-center border border-border/50",
+        compact ? "mb-4 h-12 w-12" : "mb-6 h-20 w-20",
+      )}>
+        <Icon
+          className={cn(compact ? "h-6 w-6" : "h-10 w-10", "text-text-muted")}
+          strokeWidth={1.5}
+        />
       </div>
-      <h3 className="text-h3 mb-2" style={{ width: "100%" }}>{title}</h3>
-      <p className="text-sm text-text-muted leading-relaxed mb-8" style={{ maxWidth: "24rem", width: "100%" }}>
+      <h3 className={cn(compact ? "text-body font-semibold mb-1" : "text-h3 mb-2")} style={{ width: "100%" }}>
+        {title}
+      </h3>
+      <p
+        className={cn(
+          "text-text-muted leading-relaxed",
+          compact ? "text-caption mb-0" : "text-sm mb-8",
+        )}
+        style={{ maxWidth: compact ? "20rem" : "24rem", width: "100%" }}
+      >
         {description}
       </p>
       {actionLabel && onAction && (
         <Button 
           onClick={onAction}
           variant="secondary"
-          className="rounded-md px-8 h-11"
+          className={cn("rounded-md", compact ? "mt-4 h-10 px-6" : "h-11 px-8")}
         >
           {actionLabel}
         </Button>

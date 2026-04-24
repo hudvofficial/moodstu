@@ -1,21 +1,22 @@
 import { Shirt, TrendingUp } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
-import { cn } from "@/lib/utils";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/ux-states";
 import type { DressRoiItem } from "@/types/finance-intelligence";
 
 interface DressRoiCardProps {
   data: DressRoiItem[];
 }
 
-function roiClass(roi: number) {
-  if (roi >= 100) return "bg-success/10 text-success";
-  if (roi >= 0) return "bg-info/10 text-info";
-  return "bg-error/10 text-error";
+function roiVariant(roi: number): BadgeVariant {
+  if (roi >= 100) return "success";
+  if (roi >= 0) return "info";
+  return "error";
 }
 
 export function DressRoiCard({ data }: DressRoiCardProps) {
   return (
-    <div className="card-base h-full p-4">
+    <div className="card-base h-full min-w-0 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-overline text-text-muted">Dress ROI</p>
@@ -27,8 +28,12 @@ export function DressRoiCard({ data }: DressRoiCardProps) {
       </div>
 
       {data.length === 0 ? (
-        <div className="grid h-48 place-items-center text-body-sm text-text-muted">
-          Chưa có dữ liệu thuê váy.
+        <div className="dashboard-surface">
+          <EmptyState
+            compact
+            title="Chưa có dữ liệu thuê váy"
+            description="Cần thêm lượt thuê để tính hiệu suất hoàn vốn."
+          />
         </div>
       ) : (
         <div className="space-y-3">
@@ -37,22 +42,22 @@ export function DressRoiCard({ data }: DressRoiCardProps) {
             const width = Math.min(Math.max(roi, 0), 160);
 
             return (
-              <div key={item.id} className="rounded-xl border border-border bg-bg-hover p-3">
-                <div className="mb-2 flex items-start justify-between gap-3">
+              <div key={item.id} className="dashboard-surface min-w-0 space-y-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-body-sm font-semibold">{item.name}</p>
                     <p className="text-caption text-text-muted">{item.code}</p>
                   </div>
-                  <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-caption font-bold", roiClass(roi))}>
+                  <Badge variant={roiVariant(roi)} className="shrink-0 normal-case tracking-normal">
                     {roi.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="progress-track">
                   <div className="h-full rounded-full bg-success" style={{ width: `${width}%` }} />
                 </div>
 
-                <div className="mt-2 grid grid-cols-3 gap-2 text-caption text-text-secondary">
+                <div className="grid grid-cols-3 gap-2 text-caption text-text-secondary">
                   <div>
                     <p>Vốn</p>
                     <p className="tabular-nums font-semibold text-text-primary">{formatVnd(item.purchasePrice)}</p>

@@ -62,6 +62,35 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Service worker must be checked often so mobile clients update quickly.
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
+        source: "/workbox-:hash.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/manifest.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
         // Static assets (JS, CSS) — cache 1 năm (hashed = immutable)
         source: "/_next/static/:path*",
         headers: [
@@ -210,7 +239,7 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🟡 RULE 4: Supabase REST API — NetworkFirst (5s timeout)
+      // 🟡 RULE 4: Supabase REST API — NetworkFirst with 5s offline fallback
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
         handler: "NetworkFirst",
@@ -229,6 +258,14 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
+      {
+        urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "google-fonts",
+          expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
+        },
+      },
     ],
   },
 });
@@ -238,9 +275,12 @@ export default withSentryConfig(
   {
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
-    silent: !process.env.CI,
-    widenClientFileUpload: true,
-    sourcemaps: { deleteSourcemapsAfterUpload: true },
+    silent: true,
+    telemetry: false,
+    sourcemaps: {
+      deleteSourcemapsAfterUpload: true,
+      ignore: ["**/webpack-runtime.js", "**/instrumentation.js"],
+    },
     tunnelRoute: "/monitoring",
     // ⚡ Bundle Size Optimizations — giảm ~300-500KB JS
     bundleSizeOptimizations: {

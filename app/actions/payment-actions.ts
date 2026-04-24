@@ -26,6 +26,27 @@ interface CreatePaymentInput {
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
 type PaymentResult = { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
 
+async function validatePaymentPlanAmount(
+  supabase: AdminSupabase,
+  input: CreatePaymentInput,
+) {
+  if (!input.paymentPlanId) return;
+
+  const { data: plan, error } = await supabase
+    .from("payment_plans")
+    .select("id, amount, status")
+    .eq("id", input.paymentPlanId)
+    .eq("contract_id", input.contractId)
+    .single();
+
+  if (error || !plan) throw new Error("Dot thanh toan khong hop le");
+  if (plan.status === "paid") throw new Error("Dot thanh toan nay da duoc thu");
+  if (plan.status === "cancelled") throw new Error("Dot thanh toan nay da bi huy");
+  if (input.amount < plan.amount) {
+    throw new Error("So tien thu khong du de tat toan dot thanh toan da chon");
+  }
+}
+
 async function processContractPaymentFallback(
   supabase: AdminSupabase,
   userId: string,
@@ -106,6 +127,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
     await requireContractAccess(supabase, userId);
     // W3: Period lock — TRƯỚC mutation (audit fix)
     await checkPeriodLock(supabase, paymentInput.paymentDate);
+    await validatePaymentPlanAmount(supabase, paymentInput);
 
     // Single atomic RPC: lock contract → insert payment → update totals
     const { data, error } = await supabase.rpc("process_contract_payment_v2", {

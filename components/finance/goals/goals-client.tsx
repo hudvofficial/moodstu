@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { PiggyBank, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteGoal, updateGoal } from "@/app/actions/goal-budget-actions";
 import { fetchGoals, fetchGoalsCashflow, type GoalsCashflowData } from "@/app/actions/finance-operations-queries";
 import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
-import { GoalCelebrationOverlay } from "@/components/finance/goals/goal-celebration-overlay";
-import { GoalDetailDrawer } from "@/components/finance/goals/goal-detail-drawer";
 import { GoalsFilters } from "@/components/finance/goals/goals-filters";
 import { GoalsStatsBar } from "@/components/finance/goals/goals-stats-bar";
 import { GoalsOverview } from "@/components/finance/goals/goals-overview";
-import { GoalContributionModal } from "@/components/finance/goals/goal-contribution-modal";
-import { GoalFormModal } from "@/components/finance/goals/goal-form-modal";
 import { GoalIcon, resolveGoalColor } from "@/components/finance/goals/goal-visual";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +21,26 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/ux-states";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, GoalItem } from "@/types/finance-operations";
+
+const GoalCelebrationOverlay = dynamic(
+  () => import("@/components/finance/goals/goal-celebration-overlay").then((mod) => mod.GoalCelebrationOverlay),
+  { ssr: false },
+);
+
+const GoalContributionModal = dynamic(
+  () => import("@/components/finance/goals/goal-contribution-modal").then((mod) => mod.GoalContributionModal),
+  { ssr: false },
+);
+
+const GoalDetailDrawer = dynamic(
+  () => import("@/components/finance/goals/goal-detail-drawer").then((mod) => mod.GoalDetailDrawer),
+  { ssr: false },
+);
+
+const GoalFormModal = dynamic(
+  () => import("@/components/finance/goals/goal-form-modal").then((mod) => mod.GoalFormModal),
+  { ssr: false },
+);
 
 interface GoalsClientProps {
   initialData: GoalItem[];
@@ -93,7 +110,10 @@ export function GoalsClient({ initialData, initialCashflow }: GoalsClientProps) 
 
   const goals = data || initialData;
   const cashflow = cashflowData || initialCashflow || null;
-  const refresh = () => void mutate(key);
+  const refresh = () => {
+    void mutate(key);
+    void mutate(cashflowKey);
+  };
 
   const detailingGoal = useMemo(() => {
     if (!detailingGoalId) return null;
@@ -374,22 +394,24 @@ export function GoalsClient({ initialData, initialCashflow }: GoalsClientProps) 
         />
       ) : null}
 
-      <GoalDetailDrawer
-        goal={detailingGoal}
-        cashflow={cashflow}
-        open={Boolean(detailingGoalId)}
-        onOpenChange={(open) => {
-          if (!open) handleCloseDetail();
-        }}
-        onEdit={openEdit}
-        onContribute={(goal) => setContributing(goal)}
-        onCancelToggle={(goal) => {
-          const s = (goal.status || "").toLowerCase();
-          const nextStatus = s === "cancelled" || s === "canceled" ? "active" : "cancelled";
-          setConfirmingStatus({ goal, nextStatus });
-        }}
-        onDelete={(goal) => setConfirmingDelete(goal)}
-      />
+      {detailingGoalId ? (
+        <GoalDetailDrawer
+          goal={detailingGoal}
+          cashflow={cashflow}
+          open={Boolean(detailingGoalId)}
+          onOpenChange={(open) => {
+            if (!open) handleCloseDetail();
+          }}
+          onEdit={openEdit}
+          onContribute={(goal) => setContributing(goal)}
+          onCancelToggle={(goal) => {
+            const s = (goal.status || "").toLowerCase();
+            const nextStatus = s === "cancelled" || s === "canceled" ? "active" : "cancelled";
+            setConfirmingStatus({ goal, nextStatus });
+          }}
+          onDelete={(goal) => setConfirmingDelete(goal)}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={Boolean(confirmingDelete)}
@@ -425,7 +447,9 @@ export function GoalsClient({ initialData, initialCashflow }: GoalsClientProps) 
         variant="warning"
       />
 
-      <GoalCelebrationOverlay milestone={celebration || 25} show={Boolean(celebration)} onDone={() => setCelebration(null)} />
+      {celebration ? (
+        <GoalCelebrationOverlay milestone={celebration} show onDone={() => setCelebration(null)} />
+      ) : null}
     </div>
   );
 }

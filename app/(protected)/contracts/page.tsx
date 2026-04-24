@@ -1,10 +1,62 @@
 import ContractsListClient from "@/components/contracts/contracts-list-client";
+import { getContractList, getContractStats } from "@/app/actions/contract-queries";
+import type { ContractFilters, ContractStats } from "@/types/contract";
 
 export const metadata = { title: "Hợp đồng | Mood Studio" };
 
-// TODO: Phase A+ — Migrate to server-side fetch pattern (like employees/page.tsx)
-// Currently ContractsListClient uses SWR for data fetching.
-// Future: fetch server-side → pass initialData → SWR hydrates from props.
-export default function ContractsPage() {
-  return <ContractsListClient />;
+function getStringParam(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string,
+  fallback = "",
+) {
+  const value = searchParams[key];
+  return typeof value === "string" ? value : fallback;
+}
+
+function parseFilters(
+  searchParams: Record<string, string | string[] | undefined>,
+): ContractFilters {
+  return {
+    status: getStringParam(searchParams, "status", "all") as ContractFilters["status"],
+    search: getStringParam(searchParams, "search"),
+    time: getStringParam(searchParams, "time", "all"),
+    service: getStringParam(searchParams, "service", "all") as ContractFilters["service"],
+    sort: getStringParam(searchParams, "sort", "newest"),
+    startDate: getStringParam(searchParams, "startDate"),
+    endDate: getStringParam(searchParams, "endDate"),
+    advanced: getStringParam(searchParams, "advanced", "false") === "true",
+    page: Number(getStringParam(searchParams, "page", "1")) || 1,
+  };
+}
+
+export default async function ContractsPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const filters = parseFilters(searchParams);
+
+  const [listResult, statsResult] = await Promise.all([
+    getContractList(filters),
+    getContractStats(),
+  ]);
+
+  if (!listResult.success) {
+    throw new Error(listResult.error);
+  }
+
+  if (!statsResult.success) {
+    throw new Error(statsResult.error);
+  }
+
+  return (
+    <ContractsListClient
+      initialData={listResult.data as {
+        contracts: Record<string, unknown>[];
+        total: number;
+        page: number;
+        pageSize: number;
+      }}
+      initialStats={statsResult.data as ContractStats}
+    />
+  );
 }

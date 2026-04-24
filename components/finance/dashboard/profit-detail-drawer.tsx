@@ -1,20 +1,74 @@
 "use client";
 
-import { useMemo } from "react";
-import { Receipt, Users, Printer, FileText } from "lucide-react";
+import { useEffect, useMemo, type ReactNode } from "react";
+import { AlertCircle, FileText, Printer, Receipt, SearchX, Users, type LucideIcon } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/ux-states";
 import { getContractFinanceDetails } from "@/app/actions/finance-dashboard-queries";
 import { formatVnd, financeStatusLabel, financeStatusVariant, formatFinanceDate } from "@/components/finance/finance-format";
 import { useSWR } from "@/lib/swr";
 import { toast } from "sonner";
+import { getWorkTypeLabel } from "@/types/contract-constants";
+import type { WorkType } from "@/types/contract";
 import type { ContractProfitDetailData } from "@/types/finance-dashboard";
 
 interface ContractProfitDetailDrawerProps {
   contractId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function ProfitDetailSection({
+  icon: Icon,
+  iconToneClassName,
+  title,
+  total,
+  children,
+}: {
+  icon: LucideIcon;
+  iconToneClassName: string;
+  title: string;
+  total?: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className={`icon-box ${iconToneClassName}`}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <h4 className="section-heading">{title}</h4>
+        </div>
+        {typeof total === "number" ? (
+          <span className="tabular-nums font-bold text-error">{formatVnd(total)}</span>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function CompactEmptyState({
+  icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
+  return (
+    <EmptyState
+      compact
+      icon={icon}
+      title={title}
+      description={description}
+      className="card-base border border-dashed border-border/70 bg-bg-sidebar/30"
+    />
+  );
 }
 
 export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: ContractProfitDetailDrawerProps) {
@@ -24,10 +78,10 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
       const res = await getContractFinanceDetails(contractId);
       if (!res.success) throw new Error(res.error);
       return res.data;
-    }
+    },
   );
 
-  const contractTitle = isLoading || !data ? "Chi tiết Hợp đồng" : `Lợi nhuận HĐ: ${data.contract.contract_code}`;
+  const contractTitle = data ? `Lợi nhuận HĐ: ${data.contract.contract_code}` : "Chi tiết Hợp đồng";
   const contractBadge = data ? (
     <Badge variant={financeStatusVariant(data.contract.status)}>
       {financeStatusLabel(data.contract.status)}
@@ -44,30 +98,42 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
   const totalCost = payrollTotal + printTotal + opsTotal;
   const netProfit = (data?.contract.total_amount || 0) - totalCost;
 
-  if (error) {
-    toast.error(error.message || "Không thể tải chi tiết hợp đồng");
-  }
+  useEffect(() => {
+    if (error && open) {
+      toast.error(error.message || "Không thể tải chi tiết hợp đồng");
+    }
+  }, [error, open]);
+
+  const isInitialLoading = isLoading && !data && !error;
+  const hasFatalError = Boolean(error) && !data;
+
+  const formatWorkType = (workType: string) => {
+    return getWorkTypeLabel(workType as WorkType);
+  };
 
   return (
-    <Drawer 
-      isOpen={open} 
+    <Drawer
+      isOpen={open}
       onClose={() => onOpenChange(false)}
       title={contractTitle}
       titleBadge={contractBadge}
       size="lg"
     >
       <div className="space-y-6 pb-6">
-        {isLoading || !data ? (
+        {isInitialLoading ? (
           <div className="space-y-5">
             <SkeletonTable rows={3} />
             <SkeletonTable rows={4} />
             <SkeletonTable rows={4} />
           </div>
-        ) : error ? (
-          <div className="card-base p-6 text-center text-error border-error/20 bg-error/10">
-            <p>Đã xảy ra lỗi khi tải dữ liệu. Vui lòng kết nối lại.</p>
-          </div>
-        ) : (
+        ) : hasFatalError ? (
+          <EmptyState
+            icon={AlertCircle}
+            title="Không tải được chi tiết hợp đồng"
+            description="Dữ liệu lợi nhuận của hợp đồng này hiện chưa thể tải. Mở lại drawer hoặc thử lại sau."
+            className="card-base border border-error/20 bg-error/5 py-12"
+          />
+        ) : data ? (
           <>
             {/* TỔNG QUAN TÀI CHÍNH (STRIPE STYLE) */}
             <div className="card-base bg-bg-sidebar/50 p-5 border border-border/50">
@@ -105,124 +171,126 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
             </div>
 
             {/* BLOCK 1: DOANH THU CHI TIẾT */}
-            <div className="space-y-3">
-               <div className="flex items-center gap-2 mb-2">
-                 <div className="icon-box bg-primary/10">
-                   <Receipt className="w-4 h-4 text-primary" />
-                 </div>
-                 <h4 className="section-heading">Cấu thành Doanh thu</h4>
-               </div>
-               {data.details.length === 0 ? (
-                 <div className="text-sm text-text-muted italic px-2">Không có chi tiết.</div>
-               ) : (
-                 <div className="card-base divide-y divide-border/50">
-                    {data.details.map((detail) => (
-                      <div key={detail.id} className="flex justify-between items-center p-3 text-sm">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{detail.service_name}</span>
-                          <span className="text-xs text-text-tertiary">
-                            {detail.quantity} x {formatVnd(detail.unit_price)}
-                            {detail.item_type === "ADDON" && " (Phát sinh)"}
-                          </span>
-                        </div>
-                        <div className="font-medium tabular-nums">{formatVnd(detail.total_amount)}</div>
+            <ProfitDetailSection
+              icon={Receipt}
+              iconToneClassName="bg-primary/10 text-primary"
+              title="Cấu thành Doanh thu"
+            >
+              {data.details.length === 0 ? (
+                <CompactEmptyState
+                  icon={SearchX}
+                  title="Chưa có chi tiết doanh thu"
+                  description="Hợp đồng này chưa có hạng mục doanh thu để hiển thị."
+                />
+              ) : (
+                <div className="card-base divide-y divide-border/50">
+                  {data.details.map((detail) => (
+                    <div key={detail.id} className="flex items-center justify-between p-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-text-primary">{detail.service_name}</span>
+                        <span className="text-xs text-text-tertiary">
+                          {detail.quantity} x {formatVnd(detail.unit_price)}
+                          {detail.item_type === "ADDON" && " (Phát sinh)"}
+                        </span>
                       </div>
-                    ))}
-                 </div>
-               )}
-            </div>
+                      <div className="font-medium tabular-nums">{formatVnd(detail.total_amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ProfitDetailSection>
 
             {/* BLOCK 2: CHI PHÍ NHÂN SỰ */}
-            <div className="space-y-3">
-               <div className="flex items-center justify-between gap-2 mb-2">
-                 <div className="flex items-center gap-2">
-                   <div className="icon-box bg-info/10">
-                     <Users className="w-4 h-4 text-info" />
-                   </div>
-                   <h4 className="section-heading">Chi phí Lương</h4>
-                 </div>
-                 <span className="text-error font-bold tabular-nums">{formatVnd(payrollTotal)}</span>
-               </div>
-               
-               {data.tasks.length === 0 ? (
-                 <div className="text-sm text-text-muted italic px-2">Khách chưa có chi phí lương.</div>
-               ) : (
-                 <div className="card-base divide-y divide-border/50">
-                    {data.tasks.map((task) => (
-                      <div key={task.id} className="flex justify-between items-center p-3 text-sm">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{task.work_type}</span>
-                          <span className="text-xs text-text-tertiary">
-                            NV: {task.employees?.full_name || "Chưa phân công"}
-                          </span>
-                        </div>
-                        <div className="font-medium text-error tabular-nums">{formatVnd(task.cost)}</div>
+            <ProfitDetailSection
+              icon={Users}
+              iconToneClassName="bg-info/10 text-info"
+              title="Chi phí Lương"
+              total={payrollTotal}
+            >
+              {data.tasks.length === 0 ? (
+                <CompactEmptyState
+                  icon={Users}
+                  title="Chưa có chi phí lương"
+                  description="Hợp đồng này chưa phát sinh chi phí nhân sự."
+                />
+              ) : (
+                <div className="card-base divide-y divide-border/50">
+                  {data.tasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-text-primary">{formatWorkType(task.work_type)}</span>
+                        <span className="text-xs text-text-tertiary">
+                          NV: {task.employees?.full_name || "Chưa phân công"}
+                        </span>
                       </div>
-                    ))}
-                 </div>
-               )}
-            </div>
+                      <div className="font-medium text-error tabular-nums">{formatVnd(task.cost)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ProfitDetailSection>
 
             {/* BLOCK 3: CHI PHÍ IN ẤN */}
-            <div className="space-y-3">
-               <div className="flex items-center justify-between gap-2 mb-2">
-                 <div className="flex items-center gap-2">
-                   <div className="icon-box bg-primary/10">
-                     <Printer className="w-4 h-4 text-primary" />
-                   </div>
-                   <h4 className="section-heading">Chi phí In ấn</h4>
-                 </div>
-                 <span className="text-error font-bold tabular-nums">{formatVnd(printTotal)}</span>
-               </div>
-               
-               {data.orders.length === 0 ? (
-                 <div className="text-sm text-text-muted italic px-2">Không có yêu cầu in ấn.</div>
-               ) : (
-                 <div className="card-base divide-y divide-border/50">
-                    {data.orders.map((order) => (
-                      <div key={order.id} className="flex justify-between items-center p-3 text-sm">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{order.item_name}</span>
-                          <span className="text-xs text-text-tertiary">Số lượng: {order.quantity} • ST: {financeStatusLabel(order.payment_status)}</span>
-                        </div>
-                        <div className="font-medium text-error tabular-nums">{formatVnd(order.cost)}</div>
+            <ProfitDetailSection
+              icon={Printer}
+              iconToneClassName="bg-primary/10 text-primary"
+              title="Chi phí In ấn"
+              total={printTotal}
+            >
+              {data.orders.length === 0 ? (
+                <CompactEmptyState
+                  icon={Printer}
+                  title="Chưa có yêu cầu in ấn"
+                  description="Hợp đồng này chưa phát sinh hạng mục in ấn."
+                />
+              ) : (
+                <div className="card-base divide-y divide-border/50">
+                  {data.orders.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between p-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-text-primary">{order.item_name}</span>
+                        <span className="text-xs text-text-tertiary">
+                          Số lượng: {order.quantity} • ST: {financeStatusLabel(order.payment_status)}
+                        </span>
                       </div>
-                    ))}
-                 </div>
-               )}
-            </div>
+                      <div className="font-medium text-error tabular-nums">{formatVnd(order.cost)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ProfitDetailSection>
 
             {/* BLOCK 4: CHI PHÍ KHÁC */}
-            <div className="space-y-3">
-               <div className="flex items-center justify-between gap-2 mb-2">
-                 <div className="flex items-center gap-2">
-                   <div className="icon-box bg-warning/10">
-                     <FileText className="w-4 h-4 text-interactive" />
-                   </div>
-                   <h4 className="section-heading">Chi phí Vận hành Khác</h4>
-                 </div>
-                 <span className="text-error font-bold tabular-nums">{formatVnd(opsTotal)}</span>
-               </div>
-               
-               {data.expenses.length === 0 ? (
-                 <div className="text-sm text-text-muted italic px-2">Không có khoản chi khác.</div>
-               ) : (
-                 <div className="card-base divide-y divide-border/50">
-                    {data.expenses.map((exp) => (
-                      <div key={exp.id} className="flex justify-between items-center p-3 text-sm">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-text-primary">{exp.description || "Chi phí"}</span>
-                          {exp.transaction_date && <span className="text-xs text-text-tertiary">{formatFinanceDate(exp.transaction_date)}</span>}
-                        </div>
-                        <div className="font-medium text-error tabular-nums">{formatVnd(exp.amount)}</div>
+            <ProfitDetailSection
+              icon={FileText}
+              iconToneClassName="bg-warning/10 text-interactive"
+              title="Chi phí Vận hành Khác"
+              total={opsTotal}
+            >
+              {data.expenses.length === 0 ? (
+                <CompactEmptyState
+                  icon={FileText}
+                  title="Chưa có chi phí vận hành"
+                  description="Hợp đồng này chưa phát sinh khoản chi vận hành khác."
+                />
+              ) : (
+                <div className="card-base divide-y divide-border/50">
+                  {data.expenses.map((exp) => (
+                    <div key={exp.id} className="flex items-center justify-between p-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-text-primary">{exp.description || "Chi phí"}</span>
+                        {exp.transaction_date ? (
+                          <span className="text-xs text-text-tertiary">{formatFinanceDate(exp.transaction_date)}</span>
+                        ) : null}
                       </div>
-                    ))}
-                 </div>
-               )}
-            </div>
-
+                      <div className="font-medium text-error tabular-nums">{formatVnd(exp.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ProfitDetailSection>
           </>
-        )}
+        ) : null}
       </div>
     </Drawer>
   );

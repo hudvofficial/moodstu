@@ -187,6 +187,7 @@ export function UnifiedModal({
               </div>
               {showCloseButton && (
                 <Button
+                  unstyled
                   type="button"
                   onClick={handleClose}
                   aria-label="Đóng"

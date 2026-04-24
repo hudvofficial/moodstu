@@ -92,6 +92,20 @@
   text-align: right;
 }
 
+/* Form focus reset: final cascade override for form controls and
+   form-like triggers that reuse `.input-base` (Select, DatePicker). */
+:is(input, select, textarea, .input-base):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: var(--color-border) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+:is(input, select, textarea, .input-base).input-error:is(:focus, :focus-visible) {
+  border-color: var(--color-error) !important;
+}
+
 /* ══════════════════════════════════════
    6. DARK MODE PREP (uncomment khi cần)
    ══════════════════════════════════════ */

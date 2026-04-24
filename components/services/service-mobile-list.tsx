@@ -14,9 +14,10 @@ interface Props {
   services: ServiceRecord[];
   onQuote: (service: ServiceRecord) => void;
   onEdit: (id: string) => void;
+  onPrefetch?: (id: string) => void;
 }
 
-function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
+function ServiceMobileListInner({ services, onQuote, onEdit, onPrefetch }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = useCallback((id: string) => {
@@ -38,6 +39,8 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
             role="button"
             tabIndex={0}
             onClick={() => toggleExpand(service.id)}
+            onPointerEnter={() => onPrefetch?.(service.id)}
+            onFocus={() => onPrefetch?.(service.id)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance stagger-item`}
           >
             {/* Row 1: Service code + Chevron */}
@@ -126,6 +129,8 @@ function ServiceMobileListInner({ services, onQuote, onEdit }: Props) {
                       e.stopPropagation();
                       onEdit(service.id);
                     }}
+                    onPointerEnter={() => onPrefetch?.(service.id)}
+                    onFocus={() => onPrefetch?.(service.id)}
                     className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-bg-sidebar text-caption font-medium text-text-main transition-colors hover:bg-bg-hover px-0"
                   >
                     <Pencil className="h-3.5 w-3.5" />

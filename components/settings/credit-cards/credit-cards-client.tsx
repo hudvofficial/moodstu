@@ -13,7 +13,7 @@ export default function CreditCardsClient({
   initialCards: CreditCardOption[];
 }) {
   const router = useRouter();
-  const [cards] = useState<CreditCardOption[]>(initialCards || []);
+  const cards = initialCards || [];
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CreditCardOption | null>(null);
 
@@ -29,9 +29,6 @@ export default function CreditCardsClient({
 
   const onSuccess = () => {
     router.refresh();
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
 
   return (

@@ -1,97 +1,44 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function OfflinePage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column" as const,
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--color-bg, #f8f9fa)",
-        padding: "2rem",
-        textAlign: "center" as const,
-        gap: "1.5rem",
-      }}
-    >
-      {/* Icon */}
-      <div
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: "1.25rem",
-          background: "var(--color-primary-surface, #eef3f0)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 40,
-        }}
-      >
-        📡
-      </div>
+    <main className="flex min-h-screen items-center justify-center bg-bg-base px-6 py-12 text-center">
+      <section className="w-full max-w-sm rounded-3xl border border-border bg-bg-card p-6 shadow-lg">
+        <Image
+          src="/icon.png"
+          alt="Mood Studio"
+          width={80}
+          height={80}
+          priority
+          className="mx-auto rounded-2xl"
+        />
 
-      {/* Text */}
-      <div>
-        <h1
-          style={{
-            fontSize: "1.25rem",
-            fontWeight: 700,
-            color: "var(--color-text, #1a1a1a)",
-            margin: "0 0 0.5rem 0",
-          }}
-        >
+        <h1 className="mt-6 text-xl font-bold text-text-primary">
           Không có kết nối mạng
         </h1>
-        <p
-          style={{
-            fontSize: "0.875rem",
-            color: "var(--color-text-secondary, #6b7280)",
-            margin: 0,
-            lineHeight: 1.5,
-          }}
-        >
-          Vui lòng kiểm tra kết nối internet
-          <br />
-          và thử lại.
+        <p className="mt-2 text-sm leading-6 text-text-secondary">
+          Mood Studio đang ở chế độ offline. Kiểm tra lại mạng rồi thử tải lại trang.
         </p>
-      </div>
 
-      {/* Retry button */}
-      <Button
-        onClick={() => window.location.reload()}
-        type="button"
-        variant="ghost"
-        style={{
-          padding: "0.75rem 2rem",
-          borderRadius: "0.75rem",
-          border: "none",
-          background: "var(--color-primary, #2E5C46)",
-          color: "white",
-          fontSize: "0.875rem",
-          fontWeight: 600,
-          cursor: "pointer",
-          transition: "opacity 0.2s",
-          boxShadow: "none",
-        }}
-      >
-        Thử lại
-      </Button>
+        <Button
+          onClick={() => window.location.reload()}
+          type="button"
+          className="mt-6 w-full justify-center"
+        >
+          Thử lại
+        </Button>
 
-      {/* Home link */}
-      <Link
-        href="/dashboard"
-        style={{
-          fontSize: "0.8125rem",
-          color: "var(--color-primary, #2E5C46)",
-          textDecoration: "none",
-        }}
-      >
-        ← Về trang chủ
-      </Link>
-    </div>
+        <Link
+          href="/login"
+          className="mt-4 inline-flex text-sm font-semibold text-primary"
+        >
+          Về màn hình đăng nhập
+        </Link>
+      </section>
+    </main>
   );
 }

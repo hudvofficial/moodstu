@@ -7,6 +7,7 @@
  * V2: DrawerContent + OperationsTabs extracted to drawer-tab-content.tsx
  */
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Printer,
@@ -20,7 +21,8 @@ import {
   CONTRACT_STATUS_MAP,
 } from "@/types/contract-constants";
 import type { ContractStatus } from "@/types/contract";
-import { DrawerContent } from "./drawer-tab-content";
+import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkTask } from "./drawer-tab-content";
+import { prefetchContractDetail, useContractDrawerExtra } from "@/lib/hooks/use-contracts";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -43,9 +45,9 @@ export interface ContractListItem {
     address?: string | null;
   } | null;
   // Drawer sections (from list query JOINs)
-  contract_events?: Record<string, unknown>[];
-  contract_checklists?: Record<string, unknown>[];
-  work_tasks?: Record<string, unknown>[];
+  contract_events?: DrawerEvent[];
+  contract_checklists?: DrawerChecklist[];
+  work_tasks?: DrawerWorkTask[];
   payment_plans?: Record<string, unknown>[];
   contract_notes?: { id: string; content: string; created_by: string; created_at: string }[];
 }
@@ -73,6 +75,16 @@ export function ContractDrawer({
 }: ContractDrawerProps) {
   const router = useRouter();
   const contractId = contract?.id || null;
+  const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
+    useContractDrawerExtra(isOpen ? contractId : null);
+
+  useEffect(() => {
+    if (!isOpen || !contractId) return;
+
+    router.prefetch(`/contracts/${contractId}`);
+    router.prefetch(`/contracts/${contractId}/edit`);
+    prefetchContractDetail(contractId);
+  }, [contractId, isOpen, router]);
 
   const contractCode = contract?.contract_code || "...";
 
@@ -113,6 +125,13 @@ export function ContractDrawer({
     <Drawer isOpen={isOpen} onClose={onClose} title={contractCode} titleBadge={titleBadge} headerRight={headerRight}>
       <DrawerContent
         contract={contract}
+        extra={{ 
+          events: events as unknown as DrawerEvent[], 
+          checklists: checklists as unknown as DrawerChecklist[], 
+          workTasks: workTasks as unknown as DrawerWorkTask[], 
+          paymentPlans 
+        }}
+        isLoadingExtra={isLoadingExtra}
         onViewDetail={() => {
           onClose();
           router.push(`/contracts/${contractId}`);

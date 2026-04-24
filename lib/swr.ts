@@ -139,4 +139,25 @@ export function prefetch<T>(key: string, fetcher: () => Promise<T>) {
   mutate(key, fetcher(), { revalidate: false });
 }
 
+function cacheKeyMatchesPrefix(key: unknown, prefix: string) {
+  const textKey = Array.isArray(key) ? key[0] : key;
+  if (typeof textKey !== "string") return false;
+  return (
+    textKey === prefix ||
+    textKey.startsWith(`${prefix}:`) ||
+    textKey.startsWith(`${prefix}-`) ||
+    textKey.startsWith(`${prefix}?`)
+  );
+}
+
+/** Revalidate all SWR entries under a namespace, including array keys like [namespace, filters]. */
+export async function revalidateByPrefixes(prefixes: string | string[]) {
+  const list = Array.isArray(prefixes) ? prefixes : [prefixes];
+  await mutate(
+    (key: unknown) => list.some((prefix) => cacheKeyMatchesPrefix(key, prefix)),
+    undefined,
+    { revalidate: true },
+  );
+}
+
 export { useSWR, mutate };

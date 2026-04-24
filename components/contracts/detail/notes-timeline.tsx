@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { MessageSquare, Send, Trash2 } from "lucide-react";
 import { getContractNotes, addContractNote, deleteContractNote } from "@/app/actions/note-actions";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,7 @@ export default function NotesTimeline({ contractId }: Props) {
         setNotes((prev) =>
           prev.map((n) => (n.id === tempId ? (result.data as unknown as Note) : n))
         );
+        await revalidateContractCaches(contractId);
       } else {
         // Rollback
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
@@ -98,6 +100,8 @@ export default function NotesTimeline({ contractId }: Props) {
         if (refetch.success && refetch.data) {
           setNotes(refetch.data as unknown as Note[]);
         }
+      } else {
+        await revalidateContractCaches(contractId);
       }
     },
     [contractId]

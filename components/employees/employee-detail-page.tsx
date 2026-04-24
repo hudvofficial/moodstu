@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, UserX, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { EmployeeDetail, EmployeeRole, SalaryInfo } from "@/types/employee";
 import { ROLE_BADGE_MAP, EMPLOYEE_STATUS_MAP, getRoleLabel } from "@/types/employee-constants";
 import { formatCurrency, formatDate, formatPhone, getInitials } from "@/lib/utils";
+import { revalidateEmployeeCaches } from "@/lib/cache-invalidation";
+import { useRealtime } from "@/hooks/use-realtime";
+import { getEmployeeById } from "@/app/actions/employee-queries";
 import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-mutations";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +24,29 @@ import EmployeeFormModal from "./employee-form-modal";
 // ═══════════════════════════════════════════
 
 
-export default function EmployeeDetailPage({ employee }: { employee: EmployeeDetail }) {
+export default function EmployeeDetailPage({ employee: initialEmployee }: { employee: EmployeeDetail }) {
   const router = useRouter();
+  const [employee, setEmployee] = useState(initialEmployee);
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    setEmployee(initialEmployee);
+  }, [initialEmployee]);
+
+  const refreshEmployee = useCallback(async () => {
+    const result = await getEmployeeById(employee.id);
+    if (result.success && result.data) {
+      setEmployee(result.data as EmployeeDetail);
+    }
+    await revalidateEmployeeCaches(employee.id);
+  }, [employee.id]);
+
+  useRealtime("employees", {
+    filter: `id=eq.${employee.id}`,
+    onChange: refreshEmployee,
+    debounceMs: 500,
+  });
 
   const isDeleted = !!employee.deleted_at;
   const effectiveStatus = isDeleted ? "inactive" : employee.status;
@@ -59,6 +81,7 @@ export default function EmployeeDetailPage({ employee }: { employee: EmployeeDet
       const result = await softDeleteEmployee(employee.id);
       if (result.success) {
         toast.success("Đã cho nghỉ việc");
+        await revalidateEmployeeCaches(employee.id);
         router.push("/employees");
       } else { throw new Error(result.error || "Lỗi"); }
     } catch (err) {
@@ -72,7 +95,7 @@ export default function EmployeeDetailPage({ employee }: { employee: EmployeeDet
       const result = await restoreEmployee(employee.id);
       if (result.success) {
         toast.success("Đã khôi phục nhân viên");
-        router.refresh();
+        await refreshEmployee();
       } else { throw new Error(result.error || "Lỗi"); }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi khôi phục");
@@ -170,7 +193,7 @@ export default function EmployeeDetailPage({ employee }: { employee: EmployeeDet
       <EmployeeFormModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        onSaved={() => router.refresh()}
+        onSaved={refreshEmployee}
         editEmployee={employee}
       />
     </div>

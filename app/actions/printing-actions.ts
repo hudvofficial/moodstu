@@ -1,7 +1,6 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
 import {
   createPrintingOrder as createPrintingOrderImpl,
   updatePrintingOrderStatus as updatePrintingOrderStatusImpl,
@@ -78,7 +77,7 @@ export async function updateReservationStatus(
       }
     }
 
-    revalidatePath(`/contracts/${contractId}`);
+    // ⚡ No revalidatePath — client uses optimistic UI + Realtime for sync
     return null;
   });
 }

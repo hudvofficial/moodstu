@@ -44,15 +44,16 @@ export interface ModuleConfig {
   description: string;
   href: string;
   icon: LucideIcon;
-  /** Nhóm hiển thị trong sidebar */
   group: MenuGroup;
+  /** Optional route prefix used when href points to a default child route. */
+  matchPrefix?: string;
 }
 
 export const MODULES: ModuleConfig[] = [
   // ── HÀNG NGÀY ──
   { id: "contracts", label: "Hợp đồng", shortLabel: "Hợp đồng", description: "Quản lý hợp đồng & tiến độ dịch vụ", href: "/contracts", icon: FileText, group: "daily" },
   { id: "calendar", label: "Lịch làm việc", shortLabel: "Lịch", description: "Lịch chụp hình, sự kiện & phân công", href: "/calendar", icon: Calendar, group: "daily" },
-  { id: "crm", label: "Hệ thống CRM", shortLabel: "CRM", description: "Quản lý phễu Sale & Chăm sóc khách hàng", href: "/crm", icon: Users, group: "daily" },
+  { id: "crm", label: "Hệ thống CRM", shortLabel: "CRM", description: "Quản lý phễu Sale & Chăm sóc khách hàng", href: "/crm/leads", icon: Users, group: "daily", matchPrefix: "/crm" },
 
   // ── QUẢN LÝ ──
   { id: "finance", label: "Tài chính", description: "Thu chi, công nợ & báo cáo tài chính", href: "/finance", icon: Wallet, group: "management" },

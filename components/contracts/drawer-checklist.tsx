@@ -10,6 +10,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -114,7 +115,9 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
           )
         );
         toast.error("Lỗi cập nhật checklist");
+        return;
       }
+      await revalidateContractCaches(res.data.contract_id);
     } catch {
       setItems((prev) =>
         prev.map((i) =>

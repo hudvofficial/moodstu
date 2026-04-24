@@ -81,6 +81,16 @@ export interface PaginatedResult<T> {
   pageSize: number;
 }
 
+export interface FinanceDashboardBootstrapData {
+  metrics: DashboardMetrics;
+  revenue: RevenueByMonthItem[];
+  services: ServiceDistributionItem[];
+  upcoming: FinanceContractListItem[];
+  pending: FinanceContractListItem[];
+  ledger: PaginatedResult<LedgerItem>;
+  profit: PaginatedResult<ContractProfitRow>;
+}
+
 // Drawer Interfaces
 export interface ContractDetail {
   id: string;

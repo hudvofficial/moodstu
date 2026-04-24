@@ -19,6 +19,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContractFormMode } from "@/types/contract-form";
+import type { ItemType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // ContractForm — Main form shell
@@ -33,9 +34,12 @@ interface Props {
   contractId?: string;
 }
 
+type QuickCreateItemType = Exclude<ItemType, "trang_phuc" | "phat_sinh">;
+
 export default function ContractForm({ mode, contractId }: Props) {
   const form = useContractForm({ mode, contractId });
   const [showCreateService, setShowCreateService] = useState(false);
+  const [createServiceItemType, setCreateServiceItemType] = useState<QuickCreateItemType>("dich_vu");
 
   // ── Unified badge code (preview for create, actual for edit) ──
   const badgeCode = mode === "create" ? form.previewCode : form.formData.contract_code;
@@ -204,14 +208,21 @@ export default function ContractForm({ mode, contractId }: Props) {
             form.items.editItem(form.items.editingItemIndex, partial);
           }
         }}
-        onOpenCreateService={() => setShowCreateService(true)}
+        onOpenCreateService={(itemType) => {
+          setCreateServiceItemType(itemType === "san_pham" ? "san_pham" : "dich_vu");
+          setShowCreateService(true);
+        }}
       />
 
       <CreateServiceModal
         isOpen={showCreateService}
         onClose={() => setShowCreateService(false)}
+        itemType={createServiceItemType}
         onCreated={(svc) => {
           setShowCreateService(false);
+          const itemType = createServiceItemType === "san_pham" || svc.unit === "san_pham"
+            ? "san_pham"
+            : "dich_vu";
           form.items.addItem({
             service_id: svc.id,
             dress_id: null,
@@ -221,8 +232,8 @@ export default function ContractForm({ mode, contractId }: Props) {
             original_price: svc.selling_price,
             discount_amount: 0,
             total_amount: svc.selling_price,
-            type: "dich_vu",
-            export_type: svc.service_type === "trang_phuc" ? "xuat_thue" : null,
+            type: itemType,
+            export_type: itemType === "san_pham" ? "xuat_ban" : null,
             is_addon: false,
             addon_category: null,
             notes: "",

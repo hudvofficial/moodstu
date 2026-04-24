@@ -4,8 +4,14 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { deleteReceipt } from "@/app/actions/receipt-actions";
-import { fetchReceipts, fetchReceiptStats } from "@/app/actions/finance-operations-queries";
+import {
+  fetchContractOptions,
+  fetchFinanceCategories,
+  fetchReceipts,
+  fetchReceiptStats,
+} from "@/app/actions/finance-operations-queries";
 import type { ReceiptStats } from "@/app/actions/finance-operations-queries";
+import { getStudioInfo } from "@/app/actions/settings-queries";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { ReceiptDesktopTable } from "@/components/finance/receipts/receipt-desktop-table";
 import { ReceiptFormModal } from "@/components/finance/receipts/receipt-form-modal";
@@ -18,17 +24,20 @@ import { FAB } from "@/components/ui/fab";
 import { Pagination } from "@/components/ui/pagination";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, FinanceCategory, FinanceContractOption, ReceiptPage, ReceiptListItem } from "@/types/finance-operations";
 import type { BankInfo } from "@/types/settings";
+import type { StudioInfo } from "@/types/settings";
 
 interface ReceiptsClientProps {
   initialMonth: number;
   initialYear: number;
-  initialData: ReceiptPage;
-  categories: FinanceCategory[];
-  contracts: FinanceContractOption[];
-  bankInfo: BankInfo | null;
+  initialData?: ReceiptPage;
+  categories?: FinanceCategory[];
+  contracts?: FinanceContractOption[];
+  bankInfo?: BankInfo | null;
 }
 
 
@@ -70,20 +79,35 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const { data, error, isLoading } = useSWR(
     key,
     () => requireData(fetchReceipts({ page, pageSize, month, year, receiptType: filterType })),
-    { fallbackData: initialData },
+    initialData ? { fallbackData: initialData } : undefined,
   );
 
   const { data: stats } = useSWR<ReceiptStats>(
     statsKey,
     () => requireData(fetchReceiptStats(month, year)),
   );
+  const { data: categoryData } = useSWR(
+    cacheKeys.financeCategories("thu"),
+    () => requireData(fetchFinanceCategories("thu")),
+    categories ? { fallbackData: categories } : undefined,
+  );
+  const { data: contractData } = useSWR(
+    cacheKeys.financeContracts(),
+    () => requireData(fetchContractOptions()),
+    contracts ? { fallbackData: contracts } : undefined,
+  );
+  const { data: studioInfo } = useSWR<StudioInfo | null>(
+    cacheKeys.settings(),
+    () => requireData(getStudioInfo()),
+  );
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được phiếu thu.");
   }, [error]);
 
-  const receipts = data || initialData;
+  const receipts = data || initialData || { items: [], total: 0, page: 1, pageSize };
   const totalPages = Math.max(1, Math.ceil(receipts.total / receipts.pageSize));
+  const resolvedBankInfo = studioInfo?.bank_info || bankInfo || null;
 
 
 
@@ -96,6 +120,7 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Xóa phiếu thu này?")) return;
+    const target = receipts.items.find((item) => item.id === id);
     setDeletingId(id);
     const result = await deleteReceipt(id);
     setDeletingId(null);
@@ -104,6 +129,8 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
       return;
     }
     toast.success("Đã xóa phiếu thu.");
+    if (target?.contract_id) void revalidateContractCaches(target.contract_id);
+    if (target?.receipt_type === "sale_receipt") void revalidateInventory();
     refresh();
   };
 
@@ -165,8 +192,8 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
           </div>
         ) : (
           <>
-            <ReceiptDesktopTable items={receipts.items} bankInfo={bankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
-            <ReceiptMobileList items={receipts.items} bankInfo={bankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
+            <ReceiptDesktopTable items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
+            <ReceiptMobileList items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
           </>
         )}
       </section>
@@ -180,8 +207,8 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSaved={refresh}
-        categories={categories}
-        contracts={contracts}
+        categories={categoryData || categories || []}
+        contracts={contractData || contracts || []}
         initialData={editingReceipt}
       />
 

@@ -20,7 +20,7 @@ import { fetchAllRentals } from "@/app/actions/rental-queries";
 import { startRental, cancelRental } from "@/app/actions/rental-mutations";
 import { RENTAL_STATUS_MAP } from "@/types/dress-constants";
 import type { DressRental } from "@/types/dress";
-import { cacheKeys, revalidate } from "@/lib/swr";
+import { cacheKeys, revalidate, revalidateByPrefixes } from "@/lib/swr";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Pagination } from "@/components/ui/pagination";
@@ -297,7 +297,11 @@ export default function StandaloneRentalsClient() {
   const view = searchParams.get("view") || "list";
 
   // 📡 Realtime — auto-refresh on dress_rentals changes
-  useRealtime("dress_rentals");
+  useRealtime("dress_rentals", {
+    onChange: () => {
+      void revalidateByPrefixes(cacheKeys.dresses());
+    },
+  });
 
   // ── SWR data ──
   const { data: result, isLoading, error, mutate } = useSWR(
@@ -348,7 +352,7 @@ export default function StandaloneRentalsClient() {
     try {
       const res = await startRental(id) as { success: boolean; error?: string };
       if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã bắt đầu thuê!", "success"); mutate(); revalidate(cacheKeys.dresses()); }
+      else { toast("Đã bắt đầu thuê!", "success"); mutate(); revalidateByPrefixes(cacheKeys.dresses()); }
     } catch { toast("Lỗi khi bắt đầu thuê", "error"); }
     finally { setActionLoading(false); }
   };
@@ -359,7 +363,7 @@ export default function StandaloneRentalsClient() {
     try {
       const res = await cancelRental(cancelId) as { success: boolean; error?: string };
       if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã hủy đặt thuê", "success"); mutate(); revalidate(cacheKeys.dresses()); }
+      else { toast("Đã hủy đặt thuê", "success"); mutate(); revalidateByPrefixes(cacheKeys.dresses()); }
     } catch { toast("Lỗi khi hủy", "error"); }
     finally { setActionLoading(false); setCancelId(null); }
   };
@@ -538,7 +542,7 @@ export default function StandaloneRentalsClient() {
           isOpen={!!returnRental}
           onClose={() => setReturnRental(null)}
           rental={returnRental}
-          onSaved={() => { mutate(); revalidate(cacheKeys.dresses()); revalidate(cacheKeys.dressStats()); }}
+          onSaved={() => { mutate(); revalidateByPrefixes(cacheKeys.dresses()); revalidate(cacheKeys.dressStats()); }}
         />
       )}
 

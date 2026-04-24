@@ -405,7 +405,7 @@ export default function DatePicker({
           type="button"
           onClick={toggleOpen}
           data-state={isOpen ? "open" : "closed"}
-          className={`input-base flex items-center justify-between group transition-colors text-left ${isOpen ? "border-primary ring-2 ring-primary/20 bg-primary/5" : ""} ${triggerClassName || ""}`}
+          className={`input-base flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
         >
           <span
             className={`font-medium truncate mr-2 ${selectedDate ? "text-text-main" : "text-text-muted"}`}

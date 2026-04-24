@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { CalendarToolbar } from "./calendar-toolbar";
 import { useCalendarData } from "@/hooks/use-calendar-data";
 import { useCalendarKeyboard } from "@/hooks/use-calendar-keyboard";
-import { MonthGrid } from "./views/month-grid";
-import { WeekGrid } from "./views/week-grid";
 import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
@@ -14,6 +13,16 @@ import { FAB } from "@/components/ui/fab";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
+
+const MonthGrid = dynamic(() => import("./views/month-grid").then((mod) => mod.MonthGrid), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse bg-bg-hover" />,
+});
+
+const WeekGrid = dynamic(() => import("./views/week-grid").then((mod) => mod.WeekGrid), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse bg-bg-hover" />,
+});
 
 interface CalendarWrapperProps {
   userRole?: string;

@@ -103,7 +103,7 @@ export function CurrencyInput({
           )}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption font-bold text-text-primary uppercase tracking-tight bg-border px-1.5 py-0.5 rounded-sm border border-border pointer-events-none group-focus-within:text-interactive group-focus-within:bg-interactive-light group-focus-within:border-interactive/30 transition-colors">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-caption font-bold text-text-primary uppercase tracking-tight bg-border px-1.5 py-0.5 rounded-sm border border-border pointer-events-none group-focus-within:text-interactive group-focus-within:bg-interactive-light transition-colors">
             {suffix}
           </span>
         )}

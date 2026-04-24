@@ -2,12 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MODULES } from "@/lib/navigation";
+import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
+import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
 
 interface BottomNavProps {
+  role: Role;
   className?: string;
 }
 
@@ -27,14 +30,60 @@ function scrollMainToTop() {
   if (main) main.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-export function BottomNav({ className }: BottomNavProps) {
+function isItemActive(
+  pathname: string,
+  item: { href: string; matchPrefix?: string },
+  exact = false,
+) {
+  if (exact && !item.matchPrefix) return pathname === item.href;
+  return (
+    pathname === item.href ||
+    pathname.startsWith(`${item.href}/`) ||
+    (item.matchPrefix
+      ? pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`)
+      : false)
+  );
+}
+
+export function BottomNav({ role, className }: BottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [showMore, setShowMore] = React.useState(false);
+  const [pendingHref, setPendingHref] = React.useState<string | null>(null);
+  const allowed = React.useMemo(
+    () => new Set(ROLE_PERMISSIONS[role] || []),
+    [role],
+  );
+  const navItems = React.useMemo(
+    () =>
+      NAV_ITEMS.filter((item) => item.id === "dashboard" || allowed.has(item.id)),
+    [allowed],
+  );
+  const moreItems = React.useMemo(
+    () => MORE_ITEMS.filter((item) => allowed.has(item.id)),
+    [allowed],
+  );
+  const warmRoute = React.useCallback(
+    (href: string) => {
+      if (pathname === href || pathname.startsWith(`${href}/`)) return;
+      router.prefetch(href);
+      prewarmRouteData(href);
+    },
+    [pathname, router],
+  );
+
+  const markPending = React.useCallback(
+    (href: string) => {
+      if (pathname !== href && !pathname.startsWith(`${href}/`)) {
+        setPendingHref(href);
+      }
+      warmRoute(href);
+    },
+    [pathname, warmRoute],
+  );
 
   /** Check nếu đang ở 1 module trong popup → highlight nút "Thêm" */
-  const moreActive = MORE_ITEMS.some(
-    (item) => pathname === item.href || pathname.startsWith(item.href + "/")
-  );
+  const moreActive = moreItems.some((item) => isItemActive(pathname, item));
 
   /** iOS-style: tap active tab → scroll to top, tap inactive → navigate */
   const handleNavClick = React.useCallback(
@@ -42,10 +91,26 @@ export function BottomNav({ className }: BottomNavProps) {
       if (isActive) {
         e.preventDefault();
         scrollMainToTop();
+        return;
       }
+      markPending(href);
     },
-    []
+    [markPending],
   );
+
+  React.useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  React.useEffect(() => {
+    if (!showMore) return;
+
+    const timers = moreItems.slice(0, 8).map((item, index) =>
+      window.setTimeout(() => warmRoute(item.href), index * 80),
+    );
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [moreItems, showMore, warmRoute]);
 
   // Hide BottomNav during print mode
   if (pathname.includes("/print")) return null;
@@ -66,17 +131,24 @@ export function BottomNav({ className }: BottomNavProps) {
             className="absolute bottom-20 right-2 bg-bg-card rounded-xl shadow-float p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {MORE_ITEMS.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            {moreItems.map((item) => {
+              const isActive = isItemActive(pathname, item);
+              const isPending = pendingHref === item.href;
               const Icon = item.icon;
               return (
                 <Link
                   key={item.id}
                   href={item.href}
-                  onClick={() => setShowMore(false)}
+                  prefetch
+                  onPointerEnter={() => warmRoute(item.href)}
+                  onFocus={() => warmRoute(item.href)}
+                  onClick={() => {
+                    markPending(item.href);
+                    setShowMore(false);
+                  }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                    isActive
+                    isActive || isPending
                       ? "bg-primary/10 text-primary"
                       : "text-text-secondary hover:bg-bg-hover"
                   )}
@@ -99,24 +171,28 @@ export function BottomNav({ className }: BottomNavProps) {
           className
         )}
       >
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
+        {navItems.map((item) => {
+          const isActive = isItemActive(pathname, item, true);
+          const isPending = pendingHref === item.href;
           const Icon = item.icon;
 
           return (
             <Link
               key={item.id}
               href={item.href}
+              prefetch
+              onPointerEnter={() => warmRoute(item.href)}
+              onFocus={() => warmRoute(item.href)}
               onClick={(e) => handleNavClick(e, item.href, isActive)}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1",
-                isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"
+                isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
               )}
             >
-              <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
+              <Icon className={cn("w-6 h-6", (isActive || isPending) && "stroke-[2.5px]")} />
               <span className={cn(
                 "text-tiny",
-                isActive ? "font-semibold" : "font-medium"
+                isActive || isPending ? "font-semibold" : "font-medium"
               )}>
                 {('shortLabel' in item && item.shortLabel) || item.label}
               </span>
@@ -129,6 +205,7 @@ export function BottomNav({ className }: BottomNavProps) {
           role="button"
           tabIndex={0}
           onClick={() => setShowMore(!showMore)}
+          onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
           onKeyDown={(e) => { if (e.key === "Enter") setShowMore(!showMore); }}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer",

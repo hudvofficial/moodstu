@@ -74,15 +74,15 @@ export default function FinancialDashboard({
 
         {/* Grid 2-col: Đã thu + Còn nợ — Stitch: slate-50 bg + inset accent */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 p-3 rounded-md inset-success">
+          <div className="bg-bg-hover p-3 rounded-md inset-success">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Đã thu
             </p>
-            <p className="text-sm font-semibold text-emerald-600">
+            <p className="text-sm font-semibold text-success">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="bg-slate-50 p-3 rounded-md inset-warning">
+          <div className="bg-bg-hover p-3 rounded-md inset-warning">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Còn nợ
             </p>
@@ -101,9 +101,9 @@ export default function FinancialDashboard({
                 <div key={payment.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     {isRefund ? (
-                      <Clock size={18} className="text-amber-500 shrink-0" />
+                      <Clock size={18} className="text-warning shrink-0" />
                     ) : (
-                      <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                      <CheckCircle2 size={18} className="text-success shrink-0" />
                     )}
                     <div>
                       <p className="text-body-sm font-medium text-text-primary">
@@ -153,12 +153,12 @@ export default function FinancialDashboard({
 
         {/* Status Banner */}
         {remainingAmount <= 0 ? (
-          <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-md">
+          <div className="flex items-center gap-2 bg-success/10 text-success px-4 py-2.5 rounded-md">
             <CheckCircle2 size={18} className="shrink-0" />
             <span className="text-body-sm font-semibold">Đã thanh toán đầy đủ</span>
           </div>
         ) : progress === 0 ? (
-          <div className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2.5 rounded-md">
+          <div className="flex items-center gap-2 bg-error/10 text-error px-4 py-2.5 rounded-md">
             <Clock size={18} className="shrink-0" />
             <span className="text-body-sm font-semibold">Chưa thanh toán</span>
           </div>
@@ -184,15 +184,15 @@ export default function FinancialDashboard({
 
         {/* Grid 2-col: Đã thu + Còn nợ — match mobile */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 p-3 rounded-md inset-success">
+          <div className="bg-bg-hover p-3 rounded-md inset-success">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Đã thu
             </p>
-            <p className="text-body font-semibold text-emerald-600">
+            <p className="text-body font-semibold text-success">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="bg-slate-50 p-3 rounded-md inset-warning">
+          <div className="bg-bg-hover p-3 rounded-md inset-warning">
             <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
               Còn nợ
             </p>
@@ -214,11 +214,11 @@ export default function FinancialDashboard({
                 >
                   <div className="flex items-center gap-3">
                     {isRefund ? (
-                      <Clock size={20} className="text-amber-500 shrink-0" />
+                      <Clock size={20} className="text-warning shrink-0" />
                     ) : (
                       <CheckCircle2
                         size={20}
-                        className="text-emerald-500 shrink-0"
+                        className="text-success shrink-0"
                       />
                     )}
                     <div>

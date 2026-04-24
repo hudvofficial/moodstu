@@ -28,73 +28,38 @@ interface Props {
 
 export default function QuickActionsGrid({ onAction }: Props) {
   return (
-    <>
-      {/* ══════ MOBILE: no card wrapper ══════ */}
-      <div className="lg:hidden px-4 py-3">
-        <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3">
-          Thao tác nhanh
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {ACTIONS.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Button unstyled
-                key={action.key}
-                onClick={() => onAction?.(action.key)}
-                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
-                           bg-bg-card shadow-xs
-                           transition-all duration-200
-                           active:scale-(--scale-press-sm) active:bg-bg-hover cursor-pointer"
+    <div className="card-base p-4 lg:p-5 mb-4 lg:mb-0 entrance entrance-1">
+      <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3 lg:mb-4 px-1 lg:px-0">
+        Thao tác nhanh
+      </h3>
+      <div className="flex flex-row overflow-x-auto gap-3 pb-2 -mx-2 px-2 lg:-mx-0 lg:px-0 snap-x hide-scrollbar">
+        {ACTIONS.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Button unstyled
+              key={action.key}
+              onClick={() => onAction?.(action.key)}
+              className="group flex-shrink-0 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-md
+                         bg-bg-card shadow-xs lg:bg-primary/4 lg:hover:bg-primary/8 lg:shadow-none
+                         w-[85px] lg:w-auto lg:flex-1 snap-center
+                         transition-all duration-200
+                         active:scale-(--scale-press-sm) active:bg-bg-hover cursor-pointer"
+            >
+              <div
+                className={`w-(--icon-container-md) h-(--icon-container-md) rounded-lg flex items-center justify-center
+                            ${action.bg} ${action.hoverBg}
+                            lg:group-hover:scale-110 lg:group-hover:shadow-sm
+                            transition-all duration-200`}
               >
-                <div
-                  className={`w-(--icon-container-sm) h-(--icon-container-sm) rounded-md flex items-center justify-center
-                              ${action.bg} ${action.hoverBg}
-                             transition-all duration-200`}
-                >
-                  <Icon size={20} className={action.text} />
-                </div>
-                <span className="text-caption font-bold text-text-secondary group-hover:text-text-primary transition-colors">
-                  {action.label}
-                </span>
-              </Button>
-            );
-          })}
-        </div>
+                <Icon size={22} className={action.text} />
+              </div>
+              <span className="text-caption font-medium text-text-secondary group-hover:text-text-primary transition-colors text-center w-full truncate px-1">
+                {action.label}
+              </span>
+            </Button>
+          );
+        })}
       </div>
-
-      {/* ══════ DESKTOP: card wrapper ══════ */}
-      <div className="max-lg:hidden card-base p-5">
-        <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3">
-          Thao tác nhanh
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {ACTIONS.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Button unstyled
-                key={action.key}
-                onClick={() => onAction?.(action.key)}
-                className="group flex flex-col items-center gap-1.5 py-3 px-2 rounded-md
-                           bg-primary/4 hover:bg-primary/8
-                           transition-all duration-200
-                           active:scale-(--scale-press-sm) cursor-pointer"
-              >
-                <div
-                  className={`w-(--icon-container-md) h-(--icon-container-md) rounded-lg flex items-center justify-center
-                              ${action.bg} ${action.hoverBg}
-                              group-hover:scale-110 group-hover:shadow-sm
-                              transition-all duration-200`}
-                >
-                  <Icon size={22} className={action.text} />
-                </div>
-                <span className="text-caption font-medium text-text-secondary group-hover:text-text-primary transition-colors">
-                  {action.label}
-                </span>
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

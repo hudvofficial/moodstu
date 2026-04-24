@@ -14,7 +14,6 @@ import {
 import { FinanceQuickNav } from "@/components/finance/dashboard/finance-quick-nav";
 import { FinanceFilters } from "@/components/finance/dashboard/finance-filters";
 import { PendingCollections } from "@/components/finance/dashboard/pending-collections";
-import { ProfitReportTable } from "@/components/finance/dashboard/profit-report-table";
 import { RecentTransactions } from "@/components/finance/dashboard/recent-transactions";
 import { SmartDashboardBanner } from "@/components/finance/dashboard/smart-dashboard-banner";
 import { UpcomingContracts } from "@/components/finance/dashboard/upcoming-contracts";
@@ -22,7 +21,6 @@ import { FinanceCompactBar } from "@/components/finance/dashboard/finance-compac
 
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { cacheKeys, useSWR } from "@/lib/swr";
-import { FinanceIntelligenceSection } from "./finance-intelligence-section";
 import type { ActionResult } from "@/types/action-result";
 import type {
   ContractProfitRow,
@@ -34,6 +32,14 @@ import type {
   ServiceDistributionItem,
 } from "@/types/finance-dashboard";
 
+const ProfitReportTable = dynamic(
+  () => import("./profit-report-table").then((mod) => mod.ProfitReportTable),
+  { ssr: false, loading: () => <ProfitReportSkeleton /> },
+);
+const FinanceIntelligenceSection = dynamic(
+  () => import("./finance-intelligence-section").then((mod) => mod.FinanceIntelligenceSection),
+  { ssr: false, loading: () => <IntelligenceSkeleton /> },
+);
 const RevenueBarChart = dynamic(
   () => import("./revenue-bar-chart").then((mod) => mod.RevenueBarChart),
   { ssr: false, loading: () => <SkeletonCard className="h-80" /> },
@@ -46,16 +52,95 @@ const ServiceDonutChart = dynamic(
 interface FinanceDashboardClientProps {
   initialMonth: number;
   initialYear: number;
-  initialMetrics: DashboardMetrics;
-  initialRevenue: RevenueByMonthItem[];
-  initialServices: ServiceDistributionItem[];
-  initialUpcoming: FinanceContractListItem[];
-  initialPending: FinanceContractListItem[];
-  initialLedger: PaginatedResult<LedgerItem>;
-  initialProfit: PaginatedResult<ContractProfitRow>;
+  initialMetrics?: DashboardMetrics;
+  initialRevenue?: RevenueByMonthItem[];
+  initialServices?: ServiceDistributionItem[];
+  initialUpcoming?: FinanceContractListItem[];
+  initialPending?: FinanceContractListItem[];
+  initialLedger?: PaginatedResult<LedgerItem>;
+  initialProfit?: PaginatedResult<ContractProfitRow>;
 }
 
+const EMPTY_METRICS: DashboardMetrics = {
+  totalInflow: 0,
+  totalOutflow: 0,
+  profit: 0,
+  monthChangePercent: 0,
+  contractsNew: 0,
+  contractsDone: 0,
+  totalDebt: 0,
+};
 
+const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 5,
+};
+
+const HYDRATED_FALLBACK_OPTIONS = {
+  revalidateOnMount: false,
+  revalidateIfStale: false,
+} as const;
+
+type IdleWindow = Window &
+  typeof globalThis & {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+
+function useDeferredFinanceSections() {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const w = window as IdleWindow;
+    let timeoutId: number | undefined;
+    let idleId: number | undefined;
+
+    const show = () => setIsReady(true);
+
+    if (typeof w.requestIdleCallback === "function") {
+      idleId = w.requestIdleCallback(show, { timeout: 900 });
+    } else {
+      timeoutId = window.setTimeout(show, 350);
+    }
+
+    return () => {
+      if (idleId !== undefined) w.cancelIdleCallback?.(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return isReady;
+}
+
+function ProfitReportSkeleton() {
+  return (
+    <div className="space-y-3">
+      <SkeletonCard className="h-28" />
+      <SkeletonCard className="h-72" />
+    </div>
+  );
+}
+
+function IntelligenceSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SkeletonCard className="h-40" />
+        <SkeletonCard className="h-40" />
+        <SkeletonCard className="h-40" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SkeletonCard className="h-[350px] md:col-span-2" />
+        <SkeletonCard className="h-[350px]" />
+      </div>
+    </div>
+  );
+}
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -72,6 +157,7 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   const [month, setMonth] = useState(props.initialMonth);
   const [year, setYear] = useState(props.initialYear);
+  const showDeferredSections = useDeferredFinanceSections();
 
   const handleMonthChange = useCallback((value: string) => setMonth(Number(value)), []);
   const handleYearChange = useCallback((value: string) => setYear(Number(value)), []);
@@ -83,34 +169,34 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   const metrics = useSWR(
     cacheKeys.financeDashboard(currentMonth, currentYear),
     () => requireData(getDashboardMetrics(currentMonth, currentYear)),
-    { fallbackData: props.initialMetrics },
+    props.initialMetrics ? { fallbackData: props.initialMetrics, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
 
   // Filtered Data for Reports Section
   const revenue = useSWR(
-    cacheKeys.financeRevenue(year),
+    showDeferredSections || props.initialRevenue ? cacheKeys.financeRevenue(year) : null,
     () => requireData(getRevenueByMonth(year)),
-    { fallbackData: props.initialRevenue },
+    props.initialRevenue ? { fallbackData: props.initialRevenue, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
   const services = useSWR(
-    cacheKeys.financeServiceDist(month, year),
+    showDeferredSections || props.initialServices ? cacheKeys.financeServiceDist(month, year) : null,
     () => requireData(getServiceDistribution(month, year)),
-    { fallbackData: props.initialServices },
+    props.initialServices ? { fallbackData: props.initialServices, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
   const upcoming = useSWR(
-    cacheKeys.financeUpcoming(),
+    showDeferredSections || props.initialUpcoming ? cacheKeys.financeUpcoming() : null,
     () => requireData(getUpcomingContracts(5)),
-    { fallbackData: props.initialUpcoming },
+    props.initialUpcoming ? { fallbackData: props.initialUpcoming, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
   const pending = useSWR(
-    cacheKeys.financePending(),
+    showDeferredSections || props.initialPending ? cacheKeys.financePending() : null,
     () => requireData(getPendingCollections(5)),
-    { fallbackData: props.initialPending },
+    props.initialPending ? { fallbackData: props.initialPending, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
   const ledger = useSWR(
-    cacheKeys.financeLedger(1, currentMonth, currentYear, "all"),
+    showDeferredSections || props.initialLedger ? cacheKeys.financeLedger(1, currentMonth, currentYear, "all") : null,
     () => requireData(fetchLedger({ page: 1, pageSize: 5, month: currentMonth, year: currentYear, type: "all" })),
-    { fallbackData: props.initialLedger },
+    props.initialLedger ? { fallbackData: props.initialLedger, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
 
   useEffect(() => {
@@ -118,14 +204,15 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
     if (firstError) toast.error(firstError.message || "Không tải được dữ liệu tài chính.");
   }, [metrics.error, revenue.error, services.error, upcoming.error, pending.error, ledger.error]);
 
-  const data = metrics.data || props.initialMetrics;
+  const data = metrics.data || props.initialMetrics || EMPTY_METRICS;
+  const isBootstrapping = !props.initialMetrics && metrics.isLoading;
 
   return (
     <div className="main-container gap-3!">
       {/* ── Tổng quan tài chính: Snapshot Hiện Tại ── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-sm">
         <div className="flex-1 min-w-0">
-          <FinanceCompactBar data={data} />
+          {isBootstrapping ? <SkeletonCard className="h-16" /> : <FinanceCompactBar data={data} />}
         </div>
         <div className="shrink-0 flex lg:justify-end text-caption font-medium text-text-muted items-center gap-1.5 bg-bg-hover px-3 py-1.5 rounded-full">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
@@ -138,7 +225,7 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       <SmartDashboardBanner />
 
       <section className="entrance entrance-2 mt-4">
-        <ProfitReportTable initialData={props.initialProfit} />
+        {showDeferredSections ? <ProfitReportTable initialData={props.initialProfit} /> : <ProfitReportSkeleton />}
       </section>
 
       <section className="space-y-4 entrance entrance-3 mt-4">
@@ -153,14 +240,22 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
           />
         </div>
 
-        <FinanceIntelligenceSection month={month} year={year} />
+        {showDeferredSections ? <FinanceIntelligenceSection month={month} year={year} /> : <IntelligenceSkeleton />}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 mt-4">
           <div className="lg:col-span-3">
-            <RevenueBarChart data={revenue.data || props.initialRevenue} selectedMonth={month} />
+            {!showDeferredSections || (revenue.isLoading && !revenue.data) ? (
+              <SkeletonCard className="h-80" />
+            ) : (
+              <RevenueBarChart data={revenue.data || props.initialRevenue || []} selectedMonth={month} />
+            )}
           </div>
           <div className="lg:col-span-2">
-            <ServiceDonutChart data={services.data || props.initialServices} />
+            {!showDeferredSections || (services.isLoading && !services.data) ? (
+              <SkeletonCard className="h-80" />
+            ) : (
+              <ServiceDonutChart data={services.data || props.initialServices || []} />
+            )}
           </div>
         </div>
       </section>
@@ -168,9 +263,21 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
       <section className="space-y-4 entrance entrance-4 mt-4">
         <h2 className="section-title">Cập nhật mới nhất</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <UpcomingContracts data={upcoming.data || props.initialUpcoming} />
-          <PendingCollections data={pending.data || props.initialPending} />
-          <RecentTransactions data={(ledger.data || props.initialLedger).items} />
+          {!showDeferredSections && !props.initialUpcoming ? (
+            <SkeletonCard className="h-64" />
+          ) : (
+            <UpcomingContracts data={upcoming.data || props.initialUpcoming || []} />
+          )}
+          {!showDeferredSections && !props.initialPending ? (
+            <SkeletonCard className="h-64" />
+          ) : (
+            <PendingCollections data={pending.data || props.initialPending || []} />
+          )}
+          {!showDeferredSections && !props.initialLedger ? (
+            <SkeletonCard className="h-64" />
+          ) : (
+            <RecentTransactions data={(ledger.data || props.initialLedger || EMPTY_LEDGER).items} />
+          )}
         </div>
       </section>
     </div>

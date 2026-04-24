@@ -38,17 +38,17 @@ export default function FinancialSummary({
           <SummaryRow
             label="Giảm giá"
             amount={-discountAmount}
-            color="text-red-600"
+            color="text-error"
           />
         )}
         <div className="h-px bg-border my-1" />
         <SummaryRow label="Tổng hợp đồng" amount={totalAmount} bold />
-        <SummaryRow label="Đã thanh toán" amount={paidAmount} color="text-emerald-700" />
+        <SummaryRow label="Đã thanh toán" amount={paidAmount} color="text-success" />
         <div className="h-px bg-border my-1" />
         <SummaryRow
           label="Còn phải thu"
           amount={remainingAmount}
-          color={remainingAmount > 0 ? "text-red-700" : "text-emerald-700"}
+          color={remainingAmount > 0 ? "text-error" : "text-success"}
           bold
           large
         />

@@ -9,7 +9,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
-import { cacheKeys } from "@/lib/swr";
+import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
@@ -65,7 +65,14 @@ function DressesListInner() {
   );
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  useRealtime("dresses");
+  const refreshDressCaches = useCallback(() => {
+    void revalidateByPrefixes(cacheKeys.dresses());
+    void mutateStats();
+  }, [mutateStats]);
+
+  useRealtime("dresses", { onChange: refreshDressCaches });
+  useRealtime("dress_reservations", { onChange: refreshDressCaches });
+  useRealtime("dress_rentals", { onChange: refreshDressCaches });
 
   const dresses = useMemo(() => listData?.data || [], [listData?.data]);
   const totalCount = listData?.count || 0;

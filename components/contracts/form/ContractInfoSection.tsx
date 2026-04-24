@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { ContractFormData } from "@/types/contract-form";
 import { SERVICE_TYPE_GROUPS, SERVICE_TYPE_LABELS } from "@/types/contract-form";
 import type { ServiceType } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
+import { getActiveEmployees } from "@/app/actions/employee-queries";
 import DatePicker from "@/components/ui/date-picker";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Fingerprint } from "lucide-react";
 
@@ -30,6 +32,8 @@ const SERVICE_TYPE_SELECT_GROUPS = SERVICE_TYPE_GROUPS.map((group) => ({
   })),
 }));
 
+const UNASSIGNED_EMPLOYEE_VALUE = "__unassigned__";
+
 interface Props {
   formData: ContractFormData;
   updateField: <K extends keyof ContractFormData>(field: K, value: ContractFormData[K]) => void;
@@ -38,6 +42,61 @@ interface Props {
 }
 
 export function ContractInfoSection({ formData, updateField, showDeliveryDate, badgeCode }: Props) {
+  const [employees, setEmployees] = useState<ActiveEmployee[]>([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
+  const [employeeError, setEmployeeError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadEmployees() {
+      setIsLoadingEmployees(true);
+      setEmployeeError("");
+      try {
+        const result = await getActiveEmployees();
+        if (cancelled) return;
+        if (result.success) {
+          setEmployees(result.data);
+        } else {
+          setEmployees([]);
+          setEmployeeError(result.error);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setEmployees([]);
+          setEmployeeError(error instanceof Error ? error.message : "Lỗi tải nhân viên");
+        }
+      } finally {
+        if (!cancelled) setIsLoadingEmployees(false);
+      }
+    }
+
+    loadEmployees();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const employeeOptions = useMemo(
+    () => {
+      const hasSelectedEmployee = employees.some((employee) => employee.id === formData.assigned_to);
+      return [
+        { value: UNASSIGNED_EMPLOYEE_VALUE, label: "Chưa phân công" },
+        ...(formData.assigned_to && !hasSelectedEmployee
+          ? [{ value: formData.assigned_to, label: "Nhân viên đã lưu" }]
+          : []),
+        ...employees.map((employee) => ({
+          value: employee.id,
+          label: [
+            employee.full_name,
+            employee.position || employee.department,
+          ].filter(Boolean).join(" · "),
+        })),
+      ];
+    },
+    [employees, formData.assigned_to],
+  );
+
   return (
     <section className="card-base border-l-4 border-accent p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -72,7 +131,7 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
         <DatePicker
           value={formData.contract_date}
           onChange={(v) => updateField("contract_date", v)}
-          label="Ngày hợp đồng"
+          label="Ngày tạo hợp đồng"
           placeholder="Chọn ngày"
         />
 
@@ -92,15 +151,20 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
           />
         )}
 
-        <Field label="Nhân viên phụ trách">
-          <Input unstyled
-            type="text"
-            value={formData.assigned_to}
-            onChange={(e) => updateField("assigned_to", e.target.value)}
-            placeholder="Tên nhân viên..."
-            className="input-base placeholder:text-text-muted"
-          />
-        </Field>
+        <SimpleSelect
+          label="Nhân viên phụ trách"
+          value={formData.assigned_to || UNASSIGNED_EMPLOYEE_VALUE}
+          onChange={(value) =>
+            updateField(
+              "assigned_to",
+              value === UNASSIGNED_EMPLOYEE_VALUE ? "" : value,
+            )
+          }
+          options={employeeOptions}
+          placeholder={isLoadingEmployees ? "Đang tải nhân viên..." : "Chọn nhân viên..."}
+          error={employeeError}
+          disabled={isLoadingEmployees && employees.length === 0}
+        />
       </div>
 
 

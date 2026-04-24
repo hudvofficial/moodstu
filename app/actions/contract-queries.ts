@@ -8,6 +8,8 @@
  */
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
+import { isMissingRpcError } from "@/lib/finance-utils";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
 
@@ -72,7 +74,7 @@ export async function getNextContractCode() {
 // ─── getContractList ──────────────────────────
 
 export async function getContractList(filters: ContractFilters) {
-  return withAuth(async (supabase, userId) => {
+  return profileAction("contracts.getContractList", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const page = filters.page || 1;
@@ -90,13 +92,26 @@ export async function getContractList(filters: ContractFilters) {
          remaining_amount, status, payment_status,
          updated_at, created_at,
          customers (id, customer_code, full_name, phone, address, bride_name, groom_name),
-         work_tasks (id, event_id, work_type, assigned_to, status, deadline,
-                     start_date, completion_date, cost, notes,
-                     employees:assigned_to(id, full_name)),
-         contract_checklists (id, event_stage, category, item_name, is_completed),
-         contract_events (id, event_type, title, event_date, end_date, location, status, notes, sort_order, deadline, start_time, end_time, is_manual_date, phase),
-         payment_plans (id, stage_name, amount, due_date, status),
-         contract_notes (id, content, created_by, created_at)`,
+         contract_checklists (
+           id, contract_id, event_stage, category, item_name,
+           is_completed, created_at, updated_at
+         ),
+         contract_notes (
+           id, content, created_by, created_at
+         ),
+         contract_events (
+           id, contract_id, event_type, title, event_date, deadline,
+           sort_order, status, deleted_at
+         ),
+         work_tasks (
+           id, contract_id, event_id, work_type, assigned_to, status,
+           deadline, start_date, start_time, end_time, completion_date, cost, notes,
+           employees:assigned_to(id, full_name, avatar_url, department)
+         ),
+         payment_plans (
+           id, contract_id, stage_name, amount, due_date,
+           status, receipt_id, created_at
+         )`,
         { count: "estimated" }
       )
       .is("deleted_at", null)
@@ -153,15 +168,66 @@ export async function getContractList(filters: ContractFilters) {
 
     const { data, count, error } = await query;
     if (error) throw error;
-    return { contracts: data || [], total: count || 0, page, pageSize };
-  });
+
+    const contracts = ((data || []) as Record<string, unknown>[]).map((contract) => {
+      const events = Array.isArray(contract.contract_events)
+        ? (contract.contract_events as Record<string, unknown>[])
+        : [];
+      const paymentPlans = Array.isArray(contract.payment_plans)
+        ? (contract.payment_plans as Record<string, unknown>[])
+        : [];
+
+      return {
+        ...contract,
+        contract_events: events
+          .filter((event) => !event.deleted_at)
+          .sort((a, b) => {
+            const sortA = Number(a.sort_order) || 0;
+            const sortB = Number(b.sort_order) || 0;
+            if (sortA !== sortB) return sortA - sortB;
+            return String(a.event_date || "").localeCompare(String(b.event_date || ""));
+          }),
+        payment_plans: paymentPlans.sort((a, b) =>
+          String(a.created_at || "").localeCompare(String(b.created_at || "")),
+        ),
+      };
+    });
+
+    return { contracts, total: count || 0, page, pageSize };
+  }));
 }
 
 // ─── getContractStats ────────────────────────
 
 export async function getContractStats() {
-  return withAuth(async (supabase, userId) => {
+  return profileAction("contracts.getContractStats", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
+
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("contract_stats")
+      .maybeSingle();
+
+    if (!rpcError && rpcData) {
+      const row = rpcData as Record<string, unknown>;
+      return {
+        total: Number(row.total) || 0,
+        active: Number(row.active) || 0,
+        pending: Number(row.pending) || 0,
+        completed: Number(row.completed) || 0,
+        revenue: Number(row.revenue) || 0,
+        outstanding: Number(row.outstanding) || 0,
+        growth: {
+          total: Number(row.growth_total) || 0,
+          active: 0,
+          pending: 0,
+          completed: 0,
+        },
+      } satisfies ContractStats;
+    }
+
+    if (rpcError && !isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai thong ke hop dong: ${rpcError.message}`);
+    }
 
     const { data, error } = await supabase
       .from("contracts")
@@ -224,13 +290,13 @@ export async function getContractStats() {
       growth: { total: growth, active: 0, pending: 0, completed: 0 },
     };
     return stats;
-  });
+  }));
 }
 
 // ─── getContractDetail ────────────────────────
 
 export async function getContractDetail(id: string) {
-  return withAuth(async (supabase, userId) => {
+  return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -256,9 +322,9 @@ export async function getContractDetail(id: string) {
           start_time, end_time, is_manual_date, phase, deleted_at
         ),
         work_tasks (
-          id, event_id, work_type, assigned_to, status, deadline,
-          start_date, completion_date, cost, notes,
-          employees:assigned_to(id, full_name)
+          id, event_id, contract_id, work_type, assigned_to, status, deadline,
+          start_date, start_time, end_time, completion_date, cost, notes,
+          employees:assigned_to(id, full_name, avatar_url, department)
         ),
         contract_checklists (
           id, event_stage, category, item_name, is_completed, created_at, updated_at
@@ -336,13 +402,13 @@ export async function getContractDetail(id: string) {
       auditLogs: auditLogs || [],
       paymentPlans: paymentPlans || [],
     };
-  });
+  }));
 }
 
 // ─── getContractDrawerExtra ──────────────
 
 export async function getContractDrawerExtra(id: string) {
-  return withAuth(async (supabase, userId) => {
+  return profileAction("contracts.getContractDrawerExtra", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const [
@@ -386,7 +452,7 @@ export async function getContractDrawerExtra(id: string) {
       workTasks: workTasks || [],
       paymentPlans: paymentPlans || [],
     };
-  });
+  }));
 }
 
 // ─── getContractForEdit ──────────────────────

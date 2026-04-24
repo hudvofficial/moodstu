@@ -6,6 +6,7 @@
  */
 
 import useSWR, { mutate } from "swr";
+import { useEffect } from "react";
 import type {
   ContractFilters,
   ContractStats,
@@ -33,9 +34,20 @@ const contractKeys = {
   drawerExtra: (id: string) => ["contract-drawer-extra", id] as const,
 };
 
+const prefetchedDrawerExtras = new Set<string>();
+const prefetchedContractDetails = new Set<string>();
+
 // ─── useContracts ───────────────────────────────────────
 
-export function useContracts(filters: ContractFilters) {
+export function useContracts(
+  filters: ContractFilters,
+  fallbackData?: {
+    contracts: Record<string, unknown>[];
+    total: number;
+    page: number;
+    pageSize: number;
+  },
+) {
   const { data, error, isLoading, mutate } = useSWR(
     contractKeys.list(filters),
     async () => {
@@ -51,6 +63,7 @@ export function useContracts(filters: ContractFilters) {
     {
       keepPreviousData: true,
       revalidateOnFocus: false,
+      fallbackData,
     }
   );
 
@@ -67,7 +80,7 @@ export function useContracts(filters: ContractFilters) {
 
 // ─── useContractStats ───────────────────────────────────
 
-export function useContractStats() {
+export function useContractStats(fallbackData?: ContractStats) {
   const { data, error, isLoading, mutate } = useSWR(
     contractKeys.stats(),
     async () => {
@@ -78,6 +91,7 @@ export function useContractStats() {
     {
       revalidateOnFocus: false,
       dedupingInterval: 60_000,
+      fallbackData,
     }
   );
 
@@ -91,26 +105,44 @@ export function useContractStats() {
 
 // ─── useContractDetail ──────────────────────────────────
 
-export function useContractDetail(id: string | null) {
-  const { data, error, isLoading, mutate } = useSWR(
+export type ContractDetailData = {
+  contract: Contract;
+  payments: Payment[];
+  paymentPlans: PaymentPlan[];
+  reservations: DressReservationRow[];
+  printOrders: PrintingOrder[];
+  auditLogs: AuditLogEntry[];
+};
+
+export function useContractDetail(
+  id: string | null,
+  fallbackData?: ContractDetailData,
+) {
+  const { data, error, isLoading, mutate: mutateLocal } = useSWR(
     id ? contractKeys.detail(id) : null,
     async () => {
       if (!id) return null;
       const result = await getContractDetail(id);
       if (!result.success) throw new Error(result.error);
-      return result.data as unknown as {
-        contract: Contract;
-        payments: Payment[];
-        paymentPlans: PaymentPlan[];
-        reservations: DressReservationRow[];
-        printOrders: PrintingOrder[];
-        auditLogs: AuditLogEntry[];
-      };
+      return result.data as unknown as ContractDetailData;
     },
     {
       revalidateOnFocus: false,
+      keepPreviousData: true,
+      fallbackData,
+      revalidateOnMount: !fallbackData,
     }
   );
+
+  // ⚡ Seed SWR cache so mutate(updater) has data to work with.
+  // fallbackData is only a render hint — it does NOT populate the cache.
+  // Without this, applyTaskStatusOptimistic gets current=undefined.
+  useEffect(() => {
+    if (fallbackData && id) {
+      void mutateLocal(fallbackData, { revalidate: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return {
     contract: data?.contract || null,
@@ -121,7 +153,7 @@ export function useContractDetail(id: string | null) {
     auditLogs: data?.auditLogs || [],
     isLoading,
     error,
-    mutate,
+    mutate: mutateLocal,
   };
 }
 
@@ -136,7 +168,7 @@ export function useContractDrawerExtra(id: string | null) {
       if (!id) return null;
       const result = await getContractDrawerExtra(id);
       if (!result.success) throw new Error(result.error);
-      return result.data as {
+      return result.data as unknown as {
         events: Record<string, unknown>[];
         checklists: Record<string, unknown>[];
         workTasks: Record<string, unknown>[];
@@ -169,18 +201,62 @@ export async function revalidateContractCaches(contractId?: string) {
       if (!Array.isArray(key)) return false;
       return key[0] === "contracts";
     }, undefined, { revalidate: true }),
+    mutate((key: unknown) => {
+      if (!Array.isArray(key)) return false;
+      if (key[0] !== "contract-notes") return false;
+      return contractId ? key[1] === contractId : true;
+    }, undefined, { revalidate: true }),
     mutate(contractKeys.stats()),
+  ]);
+}
+
+/** Revalidate only the detail-side caches. Use for detail page realtime to avoid list/stat refresh storms. */
+export async function revalidateContractDetailCaches(contractId: string) {
+  await Promise.all([
+    mutate(contractKeys.detail(contractId)),
+    mutate(contractKeys.drawerExtra(contractId)),
   ]);
 }
 
 /** Pre-warm SWR cache for drawer — lightweight action (4 queries vs 6) */
 export function prefetchContract(id: string) {
+  if (prefetchedDrawerExtras.has(id)) return;
+  prefetchedDrawerExtras.add(id);
+
   const key = contractKeys.drawerExtra(id);
-  mutate(key, getContractDrawerExtra(id).then(r => r.success ? r.data : undefined), {
-    revalidate: false,
-  });
+  mutate(
+    key,
+    getContractDrawerExtra(id)
+      .then((r) => (r.success ? r.data : undefined))
+      .catch(() => {
+        prefetchedDrawerExtras.delete(id);
+        return undefined;
+      }),
+    {
+      revalidate: false,
+    },
+  );
 }
 
 // ─── Export cache keys for invalidation ─────────────────
+
+/** Pre-warm full contract detail for the detail route. */
+export function prefetchContractDetail(id: string) {
+  if (prefetchedContractDetails.has(id)) return;
+  prefetchedContractDetails.add(id);
+
+  mutate(
+    contractKeys.detail(id),
+    getContractDetail(id)
+      .then((r) => (r.success ? r.data : undefined))
+      .catch(() => {
+        prefetchedContractDetails.delete(id);
+        return undefined;
+      }),
+    {
+      revalidate: false,
+    },
+  );
+}
 
 export { contractKeys };

@@ -32,7 +32,7 @@ export function RevenueBarChart({ data, selectedMonth }: RevenueBarChartProps) {
           Chưa có dữ liệu doanh thu.
         </div>
       ) : (
-        <div className="h-64">
+        <div className="chart-focus-reset h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
               <CartesianGrid stroke="var(--color-border)" vertical={false} />

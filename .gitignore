@@ -45,6 +45,10 @@ public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
+public/fallback-*.js
+public/fallback-*.js.map
+public/swe-worker-*.js
+public/swe-worker-*.js.map
 
 # supabase
 /supabase/.temp/
@@ -54,3 +58,5 @@ supabase_update_*.sql
 tmp_*.json
 .brain/handover.md
 .brain/session.json
+
+.vercel

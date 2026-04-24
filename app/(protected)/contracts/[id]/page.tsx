@@ -1,4 +1,5 @@
 import { getContractDetail } from "@/app/actions/contract-queries";
+import { getActiveEmployees } from "@/app/actions/employee-queries";
 import { notFound } from "next/navigation";
 import type {
   Contract,
@@ -20,7 +21,10 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  const result = await getContractDetail(id);
+  const [result, employeesResult] = await Promise.all([
+    getContractDetail(id),
+    getActiveEmployees(),
+  ]);
 
   if (!result.success || !result.data) {
     notFound();
@@ -35,6 +39,7 @@ export default async function ContractDetailPage(props: {
       auditLogs: AuditLogEntry[];
     };
   const { contract, payments, paymentPlans, reservations, printOrders, auditLogs } = data;
+  const activeEmployees = (employeesResult.success && employeesResult.data) ? employeesResult.data : [];
 
   return (
     <ContractDetailClient
@@ -44,6 +49,7 @@ export default async function ContractDetailPage(props: {
       initialReservations={reservations}
       initialPrintOrders={printOrders}
       initialAuditLogs={auditLogs}
+      activeEmployees={activeEmployees}
     />
   );
 }

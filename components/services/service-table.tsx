@@ -13,9 +13,10 @@ interface Props {
   services: ServiceRecord[];
   onQuote: (service: ServiceRecord) => void;
   onEdit: (id: string) => void;
+  onPrefetch?: (id: string) => void;
 }
 
-function ServiceTableInner({ services, onQuote, onEdit }: Props) {
+function ServiceTableInner({ services, onQuote, onEdit, onPrefetch }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = useCallback((id: string) => {
@@ -55,6 +56,7 @@ function ServiceTableInner({ services, onQuote, onEdit }: Props) {
                 onToggle={() => toggleExpand(service.id)}
                 onQuote={() => onQuote(service)}
                 onEdit={() => onEdit(service.id)}
+                onPrefetch={() => onPrefetch?.(service.id)}
               />
             );
           })}
@@ -76,6 +78,7 @@ interface RowProps {
   onToggle: () => void;
   onQuote: () => void;
   onEdit: () => void;
+  onPrefetch?: () => void;
 }
 
 const ServiceTableRow = memo(function ServiceTableRow({
@@ -87,10 +90,11 @@ const ServiceTableRow = memo(function ServiceTableRow({
   onToggle,
   onQuote,
   onEdit,
+  onPrefetch,
 }: RowProps) {
   return (
     <>
-      <TR onClick={onToggle}>
+      <TR onClick={onToggle} onMouseEnter={onPrefetch}>
         <TD className="w-10 text-center">
           {isExpanded ? (
             <ChevronUp className="w-4 h-4 text-text-muted" />
@@ -130,6 +134,8 @@ const ServiceTableRow = memo(function ServiceTableRow({
             {/* eslint-disable-next-line react/forbid-elements */}
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              onMouseEnter={onPrefetch}
+              onFocus={onPrefetch}
               className="btn-icon"
               title="Chỉnh sửa"
             >

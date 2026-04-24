@@ -78,7 +78,7 @@ export default function LeadCareLog({ leadId, history }: Props) {
 
       {/* ── Add New Log (Stripe-Like Editor Mode) ── */}
       <div 
-        className="relative flex flex-col bg-bg-base border border-border/50 rounded-xl shadow-xs overflow-hidden transition-all duration-200 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+        className="relative flex flex-col bg-bg-base border border-border/50 rounded-xl shadow-xs overflow-hidden transition-all duration-200"
         onFocus={() => setIsFocused(true)}
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget)) {

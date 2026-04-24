@@ -12,6 +12,8 @@ import { Role } from "@/types/roles";
 import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
+import { NavigationWarmup } from "./navigation-warmup";
+import { NavigationProgress } from "./navigation-progress";
 
 // Routes that hide BOTH Header + BottomNav (currently unused)
 const FULLPAGE_PATTERNS: RegExp[] = [
@@ -71,6 +73,9 @@ export function AppShell({ children, role, userName }: AppShellProps) {
 
   return (
     <div className="flex h-screen bg-bg-base overflow-hidden">
+      <NavigationWarmup role={role} />
+      <NavigationProgress />
+
       {/* 1. Sidebar (Desktop & Tablet) */}
       {!isFullpage && (
         <Sidebar 
@@ -131,7 +136,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                 {children}
             </main>
 
-            {!(isFullpage || isFormPage || isChatView) && <BottomNav />}
+            {!(isFullpage || isFormPage || isChatView) && <BottomNav role={role} />}
           </ScrollContainerProvider>
         </HeaderSlotsProvider>
       </div>

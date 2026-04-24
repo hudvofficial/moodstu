@@ -62,6 +62,7 @@ const contractFormDataSchema = z.object({
   customer_id: z.string().uuid("Customer ID không hợp lệ"),
   service_type: serviceTypeSchema,
   transaction_type: transactionTypeSchema.default("hop_dong"),
+  assigned_to: z.union([z.string().uuid("Employee ID khong hop le"), z.literal("")]).optional().default(""),
   contract_date: z.string().optional().default(""),
   work_date: z.string().optional().default(""),
   delivery_date: z.string().optional().default(""),
@@ -117,6 +118,7 @@ const formPaymentInfoSchema = z.object({
   payment_method: paymentMethodSchema,
   payment_stage: z.string().optional().default(""),
   category_id: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
 });
 
 // ─── Full Submission Schema ──────────────────────────────

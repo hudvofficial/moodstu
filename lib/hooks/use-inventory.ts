@@ -11,13 +11,15 @@
  */
 
 import useSWR from "swr";
-import { cacheKeys, mutate, prefetch } from "@/lib/swr";
+import { cacheKeys, mutate, prefetch, revalidateByPrefixes } from "@/lib/swr";
 import {
   fetchInventoryList,
   fetchInventoryDetail,
   getInventoryStats,
 } from "@/app/actions/inventory-queries";
 import type { InventoryFilters } from "@/types/inventory";
+
+const prefetchedInventoryDetails = new Set<string>();
 
 // ─── LIST (paginated + filtered) ─────────────────────────────
 
@@ -73,15 +75,20 @@ export function useInventoryDetail(id: string | null) {
 // ─── PREFETCH (hover → preload detail) ──────────────────────
 
 export function prefetchInventory(id: string) {
+  if (prefetchedInventoryDetails.has(id)) return;
+  prefetchedInventoryDetails.add(id);
+
   prefetch(cacheKeys.inventoryDetail(id), () => fetchInventoryDetail(id));
 }
 
 // ─── MUTATE HELPERS (after create/update/delete) ────────────
 
-export async function revalidateInventory() {
+export async function revalidateInventory(itemId?: string) {
   await Promise.all([
-    mutate(cacheKeys.inventory()),
+    revalidateByPrefixes(cacheKeys.inventory()),
+    mutate(cacheKeys.inventorySaleOptions()),
     mutate(cacheKeys.inventoryStats()),
+    itemId ? mutate(cacheKeys.inventoryDetail(itemId)) : Promise.resolve(),
   ]);
 }
 

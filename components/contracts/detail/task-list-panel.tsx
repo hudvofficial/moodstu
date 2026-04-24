@@ -1,18 +1,15 @@
 "use client";
 
 import { UserPlus, X, AlertTriangle, Loader2, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
-import {
-  getWorkTypeLabel,
-  getTaskStatusLabel,
-} from "@/types/contract-constants";
-import type { WorkType, TaskStatus } from "@/types/contract";
+import { getWorkTypeLabel } from "@/types/contract-constants";
+import type { WorkType } from "@/types/contract";
+import { SelectStatus } from "@/components/ui/select/SelectStatus";
 
 // ═══════════════════════════════════════════
 // TaskListPanel — Task list + Add form
@@ -92,6 +89,15 @@ const WORK_TYPE_SELECT_GROUPS = [
   },
 ];
 
+// ─── Status Options ────────────────────────
+const TASK_STATUS_OPTIONS = [
+  { value: "chua_lam", label: "Chờ", color: "var(--color-border)" }, // muted
+  { value: "dang_lam", label: "Đang làm", color: "var(--color-warning)" },
+  { value: "hoan_thanh", label: "Xong", color: "var(--color-success)" },
+  { value: "da_huy", label: "Hủy", color: "var(--color-error)" },
+];
+
+
 // ─── Props ────────────────────────────────
 interface TaskListPanelProps {
   tasks: TaskRow[];
@@ -104,7 +110,7 @@ interface TaskListPanelProps {
   conflicts: ConflictItem[];
   submitting: boolean;
   // Handlers
-  onToggle: (task: TaskRow) => void;
+  onStatusUpdate: (taskId: string, newStatus: string) => Promise<void>;
   onDelete: (taskId: string) => void;
   onAdd: () => void;
   onEmployeeChange: (empId: string) => void;
@@ -120,7 +126,7 @@ export function TaskListPanel({
   employees,
   conflicts,
   submitting,
-  onToggle,
+  onStatusUpdate,
   onDelete,
   onAdd,
   onEmployeeChange,
@@ -166,23 +172,12 @@ export function TaskListPanel({
               </div>
 
               {/* Status toggle */}
-              <Button unstyled
-                type="button"
-                onClick={() => onToggle(task)}
-                className="shrink-0"
-              >
-                <Badge
-                  variant={
-                    task.status === "hoan_thanh"
-                      ? "success"
-                      : task.status === "dang_lam"
-                        ? "info"
-                        : "neutral"
-                  }
-                >
-                  {getTaskStatusLabel(task.status as TaskStatus)}
-                </Badge>
-              </Button>
+              <SelectStatus
+                current={task.status}
+                options={TASK_STATUS_OPTIONS}
+                onUpdate={(newStatus) => onStatusUpdate(task.id, newStatus)}
+                variant="compact"
+              />
 
               {/* Delete */}
               <Button unstyled

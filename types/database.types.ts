@@ -385,7 +385,7 @@ export type Database = {
           deleted_at: string | null
           end_date: string | null
           end_time: string | null
-          event_date: string
+          event_date: string | null
           event_type: Database["public"]["Enums"]["event_type_enum"]
           id: string
           is_manual_date: boolean | null
@@ -405,7 +405,7 @@ export type Database = {
           deleted_at?: string | null
           end_date?: string | null
           end_time?: string | null
-          event_date: string
+          event_date?: string | null
           event_type: Database["public"]["Enums"]["event_type_enum"]
           id?: string
           is_manual_date?: boolean | null
@@ -425,7 +425,7 @@ export type Database = {
           deleted_at?: string | null
           end_date?: string | null
           end_time?: string | null
-          event_date?: string
+          event_date?: string | null
           event_type?: Database["public"]["Enums"]["event_type_enum"]
           id?: string
           is_manual_date?: boolean | null
@@ -447,6 +447,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      event_templates: {
+        Row: {
+          created_at: string | null
+          default_days_offset: number | null
+          event_name: string
+          event_type: Database["public"]["Enums"]["event_type_enum"]
+          id: string
+          is_active: boolean | null
+          service_type: Database["public"]["Enums"]["service_type_enum"]
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_days_offset?: number | null
+          event_name: string
+          event_type: Database["public"]["Enums"]["event_type_enum"]
+          id?: string
+          is_active?: boolean | null
+          service_type: Database["public"]["Enums"]["service_type_enum"]
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_days_offset?: number | null
+          event_name?: string
+          event_type?: Database["public"]["Enums"]["event_type_enum"]
+          id?: string
+          is_active?: boolean | null
+          service_type?: Database["public"]["Enums"]["service_type_enum"]
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       contract_items: {
         Row: {

@@ -52,7 +52,6 @@ export default function ContractActionsMenu({
         setShowCancel(false);
         setCancelReason("");
         await revalidateContractCaches(contractId);
-        router.refresh();
       } else {
         toast(result.error || "Lỗi hủy hợp đồng", "error");
       }
@@ -61,7 +60,7 @@ export default function ContractActionsMenu({
     } finally {
       setLoading(false);
     }
-  }, [contractId, cancelReason, router]);
+  }, [contractId, cancelReason]);
 
   // ── Delete handler ──
   const handleDelete = useCallback(async () => {
@@ -71,6 +70,7 @@ export default function ContractActionsMenu({
       const result = await deleteContract(contractId);
       if (result.success) {
         toast("Đã xóa hợp đồng", "success");
+        await revalidateContractCaches(contractId);
         router.push("/contracts");
       } else {
         toast(result.error || "Lỗi xóa hợp đồng", "error");

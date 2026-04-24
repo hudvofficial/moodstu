@@ -1,24 +1,57 @@
+"use client";
+
+import { useState } from "react";
 import { Printer, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import type { PrintingOrder } from "@/types/contract";
 import StatusSelect, { PRINT_ORDER_STATUS_OPTIONS } from "@/components/ui/status-select";
 import { updatePrintOrderStatus } from "@/app/actions/printing-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════
 // PrintOrdersBlock — Đơn in ấn
 // Phase 04e: printing_orders JOIN labs
+// ⚡ Optimistic UI: instant status update, fire-and-forget API
 // ═══════════════════════════════════════════
-
-// StatusSelect handles status display + updates
 
 interface Props {
   orders: PrintingOrder[];
   contractId: string;
+  onStatusChange?: () => void;
 }
 
-export default function PrintOrdersBlock({ orders, contractId }: Props) {
+export default function PrintOrdersBlock({ orders, contractId, onStatusChange }: Props) {
+  const [localOrders, setLocalOrders] = useState(orders);
+
+  // Sync with parent when data refreshes (e.g., Realtime update from another user)
+  if (orders !== localOrders && orders.length !== localOrders.length) {
+    setLocalOrders(orders);
+  }
+
+  const handleStatusUpdate = (orderId: string, newStatus: string) => {
+    const previous = localOrders.find(o => o.id === orderId)?.status;
+    if (!previous || previous === newStatus) return;
+
+    // 1. Optimistic update — instant UI
+    setLocalOrders(prev =>
+      prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
+    );
+
+    // 2. Notify parent to mute Realtime echo
+    onStatusChange?.();
+
+    // 3. Fire-and-forget — rollback on error
+    updatePrintOrderStatus(orderId, newStatus, contractId).then(result => {
+      if (!result.success) {
+        // Rollback
+        setLocalOrders(prev =>
+          prev.map(o => o.id === orderId ? { ...o, status: previous } : o)
+        );
+        toast(result.error || "Lỗi cập nhật", "error");
+      }
+    });
+  };
+
   return (
     <div className="card-base p-4 lg:p-5">
       {/* Header */}
@@ -29,15 +62,15 @@ export default function PrintOrdersBlock({ orders, contractId }: Props) {
             In ấn
           </h3>
         </div>
-        {orders.length > 0 && (
+        {localOrders.length > 0 && (
           <span className="text-caption text-text-muted">
-            {orders.length} đơn
+            {localOrders.length} đơn
           </span>
         )}
       </div>
 
       {/* Content */}
-      {orders.length === 0 ? (
+      {localOrders.length === 0 ? (
         <div className="py-6 text-center">
           <Printer size={28} className="text-text-muted/40 mx-auto mb-2" />
           <p className="text-caption text-text-muted">
@@ -46,7 +79,7 @@ export default function PrintOrdersBlock({ orders, contractId }: Props) {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {orders.map((order) => {
+          {localOrders.map((order) => {
             return (
               <div
                 key={order.id}
@@ -59,15 +92,8 @@ export default function PrintOrdersBlock({ orders, contractId }: Props) {
                   <StatusSelect
                     current={order.status || "cho_xu_ly"}
                     options={[...PRINT_ORDER_STATUS_OPTIONS]}
-                    onUpdate={async (newStatus) => {
-                      const result = await updatePrintOrderStatus(order.id, newStatus, contractId);
-                      if (result.success) {
-                        toast("Cập nhật trạng thái thành công", "success");
-                        await revalidateContractCaches(contractId);
-                      } else {
-                        toast(result.error || "Lỗi cập nhật", "error");
-                      }
-                    }}
+                    variant="compact"
+                    onUpdate={async (newStatus) => handleStatusUpdate(order.id, newStatus)}
                   />
                 </div>
 

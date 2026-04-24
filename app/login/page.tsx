@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { login } from "@/app/actions/auth";
@@ -39,7 +40,26 @@ export default function LoginPage() {
     router.prefetch("/dashboard");
   }, [router]);
 
-  // 3. Login handler
+  // 3. Surface one-time auth/recovery redirects
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const resetStatus = url.searchParams.get("reset");
+    const authError = url.searchParams.get("error");
+
+    if (!resetStatus && !authError) return;
+
+    if (resetStatus === "success") {
+      toast.success("Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.");
+    } else if (authError === "auth_failed") {
+      toast.error("Liên kết xác thực không hợp lệ hoặc đã hết hạn.");
+    }
+
+    url.searchParams.delete("reset");
+    url.searchParams.delete("error");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+  }, []);
+
+  // 4. Login handler
   const handleSubmit = async (formData: FormData) => {
     setLoginState("transitioning");
 
@@ -141,14 +161,12 @@ export default function LoginPage() {
 
                 <div className="relative">
                   <div className="flex justify-between items-center px-1 absolute right-0 top-0">
-                    <a 
-                      href="https://zalo.me/0976317031" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <Link
+                      href="/forgot-password"
                       className="text-caption font-bold text-primary/70 hover:text-primary transition-colors"
                     >
                       Quên mật khẩu?
-                    </a>
+                    </Link>
                   </div>
                   <Input
                     label="Mật khẩu"

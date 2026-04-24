@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { approveExpense, deleteExpense } from "@/app/actions/expense-actions";
-import { fetchExpenses, fetchExpenseStats } from "@/app/actions/finance-operations-queries";
+import {
+  fetchExpenses,
+  fetchExpenseStats,
+  fetchFinanceCategories,
+} from "@/app/actions/finance-operations-queries";
 import type { ExpenseStats } from "@/app/actions/finance-operations-queries";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import { ExpenseDesktopTable } from "@/components/finance/expenses/expense-desktop-table";
@@ -25,8 +29,8 @@ import type { ActionResult, ApprovalFilter, ExpensePage, FinanceCategory, Expens
 interface ExpensesClientProps {
   initialMonth: number;
   initialYear: number;
-  initialData: ExpensePage;
-  categories: FinanceCategory[];
+  initialData?: ExpensePage;
+  categories?: FinanceCategory[];
 }
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
@@ -67,19 +71,24 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const { data, error, isLoading } = useSWR(
     key,
     () => requireData(fetchExpenses({ page, pageSize, month, year, approval })),
-    { fallbackData: initialData },
+    initialData ? { fallbackData: initialData } : undefined,
   );
 
   const { data: stats } = useSWR<ExpenseStats>(
     statsKey,
     () => requireData(fetchExpenseStats(month, year)),
   );
+  const { data: categoryData } = useSWR(
+    cacheKeys.financeCategories("chi"),
+    () => requireData(fetchFinanceCategories("chi")),
+    categories ? { fallbackData: categories } : undefined,
+  );
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được phiếu chi.");
   }, [error]);
 
-  const expenses = data || initialData;
+  const expenses = data || initialData || { items: [], total: 0, page: 1, pageSize };
   const totalPages = Math.max(1, Math.ceil(expenses.total / expenses.pageSize));
 
   const refresh = () => {
@@ -218,7 +227,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
         isOpen={isModalOpen}
         onClose={closeModal}
         onSaved={refresh}
-        categories={categories}
+        categories={categoryData || categories || []}
         initialData={editingExpense}
       />
 

@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import LeadsRoute from "./leads/page";
 
-export default function CRMPage() {
-  // Default CRM landing is the Leads list
-  redirect("/crm/leads");
+export default function CRMPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  return <LeadsRoute searchParams={props.searchParams} />;
 }

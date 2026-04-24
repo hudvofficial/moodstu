@@ -107,6 +107,14 @@ export default function DressReservationForm({
     }
 
     const price = parseFloat(rentalPrice) || 0;
+    const reservationStart = startDate || new Date().toISOString().split("T")[0];
+    const reservationEnd = endDate || reservationStart;
+
+    if (reservationEnd < reservationStart) {
+      toast("NgĂ y káº¿t thĂºc pháº£i sau ngĂ y báº¯t Ä‘áº§u", "warning");
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await reserveDressForContract({
@@ -114,8 +122,8 @@ export default function DressReservationForm({
         contractId,
         isAddon,
         rentalPrice: price,
-        startDate: startDate || new Date().toISOString().split("T")[0],
-        endDate: endDate || new Date().toISOString().split("T")[0],
+        startDate: reservationStart,
+        endDate: reservationEnd,
         notes: notes.trim() || undefined,
       });
 
@@ -233,6 +241,14 @@ export default function DressReservationForm({
                   onChange={(date) => setStartDate(date)}
                   label="Ngày bắt đầu"
                   placeholder="Chọn ngày"
+                />
+              </div>
+              <div className="col-span-2">
+                <DatePicker
+                  value={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  label="Ngay ket thuc"
+                  placeholder={startDate || "Chon ngay"}
                 />
               </div>
             </div>

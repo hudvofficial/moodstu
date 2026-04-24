@@ -2,17 +2,19 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
+import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
 import type {
   ContractProfitReportParams,
   ContractProfitRow,
+  ContractProfitDetailData,
   DashboardMetrics,
+  FinanceDashboardBootstrapData,
   FinanceContractListItem,
   LedgerItem,
   PaginatedResult,
   RevenueByMonthItem,
   ServiceDistributionItem,
-  ContractProfitDetailData,
 } from "@/types/finance-dashboard";
 // Mock data removed — Phase 04: all queries go through real DB/RPC pipeline
 
@@ -46,6 +48,15 @@ function normalizeContractRows(data: unknown): FinanceContractListItem[] {
 
 function sumRows(rows: unknown[] | null | undefined, field: string) {
   return (rows || []).reduce<number>((sum, row) => sum + asNumber((row as RpcRow)[field]), 0);
+}
+
+async function withFinanceRead<T>(
+  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+    return action(supabase, userId);
+  });
 }
 
 async function getDashboardMetricsFallback(
@@ -361,6 +372,202 @@ async function fetchLedgerFallback(
   return { items: pageRows, total: rows.length, page: params.page, pageSize: params.pageSize };
 }
 
+async function queryDashboardMetrics(
+  supabase: SupabaseClient,
+  month: number,
+  year: number,
+): Promise<DashboardMetrics> {
+  const { data, error } = await supabase
+    .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
+    .single();
+
+  if (error && isMissingRpcError(error)) return getDashboardMetricsFallback(supabase, month, year);
+
+  if (error) throw new Error(`Lá»—i táº£i KPI tĂ i chĂ­nh: ${error.message}`);
+  const row = (data || {}) as RpcRow;
+
+  return {
+    totalInflow: asNumber(row.total_inflow),
+    totalOutflow: asNumber(row.total_outflow),
+    profit: asNumber(row.profit),
+    monthChangePercent: asNumber(row.month_change_percent),
+    contractsNew: asNumber(row.contracts_new),
+    contractsDone: asNumber(row.contracts_done),
+    totalDebt: asNumber(row.total_debt),
+  } satisfies DashboardMetrics;
+}
+
+/* eslint-disable @typescript-eslint/no-unused-vars */
+async function queryRevenueByMonth(
+  supabase: SupabaseClient,
+  year: number,
+): Promise<RevenueByMonthItem[]> {
+  const { data, error } = await supabase.rpc("finance_revenue_by_month", {
+    p_year: year,
+  });
+
+  if (error && isMissingRpcError(error)) return getRevenueByMonthFallback(supabase, year);
+
+  if (error) throw new Error(`Lá»—i táº£i doanh thu theo thĂ¡ng: ${error.message}`);
+
+  return ((data || []) as RpcRow[]).map((row) => ({
+    month: asString(row.month_label),
+    revenue: asNumber(row.revenue),
+    rawMonth: asNumber(row.raw_month),
+  })) satisfies RevenueByMonthItem[];
+}
+
+async function queryServiceDistribution(
+  supabase: SupabaseClient,
+  month: number,
+  year: number,
+): Promise<ServiceDistributionItem[]> {
+  const { data, error } = await supabase.rpc("finance_service_distribution", {
+    p_month: month,
+    p_year: year,
+  });
+
+  if (error && isMissingRpcError(error)) return getServiceDistributionFallback(supabase, month, year);
+
+  if (error) throw new Error(`Lá»—i táº£i phĂ¢n bá»• dá»‹ch vá»¥: ${error.message}`);
+
+  return ((data || []) as RpcRow[]).map((row) => ({
+    name: asString(row.name, "KhĂ¡c"),
+    value: asNumber(row.value),
+    revenue: asNumber(row.revenue),
+  })) satisfies ServiceDistributionItem[];
+}
+
+async function queryUpcomingContracts(
+  supabase: SupabaseClient,
+  limit: number,
+): Promise<FinanceContractListItem[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const { data, error } = await supabase
+    .from("contracts")
+    .select("id, contract_code, work_date, status, total_amount, paid_amount, remaining_amount, customers(id, full_name, phone)")
+    .gte("work_date", today)
+    .is("deleted_at", null)
+    .order("work_date", { ascending: true })
+    .limit(limit);
+
+  if (error) throw new Error(`Lá»—i táº£i há»£p Ä‘á»“ng sáº¯p chá»¥p: ${error.message}`);
+  return normalizeContractRows(data);
+}
+
+async function queryPendingCollections(
+  supabase: SupabaseClient,
+  limit: number,
+): Promise<FinanceContractListItem[]> {
+  const { data, error } = await supabase
+    .from("contracts")
+    .select("id, contract_code, remaining_amount, contract_date, status, customers(id, full_name, phone)")
+    .gt("remaining_amount", 0)
+    .is("deleted_at", null)
+    .order("contract_date", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(`Lá»—i táº£i danh sĂ¡ch cáº§n thu: ${error.message}`);
+  return normalizeContractRows(data);
+}
+
+async function queryContractProfitReport(
+  supabase: SupabaseClient,
+  filters: ContractProfitReportParams = {},
+): Promise<PaginatedResult<ContractProfitRow>> {
+  const page = filters.page || 1;
+  const pageSize = filters.pageSize || 10;
+  const { data, error } = await supabase.rpc("finance_contract_profit_report", {
+    p_status: filters.status || "all",
+    p_from: filters.fromDate || null,
+    p_to: filters.toDate || null,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+
+  if (error && isMissingRpcError(error)) return getContractProfitReportFallback(supabase, filters);
+
+  if (error) throw new Error(`Lá»—i táº£i bĂ¡o cĂ¡o lá»£i nhuáº­n: ${error.message}`);
+
+  const rows = ((data || []) as RpcRow[]).map((row) => ({
+    id: asString(row.id),
+    contractCode: asString(row.contract_code),
+    customerName: asString(row.customer_name, "KhĂ¡ch vĂ£ng lai"),
+    contractDate: asString(row.contract_date, "") || null,
+    status: asString(row.status, "draft"),
+    totalAmount: asNumber(row.total_amount),
+    paidAmount: asNumber(row.paid_amount),
+    remainingAmount: asNumber(row.remaining_amount),
+    packageRevenue: asNumber(row.package_revenue),
+    addonRevenue: asNumber(row.addon_revenue),
+    discount: asNumber(row.discount),
+    taskCost: asNumber(row.task_cost),
+    printCost: asNumber(row.print_cost),
+    expenseCost: asNumber(row.expense_cost),
+    totalCost: asNumber(row.total_cost),
+    profit: asNumber(row.profit),
+    profitMargin: asNumber(row.profit_margin),
+  })) satisfies ContractProfitRow[];
+
+  return {
+    items: rows,
+    total: rows.length > 0 ? asNumber((data?.[0] as RpcRow).total_count) : 0,
+    page,
+    pageSize,
+  } satisfies PaginatedResult<ContractProfitRow>;
+}
+
+async function queryLedger(
+  supabase: SupabaseClient,
+  params: {
+    page: number;
+    pageSize: number;
+    month?: number;
+    year?: number;
+    fromDate?: string;
+    toDate?: string;
+    type?: "in" | "out" | "all";
+  },
+): Promise<PaginatedResult<LedgerItem>> {
+  if (params.fromDate && params.toDate) {
+    return fetchLedgerFallback(supabase, params);
+  }
+
+  const { data, error } = await supabase.rpc("finance_ledger", {
+    p_page: params.page,
+    p_page_size: params.pageSize,
+    p_month: params.month || null,
+    p_year: params.year || null,
+    p_type: params.type || "all",
+  });
+
+  if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, params);
+
+  if (error) throw new Error(`Lá»—i táº£i sá»• cĂ¡i thu chi: ${error.message}`);
+
+  const rows = ((data || []) as RpcRow[]).map((row) => ({
+    id: asString(row.id),
+    sourceTable: asString(row.source_table) as LedgerItem["sourceTable"],
+    direction: asString(row.direction) as LedgerItem["direction"],
+    transactionDate: asString(row.transaction_date),
+    amount: asNumber(row.amount),
+    code: asString(row.code),
+    customerName: asString(row.customer_name, "-"),
+    categoryName: asString(row.category_name, "-"),
+    paymentMethod: asString(row.payment_method, "-"),
+    description: asString(row.description),
+    status: asString(row.status, "pending"),
+  })) satisfies LedgerItem[];
+
+  return {
+    items: rows,
+    total: rows.length > 0 ? asNumber((data?.[0] as RpcRow).total_count) : 0,
+    page: params.page,
+    pageSize: params.pageSize,
+  } satisfies PaginatedResult<LedgerItem>;
+}
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
 export async function getDashboardMetrics(month: number, year: number) {
 
   return withAuth(async (supabase, userId) => {
@@ -565,6 +772,27 @@ export async function fetchLedger(params: {
       pageSize: params.pageSize,
     } satisfies PaginatedResult<LedgerItem>;
   });
+}
+
+export async function getFinanceDashboardBootstrap(month: number, year: number) {
+  return profileAction("finance.dashboardBootstrap", () =>
+    withFinanceRead(async (supabase) => {
+      const metrics = await profileAction(
+        "finance.dashboardBootstrap.metrics",
+        () => queryDashboardMetrics(supabase, month, year),
+      );
+
+      return {
+        metrics,
+        revenue: [],
+        services: [],
+        upcoming: [],
+        pending: [],
+        ledger: { items: [], total: 0, page: 1, pageSize: 5 },
+        profit: { items: [], total: 0, page: 1, pageSize: 8 },
+      } satisfies FinanceDashboardBootstrapData;
+    }),
+  );
 }
 
 export async function getContractFinanceDetails(contractId: string) {

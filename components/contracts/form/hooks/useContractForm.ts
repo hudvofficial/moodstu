@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createContract } from "@/app/actions/contract-mutations";
 import { getNextContractCode, getContractForEdit } from "@/app/actions/contract-queries";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { useContractCustomer } from "./useContractCustomer";
 import { useContractItems } from "./useContractItems";
 import { useContractFinancials } from "./useContractFinancials";
@@ -41,6 +42,13 @@ const DEFAULT_FORM_DATA: ContractFormData = {
   groom_weight: "",
   groom_shoe_size: "",
 };
+
+function normalizeEmployeeId(value: unknown): string {
+  return typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : "";
+}
 
 interface UseContractFormProps {
   mode: ContractFormMode;
@@ -150,11 +158,9 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
   }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, formData.delivery_date]);
 
   // ── Submit (internal, reused by both submit + draft) ──
-  const handleSubmitInternal = useCallback(async (isDraft = false) => {
-    if (!isDraft) {
-      if (!validate()) return;
-      if (!customer.selectedCustomer) return;
-    }
+  const handleSubmitInternal = useCallback(async (statusOverride?: ContractFormData["status"]) => {
+    if (!validate()) return;
+    if (!customer.selectedCustomer) return;
 
     setIsSubmitting(true);
     setErrors({});
@@ -168,9 +174,14 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         contractCode = codeResult.data;
       }
 
+      const effectiveFormData = {
+        ...formData,
+        status: statusOverride || formData.status,
+      };
+
       const payload = {
         formData: {
-          ...formData,
+          ...effectiveFormData,
           contract_code: contractCode,
           customer_id: customer.selectedCustomer?.id || "",
         },
@@ -208,6 +219,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       }
 
       // Redirect to detail page
+      await revalidateContractCaches(result.data.id);
       router.push(`/contracts/${result.data.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Lỗi không xác định";
@@ -219,13 +231,12 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
 
   // ── Save Draft ──
   const handleSaveDraft = useCallback(async () => {
-    updateField("status", "cho_xu_ly");
-    await handleSubmitInternal(true);
-  }, [updateField, handleSubmitInternal]);
+    await handleSubmitInternal("cho_xu_ly");
+  }, [handleSubmitInternal]);
 
   // ── Submit (public) ──
   const handleSubmit = useCallback(async () => {
-    await handleSubmitInternal(false);
+    await handleSubmitInternal();
   }, [handleSubmitInternal]);
 
   // ── Load contract for edit ──
@@ -249,7 +260,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         status: contract.status,
         description: contract.description || "",
         notes: contract.notes || "",
-        assigned_to: contract.assigned_to || "",
+        assigned_to: normalizeEmployeeId(contract.assigned_to),
         bride_name: cust?.bride_name || "",
         groom_name: cust?.groom_name || "",
         bride_phone: cust?.bride_phone || "",

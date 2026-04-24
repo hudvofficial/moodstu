@@ -4,8 +4,8 @@ import { useState } from "react";
 import { AlertTriangle, RotateCcw, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { reactivateContract } from "@/app/actions/contract-lifecycle";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 
 // ═══════════════════════════════════════════
 // Cancel Banner — Warning when contract is cancelled
@@ -19,7 +19,6 @@ interface Props {
 }
 
 export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
-  const router = useRouter();
   const [isReactivating, setIsReactivating] = useState(false);
 
   async function handleReactivate() {
@@ -30,7 +29,7 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
       if (!result.success) {
         alert(result.error);
       } else {
-        router.refresh();
+        await revalidateContractCaches(contractId);
       }
     } catch {
       alert("Lỗi kích hoạt lại hợp đồng");
@@ -42,29 +41,29 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
   return (
     <div
       className="flex items-start gap-3 p-4 rounded-xl
-                 bg-red-50 shadow-sm"
+                 bg-error/10 shadow-sm"
       role="alert"
     >
-      <div className="shrink-0 p-2 rounded-md bg-red-100">
-        <AlertTriangle size={20} className="text-red-600" />
+      <div className="shrink-0 p-2 rounded-md bg-error/15">
+        <AlertTriangle size={20} className="text-error" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-body-sm font-bold text-red-700">
+        <p className="text-body-sm font-bold text-error">
           Hợp đồng đã bị hủy
         </p>
         {notes && (
-          <p className="text-caption text-red-600 mt-0.5">
+          <p className="text-caption text-error/80 mt-0.5">
             Lý do: {notes}
           </p>
         )}
-        <p className="text-caption text-red-400 mt-1">
+        <p className="text-caption text-error/60 mt-1">
           Cập nhật: {formatDate(updatedAt, "long")}
         </p>
       </div>
       <Button unstyled
         onClick={handleReactivate}
         disabled={isReactivating}
-        className="shrink-0 flex items-center gap-1.5 rounded-radius-md bg-red-100 px-3 py-1.5 text-caption font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors"
+        className="shrink-0 flex items-center gap-1.5 rounded-radius-md bg-error/15 px-3 py-1.5 text-caption font-medium text-error hover:bg-error/20 disabled:opacity-50 transition-colors"
       >
         {isReactivating ? (
           <Loader2 size={14} className="animate-spin" />

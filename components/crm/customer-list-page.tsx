@@ -3,6 +3,9 @@
 import { useCallback, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterX, UserPlus, Users } from "lucide-react";
+import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
+import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
+import { useRealtime } from "@/hooks/use-realtime";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
@@ -45,9 +48,64 @@ export default function CustomerListPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const currentPage = initialData.page;
-  const totalPages = initialData.totalPages || 1;
-  const pageSize = initialData.pageSize || 10;
+  const search = searchParams.get("search") || undefined;
+  const source = searchParams.get("source") || undefined;
+  const tags = searchParams.get("tags") || undefined;
+  const pageParam = Number(searchParams.get("page") || initialData.page || 1);
+
+  const listQuery = useSWR(
+    [
+      cacheKeys.customers(),
+      search || "",
+      source || "",
+      tags || "",
+      String(pageParam),
+      String(initialData.pageSize || 10),
+    ],
+    async () => {
+      const result = await getCustomers({
+        search,
+        source,
+        tags,
+        page: pageParam,
+        pageSize: initialData.pageSize || 10,
+      });
+      if (!result.success) throw new Error(result.error);
+      return result.data as {
+        customers: Customer[];
+        total: number;
+        totalPages: number;
+        page: number;
+        pageSize: number;
+      };
+    },
+    { fallbackData: initialData },
+  );
+
+  const statsQuery = useSWR(
+    `${cacheKeys.customers()}:stats`,
+    async () => {
+      const result = await getCustomerStats();
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    { fallbackData: stats },
+  );
+
+  useRealtime("customers", {
+    prefixes: cacheKeys.customers(),
+    debounceMs: 600,
+  });
+  useRealtime("contracts", {
+    prefixes: cacheKeys.customers(),
+    debounceMs: 600,
+  });
+
+  const data = listQuery.data || initialData;
+  const liveStats = statsQuery.data || stats;
+  const currentPage = data.page;
+  const totalPages = data.totalPages || 1;
+  const pageSize = data.pageSize || 10;
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -84,9 +142,9 @@ export default function CustomerListPage({
 
   const handleDataChanged = useCallback(() => {
     startTransition(() => {
-      router.refresh();
+      void revalidateByPrefixes(cacheKeys.customers());
     });
-  }, [router, startTransition]);
+  }, [startTransition]);
 
   const widgetsContent = (
     <>
@@ -107,7 +165,7 @@ export default function CustomerListPage({
               className="hidden shrink-0 lg:flex"
             />
             <div className="hidden h-6 w-px shrink-0 bg-text-muted/20 lg:block" />
-            <CustomerStatsBar stats={stats} compact={isMobile} />
+            <CustomerStatsBar stats={liveStats} compact={isMobile} />
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <Button
@@ -126,7 +184,7 @@ export default function CustomerListPage({
 
         <CustomerFilters />
 
-        {initialData.customers.length === 0 ? (
+        {data.customers.length === 0 ? (
           hasFilters ? (
             <EmptyState
               icon={FilterX}
@@ -154,7 +212,7 @@ export default function CustomerListPage({
               >
                 {isMobile ? (
                   <div className="space-y-2">
-                    {initialData.customers.map((customer) => (
+                    {data.customers.map((customer) => (
                       <CustomerCard
                         key={customer.id}
                         customer={customer}
@@ -164,7 +222,7 @@ export default function CustomerListPage({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {initialData.customers.map((customer) => (
+                    {data.customers.map((customer) => (
                       <CustomerCompactCard
                         key={customer.id}
                         customer={customer}
@@ -183,8 +241,8 @@ export default function CustomerListPage({
               </div>
               <p className="mt-1 text-center text-xs text-text-muted">
                 Hiển thị {(currentPage - 1) * pageSize + 1}–
-                {Math.min(currentPage * pageSize, initialData.total)} của{" "}
-                {initialData.total} khách hàng
+                {Math.min(currentPage * pageSize, data.total)} của{" "}
+                {data.total} khách hàng
               </p>
             </div>
           </CrmDashboardLayout>

@@ -128,7 +128,7 @@ export function ComboboxSearch({
       <div
         className={`
           input-base w-full flex items-center gap-2 cursor-text
-          ${error ? "border-error focus-within:ring-error/20" : ""}
+          ${error ? "border-error" : ""}
           ${disabled ? "opacity-50 cursor-not-allowed" : ""}
         `}
         onClick={() => {

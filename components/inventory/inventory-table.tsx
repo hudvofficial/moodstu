@@ -85,6 +85,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
               <TR
                 key={item.id}
                 onClick={() => onRowClick(item)}
+                onMouseEnter={() => onHover?.(item.id)}
               >
                 <TD>
                   <span className="font-mono text-text-muted">{item.item_code}</span>
@@ -92,7 +93,6 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
                 <TD>
                   <span
                     className="font-semibold text-text-main group-hover:underline underline-offset-4 decoration-primary/30"
-                    onMouseEnter={() => onHover?.(item.id)}
                   >
                     {item.name}
                   </span>
@@ -147,7 +147,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
 
 // ─── MOBILE CARD LIST ────────────────────────────────
 
-function MobileCardList({ items, onRowClick }: InventoryTableProps) {
+function MobileCardList({ items, onRowClick, onHover }: InventoryTableProps) {
   return (
     <div className="lg:hidden flex flex-col gap-3 pt-1">
       {items.map((item, i) => {
@@ -156,6 +156,8 @@ function MobileCardList({ items, onRowClick }: InventoryTableProps) {
           <Button unstyled
             key={item.id}
             onClick={() => onRowClick(item)}
+            onPointerEnter={() => onHover?.(item.id)}
+            onFocus={() => onHover?.(item.id)}
             className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)}`}
           >
             {/* Row 1: Mã vật tư + Status badge */}
