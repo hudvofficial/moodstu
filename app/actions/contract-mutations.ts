@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
-import { generateChecklists } from "@/app/actions/checklist-actions";
-import { generateContractEvents } from "@/app/actions/contract-event-actions";
-import { generateWorkTasksForContract } from "@/app/actions/work-task-actions";
+import { _generateChecklistsInternal } from "@/app/actions/checklist-actions";
+import { _generateContractEventsInternal } from "@/app/actions/contract-event-actions";
+import { _generateWorkTasksInternal } from "@/app/actions/work-task-actions";
+import { syncContractEventsToGoogle } from "@/lib/contract-event-google-sync";
 import type { ContractStatus, ExportType, ServiceType } from "@/types/contract";
 
 type SaveContractResult = {
@@ -17,6 +18,20 @@ type SaveContractResult = {
   remaining_amount: number;
   payment_status: string;
 };
+
+async function runPostSaveTask(
+  label: string,
+  task: () => Promise<unknown>,
+  warnings: string[],
+) {
+  try {
+    await task();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    warnings.push(`${label}: ${message}`);
+    console.warn(`[contracts.createContract] post-save task failed: ${label}`, error);
+  }
+}
 
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
 type ReservationStatus = "reserved" | "in_use" | "rented";
@@ -57,18 +72,25 @@ async function validateDressAvailability(
   range: { startDate: string; endDate: string },
   currentContractId?: string | null,
 ) {
-  for (const dressId of uniqueDressIds(items)) {
-    const { data, error } = await supabase
-      .from("dress_reservations")
-      .select("id, contract_id")
-      .eq("dress_id", dressId)
-      .in("status", ACTIVE_RESERVATION_STATUSES)
-      .lte("start_date", range.endDate)
-      .gte("end_date", range.startDate);
+  const allDressIds = uniqueDressIds(items);
+  if (allDressIds.length === 0) return;
 
-    if (error) throw new Error(`Loi kiem tra lich trang phuc: ${error.message}`);
+  // Batch: 1 query for ALL dress IDs (instead of N queries)
+  const { data, error } = await supabase
+    .from("dress_reservations")
+    .select("id, contract_id, dress_id")
+    .in("dress_id", allDressIds)
+    .in("status", ACTIVE_RESERVATION_STATUSES)
+    .lte("start_date", range.endDate)
+    .gte("end_date", range.startDate);
 
-    const conflict = (data || []).find((row) => row.contract_id !== currentContractId);
+  if (error) throw new Error(`Loi kiem tra lich trang phuc: ${error.message}`);
+
+  // Check conflicts per dress in JS
+  for (const dressId of allDressIds) {
+    const conflict = (data || []).find(
+      (row) => row.dress_id === dressId && row.contract_id !== currentContractId,
+    );
     if (conflict) {
       throw new Error("Trang phuc da duoc dat trong khoang thoi gian nay");
     }
@@ -213,62 +235,88 @@ async function upsertAddonHistoryItems(
     unit_price?: number | null;
   }>,
 ) {
-  for (const item of items) {
-    if (!item.is_addon || !item.item_name.trim()) continue;
-    const name = item.item_name.trim();
-    const category = item.addon_category || "khac";
-    const price = item.unit_price || 0;
+  // Collect addon items that need history tracking
+  const addonItems = items.filter(
+    (item) => item.is_addon && item.item_name.trim(),
+  );
+  if (addonItems.length === 0) return;
 
-    const { data: existing } = await supabase
-      .from("addon_history")
-      .select("id, usage_count")
-      .eq("addon_name", name)
-      .eq("addon_category", category)
-      .maybeSingle();
+  // Build lookup keys for batch SELECT
+  const lookupKeys = addonItems.map((item) => ({
+    name: item.item_name.trim(),
+    category: item.addon_category || "khac",
+    price: item.unit_price || 0,
+  }));
 
+  // Batch SELECT: get all existing records at once
+  const { data: existingRecords } = await supabase
+    .from("addon_history")
+    .select("id, addon_name, addon_category, usage_count")
+    .in("addon_name", lookupKeys.map((k) => k.name));
+
+  const existingMap = new Map(
+    (existingRecords || []).map((r) => [`${r.addon_name}::${r.addon_category}`, r]),
+  );
+
+  const now = new Date().toISOString();
+  const toInsert: Array<Record<string, unknown>> = [];
+  const updatePromises: Array<PromiseLike<{ error: { message?: string } | null }>> = [];
+
+  for (const key of lookupKeys) {
+    const existing = existingMap.get(`${key.name}::${key.category}`);
     if (existing) {
-      await supabase
-        .from("addon_history")
-        .update({
-          last_price: price,
-          usage_count: (existing.usage_count || 0) + 1,
-          last_used_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
+      updatePromises.push(
+        supabase
+          .from("addon_history")
+          .update({
+            last_price: key.price,
+            usage_count: (existing.usage_count || 0) + 1,
+            last_used_at: now,
+            updated_at: now,
+          })
+          .eq("id", existing.id),
+      );
     } else {
-      await supabase.from("addon_history").insert({
-        addon_name: name,
-        addon_category: category,
-        last_price: price,
+      toInsert.push({
+        addon_name: key.name,
+        addon_category: key.category,
+        last_price: key.price,
         usage_count: 1,
-        last_used_at: new Date().toISOString(),
+        last_used_at: now,
       });
     }
+  }
+
+  // Batch INSERT new + parallel UPDATE existing
+  const results = await Promise.all([
+    ...(toInsert.length > 0 ? [supabase.from("addon_history").insert(toInsert)] : []),
+    ...updatePromises,
+  ]);
+
+  const failed = results.find((result) => result.error);
+  if (failed?.error) {
+    throw new Error(failed.error.message || "Loi cap nhat lich su phat sinh");
   }
 }
 
 async function ensureContractAutomation(
+  supabase: AdminSupabase,
+  userId: string,
   contractId: string,
   serviceType: ServiceType,
   workDate?: string | null,
 ) {
-  const eventResult = await generateContractEvents(contractId, serviceType, workDate);
-  if (!eventResult.success) {
-    throw new Error(`Loi tao timeline hop dong: ${eventResult.error}`);
-  }
+  // Events must complete first (tasks depend on events)
+  const eventResult = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
 
-  const [checklistResult, taskResult] = await Promise.all([
-    generateChecklists(contractId, serviceType),
-    generateWorkTasksForContract(contractId),
+  // Checklists + tasks can run in parallel (both independent)
+  await Promise.all([
+    _generateChecklistsInternal(supabase, contractId, serviceType),
+    _generateWorkTasksInternal(supabase, contractId, userId),
+    syncContractEventsToGoogle(supabase, eventResult.eventIds || []).catch((syncError) => {
+      console.warn("Best effort contract events Google sync failed:", syncError);
+    }),
   ]);
-
-  if (!checklistResult.success) {
-    throw new Error(`Loi tao checklist hop dong: ${checklistResult.error}`);
-  }
-  if (!taskResult.success) {
-    throw new Error(`Loi tao task hop dong: ${taskResult.error}`);
-  }
 }
 
 export async function createContract(rawData: unknown) {
@@ -413,13 +461,32 @@ export async function createContract(rawData: unknown) {
       }
     }
 
-    await syncDressReservationsForContract(supabase, contractId);
-    await ensureContractAutomation(
-      contractId,
-      data.formData.service_type,
-      data.formData.work_date || null,
-    );
-    await upsertAddonHistoryItems(supabase, data.items);
+    // The core contract is already committed by save_contract_atomic.
+    // Post-save work must never make the UI report "save failed" for a saved contract.
+    const postSaveWarnings: string[] = [];
+    await Promise.all([
+      runPostSaveTask(
+        "Đồng bộ đặt trang phục",
+        () => syncDressReservationsForContract(supabase, contractId),
+        postSaveWarnings,
+      ),
+      runPostSaveTask(
+        "Tự động tạo lịch trình/checklist/công việc",
+        () => ensureContractAutomation(
+          supabase,
+          userId,
+          contractId,
+          data.formData.service_type,
+          data.formData.work_date || null,
+        ),
+        postSaveWarnings,
+      ),
+      runPostSaveTask(
+        "Cập nhật lịch sử phát sinh",
+        () => upsertAddonHistoryItems(supabase, data.items),
+        postSaveWarnings,
+      ),
+    ]);
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
@@ -443,6 +510,7 @@ export async function createContract(rawData: unknown) {
     return {
       id: contractId,
       contract_code: result.contract_code,
+      warnings: postSaveWarnings,
     };
   });
 }

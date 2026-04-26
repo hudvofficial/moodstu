@@ -7,18 +7,27 @@
  * No more MOCK data. All filter/sort/pagination handled server-side.
  */
 
-import { useCallback, useState, Suspense } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import dynamic from "next/dynamic";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2, Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { useRealtime, type RealtimePayload } from "@/hooks/use-realtime";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useRealtime } from "@/hooks/use-realtime";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
 import {
-  revalidateContractCaches,
+  revalidateContractListCaches,
   useContracts,
   useContractStats,
   prefetchContract,
@@ -32,15 +41,27 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
 
-import {
-  SERVICE_TYPE_MAP,
-} from "@/types/contract-constants";
+import { SERVICE_TYPE_MAP } from "@/types/contract-constants";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 
 const ContractDrawer = dynamic(
-  () => import("@/components/contracts/contract-drawer").then((mod) => mod.ContractDrawer),
+  () =>
+    import("@/components/contracts/contract-drawer").then(
+      (mod) => mod.ContractDrawer,
+    ),
   { ssr: false, loading: () => null },
 );
+
+const REALTIME_REFRESH_DELAY_MS = 600;
+const DEFAULT_STATS: ContractStats = {
+  total: 0,
+  active: 0,
+  pending: 0,
+  completed: 0,
+  revenue: 0,
+  outstanding: 0,
+  growth: { total: 0, active: 0, pending: 0, completed: 0 },
+};
 
 // ─── CONSTANTS (V2 snake_case enum values) ───────────
 
@@ -51,7 +72,6 @@ const STATUS_TABS = [
   { label: "Hoàn thành", value: "hoan_thanh" },
   { label: "Đã hủy", value: "da_huy" },
 ];
-
 
 const MOBILE_SERVICE_OPTIONS = [
   { value: "all", label: "Dịch vụ" },
@@ -82,12 +102,71 @@ interface ContractsListClientProps {
   initialStats?: ContractStats;
 }
 
-function ContractsListInner({ initialData, initialStats }: ContractsListClientProps) {
+interface ContractsSearchInputProps {
+  initialValue: string;
+  onSearchChange: (value: string) => void;
+  className?: string;
+}
+
+function ContractsSearchInput({
+  initialValue,
+  onSearchChange,
+  className = "",
+}: ContractsSearchInputProps) {
+  const [value, setValue] = useState(initialValue);
+  const debouncedValue = useDebounce(value, 300);
+
+  useEffect(() => {
+    const normalizedValue = debouncedValue.trim();
+    if (normalizedValue !== initialValue) {
+      onSearchChange(normalizedValue);
+    }
+  }, [debouncedValue, initialValue, onSearchChange]);
+
+  const handleClear = useCallback(() => {
+    setValue("");
+    if (initialValue) {
+      onSearchChange("");
+    }
+  }, [initialValue, onSearchChange]);
+
+  return (
+    <div className={["relative", className].filter(Boolean).join(" ")}>
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <Input
+        unstyled
+        withBaseStyles={false}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        className="search-input h-9 w-full pl-9 pr-9"
+        placeholder="Tìm mã HĐ, khách hàng..."
+        aria-label="Tìm kiếm hợp đồng"
+      />
+      {value && (
+        <Button
+          unstyled
+          type="button"
+          onClick={handleClear}
+          className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          aria-label="Xóa tìm kiếm"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ContractsListInner({
+  initialData,
+  initialStats,
+}: ContractsListClientProps) {
   const router = useRouter();
   const {
     filters,
     isPending,
     setStatus,
+    setSearch,
     setTime,
     setService,
     setSort,
@@ -108,238 +187,313 @@ function ContractsListInner({ initialData, initialStats }: ContractsListClientPr
     initialData,
   );
   const { stats } = useContractStats(initialStats);
+  const realtimeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  const refreshContractCaches = useCallback((
-    payload: RealtimePayload,
-    idField: "id" | "contract_id" = "contract_id",
-  ) => {
-    const row = (payload.new ?? payload.old) as Record<string, unknown> | null;
-    const value = row?.[idField];
-    void revalidateContractCaches(typeof value === "string" ? value : undefined);
+  const refreshContractList = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      clearTimeout(realtimeRefreshTimerRef.current);
+    }
+    realtimeRefreshTimerRef.current = setTimeout(() => {
+      realtimeRefreshTimerRef.current = null;
+      void revalidateContractListCaches();
+    }, REALTIME_REFRESH_DELAY_MS);
   }, []);
 
-  useRealtime("contracts", { onChange: (payload) => refreshContractCaches(payload, "id") });
-  useRealtime("contract_checklists", { onChange: refreshContractCaches });
-  useRealtime("contract_notes", { onChange: refreshContractCaches });
-  useRealtime("contract_events", { onChange: refreshContractCaches });
-  useRealtime("work_tasks", { onChange: refreshContractCaches });
-  useRealtime("payment_plans", { onChange: refreshContractCaches });
-
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
-  // Build dynamic tab counts from stats
-  const tabsWithCounts = STATUS_TABS.map((tab) => {
-    if (tab.value === "all") return { ...tab, count: stats?.total };
-    if (tab.value === "dang_thuc_hien")
-      return { ...tab, count: stats?.active };
-    if (tab.value === "cho_xu_ly") return { ...tab, count: stats?.pending };
-    if (tab.value === "hoan_thanh")
-      return { ...tab, count: stats?.completed };
-    return tab;
+  useRealtime("contracts", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
+  useRealtime("contract_checklists", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
+  useRealtime("contract_notes", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
+  useRealtime("contract_events", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
+  useRealtime("work_tasks", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
+  useRealtime("payment_plans", {
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
   });
 
+  useEffect(() => {
+    return () => {
+      if (realtimeRefreshTimerRef.current) {
+        clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    };
+  }, []);
+
+  const displayStats = stats ?? DEFAULT_STATS;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const visibleStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const visibleEnd = total === 0 ? 0 : Math.min(page * pageSize, total);
+
+  // Build dynamic tab counts from stats
+  const tabsWithCounts = useMemo(
+    () =>
+      STATUS_TABS.map((tab) => {
+        if (tab.value === "all") return { ...tab, count: displayStats.total };
+        if (tab.value === "dang_thuc_hien") {
+          return { ...tab, count: displayStats.active };
+        }
+        if (tab.value === "cho_xu_ly")
+          return { ...tab, count: displayStats.pending };
+        if (tab.value === "hoan_thanh")
+          return { ...tab, count: displayStats.completed };
+        return tab;
+      }),
+    [displayStats],
+  );
+
   // ── Drawer state (0ms Full Inline pattern) ──
-  const [selectedContract, setSelectedContract] = useState<ContractListItem | null>(null);
+  const [selectedContract, setSelectedContract] =
+    useState<ContractListItem | null>(null);
   const isDrawerOpen = selectedContract !== null;
 
   // Handlers
-  const handleView = (contractRecord: Record<string, unknown>) => {
-    const id = (contractRecord.id as string) || "";
-    if (id) {
+  const handleView = useCallback(
+    (contractRecord: Record<string, unknown>) => {
+      const id = (contractRecord.id as string) || "";
+      if (id) {
+        prefetchContract(id);
+        prefetchContractDetail(id);
+        router.prefetch(`/contracts/${id}`);
+        router.prefetch(`/contracts/${id}/edit`);
+      }
+
+      // Build ContractListItem from Record — drawer sections lazy-loaded by useContractDrawerExtra
+      const item: ContractListItem = {
+        id,
+        contract_code: (contractRecord.contract_code as string) || null,
+        status: (contractRecord.status as ContractListItem["status"]) || null,
+        service_type: (contractRecord.service_type as string) || null,
+        work_date: (contractRecord.work_date as string) || null,
+        contract_date: (contractRecord.contract_date as string) || null,
+        total_amount: Number(contractRecord.total_amount) || 0,
+        paid_amount: Number(contractRecord.paid_amount) || 0,
+        remaining_amount: Number(contractRecord.remaining_amount) || 0,
+        customer_id: (contractRecord.customer_id as string) || null,
+        customers:
+          (contractRecord.customers as ContractListItem["customers"]) ?? null,
+      };
+      setSelectedContract(item);
+    },
+    [router],
+  );
+
+  const handleHover = useCallback(
+    (id: string) => {
+      if (!id) return;
       prefetchContract(id);
-      prefetchContractDetail(id);
       router.prefetch(`/contracts/${id}`);
+    },
+    [router],
+  );
+
+  const handleEdit = useCallback(
+    (id: string) => {
+      if (!id) return;
       router.prefetch(`/contracts/${id}/edit`);
-    }
+      router.push(`/contracts/${id}/edit`);
+    },
+    [router],
+  );
 
-    // Build ContractListItem from Record — ALL data for 0ms drawer
-    const item: ContractListItem = {
-      id,
-      contract_code: (contractRecord.contract_code as string) || null,
-      status: (contractRecord.status as ContractListItem["status"]) || null,
-      service_type: (contractRecord.service_type as string) || null,
-      work_date: (contractRecord.work_date as string) || null,
-      contract_date: (contractRecord.contract_date as string) || null,
-      total_amount: Number(contractRecord.total_amount) || 0,
-      paid_amount: Number(contractRecord.paid_amount) || 0,
-      remaining_amount: Number(contractRecord.remaining_amount) || 0,
-      customer_id: (contractRecord.customer_id as string) || null,
-      customers: contractRecord.customers as ContractListItem["customers"] ?? null,
-      // Drawer sections (from list query JOINs)
-      contract_events: (contractRecord.contract_events as unknown as ContractListItem["contract_events"]) || [],
-      contract_checklists: (contractRecord.contract_checklists as unknown as ContractListItem["contract_checklists"]) || [],
-      work_tasks: (contractRecord.work_tasks as unknown as ContractListItem["work_tasks"]) || [],
-      payment_plans: (contractRecord.payment_plans as Record<string, unknown>[]) || [],
-      contract_notes: (contractRecord.contract_notes as ContractListItem["contract_notes"]) || [],
-    };
-    setSelectedContract(item);
-  };
-  const handleHover = (id: string) => {
-    prefetchContract(id);
-    prefetchContractDetail(id);
-    router.prefetch(`/contracts/${id}`);
-    router.prefetch(`/contracts/${id}/edit`);
-  };
-  const handleEdit = (id: string) => {
-    router.prefetch(`/contracts/${id}/edit`);
-    router.push(`/contracts/${id}/edit`);
-  };
-  const handleDelete = (id: string) => void id; // Delete handled via drawer lifecycle actions
+  const handleDelete = useCallback((id: string) => void id, []); // Delete handled via drawer lifecycle actions
 
-  const handleApplyDateRange = () => {
+  const handleApplyDateRange = useCallback(() => {
     applyDateRange(localStartDate, localEndDate);
-  };
+  }, [applyDateRange, localEndDate, localStartDate]);
 
   // Build customer map from joined data for ContractsTable
-  const customerMap: Record<string, { id: string; full_name: string; phone?: string }> = {};
-  for (const c of contracts) {
-    const contract = c as Record<string, unknown>;
-    const customer = contract.customers as { id: string; full_name: string; phone?: string } | null;
-    if (customer && contract.customer_id) {
-      customerMap[contract.customer_id as string] = customer;
+  const customerMap = useMemo(() => {
+    const map: Record<
+      string,
+      { id: string; full_name: string; phone?: string }
+    > = {};
+    for (const c of contracts) {
+      const contract = c as Record<string, unknown>;
+      const customer = contract.customers as {
+        id: string;
+        full_name: string;
+        phone?: string;
+      } | null;
+      if (customer && contract.customer_id) {
+        map[contract.customer_id as string] = customer;
+      }
     }
-  }
+    return map;
+  }, [contracts]);
 
-    return (
+  return (
     <>
-    <div className="main-container gap-3!">
-      {/* ── Stats + Action (unified container — same pattern as employees) ── */}
-      <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
-        <CompactStats stats={stats || { total: 0, active: 0, pending: 0, completed: 0, revenue: 0, outstanding: 0, growth: { total: 0, active: 0, pending: 0, completed: 0 } }} />
-        <div className="hidden lg:flex">
-          <Button
-            unstyled
-            onPointerEnter={() => router.prefetch("/contracts/create")}
-            onFocus={() => router.prefetch("/contracts/create")}
-            onClick={() => router.push('/contracts/create')}
-            className="btn btn-primary gap-2 shrink-0"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Tạo hợp đồng</span>
-          </Button>
-        </div>
-      </div>
-
-      <FAB onClick={() => router.push('/contracts/create')} label="Tạo hợp đồng" />
-
-      {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={STATUS_TABS}
-          activeTab={filters.status}
-          onChange={setStatus}
-          variant="pills"
-        />
-        {/* Separator */}
-        <div className="h-5 border-l border-border shrink-0" />
-        <SelectPill
-          value={filters.service}
-          onChange={setService}
-          defaultValue="all"
-          placeholder="Dịch vụ"
-          options={MOBILE_SERVICE_OPTIONS}
-        />
-        <SelectPill
-          value={filters.sort}
-          onChange={setSort}
-          defaultValue="newest"
-          placeholder="Sắp xếp"
-          options={MOBILE_SORT_OPTIONS}
-        />
-      </div>
-
-      {/* ── DESKTOP: Tabs + Dropdowns ── */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
-        <TabsFilter
-          tabs={tabsWithCounts}
-          activeTab={filters.status}
-          onChange={setStatus}
-        />
-        <ContractsDropdownFilters
-          time={filters.time}
-          service={filters.service}
-          sort={filters.sort}
-          onTimeChange={setTime}
-          onServiceChange={setService}
-          onSortChange={setSort}
-          onToggleAdvanced={toggleAdvanced}
-          isAdvancedOpen={filters.advanced}
-        />
-      </div>
-
-      {/* ── Advanced Filters Panel ── */}
-      {filters.advanced && (
-        <div className="hidden lg:grid w-full p-4 bg-surface rounded-md grid-cols-4 gap-4 shadow-sm">
-          <DatePicker
-            label="Từ ngày"
-            value={localStartDate}
-            onChange={(date) => setLocalStartDate(date)}
-          />
-          <DatePicker
-            label="Đến ngày"
-            value={localEndDate}
-            onChange={(date) => setLocalEndDate(date)}
-          />
-          <div className="flex items-end">
-            <Button unstyled
-              onClick={handleApplyDateRange}
-              disabled={isPending}
-              className="btn btn-primary w-full"
+      <div className="main-container gap-3!">
+        {/* ── Stats + Action (unified container — same pattern as employees) ── */}
+        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+          <CompactStats stats={displayStats} />
+          <div className="hidden lg:flex">
+            <Button
+              unstyled
+              onPointerEnter={() => router.prefetch("/contracts/create")}
+              onFocus={() => router.prefetch("/contracts/create")}
+              onClick={() => router.push("/contracts/create")}
+              className="btn btn-primary gap-2 shrink-0"
             >
-              {isPending ? "Đang áp dụng..." : "Áp dụng bộ lọc"}
+              <Plus className="w-5 h-5" />
+              <span>Tạo hợp đồng</span>
             </Button>
           </div>
         </div>
-      )}
 
-      {/* ── Loading State ── */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2 text-sm text-text-secondary">
-            Đang tải dữ liệu...
-          </span>
-        </div>
-      )}
+        <FAB
+          onClick={() => router.push("/contracts/create")}
+          label="Tạo hợp đồng"
+        />
 
-      {/* ── Error State ── */}
-      {error && !isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <p className="error-text">
-            Lỗi tải dữ liệu: {error.message}
-          </p>
-        </div>
-      )}
+        <ContractsSearchInput
+          key={`mobile-search-${filters.search}`}
+          initialValue={filters.search}
+          onSearchChange={setSearch}
+          className="lg:hidden"
+        />
 
-      {/* ── Table / Card List ── */}
-      {!isLoading && !error && (
-        <>
-          <ContractsTable
-            contracts={contracts as Record<string, unknown>[]}
-            customerMap={customerMap}
-            onView={handleView}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onHover={handleHover}
+        {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
+        <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+          <TabsFilter
+            tabs={STATUS_TABS}
+            activeTab={filters.status}
+            onChange={setStatus}
+            variant="pills"
           />
-
-          {/* ── Pagination ── */}
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onChange={setPage}
-            className="mt-6"
+          {/* Separator */}
+          <div className="h-5 border-l border-border shrink-0" />
+          <SelectPill
+            value={filters.service}
+            onChange={setService}
+            defaultValue="all"
+            placeholder="Dịch vụ"
+            options={MOBILE_SERVICE_OPTIONS}
           />
+          <SelectPill
+            value={filters.sort}
+            onChange={setSort}
+            defaultValue="newest"
+            placeholder="Sắp xếp"
+            options={MOBILE_SORT_OPTIONS}
+          />
+        </div>
 
-          {/* ── Footer Count ── */}
-          <p className="text-center text-xs text-text-muted mt-3">
-            Hiển thị {(page - 1) * pageSize + 1}–
-            {Math.min(page * pageSize, total)} của {total} hợp đồng
-          </p>
-        </>
-      )}
-    </div>
+        {/* ── DESKTOP: Tabs + Dropdowns ── */}
+        <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <TabsFilter
+              tabs={tabsWithCounts}
+              activeTab={filters.status}
+              onChange={setStatus}
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <ContractsSearchInput
+              key={`desktop-search-${filters.search}`}
+              initialValue={filters.search}
+              onSearchChange={setSearch}
+              className="w-64 xl:w-80"
+            />
+            <ContractsDropdownFilters
+              time={filters.time}
+              service={filters.service}
+              sort={filters.sort}
+              onTimeChange={setTime}
+              onServiceChange={setService}
+              onSortChange={setSort}
+              onToggleAdvanced={toggleAdvanced}
+              isAdvancedOpen={filters.advanced}
+            />
+          </div>
+        </div>
+
+        {/* ── Advanced Filters Panel ── */}
+        {filters.advanced && (
+          <div className="hidden lg:grid w-full p-4 bg-surface rounded-md grid-cols-4 gap-4 shadow-sm">
+            <DatePicker
+              label="Từ ngày"
+              value={localStartDate}
+              onChange={(date) => setLocalStartDate(date)}
+            />
+            <DatePicker
+              label="Đến ngày"
+              value={localEndDate}
+              onChange={(date) => setLocalEndDate(date)}
+            />
+            <div className="flex items-end">
+              <Button
+                unstyled
+                onClick={handleApplyDateRange}
+                disabled={isPending}
+                className="btn btn-primary w-full"
+              >
+                {isPending ? "Đang áp dụng..." : "Áp dụng bộ lọc"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Loading State ── */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            <span className="ml-2 text-sm text-text-secondary">
+              Đang tải dữ liệu...
+            </span>
+          </div>
+        )}
+
+        {/* ── Error State ── */}
+        {error && !isLoading && (
+          <div className="flex items-center justify-center py-16">
+            <p className="error-text">Lỗi tải dữ liệu: {error.message}</p>
+          </div>
+        )}
+
+        {/* ── Table / Card List ── */}
+        {!isLoading && !error && (
+          <>
+            <ContractsTable
+              contracts={contracts as Record<string, unknown>[]}
+              customerMap={customerMap}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onHover={handleHover}
+            />
+
+            {/* ── Pagination ── */}
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              className="mt-6"
+            />
+
+            {/* ── Footer Count ── */}
+            <p className="text-center text-xs text-text-muted mt-3">
+              Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
+            </p>
+          </>
+        )}
+      </div>
 
       {/* ── Contract Drawer ── */}
       <ContractDrawer

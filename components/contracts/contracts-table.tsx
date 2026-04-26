@@ -54,6 +54,13 @@ interface ContractsTableProps {
   onHover?: (id: string) => void;
 }
 
+type ProgressTask = {
+  id: string;
+  work_type: string;
+  status: string;
+  deadline: string | null;
+};
+
 // ─── TYPE HELPERS (safe accessors for Record) ────
 
 function getStr(obj: Record<string, unknown>, key: string): string {
@@ -216,6 +223,11 @@ function MobileCardList({ contracts, customerMap, onView, onHover }: ContractsTa
                 <Calendar className="w-3 h-3" />
                 {fmtDate(getStr(c, "work_date") || getStr(c, "contract_date") || null)}
               </span>
+            </div>
+
+            {/* Row 3.5: Task Progress */}
+            <div className="mb-3">
+              <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
             </div>
 
             {/* Row 4: Tổng tiền + Payment info */}

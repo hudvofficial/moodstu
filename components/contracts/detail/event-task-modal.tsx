@@ -116,14 +116,20 @@ export default function EventTaskModal({
           ? Promise.resolve({ success: true as const, data: prefetchedEmployees })
           : getActiveEmployees(),
       ]);
-      if (taskResult.success && taskResult.data) {
+      if (!taskResult.success) {
+        throw new Error(taskResult.error || "Loi tai danh sach task");
+      }
+      if (!empResult.success) {
+        throw new Error(empResult.error || "Loi tai danh sach nhan su");
+      }
+      if (taskResult.data) {
         setTasks(taskResult.data as TaskRow[]);
       }
-      if (empResult.success && empResult.data) {
+      if (empResult.data) {
         setEmployees(empResult.data as Employee[]);
       }
-    } catch {
-      toast.error("Lỗi tải dữ liệu");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Loi tai du lieu");
     } finally {
       setLoading(false);
     }
@@ -236,16 +242,23 @@ export default function EventTaskModal({
     );
     onTaskStatusChange?.(taskId, event.id, newStatus as TaskStatus);
 
+    const rollback = () => {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
+      );
+      onTaskStatusChange?.(taskId, event.id, previousStatus as TaskStatus);
+    };
+
     // 2. Chạy API ngầm (Fire-and-forget)
     toggleTaskStatus(taskId, newStatus as TaskStatus, event.id).then((result) => {
       if (!result.success) {
         // Rollback nếu lỗi
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
-        );
-        onTaskStatusChange?.(taskId, event.id, previousStatus as TaskStatus);
+        rollback();
         toast.error("Lỗi cập nhật: " + result.error);
       }
+    }).catch((err) => {
+      rollback();
+      toast.error(err instanceof Error ? err.message : "Loi cap nhat task");
     });
   };
 

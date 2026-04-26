@@ -51,6 +51,20 @@ export const GOOGLE_COLORS: Record<string, string> = {
   "11": "#d50000", // Tomato
 };
 
+type GoogleEventDate = { dateTime: string; timeZone?: string } | { date: string; timeZone?: string };
+
+export type GoogleCalendarEventPayload = {
+  summary?: string;
+  description?: string;
+  start?: GoogleEventDate;
+  end?: GoogleEventDate;
+  location?: string;
+  colorId?: string;
+  extendedProperties?: {
+    private?: Record<string, string>;
+  };
+};
+
 // ─── INTERNAL HELPERS ─────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,6 +185,8 @@ export async function getGoogleCalendarEvents(
       htmlLink: item.htmlLink,
       colorId: item.colorId,
       backgroundColor: GOOGLE_COLORS[item.colorId] || calendarDefaultColor,
+      extendedProperties: item.extendedProperties || null,
+      moodSource: item.extendedProperties?.private?.mood_source || null,
     }));
   } catch (error) {
     console.error("getGoogleCalendarEvents Error:", error);
@@ -181,10 +197,13 @@ export async function getGoogleCalendarEvents(
 export async function createGoogleCalendarEvent(eventData: {
   summary: string;
   description?: string;
-  start: { dateTime: string; timeZone?: string };
-  end: { dateTime: string; timeZone?: string };
+  start: GoogleEventDate;
+  end: GoogleEventDate;
   location?: string;
   colorId?: string;
+  extendedProperties?: {
+    private?: Record<string, string>;
+  };
 }) {
   try {
     const supabase = await createClient();
@@ -226,14 +245,7 @@ export async function createGoogleCalendarEvent(eventData: {
  */
 export async function updateGoogleCalendarEvent(
   eventId: string,
-  eventData: {
-    summary?: string;
-    description?: string;
-    start?: { dateTime?: string; date?: string; timeZone?: string };
-    end?: { dateTime?: string; date?: string; timeZone?: string };
-    location?: string;
-    colorId?: string;
-  },
+  eventData: GoogleCalendarEventPayload,
 ) {
   try {
     const supabase = await createClient();

@@ -3,6 +3,11 @@
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
+import {
+  deleteContractGoogleEvents,
+  getContractGoogleSyncTargets,
+  syncEligibleContractEventsToGoogle,
+} from "@/lib/contract-event-google-sync";
 
 const ACTIVE_RESERVATION_STATUSES = ["reserved", "in_use", "rented"] as const;
 
@@ -73,6 +78,7 @@ export async function cancelContract(
 
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
+    const googleTargets = await getContractGoogleSyncTargets(supabase, contractId);
 
     const { error } = await supabase.rpc("cancel_contract_cascade", {
       p_contract_id: contractId,
@@ -83,6 +89,9 @@ export async function cancelContract(
     if (error) throw new Error(`Lỗi hủy HĐ: ${error.message}`);
 
     await cancelDressReservationsForContract(supabase, contractId);
+    await deleteContractGoogleEvents(supabase, contractId, googleTargets).catch((syncError) => {
+      console.warn("Best effort contract cancel Google cleanup failed:", syncError);
+    });
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
 
@@ -104,6 +113,7 @@ export async function cancelContract(
 export async function deleteContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
+    const googleTargets = await getContractGoogleSyncTargets(supabase, contractId);
 
     const { error } = await supabase.rpc("delete_contract_cascade", {
       p_contract_id: contractId,
@@ -113,6 +123,9 @@ export async function deleteContract(contractId: string) {
     if (error) throw new Error(error.message);
 
     await cancelDressReservationsForContract(supabase, contractId);
+    await deleteContractGoogleEvents(supabase, contractId, googleTargets).catch((syncError) => {
+      console.warn("Best effort contract delete Google cleanup failed:", syncError);
+    });
     revalidatePath("/contracts");
 
     fireAuditLog({
@@ -217,6 +230,10 @@ export async function reactivateContract(contractId: string) {
         reservationsToRestore.map((reservation) => reservation.dress_id),
       );
     }
+
+    await syncEligibleContractEventsToGoogle(supabase, contractId).catch((syncError) => {
+      console.warn("Best effort contract reactivation Google sync failed:", syncError);
+    });
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);

@@ -80,7 +80,6 @@ function createEmptyItem(): EditablePrintingItem {
   return {
     tempId: buildTempId(),
     name: "",
-    size: "",
     quantity: 1,
     unitPrice: 0,
   };
@@ -196,7 +195,6 @@ export default function PrintingDetailDrawer({
     const validItems = form.items
       .map((item) => ({
         name: item.name.trim(),
-        size: item.size.trim(),
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
       }))
@@ -436,7 +434,7 @@ export default function PrintingDetailDrawer({
                     )}
                   </div>
 
-                  <div className="form-grid-2col border-t border-border/50 pt-3">
+                  <div className="border-t border-border/50 pt-3">
                     <div>
                       <label className="label-base">Tên sản phẩm</label>
                       <Input
@@ -445,17 +443,6 @@ export default function PrintingDetailDrawer({
                           updateItem(item.tempId, "name", event.target.value)
                         }
                         placeholder="Ví dụ: Album 20x30"
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="label-base">Kích thước</label>
-                      <Input
-                        value={item.size}
-                        onChange={(event) =>
-                          updateItem(item.tempId, "size", event.target.value)
-                        }
-                        placeholder="20x30"
                         className="w-full"
                       />
                     </div>

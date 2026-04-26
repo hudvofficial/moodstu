@@ -6,7 +6,6 @@ import type {
 
 export interface PrintingItem {
   name: string;
-  size: string;
   quantity: number;
   unitPrice: number;
 }
@@ -135,4 +134,3 @@ export interface LabDebtData {
   totalOrders: number;
   items: LabDebtEntry[];
 }
-

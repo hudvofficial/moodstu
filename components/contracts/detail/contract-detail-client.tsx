@@ -5,11 +5,13 @@ import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRealtime } from "@/hooks/use-realtime";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import {
   revalidateContractDetailCaches,
   useContractDetail,
+  useActiveEmployees,
 } from "@/lib/hooks/use-contracts";
+import ContractDetailLoading from "@/app/(protected)/contracts/[id]/loading";
 import type {
   Contract,
   Payment,
@@ -19,7 +21,6 @@ import type {
   AuditLogEntry,
   TaskStatus,
 } from "@/types/contract";
-import type { ActiveEmployee } from "@/types/employee";
 import TopActionBar from "./top-action-bar";
 import ContractActionsMenu from "./contract-actions-menu";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
@@ -57,13 +58,12 @@ const LOCAL_MUTATION_ECHO_MUTE_MS = 2000;
 
 interface Props {
   contractId?: string;
-  initialContract: Contract;
-  initialPayments: Payment[];
-  initialPaymentPlans: PaymentPlan[];
-  initialReservations: DressReservationRow[];
-  initialPrintOrders: PrintingOrder[];
-  initialAuditLogs: AuditLogEntry[];
-  activeEmployees?: ActiveEmployee[];
+  initialContract?: Contract;
+  initialPayments?: Payment[];
+  initialPaymentPlans?: PaymentPlan[];
+  initialReservations?: DressReservationRow[];
+  initialPrintOrders?: PrintingOrder[];
+  initialAuditLogs?: AuditLogEntry[];
 }
 
 export default function ContractDetailClient({
@@ -74,7 +74,6 @@ export default function ContractDetailClient({
   initialReservations,
   initialPrintOrders,
   initialAuditLogs,
-  activeEmployees,
 }: Props) {
   const params = useParams<{ id: string }>();
   const id = contractId || params.id;
@@ -85,20 +84,24 @@ export default function ContractDetailClient({
     reservations: liveReservations,
     printOrders: livePrintOrders,
     auditLogs: liveAuditLogs,
+    error: contractError,
     mutate: mutateContractDetail,
   } = useContractDetail(
     id,
     initialContract
       ? {
           contract: initialContract,
-          payments: initialPayments,
-          paymentPlans: initialPaymentPlans,
-          reservations: initialReservations,
-          printOrders: initialPrintOrders,
-          auditLogs: initialAuditLogs,
+          payments: initialPayments || [],
+          paymentPlans: initialPaymentPlans || [],
+          reservations: initialReservations || [],
+          printOrders: initialPrintOrders || [],
+          auditLogs: initialAuditLogs || [],
         }
       : undefined,
   );
+
+  // Client-side employees (cached 2 min)
+  const activeEmployees = useActiveEmployees();
 
   const refreshCooldownUntilRef = useRef(0);
   const refreshSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,14 +139,15 @@ export default function ContractDetailClient({
     }, Math.max(refreshCooldownUntilRef.current - now, 0));
   }, [id]);
 
-  // SWR fallback
+  // SWR fallback — may be null on cold start (client-first mode)
   const contract = (liveContract as unknown as Contract) || initialContract;
-  const payments = (livePayments as unknown as Payment[]) || initialPayments;
-  const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans;
-  const reservations = (liveReservations as unknown as DressReservationRow[]) || initialReservations;
-  const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders;
-  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs;
-  const isCancelled = contract.status === "da_huy";
+  const payments = (livePayments as unknown as Payment[]) || initialPayments || [];
+  const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans || [];
+  const reservations = (liveReservations as unknown as DressReservationRow[]) || initialReservations || [];
+  const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders || [];
+  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs || [];
+
+  const isCancelled = contract?.status === "da_huy";
 
   const applyTaskStatusOptimistic = useCallback(
     (taskId: string, eventId: string, nextStatus: TaskStatus) => {
@@ -207,19 +211,20 @@ export default function ContractDetailClient({
     };
   }, []);
 
-  useRealtime("contracts", { filter: `id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("receipts", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("contract_checklists", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("contract_notes", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("contract_events", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("work_tasks", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("payment_plans", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("dress_reservations", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
-  useRealtime("printing_orders", { filter: `contract_id=eq.${params.id}`, onChange: refreshContractCaches });
+  useRealtime("contracts", { filter: `id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("receipts", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("contract_checklists", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("contract_notes", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("contract_events", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("work_tasks", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("payment_plans", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("dress_reservations", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("printing_orders", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
 
   // ── Set header slots for mobile ──
   const setHeaderSlots = useSetHeaderSlots();
   useEffect(() => {
+    if (!contract) return;
     setHeaderSlots({
       leftSlot: (
         <Link href="/contracts" className="lg:hidden btn-icon shrink-0">
@@ -239,7 +244,7 @@ export default function ContractDetailClient({
       ),
     });
     return () => setHeaderSlots({});
-  }, [setHeaderSlots, contract.id, contract.contract_code, contract.customers?.full_name, payments.length, isCancelled]);
+  }, [setHeaderSlots, contract?.id, contract?.contract_code, contract?.customers?.full_name, payments.length, isCancelled]);
 
   // ── Quick Action Modal State ──
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -338,6 +343,37 @@ export default function ContractDetailClient({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
+
+  // Loading/error guards — placed after all hooks to satisfy React's Rules of Hooks.
+  if (!contract && contractError) {
+    const message = contractError instanceof Error
+      ? contractError.message
+      : "Không tìm thấy hoặc không thể tải hợp đồng.";
+
+    return (
+      <div className="main-container max-w-2xl">
+        <div className="card-base p-6 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger">
+            <AlertTriangle className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-lg font-semibold text-text-main">Không tải được hợp đồng</h1>
+            <p className="text-body-sm text-text-muted">{message}</p>
+          </div>
+          <Link href="/contracts" className="btn-primary inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại danh sách
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading guard — show skeleton while SWR fetches on cold start.
+  // MUST be placed AFTER all hooks to satisfy React's Rules of Hooks
+  if (!contract) {
+    return <ContractDetailLoading />;
+  }
 
   // ── Common layout props ──
   const layoutProps = {

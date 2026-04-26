@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { ChevronDown, PlusCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { createPrintingOrder, getLabs } from "@/app/actions/printing-actions";
+import {
+  createPrintingOrder,
+  fetchLabServices,
+  getLabs,
+} from "@/app/actions/printing-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
-
-// ═══════════════════════════════════════════
-// Printing Order Form — V1 → V2
-// Phase 05A: Labs via server action, NOT client Supabase
-// ═══════════════════════════════════════════
+import type { LabService } from "@/types/printing";
 
 interface Props {
   isOpen: boolean;
@@ -27,7 +26,6 @@ interface Props {
 
 interface PrintItem {
   name: string;
-  size: string;
   quantity: number;
   unitPrice: number;
 }
@@ -39,10 +37,25 @@ interface LabOption {
 
 const emptyItem = (): PrintItem => ({
   name: "",
-  size: "",
   quantity: 1,
   unitPrice: 0,
 });
+
+const printingItemTableStyle = {
+  "--printing-order-action-col": "var(--spacing-xl)",
+  "--printing-order-money-col": "calc(var(--spacing-xl) * 3)",
+  "--printing-order-qty-col": "calc(var(--spacing-xl) * 2)",
+} as CSSProperties;
+
+const printingItemGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "minmax(0, 1fr) var(--printing-order-qty-col) var(--printing-order-money-col) var(--printing-order-action-col)",
+} as CSSProperties;
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
 
 export default function PrintingOrderForm({
   isOpen,
@@ -52,12 +65,12 @@ export default function PrintingOrderForm({
 }: Props) {
   const [labId, setLabId] = useState<string | null>(null);
   const [labs, setLabs] = useState<LabOption[]>([]);
+  const [labServices, setLabServices] = useState<LabService[]>([]);
   const [items, setItems] = useState<PrintItem[]>([emptyItem()]);
   const [notes, setNotes] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch labs on open
   useEffect(() => {
     if (!isOpen) return;
     getLabs().then((result) => {
@@ -67,15 +80,36 @@ export default function PrintingOrderForm({
     });
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!labId) {
+      setLabServices([]);
+      return;
+    }
+
+    fetchLabServices(labId).then((result) => {
+      if (result.success && result.data) {
+        setLabServices(result.data as LabService[]);
+      }
+    });
+  }, [labId]);
+
   const updateItem = useCallback(
     (index: number, field: keyof PrintItem, value: string | number) => {
       setItems((prev) => {
         const next = [...prev];
         next[index] = { ...next[index], [field]: value };
+
+        if (field === "name") {
+          const matchedService = labServices.find((service) => service.item_name === value);
+          if (matchedService) {
+            next[index].unitPrice = matchedService.cost_price;
+          }
+        }
+
         return next;
       });
     },
-    []
+    [labServices],
   );
 
   const addItem = useCallback(() => {
@@ -83,12 +117,12 @@ export default function PrintingOrderForm({
   }, []);
 
   const removeItem = useCallback((index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
   }, []);
 
   const totalAmount = items.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
-    0
+    0,
   );
 
   const resetForm = useCallback(() => {
@@ -102,6 +136,10 @@ export default function PrintingOrderForm({
     const validItems = items.filter((item) => item.name.trim());
     if (validItems.length === 0) {
       toast("Vui lòng nhập ít nhất 1 sản phẩm", "warning");
+      return;
+    }
+    if (!labId) {
+      toast("Vui lòng chọn xưởng in", "warning");
       return;
     }
 
@@ -133,22 +171,23 @@ export default function PrintingOrderForm({
   return (
     <UnifiedModal
       isOpen={isOpen}
-      onClose={() => { resetForm(); onClose(); }}
+      onClose={() => {
+        resetForm();
+        onClose();
+      }}
       title="Tạo đơn in ảnh"
       description={contractCode}
     >
       <div className="space-y-4">
-        {/* Lab selector */}
+        <div className="form-grid-2col">
           <SimpleSelect
             value={labId || ""}
-            onChange={(v) => setLabId(v || null)}
-            options={labs.map((l) => ({ value: l.id, label: l.lab_name }))}
+            onChange={(value) => setLabId(value || null)}
+            options={labs.map((lab) => ({ value: lab.id, label: lab.lab_name }))}
             label="Xưởng in"
             placeholder="Chọn lab"
           />
 
-        {/* Expected date */}
-        <div>
           <DatePicker
             value={expectedDate}
             onChange={(date) => setExpectedDate(date)}
@@ -157,92 +196,131 @@ export default function PrintingOrderForm({
           />
         </div>
 
-        {/* Items */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="label-base">Sản phẩm in</label>
-            <Button onClick={addItem} variant="outline" size="sm">
-              <Plus size={12} />
-              Thêm
-            </Button>
+        <div
+          className="overflow-hidden rounded-lg border border-border bg-bg-card"
+          style={printingItemTableStyle}
+        >
+          <div
+            className="items-center gap-2 border-b border-border bg-bg-hover/50 px-3 py-2.5 text-caption font-bold uppercase tracking-widest text-text-muted"
+            style={printingItemGridStyle}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span>Sản phẩm</span>
+                <Button
+                  type="button"
+                  onClick={addItem}
+                  unstyled
+                  className="btn-icon h-6 w-6 min-w-6 rounded-full bg-primary/10 text-primary hover:bg-primary/15"
+                  aria-label="Thêm sản phẩm"
+                >
+                  <PlusCircle size={16} />
+                </Button>
+              </div>
+            </div>
+            <span className="text-center">SL</span>
+            <span className="text-right">Thành tiền</span>
+            <span />
           </div>
 
-          <div className="space-y-2">
-            {items.map((item, i) => (
-              <div
-                key={i}
-                className="grid grid-cols-[1fr_60px_60px_70px_32px] gap-2 items-center"
-              >
-                <Input
-                  value={item.name}
-                  onChange={(e) => updateItem(i, "name", e.target.value)}
-                  placeholder="Tên SP"
-                  className="text-sm"
-                />
-                <Input
-                  value={item.size}
-                  onChange={(e) => updateItem(i, "size", e.target.value)}
-                  placeholder="Size"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  value={String(item.quantity)}
-                  onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 1)}
-                  min={1}
-                  className="text-sm text-center"
-                />
-                <CurrencyInput
-                  value={item.unitPrice}
-                  onChange={(val) => updateItem(i, "unitPrice", val)}
-                  placeholder="Giá"
-                  className="text-sm"
-                />
-                {items.length > 1 && (
+          <div>
+            {items.map((item, index) => {
+              const lineTotal = item.quantity * item.unitPrice;
+
+              return (
+                <div
+                  key={index}
+                  className="items-center gap-2 border-b border-border/40 px-3 py-2 last:border-b-0"
+                  style={printingItemGridStyle}
+                >
+                  <div className="relative min-w-0">
+                    <Input
+                      unstyled
+                      withBaseStyles={false}
+                      value={item.name}
+                      onChange={(event) => updateItem(index, "name", event.target.value)}
+                      placeholder={labId ? "Tên sp..." : "Chọn lab trước"}
+                      disabled={!labId}
+                      className="input-base h-9 w-full pr-7 text-sm font-medium"
+                      list={`lab-services-${index}`}
+                    />
+                    <ChevronDown
+                      size={14}
+                      className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-text-muted"
+                    />
+                    <datalist id={`lab-services-${index}`}>
+                      {labServices.map((service) => (
+                        <option key={service.id} value={service.item_name}>
+                          {formatCurrency(service.cost_price)}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+
+                  <Input
+                    unstyled
+                    withBaseStyles={false}
+                    type="number"
+                    value={String(item.quantity)}
+                    onChange={(event) =>
+                      updateItem(
+                        index,
+                        "quantity",
+                        Math.max(1, parseInt(event.target.value) || 1),
+                      )
+                    }
+                    min={1}
+                    className="input-base h-9 w-full text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
+                  />
+
+                  <div className="min-w-0 text-right text-body-sm font-semibold text-primary tabular-nums">
+                    {lineTotal > 0 ? formatCurrency(lineTotal) : "0"}
+                  </div>
+
                   <Button
-                    onClick={() => removeItem(i)}
-                    variant="ghost"
-                    size="sm"
-                    className="text-error p-1"
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    disabled={items.length === 1}
+                    unstyled
+                    className="btn-icon h-8 w-8 min-w-8 text-text-muted hover:bg-error/10 hover:text-error disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text-muted"
+                    aria-label="Xóa sản phẩm"
                   >
-                    <Trash2 size={14} />
+                    <X size={18} />
                   </Button>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           {totalAmount > 0 && (
-            <p className="text-right text-sm font-semibold mt-2 text-text-primary">
-              Tổng: {new Intl.NumberFormat("vi-VN").format(totalAmount)}đ
-            </p>
+            <div className="border-t border-border bg-bg-hover/40 px-3 py-2 text-right text-sm font-semibold text-text-primary">
+              Tổng: {formatCurrency(totalAmount)}đ
+            </div>
           )}
         </div>
 
-        {/* Notes */}
         <div>
           <label className="label-base mb-1 block">Ghi chú</label>
           <Textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(event) => setNotes(event.target.value)}
             placeholder="Ghi chú thêm..."
             rows={2}
             className="w-full resize-none"
           />
         </div>
 
-        {/* Actions */}
         <div className="form-actions">
           <Button
-            onClick={() => { resetForm(); onClose(); }}
+            onClick={() => {
+              resetForm();
+              onClose();
+            }}
             variant="outline"
           >
             Đóng
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-          >
+          <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Đang xử lý..." : "Tạo đơn in"}
           </Button>
         </div>

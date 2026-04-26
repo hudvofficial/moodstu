@@ -1,5 +1,8 @@
 import ContractsListClient from "@/components/contracts/contracts-list-client";
-import { getContractList, getContractStats } from "@/app/actions/contract-queries";
+import {
+  getContractList,
+  getContractStats,
+} from "@/app/actions/contract-queries";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 
 export const metadata = { title: "Hợp đồng | Mood Studio" };
@@ -16,16 +19,29 @@ function getStringParam(
 function parseFilters(
   searchParams: Record<string, string | string[] | undefined>,
 ): ContractFilters {
+  const page = Math.max(
+    1,
+    Number(getStringParam(searchParams, "page", "1")) || 1,
+  );
+
   return {
-    status: getStringParam(searchParams, "status", "all") as ContractFilters["status"],
-    search: getStringParam(searchParams, "search"),
+    status: getStringParam(
+      searchParams,
+      "status",
+      "all",
+    ) as ContractFilters["status"],
+    search: getStringParam(searchParams, "search").trim(),
     time: getStringParam(searchParams, "time", "all"),
-    service: getStringParam(searchParams, "service", "all") as ContractFilters["service"],
+    service: getStringParam(
+      searchParams,
+      "service",
+      "all",
+    ) as ContractFilters["service"],
     sort: getStringParam(searchParams, "sort", "newest"),
     startDate: getStringParam(searchParams, "startDate"),
     endDate: getStringParam(searchParams, "endDate"),
     advanced: getStringParam(searchParams, "advanced", "false") === "true",
-    page: Number(getStringParam(searchParams, "page", "1")) || 1,
+    page,
   };
 }
 
@@ -50,12 +66,14 @@ export default async function ContractsPage(props: {
 
   return (
     <ContractsListClient
-      initialData={listResult.data as {
-        contracts: Record<string, unknown>[];
-        total: number;
-        page: number;
-        pageSize: number;
-      }}
+      initialData={
+        listResult.data as {
+          contracts: Record<string, unknown>[];
+          total: number;
+          page: number;
+          pageSize: number;
+        }
+      }
       initialStats={statsResult.data as ContractStats}
     />
   );

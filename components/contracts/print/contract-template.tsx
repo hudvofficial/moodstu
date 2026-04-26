@@ -5,9 +5,28 @@
  * NO client Supabase — all data passed as props from server
  */
 
-import type { Contract, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
+import type {
+  Contract,
+  ContractItem,
+  PaymentPlan,
+  StudioInfo,
+} from "@/types/contract";
 import type { Customer } from "@/types/crm";
-import { getServiceLabel } from "@/types/contract-constants";
+
+const PRINT_FONT_FAMILY = "var(--font-sans)";
+const PRINT_BODY_SIZE = "calc(var(--font-size-micro) + 0.5px)";
+const PRINT_TABLE_SIZE = "var(--font-size-micro)";
+const PRINT_NOTE_SIZE = "calc(var(--font-size-micro) - 1px)";
+const PRINT_META_SIZE = "calc(var(--font-size-micro) - 1.5px)";
+const PRINT_RADIUS = "calc(var(--radius-md) / 2)";
+
+interface PrintPaymentScheduleRow {
+  id: string;
+  label: string;
+  amount: number;
+  dueDate: string | null;
+  status: string | null;
+}
 
 // ═══════════════════════════════════════════
 // Shared format helpers (print-specific)
@@ -19,11 +38,59 @@ function formatCurrency(amount: number): string {
 
 function formatDate(date: string | null): string {
   if (!date) return "___/___/______";
-  return new Date(date).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return new Date(date).toLocaleDateString("vi-VN");
+}
+
+function getPaymentScheduleRows(
+  paymentPlans: PaymentPlan[],
+  contract: Contract,
+): PrintPaymentScheduleRow[] {
+  const planRows = paymentPlans
+    .filter((plan) => plan.status !== "cancelled")
+    .map((plan) => ({
+      id: plan.id,
+      label: plan.stage_name || "Đợt thanh toán",
+      amount: Number(plan.amount) || 0,
+      dueDate: plan.due_date,
+      status: plan.status,
+      createdAt: plan.created_at,
+    }))
+    .sort((a, b) => {
+      const dueA = a.dueDate
+        ? new Date(a.dueDate).getTime()
+        : Number.MAX_SAFE_INTEGER;
+      const dueB = b.dueDate
+        ? new Date(b.dueDate).getTime()
+        : Number.MAX_SAFE_INTEGER;
+      if (dueA !== dueB) return dueA - dueB;
+      return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+    })
+    .map((row) => ({
+      id: row.id,
+      label: row.label,
+      amount: row.amount,
+      dueDate: row.dueDate,
+      status: row.status,
+    }));
+
+  if (planRows.length > 0) return planRows;
+
+  const remaining = Number(contract.remaining_amount) || 0;
+  if (remaining <= 0) return [];
+
+  return [
+    {
+      id: "remaining-balance",
+      label: "Thanh toán còn lại",
+      amount: remaining,
+      dueDate:
+        contract.delivery_date ||
+        contract.work_date ||
+        contract.contract_date ||
+        null,
+      status: "pending",
+    },
+  ];
 }
 
 // ═══════════════════════════════════════════
@@ -36,6 +103,8 @@ interface ContractTemplateProps {
   items: ContractItem[];
   paymentPlans: PaymentPlan[];
   studio: StudioInfo;
+  logoUrl?: string;
+  templateId?: string;
 }
 
 // ═══════════════════════════════════════════
@@ -48,9 +117,10 @@ export default function ContractTemplate({
   items,
   paymentPlans,
   studio,
+  logoUrl,
+  templateId,
 }: ContractTemplateProps) {
   const isWedding = contract.service_type === "ngay_cuoi";
-  const serviceLabel = getServiceLabel(contract.service_type);
 
   // Financial calculations
   const subtotal = items.reduce((sum, item) => sum + item.total_amount, 0);
@@ -58,150 +128,275 @@ export default function ContractTemplate({
   const total = contract.total_amount;
   const paid = contract.paid_amount;
   const remaining = contract.remaining_amount;
+  const paymentScheduleRows = getPaymentScheduleRows(paymentPlans, contract);
 
   return (
     <div
-      id="print-template"
+      id={templateId}
       className="print-template"
       style={{
         width: "148mm",
         minHeight: "195mm",
-        padding: "8mm 10mm",
-        fontFamily: "'Segoe UI', Tahoma, sans-serif",
-        fontSize: "9.5px",
-        lineHeight: "1.5",
+        padding: "7mm 8mm",
+        boxSizing: "border-box",
+        fontFamily: PRINT_FONT_FAMILY,
+        fontSize: PRINT_BODY_SIZE,
+        lineHeight: "1.42",
         color: "var(--color-text-primary)",
-        background: "var(--color-bg-base)",
+        background: "var(--color-bg-card)",
       }}
     >
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6mm" }}>
-        <div style={{ flex: "0 0 auto" }}>
-          {studio.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={studio.logo_url}
-              alt={studio.name}
-              style={{ width: "50px", height: "50px", objectFit: "contain" }}
-            />
-          )}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "5mm",
+          borderBottom: "1.5px solid var(--color-primary)",
+          paddingBottom: "2.5mm",
+          marginBottom: "4mm",
+          minHeight: "13mm",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "2.5mm",
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              flex: "0 0 22mm",
+              height: "12mm",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={studio.name}
+                crossOrigin="anonymous"
+                style={{ width: "19mm", height: "12mm", objectFit: "contain" }}
+              />
+            )}
+          </div>
+          <div
+            style={{
+              width: "1px",
+              height: "10mm",
+              background: "var(--color-border)",
+              flex: "0 0 auto",
+            }}
+          />
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "var(--font-size-tiny)",
+                fontWeight: 800,
+                color: "var(--color-primary)",
+                lineHeight: 1.2,
+              }}
+            >
+              {studio.name}
+            </div>
+            <div
+              style={{
+                fontSize: PRINT_META_SIZE,
+                color: "var(--color-text-muted)",
+                lineHeight: 1.35,
+                whiteSpace: "nowrap",
+              }}
+            >
+              ĐC: {studio.address || "___________"}
+            </div>
+            <div
+              style={{
+                fontSize: PRINT_META_SIZE,
+                color: "var(--color-text-muted)",
+                lineHeight: 1.35,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Hotline: {studio.hotline || "___________"}
+            </div>
+          </div>
         </div>
-        <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-primary)", textTransform: "uppercase" }}>
-            {studio.name}
-          </div>
-          <div style={{ fontSize: "8px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-            {studio.address}
-          </div>
-          <div style={{ fontSize: "8px", color: "var(--color-text-muted)" }}>
-            Hotline: {studio.hotline || "___________"}
-          </div>
-        </div>
-        <div style={{ flex: "0 0 auto", textAlign: "right" }}>
-          <div style={{ fontSize: "7px", color: "var(--color-text-muted)" }}>Số HĐ</div>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-primary)" }}>
-            {contract.contract_code}
-          </div>
-        </div>
-      </div>
 
-      {/* ── TITLE ── */}
-      <div style={{ textAlign: "center", marginBottom: "5mm" }}>
-        <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--color-primary)", letterSpacing: "1px" }}>
-          HỢP ĐỒNG DỊCH VỤ
-        </div>
-        <div style={{ fontSize: "9px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-          Loại: {serviceLabel} — Ngày: {formatDate(contract.contract_date)}
+        <div style={{ flex: "0 0 auto", textAlign: "right", lineHeight: 1.25 }}>
+          <div
+            style={{
+              fontSize: "var(--font-size-label)",
+              fontWeight: 800,
+              color: "var(--color-primary)",
+              letterSpacing: "0.8px",
+            }}
+          >
+            Hợp đồng dịch vụ
+          </div>
+          <div
+            style={{
+              fontSize: PRINT_NOTE_SIZE,
+              fontWeight: 700,
+              color: "var(--color-primary)",
+            }}
+          >
+            Số: {contract.contract_code}
+          </div>
+          <div
+            style={{
+              fontSize: PRINT_NOTE_SIZE,
+              fontWeight: 700,
+              color: "var(--color-text-secondary)",
+            }}
+          >
+            Ngày: {formatDate(contract.contract_date)}
+          </div>
         </div>
       </div>
 
       {/* ── CUSTOMER INFO ── */}
-      <div style={{ border: "1px solid var(--color-border)", borderRadius: "4px", padding: "4mm", marginBottom: "5mm" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 8mm" }}>
-          <InfoRow label="Khách hàng" value={customer.full_name} bold />
-          <InfoRow label="Điện thoại" value={customer.phone || "___________"} />
-          <InfoRow label="Địa chỉ" value={customer.address || "___________"} />
-          <InfoRow label="Email" value={customer.email || "___________"} />
+      <div
+        style={{
+          border: "1px solid var(--color-border)",
+          borderRadius: PRINT_RADIUS,
+          padding: "2.6mm 3mm 3mm",
+          marginBottom: "3.5mm",
+          background: "var(--color-bg-card)",
+        }}
+      >
+        <SectionTitle>Thông tin khách hàng</SectionTitle>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            columnGap: "7mm",
+            rowGap: "1.7mm",
+            fontSize: PRINT_TABLE_SIZE,
+          }}
+        >
+          <InfoField label="Khách" value={customer.full_name} bold />
+          <InfoField label="SĐT" value={customer.phone || "..."} bold />
+          <InfoField
+            label="Địa chỉ"
+            value={customer.address || "Chưa cập nhật"}
+            italic
+            span={2}
+          />
           {isWedding && (
             <>
-              <InfoRow label="Ngày cưới" value={formatDate(customer.wedding_date || null)} />
-              <InfoRow label="Ghi chú" value={contract.notes || ""} />
+              <InfoField
+                label="Ngày cưới"
+                value={formatDate(customer.wedding_date || null)}
+              />
+              <InfoField
+                label="Ghi chú"
+                value={contract.notes || "..."}
+                allowWrap
+              />
             </>
           )}
         </div>
       </div>
 
       {/* ── SERVICES TABLE ── */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "4mm", fontSize: "9px" }}>
+      <SectionTitle>Chi tiết dịch vụ</SectionTitle>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          tableLayout: "fixed",
+          marginBottom: "2mm",
+          fontSize: PRINT_TABLE_SIZE,
+        }}
+      >
         <thead>
-          <tr style={{ background: "var(--color-primary)", color: "var(--color-bg-base)" }}>
-            <Th width="8%">STT</Th>
-            <Th width="42%" align="left">Dịch vụ / Sản phẩm</Th>
+          <tr
+            style={{
+              background: "var(--color-primary)",
+              color: "var(--color-text-inverse)",
+            }}
+          >
+            <Th width="8%" radius="left">
+              STT
+            </Th>
+            <Th width="42%" align="left">
+              Dịch vụ / Sản phẩm
+            </Th>
             <Th width="10%">SL</Th>
             <Th width="20%">Đơn giá</Th>
-            <Th width="20%">Thành tiền</Th>
+            <Th width="20%" radius="right">
+              Thành tiền
+            </Th>
           </tr>
         </thead>
-        <tbody>
+        <tbody
+          style={{
+            borderLeft: "1px solid var(--color-border)",
+            borderRight: "1px solid var(--color-border)",
+            borderBottom: "1px solid var(--color-border)",
+          }}
+        >
           {items.map((item, i) => (
-            <tr key={item.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+            <tr key={item.id}>
               <Td align="center">{i + 1}</Td>
-              <Td align="left">
+              <Td align="left" strong>
                 {item.item_name}
-                {item.is_addon && <span style={{ color: "var(--color-text-muted)", fontSize: "7px" }}> (phát sinh)</span>}
+                {item.is_addon && (
+                  <span
+                    style={{
+                      color: "var(--color-text-muted)",
+                      fontSize: PRINT_META_SIZE,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {" "}
+                    (phát sinh)
+                  </span>
+                )}
               </Td>
               <Td align="center">{item.quantity}</Td>
-              <Td align="right">{formatCurrency(item.unit_price)}</Td>
-              <Td align="right">{formatCurrency(item.total_amount)}</Td>
+              <Td align="right" muted>
+                {formatCurrency(item.unit_price)}
+              </Td>
+              <Td align="right" strong>
+                {formatCurrency(item.total_amount)}
+              </Td>
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <SumRow label="Tạm tính" amount={subtotal} />
-          {discount > 0 && <SumRow label="Giảm giá" amount={-discount} color="var(--color-error)" />}
-          <SumRow label="Tổng thanh toán" amount={total} bold />
-          <SumRow label="Đã thanh toán" amount={paid} color="var(--color-success)" />
-          <SumRow label="Còn lại" amount={remaining} bold color="var(--color-error)" />
-        </tfoot>
       </table>
+      <FinancialSummary
+        subtotal={subtotal}
+        discount={discount}
+        total={total}
+        paid={paid}
+        remaining={remaining}
+      />
 
       {/* ── PAYMENT SCHEDULE ── */}
-      {paymentPlans.length > 0 && (
-        <div style={{ marginBottom: "4mm" }}>
-          <div style={{ fontSize: "10px", fontWeight: 600, marginBottom: "3px", color: "var(--color-primary)" }}>
-            Lịch thanh toán
-          </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {paymentPlans.map((plan, i) => {
-              const isPaid = plan.status === "paid";
-              const dotColor = isPaid ? "var(--color-success)" : i === 0 ? "var(--color-warning)" : "var(--color-border)";
-              return (
-                <div
-                  key={plan.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    fontSize: "8px",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: dotColor,
-                      display: "inline-block",
-                    }}
-                  />
-                  <span>
-                    {plan.stage_name}: {formatCurrency(plan.amount)}
-                    {plan.due_date && ` (${formatDate(plan.due_date)})`}
-                  </span>
-                </div>
-              );
-            })}
+      {paymentScheduleRows.length > 0 && (
+        <div style={{ marginBottom: "3mm" }}>
+          <SectionTitle>Lộ trình thanh toán</SectionTitle>
+          <div style={{ borderRadius: PRINT_RADIUS, overflow: "hidden" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+                fontSize: PRINT_TABLE_SIZE,
+              }}
+            >
+              <tbody>
+                {paymentScheduleRows.map((row) => (
+                  <PaymentScheduleRow key={row.id} row={row} />
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -213,29 +408,84 @@ export default function ContractTemplate({
           gridTemplateColumns: "1fr 1fr",
           gap: "8mm",
           textAlign: "center",
-          marginTop: "6mm",
-          marginBottom: "4mm",
+          marginTop: "4mm",
+          marginBottom: "3mm",
         }}
       >
         <div>
-          <div style={{ fontWeight: 600, fontSize: "10px" }}>Khách hàng</div>
-          <div style={{ fontSize: "7px", color: "var(--color-text-muted)", marginTop: "2px" }}>(Ký và ghi rõ họ tên)</div>
-          <div style={{ height: "20mm" }} />
+          <div style={{ fontWeight: 600, fontSize: "var(--font-size-tiny)" }}>
+            Khách hàng
+          </div>
+          <div
+            style={{
+              fontSize: PRINT_META_SIZE,
+              color: "var(--color-text-muted)",
+              marginTop: "2px",
+            }}
+          >
+            (Ký và ghi rõ họ tên)
+          </div>
+          <div style={{ height: "15mm" }} />
         </div>
         <div>
-          <div style={{ fontWeight: 600, fontSize: "10px" }}>Đại diện Studio</div>
-          <div style={{ fontSize: "7px", color: "var(--color-text-muted)", marginTop: "2px" }}>(Ký và đóng dấu)</div>
-          <div style={{ height: "20mm" }} />
+          <div style={{ fontWeight: 600, fontSize: "var(--font-size-tiny)" }}>
+            Đại diện Studio
+          </div>
+          <div
+            style={{
+              fontSize: PRINT_META_SIZE,
+              color: "var(--color-text-muted)",
+              marginTop: "2px",
+            }}
+          >
+            (Ký và đóng dấu)
+          </div>
+          <div style={{ height: "15mm" }} />
         </div>
       </div>
 
       {/* ── NOTES ── */}
-      <div style={{ fontSize: "7.5px", color: "var(--color-text-secondary)", borderTop: "1px solid var(--color-border)", paddingTop: "3mm" }}>
-        <div style={{ fontWeight: 600, marginBottom: "2px" }}>Lưu ý:</div>
-        <ul style={{ margin: 0, paddingLeft: "12px" }}>
-          <li>Hợp đồng có giá trị kể từ ngày ký. Mọi thay đổi cần có sự đồng ý của cả hai bên.</li>
-          <li>Khách hàng vui lòng thanh toán đúng hạn theo lịch trên.</li>
-          <li>Studio cam kết thực hiện dịch vụ chuyên nghiệp và đúng tiến độ.</li>
+      <div
+        style={{
+          fontSize: PRINT_NOTE_SIZE,
+          color: "var(--color-text-secondary)",
+          border: "1px dashed var(--color-border)",
+          borderRadius: "var(--radius-md)",
+          padding: "2.5mm 3.5mm",
+          lineHeight: 1.35,
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            marginBottom: "1.5mm",
+            color: "var(--color-primary)",
+          }}
+        >
+          * Lưu ý:
+        </div>
+        <ul
+          style={{
+            margin: 0,
+            paddingLeft: "12px",
+            display: "grid",
+            gap: "1px",
+          }}
+        >
+          <li>
+            Quý khách xem kỹ trước khi ký vào hợp đồng. Hợp đồng đã ký vui lòng
+            không đổi trả với bất kỳ lý do nào, hủy bỏ hợp đồng sẽ mất toàn bộ
+            số tiền đặt cọc.
+          </li>
+          <li>
+            Khách thuê đồ và trả đồ trong vòng 3 ngày. Tuyệt đối không để dính
+            rượu vang, xăng, dầu mỡ... nếu có phải bồi thường theo giá trị hàng
+            hóa.
+          </li>
+          <li>
+            Tuyệt đối không tự ý giặt đồ thuê dưới mọi hình thức để tránh làm
+            hỏng chất liệu sản phẩm.
+          </li>
         </ul>
       </div>
 
@@ -243,11 +493,11 @@ export default function ContractTemplate({
       <div
         style={{
           textAlign: "center",
-          fontSize: "7px",
+          fontSize: PRINT_META_SIZE,
           color: "var(--color-text-muted)",
-          marginTop: "4mm",
+          marginTop: "3mm",
           borderTop: "1px dashed var(--color-border)",
-          paddingTop: "2mm",
+          paddingTop: "1.5mm",
         }}
       >
         {studio.name} — Cảm ơn quý khách!
@@ -260,24 +510,191 @@ export default function ContractTemplate({
 // Sub-components (print-only, inline style OK for print)
 // ═══════════════════════════════════════════
 
-function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: "4px" }}>
-      <span style={{ color: "var(--color-text-secondary)", minWidth: "60px" }}>{label}:</span>
-      <span style={{ fontWeight: bold ? 600 : 400 }}>{value}</span>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "2mm",
+        marginBottom: "1.5mm",
+      }}
+    >
+      <span
+        style={{
+          width: "1mm",
+          height: "3.4mm",
+          borderRadius: "999px",
+          background: "var(--color-primary)",
+          flex: "0 0 auto",
+        }}
+      />
+      <span
+        style={{
+          fontSize: "var(--font-size-tiny)",
+          fontWeight: 800,
+          color: "var(--color-primary)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {children}
+      </span>
+      <span
+        style={{
+          flex: 1,
+          borderTop: "1px solid var(--color-border)",
+        }}
+      />
     </div>
   );
 }
 
-function Th({ children, width, align = "center" }: { children: React.ReactNode; width: string; align?: string }) {
+function InfoField({
+  label,
+  value,
+  bold,
+  italic,
+  span,
+  allowWrap,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  italic?: boolean;
+  span?: number;
+  allowWrap?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: allowWrap ? "flex-start" : "center",
+        gap: "2mm",
+        borderBottom: "1px solid var(--color-border-light)",
+        paddingBottom: "0.6mm",
+        gridColumn: span ? `span ${span}` : undefined,
+        minWidth: 0,
+        minHeight: "4mm",
+      }}
+    >
+      <span
+        style={{
+          flex: "0 0 18mm",
+          fontSize: PRINT_META_SIZE,
+          fontWeight: 800,
+          color: "var(--color-text-secondary)",
+          textTransform: "uppercase",
+          whiteSpace: "nowrap",
+          letterSpacing: "0.2px",
+        }}
+      >
+        {label}:
+      </span>
+      <span
+        style={{
+          minWidth: 0,
+          overflow: allowWrap ? "visible" : "hidden",
+          textOverflow: allowWrap ? undefined : "ellipsis",
+          whiteSpace: allowWrap ? "normal" : "nowrap",
+          fontWeight: bold ? 700 : 500,
+          fontStyle: italic ? "italic" : undefined,
+          color: "var(--color-text-primary)",
+          lineHeight: 1.25,
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function PaymentScheduleRow({ row }: { row: PrintPaymentScheduleRow }) {
+  const isPaid = row.status === "paid";
+
+  return (
+    <tr>
+      <td
+        style={{
+          width: "55%",
+          padding: "1.7mm 2mm",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "1.8mm",
+            fontWeight: 600,
+            color: isPaid
+              ? "var(--color-text-muted)"
+              : "var(--color-text-primary)",
+          }}
+        >
+          <span
+            style={{
+              width: "1.5mm",
+              height: "1.5mm",
+              borderRadius: "50%",
+              background: isPaid
+                ? "var(--color-success)"
+                : "var(--color-primary)",
+              flex: "0 0 auto",
+            }}
+          />
+          {row.label}
+        </span>
+      </td>
+      <td
+        style={{
+          width: "20%",
+          padding: "1.7mm 2mm",
+          textAlign: "center",
+          color: "var(--color-text-muted)",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
+        {formatDate(row.dueDate)}
+      </td>
+      <td
+        style={{
+          width: "25%",
+          padding: "1.7mm 2mm",
+          textAlign: "right",
+          fontWeight: 800,
+          color: isPaid ? "var(--color-success)" : "var(--color-primary)",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
+        {formatCurrency(row.amount)}
+      </td>
+    </tr>
+  );
+}
+
+function Th({
+  children,
+  width,
+  align = "center",
+  radius,
+}: {
+  children: React.ReactNode;
+  width: string;
+  align?: string;
+  radius?: "left" | "right";
+}) {
   return (
     <th
       style={{
         width,
-        padding: "4px 6px",
+        padding: "2mm 2mm",
         textAlign: align as React.CSSProperties["textAlign"],
-        fontSize: "8px",
-        fontWeight: 600,
+        fontSize: PRINT_NOTE_SIZE,
+        fontWeight: 800,
+        textTransform: "uppercase",
+        letterSpacing: "0.4px",
+        borderTopLeftRadius: radius === "left" ? PRINT_RADIUS : undefined,
+        borderTopRightRadius: radius === "right" ? PRINT_RADIUS : undefined,
       }}
     >
       {children}
@@ -285,30 +702,145 @@ function Th({ children, width, align = "center" }: { children: React.ReactNode; 
   );
 }
 
-function Td({ children, align = "center" }: { children: React.ReactNode; align?: string }) {
+function Td({
+  children,
+  align = "center",
+  muted,
+  strong,
+}: {
+  children: React.ReactNode;
+  align?: string;
+  muted?: boolean;
+  strong?: boolean;
+}) {
   return (
-    <td style={{ padding: "3px 6px", textAlign: align as React.CSSProperties["textAlign"] }}>
+    <td
+      style={{
+        padding: "1.5mm 2mm",
+        textAlign: align as React.CSSProperties["textAlign"],
+        borderBottom: "1px solid var(--color-border)",
+        color: muted
+          ? "var(--color-text-secondary)"
+          : "var(--color-text-primary)",
+        fontWeight: strong ? 700 : 500,
+      }}
+    >
       {children}
     </td>
   );
 }
 
-function SumRow({ label, amount, bold, color }: { label: string; amount: number; bold?: boolean; color?: string }) {
+function FinancialSummary({
+  subtotal,
+  discount,
+  total,
+  paid,
+  remaining,
+}: {
+  subtotal: number;
+  discount: number;
+  total: number;
+  paid: number;
+  remaining: number;
+}) {
   return (
-    <tr>
-      <td colSpan={4} style={{ textAlign: "right", padding: "3px 6px", fontWeight: bold ? 700 : 400 }}>
-        {label}
-      </td>
-      <td
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        margin: "-0.4mm 0 3.2mm",
+      }}
+    >
+      <div
+        style={{
+          width: "49mm",
+          fontSize: PRINT_TABLE_SIZE,
+        }}
+      >
+        <SummaryLine label="Tạm tính" amount={subtotal} />
+        {discount > 0 && (
+          <SummaryLine
+            label="Giảm giá"
+            amount={-discount}
+            color="var(--color-error)"
+          />
+        )}
+        <SummaryLine label="Tổng thanh toán" amount={total} tone="primary" />
+        <SummaryLine
+          label="Đã thanh toán"
+          amount={paid}
+          color="var(--color-success)"
+        />
+        <SummaryLine
+          label="Còn lại"
+          amount={remaining}
+          tone="danger"
+          color="var(--color-error)"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SummaryLine({
+  label,
+  amount,
+  color,
+  tone = "default",
+}: {
+  label: string;
+  amount: number;
+  color?: string;
+  tone?: "default" | "primary" | "danger";
+}) {
+  const isEmphasis = tone !== "default";
+  const valueColor =
+    color ||
+    (tone === "primary" ? "var(--color-primary)" : "var(--color-text-primary)");
+  const labelColor =
+    tone === "danger"
+      ? "var(--color-error)"
+      : isEmphasis
+        ? "var(--color-text-primary)"
+        : "var(--color-text-secondary)";
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 23mm",
+        alignItems: "baseline",
+        columnGap: "3mm",
+        minHeight: "4mm",
+        padding: isEmphasis ? "1mm 1.5mm" : "0.8mm 1.5mm",
+        borderTop:
+          tone === "primary" ? "1.2px solid var(--color-primary)" : undefined,
+        borderBottom: "1px solid var(--color-border-light)",
+        borderRadius:
+          tone === "danger" ? `0 0 ${PRINT_RADIUS} ${PRINT_RADIUS}` : undefined,
+        background:
+          tone === "primary" ? "var(--color-surface)" : "var(--color-bg-card)",
+      }}
+    >
+      <span
         style={{
           textAlign: "right",
-          padding: "3px 6px",
-          fontWeight: bold ? 700 : 400,
-          color: color || "inherit",
+          fontWeight: isEmphasis ? 800 : 500,
+          color: labelColor,
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          textAlign: "right",
+          fontWeight: isEmphasis ? 800 : 600,
+          color: valueColor,
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         {formatCurrency(amount)}
-      </td>
-    </tr>
+      </span>
+    </div>
   );
 }

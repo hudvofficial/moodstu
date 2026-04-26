@@ -8,7 +8,6 @@ import { useCalendarKeyboard } from "@/hooks/use-calendar-keyboard";
 import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
-import { EventFormDrawer } from "./drawers/event-form-drawer";
 import { FAB } from "@/components/ui/fab";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
@@ -22,6 +21,11 @@ const MonthGrid = dynamic(() => import("./views/month-grid").then((mod) => mod.M
 const WeekGrid = dynamic(() => import("./views/week-grid").then((mod) => mod.WeekGrid), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-bg-hover" />,
+});
+
+const EventFormDrawer = dynamic(() => import("./drawers/event-form-drawer").then((mod) => mod.EventFormDrawer), {
+  ssr: false,
+  loading: () => null,
 });
 
 interface CalendarWrapperProps {
@@ -122,20 +126,32 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarEvent | null>(null);
   const [defaultDate, setDefaultDate] = useState<Date | null>(null);
 
-  const openCreateForm = (date?: Date) => {
+  const openCreateForm = useCallback((date?: Date) => {
     setEditingEvent(null);
     setDefaultDate(date || new Date());
     setIsFormOpen(true);
-  };
+  }, []);
   
-  const openEditForm = (event: UnifiedCalendarEvent) => {
+  const openEditForm = useCallback((event: UnifiedCalendarEvent) => {
     setEditingEvent(event);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = useCallback((date: Date) => {
     setSelectedMobileDate(date);
-  };
+  }, []);
+
+  const handleCloseDayDrawer = useCallback(() => {
+    setSelectedMobileDate(null);
+  }, []);
+
+  const handleFormSuccess = useCallback(() => {
+    mutate();
+  }, [mutate]);
+
+  const handleNewEvent = useCallback(() => {
+    openCreateForm(currentDate);
+  }, [currentDate, openCreateForm]);
 
   const [mounted, setMounted] = useState(false);
   
@@ -148,7 +164,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
     viewMode,
     onDateChange: setCurrentDate,
     onViewModeChange: setViewMode,
-    onCreateEvent: () => openCreateForm(currentDate),
+    onCreateEvent: handleNewEvent,
   });
   
   useEffect(() => {
@@ -187,6 +203,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
           <MonthGrid
             currentDate={currentDate}
             events={events}
+            eventsByDate={eventsByDate}
             mutate={mutate}
             onEventClick={openEditForm}
             onDateClick={handleDateClick}
@@ -204,7 +221,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         filters={filters} 
-        onNewEvent={() => openCreateForm(currentDate)}
+        onNewEvent={handleNewEvent}
       />
       <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
          {(!mounted || isLoading) && (
@@ -235,24 +252,26 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
       <DayDrawer 
          date={selectedMobileDate} 
          events={events} 
-         onClose={() => setSelectedMobileDate(null)} 
+         onClose={handleCloseDayDrawer}
          onEventClick={openEditForm}
          onCreateEvent={openCreateForm}
       />
 
-      <EventFormDrawer
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        event={editingEvent}
-        defaultDate={defaultDate}
-        employees={filters.availableEmployees.map(e => ({ id: e.value, name: e.label }))}
-        currentUserId={currentUserId}
-        userRole={userRole as Role}
-        isGoogleConnected={filters.isGoogleConnected}
-        onSuccess={() => mutate()}
-      />
+      {isFormOpen && (
+        <EventFormDrawer
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          event={editingEvent}
+          defaultDate={defaultDate}
+          employees={filters.availableEmployees.map(e => ({ id: e.value, name: e.label }))}
+          currentUserId={currentUserId}
+          userRole={userRole as Role}
+          isGoogleConnected={filters.isGoogleConnected}
+          onSuccess={handleFormSuccess}
+        />
+      )}
       
-      <FAB onClick={() => openCreateForm(currentDate)} label="Tạo lịch trình" />
+      <FAB onClick={handleNewEvent} label="Tạo lịch trình" />
     </div>
   );
 }

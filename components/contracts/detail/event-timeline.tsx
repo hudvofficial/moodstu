@@ -170,7 +170,7 @@ export default function EventTimeline({
       <div
         className="grid gap-2 lg:gap-3"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
         }}
       >
         {sorted.map((event) => {
@@ -191,24 +191,24 @@ export default function EventTimeline({
             <div
               key={event.id}
               className={`
-                border-l-[3px] rounded-md p-3 cursor-pointer
+                min-w-0 border-l-[3px] rounded-md p-3 cursor-pointer
                 transition-all duration-200 hover:shadow-sm
                 ${getCardStyles(event, isActive)}
               `}
               onClick={() => setModalEvent(event)}
             >
               {/* Status badge */}
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex min-h-5 flex-wrap items-center gap-1.5 mb-2">
                 {event.status === "hoan_thanh" ? (
-                  <Badge variant="success">XONG</Badge>
+                  <Badge variant="success" className="px-2 text-micro">XONG</Badge>
                 ) : isActive || event.status === "dang_lam" ? (
-                  <Badge variant="warning">ĐANG LÀM</Badge>
+                  <Badge variant="warning" className="px-2 text-micro">ĐANG LÀM</Badge>
                 ) : (
                   <span className="h-5" />
                 )}
                 {overdueDays && (
-                  <Badge variant="error">
-                    <AlertTriangle size={10} />
+                  <Badge variant="error" className="px-2 text-micro">
+                    <AlertTriangle size={10} className="shrink-0" />
                     Trễ {overdueDays}d
                   </Badge>
                 )}

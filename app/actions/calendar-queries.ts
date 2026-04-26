@@ -55,21 +55,46 @@ export async function fetchCalendarEvents(
 
     const result: UnifiedCalendarEvent[] = [];
 
-    // ============================================
-    // A. FETCH SCHEDULES (Sự kiện cá nhân/nội bộ)
-    // ============================================
-    const { data: schedulesData, error: errSchedules } = await supabase
-      .from("schedules")
-      .select(`
-        id, event_type, event_date, end_date, employee_id,
-        contract_id, status, google_event_id, color_id, role_in_event
-      `)
-      .gte("event_date", startDate)
-      .lte("event_date", endDate);
+    const googleEventsPromise = getGoogleCalendarEvents(
+      new Date(startDate).toISOString(),
+      new Date(endDate).toISOString(),
+    ).catch((err) => {
+      console.warn("Lỗi fetch Google Calendar events:", err);
+      return [];
+    });
+
+    const [schedulesResult, tasksResult, googleEvents] = await Promise.all([
+      supabase
+        .from("schedules")
+        .select(`
+          id, event_type, event_date, end_date, employee_id,
+          contract_id, status, google_event_id, color_id, role_in_event
+        `)
+        .gte("event_date", startDate)
+        .lte("event_date", endDate),
+      supabase
+        .from("work_tasks")
+        .select(`
+          id, contract_id, work_type, assigned_to,
+          start_date, start_time, end_time, deadline, status, event_id,
+          contracts ( contract_code, customers ( full_name ) )
+        `)
+        // Calendar anchor is COALESCE(deadline, start_date). start_time is only HH:mm for on-set tasks.
+        .or(`and(deadline.gte.${startDate},deadline.lte.${endDate}),and(deadline.is.null,start_date.gte.${startDate},start_date.lte.${endDate})`),
+      googleEventsPromise,
+    ]);
+
+    const { data: schedulesData, error: errSchedules } = schedulesResult;
+    const { data: tasksData, error: errTasks } = tasksResult;
 
     if (errSchedules) {
       console.error("[fetchCalendarEvents] Schedules Error:", errSchedules);
       throw new Error("Lỗi tải sự kiện cá nhân");
+    }
+
+    if (errTasks) {
+      console.error("[fetchCalendarEvents] Tasks Error:", errTasks);
+      throw new Error("Lỗi tải danh sách nhiệm vụ");
     }
 
     for (const s of schedulesData || []) {
@@ -101,27 +126,6 @@ export async function fetchCalendarEvents(
     // Set để khử trùng lặp các sự kiện Google (tránh fetch cả từ db và từ API)
     const syncedGoogleIds = new Set((schedulesData || []).map(s => s.google_event_id).filter(Boolean));
 
-    // ============================================
-    // B. FETCH WORK TASKS (Nhiệm vụ hợp đồng)
-    // ============================================
-    // Chú ý: Cấu trúc Nested để lấy thông tin Hợp Đồng và Khách Hàng
-    const { data: tasksData, error: errTasks } = await supabase
-      .from("work_tasks")
-      .select(`
-        id, contract_id, work_type, assigned_to,
-        start_time, end_time, deadline, status, event_id,
-        contracts ( contract_code, customers ( full_name ) )
-      `)
-      // 1. Nếu có deadline -> nó phải nằm trong [startDate, endDate]
-      // 2. Từng bước fallback nếu không có deadline -> thì dùng start_time (is null check kẹp cùng and)
-      // Cú pháp PostgREST để giả lập COALESCE(deadline, start_time): Either (deadline is match) OR (deadline is null AND start_time is match)
-      .or(`and(deadline.gte.${startDate},deadline.lte.${endDate}),and(deadline.is.null,start_time.gte.${startDate},start_time.lte.${endDate})`);
-
-    if (errTasks) {
-      console.error("[fetchCalendarEvents] Tasks Error:", errTasks);
-      throw new Error("Lỗi tải danh sách nhiệm vụ");
-    }
-
     for (const t of tasksData || []) {
       const isOwner = t.assigned_to === empId;
       const editable = isGlobalAdmin || isOwner;
@@ -143,8 +147,8 @@ export async function fetchCalendarEvents(
         ? `HĐ: ${contractRef.contract_code} (${customerName})`
         : null;
 
-      // Lấy dealine làm mốc Neo chính nếu có
-      const anchorDate = t.deadline || t.start_time || new Date().toISOString();
+      // Lấy deadline làm mốc neo chính, fallback sang start_date nếu task chưa có deadline.
+      const anchorDate = t.deadline || t.start_date || new Date().toISOString();
 
       result.push({
         id: t.id,
@@ -167,42 +171,35 @@ export async function fetchCalendarEvents(
       });
     }
 
-    // ============================================
-    // C. FETCH GOOGLE CALENDAR
-    // ============================================
-    try {
-      const googleEvents = await getGoogleCalendarEvents(new Date(startDate).toISOString(), new Date(endDate).toISOString());
-      for (const ge of googleEvents) {
-        if (syncedGoogleIds.has(ge.id)) continue; // Bỏ qua nếu sự kiện Google đã được mapping từ DB (schedules)
+    for (const ge of googleEvents) {
+      if (syncedGoogleIds.has(ge.id)) continue; // Bỏ qua nếu sự kiện Google đã được mapping từ DB (schedules)
+      if (ge.moodSource === "contract_event") continue; // Google mirror của contract_events đã hiện qua work_tasks nội bộ
 
-        result.push({
+      result.push({
+        id: ge.id,
+        source: "google",
+        sourceId: ge.id,
+        title: ge.title,
+        start: ge.start,
+        end: ge.end || null,
+        allDay: ge.start && !ge.start.includes("T"),
+        status: "published",
+        employeeId: empId,
+        contractId: null,
+        editable: false,
+        draggable: false,
+        groupKey: null,
+        groupLabel: null,
+        colorToken: getEventColorToken("google"),
+        backgroundColor: ge.backgroundColor || null,
+        googleEventId: ge.id,
+        originalDateField: "event_date",
+        originalGoogleEvent: {
           id: ge.id,
-          source: "google",
-          sourceId: ge.id,
-          title: ge.title,
-          start: ge.start,
-          end: ge.end || null,
-          allDay: ge.start && !ge.start.includes("T"),
-          status: "published",
-          employeeId: empId,
-          contractId: null,
-          editable: false, 
-          draggable: false, 
-          groupKey: null,
-          groupLabel: null,
-          colorToken: getEventColorToken("google"),
-          backgroundColor: ge.backgroundColor || null,
-          googleEventId: ge.id,
-          originalDateField: "event_date",
-          originalGoogleEvent: {
-            id: ge.id,
-            htmlLink: ge.htmlLink,
-            colorId: ge.colorId,
-          },
-        });
-      }
-    } catch (err) {
-      console.warn("Lỗi fetch Google Calendar events:", err);
+          htmlLink: ge.htmlLink,
+          colorId: ge.colorId,
+        },
+      });
     }
 
     return result;

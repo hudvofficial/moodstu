@@ -3,6 +3,10 @@
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
+import {
+  deleteContractEventFromGoogle,
+  syncContractEventToGoogle,
+} from "@/lib/contract-event-google-sync";
 import { isOnSetEvent } from "@/types/contract-constants";
 import type { EventType, ServiceType } from "@/types/contract";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -109,6 +113,64 @@ function buildContractEvents(
   });
 }
 
+/** Internal: skip auth — for use within already-authenticated server actions */
+export async function _generateContractEventsInternal(
+  supabase: SupabaseClient,
+  contractId: string,
+  serviceType: ServiceType,
+  workDate?: string | null,
+) {
+  const { count, error: countError } = await supabase
+    .from("contract_events")
+    .select("id", { count: "exact", head: true })
+    .eq("contract_id", contractId)
+    .is("deleted_at", null);
+
+  if (countError) throw new Error(`Loi kiem tra event: ${countError.message}`);
+  if (count && count > 0) {
+    return { generated: 0, eventIds: [], message: "Contract events already exist" };
+  }
+
+  const { data: templates, error: templateError } = await supabase
+    .from("event_templates")
+    .select("event_type, event_name, default_days_offset, sort_order")
+    .eq("service_type", serviceType)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (templateError) throw new Error(`Loi doc event templates: ${templateError.message}`);
+
+  const rows = buildContractEvents(
+    contractId,
+    serviceType,
+    workDate,
+    (templates as EventTemplateRow[] | null)?.length
+      ? (templates as EventTemplateRow[])
+      : fallbackEventTemplates(serviceType),
+  );
+
+  const { data, error } = await supabase
+    .from("contract_events")
+    .insert(rows)
+    .select("id, event_type, title, sort_order");
+
+  if (error) throw new Error(`Loi tao event tu dong: ${error.message}`);
+
+  fireAuditLog({
+    action: "CREATE",
+    tableName: "contract_events",
+    recordId: contractId,
+    description: `Auto generated ${data?.length || 0} contract events`,
+    source: "server_action",
+  });
+
+  return {
+    generated: data?.length || 0,
+    eventIds: (data || []).map((event) => event.id),
+    message: "Contract events generated",
+  };
+}
+
 export async function generateContractEvents(
   contractId: string,
   serviceType: ServiceType,
@@ -116,53 +178,9 @@ export async function generateContractEvents(
 ) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
-
-    const { count, error: countError } = await supabase
-      .from("contract_events")
-      .select("id", { count: "exact", head: true })
-      .eq("contract_id", contractId)
-      .is("deleted_at", null);
-
-    if (countError) throw new Error(`Loi kiem tra event: ${countError.message}`);
-    if (count && count > 0) {
-      return { generated: 0, message: "Contract events already exist" };
-    }
-
-    const { data: templates, error: templateError } = await supabase
-      .from("event_templates")
-      .select("event_type, event_name, default_days_offset, sort_order")
-      .eq("service_type", serviceType)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
-
-    if (templateError) throw new Error(`Loi doc event templates: ${templateError.message}`);
-
-    const rows = buildContractEvents(
-      contractId,
-      serviceType,
-      workDate,
-      (templates as EventTemplateRow[] | null)?.length
-        ? (templates as EventTemplateRow[])
-        : fallbackEventTemplates(serviceType),
-    );
-
-    const { data, error } = await supabase
-      .from("contract_events")
-      .insert(rows)
-      .select("id, event_type, title, sort_order");
-
-    if (error) throw new Error(`Loi tao event tu dong: ${error.message}`);
-
-    fireAuditLog({
-      action: "CREATE",
-      tableName: "contract_events",
-      recordId: contractId,
-      description: `Auto generated ${data?.length || 0} contract events`,
-      source: "server_action",
-    });
-
+    const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
     revalidatePath(`/contracts/${contractId}`);
-    return { generated: data?.length || 0, message: "Contract events generated" };
+    return result;
   });
 }
 
@@ -197,6 +215,12 @@ export async function updateContractEvent(
         data.sort_order,
         updates.event_date,
       );
+    }
+
+    try {
+      await syncContractEventToGoogle(supabase, data.id);
+    } catch (syncError) {
+      console.warn("Best effort contract event Google sync failed:", syncError);
     }
 
     revalidatePath(`/contracts`);
@@ -370,6 +394,12 @@ export async function addContractEvent(input: {
       description: `Thêm sự kiện: ${input.title} (${input.eventType})`,
     });
 
+    try {
+      await syncContractEventToGoogle(supabase, data.id);
+    } catch (syncError) {
+      console.warn("Best effort manual contract event Google sync failed:", syncError);
+    }
+
     revalidatePath("/contracts");
     return data;
   });
@@ -394,6 +424,12 @@ export async function deleteContractEvent(eventId: string) {
     if (fetchErr || !evt) throw new Error("Không tìm thấy sự kiện");
     if (!evt.is_manual_date) {
       throw new Error("Không thể xóa sự kiện từ template. Chỉ xóa được sự kiện do admin tạo.");
+    }
+
+    try {
+      await deleteContractEventFromGoogle(supabase, eventId);
+    } catch (syncError) {
+      console.warn("Best effort contract event Google delete failed:", syncError);
     }
 
     // Cascade: delete related work_tasks first

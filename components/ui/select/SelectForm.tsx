@@ -55,7 +55,7 @@ export function SelectForm({
       {label && <label className="label-base">{label}</label>}
 
       <RadixSelect.Root
-        value={value || undefined}
+        value={value ?? ""}
         onValueChange={onChange}
         disabled={disabled}
       >

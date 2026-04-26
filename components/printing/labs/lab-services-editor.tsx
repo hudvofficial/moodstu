@@ -53,7 +53,13 @@ export default function LabServicesEditor({ services, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="section-heading">Bảng giá dịch vụ</h4>
-        <Button type="button" onClick={addService} variant="outline" className="gap-2">
+        <Button
+          type="button"
+          onClick={addService}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
           <Plus className="w-4 h-4" />
           <span>Thêm dòng</span>
         </Button>
@@ -64,39 +70,52 @@ export default function LabServicesEditor({ services, onChange }: Props) {
           Chưa có dịch vụ nào. Bạn có thể thêm bảng giá ngay tại đây.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-xl border border-border bg-bg-card">
+          <div className="flex items-center gap-2 border-b border-border bg-bg-hover/50 px-3 py-2">
+            <span className="min-w-0 flex-1 text-overline text-text-muted">
+              Tên dịch vụ
+            </span>
+            <span className="w-32 shrink-0 text-overline text-text-muted sm:w-44">
+              Giá cost
+            </span>
+            <span className="w-9 shrink-0 sm:w-10" />
+          </div>
+
           {services.map((service) => (
-            <div key={service.tempId} className="rounded-xl bg-bg-hover p-3 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <label className="label-base">Tên dịch vụ</label>
-                  <Input
-                    value={service.item_name}
-                    onChange={(event) =>
-                      updateService(service.tempId, "item_name", event.target.value)
-                    }
-                    placeholder="Ví dụ: Album 20x30"
-                    className="w-full"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => removeService(service.tempId)}
-                  variant="ghost"
-                  className="btn-icon text-error mt-6"
-                  aria-label="Xóa dịch vụ"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+            <div
+              key={service.tempId}
+              className="flex items-center gap-2 border-b border-border px-3 py-2 last:border-b-0"
+            >
+              <div className="min-w-0 flex-1">
+                <Input
+                  value={service.item_name}
+                  onChange={(event) =>
+                    updateService(service.tempId, "item_name", event.target.value)
+                  }
+                  placeholder="Ví dụ: Album 20x30"
+                  className="h-10 w-full"
+                />
               </div>
 
-              <CurrencyInput
-                label="Giá cost"
-                value={service.cost_price || 0}
-                onChange={(value) =>
-                  updateService(service.tempId, "cost_price", value)
-                }
-              />
+              <div className="w-32 shrink-0 sm:w-44">
+                <CurrencyInput
+                  value={service.cost_price || 0}
+                  onChange={(value) =>
+                    updateService(service.tempId, "cost_price", value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              <Button
+                type="button"
+                unstyled
+                onClick={() => removeService(service.tempId)}
+                className="btn-icon h-10 w-9 min-w-9 shrink-0 text-text-secondary hover:bg-error/10 hover:text-error sm:w-10"
+                aria-label="Xóa dịch vụ"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
           ))}
         </div>

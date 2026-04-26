@@ -31,7 +31,6 @@ export const printingPaymentStatusSchema = z.enum(PRINTING_PAYMENT_STATUSES);
 
 export const printingItemSchema = z.object({
   name: z.string().trim().min(1, "Ten san pham la bat buoc"),
-  size: z.string().trim().max(100).optional().default(""),
   quantity: z
     .number()
     .int("So luong phai la so nguyen")
@@ -73,4 +72,3 @@ export type ValidatedCreatePrintingOrder = z.infer<
 export type ValidatedUpdatePrintingOrder = z.infer<
   typeof updatePrintingOrderSchema
 >;
-

@@ -18,8 +18,11 @@ import PrintContractClient from "@/components/contracts/print/print-contract-cli
 
 export default async function PrintContractPage(props: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ isExportMode?: string }>;
 }) {
   const { id } = await props.params;
+  const searchParams = await props.searchParams;
+  const isExportMode = searchParams.isExportMode === "true";
 
   // Parallel fetch: reuse existing + studio info
   const [contractResult, studioResult] = await Promise.all([
@@ -54,6 +57,7 @@ export default async function PrintContractPage(props: {
       items={items}
       paymentPlans={paymentPlans}
       studio={studio}
+      isExportMode={isExportMode}
     />
   );
 }

@@ -99,9 +99,9 @@ export function MobileMonthGrid({ currentDate, events, onDateSelect }: MobileMon
                 {/* Event Cards (V1 Style Parity) */}
                 <div className="flex-1 min-h-0 overflow-hidden px-0.5 flex flex-col gap-0.5 w-full">
                   {eventsForDay.slice(0, 2).map((e) => {
-                    const isGoogleColored = e.source === "google" && e.backgroundColor;
-                    const googleStyle = isGoogleColored ? {
-                      backgroundColor: e.backgroundColor!,
+                    const isGoogleEvent = e.source === "google" || !!e.googleEventId;
+                    const googleStyle = isGoogleEvent ? {
+                      backgroundColor: e.backgroundColor || "#039be5",
                       color: '#fff',
                       borderLeftColor: 'rgba(0,0,0,0.2)'
                     } : undefined;
@@ -111,10 +111,10 @@ export function MobileMonthGrid({ currentDate, events, onDateSelect }: MobileMon
                         key={e.id}
                         style={googleStyle}
                         className={`text-micro font-medium px-1 py-0.5 rounded truncate border-l-2 shadow-sm leading-tight shrink-0
-                          ${!isGoogleColored ? e.colorToken : ""}
+                          ${!isGoogleEvent ? e.colorToken : ""}
                         `}
                       >
-                        {e.source === "google" && (
+                        {isGoogleEvent && (
                           <span className="text-micro bg-white/20 text-white px-0.5 rounded mr-0.5 font-bold leading-none">G</span>
                         )}
                         <span className="truncate">{e.title}</span>

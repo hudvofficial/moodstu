@@ -1,5 +1,5 @@
 # Phase 01: Frontend UI Cập nhật DraggableEvent & CalendarEventCard
-Status: ⬜ Pending
+Status: ✅ Complete
 
 ## Objective
 Áp dụng mã màu chuẩn của Google Calendar vào thẻ sự kiện, dạng nền đen/màu sẫm chữ trắng. Ẩn thông tin nhân sự và nhãn phụ (groupLabel) trên thẻ nếu sự kiện đó thuộc Google.

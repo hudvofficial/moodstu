@@ -205,3 +205,19 @@ export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
   });
 }
 
+export async function getLabServices(labId: string): Promise<ActionResult<LabService[]>> {
+  return withAuth(async (supabase) => {
+    const { data, error } = await supabase
+      .from("lab_services")
+      .select("id, lab_id, item_name, cost_price, created_at, updated_at")
+      .eq("lab_id", labId)
+      .order("item_name");
+
+    if (error) {
+      throw new Error(`Khong the tai dich vu lab: ${error.message}`);
+    }
+
+    return (data ?? []) as LabService[];
+  });
+}
+

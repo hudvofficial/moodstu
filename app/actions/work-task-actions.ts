@@ -67,75 +67,84 @@ export async function getTasksByEvent(eventId: string) {
 // ─── getActiveEmployees → MOVED to employee-queries.ts ───
 
 
+/** Internal: skip auth — for use within already-authenticated server actions */
+export async function _generateWorkTasksInternal(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
+  contractId: string,
+  userId: string,
+) {
+  const { data: contract, error: contractError } = await supabase
+    .from("contracts")
+    .select("id, service_type")
+    .eq("id", contractId)
+    .is("deleted_at", null)
+    .single();
+
+  if (contractError || !contract) {
+    throw new Error(`Khong tim thay hop dong: ${contractError?.message || ""}`);
+  }
+
+  const { count, error: countError } = await supabase
+    .from("work_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("contract_id", contractId);
+
+  if (countError) throw new Error(`Loi kiem tra task: ${countError.message}`);
+  if (count && count > 0) {
+    return { generated: 0, message: "Work tasks already exist" };
+  }
+
+  const { data: events, error: eventError } = await supabase
+    .from("contract_events")
+    .select("id, event_type, event_date, deadline")
+    .eq("contract_id", contractId)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true });
+
+  if (eventError) throw new Error(`Loi tai event de tao task: ${eventError.message}`);
+  if (!events || events.length === 0) {
+    return { generated: 0, message: "No contract events for task generation" };
+  }
+
+  const rows = (events as ContractEventForTasks[]).flatMap((event) => {
+    const dates = getTaskDates(event);
+    return getDefaultWorkTypes(contract.service_type as ServiceType, event.event_type).map((workType) => ({
+      contract_id: contractId,
+      event_id: event.id,
+      work_type: workType,
+      status: "chua_lam",
+      deadline: dates.deadline,
+      start_date: dates.start_date,
+      cost: 0,
+      created_by: userId,
+    }));
+  });
+
+  const { data, error } = await supabase
+    .from("work_tasks")
+    .insert(rows)
+    .select("id");
+
+  if (error) throw new Error(`Loi tao task tu dong: ${error.message}`);
+
+  fireAuditLog({
+    action: "CREATE",
+    tableName: "work_tasks",
+    recordId: contractId,
+    description: `Auto generated ${data?.length || 0} work tasks`,
+    source: "server_action",
+  });
+
+  return { generated: data?.length || 0, message: "Work tasks generated" };
+}
+
 export async function generateWorkTasksForContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
-
-    const { data: contract, error: contractError } = await supabase
-      .from("contracts")
-      .select("id, service_type")
-      .eq("id", contractId)
-      .is("deleted_at", null)
-      .single();
-
-    if (contractError || !contract) {
-      throw new Error(`Khong tim thay hop dong: ${contractError?.message || ""}`);
-    }
-
-    const { count, error: countError } = await supabase
-      .from("work_tasks")
-      .select("id", { count: "exact", head: true })
-      .eq("contract_id", contractId);
-
-    if (countError) throw new Error(`Loi kiem tra task: ${countError.message}`);
-    if (count && count > 0) {
-      return { generated: 0, message: "Work tasks already exist" };
-    }
-
-    const { data: events, error: eventError } = await supabase
-      .from("contract_events")
-      .select("id, event_type, event_date, deadline")
-      .eq("contract_id", contractId)
-      .is("deleted_at", null)
-      .order("sort_order", { ascending: true });
-
-    if (eventError) throw new Error(`Loi tai event de tao task: ${eventError.message}`);
-    if (!events || events.length === 0) {
-      return { generated: 0, message: "No contract events for task generation" };
-    }
-
-    const rows = (events as ContractEventForTasks[]).flatMap((event) => {
-      const dates = getTaskDates(event);
-      return getDefaultWorkTypes(contract.service_type as ServiceType, event.event_type).map((workType) => ({
-        contract_id: contractId,
-        event_id: event.id,
-        work_type: workType,
-        status: "chua_lam",
-        deadline: dates.deadline,
-        start_date: dates.start_date,
-        cost: 0,
-        created_by: userId,
-      }));
-    });
-
-    const { data, error } = await supabase
-      .from("work_tasks")
-      .insert(rows)
-      .select("id");
-
-    if (error) throw new Error(`Loi tao task tu dong: ${error.message}`);
-
-    fireAuditLog({
-      action: "CREATE",
-      tableName: "work_tasks",
-      recordId: contractId,
-      description: `Auto generated ${data?.length || 0} work tasks`,
-      source: "server_action",
-    });
-
+    const result = await _generateWorkTasksInternal(supabase, contractId, userId);
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
-    return { generated: data?.length || 0, message: "Work tasks generated" };
+    return result;
   });
 }
 
@@ -205,12 +214,41 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function checkAndCompleteEvent(supabase: any, eventId: string) {
-  const { data: tasks } = await supabase.from("work_tasks").select("id, status").eq("event_id", eventId);
-  if (!tasks || tasks.length === 0) return;
+  const { data: event, error: eventError } = await supabase
+    .from("contract_events")
+    .select("id, status")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (eventError) throw new Error(`Loi kiem tra event: ${eventError.message}`);
+  if (!event || event.status === "da_huy") return;
+
+  const { data: tasks, error: taskError } = await supabase
+    .from("work_tasks")
+    .select("id, status")
+    .eq("event_id", eventId)
+    .neq("status", "da_huy");
+
+  if (taskError) throw new Error(`Loi kiem tra task: ${taskError.message}`);
+  if (!tasks || tasks.length === 0) {
+    const { error: updateError } = await supabase
+      .from("contract_events")
+      .update({ status: "chua_lam" })
+      .eq("id", eventId)
+      .neq("status", "da_huy");
+    if (updateError) throw new Error(`Loi cap nhat event: ${updateError.message}`);
+    return;
+  }
 
   const allDone = tasks.every((t: { status: string }) => t.status === "hoan_thanh");
   const anyInProgress = tasks.some((t: { status: string }) => t.status === "dang_lam");
   const newEventStatus = allDone ? "hoan_thanh" : anyInProgress ? "dang_lam" : "chua_lam";
 
-  await supabase.from("contract_events").update({ status: newEventStatus }).eq("id", eventId);
+  const { error: updateError } = await supabase
+    .from("contract_events")
+    .update({ status: newEventStatus })
+    .eq("id", eventId)
+    .neq("status", "da_huy");
+
+  if (updateError) throw new Error(`Loi cap nhat event: ${updateError.message}`);
 }

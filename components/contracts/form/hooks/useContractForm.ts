@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createContract } from "@/app/actions/contract-mutations";
 import { getNextContractCode, getContractForEdit } from "@/app/actions/contract-queries";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
@@ -166,12 +167,13 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     setErrors({});
 
     try {
-      // Generate code if creating
+      // Reuse preview code (already fetched on mount) — avoid double-fetch
       let contractCode = formData.contract_code;
       if (mode === "create") {
-        const codeResult = await getNextContractCode();
-        if (!codeResult.success) throw new Error(codeResult.error);
-        contractCode = codeResult.data;
+        contractCode = previewCode || (await getNextContractCode().then(r => {
+          if (!r.success) throw new Error(r.error);
+          return r.data;
+        }));
       }
 
       const effectiveFormData = {
@@ -219,6 +221,12 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       }
 
       // Redirect to detail page
+      if (result.data.warnings?.length) {
+        toast.warning(
+          `Hợp đồng đã lưu, nhưng cần kiểm tra: ${result.data.warnings.join("; ")}`,
+          { duration: 7000 },
+        );
+      }
       await revalidateContractCaches(result.data.id);
       router.push(`/contracts/${result.data.id}`);
     } catch (err) {

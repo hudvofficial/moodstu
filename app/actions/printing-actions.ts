@@ -5,10 +5,14 @@ import {
   createPrintingOrder as createPrintingOrderImpl,
   updatePrintingOrderStatus as updatePrintingOrderStatusImpl,
 } from "./printing-mutations";
-import { getLabOptions as getLabOptionsImpl } from "./lab-queries";
+import { getLabOptions as getLabOptionsImpl, getLabServices as getLabServicesImpl } from "./lab-queries";
 
 export async function getLabs() {
   return getLabOptionsImpl();
+}
+
+export async function fetchLabServices(labId: string) {
+  return getLabServicesImpl(labId);
 }
 
 export async function createPrintingOrder(rawData: unknown) {

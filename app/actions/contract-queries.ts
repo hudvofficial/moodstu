@@ -43,6 +43,15 @@ function getSortConfig(sort?: string) {
   }
 }
 
+function assertQueryOk(
+  label: string,
+  result: { error: { message?: string } | null },
+) {
+  if (result.error) {
+    throw new Error(`${label}: ${result.error.message || "Unknown query error"}`);
+  }
+}
+
 // ─── getNextContractCode ─────────────────────
 
 export async function getNextContractCode() {
@@ -77,7 +86,7 @@ export async function getContractList(filters: ContractFilters) {
   return profileAction("contracts.getContractList", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const page = filters.page || 1;
+    const page = Math.max(1, filters.page || 1);
     const pageSize = 20;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -87,31 +96,13 @@ export async function getContractList(filters: ContractFilters) {
       .from("contracts")
       .select(
         `id, contract_code, customer_id, service_type,
-         contract_date, work_date, delivery_date,
+         transaction_type, contract_date, work_date, delivery_date,
          total_amount, discount_amount, paid_amount,
          remaining_amount, status, payment_status,
-         updated_at, created_at,
+         description, updated_at, created_at,
          customers (id, customer_code, full_name, phone, address, bride_name, groom_name),
-         contract_checklists (
-           id, contract_id, event_stage, category, item_name,
-           is_completed, created_at, updated_at
-         ),
-         contract_notes (
-           id, content, created_by, created_at
-         ),
-         contract_events (
-           id, contract_id, event_type, title, event_date, deadline,
-           sort_order, status, deleted_at
-         ),
-         work_tasks (
-           id, contract_id, event_id, work_type, assigned_to, status,
-           deadline, start_date, start_time, end_time, completion_date, cost, notes,
-           employees:assigned_to(id, full_name, avatar_url, department)
-         ),
-         payment_plans (
-           id, contract_id, stage_name, amount, due_date,
-           status, receipt_id, created_at
-         )`,
+         work_tasks (id, work_type, status, deadline),
+         contract_checklists (id, contract_id, event_stage, category, item_name, is_completed, created_at, updated_at)`,
         { count: "estimated" }
       )
       .is("deleted_at", null)
@@ -169,29 +160,7 @@ export async function getContractList(filters: ContractFilters) {
     const { data, count, error } = await query;
     if (error) throw error;
 
-    const contracts = ((data || []) as Record<string, unknown>[]).map((contract) => {
-      const events = Array.isArray(contract.contract_events)
-        ? (contract.contract_events as Record<string, unknown>[])
-        : [];
-      const paymentPlans = Array.isArray(contract.payment_plans)
-        ? (contract.payment_plans as Record<string, unknown>[])
-        : [];
-
-      return {
-        ...contract,
-        contract_events: events
-          .filter((event) => !event.deleted_at)
-          .sort((a, b) => {
-            const sortA = Number(a.sort_order) || 0;
-            const sortB = Number(b.sort_order) || 0;
-            if (sortA !== sortB) return sortA - sortB;
-            return String(a.event_date || "").localeCompare(String(b.event_date || ""));
-          }),
-        payment_plans: paymentPlans.sort((a, b) =>
-          String(a.created_at || "").localeCompare(String(b.created_at || "")),
-        ),
-      };
-    });
+    const contracts = (data || []) as Record<string, unknown>[];
 
     return { contracts, total: count || 0, page, pageSize };
   }));
@@ -299,43 +268,109 @@ export async function getContractDetail(id: string) {
   return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const { data, error } = await supabase
-      .from("contracts")
-      .select(
-        `*,
-        customers (
-          id, customer_code, full_name, phone, alt_phone,
-          email, address, wedding_date, notes,
-          bride_name, groom_name, bride_phone, groom_phone,
-          bride_height, bride_weight, bride_shoe_size,
-          groom_height, groom_weight, groom_shoe_size
-        ),
-        contract_items (
-          id, type, item_name, service_id, export_type,
-          quantity, unit_price, original_price,
-          discount_amount, total_amount, is_addon,
-          addon_category, dress_id, notes, deleted_at
-        ),
-        contract_events (
-          id, contract_id, event_type, title, event_date, end_date,
-          location, status, notes, sort_order, deadline,
-          start_time, end_time, is_manual_date, phase, deleted_at
-        ),
-        work_tasks (
-          id, event_id, contract_id, work_type, assigned_to, status, deadline,
-          start_date, start_time, end_time, completion_date, cost, notes,
-          employees:assigned_to(id, full_name, avatar_url, department)
-        ),
-        contract_checklists (
-          id, event_stage, category, item_name, is_completed, created_at, updated_at
-        )`
-      )
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
+    // ⚡ Single-pass: all 6 queries fire simultaneously
+    const [
+      contractResult,
+      paymentsResult,
+      reservationsResult,
+      printOrdersResult,
+      auditLogsResult,
+      paymentPlansResult,
+    ] = await Promise.all([
+      // 1) Contract + embedded FK joins
+      supabase
+        .from("contracts")
+        .select(
+          `id, contract_code, customer_id, service_type,
+           transaction_type, contract_date, work_date, delivery_date,
+           total_amount, discount_amount, paid_amount,
+           remaining_amount, status, payment_status,
+           description, notes, cancel_reason, updated_at, created_at,
+           customers (
+             id, customer_code, full_name, phone, alt_phone,
+             email, address, wedding_date, notes,
+             bride_name, groom_name, bride_phone, groom_phone,
+             bride_height, bride_weight, bride_shoe_size,
+             groom_height, groom_weight, groom_shoe_size
+           ),
+           contract_items (
+             id, type, item_name, service_id, export_type,
+             quantity, unit_price, original_price,
+             discount_amount, total_amount, is_addon,
+             addon_category, dress_id, notes, deleted_at
+           ),
+           contract_events (
+             id, contract_id, event_type, title, event_date, end_date,
+             location, status, notes, sort_order, deadline,
+             start_time, end_time, is_manual_date, phase,
+             sync_to_google, google_event_id, google_sync_status,
+             google_sync_error, google_synced_at, deleted_at
+           ),
+           work_tasks (
+             id, event_id, contract_id, work_type, assigned_to, status, deadline,
+             start_date, start_time, end_time, completion_date, cost, notes,
+             employees:assigned_to(id, full_name, avatar_url, department)
+           ),
+           contract_checklists (
+             id, event_stage, category, item_name, is_completed, created_at, updated_at
+           )`
+        )
+        .eq("id", id)
+        .is("deleted_at", null)
+        .single(),
+      // 2) Payments
+      supabase
+        .from("payments")
+        .select(
+          "id, receipt_code, amount, payment_method, payment_date, payment_stage, notes, created_by, created_at"
+        )
+        .eq("contract_id", id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      // 3) Dress reservations
+      supabase
+        .from("dress_reservations")
+        .select(
+          `id, status, start_date, end_date, notes, dresses (id, name, item_code, category, size, color, image_url)`
+        )
+        .eq("contract_id", id)
+        .order("created_at", { ascending: false }),
+      // 4) Printing orders
+      supabase
+        .from("printing_orders")
+        .select(
+          `id, order_code, status, total_amount, order_date, expected_date, received_date, notes, labs (id, name:lab_name)`
+        )
+        .eq("contract_id", id)
+        .order("created_at", { ascending: false }),
+      // 5) Audit logs
+      supabase
+        .from("audit_logs")
+        .select(
+          `id, action, table_name, old_data, new_data, created_at, employees:employee_id(id, full_name)`
+        )
+        .eq("table_name", "contracts")
+        .eq("record_id", id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      // 6) Payment plans
+      supabase
+        .from("payment_plans")
+        .select(
+          "id, contract_id, stage_name, amount, due_date, status, receipt_id, created_at"
+        )
+        .eq("contract_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
 
+    const { data, error } = contractResult;
     if (error) throw error;
     if (!data) throw new Error("Không tìm thấy hợp đồng");
+    assertQueryOk("Lỗi tải thanh toán hợp đồng", paymentsResult);
+    assertQueryOk("Lỗi tải lịch đặt trang phục", reservationsResult);
+    assertQueryOk("Lỗi tải đơn in", printOrdersResult);
+    assertQueryOk("Lỗi tải lịch sử thao tác", auditLogsResult);
+    assertQueryOk("Lỗi tải kế hoạch thanh toán", paymentPlansResult);
 
     // Filter soft-deleted items/events from embedded select
     const activeItems = (data.contract_items || []).filter(
@@ -347,60 +382,13 @@ export async function getContractDetail(id: string) {
     data.contract_items = activeItems;
     data.contract_events = activeEvents;
 
-    const [
-      { data: payments },
-      { data: reservations },
-      { data: printOrders },
-      { data: auditLogs },
-      { data: paymentPlans },
-    ] = await Promise.all([
-      supabase
-        .from("payments")
-        .select(
-          "id, receipt_code, amount, payment_method, payment_date, payment_stage, notes, created_by, created_at"
-        )
-        .eq("contract_id", id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("dress_reservations")
-        .select(
-          `id, status, start_date, end_date, notes, dresses (id, name, item_code, category, size, color, image_url)`
-        )
-        .eq("contract_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("printing_orders")
-        .select(
-          `id, order_code, status, total_amount, order_date, expected_date, received_date, notes, labs (id, name:lab_name)`
-        )
-        .eq("contract_id", id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("audit_logs")
-        .select(
-          `id, action, table_name, old_data, new_data, created_at, employees:user_id(id, full_name)`
-        )
-        .eq("table_name", "contracts")
-        .eq("record_id", id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("payment_plans")
-        .select(
-          "id, contract_id, stage_name, amount, due_date, status, receipt_id, created_at"
-        )
-        .eq("contract_id", id)
-        .order("created_at", { ascending: true }),
-    ]);
-
     return {
       contract: data,
-      payments: payments || [],
-      reservations: reservations || [],
-      printOrders: printOrders || [],
-      auditLogs: auditLogs || [],
-      paymentPlans: paymentPlans || [],
+      payments: paymentsResult.data || [],
+      reservations: reservationsResult.data || [],
+      printOrders: printOrdersResult.data || [],
+      auditLogs: auditLogsResult.data || [],
+      paymentPlans: paymentPlansResult.data || [],
     };
   }));
 }
@@ -412,15 +400,17 @@ export async function getContractDrawerExtra(id: string) {
     await requireContractAccess(supabase, userId);
 
     const [
-      { data: events },
-      { data: checklists },
-      { data: workTasks },
-      { data: paymentPlans },
+      eventsResult,
+      checklistsResult,
+      workTasksResult,
+      paymentPlansResult,
     ] = await Promise.all([
       supabase
         .from("contract_events")
         .select(
-          "id, event_type, title, event_date, end_date, location, status, notes"
+          `id, event_type, title, event_date, end_date, location, status, notes,
+           sync_to_google, google_event_id, google_sync_status,
+           google_sync_error, google_synced_at`
         )
         .eq("contract_id", id)
         .is("deleted_at", null)
@@ -446,11 +436,16 @@ export async function getContractDrawerExtra(id: string) {
         .order("created_at", { ascending: true }),
     ]);
 
+    assertQueryOk("Lỗi tải lịch trình drawer", eventsResult);
+    assertQueryOk("Lỗi tải checklist drawer", checklistsResult);
+    assertQueryOk("Lỗi tải phân công drawer", workTasksResult);
+    assertQueryOk("Lỗi tải kế hoạch thanh toán drawer", paymentPlansResult);
+
     return {
-      events: events || [],
-      checklists: checklists || [],
-      workTasks: workTasks || [],
-      paymentPlans: paymentPlans || [],
+      events: eventsResult.data || [],
+      checklists: checklistsResult.data || [],
+      workTasks: workTasksResult.data || [],
+      paymentPlans: paymentPlansResult.data || [],
     };
   }));
 }

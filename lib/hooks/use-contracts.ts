@@ -17,12 +17,14 @@ import type {
   PrintingOrder,
   AuditLogEntry,
 } from "@/types/contract";
+import type { ActiveEmployee } from "@/types/employee";
 import {
   getContractList,
   getContractStats,
   getContractDetail,
   getContractDrawerExtra,
 } from "@/app/actions/contract-queries";
+import { getActiveEmployees } from "@/app/actions/employee-queries";
 
 // ─── Cache Key Factory ──────────────────────────────────
 
@@ -63,6 +65,7 @@ export function useContracts(
     {
       keepPreviousData: true,
       revalidateOnFocus: false,
+      dedupingInterval: 10_000,
       fallbackData,
     }
   );
@@ -130,7 +133,6 @@ export function useContractDetail(
       revalidateOnFocus: false,
       keepPreviousData: true,
       fallbackData,
-      revalidateOnMount: !fallbackData,
     }
   );
 
@@ -190,6 +192,25 @@ export function useContractDrawerExtra(id: string | null) {
   };
 }
 
+// ─── useActiveEmployees ─────────────────────────────────
+// Employees rarely change → cache for 2 minutes
+
+export function useActiveEmployees() {
+  const { data } = useSWR(
+    "active-employees",
+    async () => {
+      const result = await getActiveEmployees();
+      if (!result.success) return [];
+      return result.data as ActiveEmployee[];
+    },
+    {
+      dedupingInterval: 120_000,
+      revalidateOnFocus: false,
+    }
+  );
+  return (data || []) as ActiveEmployee[];
+}
+
 // ─── Revalidation Helpers (ref: mcoffe lib/swr.ts) ──────
 
 /** Invalidate all contract-related SWR caches after mutation */
@@ -205,6 +226,17 @@ export async function revalidateContractCaches(contractId?: string) {
       if (!Array.isArray(key)) return false;
       if (key[0] !== "contract-notes") return false;
       return contractId ? key[1] === contractId : true;
+    }, undefined, { revalidate: true }),
+    mutate(contractKeys.stats()),
+  ]);
+}
+
+/** Invalidate only contract list and stats caches. Use for list-page realtime. */
+export async function revalidateContractListCaches() {
+  await Promise.all([
+    mutate((key: unknown) => {
+      if (!Array.isArray(key)) return false;
+      return key[0] === "contracts";
     }, undefined, { revalidate: true }),
     mutate(contractKeys.stats()),
   ]);

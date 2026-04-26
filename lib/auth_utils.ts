@@ -392,16 +392,7 @@ export async function requireFinanceAccess(supabase: SupabaseClient, userId: str
  * enforce module permission explicitly instead of relying on RLS.
  */
 export async function requireContractAccess(supabase: SupabaseClient, userId: string) {
-  const { data: employee, error } = await supabase
-    .from("employees")
-    .select("id, full_name, role, auth_user_id")
-    .eq("auth_user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error("Khong tim thay thong tin nhan vien");
-  }
-
+  const employee = await getEmployeeContextByAuthUserId(userId);
   let roleSource = employee?.role ?? null;
 
   if (!roleSource) {

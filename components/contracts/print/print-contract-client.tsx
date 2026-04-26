@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Printer, Download, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -9,11 +8,8 @@ import type { Customer } from "@/types/crm";
 import ContractTemplate from "./contract-template";
 import { Button } from "@/components/ui/button";
 
-// ═══════════════════════════════════════════
-// Print Contract Client — wrapper with controls
-// Phase 02D: V1 PrintContractClient → V2
-// Mode: "print" (default) or "export" (PDF download)
-// ═══════════════════════════════════════════
+const DEFAULT_LOGO_URL = "/logo.png";
+const PRINT_LOGO_TINT = "#2E5C46";
 
 interface Props {
   contract: Contract;
@@ -21,6 +17,7 @@ interface Props {
   items: ContractItem[];
   paymentPlans: PaymentPlan[];
   studio: StudioInfo;
+  isExportMode?: boolean;
 }
 
 export default function PrintContractClient({
@@ -29,26 +26,61 @@ export default function PrintContractClient({
   items,
   paymentPlans,
   studio,
+  isExportMode = false,
 }: Props) {
-  const searchParams = useSearchParams();
-  const isExportMode = searchParams.get("isExportMode") === "true";
   const templateRef = useRef<HTMLDivElement>(null);
+  const autoDownloadStartedRef = useRef(false);
+  const [logoUrl, setLogoUrl] = useState(studio.logo_url || DEFAULT_LOGO_URL);
   const [isPdfReady, setIsPdfReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Preload html2pdf.js
   useEffect(() => {
     import("html2pdf.js").then(() => setIsPdfReady(true));
   }, []);
 
-  // Auto-download in export mode
   useEffect(() => {
-    if (isExportMode && isPdfReady) {
-      const timer = setTimeout(() => handleDownload(), 1000);
-      return () => clearTimeout(timer);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExportMode, isPdfReady]);
+    const sourceLogo = studio.logo_url || DEFAULT_LOGO_URL;
+    setLogoUrl(sourceLogo);
+
+    if (!studio.logo_url) return;
+
+    let isCancelled = false;
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = studio.logo_url;
+
+    img.onload = () => {
+      if (isCancelled) return;
+
+      try {
+        const canvas = document.createElement("canvas");
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx || width <= 0 || height <= 0) return;
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        ctx.globalCompositeOperation = "source-in";
+        ctx.fillStyle = PRINT_LOGO_TINT;
+        ctx.fillRect(0, 0, width, height);
+
+        setLogoUrl(canvas.toDataURL("image/png"));
+      } catch {
+        setLogoUrl(sourceLogo);
+      }
+    };
+
+    img.onerror = () => {
+      if (!isCancelled) setLogoUrl(sourceLogo);
+    };
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [studio.logo_url]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -61,12 +93,26 @@ export default function PrintContractClient({
     try {
       const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
-        margin: [5, 5, 5, 5] as [number, number, number, number],
+        margin: 0,
         filename: `HOP-DONG-${contract.contract_code}.pdf`,
         image: { type: "jpeg" as const, quality: 1 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a5", orientation: "portrait" as const },
-        pagebreak: { mode: ["avoid-all"] },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 559,
+          windowHeight: 750,
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a5",
+          orientation: "portrait" as const,
+          compress: true,
+        },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
       await html2pdf().set(opt).from(templateRef.current).save();
@@ -77,78 +123,143 @@ export default function PrintContractClient({
     }
   }, [contract.contract_code, isGenerating]);
 
+  useEffect(() => {
+    if (!isExportMode || !isPdfReady || autoDownloadStartedRef.current) return;
+
+    autoDownloadStartedRef.current = true;
+    const timer = setTimeout(() => {
+      void handleDownload();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [handleDownload, isExportMode, isPdfReady]);
+
+  const templateProps = { contract, customer, items, paymentPlans, studio, logoUrl };
+
   return (
-    <div className="min-h-screen bg-neutral-100">
-      {/* ── Control Bar (hide on print) ── */}
-      <div className="print:hidden sticky top-0 z-50 bg-white shadow-sm border-b border-border">
+    <div className="contract-print-page min-h-screen bg-neutral-100">
+      <div className="contract-print-controls sticky top-0 z-50 bg-white shadow-sm border-b border-border">
         <div className="max-w-4xl mx-auto flex items-center justify-between px-4 h-14">
-          <Link
-            href={`/contracts/${contract.id}`}
-            className="btn btn-outline"
-          >
+          <Link href={`/contracts/${contract.id}`} className="btn btn-outline">
             <ArrowLeft size={16} />
             <span>Quay lại</span>
           </Link>
 
+          <div className="hidden md:block text-caption text-text-muted">
+            {isExportMode ? "Xuất file PDF (A5 - 1 bản)" : "In hợp đồng (A4 ngang - 2 bản)"}
+          </div>
+
           <div className="flex items-center gap-2">
-            <Button unstyled
-              onClick={handlePrint}
-              className="btn btn-outline"
-            >
-              <Printer size={16} />
-              <span>In ngay</span>
-            </Button>
-            <Button unstyled
-              onClick={handleDownload}
-              disabled={!isPdfReady || isGenerating}
-              className="btn btn-primary disabled:opacity-50"
-            >
-              <Download size={16} />
-              <span>{isGenerating ? "Đang tạo..." : "Tải PDF (A5)"}</span>
-            </Button>
+            {isExportMode ? (
+              <Button
+                unstyled
+                onClick={handleDownload}
+                disabled={!isPdfReady || isGenerating}
+                className="btn btn-primary disabled:opacity-50"
+              >
+                <Download size={16} />
+                <span>{isGenerating ? "Đang tạo..." : "Tải PDF (A5)"}</span>
+              </Button>
+            ) : (
+              <Button unstyled onClick={handlePrint} className="btn btn-primary">
+                <Printer size={16} />
+                <span>In ngay</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Template Preview ── */}
-      <div className="max-w-4xl mx-auto py-8 px-4 print:p-0 print:max-w-none">
+      <div className="contract-preview-wrap max-w-none mx-auto py-8 px-4 overflow-x-auto">
         <div
+          id="contract-print-area"
           ref={templateRef}
-          className="bg-white shadow-lg mx-auto print:shadow-none"
-          style={{ width: "148mm" }}
+          className="contract-print-area bg-white shadow-2xl mx-auto"
+          style={{
+            width: isExportMode ? "148mm" : "297mm",
+            height: isExportMode ? "195mm" : "210mm",
+            display: "flex",
+            position: "relative",
+            overflow: "hidden",
+          }}
         >
-          <ContractTemplate
-            contract={contract}
-            customer={customer}
-            items={items}
-            paymentPlans={paymentPlans}
-            studio={studio}
-          />
+          {isExportMode ? (
+            <div className="contract-print-copy" style={{ width: "100%", height: "100%" }}>
+              <ContractTemplate {...templateProps} templateId="print-template-export" />
+            </div>
+          ) : (
+            <>
+              <div
+                className="contract-cut-line"
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: "4mm",
+                  bottom: "4mm",
+                  left: "50%",
+                  borderLeft: "1px dashed var(--color-border)",
+                  zIndex: 1,
+                }}
+              />
+              <div
+                className="contract-print-copy"
+                style={{
+                  width: "50%",
+                  height: "100%",
+                  borderRight: "1px solid var(--color-border)",
+                  overflow: "hidden",
+                }}
+              >
+                <ContractTemplate {...templateProps} templateId="print-template-copy-1" />
+              </div>
+              <div
+                className="contract-print-copy"
+                style={{ width: "50%", height: "100%", overflow: "hidden" }}
+              >
+                <ContractTemplate {...templateProps} templateId="print-template-copy-2" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Print CSS ── */}
       <style jsx global>{`
         @media print {
           @page {
-            size: A5 portrait;
+            size: ${isExportMode ? "A5 portrait" : "A4 landscape"};
             margin: 0;
           }
+
+          html,
           body {
             margin: 0;
             padding: 0;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          .print\\:hidden {
+
+          .contract-print-controls {
             display: none !important;
           }
-          .print\\:p-0 {
+
+          .contract-print-page {
+            min-height: auto !important;
+            background: #ffffff !important;
+          }
+
+          .contract-preview-wrap {
             padding: 0 !important;
-          }
-          .print\\:shadow-none {
-            box-shadow: none !important;
-          }
-          .print\\:max-w-none {
+            margin: 0 !important;
             max-width: none !important;
+            overflow: visible !important;
+          }
+
+          .contract-print-area {
+            box-shadow: none !important;
+            margin: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
           }
         }
       `}</style>

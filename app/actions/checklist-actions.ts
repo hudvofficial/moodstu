@@ -45,52 +45,57 @@ export async function toggleChecklist(id: string, is_completed: boolean) {
   });
 }
 
+/** Internal: skip auth — for use within already-authenticated server actions */
+export async function _generateChecklistsInternal(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
+  contractId: string,
+  serviceType: string,
+) {
+  const { count, error: countError } = await supabase
+    .from("contract_checklists")
+    .select("id", { count: "exact", head: true })
+    .eq("contract_id", contractId);
+
+  if (countError) throw new Error(`Loi kiem tra checklist: ${countError.message}`);
+  if (count && count > 0) {
+    return { generated: 0, message: "Checklists đã tồn tại" };
+  }
+
+  const { data: templates, error: tplError } = await supabase
+    .from("checklist_templates")
+    .select("event_stage, category, item_name, sort_order")
+    .eq("service_type", serviceType)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (tplError) throw new Error(`Lỗi đọc templates: ${tplError.message}`);
+  if (!templates || templates.length === 0) {
+    return { generated: 0, message: `Không có template cho "${serviceType}"` };
+  }
+
+  const rows = templates.map((t) => ({
+    contract_id: contractId,
+    event_stage: t.event_stage,
+    category: t.category,
+    item_name: t.item_name,
+    is_completed: false,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("contract_checklists")
+    .insert(rows);
+
+  if (insertError) throw new Error(`Lỗi tạo checklists: ${insertError.message}`);
+
+  return { generated: rows.length, message: `Đã tạo ${rows.length} checklist items` };
+}
+
 /** Auto-generate checklists from templates for a new contract */
 export async function generateChecklists(contractId: string, serviceType: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
-
-    // 1. Check if contract already has checklists (avoid duplicate generation)
-    const { count, error: countError } = await supabase
-      .from("contract_checklists")
-      .select("id", { count: "exact", head: true })
-      .eq("contract_id", contractId);
-
-    if (countError) throw new Error(`Loi kiem tra checklist: ${countError.message}`);
-
-    if (count && count > 0) {
-      return { generated: 0, message: "Checklists đã tồn tại" };
-    }
-
-    // 2. Fetch templates matching service type
-    const { data: templates, error: tplError } = await supabase
-      .from("checklist_templates")
-      .select("event_stage, category, item_name, sort_order")
-      .eq("service_type", serviceType)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
-
-    if (tplError) throw new Error(`Lỗi đọc templates: ${tplError.message}`);
-    if (!templates || templates.length === 0) {
-      return { generated: 0, message: `Không có template cho "${serviceType}"` };
-    }
-
-    // 3. Insert checklist items from templates
-    const rows = templates.map((t) => ({
-      contract_id: contractId,
-      event_stage: t.event_stage,
-      category: t.category,
-      item_name: t.item_name,
-      is_completed: false,
-    }));
-
-    const { error: insertError } = await supabase
-      .from("contract_checklists")
-      .insert(rows);
-
-    if (insertError) throw new Error(`Lỗi tạo checklists: ${insertError.message}`);
-
+    const result = await _generateChecklistsInternal(supabase, contractId, serviceType);
     revalidatePath(`/contracts/${contractId}`);
-    return { generated: rows.length, message: `Đã tạo ${rows.length} checklist items` };
+    return result;
   });
 }

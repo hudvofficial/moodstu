@@ -51,6 +51,13 @@ export type ItemType = "dich_vu" | "san_pham" | "trang_phuc" | "phat_sinh";
 export type ExportType = "xuat_ban" | "xuat_thue" | null;
 export type PaymentMethod = "tien_mat" | "chuyen_khoan";
 export type TaskStatus = "chua_lam" | "dang_lam" | "hoan_thanh" | "da_huy";
+export type GoogleSyncStatus =
+  | "not_required"
+  | "pending"
+  | "synced"
+  | "failed"
+  | "deleted"
+  | "not_connected";
 
 // ─── WORK TYPES (match DB work_type_enum) ────────────────
 export type WorkType =
@@ -140,6 +147,11 @@ export interface ContractEvent {
   end_time: string | null;
   is_manual_date: boolean;
   phase: string | null;
+  sync_to_google: boolean;
+  google_event_id: string | null;
+  google_sync_status: GoogleSyncStatus;
+  google_sync_error: string | null;
+  google_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -387,6 +387,10 @@ export type Database = {
           end_time: string | null
           event_date: string | null
           event_type: Database["public"]["Enums"]["event_type_enum"]
+          google_event_id: string | null
+          google_sync_error: string | null
+          google_sync_status: string
+          google_synced_at: string | null
           id: string
           is_manual_date: boolean | null
           location: string | null
@@ -395,6 +399,7 @@ export type Database = {
           sort_order: number | null
           start_time: string | null
           status: string | null
+          sync_to_google: boolean
           title: string | null
           updated_at: string | null
         }
@@ -407,6 +412,10 @@ export type Database = {
           end_time?: string | null
           event_date?: string | null
           event_type: Database["public"]["Enums"]["event_type_enum"]
+          google_event_id?: string | null
+          google_sync_error?: string | null
+          google_sync_status?: string
+          google_synced_at?: string | null
           id?: string
           is_manual_date?: boolean | null
           location?: string | null
@@ -415,6 +424,7 @@ export type Database = {
           sort_order?: number | null
           start_time?: string | null
           status?: string | null
+          sync_to_google?: boolean
           title?: string | null
           updated_at?: string | null
         }
@@ -427,6 +437,10 @@ export type Database = {
           end_time?: string | null
           event_date?: string | null
           event_type?: Database["public"]["Enums"]["event_type_enum"]
+          google_event_id?: string | null
+          google_sync_error?: string | null
+          google_sync_status?: string
+          google_synced_at?: string | null
           id?: string
           is_manual_date?: boolean | null
           location?: string | null
@@ -435,6 +449,7 @@ export type Database = {
           sort_order?: number | null
           start_time?: string | null
           status?: string | null
+          sync_to_google?: boolean
           title?: string | null
           updated_at?: string | null
         }

@@ -68,8 +68,7 @@ function parsePrintingItems(rawItems: unknown): PrintingItem[] {
       if (!name) return null;
 
       return {
-        name,
-        size,
+        name: size && !name.includes(size) ? `${name} ${size}` : name,
         quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
         unitPrice: Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : 0,
       };
@@ -285,5 +284,4 @@ export async function getPrintingOrderDetail(
     };
   });
 }
-
 

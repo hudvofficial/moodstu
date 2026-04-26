@@ -3,6 +3,10 @@
 Created: 2026-04-05 18:10
 Status: 🟡 In Progress
 
+Scope note 2026-04-26:
+- Do not add a separate Google sync toolbar button for this work.
+- Google Calendar sync is automatic through create/update/delete calendar actions; UI work here only covers mobile responsiveness and Google source/color display.
+
 ## Overview
 
 V2 Calendar trên mobile viewport (375px) đang không sử dụng được:

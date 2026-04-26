@@ -29,13 +29,16 @@ import { DraggableEvent } from "./draggable-event";
 interface MonthGridProps {
   currentDate: Date;
   events: UnifiedCalendarEvent[];
+  eventsByDate: Map<string, UnifiedCalendarEvent[]>;
   mutate: () => void;
   onEventClick?: (event: UnifiedCalendarEvent) => void;
   onDateClick?: (date: Date) => void;
   slideDirection?: 'left' | 'right' | null;
 }
 
-export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateClick, slideDirection }: MonthGridProps) {
+const EMPTY_EVENTS: UnifiedCalendarEvent[] = [];
+
+export function MonthGrid({ currentDate, events, eventsByDate, mutate, onEventClick, onDateClick, slideDirection }: MonthGridProps) {
   const [activeEvent, setActiveEvent] = useState<UnifiedCalendarEvent | null>(null);
 
   // Tạo mảng ngày 7 cột (Bao gồm đầu/cuối của tháng trước/sau nếu cần filler)
@@ -149,11 +152,7 @@ export function MonthGrid({ currentDate, events, mutate, onEventClick, onDateCli
           {daysInGrid.map((date) => {
             const dateIso = format(date, "yyyy-MM-dd");
             const isCurrentMonth = isSameMonth(date, currentDate);
-            // So khớp với format YYYY-MM-DD bảo toàn Time
-            const eventsForDay = events.filter(e => {
-              const startIsoDate = e.start.split("T")[0];
-              return startIsoDate === dateIso;
-            });
+            const eventsForDay = eventsByDate.get(dateIso) ?? EMPTY_EVENTS;
             
             return (
               <DroppableDay 
