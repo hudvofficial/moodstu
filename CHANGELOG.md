@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.6] - 2026-04-27
+
+### Added
+
+- Trien khai production release script: auto bump package version, sync package-lock, generate data/changelog.ts va CHANGELOG.md tu .brain/session.json, ho tro dry-run va patch/minor/major/no-bump.
+- Hoàn tất Finance Goals UI + Logic Parity. Thêm các tính năng: đóng góp (contribute), hoàn tác đóng góp (undo), hủy/khôi phục mục tiêu, milestone celebration overlay, và bộ lọc chuẩn Finance.
+
+### Fixed
+
+- Lỗi ReceiptFormModal không hiển thị dữ liệu cũ (Legacy Data Mismatch). Fix bằng cách map 'Tiền mặt' -> 'tien_mat', 'Hợp đồng' -> 'contract_payment' trước khi truyền vào FormState để SelectForm có thể select item.
+
 ## [2.0.5] - 2026-04-24
 
 ### Added

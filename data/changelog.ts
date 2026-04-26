@@ -20,6 +20,15 @@ export const CHANGELOG_EMOJI: Record<string, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "2.0.6",
+    date: "2026-04-27",
+    changes: [
+      { type: "new", text: "Trien khai production release script: auto bump package version, sync package-lock, generate data/changelog.ts va CHANGELOG.md tu .brain/session.json, ho tro dry-run va patch/minor/major/no-bump." },
+      { type: "new", text: "Hoàn tất Finance Goals UI + Logic Parity. Thêm các tính năng: đóng góp (contribute), hoàn tác đóng góp (undo), hủy/khôi phục mục tiêu, milestone celebration overlay, và bộ lọc chuẩn Finance." },
+      { type: "fix", text: "Lỗi ReceiptFormModal không hiển thị dữ liệu cũ (Legacy Data Mismatch). Fix bằng cách map 'Tiền mặt' -> 'tien_mat', 'Hợp đồng' -> 'contract_payment' trước khi truyền vào FormState để SelectForm có thể select item." },
+    ],
+  },
+  {
     version: "2.0.5",
     date: "2026-04-24",
     changes: [
