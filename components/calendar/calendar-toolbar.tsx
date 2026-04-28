@@ -187,7 +187,7 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           >
             Hôm nay
           </Button>
-          {VIEW_MODE_OPTIONS.map((opt) => (
+          {VIEW_MODE_OPTIONS.filter((opt) => opt.value === "month").map((opt) => (
             <Button
               key={opt.value}
               variant={viewMode === opt.value ? "primary" : "ghost"}
@@ -226,7 +226,11 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           </div>
         )}
       </div>
-      <SolarLunarConverter isOpen={isConverterOpen} onClose={() => setIsConverterOpen(false)} />
+      <SolarLunarConverter
+        isOpen={isConverterOpen}
+        onClose={() => setIsConverterOpen(false)}
+        onNavigateDate={onDateChange}
+      />
     </>
   );
 }

@@ -23,8 +23,13 @@ type EmployeeContextRecord = {
   auth_user_id: string | null;
 };
 
+type AuthContextUser = Pick<
+  User,
+  "id" | "email" | "app_metadata" | "user_metadata"
+>;
+
 export interface AuthenticatedUserContext {
-  user: User;
+  user: AuthContextUser;
   employee: EmployeeContextRecord | null;
   shellRole: Role;
   userName: string;
@@ -58,6 +63,22 @@ const getVerifiedUser = cache(async (): Promise<User | null> => {
   } = await supabase.auth.getUser();
 
   return user ?? null;
+});
+
+const getClaimsUser = cache(async (): Promise<AuthContextUser | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+
+  if (error || !data?.claims?.sub) return null;
+
+  const { claims } = data;
+
+  return {
+    id: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : undefined,
+    app_metadata: (claims.app_metadata ?? {}) as User["app_metadata"],
+    user_metadata: (claims.user_metadata ?? {}) as User["user_metadata"],
+  };
 });
 
 const getEmployeeContextByAuthUserId = cache(
@@ -205,14 +226,15 @@ async function bootstrapEmployeeProfile(
 
 const getAuthenticatedUserContextCached = cache(
   async (bootstrapProfile: boolean): Promise<AuthenticatedUserContext | null> => {
-    const user = await getVerifiedUser();
+    const verifiedUser = bootstrapProfile ? await getVerifiedUser() : null;
+    const user = verifiedUser ?? (bootstrapProfile ? null : await getClaimsUser());
     if (!user) return null;
 
     const adminSupabase = await createAdminClient();
     let employee = await getEmployeeContextByAuthUserId(user.id);
 
-    if (!employee && bootstrapProfile) {
-      employee = await bootstrapEmployeeProfile(adminSupabase, user);
+    if (!employee && bootstrapProfile && verifiedUser) {
+      employee = await bootstrapEmployeeProfile(adminSupabase, verifiedUser);
     }
 
     const roleSource =
@@ -386,6 +408,15 @@ export async function requireFinanceAccess(supabase: SupabaseClient, userId: str
   return { employee, role };
 }
 
+export async function withFinanceRead<T>(
+  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+): Promise<ActionResult<T>> {
+  return withAuth(async (supabase, userId) => {
+    await requireFinanceAccess(supabase, userId);
+    return action(supabase, userId);
+  });
+}
+
 /**
  * Gatekeeper for Contract server actions.
  * Contract actions use the admin client after authentication, so they must
@@ -415,6 +446,40 @@ export async function requireContractAccess(supabase: SupabaseClient, userId: st
 
   if (!canAccess(role, "contracts")) {
     throw new Error("Ban khong co quyen truy cap Hop dong");
+  }
+
+  return { employee, role };
+}
+
+/**
+ * Gatekeeper for recording contract payments.
+ * Sales can collect contract payments from the contract detail workflow, while
+ * media/viewer roles must not be able to create finance-impacting receipts.
+ */
+export async function requirePaymentRecordAccess(supabase: SupabaseClient, userId: string) {
+  const employee = await getEmployeeContextByAuthUserId(userId);
+  let roleSource = employee?.role ?? null;
+
+  if (!roleSource) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.admin.getUserById(userId);
+
+    if (userError || !user) {
+      throw new Error("Khong tim thay tai khoan dang nhap");
+    }
+
+    roleSource =
+      (user.app_metadata?.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined) ??
+      null;
+  }
+
+  const role = normalizeRole(roleSource);
+
+  if (role !== "admin" && role !== "manager" && role !== "sale") {
+    throw new Error("Ban khong co quyen ghi nhan thanh toan hop dong");
   }
 
   return { employee, role };

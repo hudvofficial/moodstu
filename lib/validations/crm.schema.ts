@@ -31,6 +31,12 @@ export const LEAD_SOURCES = ["facebook", "zalo", "walk_in", "referral", "website
 const NullableEnum = (values: readonly [string, ...string[]]) =>
   z.union([z.enum(values), z.literal(""), z.undefined(), z.null()]).transform((val) => (val === "" || val === null ? undefined : val));
 
+const NullableUuid = (message: string) =>
+  z.union([z.string().uuid(message), z.literal(""), z.undefined(), z.null()]).transform((val) => (val === "" || val === null ? undefined : val));
+
+const ZodPage = z.coerce.number().int().min(1).optional();
+const ZodPageSize = z.coerce.number().int().min(1).max(100).optional();
+
 export const ZodLeadFilter = z.object({
   search: z.string().optional().transform(sanitizeSearch),
   status: NullableEnum(LEAD_STATUSES),
@@ -41,14 +47,15 @@ export const ZodLeadFilter = z.object({
   date_to: ZodDateString,
   sort_by: z.string().optional(),
   sort_desc: z.boolean().optional(),
-  page: z.number().optional(),
-  limit: z.number().optional(),
+  page: ZodPage,
+  limit: ZodPageSize,
+  pageSize: ZodPageSize,
 });
 
 export const ZodCustomerFilter = z.object({
   search: z.string().optional().transform(sanitizeSearch),
-  page: z.number().optional().default(1),
-  pageSize: z.number().optional().default(10),
+  page: ZodPage.default(1),
+  pageSize: ZodPageSize.default(10),
   source: z.string().optional(),
   tags: z.string().optional(),
 });
@@ -71,13 +78,18 @@ export const ZodLeadCreate = z.object({
   social_link: z.string().optional(),
   next_contact_date: ZodDateString,
   contact_date: ZodDateString,
-  assigned_to: z.string().optional(),
-  deal_value: z.number().optional().default(0),
+  assigned_to: NullableUuid("ID nhan vien khong hop le"),
+  deal_value: z.coerce.number().finite().min(0, "Gia tri deal phai >= 0").optional().default(0),
   tags: z.array(z.string()).optional().default([]).transform(tags => tags.map((t) => t.trim()).filter((t) => t.length > 0)),
-  score: z.number().optional().default(0),
+  score: z.coerce.number().finite().min(0, "Diem phai tu 0-100").max(100, "Diem phai tu 0-100").optional().default(0),
 });
 
-export const ZodLeadUpdate = ZodLeadCreate.partial().extend({
+export const ZodLeadUpdate = ZodLeadCreate.extend({
+  status: z.enum(LEAD_STATUSES).optional(),
+  deal_value: z.coerce.number().finite().min(0, "Gia tri deal phai >= 0").optional(),
+  tags: z.array(z.string()).transform(tags => tags.map((t) => t.trim()).filter((t) => t.length > 0)).optional(),
+  score: z.coerce.number().finite().min(0, "Diem phai tu 0-100").max(100, "Diem phai tu 0-100").optional(),
+}).partial().extend({
   id: z.string().uuid("ID Lead không hợp lệ"),
   ...ZodBaseLock.shape,
 });
@@ -91,12 +103,12 @@ export const ZodLeadMoveStage = z.object({
 
 export const ZodLeadUpdateDealValue = z.object({
   id: z.string().uuid("ID Lead không hợp lệ"),
-  dealValue: z.number().min(0, "Giá trị phải >= 0"),
+  dealValue: z.coerce.number().finite().min(0, "Gia tri deal phai >= 0"),
 });
 
 export const ZodLeadUpdateScore = z.object({
   id: z.string().uuid("ID Lead không hợp lệ"),
-  score: z.number().min(0).max(100, "Điểm phải từ 0-100"),
+  score: z.coerce.number().finite().min(0, "Diem phai tu 0-100").max(100, "Diem phai tu 0-100"),
 });
 
 export const ZodLeadUpdateTags = z.object({
@@ -106,7 +118,7 @@ export const ZodLeadUpdateTags = z.object({
 
 export const ZodLeadAssign = z.object({
   id: z.string().uuid("ID Lead không hợp lệ"),
-  employeeId: z.string().nullable(),
+  employeeId: z.string().uuid("ID nhan vien khong hop le").nullable(),
 });
 
 export const ZodLeadMarkLost = z.object({
@@ -136,7 +148,9 @@ export const ZodCustomerCreate = z.object({
   tags: z.array(z.string()).optional().default([]).transform(tags => tags.map((t) => t.trim()).filter((t) => t.length > 0)),
 });
 
-export const ZodCustomerUpdate = ZodCustomerCreate.partial().extend({
+export const ZodCustomerUpdate = ZodCustomerCreate.extend({
+  tags: z.array(z.string()).transform(tags => tags.map((t) => t.trim()).filter((t) => t.length > 0)).optional(),
+}).partial().extend({
   id: z.string().uuid("ID Customer không hợp lệ"),
   ...ZodBaseLock.shape,
 });

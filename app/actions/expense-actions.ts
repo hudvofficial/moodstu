@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { withAuth, withAdmin } from "@/lib/auth_utils";
+import { withAdmin, withFinanceRead } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import { createExpenseSchema, updateExpenseSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
@@ -209,7 +209,7 @@ export async function deleteExpense(id: string) {
 
 // ─── GET EXPENSES BY CONTRACT ────────────
 export async function getExpensesByContract(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase
       .from("expenses")
       .select(
@@ -234,6 +234,10 @@ interface GenerateResult {
 
 export async function generateMonthlyFixedCosts(month: number, year: number) {
   return withAdmin(async (supabase, userId) => {
+    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2024 || year > 2030) {
+      throw new Error("Thang/nam khong hop le.");
+    }
+
     // 1. Period check (first day of the month)
     const targetDate = `${year}-${month.toString().padStart(2, "0")}-01`;
     await checkPeriodLock(supabase, targetDate);
@@ -241,7 +245,8 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
     // 2. Get active fixed costs
     const { data: costs, error: costError } = await supabase
       .from("fixed_costs")
-      .select("id, cost_code, cost_name, cost_type, monthly_amount, start_date, end_date");
+      .select("id, cost_code, cost_name, cost_type, monthly_amount, start_date, end_date")
+      .is("deleted_at", null);
 
     if (costError || !costs) throw new Error("Không thể lấy danh sách chi phí cố định");
 

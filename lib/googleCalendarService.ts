@@ -12,6 +12,9 @@ const GOOGLE_CALENDAR_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const GOOGLE_CALENDAR_EVENT_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const GOOGLE_PRIMARY_CALENDAR_LIST_API =
+  "https://www.googleapis.com/calendar/v3/users/me/calendarList/primary";
+const GOOGLE_DEFAULT_CALENDAR_COLOR = "#039be5";
 
 async function refreshAccessToken(
   refreshToken: string,
@@ -108,6 +111,24 @@ async function ensureValidToken(supabase: any, studioInfo: any) {
   return authData;
 }
 
+async function getPrimaryCalendarDefaultColor(accessToken: string) {
+  try {
+    const res = await fetch(GOOGLE_PRIMARY_CALENDAR_LIST_API, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return GOOGLE_DEFAULT_CALENDAR_COLOR;
+
+    const data = await res.json();
+    return typeof data.backgroundColor === "string" && data.backgroundColor
+      ? data.backgroundColor
+      : GOOGLE_DEFAULT_CALENDAR_COLOR;
+  } catch {
+    return GOOGLE_DEFAULT_CALENDAR_COLOR;
+  }
+}
+
 // ─── MAIN SERVICES ────────────────────────────────
 
 export async function getGoogleCalendarEvents(
@@ -137,24 +158,6 @@ export async function getGoogleCalendarEvents(
 
     const authData = await ensureValidToken(supabase, studioInfo);
 
-    // Calendar default color — fetch from Google CalendarList API
-    let calendarDefaultColor = "#039be5";
-    try {
-      const calListRes = await fetch(
-        "https://www.googleapis.com/calendar/v3/users/me/calendarList/primary",
-        {
-          headers: { Authorization: `Bearer ${authData.access_token}` },
-          cache: "no-store",
-        },
-      );
-      if (calListRes.ok) {
-        const calListData = await calListRes.json();
-        calendarDefaultColor = calListData.backgroundColor || calendarDefaultColor;
-      }
-    } catch {
-      // Best effort — fallback to default Peacock blue
-    }
-
     // Fetch Events
     const calendarUrl = new URL(GOOGLE_CALENDAR_API);
     calendarUrl.searchParams.append("timeMin", timeMin);
@@ -170,9 +173,16 @@ export async function getGoogleCalendarEvents(
     if (!res.ok) throw new Error(`Google Calendar API ${res.status}`);
 
     const data = await res.json();
+    const items = data.items || [];
+    const needsCalendarDefaultColor = items.some(
+      (item: Record<string, unknown>) => !item.colorId,
+    );
+    const calendarDefaultColor = needsCalendarDefaultColor
+      ? await getPrimaryCalendarDefaultColor(authData.access_token)
+      : GOOGLE_DEFAULT_CALENDAR_COLOR;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data.items || []).map((item: Record<string, any>) => ({
+    return items.map((item: Record<string, any>) => ({
       id: item.id,
       title: item.summary || "(Không tiêu đề)",
       start: item.start.dateTime || item.start.date,

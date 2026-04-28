@@ -19,6 +19,7 @@ import type {
 // Mock data removed — Phase 04: all queries go through real DB/RPC pipeline
 
 type RpcRow = Record<string, unknown>;
+const MAX_LEDGER_PAGE_SIZE = 50;
 
 // Local helpers — specific to this file (not duplicated elsewhere)
 
@@ -48,6 +49,51 @@ function normalizeContractRows(data: unknown): FinanceContractListItem[] {
 
 function sumRows(rows: unknown[] | null | undefined, field: string) {
   return (rows || []).reduce<number>((sum, row) => sum + asNumber((row as RpcRow)[field]), 0);
+}
+
+function normalizeLedgerParams(params: {
+  page: number;
+  pageSize: number;
+  month?: number;
+  year?: number;
+  fromDate?: string;
+  toDate?: string;
+  type?: "in" | "out" | "all";
+}) {
+  return {
+    ...params,
+    page: Math.max(1, Math.trunc(Number(params.page) || 1)),
+    pageSize: Math.min(MAX_LEDGER_PAGE_SIZE, Math.max(1, Math.trunc(Number(params.pageSize) || 20))),
+    type: params.type || "all",
+  };
+}
+
+function mapLedgerRows(
+  data: unknown,
+  page: number,
+  pageSize: number,
+): PaginatedResult<LedgerItem> {
+  const rawRows = (data as RpcRow[] | null) || [];
+  const rows = rawRows.map((row) => ({
+    id: asString(row.id),
+    sourceTable: asString(row.source_table) as LedgerItem["sourceTable"],
+    direction: asString(row.direction) as LedgerItem["direction"],
+    transactionDate: asString(row.transaction_date),
+    amount: asNumber(row.amount),
+    code: asString(row.code),
+    customerName: asString(row.customer_name, "-"),
+    categoryName: asString(row.category_name, "-"),
+    paymentMethod: asString(row.payment_method, "-"),
+    description: asString(row.description),
+    status: asString(row.status, "pending"),
+  })) satisfies LedgerItem[];
+
+  return {
+    items: rows,
+    total: rawRows.length > 0 ? asNumber(rawRows[0].total_count) : 0,
+    page,
+    pageSize,
+  } satisfies PaginatedResult<LedgerItem>;
 }
 
 async function withFinanceRead<T>(
@@ -529,42 +575,36 @@ async function queryLedger(
     type?: "in" | "out" | "all";
   },
 ): Promise<PaginatedResult<LedgerItem>> {
-  if (params.fromDate && params.toDate) {
-    return fetchLedgerFallback(supabase, params);
+  const safeParams = normalizeLedgerParams(params);
+
+  if (safeParams.fromDate && safeParams.toDate) {
+    const { data, error } = await supabase.rpc("finance_ledger_range", {
+      p_page: safeParams.page,
+      p_page_size: safeParams.pageSize,
+      p_from_date: safeParams.fromDate,
+      p_to_date: safeParams.toDate,
+      p_type: safeParams.type,
+    });
+
+    if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
+    if (error) throw new Error(`Loi tai so cai thu chi: ${error.message}`);
+
+    return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
   }
 
   const { data, error } = await supabase.rpc("finance_ledger", {
-    p_page: params.page,
-    p_page_size: params.pageSize,
-    p_month: params.month || null,
-    p_year: params.year || null,
-    p_type: params.type || "all",
+    p_page: safeParams.page,
+    p_page_size: safeParams.pageSize,
+    p_month: safeParams.month || null,
+    p_year: safeParams.year || null,
+    p_type: safeParams.type,
   });
 
-  if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, params);
+  if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
 
   if (error) throw new Error(`Lá»—i táº£i sá»• cĂ¡i thu chi: ${error.message}`);
 
-  const rows = ((data || []) as RpcRow[]).map((row) => ({
-    id: asString(row.id),
-    sourceTable: asString(row.source_table) as LedgerItem["sourceTable"],
-    direction: asString(row.direction) as LedgerItem["direction"],
-    transactionDate: asString(row.transaction_date),
-    amount: asNumber(row.amount),
-    code: asString(row.code),
-    customerName: asString(row.customer_name, "-"),
-    categoryName: asString(row.category_name, "-"),
-    paymentMethod: asString(row.payment_method, "-"),
-    description: asString(row.description),
-    status: asString(row.status, "pending"),
-  })) satisfies LedgerItem[];
-
-  return {
-    items: rows,
-    total: rows.length > 0 ? asNumber((data?.[0] as RpcRow).total_count) : 0,
-    page: params.page,
-    pageSize: params.pageSize,
-  } satisfies PaginatedResult<LedgerItem>;
+  return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
@@ -734,43 +774,36 @@ export async function fetchLedger(params: {
 
   return withAuth(async (supabase, userId) => {
     await requireFinanceAccess(supabase, userId);
+    const safeParams = normalizeLedgerParams(params);
 
-    if (params.fromDate && params.toDate) {
-      return fetchLedgerFallback(supabase, params);
+    if (safeParams.fromDate && safeParams.toDate) {
+      const { data, error } = await supabase.rpc("finance_ledger_range", {
+        p_page: safeParams.page,
+        p_page_size: safeParams.pageSize,
+        p_from_date: safeParams.fromDate,
+        p_to_date: safeParams.toDate,
+        p_type: safeParams.type,
+      });
+
+      if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
+      if (error) throw new Error(`Loi tai so cai thu chi: ${error.message}`);
+
+      return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
     }
 
     const { data, error } = await supabase.rpc("finance_ledger", {
-      p_page: params.page,
-      p_page_size: params.pageSize,
-      p_month: params.month || null,
-      p_year: params.year || null,
-      p_type: params.type || "all",
+      p_page: safeParams.page,
+      p_page_size: safeParams.pageSize,
+      p_month: safeParams.month || null,
+      p_year: safeParams.year || null,
+      p_type: safeParams.type,
     });
 
-    if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, params);
+    if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
 
     if (error) throw new Error(`Lỗi tải sổ cái thu chi: ${error.message}`);
 
-    const rows = ((data || []) as RpcRow[]).map((row) => ({
-      id: asString(row.id),
-      sourceTable: asString(row.source_table) as LedgerItem["sourceTable"],
-      direction: asString(row.direction) as LedgerItem["direction"],
-      transactionDate: asString(row.transaction_date),
-      amount: asNumber(row.amount),
-      code: asString(row.code),
-      customerName: asString(row.customer_name, "-"),
-      categoryName: asString(row.category_name, "-"),
-      paymentMethod: asString(row.payment_method, "-"),
-      description: asString(row.description),
-      status: asString(row.status, "pending"),
-    })) satisfies LedgerItem[];
-
-    return {
-      items: rows,
-      total: rows.length > 0 ? asNumber((data?.[0] as RpcRow).total_count) : 0,
-      page: params.page,
-      pageSize: params.pageSize,
-    } satisfies PaginatedResult<LedgerItem>;
+    return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
   });
 }
 

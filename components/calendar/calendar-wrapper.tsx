@@ -174,6 +174,12 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
 
   const isSmallScreen = isMobile || isTablet;
 
+  useEffect(() => {
+    if (mounted && isSmallScreen && viewMode !== "month") {
+      setViewMode("month");
+    }
+  }, [mounted, isSmallScreen, setViewMode, viewMode]);
+
   if (error) return <div className="p-4 text-red-500">Lỗi tải dữ liệu lịch: {error}</div>;
 
   // Desktop view rendering based on viewMode
@@ -242,7 +248,7 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
             {mounted && isSmallScreen && (
                <MobileMonthGrid 
                   currentDate={currentDate} 
-                  events={events} 
+                  eventsByDate={eventsByDate}
                   onDateSelect={setSelectedMobileDate} 
                />
             )}

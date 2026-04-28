@@ -100,6 +100,7 @@ export async function updateInvestment(
       .from("investments")
       .select("name, purchase_price, status, purchase_date, updated_at")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy tài sản cần sửa.");
@@ -115,7 +116,11 @@ export async function updateInvestment(
     }
 
     const updateData = { ...parsed.data, updated_at: new Date().toISOString() };
-    const { error } = await supabase.from("investments").update(updateData).eq("id", id);
+    const { error } = await supabase
+      .from("investments")
+      .update(updateData)
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi cập nhật tài sản: ${error.message}`);
 
     // H3: await writeAuditLog
@@ -141,6 +146,7 @@ export async function deleteInvestment(id: string) {
       .from("investments")
       .select("name, purchase_price, status, purchase_date")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy tài sản.");
@@ -148,7 +154,12 @@ export async function deleteInvestment(id: string) {
     // W3: Period lock
     await checkPeriodLock(supabase, oldData.purchase_date || getTodayInTimeZone());
 
-    const { error } = await supabase.from("investments").delete().eq("id", id);
+    const deletedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("investments")
+      .update({ deleted_at: deletedAt, updated_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa tài sản: ${error.message}`);
 
     // H3: await writeAuditLog
@@ -188,6 +199,7 @@ export async function addMaintenanceLog(
       .from("investments")
       .select("maintenance_interval_days")
       .eq("id", investmentId)
+      .is("deleted_at", null)
       .single();
 
     if (inv?.maintenance_interval_days) {
@@ -196,7 +208,8 @@ export async function addMaintenanceLog(
       await supabase
         .from("investments")
         .update({ next_maintenance_date: nextDate.toISOString().split("T")[0] })
-        .eq("id", investmentId);
+        .eq("id", investmentId)
+        .is("deleted_at", null);
     }
 
     // H3: await writeAuditLog

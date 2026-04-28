@@ -1,6 +1,6 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import { requirePaymentRecordAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
@@ -124,7 +124,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
   const paymentInput = parsed.data;
 
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requirePaymentRecordAccess(supabase, userId);
     // W3: Period lock — TRƯỚC mutation (audit fix)
     await checkPeriodLock(supabase, paymentInput.paymentDate);
     await validatePaymentPlanAmount(supabase, paymentInput);
@@ -186,7 +186,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
 /** Get transaction categories for receipt form */
 export async function getTransactionCategories(type: "thu" | "chi" = "thu") {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requirePaymentRecordAccess(supabase, userId);
 
     const { data, error } = await supabase
       .from("transaction_categories")

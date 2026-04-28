@@ -1,9 +1,10 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withFinanceRead } from "@/lib/auth_utils";
 import { enumerateMonthsInRange } from "@/lib/report-period";
 
 type Timeline = Record<string, { date: string; inflow: number; outflow: number }>;
+const MAX_TIMELINE_RANGE_DAYS = 366;
 
 function buildDate(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -25,8 +26,22 @@ function addAmount(timeline: Timeline, date: string, type: "inflow" | "outflow",
   timeline[date][type] += amount;
 }
 
+function assertTimelineRange(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) {
+    throw new Error("Khoang ngay dong tien khong hop le.");
+  }
+  const days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  if (days > MAX_TIMELINE_RANGE_DAYS) {
+    throw new Error("Khoang ngay dong tien khong duoc vuot qua 366 ngay.");
+  }
+}
+
 export async function getCashflowTimeline(startDate: string, endDate: string) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
+    assertTimelineRange(startDate, endDate);
+
     const monthSlices = enumerateMonthsInRange(startDate, endDate);
     const reportYears = Array.from(new Set(monthSlices.map((slice) => slice.year)));
 

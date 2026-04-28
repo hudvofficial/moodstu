@@ -179,6 +179,7 @@ export interface LeadStats {
   closed: number;
   conversionRate: number;
   byStatus: Record<string, number>;
+  bySource: Record<string, number>;
 }
 
 // ─── TAG PRESETS (with colors for badge display) ─────────

@@ -44,9 +44,9 @@ export async function login(formData: FormData): Promise<LoginResult> {
   // 3. Rate Limiting Check (Database-backed)
   const { data: attempt } = await supabase
     .from("login_attempts")
-    .select("*")
+    .select("attempt_count, locked_until")
     .eq("email", finalEmail)
-    .single();
+    .maybeSingle();
 
   const MAX_ATTEMPTS = 5;
 
@@ -86,8 +86,10 @@ export async function login(formData: FormData): Promise<LoginResult> {
     return { error: sanitizeAuthError(error.message) };
   }
 
-  // ✅ Success → Clear attempts
-  await supabase.from("login_attempts").delete().eq("email", finalEmail);
+  // ✅ Success → Clear attempts (only if there was an existing record to save 1 round-trip)
+  if (attempt) {
+    await supabase.from("login_attempts").delete().eq("email", finalEmail);
+  }
 
   // 🔒 Remember Me cookie pattern (from V1)
   const rememberMe = formData.get("rememberMe") === "on";

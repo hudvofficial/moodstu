@@ -120,7 +120,6 @@ export async function updateDragDropDate(
     throw new Error("Sự cố không xác định nguồn (invalid source)");
   });
 }
-
 export type CalendarSchedulePayload = {
   eventId?: string;
   title: string;
@@ -169,22 +168,6 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
       throw new Error("Không có quyền tạo sự kiện cho nhân sự khác.");
     }
 
-    let googleEventId: string | null = null;
-    let warningMsg: string | undefined = undefined;
-    if (parsed.sync_to_google) {
-      try {
-        const gEvent = await createGoogleCalendarEvent({
-          summary: parsed.title,
-          start: { dateTime: new Date(parsed.event_date).toISOString() },
-          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
-        });
-        googleEventId = gEvent.id;
-      } catch (err) {
-        warningMsg = err instanceof Error ? err.message : String(err);
-        console.warn("Best effort Google Sync create failed:", warningMsg);
-      }
-    }
-
     const insertData = {
       event_type: parsed.title,
       event_date: parsed.event_date,
@@ -192,7 +175,7 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
       employee_id: parsed.employee_id,
       status: 'scheduled',
       color_id: parsed.color_id || 'blue',
-      google_event_id: googleEventId
+      google_event_id: null as string | null
     };
 
     const { data, error } = await supabase
@@ -201,7 +184,41 @@ export async function createCalendarEvent(payload: CalendarSchedulePayload): Pro
       .select("id")
       .single();
 
+    let warningMsg: string | undefined = undefined;
+
     if (error) throw new Error("Tạo lịch thất bại: " + error.message);
+
+    if (parsed.sync_to_google) {
+      try {
+        const gEvent = await createGoogleCalendarEvent({
+          summary: parsed.title,
+          start: { dateTime: new Date(parsed.event_date).toISOString() },
+          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
+        });
+        const googleEventId = typeof gEvent?.id === "string" ? gEvent.id : null;
+
+        if (!googleEventId) {
+          throw new Error("Google Calendar không trả về ID sự kiện.");
+        }
+
+        const { error: linkError } = await supabase
+          .from("schedules")
+          .update({ google_event_id: googleEventId })
+          .eq("id", data.id);
+
+        if (linkError) {
+          try {
+            await deleteGoogleCalendarEvent(googleEventId);
+          } catch (rollbackErr) {
+            console.warn("Best effort Google rollback after link failure failed:", rollbackErr);
+          }
+          throw new Error("Tạo lịch nội bộ thành công nhưng không lưu được liên kết Google.");
+        }
+      } catch (err) {
+        warningMsg = err instanceof Error ? err.message : String(err);
+        console.warn("Best effort Google Sync create failed:", warningMsg);
+      }
+    }
 
     return { id: data.id, warning: warningMsg };
   });
@@ -259,39 +276,57 @@ export async function updateCalendarEvent(payload: CalendarSchedulePayload): Pro
       color_id: parsed.color_id || 'blue',
     };
 
-    let warningMsg: string | undefined = undefined;
-
-    if (oldRecord.google_event_id) {
-       try {
-          await updateGoogleCalendarEvent(oldRecord.google_event_id, {
-            summary: parsed.title,
-            start: { dateTime: new Date(parsed.event_date).toISOString() },
-            end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
-          });
-       } catch (err) {
-          warningMsg = err instanceof Error ? err.message : String(err);
-          console.warn("Best effort Google Sync update failed:", warningMsg);
-       }
-    } else if (parsed.sync_to_google) {
-       try {
-          const gEvent = await createGoogleCalendarEvent({
-             summary: parsed.title,
-             start: { dateTime: new Date(parsed.event_date).toISOString() },
-             end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
-          });
-          updateData.google_event_id = gEvent.id;
-       } catch (err) {
-          warningMsg = err instanceof Error ? err.message : String(err);
-          console.warn("Best effort Google Sync create on update failed:", warningMsg);
-       }
-    }
-
     const { error } = await supabase
       .from("schedules")
       .update(updateData)
       .eq("id", parsed.eventId);
 
     if (error) throw new Error("Cập nhật sự kiện thất bại: " + error.message);
+
+    let warningMsg: string | undefined = undefined;
+
+    if (oldRecord.google_event_id) {
+      try {
+        await updateGoogleCalendarEvent(oldRecord.google_event_id, {
+          summary: parsed.title,
+          start: { dateTime: new Date(parsed.event_date).toISOString() },
+          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
+        });
+      } catch (err) {
+        warningMsg = err instanceof Error ? err.message : String(err);
+        console.warn("Best effort Google Sync update failed:", warningMsg);
+      }
+    } else if (parsed.sync_to_google) {
+      try {
+        const gEvent = await createGoogleCalendarEvent({
+          summary: parsed.title,
+          start: { dateTime: new Date(parsed.event_date).toISOString() },
+          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() }
+        });
+        const googleEventId = typeof gEvent?.id === "string" ? gEvent.id : null;
+
+        if (!googleEventId) {
+          throw new Error("Google Calendar không trả về ID sự kiện.");
+        }
+
+        const { error: linkError } = await supabase
+          .from("schedules")
+          .update({ google_event_id: googleEventId })
+          .eq("id", parsed.eventId);
+
+        if (linkError) {
+          try {
+            await deleteGoogleCalendarEvent(googleEventId);
+          } catch (rollbackErr) {
+            console.warn("Best effort Google rollback after link failure failed:", rollbackErr);
+          }
+          throw new Error("Cập nhật lịch nội bộ thành công nhưng không lưu được liên kết Google.");
+        }
+      } catch (err) {
+        warningMsg = err instanceof Error ? err.message : String(err);
+        console.warn("Best effort Google Sync create on update failed:", warningMsg);
+      }
+    }
 
     return { success: true, warning: warningMsg };
   });
@@ -348,46 +383,5 @@ export async function deleteCalendarEvent(eventId: string): Promise<ActionResult
     }
     
     return { success: true, warning: warningMsg };
-  });
-}
-
-// ==========================================
-// THÊM: Action cho phép PATCH các external Google Event
-// (ví dụ: đổi màu, nhưng không lưu backend của Mood)
-// ==========================================
-export async function patchGoogleCalendarEvent(
-  googleEventId: string, 
-  updates: Record<string, unknown>
-): Promise<ActionResult<{ success: boolean; warning?: string }>> {
-  return withAuth(async (supabase, userId) => {
-    const validGoogleEventId = z.string().trim().min(1, "Thiếu ID sự kiện").parse(googleEventId);
-    
-    // Whitelist only valid Google colors (1-11)
-    const patchGoogleEventSchema = z.object({
-      colorId: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"], {
-        error: "Màu Google Calendar không hợp lệ"
-      })
-    }).strict();
-    
-    // Only extract whitelisted fields
-    const validatedUpdates = patchGoogleEventSchema.parse(updates);
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("id, role")
-      .eq("auth_user_id", userId)
-      .maybeSingle();
-
-    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
-    const role = normalizeRole(employee.role);
-    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
-      throw new Error("Bạn không có quyền chỉnh sửa dữ liệu lịch.");
-    }
-
-    try {
-      await updateGoogleCalendarEvent(validGoogleEventId, validatedUpdates);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
   });
 }

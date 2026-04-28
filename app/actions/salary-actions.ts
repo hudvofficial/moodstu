@@ -159,14 +159,23 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number) 
 
     await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
 
-    const newPaid = (salaryRecord.paid_amount || 0) + amount;
-    const newRemaining = salaryRecord.net_salary - newPaid;
+    const currentPaid = Number(salaryRecord.paid_amount) || 0;
+    const currentRemaining = Number(salaryRecord.remaining_amount ?? salaryRecord.net_salary - currentPaid) || 0;
+    if (currentRemaining <= 0) {
+      throw new Error("Bang luong nay da duoc thanh toan het.");
+    }
+    if (amount > currentRemaining) {
+      throw new Error("So tien thanh toan vuot qua so tien con lai.");
+    }
+
+    const newPaid = currentPaid + amount;
+    const newRemaining = Math.max(0, currentRemaining - amount);
 
     const { error: updateError } = await supabase
       .from("employee_salaries")
       .update({
         paid_amount: newPaid,
-        remaining_amount: Math.max(0, newRemaining),
+        remaining_amount: newRemaining,
         updated_at: new Date().toISOString()
       })
       .eq("id", salaryId);

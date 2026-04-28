@@ -1,7 +1,7 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
-import { asNumber, asString } from "@/lib/finance-utils";
+import { withFinanceRead } from "@/lib/auth_utils";
+import { asNumber, asString, isMissingRpcError } from "@/lib/finance-utils";
 import { enumerateMonthsInRange, getReportRange } from "@/lib/report-period";
 import type { FixedCostItem } from "@/types/finance-operations";
 import type { ReportFiltersInput, ReportsSnapshot } from "@/types/reports";
@@ -72,9 +72,80 @@ function sumProratedFixedCosts(items: FixedCostItem[], startDate: string, endDat
   }, 0);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function normalizeReportsSnapshotPayload(payload: unknown, range: ReportsSnapshot["range"]): ReportsSnapshot {
+  const root = asRecord(payload);
+  const summary = asRecord(root.summary);
+  const cashflowSummary = asRecord(root.cashflowSummary);
+  const serviceDistribution = Array.isArray(root.serviceDistribution) ? root.serviceDistribution : [];
+  const revenueBreakdown = Array.isArray(root.revenueBreakdown) ? root.revenueBreakdown : [];
+
+  return {
+    range,
+    summary: {
+      totalRevenue: asNumber(summary.totalRevenue),
+      totalCost: asNumber(summary.totalCost),
+      directCost: asNumber(summary.directCost),
+      operatingCost: asNumber(summary.operatingCost),
+      salaryCost: asNumber(summary.salaryCost),
+      fixedCost: asNumber(summary.fixedCost),
+      netProfit: asNumber(summary.netProfit),
+      profitMargin: asNumber(summary.profitMargin),
+      totalContracts: asNumber(summary.totalContracts),
+      completedContracts: asNumber(summary.completedContracts),
+      avgContractValue: asNumber(summary.avgContractValue),
+      totalDiscount: asNumber(summary.totalDiscount),
+      packageRevenue: asNumber(summary.packageRevenue),
+      addonRevenue: asNumber(summary.addonRevenue),
+      addonCount: asNumber(summary.addonCount),
+      addonPercentage: asNumber(summary.addonPercentage),
+    },
+    serviceDistribution: serviceDistribution.map((item) => {
+      const row = asRecord(item);
+      return {
+        name: asString(row.name, "Khac"),
+        value: asNumber(row.value),
+        revenue: asNumber(row.revenue),
+      };
+    }),
+    revenueBreakdown: revenueBreakdown.map((item) => {
+      const row = asRecord(item);
+      return {
+        label: asString(row.label),
+        amount: asNumber(row.amount),
+        percentage: asNumber(row.percentage),
+      };
+    }),
+    cashflowSummary: {
+      totalInflow: asNumber(cashflowSummary.totalInflow),
+      totalOutflow: asNumber(cashflowSummary.totalOutflow),
+      salaryCost: asNumber(cashflowSummary.salaryCost),
+      fixedCost: asNumber(cashflowSummary.fixedCost),
+      operatingNet: asNumber(cashflowSummary.operatingNet),
+      netAfterOverhead: asNumber(cashflowSummary.netAfterOverhead),
+    },
+  };
+}
+
 export async function getReportsSnapshot(filters: ReportFiltersInput) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const range = getReportRange(filters);
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc("finance_reports_snapshot", {
+      p_start_date: range.startDate,
+      p_end_date: range.endDate,
+    });
+
+    if (!rpcError) {
+      return normalizeReportsSnapshotPayload(rpcData, range);
+    }
+    if (!isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai bao cao: ${rpcError.message}`);
+    }
+
     const monthSlices = enumerateMonthsInRange(range.startDate, range.endDate);
     const reportYears = Array.from(new Set(monthSlices.map((slice) => slice.year)));
 

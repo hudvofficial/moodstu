@@ -3,9 +3,40 @@ import { useSWR, cacheKeys } from "@/lib/swr";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
+const CALENDAR_VIEW_MODES: CalendarViewMode[] = ["month", "week", "day"];
+
+function parseInitialDate() {
+  if (typeof window === "undefined") return new Date();
+
+  const dateParam = new URL(window.location.href).searchParams.get("date");
+  if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return new Date();
+
+  const parsed = new Date(`${dateParam}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function parseInitialViewMode(): CalendarViewMode {
+  if (typeof window === "undefined") return "month";
+
+  const viewParam = new URL(window.location.href).searchParams.get("view");
+  return CALENDAR_VIEW_MODES.includes(viewParam as CalendarViewMode)
+    ? (viewParam as CalendarViewMode)
+    : "month";
+}
+
+function syncCalendarUrl(date: Date, viewMode?: CalendarViewMode) {
+  if (typeof window === "undefined") return;
+
+  const url = new URL(window.location.href);
+  const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  url.searchParams.set("date", dateKey);
+  if (viewMode) url.searchParams.set("view", viewMode);
+  window.history.replaceState({}, "", url.toString());
+}
+
 export function useCalendarData() {
-  const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
+  const [currentDate, setCurrentDateState] = useState(parseInitialDate);
+  const [viewMode, setViewModeState] = useState<CalendarViewMode>(parseInitialViewMode);
   
   // Advanced Filter state
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -38,16 +69,19 @@ export function useCalendarData() {
 
   const rawEvents = useMemo(() => data?.success ? data.data : [], [data]);
   const serverError = data && !data.success ? data.error : null;
+  const employeeNameById = useMemo(() => {
+    return new Map((employeesData || []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]));
+  }, [employeesData]);
 
   // Filter client-side based on SSOT state
   const filteredEvents = useMemo(() => {
     return rawEvents
       .map(event => {
         // P3 Fix: Map employee name locally using the fetched employees list
-        if (!event.employeeId || !employeesData) return event;
-        const emp = employeesData.find((e: { id: string; full_name: string }) => e.id === event.employeeId);
-        if (emp && !event.employeeName) {
-          return { ...event, employeeName: emp.full_name };
+        if (!event.employeeId) return event;
+        const employeeName = employeeNameById.get(event.employeeId);
+        if (employeeName && !event.employeeName) {
+          return { ...event, employeeName };
         }
         return event;
       })
@@ -62,7 +96,7 @@ export function useCalendarData() {
         }
         return true;
       });
-  }, [rawEvents, selectedEmployees, selectedStatuses, employeesData]);
+  }, [rawEvents, selectedEmployees, selectedStatuses, employeeNameById]);
 
   // §1.2 — O(1) lookup per cell: Map<YYYY-MM-DD, Event[]>
   const eventsByDate = useMemo(() => {
@@ -99,19 +133,27 @@ export function useCalendarData() {
     }));
   }, [rawEvents]);
 
+  const handleSetCurrentDate = useCallback((date: Date) => {
+    setCurrentDateState(date);
+    syncCalendarUrl(date, viewMode);
+  }, [viewMode]);
+
+  const availableEmployees = useMemo(() => {
+    return (employeesData || []).map((e: { id: string; full_name: string }) => ({
+      label: e.full_name,
+      value: e.id,
+    }));
+  }, [employeesData]);
+
   // §1.4 — URL sync for viewMode
   const handleSetViewMode = useCallback((mode: CalendarViewMode) => {
-    setViewMode(mode);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("view", mode);
-      window.history.replaceState({}, "", url.toString());
-    }
-  }, []);
+    setViewModeState(mode);
+    syncCalendarUrl(currentDate, mode);
+  }, [currentDate]);
 
   return {
     currentDate,
-    setCurrentDate,
+    setCurrentDate: handleSetCurrentDate,
     month,
     year,
     events: filteredEvents,
@@ -128,10 +170,7 @@ export function useCalendarData() {
       setSelectedEmployees,
       selectedStatuses,
       setSelectedStatuses,
-      availableEmployees: (employeesData || []).map((e: { id: string; full_name: string }) => ({
-        label: e.full_name,
-        value: e.id,
-      })),
+      availableEmployees,
       availableStatuses: computedStatuses,
       isGoogleConnected: isGoogleConnected ?? false
     }

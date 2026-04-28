@@ -5,42 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { login } from "@/app/actions/auth";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import LoginTransition, { LoginSkeleton } from "@/components/auth/login-transition";
+import LoginTransition from "@/components/auth/login-transition";
 import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type LoginState = "checking" | "idle" | "transitioning" | "navigating";
+type LoginState = "idle" | "transitioning" | "navigating";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loginState, setLoginState] = useState<LoginState>("checking");
+  const [loginState, setLoginState] = useState<LoginState>("idle");
   const [showPassword, setShowPassword] = useState(false);
 
-  // 1. Check existing session
-  useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.replace("/dashboard");
-      } else {
-        setLoginState("idle");
-      }
-    };
-    checkSession();
-  }, [router]);
-
-  // 2. Prefetch dashboard
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
-
-  // 3. Surface one-time auth/recovery redirects
+  // 1. Surface one-time auth/recovery redirects
   useEffect(() => {
     const url = new URL(window.location.href);
     const resetStatus = url.searchParams.get("reset");
@@ -59,7 +39,7 @@ export default function LoginPage() {
     window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   }, []);
 
-  // 4. Login handler
+  // 2. Login handler
   const handleSubmit = async (formData: FormData) => {
     setLoginState("transitioning");
 
@@ -74,10 +54,6 @@ export default function LoginPage() {
       router.replace("/dashboard");
     }
   };
-
-  if (loginState === "checking") {
-    return <LoginSkeleton />;
-  }
 
   const isLoading = loginState === "transitioning" || loginState === "navigating";
 

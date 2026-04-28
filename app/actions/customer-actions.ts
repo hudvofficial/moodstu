@@ -76,7 +76,7 @@ export async function getCustomers(params: {
     const ltvMap: Record<string, number> = {};
 
     if (customerIds.length > 0) {
-      const { data: contracts, error: contractsError } = await supabase.from("contracts").select("customer_id, total_value").in("customer_id", customerIds);
+      const { data: contracts, error: contractsError } = await supabase.from("contracts").select("customer_id, total_value").in("customer_id", customerIds).is("deleted_at", null);
       if (contractsError) throw contractsError;
       (contracts || []).forEach((c: { customer_id: string; total_value: number }) => {
         ltvMap[c.customer_id] = (ltvMap[c.customer_id] || 0) + (c.total_value || 0);
@@ -101,7 +101,8 @@ export async function getCustomerById(id: string): Promise<ActionResult<{ custom
     const { data: customer, error } = await supabase.from("customers").select("*").eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
 
-    const { data: contracts } = await supabase.from("contracts").select("id, contract_code, total_value, status, created_at").eq("customer_id", id).order("created_at", { ascending: false });
+    const { data: contracts, error: contractsError } = await supabase.from("contracts").select("id, contract_code, total_value, status, created_at").eq("customer_id", id).is("deleted_at", null).order("created_at", { ascending: false });
+    if (contractsError) throw contractsError;
     const lifetimeValue = (contracts || []).reduce((sum: number, c: { total_value?: number }) => sum + (c.total_value || 0), 0);
 
     return { customer, contracts: contracts || [], lifetimeValue };
@@ -110,7 +111,7 @@ export async function getCustomerById(id: string): Promise<ActionResult<{ custom
 
 // ----------------------------------------------------
 
-export async function createCustomer(data: unknown): Promise<ActionResult<{ customer_id: string }>> {
+export async function createCustomer(data: unknown): Promise<ActionResult<{ customer_id: string; duplicate?: boolean; customer_name?: string }>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodCustomerCreate.safeParse(data);
@@ -118,41 +119,16 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
     
     const tData = parsed.data;
 
-    // Phone dedup guard: Dual-branch audit
+    // Phone dedup guard: never overwrite an existing profile from a create flow.
     if (tData.phone?.trim()) {
-      const { data: existingByPhone } = await supabase.from("customers").select("*").eq("phone", tData.phone.trim()).is("deleted_at", null).limit(1).maybeSingle();
+      const { data: existingByPhone, error: existingByPhoneError } = await supabase.from("customers").select("id, full_name, phone").eq("phone", tData.phone.trim()).is("deleted_at", null).limit(1).maybeSingle();
+      if (existingByPhoneError) throw existingByPhoneError;
       if (existingByPhone) {
-        // UPDATE existing customer
-        const updateData = {
-          full_name: tData.full_name.trim(), 
-          phone: tData.phone?.trim() || null,
-          alt_phone: tData.alt_phone?.trim() || null, 
-          email: tData.email?.trim() || null,
-          address: tData.address?.trim() || null, 
-          gender: tData.gender || null,
-          date_of_birth: tData.date_of_birth || null,
-          wedding_date: tData.wedding_date || null, 
-          bride_name: tData.bride_name?.trim() || null, 
-          groom_name: tData.groom_name?.trim() || null,
-          source: tData.source || null,
-          notes: tData.notes?.trim() || null,
-          tags: tData.tags || [],
-          updated_at: new Date().toISOString(),
+        return {
+          customer_id: existingByPhone.id,
+          duplicate: true,
+          customer_name: existingByPhone.full_name,
         };
-        const { error: updateError } = await supabase.from("customers").update(updateData).eq("id", existingByPhone.id);
-        if (updateError) throw updateError;
-          
-        await writeAuditLog({
-          action: "UPDATE",
-          tableName: "customers",
-          recordId: existingByPhone.id,
-          
-          oldData: existingByPhone,
-          newData: updateData,
-        });
-
-        revalidatePath("/crm/customers");
-        return { customer_id: existingByPhone.id };
       }
     }
 
@@ -290,28 +266,20 @@ export async function getCustomerStats(): Promise<ActionResult<{ total: number; 
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
 
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const { data, error } = await supabase.rpc("get_crm_customer_stats");
+    if (error) throw error;
 
-    const [totalResult, newThisMonthResult, contractsResult] = await Promise.all([
-      supabase.from("customers").select("id", { count: "exact", head: true }).is("deleted_at", null),
-      supabase.from("customers").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("created_at", startOfMonth.toISOString()),
-      supabase.from("contracts").select("customer_id, total_value").not("customer_id", "is", null),
-    ]);
+    const stats = data as {
+      total?: number;
+      newThisMonth?: number;
+      avgLifetimeValue?: number;
+    };
 
-    if (totalResult.error) throw totalResult.error;
-    if (newThisMonthResult.error) throw newThisMonthResult.error;
-    if (contractsResult.error) throw contractsResult.error;
-
-    const customerValues: Record<string, number> = {};
-    (contractsResult.data || []).forEach((c: { customer_id: string; total_value: number }) => {
-      customerValues[c.customer_id] = (customerValues[c.customer_id] || 0) + (c.total_value || 0);
-    });
-    const values = Object.values(customerValues);
-    const avgLifetimeValue = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
-
-    return { total: totalResult.count || 0, newThisMonth: newThisMonthResult.count || 0, avgLifetimeValue };
+    return {
+      total: stats.total || 0,
+      newThisMonth: stats.newThisMonth || 0,
+      avgLifetimeValue: stats.avgLifetimeValue || 0,
+    };
   });
 }
 

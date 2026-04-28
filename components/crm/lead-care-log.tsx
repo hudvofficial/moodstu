@@ -20,6 +20,60 @@ const extractTag = (text: string) => {
   return { tag: null, rest: text };
 };
 
+type ParsedCareHistoryEntry = {
+  key: string;
+  tag: string | null;
+  rest: string;
+};
+
+function parseCareHistory(history: string | CareLogEntry[] | null): ParsedCareHistoryEntry[] {
+  if (Array.isArray(history)) {
+    return history.map((entry, index) => ({
+      key: entry.id || `${entry.date}-${index}`,
+      tag: entry.type || null,
+      rest: entry.content,
+    }));
+  }
+
+  if (typeof history !== "string" || !history.trim()) return [];
+
+  const rawEntries = history.includes("\n---\n")
+    ? history.split(/\n---\n/g)
+    : history.split("\n");
+
+  return rawEntries
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry, index) => {
+      if (entry.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(entry) as {
+            type?: string;
+            content?: string;
+            timestamp?: string;
+          };
+          return {
+            key: parsed.timestamp || `${index}`,
+            tag: parsed.type || null,
+            rest: parsed.content || entry,
+          };
+        } catch {
+          // Fall through to legacy text parsing.
+        }
+      }
+
+      const [firstLine, ...remainingLines] = entry.split("\n");
+      const { tag, rest } = extractTag(firstLine);
+      const body = [rest, ...remainingLines].filter(Boolean).join("\n");
+
+      return {
+        key: `${index}-${firstLine}`,
+        tag,
+        rest: body || entry,
+      };
+    });
+}
+
 // ════════════════════════════════════════════════════════════
 // LeadCareLog — Display care history & add new logs (Phase 03)
 // ════════════════════════════════════════════════════════════
@@ -62,10 +116,7 @@ export default function LeadCareLog({ leadId, history }: Props) {
     });
   };
 
-  // The legacy system stored care_history as text blocks. We split by newline.
-  const historyLines = typeof history === "string" 
-    ? history.split("\n").filter(line => line.trim().length > 0)
-    : [];
+  const historyEntries = parseCareHistory(history);
 
   const showExpanded = isFocused || content.trim().length > 0;
 
@@ -138,25 +189,24 @@ export default function LeadCareLog({ leadId, history }: Props) {
 
       {/* ── History Timeline ── */}
       <div className="px-1">
-        {historyLines.length > 0 ? (
+        {historyEntries.length > 0 ? (
           <div className="space-y-3">
-            {historyLines.map((line, idx) => {
-              const { tag, rest } = extractTag(line);
+            {historyEntries.map((entry, idx) => {
               return (
-              <div key={idx} className="flex gap-3 text-sm">
+              <div key={entry.key} className="flex gap-3 text-sm">
                 <div className="relative flex flex-col items-center">
                   <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                  {idx !== historyLines.length - 1 && (
+                  {idx !== historyEntries.length - 1 && (
                     <div className="w-px h-full bg-border/50 absolute top-3.5" />
                   )}
                 </div>
                 <div className="flex-1 bg-bg-base p-3 rounded-xl shadow-xs border border-border/30 mb-2">
-                  {tag && (
+                  {entry.tag && (
                     <Badge variant="neutral" className="mb-2 text-xs tracking-wider bg-bg-hover">
-                      {tag}
+                      {entry.tag}
                     </Badge>
                   )}
-                  <div className="whitespace-pre-wrap text-text-secondary">{rest}</div>
+                  <div className="whitespace-pre-wrap text-text-secondary">{entry.rest}</div>
                 </div>
               </div>
             )})}

@@ -16,7 +16,7 @@ import { createCustomer, updateCustomer } from "@/app/actions/customer-actions";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSaved?: () => void;
+  onSaved?: (customerId?: string) => void;
   customer?: Customer | null;
 }
 
@@ -122,6 +122,12 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
       } else {
         const result = await createCustomer(payload);
         if (!result.success) throw new Error(result.error);
+        if (result.data.duplicate) {
+          alert(`So dien thoai da ton tai trong ho so ${result.data.customer_name || "khach hang"}. Dang mo ho so hien co.`);
+          onClose();
+          onSaved?.(result.data.customer_id);
+          return;
+        }
       }
       
       onClose();

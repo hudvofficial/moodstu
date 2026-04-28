@@ -3,7 +3,7 @@
 import { withAdmin } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
-import { createDebtSchema, updateDebtSchema } from "@/lib/validations/finance.schema";
+import { createCreditCardSchema, createDebtSchema, updateCreditCardSchema, updateDebtSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
 
 // ═══════════════════════════════════════════
@@ -40,6 +40,18 @@ export interface CreditCardInput {
   credit_limit?: number;
 }
 
+function normalizeDebtStatus(status?: string | null) {
+  if (!status || status === "dang_no") return "open";
+  if (status === "da_thanh_toan") return "closed";
+  return status;
+}
+
+function deriveDebtStatus(amount: number, paidAmount: number) {
+  if (paidAmount <= 0) return "open";
+  if (paidAmount >= amount) return "closed";
+  return "partial";
+}
+
 // ═══════════════════ DEBTS ═══════════════════
 
 export async function createDebt(input: DebtInput) {
@@ -52,6 +64,13 @@ export async function createDebt(input: DebtInput) {
     // W3: Period lock check
     await checkPeriodLock(supabase, parsed.data.due_date || new Date().toISOString().split("T")[0]);
 
+    const initialStatus = normalizeDebtStatus(parsed.data.status);
+    if (initialStatus === "partial") {
+      throw new Error("Khong the tao cong no partial khi chua co so tien da thanh toan.");
+    }
+    const paidAmount = initialStatus === "closed" ? parsed.data.amount : 0;
+    const remaining = Math.max(0, parsed.data.amount - paidAmount);
+
     const { data, error } = await supabase
       .from("debts")
       .insert({
@@ -62,10 +81,10 @@ export async function createDebt(input: DebtInput) {
         due_date: parsed.data.due_date || null,
         notes: parsed.data.notes || null,
         entity_id: parsed.data.entity_id || null,
-        paid_amount: 0,
-        remaining: parsed.data.amount,
+        paid_amount: paidAmount,
+        remaining,
         created_by: userId,
-        status: parsed.data.status,
+        status: initialStatus,
         installment_total: parsed.data.installment_total || null,
         installment_paid: parsed.data.installment_total ? 0 : null,
         installment_amount: parsed.data.installment_amount || null,
@@ -107,14 +126,18 @@ export async function updateDebt(
     // 2. Fetch old data + lock logic
     const { data: oldData } = await supabase
       .from("debts")
-      .select("amount, entity_name, type, updated_at")
+      .select("amount, paid_amount, remaining, entity_name, type, due_date, status, updated_at")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy công nợ cần sửa.");
 
     // W3: Period lock check
-    await checkPeriodLock(supabase, oldData.updated_at?.split("T")[0] || new Date().toISOString().split("T")[0]);
+    await checkPeriodLock(supabase, oldData.due_date || new Date().toISOString().split("T")[0]);
+    if (updateData.due_date && updateData.due_date !== oldData.due_date) {
+      await checkPeriodLock(supabase, updateData.due_date);
+    }
 
     if (expectedUpdatedAt && oldData.updated_at !== expectedUpdatedAt) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
@@ -125,11 +148,39 @@ export async function updateDebt(
     if (updateData.type) {
       dbUpdateData.type = updateData.type === "Phải thu" ? "receivable" : "payable";
     }
+    const nextAmount = Number(updateData.amount ?? oldData.amount) || 0;
+    const currentPaid = Number(oldData.paid_amount) || 0;
+    const explicitStatus = updateData.status ? normalizeDebtStatus(updateData.status) : null;
+
+    if (explicitStatus) {
+      dbUpdateData.status = explicitStatus;
+      if (explicitStatus === "closed") {
+        dbUpdateData.paid_amount = nextAmount;
+        dbUpdateData.remaining = 0;
+        dbUpdateData.payment_date = new Date().toISOString().split("T")[0];
+      } else if (explicitStatus === "open") {
+        dbUpdateData.paid_amount = 0;
+        dbUpdateData.remaining = nextAmount;
+      } else if (explicitStatus === "partial") {
+        if (currentPaid <= 0 || currentPaid >= nextAmount) {
+          throw new Error("Trang thai partial can co so tien da thanh toan hop le.");
+        }
+        dbUpdateData.remaining = Math.max(0, nextAmount - currentPaid);
+      }
+    } else if (updateData.amount !== undefined) {
+      dbUpdateData.remaining = Math.max(0, nextAmount - currentPaid);
+      dbUpdateData.status = deriveDebtStatus(nextAmount, currentPaid);
+    }
+
     const finalUpdateData = dbUpdateData;
-    const { error } = await supabase
+    let query = supabase
       .from("debts")
       .update(finalUpdateData)
-      .eq("id", id);
+      .eq("id", id)
+      .is("deleted_at", null);
+    if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+
+    const { error } = await query;
 
     if (error) throw new Error(`Lỗi cập nhật công nợ: ${error.message}`);
 
@@ -154,6 +205,7 @@ export async function deleteDebt(id: string) {
       .from("debts")
       .select("amount, entity_name, type, due_date")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy công nợ.");
@@ -165,7 +217,8 @@ export async function deleteDebt(id: string) {
     const { error } = await supabase
       .from("debts")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa công nợ: ${error.message}`);
 
     await writeAuditLog({
@@ -183,44 +236,83 @@ export async function deleteDebt(id: string) {
 
 export async function markInstallmentPaid(id: string) {
   return withAdmin(async (supabase) => {
+    if (!id?.trim()) throw new Error("Debt ID khong hop le");
+
     const { data: debt, error: fetchError } = await supabase
       .from("debts")
-      .select("installment_paid, installment_total, amount")
+      .select("installment_paid, installment_total, installment_amount, amount, paid_amount, remaining, due_date, status")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
-    if (fetchError || !debt) throw new Error("Không tìm thấy công nợ");
-    if (!debt.installment_total) throw new Error("Không phải khoản trả góp");
-
-    const newPaid = (debt.installment_paid || 0) + 1;
-    const isComplete = newPaid >= debt.installment_total;
-
-    const updateData: Record<string, unknown> = { installment_paid: newPaid, updated_at: new Date().toISOString() };
-    if (isComplete) {
-      updateData.status = "closed"; // DB constraint uses 'closed'
-      updateData.payment_date = new Date().toISOString().split("T")[0];
+    if (fetchError || !debt) throw new Error("Khong tim thay cong no");
+    if (!debt.installment_total) throw new Error("Khong phai khoan tra gop");
+    if (debt.status === "closed" || debt.status === "da_thanh_toan") {
+      throw new Error("Cong no da tat toan.");
+    }
+    if ((debt.installment_paid || 0) >= debt.installment_total) {
+      throw new Error("Cong no da du so ky tra gop.");
     }
 
-    const { error } = await supabase.from("debts").update(updateData).eq("id", id);
-    if (error) throw new Error(`Lỗi cập nhật trả góp: ${error.message}`);
+    const paymentDate = new Date().toISOString().split("T")[0];
+    await checkPeriodLock(supabase, paymentDate);
+
+    const newPaid = (debt.installment_paid || 0) + 1;
+    const totalAmount = Number(debt.amount) || 0;
+    const installmentAmount = Number(debt.installment_amount) || Math.ceil(totalAmount / debt.installment_total);
+    const newPaidAmount = Math.min(totalAmount, (Number(debt.paid_amount) || 0) + installmentAmount);
+    const newRemaining = Math.max(0, totalAmount - newPaidAmount);
+    const isComplete = newPaid >= debt.installment_total || newRemaining <= 0;
+
+    const updateData: Record<string, unknown> = {
+      installment_paid: newPaid,
+      paid_amount: newPaidAmount,
+      remaining: newRemaining,
+      status: isComplete ? "closed" : "partial",
+      updated_at: new Date().toISOString(),
+    };
+    if (isComplete) {
+      updateData.payment_date = paymentDate;
+    }
+
+    const { error } = await supabase
+      .from("debts")
+      .update(updateData)
+      .eq("id", id)
+      .is("deleted_at", null);
+    if (error) throw new Error(`Loi cap nhat tra gop: ${error.message}`);
 
     await writeAuditLog({
       action: "UPDATE",
       tableName: "debts",
       recordId: id,
-      description: `Trả góp: thanh toán kỳ ${newPaid}/${debt.installment_total}`
+      description: `Tra gop: thanh toan ky ${newPaid}/${debt.installment_total}`,
     });
 
     revalidatePath("/finance");
     return { newPaid, isComplete };
   });
 }
-
 // ═══════════════ CREDIT CARDS ═══════════════
 
 export async function createCreditCard(input: CreditCardInput) {
   return withAdmin(async (supabase) => {
-    const { data, error } = await supabase.from("credit_cards").insert([input]).select("id").single();
+    const parsed = createCreditCardSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(`Du lieu khong hop le: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
+    }
+
+    const { data, error } = await supabase
+      .from("credit_cards")
+      .insert({
+        bank_name: parsed.data.bank_name,
+        last_4: parsed.data.last_4,
+        statement_day: parsed.data.statement_day,
+        due_day: parsed.data.due_day,
+        credit_limit: parsed.data.credit_limit ?? null,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(`Lỗi tạo thẻ tín dụng: ${error.message}`);
 
     await writeAuditLog({
@@ -236,16 +328,32 @@ export async function createCreditCard(input: CreditCardInput) {
 
 export async function updateCreditCard(id: string, input: Partial<CreditCardInput>) {
   return withAdmin(async (supabase) => {
+    const parsed = updateCreditCardSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new Error(`Du lieu khong hop le: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
+    }
+
+    const { data: oldData } = await supabase
+      .from("credit_cards")
+      .select("bank_name, last_4, updated_at")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!oldData) throw new Error("Khong tim thay the tin dung.");
+
     const { error } = await supabase
       .from("credit_cards")
-      .update({ ...input, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .update({ ...parsed.data, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi cập nhật thẻ: ${error.message}`);
 
     await writeAuditLog({
       action: "UPDATE",
       tableName: "credit_cards",
       recordId: id,
+      oldData: oldData as Record<string, unknown>,
+      newData: parsed.data as Record<string, unknown>,
       description: `Cập nhật thẻ #${id.substring(0, 8)}`
     });
     revalidatePath("/finance");
@@ -255,13 +363,27 @@ export async function updateCreditCard(id: string, input: Partial<CreditCardInpu
 
 export async function deleteCreditCard(id: string) {
   return withAdmin(async (supabase) => {
-    const { error } = await supabase.from("credit_cards").delete().eq("id", id);
+    const { data: oldData } = await supabase
+      .from("credit_cards")
+      .select("bank_name, last_4")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!oldData) throw new Error("Khong tim thay the tin dung.");
+
+    const deletedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("credit_cards")
+      .update({ deleted_at: deletedAt, updated_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa thẻ: ${error.message}`);
 
     await writeAuditLog({
       action: "DELETE",
       tableName: "credit_cards",
       recordId: id,
+      oldData: oldData as Record<string, unknown>,
       description: `Xóa thẻ tín dụng #${id.substring(0, 8)}`
     });
     revalidatePath("/finance");

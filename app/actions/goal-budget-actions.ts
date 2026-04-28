@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth, withAdmin } from "@/lib/auth_utils";
+import { withAdmin, withFinanceRead } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createGoalSchema, updateGoalSchema, upsertBudgetSchema } from "@/lib/validations/finance.schema";
@@ -52,6 +52,7 @@ export async function updateGoal(
       .from("financial_goals")
       .select("updated_at, name, target_amount, current_amount, status")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
     if (!oldData) throw new Error("Không tìm thấy mục tiêu");
 
@@ -75,7 +76,11 @@ export async function updateGoal(
       }
     }
 
-    const { error } = await supabase.from("financial_goals").update(updateData).eq("id", id);
+    const { error } = await supabase
+      .from("financial_goals")
+      .update(updateData)
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi cập nhật mục tiêu: ${error.message}`);
 
     await writeAuditLog({ action: "UPDATE", tableName: "financial_goals", recordId: id, oldData: oldData as Record<string, unknown>, newData: updateData as Record<string, unknown>, description: `Cập nhật mục tiêu #${id.substring(0, 8)}` });
@@ -86,8 +91,20 @@ export async function updateGoal(
 
 export async function deleteGoal(id: string) {
   return withAdmin(async (supabase) => {
-    const { data: oldData } = await supabase.from("financial_goals").select("name, target_amount").eq("id", id).single();
-    const { error } = await supabase.from("financial_goals").delete().eq("id", id);
+    const { data: oldData } = await supabase
+      .from("financial_goals")
+      .select("name, target_amount")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+    if (!oldData) throw new Error("Khong tim thay muc tieu.");
+
+    const deletedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("financial_goals")
+      .update({ deleted_at: deletedAt, updated_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa mục tiêu: ${error.message}`);
 
     await writeAuditLog({ action: "DELETE", tableName: "financial_goals", recordId: id, oldData: oldData as Record<string, unknown>, description: `Xóa mục tiêu #${id.substring(0, 8)}` });
@@ -109,6 +126,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
       .from("financial_goals")
       .select("status")
       .eq("id", goalId)
+      .is("deleted_at", null)
       .single();
 
     if (statusError || !statusRow) {
@@ -129,6 +147,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
         .from("financial_goals")
         .select("current_amount, target_amount, status")
         .eq("id", goalId)
+        .is("deleted_at", null)
         .single();
       if (goalError || !goal) throw new Error(`Khong tim thay muc tieu: ${goalError?.message || ""}`);
       const fallbackStatus = String(goal.status || "").toLowerCase();
@@ -150,7 +169,11 @@ export async function addContribution(goalId: string, amount: number, notes?: st
       };
       if (newCurrent >= (goal.target_amount || 0)) updateData.status = "completed";
 
-      const { error: updateError } = await supabase.from("financial_goals").update(updateData).eq("id", goalId);
+      const { error: updateError } = await supabase
+        .from("financial_goals")
+        .update(updateData)
+        .eq("id", goalId)
+        .is("deleted_at", null);
       if (updateError) throw new Error(`Khong the cap nhat muc tieu: ${updateError.message}`);
 
       await writeAuditLog({ action: "CREATE", tableName: "goal_contributions", description: `Gop von ${amount.toLocaleString("vi-VN")} VND vao muc tieu #${goalId.substring(0, 8)}` });
@@ -192,6 +215,7 @@ export async function undoContribution(contributionId: string) {
         .from("financial_goals")
         .select("current_amount, target_amount, status")
         .eq("id", contribution.goal_id)
+        .is("deleted_at", null)
         .single();
       if (goalError || !goal) throw new Error(`Khong tim thay muc tieu: ${goalError?.message || ""}`);
 
@@ -205,7 +229,11 @@ export async function undoContribution(contributionId: string) {
       };
       if (goal.status === "completed" && newCurrent < (goal.target_amount || 0)) updateData.status = "active";
 
-      const { error: updateError } = await supabase.from("financial_goals").update(updateData).eq("id", contribution.goal_id);
+      const { error: updateError } = await supabase
+        .from("financial_goals")
+        .update(updateData)
+        .eq("id", contribution.goal_id)
+        .is("deleted_at", null);
       if (updateError) throw new Error(`Khong the cap nhat muc tieu: ${updateError.message}`);
 
       await writeAuditLog({
@@ -252,7 +280,9 @@ export async function upsertBudget(input: { category_name: string; budget_amount
         budget_amount: parsed.data.budget_amount,
         period_month: parsed.data.period_month,
         period_year: parsed.data.period_year,
-        notes: input.notes || null
+        notes: input.notes || null,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "category_name,period_month,period_year" },
     );
@@ -267,14 +297,24 @@ export async function upsertBudget(input: { category_name: string; budget_amount
 
 export async function deleteBudget(id: string) {
   return withAdmin(async (supabase) => {
-    const { data: oldData } = await supabase.from("budgets").select("category_name, period_month, period_year").eq("id", id).single();
+    const { data: oldData } = await supabase
+      .from("budgets")
+      .select("category_name, period_month, period_year")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
 
     if (!oldData) throw new Error("Không tìm thấy ngân sách.");
 
     // W3: Period lock
     await checkPeriodLock(supabase, firstDayOfMonth(oldData.period_month, oldData.period_year));
 
-    const { error } = await supabase.from("budgets").delete().eq("id", id);
+    const deletedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("budgets")
+      .update({ deleted_at: deletedAt, updated_at: deletedAt })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa ngân sách: ${error.message}`);
 
     await writeAuditLog({ action: "DELETE", tableName: "budgets", recordId: id, description: `Xóa ngân sách ${oldData?.category_name} tháng ${oldData?.period_month}/${oldData?.period_year}` });
@@ -284,7 +324,7 @@ export async function deleteBudget(id: string) {
 }
 
 export async function getBudgetsWithActuals(month: number, year: number) {
-  return withAuth(async (supabase): Promise<BudgetActualItem[]> => {
+  return withFinanceRead(async (supabase): Promise<BudgetActualItem[]> => {
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const endDate = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
 
@@ -295,6 +335,7 @@ export async function getBudgetsWithActuals(month: number, year: number) {
         .select("id, category_name, budget_amount, period_month, period_year, notes, created_at, updated_at")
         .eq("period_month", month)
         .eq("period_year", year)
+        .is("deleted_at", null)
         .order("category_name"),
       supabase
         .from("expenses")

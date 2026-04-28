@@ -31,6 +31,8 @@ export const createExpenseSchema = z.object({
 
 export const updateExpenseSchema = createExpenseSchema.partial();
 
+const debtStatusSchema = z.enum(["dang_no", "da_thanh_toan", "open", "closed", "partial"]);
+
 export const createDebtSchema = z.object({
   entity_name: z.string().min(1, "Tên đối tượng không được để trống"),
   entity_type: z.enum(["nha_cung_cap", "khach_hang", "nhan_vien", "khac"]),
@@ -39,14 +41,16 @@ export const createDebtSchema = z.object({
   due_date: z.string().date().optional().nullable(),
   notes: z.string().optional().nullable(),
   entity_id: z.string().uuid().optional().nullable(),
-  status: z.enum(["dang_no", "da_thanh_toan", "open", "closed", "partial"]).default("open"),
+  status: debtStatusSchema.default("open"),
   installment_total: z.number().min(0).optional().nullable(),
   installment_amount: z.number().min(0).optional().nullable(),
   platform: z.string().optional().nullable(),
   card_id: z.string().uuid().optional().nullable(),
 });
 
-export const updateDebtSchema = createDebtSchema.partial();
+export const updateDebtSchema = createDebtSchema.omit({ status: true }).partial().extend({
+  status: debtStatusSchema.optional(),
+});
 
 const GOAL_ICON_VALUES = [
   "directions_car",
@@ -141,7 +145,7 @@ export const createPaymentSchema = z.object({
 // ─── W6: Category Schema (audit fix) ────────────────
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Tên danh mục không được để trống").trim(),
-  type: z.enum(["Thu", "Chi"]),
+  type: z.enum(["thu", "chi"]),
   category_code: z.string().optional(),
 });
 

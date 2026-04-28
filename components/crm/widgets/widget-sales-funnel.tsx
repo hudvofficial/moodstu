@@ -1,27 +1,28 @@
 import React from "react";
-import type { CrmLead } from "@/types/crm";
 import { PIPELINE_STAGES, LEAD_STATUS_MAP } from "@/types/crm";
+import type { LeadStats } from "@/types/crm";
 import { TrendingDown, TrendingUp, Users } from "lucide-react";
 
 interface WidgetSalesFunnelProps {
-  leads: CrmLead[];
+  stats: LeadStats;
 }
 
-export function WidgetSalesFunnel({ leads }: WidgetSalesFunnelProps) {
-  const totalLeads = leads.length;
+export function WidgetSalesFunnel({ stats }: WidgetSalesFunnelProps) {
+  const totalLeads = stats.total;
+  const byStatus = stats.byStatus || {};
   
   const funnelData = PIPELINE_STAGES.map((stage, index) => {
-    const snapshotCount = leads.filter((l) => l.status === stage).length;
+    const snapshotCount = byStatus[stage] || 0;
     let cumulativeCount = 0;
     for (let j = index; j < PIPELINE_STAGES.length; j++) {
-      cumulativeCount += leads.filter((l) => l.status === PIPELINE_STAGES[j]).length;
+      cumulativeCount += byStatus[PIPELINE_STAGES[j]] || 0;
     }
 
     const prevCumulative =
       index === 0 ? cumulativeCount : (() => {
         let prevSum = 0;
         for (let j = index - 1; j < PIPELINE_STAGES.length; j++) {
-          prevSum += leads.filter((l) => l.status === PIPELINE_STAGES[j]).length;
+          prevSum += byStatus[PIPELINE_STAGES[j]] || 0;
         }
         return prevSum;
       })();

@@ -136,8 +136,10 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=0, s-maxage=30, stale-while-revalidate=60",
+            value: "private, no-store, max-age=0, must-revalidate",
           },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
@@ -224,11 +226,7 @@ const withPWA = withPWAInit({
           if (url.pathname.startsWith("/monitoring")) return false;
           return true;
         },
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "pages-cache",
-          expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
-        },
+        handler: "NetworkOnly",
       },
       // 🟡 RULE 3: Supabase Storage images — StaleWhileRevalidate (30 ngày)
       {

@@ -1,25 +1,19 @@
 import React, { useState } from "react";
-import type { CrmLead } from "@/types/crm";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WidgetSourceDonutProps {
-  leads: CrmLead[];
+  bySource: Record<string, number>;
+  total: number;
 }
 
-export function WidgetSourceDonut({ leads }: WidgetSourceDonutProps) {
+export function WidgetSourceDonut({ bySource, total }: WidgetSourceDonutProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const totalLeads = leads.length;
+  const countedLeads = Object.values(bySource).reduce((sum, count) => sum + count, 0);
+  const totalLeads = total || countedLeads;
 
-  // 1. Calculate Source data
-  const sourceGroups = leads.reduce((acc, lead) => {
-    const s = lead.source || "Khác";
-    acc[s] = (acc[s] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const sourceData = Object.entries(sourceGroups)
+  const sourceData = Object.entries(bySource)
     .sort((a, b) => b[1] - a[1]) // highest first
     .map(([source, count], index) => {
       // Dynamic color palette based on standard neutral/brand colors

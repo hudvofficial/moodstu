@@ -1,6 +1,7 @@
 import type { ReportFiltersInput, ReportRange } from "@/types/reports";
 
 const DAY_MS = 86400000;
+const MAX_CUSTOM_RANGE_DAYS = 366;
 
 interface MonthSlice {
   year: number;
@@ -59,9 +60,15 @@ function subtractMatchingDuration(startDate: string, endDate: string) {
 
 export function getReportRange(filters: ReportFiltersInput): ReportRange {
   const year = filters.year;
+  if (!Number.isInteger(year) || year < 2020 || year > 2035) {
+    throw new Error("Nam bao cao khong hop le.");
+  }
 
   if (filters.periodType === "month") {
     const month = filters.month || 1;
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      throw new Error("Thang bao cao khong hop le.");
+    }
     return {
       periodType: "month",
       year,
@@ -74,6 +81,9 @@ export function getReportRange(filters: ReportFiltersInput): ReportRange {
 
   if (filters.periodType === "quarter") {
     const quarter = filters.quarter || 1;
+    if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
+      throw new Error("Quy bao cao khong hop le.");
+    }
     const startMonth = (quarter - 1) * 3 + 1;
     return {
       periodType: "quarter",
@@ -99,6 +109,14 @@ export function getReportRange(filters: ReportFiltersInput): ReportRange {
     throw new Error("Khoảng ngày tùy chọn không hợp lệ.");
   }
 
+  const customStart = parseIsoDate(filters.startDate);
+  const customEnd = parseIsoDate(filters.endDate);
+  if (!Number.isFinite(customStart.getTime()) || !Number.isFinite(customEnd.getTime()) || customStart > customEnd) {
+    throw new Error("Khoang ngay tuy chon khong hop le.");
+  }
+  if (daysBetweenInclusive(customStart, customEnd) > MAX_CUSTOM_RANGE_DAYS) {
+    throw new Error("Khoang ngay bao cao tuy chon khong duoc vuot qua 366 ngay.");
+  }
   return {
     periodType: "custom",
     year,

@@ -46,7 +46,7 @@ export default function CustomerListPage({
   const isMobile = useIsMobile();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const search = searchParams.get("search") || undefined;
   const source = searchParams.get("source") || undefined;
@@ -106,6 +106,8 @@ export default function CustomerListPage({
   const currentPage = data.page;
   const totalPages = data.totalPages || 1;
   const pageSize = data.pageSize || 10;
+  const selectedCustomer =
+    data.customers.find((customer) => customer.id === selectedCustomerId) || null;
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -125,7 +127,7 @@ export default function CustomerListPage({
   };
 
   const handleRowClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
+    setSelectedCustomerId(customer.id);
   };
 
   const hasFilters = Boolean(
@@ -140,7 +142,8 @@ export default function CustomerListPage({
     });
   };
 
-  const handleDataChanged = useCallback(() => {
+  const handleDataChanged = useCallback((customerId?: string) => {
+    if (customerId) setSelectedCustomerId(customerId);
     startTransition(() => {
       void revalidateByPrefixes(cacheKeys.customers());
     });
@@ -256,9 +259,9 @@ export default function CustomerListPage({
       />
 
       <CustomerDetailDrawer
-        customerId={selectedCustomer?.id || null}
-        open={!!selectedCustomer}
-        onOpenChange={(open) => !open && setSelectedCustomer(null)}
+        customerId={selectedCustomerId}
+        open={!!selectedCustomerId}
+        onOpenChange={(open) => !open && setSelectedCustomerId(null)}
         onChanged={handleDataChanged}
         initialData={
           selectedCustomer

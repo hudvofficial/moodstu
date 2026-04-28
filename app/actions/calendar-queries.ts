@@ -13,6 +13,18 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+function datePart(value: string | null | undefined) {
+  return value?.split("T")[0] || null;
+}
+
+function timePart(value: string | null | undefined) {
+  return value?.slice(0, 5) || null;
+}
+
+function combineDateTime(dateValue: string, timeValue: string) {
+  return `${dateValue}T${timeValue}`;
+}
+
 /**
  * Fetch toàn bộ dữ liệu lịch hiển thị trong giao diện tháng.
  * Đã hợp nhất các bảng (schedules, work_tasks) và ép kiểu theo UnifiedCalendarEvent.
@@ -149,15 +161,21 @@ export async function fetchCalendarEvents(
 
       // Lấy deadline làm mốc neo chính, fallback sang start_date nếu task chưa có deadline.
       const anchorDate = t.deadline || t.start_date || new Date().toISOString();
+      const anchorDay = datePart(anchorDate) || datePart(new Date().toISOString())!;
+      const startTime = timePart(t.start_time);
+      const endTime = timePart(t.end_time);
+      const taskStart = startTime ? combineDateTime(anchorDay, startTime) : anchorDate;
+      const taskEnd = startTime && endTime ? combineDateTime(anchorDay, endTime) : null;
+      const taskAllDay = !startTime;
 
       result.push({
         id: t.id,
         source: "task",
         sourceId: t.id,
         title: getWorkTypeLabel((t.work_type || "khac") as WorkType),
-        start: anchorDate,
-        end: t.end_time || null,
-        allDay: true, // task thường hiển thị dạng ô ngày deadline
+        start: taskStart,
+        end: taskEnd,
+        allDay: taskAllDay,
         status: t.status || "pending",
         employeeId: t.assigned_to,
         contractId: t.contract_id,

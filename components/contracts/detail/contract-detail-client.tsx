@@ -22,11 +22,15 @@ import type {
   TaskStatus,
 } from "@/types/contract";
 import TopActionBar from "./top-action-bar";
-import ContractActionsMenu from "./contract-actions-menu";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import CancelBanner from "./cancel-banner";
 import MobileBottomBar from "./mobile-bottom-bar";
 import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
+
+const ContractActionsMenu = dynamic(() => import("./contract-actions-menu"), {
+  ssr: false,
+  loading: () => <div className="h-9 w-9 shrink-0" aria-hidden="true" />,
+});
 
 const PaymentReceiptForm = dynamic(() => import("./payment-receipt-form"), {
   ssr: false,

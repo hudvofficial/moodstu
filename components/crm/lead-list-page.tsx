@@ -250,10 +250,10 @@ export default function LeadListPage({
   const widgetsContent = (
     <>
       <div className="shrink-0">
-        <WidgetSalesFunnel leads={visibleLeads} />
+        <WidgetSalesFunnel stats={stats} />
       </div>
       <div className="shrink-0">
-        <WidgetSourceDonut leads={visibleLeads} />
+        <WidgetSourceDonut bySource={stats.bySource || {}} total={stats.total} />
       </div>
       <div className="shrink-0">
         <WidgetUpcoming />

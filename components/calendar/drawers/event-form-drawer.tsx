@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Switch } from "@/components/ui/switch";
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, patchGoogleCalendarEvent, CalendarSchedulePayload } from "@/app/actions/calendar-mutations";
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, CalendarSchedulePayload } from "@/app/actions/calendar-mutations";
+import { updateCalendarTaskDetails } from "@/app/actions/calendar-task-actions";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
-import { GOOGLE_COLORS } from "@/lib/utils/calendar-utils";
 import { ExternalLink, Trash, Edit2, FileText } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +46,13 @@ export function EventFormDrawer({
 
   const isEditing = !!event;
   const source = event?.source || "schedule";
+  const isGlobalAdmin = userRole === "admin" || userRole === "manager";
 
   const formatDatetimeLocal = (date?: Date | null, isoString?: string | null) => {
     if (isoString) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+        return `${isoString}T09:00`;
+      }
       const d = new Date(isoString);
       if (isNaN(d.getTime())) return "";
       return format(d, "yyyy-MM-dd'T'HH:mm");
@@ -69,8 +73,6 @@ export function EventFormDrawer({
     sync_to_google: false,
   });
 
-  const [googleColor, setGoogleColor] = useState<string>("9"); // Default Blueberry
-
   useEffect(() => {
     if (open) {
       if (isEditing && event) {
@@ -84,17 +86,8 @@ export function EventFormDrawer({
          });
          // If we open an existing event, default to view mode
          setIsEditMode(false);
-         if (source === "google") {
-            if (event.originalGoogleEvent?.colorId) {
-               setGoogleColor(event.originalGoogleEvent.colorId);
-            } else {
-               const match = GOOGLE_COLORS.find(c => event.colorToken?.includes(c.color.replace('bg-', '')));
-               setGoogleColor(match ? match.id : "9");
-            }
-         }
       } else {
          const initialDate = defaultDate ? defaultDate : new Date();
-         const isGlobalAdmin = userRole === "admin" || userRole === "manager";
          const defaultEmployee = isGlobalAdmin ? "" : (currentUserId || "");
          setFormData({
             title: "",
@@ -107,19 +100,40 @@ export function EventFormDrawer({
       }
       setError(null);
     }
-  }, [open, isEditing, event, defaultDate, userRole, currentUserId, source]);
+  }, [open, isEditing, event, defaultDate, isGlobalAdmin, currentUserId, source]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Xử lý riêng cho source google (PATCH color)
-    if (source === "google" && event?.originalGoogleEvent) {
+    // External Google events stay read-only inside Mood Studio.
+    if (source === "google") {
+      setError("Sự kiện Google chỉ được xem trong Mood Studio.");
+      return;
+    }
+
+    if (source === "task" && event) {
+      if (!formData.event_date || !formData.employee_id) {
+        setError("Vui lòng chọn ngày và người phụ trách.");
+        return;
+      }
+
       startTransition(async () => {
         try {
-          const res = await patchGoogleCalendarEvent(event.originalGoogleEvent!.id, { colorId: googleColor });
-          if (!res.success) throw new Error(res.error);
-          toast.success("Đã cập nhật màu sự kiện trên Google Calendar!");
+          const taskUpdates: {
+            deadline?: string;
+            assigned_to?: string;
+          } = {
+            deadline: formData.event_date.split("T")[0],
+          };
+
+          if (isGlobalAdmin && formData.employee_id !== event.employeeId) {
+            taskUpdates.assigned_to = formData.employee_id;
+          }
+
+          const res = await updateCalendarTaskDetails(event.id, taskUpdates);
+          if (!res.success) throw new Error(res.error || "Thao tác thất bại.");
+          toast.success("Đã cập nhật nhiệm vụ!");
           onSuccess?.();
           onOpenChange(false);
         } catch (err) {
@@ -236,11 +250,6 @@ export function EventFormDrawer({
                       <Edit2 className="w-4 h-4" /> Chỉnh sửa
                    </Button>
                 )}
-                {source === "google" && (
-                   <Button variant="outline" className="flex-1 justify-center gap-2" onClick={() => setIsEditMode(true)}>
-                      <Edit2 className="w-4 h-4" /> Chọn màu hiển thị
-                   </Button>
-                )}
                 {event.editable && source === "schedule" && (
                    <Button variant="danger" className="justify-center gap-2" onClick={handleDelete} disabled={isPending}>
                       <Trash className="w-4 h-4" /> Xoá
@@ -267,14 +276,15 @@ export function EventFormDrawer({
                    <Input placeholder="VD: Chụp Pre-Wedding" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} disabled={isPending || source === "task"} required />
                  </div>
 
-                 <div className="form-grid-2col shrink-0">
+                 <div className={`${source === "task" ? "space-y-2" : "form-grid-2col"} shrink-0`}>
                     <DatePicker 
-                      label="Ngày bắt đầu"
+                      label={source === "task" ? "Ngày deadline" : "Ngày bắt đầu"}
                       compact
                       value={formData.event_date.split("T")[0]}
-                      onChange={(d) => setFormData({ ...formData, event_date: `${d}T${formData.event_date.split("T")[1] || "09:00"}` })}
+                      onChange={(d) => setFormData({ ...formData, event_date: source === "task" ? d : `${d}T${formData.event_date.split("T")[1] || "09:00"}` })}
                       className="w-full min-w-0"
                     />
+                    {source === "schedule" && (
                     <Input 
                       label="Giờ bắt đầu"
                       type="time" 
@@ -283,8 +293,10 @@ export function EventFormDrawer({
                       disabled={isPending} 
                       required 
                     />
+                    )}
                  </div>
 
+                 {source === "schedule" && (
                  <div className="form-grid-2col shrink-0">
                     <DatePicker 
                       label="Ngày kết thúc"
@@ -302,32 +314,14 @@ export function EventFormDrawer({
                       disabled={isPending || !formData.end_date} 
                     />
                  </div>
+                 )}
 
                  <div className="space-y-2 shrink-0">
-                   <SimpleSelect label="Chủ sự kiện (Phụ trách)" value={formData.employee_id} onChange={(v) => setFormData({...formData, employee_id: v})} disabled={isPending} options={employees.map(e => ({ value: e.id, label: e.name }))} placeholder="--- Chọn nhân sự ---" />
+                   <SimpleSelect label="Chủ sự kiện (Phụ trách)" value={formData.employee_id} onChange={(v) => setFormData({...formData, employee_id: v})} disabled={isPending || (source === "task" && !isGlobalAdmin)} options={employees.map(e => ({ value: e.id, label: e.name }))} placeholder="--- Chọn nhân sự ---" />
                  </div>
                </>
             )}
 
-            {/* Màu Google Event (Dirty-field patch) */}
-            {source === "google" && (
-               <div className="space-y-3 shrink-0">
-                  <label className="label-base block">Màu sắc sự kiện trên Google</label>
-                  <div className="flex flex-wrap gap-2">
-                     {GOOGLE_COLORS.map(c => (
-                        <div
-                           key={c.id}
-                           role="button"
-                           onClick={() => setGoogleColor(c.id)}
-                           className={`w-8 h-8 rounded-full border-2 transition-all ${c.color} ${googleColor === c.id ? "border-text-main scale-110 shadow-sm" : "border-transparent opacity-80 hover:opacity-100"}`}
-                           title={c.label}
-                        />
-                     ))}
-                  </div>
-                  <p className="text-xs text-text-muted mt-2">Màu thay đổi sẽ được đồng bộ lên Google Calendar của bạn.</p>
-               </div>
-            )}
-            
             {!isEditing && isGoogleConnected && (
                <div className="space-y-2 p-3 bg-bg-input rounded-lg mt-2 shrink-0">
                    <label className="uppercase text-xs font-semibold text-text-main tracking-wider">Đồng bộ External</label>

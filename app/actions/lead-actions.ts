@@ -3,6 +3,7 @@
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import type { LeadStatus, CrmLead } from "@/types/crm";
+import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
 import { format } from "date-fns";
 import { writeAuditLog } from "@/lib/audit";
 import {
@@ -47,6 +48,43 @@ function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
 }
 
+function assertLeadAssignmentAllowed(params: {
+  role: string;
+  currentEmployeeId: string;
+  currentAssignedTo: string | null | undefined;
+  nextAssignedTo: string | null;
+}) {
+  const { role, currentEmployeeId, currentAssignedTo, nextAssignedTo } = params;
+
+  if ((currentAssignedTo || null) === nextAssignedTo) return;
+
+  if (role !== "sale") return;
+
+  const isUnassigningSelf =
+    nextAssignedTo === null && currentAssignedTo === currentEmployeeId;
+  if (isUnassigningSelf) return;
+
+  if (nextAssignedTo !== currentEmployeeId) {
+    throw new Error("Tai khoan sale chi duoc tu nhan lead cho minh hoac nha lead dang quan ly.");
+  }
+
+  if (currentAssignedTo && currentAssignedTo !== currentEmployeeId) {
+    throw new Error("Khong the chiem lead da phan cong cho nguoi khac.");
+  }
+}
+
+function assertLeadStatusTransitionAllowed(
+  currentStatus: LeadStatus,
+  nextStatus: LeadStatus,
+) {
+  if (nextStatus === currentStatus) return;
+
+  const allowedNexts = VALID_LEAD_TRANSITIONS[currentStatus] || [];
+  if (!allowedNexts.includes(nextStatus)) {
+    throw new Error(`Khong the chuyen trang thai tu '${currentStatus}' sang '${nextStatus}'`);
+  }
+}
+
 // ----------------------------------------------------
 
 export async function getLeads(params: {
@@ -59,7 +97,7 @@ export async function getLeads(params: {
     if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
     
     const page = parsed.data.page || 1;
-    const pageSize = parsed.data.limit || params.pageSize || 50;
+    const pageSize = parsed.data.limit || parsed.data.pageSize || 50;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -86,11 +124,24 @@ export async function getLeads(params: {
 
 export async function createLead(data: unknown): Promise<ActionResult<{ lead_id: string }>> {
   return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+    const { employee, role } = await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadCreate.safeParse(data);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
 
     const tData = parsed.data;
+
+    if (tData.status && tData.status !== "moi") {
+      throw new Error("Lead moi chi duoc tao o trang thai 'moi'. Hay dung thao tac pipeline de doi trang thai.");
+    }
+
+    if (tData.assigned_to) {
+      assertLeadAssignmentAllowed({
+        role,
+        currentEmployeeId: employee.id,
+        currentAssignedTo: null,
+        nextAssignedTo: tData.assigned_to,
+      });
+    }
 
     // Check for duplicates
     if (tData.phone?.trim()) {
@@ -108,7 +159,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
       needs: tData.needs?.trim() || null, 
       address: tData.address?.trim() || null,
       potential: tData.potential || null, 
-      status: tData.status || "moi", 
+      status: "moi" as LeadStatus, 
       notes: tData.notes?.trim() || null,
       social_link: tData.social_link?.trim() || null, 
       next_contact_date: tData.next_contact_date || null,
@@ -141,7 +192,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
 
 export async function updateLead(id: string, data: unknown): Promise<ActionResult<null>> {
   return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+    const { employee, role } = await requireCrmAccess(supabase, userId);
     
     // We expect the client to pass the id and data together for Zod parsing
     const parsed = ZodLeadUpdate.safeParse({ id, ...(typeof data === "object" && data !== null ? data : {}) });
@@ -157,7 +208,8 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
     }
 
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const updateData: Record<string, unknown> = { updated_at: now };
     if (tData.contact_name !== undefined) updateData.contact_name = tData.contact_name.trim();
     if (tData.phone !== undefined) updateData.phone = tData.phone.trim() || null;
     if (tData.email !== undefined) updateData.email = tData.email.trim() || null;
@@ -165,11 +217,25 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     if (tData.needs !== undefined) updateData.needs = tData.needs?.trim() || null;
     if (tData.address !== undefined) updateData.address = tData.address?.trim() || null;
     if (tData.potential !== undefined) updateData.potential = tData.potential || null;
-    if (tData.status !== undefined) updateData.status = tData.status;
+    if (tData.status !== undefined) {
+      const oldStatus = (oldData.status || "moi") as LeadStatus;
+      assertLeadStatusTransitionAllowed(oldStatus, tData.status);
+      updateData.status = tData.status;
+      if (tData.status !== oldStatus) updateData.status_changed_at = now;
+    }
     if (tData.notes !== undefined) updateData.notes = tData.notes?.trim() || null;
     if (tData.social_link !== undefined) updateData.social_link = tData.social_link?.trim() || null;
     if (tData.next_contact_date !== undefined) updateData.next_contact_date = tData.next_contact_date || null;
-    if (tData.assigned_to !== undefined) updateData.assigned_to = tData.assigned_to || null;
+    if (tData.assigned_to !== undefined) {
+      const nextAssignedTo = tData.assigned_to || null;
+      assertLeadAssignmentAllowed({
+        role,
+        currentEmployeeId: employee.id,
+        currentAssignedTo: oldData.assigned_to,
+        nextAssignedTo,
+      });
+      updateData.assigned_to = nextAssignedTo;
+    }
     if (tData.deal_value !== undefined) updateData.deal_value = tData.deal_value || 0;
     if (tData.tags !== undefined) updateData.tags = tData.tags || [];
     if (tData.score !== undefined) updateData.score = tData.score || 0;
@@ -259,7 +325,7 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
 
 // ----------------------------------------------------
 
-export async function getLeadStats(): Promise<ActionResult<{ total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number> }>> {
+export async function getLeadStats(): Promise<ActionResult<{ total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number>; bySource: Record<string, number> }>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
 
@@ -272,13 +338,15 @@ export async function getLeadStats(): Promise<ActionResult<{ total: number; acti
       closed?: number;
       conversionRate?: number;
       byStatus?: Record<string, number>;
+      bySource?: Record<string, number>;
     };
     return {
       total: stats.total || 0,
       active: stats.active || 0,
       closed: stats.closed || 0,
       conversionRate: stats.conversionRate || 0,
-      byStatus: stats.byStatus || {}
+      byStatus: stats.byStatus || {},
+      bySource: stats.bySource || {}
     };
   });
 }

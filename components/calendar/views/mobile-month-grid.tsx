@@ -16,11 +16,13 @@ import { getLunarDate, formatLunarShort, isLunarNewMonth } from "@/lib/lunar-cal
 
 interface MobileMonthGridProps {
   currentDate: Date;
-  events: UnifiedCalendarEvent[];
+  eventsByDate: Map<string, UnifiedCalendarEvent[]>;
   onDateSelect: (date: Date) => void;
 }
 
-export function MobileMonthGrid({ currentDate, events, onDateSelect }: MobileMonthGridProps) {
+const EMPTY_EVENTS: UnifiedCalendarEvent[] = [];
+
+export function MobileMonthGrid({ currentDate, eventsByDate, onDateSelect }: MobileMonthGridProps) {
   const daysInGrid = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -64,7 +66,7 @@ export function MobileMonthGrid({ currentDate, events, onDateSelect }: MobileMon
             const lunarText = formatLunarShort(lunar);
             const isNewLunarMonth = isLunarNewMonth(lunar);
             
-            const eventsForDay = events.filter(e => e.start.split("T")[0] === dateIso);
+            const eventsForDay = eventsByDate.get(dateIso) ?? EMPTY_EVENTS;
             
             return (
                <div 

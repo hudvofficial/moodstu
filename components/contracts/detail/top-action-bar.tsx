@@ -1,12 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Pencil, Printer, Download } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { CONTRACT_STATUS_MAP, PAYMENT_STATUS_MAP } from "@/types/contract-constants";
 import { Badge } from "@/components/ui/badge";
 import type { ContractStatus, PaymentStatus } from "@/types/contract";
-import ContractActionsMenu from "./contract-actions-menu";
+
+const ContractActionsMenu = dynamic(() => import("./contract-actions-menu"), {
+  ssr: false,
+  loading: () => <div className="h-9 w-28 shrink-0" aria-hidden="true" />,
+});
 
 // ═══════════════════════════════════════════
 // Top Action Bar — Stitch SSOT (line 96-120)

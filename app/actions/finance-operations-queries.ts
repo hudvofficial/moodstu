@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withFinanceRead } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
@@ -23,9 +23,11 @@ import type {
   SalaryPageData,
 } from "@/types/finance-operations";
 
+const MAX_FINANCE_PAGE_SIZE = 50;
+
 function pageWindow(page = 1, pageSize = 12) {
-  const current = Math.max(1, page);
-  const size = Math.max(1, pageSize);
+  const current = Math.max(1, Math.trunc(Number(page) || 1));
+  const size = Math.min(MAX_FINANCE_PAGE_SIZE, Math.max(1, Math.trunc(Number(pageSize) || 12)));
   const from = (current - 1) * size;
   return { current, size, from, to: from + size - 1 };
 }
@@ -63,7 +65,7 @@ function investmentBookValue(row: {
 }
 
 export async function checkFinancePeriodLocked(date: string) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase.rpc("is_period_locked", { p_date: date });
     if (error && isMissingRpcError(error)) {
       const { data: close, error: closeError } = await supabase
@@ -80,7 +82,7 @@ export async function checkFinancePeriodLocked(date: string) {
 }
 
 export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all") {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     let query = supabase
       .from("transaction_categories")
       .select("id, name, type, category_code, is_default, updated_at")
@@ -96,13 +98,14 @@ export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all"
 }
 
 export async function fetchContractOptions(limit = 60) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
+    const safeLimit = Math.min(100, Math.max(1, Math.trunc(Number(limit) || 60)));
     const { data, error } = await supabase
       .from("contracts")
       .select("id, contract_code, total_amount, paid_amount, remaining_amount, customer:customer_id(full_name)")
       .is("deleted_at", null)
       .order("contract_date", { ascending: false })
-      .limit(limit);
+      .limit(safeLimit);
 
     if (error) throw new Error(`Loi tai hop dong: ${error.message}`);
     return (data || []).map((row) => ({
@@ -117,7 +120,7 @@ export async function fetchContractOptions(limit = 60) {
 }
 
 export async function fetchReceipts(params: MonthYearPageParams & { search?: string; receiptType?: string } = {}) {
-  return profileAction("finance.fetchReceipts", () => withAuth(async (supabase) => {
+  return profileAction("finance.fetchReceipts", () => withFinanceRead(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
@@ -163,7 +166,7 @@ export interface ReceiptStats {
 }
 
 export async function fetchReceiptStats(month?: number, year?: number) {
-  return profileAction("finance.fetchReceiptStats", () => withAuth(async (supabase) => {
+  return profileAction("finance.fetchReceiptStats", () => withFinanceRead(async (supabase) => {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc("finance_receipt_stats", {
         p_month: month ?? null,
@@ -217,7 +220,7 @@ export async function fetchReceiptStats(month?: number, year?: number) {
 }
 
 export async function fetchExpenses(params: MonthYearPageParams & { approval?: ApprovalFilter } = {}) {
-  return profileAction("finance.fetchExpenses", () => withAuth(async (supabase) => {
+  return profileAction("finance.fetchExpenses", () => withFinanceRead(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
@@ -266,7 +269,7 @@ export interface ExpenseStats {
 }
 
 export async function fetchExpenseStats(month?: number, year?: number) {
-  return profileAction("finance.fetchExpenseStats", () => withAuth(async (supabase) => {
+  return profileAction("finance.fetchExpenseStats", () => withFinanceRead(async (supabase) => {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc("finance_expense_stats", {
         p_month: month ?? null,
@@ -315,7 +318,7 @@ export async function fetchExpenseStats(month?: number, year?: number) {
 }
 
 export async function fetchDebts(params: { page?: number; pageSize?: number } = {}) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
     const { data, error, count } = await supabase
       .from("debts")
@@ -367,8 +370,36 @@ export interface DebtStats {
   };
 }
 
+function mapDebtStatsRow(row: Record<string, unknown> | null | undefined): DebtStats {
+  const aging = (row?.aging && typeof row.aging === "object" ? row.aging : {}) as Record<string, unknown>;
+  return {
+    receivable: Number(row?.receivable) || 0,
+    payable: Number(row?.payable) || 0,
+    overdue: Number(row?.overdue) || 0,
+    net_debt: Number(row?.net_debt) || 0,
+    aging: {
+      not_due: Number(aging.not_due) || 0,
+      days_1_30: Number(aging.days_1_30) || 0,
+      days_31_60: Number(aging.days_31_60) || 0,
+      days_61_90: Number(aging.days_61_90) || 0,
+      over_90: Number(aging.over_90) || 0,
+    },
+  };
+}
+
 export async function fetchDebtStats() {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("finance_debt_stats")
+      .maybeSingle();
+
+    if (!rpcError) {
+      return mapDebtStatsRow(rpcData as Record<string, unknown> | null);
+    }
+    if (!isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai thong ke cong no: ${rpcError.message}`);
+    }
+
     const { data, error } = await supabase
       .from("debts")
       .select("type, remaining, amount, paid_amount, due_date, status")
@@ -428,10 +459,11 @@ export interface CreditCardOption {
 }
 
 export async function fetchCreditCards() {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase
       .from("credit_cards")
       .select("id, bank_name, last_4, statement_day, due_day, credit_limit")
+      .is("deleted_at", null)
       .order("bank_name", { ascending: true });
 
     if (error) throw new Error(`Lỗi tải danh sách thẻ tín dụng: ${error.message}`);
@@ -440,7 +472,7 @@ export async function fetchCreditCards() {
 }
 
 export async function fetchLabDebts() {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase.rpc("finance_lab_debt_summary");
     if (!error) return (data || []) as LabDebtItem[];
     if (isMissingRpcError(error)) {
@@ -491,10 +523,11 @@ export async function fetchLabDebts() {
 }
 
 export async function fetchFixedCosts() {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase
       .from("fixed_costs")
       .select("id, cost_code, cost_name, cost_type, monthly_amount, deposit_amount, start_date, end_date, description, updated_at")
+      .is("deleted_at", null)
       .order("cost_name", { ascending: true });
 
     if (error) throw new Error(`Loi tai chi phi co dinh: ${error.message}`);
@@ -503,10 +536,11 @@ export async function fetchFixedCosts() {
 }
 
 export async function fetchInvestments() {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase
       .from("investments")
       .select("id, name, category, serial_number, purchase_date, purchase_price, linked_revenue, salvage_value, useful_life_months, depreciation_method, status, condition, location, next_maintenance_date, updated_at")
+      .is("deleted_at", null)
       .order("purchase_date", { ascending: false });
 
     if (error) throw new Error(`Loi tai tai san: ${error.message}`);
@@ -524,7 +558,7 @@ export async function fetchInvestments() {
 }
 
 export async function fetchSalaries(month: number, year: number) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const [rowsResult, summaryResult] = await Promise.all([
       supabase
         .from("employee_salaries")
@@ -586,7 +620,7 @@ export async function fetchSalaries(month: number, year: number) {
 export async function fetchGoals(
   params: { page?: number; pageSize?: number; includeContributions?: boolean } = {},
 ) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
     const { data, error, count } = params.includeContributions
       ? await supabase
@@ -595,11 +629,13 @@ export async function fetchGoals(
             "id, name, target_amount, current_amount, deadline, status, notes, created_at, icon, color, updated_at, goal_contributions(id, goal_id, amount, contribution_date, notes, created_at)",
             { count: "exact" },
           )
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .range(from, to)
       : await supabase
           .from("financial_goals")
           .select("id, name, target_amount, current_amount, deadline, status, notes, created_at, icon, color, updated_at", { count: "exact" })
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .range(from, to);
 
@@ -659,7 +695,7 @@ export interface GoalsCashflowData {
 }
 
 export async function fetchGoalsCashflow(params: { month?: number; year?: number } = {}) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     const today = getTodayInTimeZone();
     const year = params.year || Number(today.slice(0, 4));
     const month = params.month || Number(today.slice(5, 7));
@@ -750,10 +786,18 @@ export async function fetchGoalContributions(
   goalId: string,
   params: { page?: number; pageSize?: number } = {},
 ) {
-  return withAuth(async (supabase) => {
+  return withFinanceRead(async (supabase) => {
     if (!goalId?.trim()) throw new Error("Goal ID khong hop le");
 
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
+    const { data: goal, error: goalError } = await supabase
+      .from("financial_goals")
+      .select("id")
+      .eq("id", goalId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (goalError || !goal) throw new Error(`Khong tim thay muc tieu: ${goalError?.message || ""}`);
+
     const { data, error, count } = await supabase
       .from("goal_contributions")
       .select("id, goal_id, amount, contribution_date, notes, created_at", { count: "exact" })
@@ -776,7 +820,7 @@ export async function fetchGoalContributions(
 // ─── RECEIPT DETAIL ─────────────────────────
 
 export async function getReceiptDetail(id: string) {
-  return profileAction("finance.getReceiptDetail", () => withAuth(async (supabase) => {
+  return profileAction("finance.getReceiptDetail", () => withFinanceRead(async (supabase) => {
     const { data: receipt, error } = await supabase
       .from("receipts")
       .select("*")
@@ -795,7 +839,7 @@ export async function getReceiptDetail(id: string) {
 // ─── EXPENSE DETAIL ─────────────────────────
 
 export async function getExpenseDetail(id: string) {
-  return profileAction("finance.getExpenseDetail", () => withAuth(async (supabase) => {
+  return profileAction("finance.getExpenseDetail", () => withFinanceRead(async (supabase) => {
     const { data: expense, error } = await supabase
       .from("expenses")
       .select(`

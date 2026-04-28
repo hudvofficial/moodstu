@@ -86,6 +86,7 @@ export async function updateFixedCost(
       .from("fixed_costs")
       .select("cost_code, cost_name, monthly_amount")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy chi phí cố định");
@@ -98,7 +99,11 @@ export async function updateFixedCost(
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from("fixed_costs").update(updateData).eq("id", id);
+    const { error } = await supabase
+      .from("fixed_costs")
+      .update(updateData)
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi cập nhật chi phí cố định: ${error.message}`);
 
     await writeAuditLog({
@@ -121,6 +126,7 @@ export async function deleteFixedCost(id: string) {
       .from("fixed_costs")
       .select("cost_code, cost_name, monthly_amount, start_date")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy chi phí cố định.");
@@ -128,7 +134,11 @@ export async function deleteFixedCost(id: string) {
     // W3: Period lock
     await checkPeriodLock(supabase, oldData.start_date || new Date().toISOString().split("T")[0]);
 
-    const { error } = await supabase.from("fixed_costs").delete().eq("id", id);
+    const { error } = await supabase
+      .from("fixed_costs")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null);
     if (error) throw new Error(`Lỗi xóa chi phí cố định: ${error.message}`);
 
     await writeAuditLog({

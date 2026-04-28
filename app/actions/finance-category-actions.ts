@@ -52,7 +52,7 @@ export async function createFinanceCategory(input: {
       tableName: "transaction_categories",
       recordId: data.id,
       newData: insertData,
-      description: `Tao danh muc finance: ${name}`,
+      description: `Tao danh muc finance: ${parsed.data.name}`,
     });
 
     revalidatePath("/finance/categories");

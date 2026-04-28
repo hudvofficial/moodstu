@@ -64,23 +64,27 @@ export function NavigationWarmup({ role }: { role: Role }) {
     if (hrefs.length === 0) return;
 
     let cancelled = false;
+    let cancelIdle: (() => void) | undefined;
     const timeoutIds: number[] = [];
 
-    const cancelIdle = scheduleIdle(() => {
-      hrefs.slice(0, 8).forEach((href, index) => {
-        const id = window.setTimeout(() => {
-          if (!cancelled) {
-            router.prefetch(href);
-            if (index < 4) prewarmRouteData(href);
-          }
-        }, index * 140);
-        timeoutIds.push(id);
+    const startId = window.setTimeout(() => {
+      cancelIdle = scheduleIdle(() => {
+        hrefs.slice(0, 4).forEach((href, index) => {
+          const id = window.setTimeout(() => {
+            if (!cancelled) {
+              router.prefetch(href);
+              if (index < 2) prewarmRouteData(href);
+            }
+          }, index * 200);
+          timeoutIds.push(id);
+        });
       });
-    });
+    }, 3000);
 
     return () => {
       cancelled = true;
-      cancelIdle();
+      window.clearTimeout(startId);
+      cancelIdle?.();
       timeoutIds.forEach((id) => window.clearTimeout(id));
     };
   }, [hrefs, router]);

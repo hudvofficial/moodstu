@@ -224,6 +224,16 @@ export async function convertLeadToCustomer(leadId: string): Promise<ActionResul
     const { data: oldData, error: oldError } = await supabase.from("crm_leads").select("*").eq("id", leadId).is("deleted_at", null).single();
     if (oldError || !oldData) throw new Error("Không tìm thấy lead hoặc lead đã bị xóa");
 
+    const { data: existingCustomer, error: existingCustomerError } = oldData.phone
+      ? await supabase
+          .from("customers")
+          .select("id, lead_id, full_name, phone")
+          .eq("phone", oldData.phone.trim())
+          .is("deleted_at", null)
+          .maybeSingle()
+      : { data: null, error: null };
+    if (existingCustomerError) throw existingCustomerError;
+
     // The RPC currently does its own insertion. We still log an UPDATE to the lead to track the conversion.
     const { data, error } = await supabase.rpc("convert_lead_to_customer", { p_lead_id: leadId });
     if (error) throw error;
@@ -239,11 +249,11 @@ export async function convertLeadToCustomer(leadId: string): Promise<ActionResul
     const result = data as { customer_id: string; lead: { phone?: string; contact_name?: string; needs?: string } };
     
     await writeAuditLog({
-      action: "CREATE",
+      action: existingCustomer ? "UPDATE" : "CREATE",
       tableName: "customers",
       recordId: result.customer_id,
-      oldData: undefined,
-      newData: { source_lead_id: leadId, ...result.lead },
+      oldData: existingCustomer || undefined,
+      newData: { source_lead_id: leadId, linked_existing_customer: !!existingCustomer, ...result.lead },
     });
 
     const params = new URLSearchParams({
@@ -287,7 +297,6 @@ export async function addCareLog(leadId: string, content: string, type: string =
     return null;
   });
 }
-
 
 
 
