@@ -1,12 +1,5 @@
 import { z } from "zod";
 
-// ═══════════════════════════════════════════
-// Rental Validation Schemas
-// DB: dress_rentals + dress_rental_accessories
-// ═══════════════════════════════════════════
-
-// ─── Rental Status ───────────────────────────────────────────
-
 export const RENTAL_STATUSES = [
   "reserved",
   "renting",
@@ -16,8 +9,6 @@ export const RENTAL_STATUSES = [
 ] as const;
 
 export type RentalStatus = (typeof RENTAL_STATUSES)[number];
-
-// ─── Create Rental ───────────────────────────────────────────
 
 export const createRentalSchema = z.object({
   item_id: z.string().uuid("ID trang phục không hợp lệ"),
@@ -30,11 +21,12 @@ export const createRentalSchema = z.object({
   deposit: z.number().min(0).default(0),
   accessories: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+}).refine((data) => data.return_date >= data.pickup_date, {
+  message: "Ngày trả phải sau hoặc bằng ngày lấy",
+  path: ["return_date"],
 });
 
 export type CreateRentalInput = z.infer<typeof createRentalSchema>;
-
-// ─── Return Dress ────────────────────────────────────────────
 
 export const returnDressSchema = z.object({
   rental_id: z.string().uuid("ID đơn thuê không hợp lệ"),

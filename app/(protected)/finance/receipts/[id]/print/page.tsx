@@ -4,6 +4,8 @@ import { getStudioInfo } from "@/app/actions/settings-queries";
 import { PrintReceiptClient } from "@/components/finance/receipts/print-receipt-client";
 import type { ReceiptPrintData } from "@/components/finance/receipts/print-receipt-client";
 
+export const metadata = { title: "In phiếu thu" };
+
 export const dynamic = "force-dynamic";
 
 export default async function PrintReceiptPage(props: {
@@ -24,3 +26,4 @@ export default async function PrintReceiptPage(props: {
     />
   );
 }
+

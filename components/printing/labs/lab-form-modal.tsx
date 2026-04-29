@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   updateLabService,
   deleteLabService,
 } from "@/app/actions/lab-mutations";
+import { getLabServices } from "@/app/actions/lab-queries";
 import { toast } from "@/lib/toast-utils";
 import type { Lab } from "@/types/printing";
 import LabServicesEditor, {
@@ -129,17 +130,42 @@ export default function LabFormModal({
   const [services, setServices] = useState<EditableLabService[]>(
     getInitialServices(lab),
   );
+  const [baselineServices, setBaselineServices] = useState<EditableLabService[]>(
+    getInitialServices(lab),
+  );
   const [loading, setLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setForm(getInitialForm(lab));
-    setServices(getInitialServices(lab));
+    const nextServices = getInitialServices(lab);
+    setServices(nextServices);
+    setBaselineServices(nextServices);
     setConfirmDeleteOpen(false);
   }, [isOpen, lab]);
 
-  const initialServices = useMemo(() => getInitialServices(lab), [lab]);
+  useEffect(() => {
+    if (!isOpen || !lab) return;
+
+    let cancelled = false;
+    getLabServices(lab.id).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        const fetchedServices = result.data.map((service) => ({
+          ...service,
+          tempId: service.id || buildTempId(),
+          cost_price: Number(service.cost_price ?? 0),
+        }));
+        setServices(fetchedServices);
+        setBaselineServices(fetchedServices);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, lab]);
 
   const handleSubmit = async () => {
     if (!form.lab_name.trim()) {
@@ -164,7 +190,7 @@ export default function LabFormModal({
 
         await syncServices({
           labId: lab.id,
-          initialServices,
+          initialServices: baselineServices,
           nextServices: services,
         });
 

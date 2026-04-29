@@ -41,6 +41,7 @@ export interface DressFilters {
   category?: DressCategory | "all";
   status?: DressStatus | "all";
   page?: number;
+  sort?: "newest" | "price_desc" | "price_asc" | "name_asc";
 }
 
 // ─── STATS FOR LIST HEADER ───────────────────────────────────

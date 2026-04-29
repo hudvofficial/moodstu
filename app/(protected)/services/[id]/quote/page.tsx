@@ -4,6 +4,8 @@ import { getServiceById } from "@/app/actions/service-queries";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 import type { StudioInfo } from "@/types/settings";
 
+export const metadata = { title: "Báo giá dịch vụ" };
+
 // ═══════════════════════════════════════════
 // /services/[id]/quote — Full-page Quote (SSR)
 // Fetches service + studio info server-side
@@ -56,4 +58,5 @@ export default async function QuotePage({ params }: Props) {
     />
   );
 }
+
 

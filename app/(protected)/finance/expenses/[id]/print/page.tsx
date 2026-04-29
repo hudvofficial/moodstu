@@ -4,6 +4,8 @@ import { getStudioInfo } from "@/app/actions/settings-queries";
 import { PrintExpenseClient } from "@/components/finance/expenses/print-expense-client";
 import type { ExpensePrintData } from "@/components/finance/expenses/print-expense-client";
 
+export const metadata = { title: "In phiếu chi" };
+
 export const dynamic = "force-dynamic";
 
 export default async function PrintExpensePage(props: {
@@ -25,3 +27,4 @@ export default async function PrintExpensePage(props: {
     />
   );
 }
+

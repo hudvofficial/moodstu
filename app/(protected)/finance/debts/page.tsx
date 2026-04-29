@@ -12,8 +12,8 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
 }
 
 export const metadata: Metadata = {
-  title: "Quản lý công nợ",
-  description: "Quản lý khoản phải thu và khoản phải trả.",
+  title: "Công nợ",
+  description: "Quản lý khoản phải thu và khoản phải trả",
 };
 export const dynamic = "force-dynamic";
 
@@ -43,3 +43,4 @@ export default async function DebtsPage() {
     />
   );
 }
+

@@ -1,11 +1,20 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
+import {
+  requireContractAccess,
+  withAuth,
+  withServicesAccess,
+} from "@/lib/auth_utils";
 import { generateServiceCode } from "@/lib/utils/service-utils";
+import {
+  categoryDeleteSchema,
+  categoryUpsertSchema,
+  quickCreateServiceSchema,
+} from "@/lib/validations/service.schema";
 import { revalidatePath } from "next/cache";
-import { SERVICE_TYPES } from "@/types/service-constants";
 import type { ItemType } from "@/types/contract";
+import type { Json } from "@/types/database.types";
 
 type CatalogItemType = Exclude<ItemType, "phat_sinh">;
 type QuickCreateItemType = Exclude<ItemType, "trang_phuc" | "phat_sinh">;
@@ -14,13 +23,7 @@ const SERVICE_LIKE_UNITS = ["dich_vu", "goi", "lan", "ngay", "gio"];
 const PRODUCT_LIKE_UNITS = ["san_pham", "cuon", "bo"];
 
 function sanitizeCatalogSearch(search?: string): string {
-  return search?.replace(/[%_,()]/g, " ").trim() || "";
-}
-
-function normalizeServiceType(serviceType?: string): string {
-  return serviceType && (SERVICE_TYPES as readonly string[]).includes(serviceType)
-    ? serviceType
-    : "khac";
+  return search?.replace(/[%_,()]/g, " ").trim().slice(0, 100) || "";
 }
 
 function toSlug(name: string): string {
@@ -28,21 +31,50 @@ function toSlug(name: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
+    .replace(/\u0111/g, "d")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeCatalogType(itemType: CatalogItemType): CatalogItemType {
+  return itemType === "trang_phuc" || itemType === "san_pham" ? itemType : "dich_vu";
+}
+
+function normalizeRpcService(value: Json | null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Ket qua tao dich vu khong hop le");
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.id !== "string") throw new Error("Thieu service id");
+  return {
+    id: record.id,
+    name: typeof record.name === "string" ? record.name : "",
+    service_code:
+      typeof record.service_code === "string" ? record.service_code : undefined,
+  };
+}
+
 export async function upsertCategory(data: { id?: string; name: string; icon?: string }) {
-  return withAuth(async (supabase) => {
-    const payload = { name: data.name, slug: toSlug(data.name), icon: data.icon };
+  return withServicesAccess(async (supabase) => {
+    const parsed = categoryUpsertSchema.safeParse(data);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message || "Danh muc khong hop le");
+    }
+
+    const category = parsed.data;
+    const payload = {
+      name: category.name,
+      slug: toSlug(category.name),
+      icon: category.icon || null,
+    };
     let record;
 
-    if (data.id) {
+    if (category.id) {
       const { data: updated, error } = await supabase
         .from("service_categories")
         .update(payload)
-        .eq("id", data.id)
+        .eq("id", category.id)
         .select()
         .single();
       if (error) throw new Error(`Loi cap nhat danh muc: ${error.message}`);
@@ -58,9 +90,9 @@ export async function upsertCategory(data: { id?: string; name: string; icon?: s
     }
 
     fireAuditLog({
-      action: data.id ? "UPDATE" : "CREATE",
+      action: category.id ? "UPDATE" : "CREATE",
       tableName: "service_categories",
-      description: `${data.id ? "Cap nhat" : "Tao"} danh muc: ${data.name}`,
+      description: `${category.id ? "Cap nhat" : "Tao"} danh muc: ${category.name}`,
     });
     revalidatePath("/services");
     return record;
@@ -68,24 +100,26 @@ export async function upsertCategory(data: { id?: string; name: string; icon?: s
 }
 
 export async function deleteCategory(id: string) {
-  return withAuth(async (supabase) => {
+  return withServicesAccess(async (supabase) => {
+    const parsed = categoryDeleteSchema.parse({ id });
     const { count, error: checkError } = await supabase
       .from("services")
       .select("*", { count: "exact", head: true })
-      .eq("category_id", id);
+      .eq("category_id", parsed.id)
+      .is("deleted_at", null);
     if (checkError) throw new Error(`Loi kiem tra: ${checkError.message}`);
     if (count && count > 0) {
       throw new Error(`Danh muc nay dang duoc dung boi ${count} dich vu. Khong the xoa.`);
     }
 
-    const { error } = await supabase.from("service_categories").delete().eq("id", id);
+    const { error } = await supabase.from("service_categories").delete().eq("id", parsed.id);
     if (error) throw new Error(`Loi xoa danh muc: ${error.message}`);
 
     fireAuditLog({
       action: "DELETE",
       tableName: "service_categories",
-      recordId: id,
-      description: `Xoa danh muc #${id.substring(0, 8)}`,
+      recordId: parsed.id,
+      description: `Xoa danh muc #${parsed.id.substring(0, 8)}`,
       severity: "WARNING",
     });
     revalidatePath("/services");
@@ -94,7 +128,9 @@ export async function deleteCategory(id: string) {
 }
 
 export async function getAvailableServices(search?: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
     let query = supabase
       .from("services")
       .select("id, name, service_code, service_type, category_id, selling_price, cost_price, unit")
@@ -103,7 +139,7 @@ export async function getAvailableServices(search?: string) {
       .order("name")
       .limit(50);
 
-    const sanitized = search?.replace(/[%_,()]/g, " ").trim();
+    const sanitized = sanitizeCatalogSearch(search);
     if (sanitized) {
       query = query.or(`name.ilike.%${sanitized}%,service_code.ilike.%${sanitized}%`);
     }
@@ -124,10 +160,12 @@ export async function getAvailableServices(search?: string) {
 }
 
 export async function getAvailableCatalogItems(itemType: CatalogItemType, search?: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+    const normalizedType = normalizeCatalogType(itemType);
     const sanitized = sanitizeCatalogSearch(search);
 
-    if (itemType === "trang_phuc") {
+    if (normalizedType === "trang_phuc") {
       let query = supabase
         .from("dresses")
         .select("id, name, item_code, category, size, color, rental_price, sale_price, image_url")
@@ -155,7 +193,7 @@ export async function getAvailableCatalogItems(itemType: CatalogItemType, search
         unit: "bo",
         meta: [dress.category, dress.size ? `Size ${dress.size}` : null, dress.color]
           .filter(Boolean)
-          .join(" · "),
+          .join(" - "),
       }));
     }
 
@@ -167,9 +205,10 @@ export async function getAvailableCatalogItems(itemType: CatalogItemType, search
       .order("name")
       .limit(50);
 
-    query = itemType === "san_pham"
-      ? query.in("unit", PRODUCT_LIKE_UNITS)
-      : query.in("unit", SERVICE_LIKE_UNITS);
+    query =
+      normalizedType === "san_pham"
+        ? query.in("unit", PRODUCT_LIKE_UNITS)
+        : query.in("unit", SERVICE_LIKE_UNITS);
 
     if (sanitized) {
       query = query.or(`name.ilike.%${sanitized}%,service_code.ilike.%${sanitized}%`);
@@ -188,7 +227,7 @@ export async function getAvailableCatalogItems(itemType: CatalogItemType, search
       category_id: service.category_id,
       selling_price: Number(service.selling_price) || 0,
       cost_price: Number(service.cost_price) || 0,
-      item_type: itemType,
+      item_type: normalizedType,
       unit: service.unit,
       meta: service.service_code,
     }));
@@ -203,40 +242,43 @@ export async function quickCreateService(serviceData: {
   cost_price?: number;
 }) {
   return withAuth(async (supabase, userId) => {
-    const name = serviceData.service_name.trim();
-    if (!name) throw new Error("Ten dich vu la bat buoc");
+    await requireContractAccess(supabase, userId);
+    const parsed = quickCreateServiceSchema.safeParse(serviceData);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message || "Dich vu khong hop le");
+    }
 
+    const data = parsed.data;
+    const itemType = data.item_type === "san_pham" ? "san_pham" : "dich_vu";
     const serviceCode = generateServiceCode();
-    const serviceType = normalizeServiceType(serviceData.service_type);
-    const itemType = serviceData.item_type === "san_pham" ? "san_pham" : "dich_vu";
-    const { data: service, error } = await supabase
-      .from("services")
-      .insert({
-        name,
-        service_code: serviceCode,
-        service_type: serviceType,
-        selling_price: serviceData.selling_price,
-        cost_price: serviceData.cost_price || 0,
-        unit: itemType === "san_pham" ? "san_pham" : "dich_vu",
-        fulfillment_type: "single",
-        status: "active",
-        created_by: userId,
-        updated_by: userId,
-      })
-      .select("id, name, selling_price, service_type, unit")
-      .single();
+    const servicePayload = {
+      name: data.service_name,
+      service_code: serviceCode,
+      service_type: data.service_type,
+      selling_price: data.selling_price,
+      cost_price: data.cost_price || 0,
+      unit: itemType === "san_pham" ? "san_pham" : "dich_vu",
+      fulfillment_type: "single",
+      status: "active",
+    };
+
+    const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
+      p_actor_id: userId,
+      p_bundle_items: [],
+      p_expected_updated_at: null,
+      p_service: servicePayload as Json,
+    });
 
     if (error) throw new Error(`Loi tao dich vu: ${error.message}`);
+    const service = normalizeRpcService(rpcData);
 
     fireAuditLog({
       action: "CREATE",
       tableName: "services",
       recordId: service.id,
-      description: `Quick create service: ${name} (${serviceCode})`,
+      description: `Quick create service: ${data.service_name} (${serviceCode})`,
       newData: {
-        name,
-        service_code: serviceCode,
-        service_type: serviceType,
+        ...servicePayload,
         item_type: itemType,
       },
       source: "server_action",
@@ -245,10 +287,10 @@ export async function quickCreateService(serviceData: {
 
     return {
       id: service.id,
-      service_name: service.name,
-      selling_price: Number(service.selling_price) || 0,
-      service_type: service.service_type,
-      unit: service.unit,
+      service_name: data.service_name,
+      selling_price: data.selling_price,
+      service_type: data.service_type,
+      unit: itemType === "san_pham" ? "san_pham" : "dich_vu",
     };
   });
 }

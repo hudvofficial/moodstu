@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, Users, FilterX } from "lucide-react";
+import { AlertTriangle, Plus, Users, FilterX } from "lucide-react";
 import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
 import type { EmployeeListItem } from "@/types/employee";
 import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
@@ -74,22 +74,26 @@ export default function EmployeeListPage({
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    initialEmployees.length
-      ? {
-          fallbackData: {
-            employees: initialEmployees,
-            total: initialTotal,
-            page: initialPage,
-            pageSize: initialPageSize,
-          },
-        }
-      : undefined,
+    {
+      fallbackData: {
+        employees: initialEmployees,
+        total: initialTotal,
+        page: initialPage,
+        pageSize: initialPageSize,
+      },
+      keepPreviousData: true,
+      revalidateOnMount: false,
+    },
   );
   const statsQuery = useSWR(cacheKeys.employees() + ":stats", async () => {
     const result = await getEmployeeStats();
     if (!result.success) throw new Error(result.error);
     return result.data;
-  }, initialStats.total ? { fallbackData: initialStats } : undefined);
+  }, {
+    fallbackData: initialStats,
+    keepPreviousData: true,
+    revalidateOnMount: false,
+  });
 
   const list = listQuery.data || {
     employees: initialEmployees,
@@ -144,7 +148,15 @@ export default function EmployeeListPage({
       <EmployeeFilters stats={{ total: stats.total, active: stats.active, inactive: stats.inactive }} />
 
       {/* ── Employee List ── */}
-      {listQuery.isLoading && !listQuery.data ? (
+      {listQuery.error ? (
+        <EmptyState
+          icon={AlertTriangle}
+          title="Không tải được danh sách nhân viên"
+          description={listQuery.error instanceof Error ? listQuery.error.message : "Vui lòng thử lại."}
+          actionLabel="Tải lại"
+          onAction={refreshEmployees}
+        />
+      ) : listQuery.isLoading && !listQuery.data ? (
         <div className="card-base p-5">
           <SkeletonTable rows={6} />
         </div>

@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { withAdmin } from "@/lib/auth_utils";
-import { fireAuditLog } from "@/lib/audit";
+import { writeAuditLog } from "@/lib/audit";
 import { verifyMoodieGeminiModel } from "@/lib/moodie/gemini-models";
 import { isCuratedMoodieGeminiModelSetting } from "@/lib/moodie/model-options";
+import { encryptSecret, redactGoogleCalendarAuth } from "@/lib/settings-secrets";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
   getMoodieGeminiStoredApiKey,
@@ -53,10 +54,10 @@ export async function updateStudioInfo(rawData: Record<string, unknown>) {
       query = query.eq("updated_at", expected_updated_at);
     }
 
-    const { data: updated, error } = await query.select("*").single();
+    const { data: updated, error } = await query.select("*").maybeSingle();
 
     if (error || !updated) {
-      if (!updated && !error) {
+      if (!updated && (!error || error.code === "PGRST116")) {
         throw new Error(
           "Dữ liệu đã bị thay đổi bởi người khác. Vui lòng tải lại trang.",
         );
@@ -67,7 +68,7 @@ export async function updateStudioInfo(rawData: Record<string, unknown>) {
       );
     }
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "studio_info",
       recordId: updated.id,
@@ -119,7 +120,7 @@ export async function uploadStudioLogo(formData: FormData) {
       .getPublicUrl(filePath);
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "studio_info",
       recordId: studio.id,
@@ -188,7 +189,7 @@ export async function updateMoodieAiSettings(rawData: Record<string, unknown>) {
     if (parsed.data.gemini_api_key) {
       updates.push({
         key: MOODIE_GEMINI_API_KEY_SETTING_KEY,
-        value: parsed.data.gemini_api_key,
+        value: encryptSecret(parsed.data.gemini_api_key),
         description: "Gemini API key for Moodie runtime",
         updated_at: now,
       });
@@ -216,7 +217,7 @@ export async function updateMoodieAiSettings(rawData: Record<string, unknown>) {
       throw new Error(`Lỗi cập nhật cấu hình Moodie AI: ${error.message}`);
     }
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "system_settings",
       recordId: MOODIE_GEMINI_API_KEY_SETTING_KEY,
@@ -246,18 +247,19 @@ export async function disconnectGoogleCalendar() {
 
     if (error) throw new Error(`Lỗi ngắt kết nối: ${error.message}`);
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "studio_info",
       recordId: studio.id,
       description: "Ngắt kết nối Google Calendar",
-      oldData: { google_calendar_auth: studio.google_calendar_auth },
+      oldData: { google_calendar_auth: redactGoogleCalendarAuth(studio.google_calendar_auth) },
       newData: { google_calendar_auth: null },
       source: "server_action",
     });
 
     revalidatePath("/settings");
     revalidatePath("/settings/studio");
+    revalidateTag("studio-info", { expire: 0 });
     return null;
   });
 }

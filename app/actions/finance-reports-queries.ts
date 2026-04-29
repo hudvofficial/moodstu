@@ -3,6 +3,7 @@
 import { withFinanceRead } from "@/lib/auth_utils";
 import { asNumber, asString, isMissingRpcError } from "@/lib/finance-utils";
 import { enumerateMonthsInRange, getReportRange } from "@/lib/report-period";
+import { reportFiltersSchema } from "@/lib/validations/reports.schema";
 import type { FixedCostItem } from "@/types/finance-operations";
 import type { ReportFiltersInput, ReportsSnapshot } from "@/types/reports";
 
@@ -132,7 +133,8 @@ function normalizeReportsSnapshotPayload(payload: unknown, range: ReportsSnapsho
 
 export async function getReportsSnapshot(filters: ReportFiltersInput) {
   return withFinanceRead(async (supabase) => {
-    const range = getReportRange(filters);
+    const safeFilters = reportFiltersSchema.parse(filters);
+    const range = getReportRange(safeFilters);
 
     const { data: rpcData, error: rpcError } = await supabase.rpc("finance_reports_snapshot", {
       p_start_date: range.startDate,
@@ -142,7 +144,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
     if (!rpcError) {
       return normalizeReportsSnapshotPayload(rpcData, range);
     }
-    if (!isMissingRpcError(rpcError)) {
+    if (!isMissingRpcError(rpcError) || process.env.NODE_ENV === "production") {
       throw new Error(`Loi tai bao cao: ${rpcError.message}`);
     }
 
@@ -223,8 +225,9 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
 
     const paymentRevenue = (paymentsResult.data || []).reduce((sum, row) => sum + asNumber(row.amount), 0);
     const standaloneReceiptRevenue = (receiptsResult.data || []).reduce((sum, row) => sum + asNumber(row.receipt_amount), 0);
-    const totalRevenue = paymentRevenue + standaloneReceiptRevenue;
     const contractRevenue = contracts.reduce((sum, contract) => sum + asNumber(contract.total_amount), 0);
+    const cashInflow = paymentRevenue + standaloneReceiptRevenue;
+    const reportRevenue = contractRevenue + standaloneReceiptRevenue;
     const totalDiscount = contracts.reduce((sum, contract) => sum + asNumber(contract.discount_amount), 0);
     const completedContracts = contracts.filter((contract) => isCompletedStatus(contract.status)).length;
 
@@ -268,19 +271,19 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
 
     const totalCost = directCost + operatingCost + salaryCost + fixedCost;
     const totalOutflow = operatingOutflow + salaryCost + fixedCost;
-    const netProfit = totalRevenue - totalCost;
+    const netProfit = reportRevenue - totalCost;
 
     return {
       range,
       summary: {
-        totalRevenue,
+        totalRevenue: reportRevenue,
         totalCost,
         directCost,
         operatingCost,
         salaryCost,
         fixedCost,
         netProfit,
-        profitMargin: totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 1000) / 10 : 0,
+        profitMargin: reportRevenue > 0 ? Math.round((netProfit / reportRevenue) * 1000) / 10 : 0,
         totalContracts: contracts.length,
         completedContracts,
         avgContractValue: contracts.length > 0 ? contractRevenue / contracts.length : 0,
@@ -293,23 +296,23 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
       serviceDistribution,
       revenueBreakdown: [
         {
-          label: "Thu hop dong",
-          amount: paymentRevenue,
-          percentage: totalRevenue > 0 ? Math.round((paymentRevenue / totalRevenue) * 1000) / 10 : 0,
+          label: "Doanh thu hop dong",
+          amount: contractRevenue,
+          percentage: reportRevenue > 0 ? Math.round((contractRevenue / reportRevenue) * 1000) / 10 : 0,
         },
         {
           label: "Thu khac",
           amount: standaloneReceiptRevenue,
-          percentage: totalRevenue > 0 ? Math.round((standaloneReceiptRevenue / totalRevenue) * 1000) / 10 : 0,
+          percentage: reportRevenue > 0 ? Math.round((standaloneReceiptRevenue / reportRevenue) * 1000) / 10 : 0,
         },
       ],
       cashflowSummary: {
-        totalInflow: totalRevenue,
+        totalInflow: cashInflow,
         totalOutflow,
         salaryCost,
         fixedCost,
-        operatingNet: totalRevenue - operatingOutflow,
-        netAfterOverhead: totalRevenue - totalOutflow,
+        operatingNet: cashInflow - operatingOutflow,
+        netAfterOverhead: cashInflow - totalOutflow,
       },
     } satisfies ReportsSnapshot;
   });

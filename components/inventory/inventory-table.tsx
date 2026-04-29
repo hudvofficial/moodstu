@@ -81,6 +81,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
         <TBody>
           {items.map((item) => {
             const status = getStatusDisplay(item);
+            const canMoveStock = item.status === "active";
             return (
               <TR
                 key={item.id}
@@ -113,7 +114,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
                 </TD>
                 <TD className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    {onStockIn && (
+                    {onStockIn && canMoveStock && (
                       <Button unstyled
                         onClick={(e) => { e.stopPropagation(); onStockIn(item); }}
                         className="w-7 h-7 inline-flex items-center justify-center rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary transition-all"
@@ -122,7 +123,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
                         <ArrowDownToLine className="w-3.5 h-3.5" />
                       </Button>
                     )}
-                    {onStockOut && (
+                    {onStockOut && canMoveStock && (
                       <Button unstyled
                         onClick={(e) => { e.stopPropagation(); onStockOut(item); }}
                         className="w-7 h-7 inline-flex items-center justify-center rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-warning/10 hover:text-warning transition-all"

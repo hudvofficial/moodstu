@@ -1,14 +1,20 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { fetchCreditCards } from "@/app/actions/finance-operations-queries";
 import CreditCardsClient from "@/components/settings/credit-cards/credit-cards-client";
+import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Quản lý thẻ tín dụng",
+  title: "Thẻ tín dụng",
 };
 
 export default async function CreditCardsPage() {
+  const context = await getAuthenticatedUserContext({ bootstrapProfile: true });
+  if (!context) redirect("/login");
+  if (!context.canManageSettings) redirect("/settings");
+
   const response = await fetchCreditCards();
   const cards = response.success ? response.data : [];
 

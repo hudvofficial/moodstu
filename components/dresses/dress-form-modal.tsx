@@ -109,7 +109,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
     if (!code.trim()) { setCodeError(null); return; }
     try {
       const res = await checkItemCodeExists(code, editItem?.id);
-      if ("exists" in res && res.exists) setCodeError("Mã này đã tồn tại!");
+      if (res.success && res.data?.exists) setCodeError("Mã này đã tồn tại!");
       else setCodeError(null);
     } catch { setCodeError(null); }
   }, [editItem?.id]);

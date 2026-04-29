@@ -33,6 +33,7 @@ export interface ContractFilterState {
 // ── Default values ────────────────────────────────────────────
 const CONTRACT_FILTER_DEFAULTS = {
   status: "all",
+  q: "",
   search: "",
   time: "all",
   service: "all",
@@ -52,7 +53,7 @@ export function useContractFilters() {
   // ── Computed (typed) filters — same shape as before ─────────
   const filters = {
     status: params.status,
-    search: params.search,
+    search: params.q || params.search,
     time: params.time,
     service: params.service,
     sort: params.sort,
@@ -72,7 +73,7 @@ export function useContractFilters() {
   );
 
   const setSearch = useCallback(
-    (search: string) => setParams({ search, page: "1" }),
+    (search: string) => setParams({ q: search, search: "", page: "1" }),
     [setParams],
   );
 

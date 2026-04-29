@@ -1,3 +1,5 @@
+export const metadata = { title: "CRM" };
+
 import LeadsRoute from "./leads/page";
 
 export default function CRMPage(props: {
@@ -5,3 +7,4 @@ export default function CRMPage(props: {
 }) {
   return <LeadsRoute searchParams={props.searchParams} />;
 }
+

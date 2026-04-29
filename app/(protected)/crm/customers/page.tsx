@@ -4,8 +4,8 @@ import CustomerListPage from "@/components/crm/customer-list-page";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 
 export const metadata = {
-  title: "Khách hàng | Hệ thống CRM",
-  description: "Quản lý dữ liệu Khách hàng",
+  title: "Khách hàng CRM",
+  description: "Quản lý dữ liệu khách hàng",
 };
 
 interface PageProps {
@@ -42,3 +42,4 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     </Suspense>
   );
 }
+

@@ -6,7 +6,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Chốt sổ | Mood Studio" };
+export const metadata = { title: "Chốt sổ" };
 export const dynamic = "force-dynamic";
 
 export default async function ClosesPage() {
@@ -14,3 +14,4 @@ export default async function ClosesPage() {
   const data = await listCloses(year);
   return <ClosesClient initialYear={year} initialData={unwrap<CloseListItem[]>(data, [])} />;
 }
+

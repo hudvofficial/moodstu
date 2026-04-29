@@ -1,6 +1,10 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import {
+  requireContractAccess,
+  requireContractWriteAccess,
+  withAuth,
+} from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import type { WorkType, TaskStatus, EventType, ServiceType } from "@/types/contract";
@@ -43,6 +47,53 @@ function getTaskDates(event: ContractEventForTasks) {
     deadline: date,
     start_date: event.event_date || null,
   };
+}
+
+type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
+
+async function assertEventBelongsToContract(
+  supabase: AdminSupabase,
+  eventId: string,
+  contractId: string,
+) {
+  const { data: event, error } = await supabase
+    .from("contract_events")
+    .select("id, contract_id")
+    .eq("id", eventId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) throw new Error(`Loi kiem tra event: ${error.message}`);
+  if (!event) throw new Error("Khong tim thay event");
+  if (event.contract_id !== contractId) {
+    throw new Error("Event khong thuoc hop dong nay");
+  }
+
+  return event;
+}
+
+async function assertTaskBelongsToEvent(
+  supabase: AdminSupabase,
+  taskId: string,
+  expectedEventId?: string,
+) {
+  const { data: task, error } = await supabase
+    .from("work_tasks")
+    .select("id, event_id, contract_id")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Loi kiem tra task: ${error.message}`);
+  if (!task) throw new Error("Khong tim thay task");
+  if (!task.event_id || !task.contract_id) {
+    throw new Error("Task thieu lien ket event hoac hop dong");
+  }
+  if (expectedEventId && task.event_id !== expectedEventId) {
+    throw new Error("Task khong thuoc event nay");
+  }
+
+  await assertEventBelongsToContract(supabase, task.event_id, task.contract_id);
+  return task;
 }
 
 // ═══════════════════════════════════════════
@@ -140,10 +191,11 @@ export async function _generateWorkTasksInternal(
 
 export async function generateWorkTasksForContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
     const result = await _generateWorkTasksInternal(supabase, contractId, userId);
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+    revalidatePath("/productivity");
     return result;
   });
 }
@@ -154,9 +206,12 @@ export async function addTask(input: {
   startTime?: string; endTime?: string; cost?: number; notes?: string;
 }) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     if (!input.eventId) throw new Error("Thiếu event ID");
+
+    if (!input.contractId) throw new Error("Thieu contract ID");
+    await assertEventBelongsToContract(supabase, input.eventId, input.contractId);
 
     const { data, error } = await supabase.from("work_tasks").insert({
       event_id: input.eventId, contract_id: input.contractId, work_type: input.workType,
@@ -164,6 +219,7 @@ export async function addTask(input: {
       start_date: input.startDate || null, start_time: input.startTime || null,
       end_time: input.endTime || null, cost: input.cost || 0,
       notes: input.notes || null, status: input.assignedTo ? "dang_lam" : "chua_lam",
+      created_by: userId,
     }).select("id").single();
     if (error) throw new Error(`Lỗi thêm task: ${error.message}`);
 
@@ -173,39 +229,55 @@ export async function addTask(input: {
     await checkAndCompleteEvent(supabase, input.eventId);
 
     revalidatePath("/contracts");
+    revalidatePath(`/contracts/${input.contractId}`);
+    revalidatePath("/productivity");
     return data;
   });
 }
 
 export async function deleteTask(taskId: string, eventId: string) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     if (!taskId) throw new Error("Thiếu task ID");
-    const { error } = await supabase.from("work_tasks").delete().eq("id", taskId);
+    const task = await assertTaskBelongsToEvent(supabase, taskId, eventId);
+    const { error } = await supabase
+      .from("work_tasks")
+      .delete()
+      .eq("id", taskId)
+      .eq("event_id", task.event_id);
     if (error) throw new Error(`Lỗi xóa task: ${error.message}`);
 
     fireAuditLog({ action: "DELETE", tableName: "work_tasks", recordId: taskId, description: `Xóa task #${taskId.substring(0, 8)}`, severity: "WARNING" });
 
-    await checkAndCompleteEvent(supabase, eventId);
+    await checkAndCompleteEvent(supabase, task.event_id);
     revalidatePath("/contracts");
+    revalidatePath(`/contracts/${task.contract_id}`);
+    revalidatePath("/productivity");
     return null;
   });
 }
 
 export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, eventId: string) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
+    const task = await assertTaskBelongsToEvent(supabase, taskId, eventId);
 
     const updates: Record<string, string | null> = { status: newStatus };
     if (newStatus === "hoan_thanh") updates.completion_date = new Date().toISOString();
     else updates.completion_date = null;
 
-    const { error } = await supabase.from("work_tasks").update(updates).eq("id", taskId);
+    const { error } = await supabase
+      .from("work_tasks")
+      .update(updates)
+      .eq("id", taskId)
+      .eq("event_id", task.event_id)
+      .eq("contract_id", task.contract_id);
     if (error) throw new Error(`Lỗi cập nhật status: ${error.message}`);
 
     fireAuditLog({ action: "UPDATE", tableName: "work_tasks", recordId: taskId, description: `Task status → ${newStatus}` });
-    await checkAndCompleteEvent(supabase, eventId);
+    await checkAndCompleteEvent(supabase, task.event_id);
+    revalidatePath("/productivity");
     // ⚡ No revalidatePath — client uses optimistic UI (applyTaskStatusOptimistic)
     // + Realtime subscription handles multi-user sync
     return null;

@@ -100,6 +100,7 @@ export function InventoryDetailDrawer({
 
   const source = detail || item;
   const status = source ? getStatusDisplay(source) : null;
+  const canMoveStock = source?.status === "active";
   const categoryLabel = source ? getCategoryLabel(source.category) : "";
   const unitLabel = source ? getUnitLabel(source.unit) : "";
 
@@ -169,10 +170,10 @@ export function InventoryDetailDrawer({
   ) : null;
 
   const transactions = detail?.transactions || [];
-  const totalIn = transactions
+  const totalIn = detail?.transactionTotals?.totalIn ?? transactions
     .filter((txn) => txn.transaction_type === "stock_in")
     .reduce((sum, txn) => sum + txn.quantity, 0);
-  const totalOut = transactions
+  const totalOut = detail?.transactionTotals?.totalOut ?? transactions
     .filter((txn) => txn.transaction_type === "stock_out")
     .reduce((sum, txn) => sum + txn.quantity, 0);
   const stockValue = (source?.current_stock || 0) * (source?.average_unit_price || 0);
@@ -243,6 +244,7 @@ export function InventoryDetailDrawer({
                 type="button"
                 variant="primary"
                 onClick={() => setShowStockIn(true)}
+                disabled={!canMoveStock}
                 className="flex-1 gap-2"
               >
                 <ArrowDownToLine className="size-4" />
@@ -252,6 +254,7 @@ export function InventoryDetailDrawer({
                 type="button"
                 variant="secondary"
                 onClick={() => setShowStockOut(true)}
+                disabled={!canMoveStock}
                 className="flex-1 gap-2"
               >
                 <ArrowUpFromLine className="size-4" />

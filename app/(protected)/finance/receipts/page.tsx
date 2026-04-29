@@ -1,6 +1,6 @@
 import { ReceiptsClient } from "@/components/finance/receipts/receipts-client";
 
-export const metadata = { title: "Phieu thu | Mood Studio" };
+export const metadata = { title: "Phiếu thu" };
 
 export default function ReceiptsPage() {
   const now = new Date();
@@ -9,3 +9,4 @@ export default function ReceiptsPage() {
 
   return <ReceiptsClient initialMonth={month} initialYear={year} />;
 }
+

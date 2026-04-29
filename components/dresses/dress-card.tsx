@@ -5,8 +5,8 @@ import { Shirt, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DressItem } from "@/types/dress";
-import { DRESS_STATUS_MAP } from "@/types/dress-constants";
-import type { DressStatus } from "@/lib/validations/dress.schema";
+import { DRESS_CATEGORY_MAP, DRESS_STATUS_MAP } from "@/types/dress-constants";
+import type { DressCategory, DressStatus } from "@/lib/validations/dress.schema";
 
 // ═══════════════════════════════════════════
 // DressCard — Card view for dress catalog
@@ -15,12 +15,15 @@ import type { DressStatus } from "@/lib/validations/dress.schema";
 
 interface Props {
   dress: DressItem;
-  onEdit: () => void;
+  onEdit?: () => void;
   onClick?: () => void;
 }
 
 export default function DressCard({ dress, onEdit, onClick }: Props) {
   const statusConfig = DRESS_STATUS_MAP[(dress.status as DressStatus) || "available"];
+  const categoryLabel = dress.category
+    ? DRESS_CATEGORY_MAP[dress.category as DressCategory]?.label || dress.category
+    : "";
 
   return (
     <div
@@ -53,19 +56,21 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
         </div>
 
         {/* Edit button — hover */}
-        <Button unstyled
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-card/90 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-        >
-          <Pencil size={12} />
-        </Button>
+        {onEdit && (
+          <Button unstyled
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-card/90 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+          >
+            <Pencil size={12} />
+          </Button>
+        )}
       </div>
 
       {/* Info */}
       <div className="p-3">
         <div className="flex justify-between items-start gap-2 mb-2">
           <div className="min-w-0">
-            <p className="text-caption font-bold uppercase tracking-widest text-text-muted truncate">{dress.category}</p>
+            <p className="text-caption font-bold uppercase tracking-widest text-text-muted truncate">{categoryLabel}</p>
             <h3 className="text-sm font-bold text-primary uppercase tracking-tight truncate" title={dress.name}>{dress.name}</h3>
           </div>
           {dress.item_code && (

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
-import { withAdmin } from "@/lib/auth_utils";
+import { withInventoryAccess } from "@/lib/auth_utils";
 import { isMissingRpcError } from "@/lib/finance-utils";
 import {
   inventoryCreateSchema,
@@ -17,22 +17,13 @@ const uuidSchema = z.string().uuid("ID vật tư không hợp lệ");
 
 async function generateNextInventoryCode(supabase: SupabaseClient) {
   const { data, error } = await supabase
-    .from("inventory_items")
-    .select("item_code")
-    .ilike("item_code", "VT-%")
-    .range(0, 4999);
+    .rpc("nextval_inventory_code");
 
   if (error) {
     throw new Error(`Không thể tạo mã vật tư: ${error.message}`);
   }
 
-  const maxNumber = (data || []).reduce((max, row) => {
-    const match = String(row.item_code || "").match(/^VT-(\d+)$/);
-    if (!match) return max;
-    return Math.max(max, Number(match[1]) || 0);
-  }, 0);
-
-  return `VT-${String(maxNumber + 1).padStart(3, "0")}`;
+  return String(data);
 }
 
 function normalizeOptionalText(value: string | null | undefined) {
@@ -48,7 +39,7 @@ export async function createInventoryItem(rawData: unknown) {
     };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase, userId) => {
     const data = parsed.data;
     const hasManualCode = Boolean(data.item_code?.trim());
     let lastError: { code?: string; message?: string } | null = null;
@@ -117,7 +108,7 @@ export async function updateInventoryItem(rawData: unknown) {
     };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase, userId) => {
     const { id, updated_at, data } = parsed.data;
     const updatePayload: Record<string, unknown> = { ...data };
 
@@ -176,7 +167,40 @@ export async function deleteInventoryItem(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase, userId) => {
+    const { data: existing, error: existingError } = await supabase
+      .from("inventory_items")
+      .select("id, name, item_code, current_stock")
+      .eq("id", parsedId.data)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (existingError) {
+      throw new Error(`Không thể kiểm tra vật tư: ${existingError.message}`);
+    }
+    if (!existing) {
+      throw new Error("Vật tư không tồn tại hoặc đã bị xóa");
+    }
+    if ((existing.current_stock || 0) > 0) {
+      throw new Error(
+        "Không thể xóa vật tư đang còn tồn kho. Hãy xuất hết tồn hoặc chuyển trạng thái Ngưng.",
+      );
+    }
+
+    const { count: transactionCount, error: transactionError } = await supabase
+      .from("inventory_transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("item_id", parsedId.data);
+
+    if (transactionError) {
+      throw new Error(`Không thể kiểm tra lịch sử kho: ${transactionError.message}`);
+    }
+    if ((transactionCount || 0) > 0) {
+      throw new Error(
+        "Không thể xóa vật tư đã có lịch sử giao dịch. Hãy chuyển trạng thái sang Ngưng.",
+      );
+    }
+
     const { data: deleted, error } = await supabase
       .from("inventory_items")
       .update({
@@ -217,7 +241,7 @@ export async function stockIn(rawData: unknown) {
     };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase, userId) => {
     const { itemId, quantity, unitCost, supplier, reason, notes } = parsed.data;
     const { data, error } = await supabase.rpc("inventory_stock_in_atomic", {
       p_item_id: itemId,
@@ -260,7 +284,7 @@ export async function stockOut(rawData: unknown) {
     };
   }
 
-  return withAdmin(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase, userId) => {
     const {
       itemId,
       quantity,

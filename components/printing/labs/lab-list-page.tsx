@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import useSWR from "swr";
 import {
@@ -36,7 +37,11 @@ import type { Lab, LabDebtData } from "@/types/printing";
 import { LAB_STATUS_LABELS } from "@/types/printing-constants";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
-import LabFormModal from "@/components/printing/labs/lab-form-modal";
+
+const LabFormModal = dynamic(
+  () => import("@/components/printing/labs/lab-form-modal"),
+  { ssr: false },
+);
 
 type ActionResult<T> =
   | { success: true; data: T }
@@ -62,6 +67,9 @@ function getLabDebt(lab: Lab, debtMap: Map<string, number>) {
 }
 
 function getServicePreview(lab: Lab) {
+  if (lab.servicePreview && lab.servicePreview.length > 0) {
+    return lab.servicePreview.slice(0, 3).join(", ");
+  }
   if (lab.services.length === 0) return "Chưa có bảng giá";
   return lab.services
     .slice(0, 3)

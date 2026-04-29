@@ -6,7 +6,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Ngân sách | Mood Studio" };
+export const metadata = { title: "Ngân sách" };
 export const dynamic = "force-dynamic";
 
 export default async function BudgetPage() {
@@ -23,3 +23,4 @@ export default async function BudgetPage() {
     />
   );
 }
+

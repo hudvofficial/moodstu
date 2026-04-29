@@ -16,10 +16,170 @@ import {
   isValidUUID,
   MAX_NOTE_LENGTH,
 } from "@/types/gallery";
+import {
+  signGalleryAccessProof,
+  verifyGalleryAccessProof,
+} from "@/lib/gallery-access";
 
 const IMAGE_COLS =
   "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
 const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|raf|dng|rw2|orf|pef)$/i;
+
+type PublicGalleryRow = {
+  id: string;
+  title: string | null;
+  status: string | null;
+  selection_deadline: string | null;
+  access_url: string | null;
+  password: string | null;
+  password_hash?: string | null;
+  access_version?: number | null;
+};
+
+function galleryHasPassword(gallery: PublicGalleryRow) {
+  return Boolean(gallery.password_hash || gallery.password);
+}
+
+function isSelectionClosed(deadline: string | null | undefined) {
+  if (!deadline) return false;
+  return deadline < new Date().toISOString().slice(0, 10);
+}
+
+function buildGalleryAccessToken(gallery: PublicGalleryRow) {
+  if (!gallery.access_url) {
+    throw new Error("Gallery chua co link chia se.");
+  }
+
+  return signGalleryAccessProof({
+    galleryId: gallery.id,
+    accessUrl: gallery.access_url,
+    accessVersion: gallery.access_version,
+  });
+}
+
+async function fetchSharedGalleryByAccessUrl(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  accessUrl: string,
+) {
+  const { data, error } = await supabase
+    .from("galleries")
+    .select("id, title, status, selection_deadline, access_url, password, password_hash, access_version")
+    .eq("access_url", accessUrl)
+    .eq("status", "shared")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Loi tai gallery: ${error.message}`);
+  }
+
+  return (data || null) as PublicGalleryRow | null;
+}
+
+async function fetchSharedGalleryById(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+) {
+  const { data, error } = await supabase
+    .from("galleries")
+    .select("id, title, status, selection_deadline, access_url, password, password_hash, access_version")
+    .eq("id", galleryId)
+    .eq("status", "shared")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Loi tai gallery: ${error.message}`);
+  }
+
+  return (data || null) as PublicGalleryRow | null;
+}
+
+function assertGalleryProof(gallery: PublicGalleryRow, accessToken: string) {
+  if (!gallery.access_url) return false;
+  return verifyGalleryAccessProof(accessToken, {
+    galleryId: gallery.id,
+    accessUrl: gallery.access_url,
+    accessVersion: gallery.access_version,
+  });
+}
+
+async function requirePublicGalleryImageAccess(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  accessUrl: string,
+  accessToken: string,
+  imageId: string,
+) {
+  if (!accessUrl?.trim()) {
+    throw new Error("Thieu link gallery.");
+  }
+
+  const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
+  if (!gallery) {
+    throw new Error("Gallery khong ton tai hoac chua duoc chia se.");
+  }
+
+  if (!assertGalleryProof(gallery, accessToken)) {
+    throw new Error("Phien truy cap gallery khong hop le hoac da het han.");
+  }
+
+  if (isSelectionClosed(gallery.selection_deadline)) {
+    throw new Error("Album da het han chon anh.");
+  }
+
+  const { data: image, error: imageError } = await supabase
+    .from("gallery_images")
+    .select("id, gallery_id")
+    .eq("id", imageId)
+    .maybeSingle();
+
+  if (imageError) {
+    throw new Error(`Loi kiem tra anh: ${imageError.message}`);
+  }
+
+  if (!image || image.gallery_id !== gallery.id) {
+    throw new Error("Anh khong thuoc gallery nay.");
+  }
+
+  return { gallery, image };
+}
+
+async function updateGalleryImageSelection(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  imageId: string,
+  selected: boolean,
+) {
+  const { error } = await supabase
+    .from("gallery_images")
+    .update({
+      is_selected: selected,
+      selected_at: selected ? new Date().toISOString() : null,
+    })
+    .eq("id", imageId);
+
+  if (error) {
+    throw new Error(`Loi cap nhat: ${error.message}`);
+  }
+}
+
+async function updateGalleryImageNote(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  imageId: string,
+  note: string,
+) {
+  const sanitizedNote = note ? note.trim().slice(0, MAX_NOTE_LENGTH) : null;
+  const { error } = await supabase
+    .from("gallery_images")
+    .update({ client_note: sanitizedNote })
+    .eq("id", imageId);
+
+  if (error) {
+    throw new Error(`Loi cap nhat: ${error.message}`);
+  }
+}
 
 function filterRawFiles(images: Array<{ file_name?: string | null }>) {
   return images.filter((img) => !RAW_EXTENSIONS.test(img.file_name || ""));
@@ -244,7 +404,7 @@ export async function shareGallery(galleryId: string) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", galleryId)
-      .select("id, access_url, contract_id, password")
+      .select("id, access_url, contract_id, password, password_hash")
       .single();
 
     if (error || !data) {
@@ -255,7 +415,7 @@ export async function shareGallery(galleryId: string) {
     return {
       accessUrl: data.access_url,
       galleryId: data.id,
-      hasPassword: !!data.password,
+      hasPassword: !!(data.password_hash || data.password),
     };
   });
 }
@@ -327,32 +487,25 @@ export async function setGalleryPassword(
       throw new Error("ID khong hop le.");
     }
 
-    const { error } = await supabase
-      .from("galleries")
-      .update({ password: password?.trim() || null })
-      .eq("id", galleryId);
+    const { data, error } = await supabase.rpc("set_gallery_password", {
+      p_gallery_id: galleryId,
+      p_password: password?.trim() || null,
+    });
 
     if (error) {
       throw new Error(`Loi cap nhat mat khau: ${error.message}`);
     }
 
-    return { password: password?.trim() || null };
+    return {
+      hasPassword: Boolean((data as { has_password?: boolean } | null)?.has_password),
+    };
   });
 }
 
 export async function getPublicGallery(accessUrl: string) {
   try {
     const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("galleries")
-      .select("id, title, status, selection_deadline, password")
-      .eq("access_url", accessUrl)
-      .eq("status", "shared")
-      .maybeSingle();
-
-    if (error) {
-      return { success: false as const, error: `Loi tai gallery: ${error.message}` };
-    }
+    const data = await fetchSharedGalleryByAccessUrl(supabase, accessUrl);
 
     if (!data) {
       return {
@@ -361,7 +514,7 @@ export async function getPublicGallery(accessUrl: string) {
       };
     }
 
-    if (data.password) {
+    if (galleryHasPassword(data)) {
       return {
         success: true as const,
         data: {
@@ -369,19 +522,23 @@ export async function getPublicGallery(accessUrl: string) {
           title: data.title,
           status: data.status,
           selection_deadline: data.selection_deadline,
+          access_url: data.access_url,
           needsPassword: true as const,
         },
       };
     }
 
     const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _password, ...galleryWithoutPassword } = data;
 
     return {
       success: true as const,
       data: {
-        ...galleryWithoutPassword,
+        id: data.id,
+        title: data.title,
+        status: data.status,
+        selection_deadline: data.selection_deadline,
+        access_url: data.access_url,
+        accessToken: buildGalleryAccessToken(data),
         gallery_images: images,
         needsPassword: false as const,
       } as Gallery & { needsPassword: false },
@@ -406,31 +563,52 @@ export async function verifyGalleryPassword(
     }
 
     const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("galleries")
-      .select("id, title, status, selection_deadline")
-      .eq("id", galleryId)
-      .eq("status", "shared")
-      .maybeSingle();
+    const data = await fetchSharedGalleryById(supabase, galleryId);
 
-    if (error || !data) {
+    if (!data) {
       return { success: false as const, error: "Gallery khong ton tai." };
     }
 
-    const { data: passwordData } = await supabase
-      .from("galleries")
-      .select("password")
-      .eq("id", galleryId)
-      .maybeSingle();
+    if (data.password && !data.password_hash) {
+      return {
+        success: false as const,
+        error: "Album can dat lai mat khau truoc khi chia se.",
+      };
+    }
 
-    if (!passwordData || passwordData.password !== password) {
+    if (data.password_hash) {
+      const { data: verified, error: verifyError } = await supabase.rpc(
+        "verify_gallery_password",
+        { p_gallery_id: galleryId, p_password: password },
+      );
+
+      if (verifyError) {
+        return {
+          success: false as const,
+          error: `Loi kiem tra mat khau: ${verifyError.message}`,
+        };
+      }
+
+      if (!verified) {
+        return { success: false as const, error: "Mat khau khong dung." };
+      }
+    } else if (galleryHasPassword(data)) {
       return { success: false as const, error: "Mat khau khong dung." };
     }
 
     const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
     return {
       success: true as const,
-      data: { ...data, gallery_images: images } as Gallery,
+      data: {
+        id: data.id,
+        title: data.title,
+        status: data.status,
+        selection_deadline: data.selection_deadline,
+        access_url: data.access_url,
+        accessToken: buildGalleryAccessToken(data),
+        gallery_images: images,
+        needsPassword: false,
+      } as Gallery,
     };
   } catch (err) {
     console.error("[verifyGalleryPassword] Error:", err);
@@ -438,23 +616,80 @@ export async function verifyGalleryPassword(
   }
 }
 
-export async function toggleImageSelection(imageId: string, selected: boolean) {
+export async function getPublicGalleryWithAccess(
+  galleryId: string,
+  accessToken: string,
+) {
+  try {
+    if (!galleryId || !isValidUUID(galleryId)) {
+      return { success: false as const, error: "ID khong hop le." };
+    }
+
+    const supabase = await createAdminClient();
+    const gallery = await fetchSharedGalleryById(supabase, galleryId);
+
+    if (!gallery) {
+      return { success: false as const, error: "Gallery khong ton tai." };
+    }
+
+    if (!assertGalleryProof(gallery, accessToken)) {
+      return {
+        success: false as const,
+        error: "Phien truy cap gallery da het han.",
+      };
+    }
+
+    const images = filterRawFiles(await fetchAllGalleryImages(supabase, gallery.id));
+    return {
+      success: true as const,
+      data: {
+        id: gallery.id,
+        title: gallery.title,
+        status: gallery.status,
+        selection_deadline: gallery.selection_deadline,
+        access_url: gallery.access_url,
+        accessToken: buildGalleryAccessToken(gallery),
+        gallery_images: images,
+        needsPassword: false,
+      } as Gallery,
+    };
+  } catch (err) {
+    console.error("[getPublicGalleryWithAccess] Error:", err);
+    return { success: false as const, error: "Loi server." };
+  }
+}
+
+export async function toggleImageSelection(
+  imageId: string,
+  selected: boolean,
+  accessUrl?: string,
+  accessToken?: string,
+) {
   try {
     if (!imageId || !isValidUUID(imageId)) {
       return { success: false as const, error: "ID anh khong hop le." };
     }
 
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("gallery_images")
-      .update({
-        is_selected: selected,
-        selected_at: selected ? new Date().toISOString() : null,
-      })
-      .eq("id", imageId);
+    if (accessUrl || accessToken) {
+      const supabase = await createAdminClient();
+      await requirePublicGalleryImageAccess(
+        supabase,
+        accessUrl || "",
+        accessToken || "",
+        imageId,
+      );
+      await updateGalleryImageSelection(supabase, imageId, selected);
+      return { success: true as const, data: null };
+    }
 
-    if (error) {
-      return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+    const result = await withAuth(async (supabase, userId) => {
+      await requireContractAccess(supabase, userId);
+      await updateGalleryImageSelection(supabase, imageId, selected);
+      return null;
+    });
+
+    if (!result.success) {
+      return { success: false as const, error: result.error };
     }
 
     return { success: true as const, data: null };
@@ -464,21 +699,37 @@ export async function toggleImageSelection(imageId: string, selected: boolean) {
   }
 }
 
-export async function updateClientNote(imageId: string, note: string) {
+export async function updateClientNote(
+  imageId: string,
+  note: string,
+  accessUrl?: string,
+  accessToken?: string,
+) {
   try {
     if (!imageId || !isValidUUID(imageId)) {
       return { success: false as const, error: "ID anh khong hop le." };
     }
 
-    const sanitizedNote = note ? note.trim().slice(0, MAX_NOTE_LENGTH) : null;
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("gallery_images")
-      .update({ client_note: sanitizedNote })
-      .eq("id", imageId);
+    if (accessUrl || accessToken) {
+      const supabase = await createAdminClient();
+      await requirePublicGalleryImageAccess(
+        supabase,
+        accessUrl || "",
+        accessToken || "",
+        imageId,
+      );
+      await updateGalleryImageNote(supabase, imageId, note);
+      return { success: true as const, data: null };
+    }
 
-    if (error) {
-      return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+    const result = await withAuth(async (supabase, userId) => {
+      await requireContractAccess(supabase, userId);
+      await updateGalleryImageNote(supabase, imageId, note);
+      return null;
+    });
+
+    if (!result.success) {
+      return { success: false as const, error: result.error };
     }
 
     return { success: true as const, data: null };

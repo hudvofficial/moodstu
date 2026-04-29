@@ -17,25 +17,38 @@ import {
   fetchInventoryDetail,
   getInventoryStats,
 } from "@/app/actions/inventory-queries";
-import type { InventoryFilters } from "@/types/inventory";
+import type {
+  InventoryDetail,
+  InventoryFilters,
+  InventoryItem,
+  InventoryStats,
+} from "@/types/inventory";
+import { INVENTORY_PAGE_SIZE } from "@/types/inventory-constants";
 
 const prefetchedInventoryDetails = new Set<string>();
 
 // ─── LIST (paginated + filtered) ─────────────────────────────
 
-export function useInventory(filters: InventoryFilters) {
+export function useInventory(
+  filters: InventoryFilters,
+  fallbackData?: { data: InventoryItem[]; count: number },
+) {
   const { data, error, isLoading, isValidating } = useSWR(
     // ⚠️ Array key = filters encoded → SWR auto-refetch on filter change
     [cacheKeys.inventory(), filters],
     () => fetchInventoryList(filters),
-    { keepPreviousData: true }
+    {
+      keepPreviousData: true,
+      fallbackData,
+      revalidateOnMount: fallbackData ? false : undefined,
+    }
   );
 
   return {
     items: data?.data ?? [],
     total: data?.count ?? 0,
     page: filters.page || 1,
-    pageSize: 20, // matches INVENTORY_PAGE_SIZE constant
+    pageSize: INVENTORY_PAGE_SIZE,
     isLoading,
     isValidating,
     error,
@@ -44,10 +57,14 @@ export function useInventory(filters: InventoryFilters) {
 
 // ─── STATS ──────────────────────────────────────────────────
 
-export function useInventoryStats() {
+export function useInventoryStats(fallbackData?: InventoryStats) {
   const { data, error, isLoading } = useSWR(
     cacheKeys.inventoryStats(),
-    () => getInventoryStats()
+    () => getInventoryStats(),
+    {
+      fallbackData,
+      revalidateOnMount: fallbackData ? false : undefined,
+    }
   );
 
   return {
@@ -59,10 +76,17 @@ export function useInventoryStats() {
 
 // ─── DETAIL ─────────────────────────────────────────────────
 
-export function useInventoryDetail(id: string | null) {
+export function useInventoryDetail(
+  id: string | null,
+  fallbackData?: InventoryDetail | null,
+) {
   const { data, error, isLoading } = useSWR(
     id ? cacheKeys.inventoryDetail(id) : null,
-    () => (id ? fetchInventoryDetail(id) : null)
+    () => (id ? fetchInventoryDetail(id) : null),
+    {
+      fallbackData: fallbackData || undefined,
+      revalidateOnMount: fallbackData ? false : undefined,
+    }
   );
 
   return {

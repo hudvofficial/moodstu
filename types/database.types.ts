@@ -1667,6 +1667,7 @@ export type Database = {
           id: string
           image_url: string | null
           payment_method: Database["public"]["Enums"]["payment_method_enum"]
+          printing_order_id: string | null
           recipient: string | null
           updated_at: string | null
         }
@@ -1683,6 +1684,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
+          printing_order_id?: string | null
           recipient?: string | null
           updated_at?: string | null
         }
@@ -1699,6 +1701,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
+          printing_order_id?: string | null
           recipient?: string | null
           updated_at?: string | null
         }
@@ -1715,6 +1718,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_printing_order_id_fkey"
+            columns: ["printing_order_id"]
+            isOneToOne: false
+            referencedRelation: "printing_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2511,6 +2521,48 @@ export type Database = {
             columns: ["lab_id"]
             isOneToOne: false
             referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_payment_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          payment_id: string
+          printing_order_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id: string
+          printing_order_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id?: string
+          printing_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "lab_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_payment_allocations_printing_order_id_fkey"
+            columns: ["printing_order_id"]
+            isOneToOne: false
+            referencedRelation: "printing_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -3784,6 +3836,10 @@ export type Database = {
         Returns: undefined
       }
       convert_lead_to_customer: { Args: { p_lead_id: string }; Returns: Json }
+      create_printing_order_atomic: {
+        Args: { p_actor_id: string; p_order: Json }
+        Returns: Json
+      }
       create_sale_receipt_atomic: {
         Args: { p_items: Json; p_receipt: Json }
         Returns: Json
@@ -3795,6 +3851,22 @@ export type Database = {
       delete_contract_cascade: {
         Args: { p_contract_id: string; p_user_id: string }
         Returns: undefined
+      }
+      delete_printing_order_atomic: {
+        Args: { p_actor_id: string; p_order_id: string }
+        Returns: Json
+      }
+      delete_service_atomic: {
+        Args: { p_actor_id: string; p_service_id: string }
+        Returns: Json
+      }
+      finance_cashflow_timeline: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          date: string
+          inflow: number
+          outflow: number
+        }[]
       }
       finance_contract_profit_report: {
         Args: {
@@ -3837,11 +3909,22 @@ export type Database = {
           total_outflow: number
         }[]
       }
+      finance_debt_stats: {
+        Args: never
+        Returns: {
+          aging: Json
+          net_debt: number
+          overdue: number
+          payable: number
+          receivable: number
+        }[]
+      }
       finance_lab_debt_summary: {
         Args: never
         Returns: {
           lab_id: string
           lab_name: string
+          last_order_date: string | null
           order_count: number
           remaining: number
           total_orders: number
@@ -3870,6 +3953,33 @@ export type Database = {
           total_count: number
           transaction_date: string
         }[]
+      }
+      finance_ledger_range: {
+        Args: {
+          p_from_date?: string
+          p_page?: number
+          p_page_size?: number
+          p_to_date?: string
+          p_type?: string
+        }
+        Returns: {
+          amount: number
+          category_name: string
+          code: string
+          customer_name: string
+          description: string
+          direction: string
+          id: string
+          payment_method: string
+          source_table: string
+          status: string
+          total_count: number
+          transaction_date: string
+        }[]
+      }
+      finance_reports_snapshot: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
       }
       finance_revenue_by_month: {
         Args: { p_year: number }
@@ -3910,8 +4020,8 @@ export type Database = {
           contract_code: string
           contract_id: string
           cost: number
-          deadline: string
-          event_date: string
+          deadline: string | null
+          event_date: string | null
           service_type: string
           status: string
           work_type: string
@@ -3942,9 +4052,9 @@ export type Database = {
           client_name: string
           contract_code: string
           contract_id: string
-          cost: number
-          deadline: string
-          event_date: string
+          cost: number | null
+          deadline: string | null
+          event_date: string | null
           service_type: string
           status: string
           work_type: string
@@ -3961,7 +4071,7 @@ export type Database = {
           overdue_tasks: number
           post_production_active: number
           role: Database["public"]["Enums"]["employee_role_enum"]
-          total_cost: number
+          total_cost: number | null
         }[]
       }
       get_printing_cost_stats: {
@@ -3974,6 +4084,44 @@ export type Database = {
       get_receivable_aging: { Args: never; Returns: Json }
       is_period_locked: { Args: { p_date: string }; Returns: boolean }
       nextval_customer_code: { Args: never; Returns: number }
+      nextval_printing_order_code: { Args: never; Returns: string }
+      printing_items_total: { Args: { p_items: Json }; Returns: number }
+      printing_integrity_report: {
+        Args: never
+        Returns: {
+          check_name: string
+          issue_count: number
+        }[]
+      }
+      printing_lab_overview: {
+        Args: never
+        Returns: {
+          address: string | null
+          contact_person: string | null
+          created_at: string | null
+          id: string
+          lab_name: string
+          last_payment_at: string | null
+          outstanding_debt: number
+          phone: string | null
+          service_count: number
+          service_preview: string[] | null
+          status: string
+          unpaid_orders: number
+        }[]
+      }
+      printing_stats: {
+        Args: never
+        Returns: {
+          cho_xu_ly: number
+          da_in: number
+          da_nhan: number
+          dang_in: number
+          total: number
+          total_cost: number
+          unpaid_cost: number
+        }[]
+      }
       process_contract_payment: {
         Args: {
           p_amount: number
@@ -4007,6 +4155,18 @@ export type Database = {
         Args: { p_contract_id: string }
         Returns: undefined
       }
+      record_lab_payment_atomic: {
+        Args: {
+          p_actor_id: string
+          p_allocations: Json
+          p_amount: number
+          p_lab_id: string
+          p_note: string | null
+          p_payment_method: string
+        }
+        Returns: Json
+      }
+      resolve_printing_expense_category_id: { Args: never; Returns: string }
       save_contract_atomic: {
         Args: {
           p_actor_id: string
@@ -4019,9 +4179,31 @@ export type Database = {
         }
         Returns: Json
       }
+      save_service_atomic: {
+        Args: {
+          p_actor_id: string
+          p_bundle_items?: Json
+          p_expected_updated_at?: string | null
+          p_service: Json
+        }
+        Returns: Json
+      }
+      update_printing_order_atomic: {
+        Args: {
+          p_actor_id: string
+          p_expected_updated_at: string | null
+          p_order: Json
+          p_order_id: string
+        }
+        Returns: Json
+      }
       undo_contribution_atomic: {
         Args: { p_contribution_id: string }
         Returns: Json
+      }
+      upsert_printing_expense: {
+        Args: { p_actor_id: string; p_printing_order_id: string }
+        Returns: string
       }
     }
     Enums: {

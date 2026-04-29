@@ -31,6 +31,28 @@ export const INVENTORY_STATUSES = [
 
 export type InventoryStatus = (typeof INVENTORY_STATUSES)[number];
 
+export const INVENTORY_FILTER_STATUSES = [
+  "all",
+  "active",
+  "low_stock",
+  "out_of_stock",
+  "discontinued",
+] as const;
+
+export type InventoryFilterStatus = (typeof INVENTORY_FILTER_STATUSES)[number];
+
+export const INVENTORY_FILTER_CATEGORIES = [
+  "all",
+  ...INVENTORY_CATEGORIES,
+] as const;
+
+export const INVENTORY_SORTS = [
+  "newest",
+  "name_asc",
+  "stock_asc",
+  "stock_desc",
+] as const;
+
 // ─── Units (Group B — VARCHAR in DB) ─────────────────
 
 export const INVENTORY_UNITS = [
@@ -97,3 +119,40 @@ export const stockOutSchema = z.object({
 });
 
 export type StockOutInput = z.infer<typeof stockOutSchema>;
+
+export const inventoryListFiltersSchema = z.object({
+  search: z.string().trim().max(80).optional(),
+  category: z.enum(INVENTORY_FILTER_CATEGORIES).optional(),
+  status: z.enum(INVENTORY_FILTER_STATUSES).optional(),
+  sort: z.enum(INVENTORY_SORTS).optional(),
+  page: z.coerce.number().int().min(1).max(10000).optional(),
+});
+
+export const transactionFiltersSchema = z
+  .object({
+    type: z.enum(["stock_in", "stock_out", "all"]).optional(),
+    item_id: z.string().uuid().optional(),
+    contract_id: z.string().uuid().optional(),
+    start_date: z.string().datetime().optional(),
+    end_date: z.string().datetime().optional(),
+    page: z.coerce.number().int().min(1).max(10000).optional(),
+  })
+  .refine(
+    (value) =>
+      !value.start_date ||
+      !value.end_date ||
+      new Date(value.start_date).getTime() <= new Date(value.end_date).getTime(),
+    {
+      message: "Ngày bắt đầu phải trước ngày kết thúc",
+      path: ["end_date"],
+    },
+  );
+
+export const inventoryPickerFiltersSchema = z.object({
+  search: z.string().trim().max(80).optional(),
+  page: z.coerce.number().int().min(1).max(10000).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  activeOnly: z.boolean().optional(),
+});
+
+export const inventoryUuidSchema = z.string().uuid("ID vật tư không hợp lệ");

@@ -23,6 +23,7 @@ import type {
 import type { DebtStats } from "@/app/actions/finance-operations-queries";
 
 const EXPORT_PAGE_SIZE = 200;
+const EXPORT_MAX_ROWS = 5000;
 const PENDING_LIMIT = 200;
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
@@ -33,12 +34,17 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 
 async function collectAllPages<T>(
   fetchPage: (page: number) => Promise<PaginatedResult<T>>,
+  maxRows = EXPORT_MAX_ROWS,
 ) {
   const rows: T[] = [];
   let page = 1;
 
   while (true) {
     const current = await fetchPage(page);
+    if (current.total > maxRows || rows.length + current.items.length > maxRows) {
+      throw new Error(`Bao cao vuot qua gioi han xuat ${maxRows} dong. Hay thu hep khoang ngay.`);
+    }
+
     rows.push(...current.items);
 
     if (rows.length >= current.total || current.items.length < current.pageSize) {
@@ -64,6 +70,8 @@ function buildOverviewSheet(snapshot: ReportsSnapshot): ExcelWorksheet {
   return {
     name: "Tổng quan",
     rows: [
+      ["Basis", "Summary uses contract-date revenue; cashflow uses payment/receipt/expense dates"],
+      ["Generated at", new Date().toISOString()],
       ["Báo cáo tài chính", snapshot.range.label],
       ["Khoảng ngày", `${snapshot.range.startDate} đến ${snapshot.range.endDate}`],
       [],

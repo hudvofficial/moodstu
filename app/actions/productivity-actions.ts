@@ -24,6 +24,18 @@ import {
   transformJobRows,
   type RpcEmployeeRow,
 } from "@/lib/productivity-transforms";
+import {
+  productivityDetailParamsSchema,
+  productivityPeriodSchema,
+} from "@/lib/validations/productivity.schema";
+import { ZodError } from "zod";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ZodError) {
+    return error.issues[0]?.message || fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 // ── Internal fetch helpers ──
 
@@ -146,6 +158,7 @@ export async function fetchProductivityData(
   period: ProductivityPeriod = "month",
 ): Promise<ActionResult<ProductivityPagePayload>> {
   try {
+    const safePeriod = productivityPeriodSchema.parse(period);
     const viewerResult = await resolveProductivityViewerContext();
     if (!viewerResult.success) {
       return viewerResult;
@@ -154,8 +167,8 @@ export async function fetchProductivityData(
     const viewer = viewerResult.data;
     const overview =
       viewer.viewMode === "team"
-        ? await fetchTeamOverview(period, viewer)
-        : await fetchSelfOverview(period, viewer);
+        ? await fetchTeamOverview(safePeriod, viewer)
+        : await fetchSelfOverview(safePeriod, viewer);
 
     return {
       success: true,
@@ -170,6 +183,12 @@ export async function fetchProductivityData(
       context: "productivity.fetch",
       tableName: "work_tasks",
     }).catch(() => {});
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: getErrorMessage(error, "Loi tai du lieu nang suat"),
+      };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : "Lỗi tải dữ liệu năng suất",
@@ -183,13 +202,18 @@ export async function fetchEmployeeJobDetails(
   endDate: string,
 ): Promise<ActionResult<EmployeeJobGroup[]>> {
   try {
+    const params = productivityDetailParamsSchema.parse({
+      employeeId,
+      startDate,
+      endDate,
+    });
     const viewerResult = await resolveProductivityViewerContext();
     if (!viewerResult.success) {
       return viewerResult;
     }
 
     const viewer = viewerResult.data;
-    let targetEmployeeId = employeeId;
+    let targetEmployeeId = params.employeeId;
 
     if (viewer.viewMode === "self") {
       if (!viewer.currentEmployeeId) {
@@ -207,8 +231,8 @@ export async function fetchEmployeeJobDetails(
 
     const data = await fetchJobDetailsInternal(
       targetEmployeeId,
-      startDate,
-      endDate,
+      params.startDate,
+      params.endDate,
       viewer,
     );
 
@@ -219,6 +243,12 @@ export async function fetchEmployeeJobDetails(
       context: "productivity.jobDetails",
       tableName: "work_tasks",
     }).catch(() => {});
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: getErrorMessage(error, "Loi tai chi tiet cong viec"),
+      };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : "Lỗi tải chi tiết công việc",

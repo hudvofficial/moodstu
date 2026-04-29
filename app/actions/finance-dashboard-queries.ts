@@ -429,7 +429,7 @@ async function queryDashboardMetrics(
 
   if (error && isMissingRpcError(error)) return getDashboardMetricsFallback(supabase, month, year);
 
-  if (error) throw new Error(`Lá»—i táº£i KPI tĂ i chĂ­nh: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải KPI tài chính: ${error.message}`);
   const row = (data || {}) as RpcRow;
 
   return {
@@ -454,7 +454,7 @@ async function queryRevenueByMonth(
 
   if (error && isMissingRpcError(error)) return getRevenueByMonthFallback(supabase, year);
 
-  if (error) throw new Error(`Lá»—i táº£i doanh thu theo thĂ¡ng: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải doanh thu theo tháng: ${error.message}`);
 
   return ((data || []) as RpcRow[]).map((row) => ({
     month: asString(row.month_label),
@@ -475,10 +475,10 @@ async function queryServiceDistribution(
 
   if (error && isMissingRpcError(error)) return getServiceDistributionFallback(supabase, month, year);
 
-  if (error) throw new Error(`Lá»—i táº£i phĂ¢n bá»• dá»‹ch vá»¥: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải phân bổ dịch vụ: ${error.message}`);
 
   return ((data || []) as RpcRow[]).map((row) => ({
-    name: asString(row.name, "KhĂ¡c"),
+    name: asString(row.name, "Khác"),
     value: asNumber(row.value),
     revenue: asNumber(row.revenue),
   })) satisfies ServiceDistributionItem[];
@@ -497,7 +497,7 @@ async function queryUpcomingContracts(
     .order("work_date", { ascending: true })
     .limit(limit);
 
-  if (error) throw new Error(`Lá»—i táº£i há»£p Ä‘á»“ng sáº¯p chá»¥p: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải hợp đồng sắp chụp: ${error.message}`);
   return normalizeContractRows(data);
 }
 
@@ -513,7 +513,7 @@ async function queryPendingCollections(
     .order("contract_date", { ascending: false })
     .limit(limit);
 
-  if (error) throw new Error(`Lá»—i táº£i danh sĂ¡ch cáº§n thu: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải danh sách cần thu: ${error.message}`);
   return normalizeContractRows(data);
 }
 
@@ -533,12 +533,12 @@ async function queryContractProfitReport(
 
   if (error && isMissingRpcError(error)) return getContractProfitReportFallback(supabase, filters);
 
-  if (error) throw new Error(`Lá»—i táº£i bĂ¡o cĂ¡o lá»£i nhuáº­n: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải báo cáo lợi nhuận: ${error.message}`);
 
   const rows = ((data || []) as RpcRow[]).map((row) => ({
     id: asString(row.id),
     contractCode: asString(row.contract_code),
-    customerName: asString(row.customer_name, "KhĂ¡ch vĂ£ng lai"),
+    customerName: asString(row.customer_name, "Khách vãng lai"),
     contractDate: asString(row.contract_date, "") || null,
     status: asString(row.status, "draft"),
     totalAmount: asNumber(row.total_amount),
@@ -602,7 +602,7 @@ async function queryLedger(
 
   if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
 
-  if (error) throw new Error(`Lá»—i táº£i sá»• cĂ¡i thu chi: ${error.message}`);
+  if (error) throw new Error(`Lỗi tải sổ cái thu chi: ${error.message}`);
 
   return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
 }

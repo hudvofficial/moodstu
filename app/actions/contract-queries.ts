@@ -30,6 +30,33 @@ function sanitizeSearch(raw: string): string {
     .trim();
 }
 
+async function findMatchingCustomerIds(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
+  safeSearch: string,
+) {
+  if (!safeSearch) return [] as string[];
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id")
+    .or(
+      [
+        `full_name.ilike.%${safeSearch}%`,
+        `customer_code.ilike.%${safeSearch}%`,
+        `phone.ilike.%${safeSearch}%`,
+        `bride_name.ilike.%${safeSearch}%`,
+        `groom_name.ilike.%${safeSearch}%`,
+      ].join(","),
+    )
+    .limit(300);
+
+  if (error) {
+    throw new Error(`Loi tim khach hang: ${error.message}`);
+  }
+
+  return (data || []).map((customer: { id: string }) => customer.id);
+}
+
 function getSortConfig(sort?: string) {
   switch (sort) {
     case "oldest":
@@ -100,9 +127,7 @@ export async function getContractList(filters: ContractFilters) {
          total_amount, discount_amount, paid_amount,
          remaining_amount, status, payment_status,
          description, updated_at, created_at,
-         customers (id, customer_code, full_name, phone, address, bride_name, groom_name),
-         work_tasks (id, work_type, status, deadline),
-         contract_checklists (id, contract_id, event_stage, category, item_name, is_completed, created_at, updated_at)`,
+         customers (id, customer_code, full_name, phone, address, bride_name, groom_name)`,
         { count: "estimated" }
       )
       .is("deleted_at", null)
@@ -120,9 +145,16 @@ export async function getContractList(filters: ContractFilters) {
 
     if (filters.search) {
       const safe = sanitizeSearch(filters.search);
-      query = query.or(
-        `contract_code.ilike.%${safe}%,customers.full_name.ilike.%${safe}%`
-      );
+      if (safe) {
+        const matchingCustomerIds = await findMatchingCustomerIds(supabase, safe);
+        const searchClauses = [`contract_code.ilike.%${safe}%`];
+
+        if (matchingCustomerIds.length > 0) {
+          searchClauses.push(`customer_id.in.(${matchingCustomerIds.join(",")})`);
+        }
+
+        query = query.or(searchClauses.join(","));
+      }
     }
 
     if (filters.time && filters.time !== "all") {
@@ -159,8 +191,51 @@ export async function getContractList(filters: ContractFilters) {
 
     const { data, count, error } = await query;
     if (error) throw error;
-
     const contracts = (data || []) as Record<string, unknown>[];
+    const contractIds = contracts
+      .map((contract) => contract.id)
+      .filter((id): id is string => typeof id === "string");
+
+    if (contractIds.length > 0) {
+      const [tasksResult, checklistsResult] = await Promise.all([
+        supabase
+          .from("work_tasks")
+          .select("id, contract_id, work_type, status, deadline")
+          .in("contract_id", contractIds),
+        supabase
+          .from("contract_checklists")
+          .select("id, contract_id, event_stage, category, item_name, is_completed, created_at, updated_at")
+          .in("contract_id", contractIds),
+      ]);
+
+      assertQueryOk("Loi tai tien do cong viec", tasksResult);
+      assertQueryOk("Loi tai checklist hop dong", checklistsResult);
+
+      const tasksByContract = new Map<string, Record<string, unknown>[]>();
+      for (const task of (tasksResult.data || []) as Record<string, unknown>[]) {
+        const contractId = task.contract_id;
+        if (typeof contractId !== "string") continue;
+        const list = tasksByContract.get(contractId) || [];
+        list.push(task);
+        tasksByContract.set(contractId, list);
+      }
+
+      const checklistsByContract = new Map<string, Record<string, unknown>[]>();
+      for (const item of (checklistsResult.data || []) as Record<string, unknown>[]) {
+        const contractId = item.contract_id;
+        if (typeof contractId !== "string") continue;
+        const list = checklistsByContract.get(contractId) || [];
+        list.push(item);
+        checklistsByContract.set(contractId, list);
+      }
+
+      for (const contract of contracts) {
+        const contractId = contract.id;
+        if (typeof contractId !== "string") continue;
+        contract.work_tasks = tasksByContract.get(contractId) || [];
+        contract.contract_checklists = checklistsByContract.get(contractId) || [];
+      }
+    }
 
     return { contracts, total: count || 0, page, pageSize };
   }));
@@ -271,6 +346,9 @@ export async function getContractDetail(id: string) {
     // ⚡ Single-pass: all 6 queries fire simultaneously
     const [
       contractResult,
+      eventsResult,
+      workTasksResult,
+      checklistsResult,
       paymentsResult,
       reservationsResult,
       printOrdersResult,
@@ -298,27 +376,41 @@ export async function getContractDetail(id: string) {
              quantity, unit_price, original_price,
              discount_amount, total_amount, is_addon,
              addon_category, dress_id, notes, deleted_at
-           ),
-           contract_events (
-             id, contract_id, event_type, title, event_date, end_date,
-             location, status, notes, sort_order, deadline,
-             start_time, end_time, is_manual_date, phase,
-             sync_to_google, google_event_id, google_sync_status,
-             google_sync_error, google_synced_at, deleted_at
-           ),
-           work_tasks (
-             id, event_id, contract_id, work_type, assigned_to, status, deadline,
-             start_date, start_time, end_time, completion_date, cost, notes,
-             employees:assigned_to(id, full_name, avatar_url, department)
-           ),
-           contract_checklists (
-             id, event_stage, category, item_name, is_completed, created_at, updated_at
            )`
         )
         .eq("id", id)
         .is("deleted_at", null)
         .single(),
-      // 2) Payments
+      // 2) Events
+      supabase
+        .from("contract_events")
+        .select(
+          `id, contract_id, event_type, title, event_date, end_date,
+           location, status, notes, sort_order, deadline,
+           start_time, end_time, is_manual_date, phase,
+           sync_to_google, google_event_id, google_sync_status,
+           google_sync_error, google_synced_at, deleted_at`
+        )
+        .eq("contract_id", id)
+        .is("deleted_at", null)
+        .order("sort_order", { ascending: true }),
+      // 3) Work tasks
+      supabase
+        .from("work_tasks")
+        .select(
+          `id, event_id, contract_id, work_type, assigned_to, status, deadline,
+           start_date, start_time, end_time, completion_date, cost, notes,
+           employees:assigned_to(id, full_name, avatar_url, department)`
+        )
+        .eq("contract_id", id)
+        .order("deadline", { ascending: true }),
+      // 4) Checklists
+      supabase
+        .from("contract_checklists")
+        .select("id, event_stage, category, item_name, is_completed, created_at, updated_at")
+        .eq("contract_id", id)
+        .order("created_at", { ascending: true }),
+      // 5) Payments
       supabase
         .from("payments")
         .select(
@@ -327,7 +419,7 @@ export async function getContractDetail(id: string) {
         .eq("contract_id", id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
-      // 3) Dress reservations
+      // 6) Dress reservations
       supabase
         .from("dress_reservations")
         .select(
@@ -335,7 +427,7 @@ export async function getContractDetail(id: string) {
         )
         .eq("contract_id", id)
         .order("created_at", { ascending: false }),
-      // 4) Printing orders
+      // 7) Printing orders
       supabase
         .from("printing_orders")
         .select(
@@ -343,7 +435,7 @@ export async function getContractDetail(id: string) {
         )
         .eq("contract_id", id)
         .order("created_at", { ascending: false }),
-      // 5) Audit logs
+      // 8) Audit logs
       supabase
         .from("audit_logs")
         .select(
@@ -353,7 +445,7 @@ export async function getContractDetail(id: string) {
         .eq("record_id", id)
         .order("created_at", { ascending: false })
         .limit(10),
-      // 6) Payment plans
+      // 9) Payment plans
       supabase
         .from("payment_plans")
         .select(
@@ -365,6 +457,9 @@ export async function getContractDetail(id: string) {
 
     const { data, error } = contractResult;
     if (error) throw error;
+    assertQueryOk("Loi tai lich trinh hop dong", eventsResult);
+    assertQueryOk("Loi tai phan cong hop dong", workTasksResult);
+    assertQueryOk("Loi tai checklist hop dong", checklistsResult);
     if (!data) throw new Error("Không tìm thấy hợp đồng");
     assertQueryOk("Lỗi tải thanh toán hợp đồng", paymentsResult);
     assertQueryOk("Lỗi tải lịch đặt trang phục", reservationsResult);
@@ -372,18 +467,22 @@ export async function getContractDetail(id: string) {
     assertQueryOk("Lỗi tải lịch sử thao tác", auditLogsResult);
     assertQueryOk("Lỗi tải kế hoạch thanh toán", paymentPlansResult);
 
-    // Filter soft-deleted items/events from embedded select
-    const activeItems = (data.contract_items || []).filter(
+    const contractData = data as typeof data & {
+      contract_events?: unknown[];
+      work_tasks?: unknown[];
+      contract_checklists?: unknown[];
+    };
+
+    const activeItems = (contractData.contract_items || []).filter(
       (i: { deleted_at?: string | null }) => !i.deleted_at
     );
-    const activeEvents = (data.contract_events || []).filter(
-      (e: { deleted_at?: string | null }) => !e.deleted_at
-    );
-    data.contract_items = activeItems;
-    data.contract_events = activeEvents;
+    contractData.contract_items = activeItems;
+    contractData.contract_events = eventsResult.data || [];
+    contractData.work_tasks = workTasksResult.data || [];
+    contractData.contract_checklists = checklistsResult.data || [];
 
     return {
-      contract: data,
+      contract: contractData,
       payments: paymentsResult.data || [],
       reservations: reservationsResult.data || [],
       printOrders: printOrdersResult.data || [],

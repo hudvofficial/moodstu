@@ -1,6 +1,6 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withPrintingAccess } from "@/lib/auth_utils";
 import type {
   Lab,
   LabDetail,
@@ -22,6 +22,21 @@ type BaseLabRow = {
   address: string | null;
   status: string;
   created_at: string | null;
+};
+
+type LabOverviewRow = {
+  id: string;
+  lab_name: string;
+  contact_person: string | null;
+  phone: string | null;
+  address: string | null;
+  status: string;
+  created_at: string | null;
+  service_count: number | null;
+  service_preview: string[] | null;
+  outstanding_debt: number | null;
+  unpaid_orders: number | null;
+  last_payment_at: string | null;
 };
 
 function mapLabRows(params: {
@@ -77,60 +92,33 @@ function mapLabRows(params: {
 }
 
 export async function fetchLabsList(): Promise<ActionResult<Lab[]>> {
-  return withAuth(async (supabase) => {
-    const [labsResult, servicesResult, paymentsResult, unpaidOrdersResult] =
-      await Promise.all([
-        supabase
-          .from("labs")
-          .select("id, lab_name, contact_person, phone, address, status, created_at")
-          .is("deleted_at", null)
-          .order("lab_name"),
-        supabase
-          .from("lab_services")
-          .select("id, lab_id, item_name, cost_price, created_at, updated_at")
-          .order("item_name")
-          .limit(500),
-        supabase
-          .from("lab_payments")
-          .select("id, lab_id, amount, payment_method, note, created_at, created_by")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase
-          .from("printing_orders")
-          .select("lab_id, total_amount")
-          .eq("payment_status", "chua_thanh_toan")
-          .not("lab_id", "is", null)
-          .is("deleted_at", null),
-      ]);
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase.rpc("printing_lab_overview");
 
-    if (labsResult.error) {
-      throw new Error(`Khong the tai danh sach lab: ${labsResult.error.message}`);
-    }
-    if (servicesResult.error) {
-      throw new Error(`Khong the tai bang gia lab: ${servicesResult.error.message}`);
-    }
-    if (paymentsResult.error) {
-      throw new Error(
-        `Khong the tai lich su thanh toan lab: ${paymentsResult.error.message}`,
-      );
-    }
-    if (unpaidOrdersResult.error) {
-      throw new Error(
-        `Khong the tai cong no lab: ${unpaidOrdersResult.error.message}`,
-      );
+    if (error) {
+      throw new Error(`Khong the tai danh sach lab: ${error.message}`);
     }
 
-    return mapLabRows({
-      labs: (labsResult.data ?? []) as BaseLabRow[],
-      services: (servicesResult.data ?? []) as LabService[],
-      payments: (paymentsResult.data ?? []) as LabPayment[],
-      unpaidOrders: unpaidOrdersResult.data ?? [],
-    });
+    return ((data ?? []) as LabOverviewRow[]).map((lab) => ({
+      id: lab.id,
+      lab_name: lab.lab_name,
+      contact_person: lab.contact_person,
+      phone: lab.phone,
+      address: lab.address,
+      status: normalizeLabStatus(lab.status),
+      created_at: lab.created_at,
+      serviceCount: Number(lab.service_count ?? 0),
+      servicePreview: lab.service_preview ?? [],
+      services: [],
+      outstandingDebt: Number(lab.outstanding_debt ?? 0),
+      unpaidOrders: Number(lab.unpaid_orders ?? 0),
+      lastPaymentAt: lab.last_payment_at,
+    }));
   });
 }
 
 export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const [labResult, servicesResult, paymentsResult, debtResult] =
       await Promise.all([
         supabase
@@ -189,7 +177,7 @@ export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>>
 }
 
 export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const { data, error } = await supabase
       .from("labs")
       .select("id, lab_name")
@@ -206,7 +194,7 @@ export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
 }
 
 export async function getLabServices(labId: string): Promise<ActionResult<LabService[]>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const { data, error } = await supabase
       .from("lab_services")
       .select("id, lab_id, item_name, cost_price, created_at, updated_at")
@@ -220,4 +208,3 @@ export async function getLabServices(labId: string): Promise<ActionResult<LabSer
     return (data ?? []) as LabService[];
   });
 }
-

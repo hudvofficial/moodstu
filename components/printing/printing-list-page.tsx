@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import useSWR from "swr";
 import { FilterX, Plus, Printer } from "lucide-react";
@@ -27,12 +28,16 @@ import type {
   PrintingStats,
 } from "@/types/printing";
 import PrintingFiltersBar from "@/components/printing/printing-filters";
-import PrintingDetailDrawer from "@/components/printing/printing-detail-drawer";
 import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped";
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
 import PrintingTable from "@/components/printing/printing-table";
 import PrintingGroupDrawer from "@/components/printing/printing-group-drawer";
 import { groupOrdersByContract, type ContractGroup } from "@/lib/utils/printing-group-utils";
+
+const PrintingDetailDrawer = dynamic(
+  () => import("@/components/printing/printing-detail-drawer"),
+  { ssr: false },
+);
 
 type ActionResult<T> =
   | { success: true; data: T }

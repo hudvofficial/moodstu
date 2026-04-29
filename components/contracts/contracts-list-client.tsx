@@ -16,13 +16,11 @@ import {
   useState,
 } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, Plus, Search, X } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useRealtime } from "@/hooks/use-realtime";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
@@ -102,61 +100,6 @@ interface ContractsListClientProps {
   initialStats?: ContractStats;
 }
 
-interface ContractsSearchInputProps {
-  initialValue: string;
-  onSearchChange: (value: string) => void;
-  className?: string;
-}
-
-function ContractsSearchInput({
-  initialValue,
-  onSearchChange,
-  className = "",
-}: ContractsSearchInputProps) {
-  const [value, setValue] = useState(initialValue);
-  const debouncedValue = useDebounce(value, 300);
-
-  useEffect(() => {
-    const normalizedValue = debouncedValue.trim();
-    if (normalizedValue !== initialValue) {
-      onSearchChange(normalizedValue);
-    }
-  }, [debouncedValue, initialValue, onSearchChange]);
-
-  const handleClear = useCallback(() => {
-    setValue("");
-    if (initialValue) {
-      onSearchChange("");
-    }
-  }, [initialValue, onSearchChange]);
-
-  return (
-    <div className={["relative", className].filter(Boolean).join(" ")}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-      <Input
-        unstyled
-        withBaseStyles={false}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        className="search-input h-9 w-full pl-9 pr-9"
-        placeholder="Tìm mã HĐ, khách hàng..."
-        aria-label="Tìm kiếm hợp đồng"
-      />
-      {value && (
-        <Button
-          unstyled
-          type="button"
-          onClick={handleClear}
-          className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          aria-label="Xóa tìm kiếm"
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      )}
-    </div>
-  );
-}
-
 function ContractsListInner({
   initialData,
   initialStats,
@@ -166,7 +109,6 @@ function ContractsListInner({
     filters,
     isPending,
     setStatus,
-    setSearch,
     setTime,
     setService,
     setSort,
@@ -362,13 +304,6 @@ function ContractsListInner({
           label="Tạo hợp đồng"
         />
 
-        <ContractsSearchInput
-          key={`mobile-search-${filters.search}`}
-          initialValue={filters.search}
-          onSearchChange={setSearch}
-          className="lg:hidden"
-        />
-
         {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
         <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
           <TabsFilter
@@ -405,12 +340,6 @@ function ContractsListInner({
             />
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <ContractsSearchInput
-              key={`desktop-search-${filters.search}`}
-              initialValue={filters.search}
-              onSearchChange={setSearch}
-              className="w-64 xl:w-80"
-            />
             <ContractsDropdownFilters
               time={filters.time}
               service={filters.service}

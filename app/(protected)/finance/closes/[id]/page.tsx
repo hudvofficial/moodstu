@@ -10,7 +10,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Chi tiết chốt sổ | Mood Studio" };
+export const metadata = { title: "Chi tiết chốt sổ" };
 export const dynamic = "force-dynamic";
 
 export default async function CloseDetailPage({ params }: CloseDetailPageProps) {
@@ -18,3 +18,4 @@ export default async function CloseDetailPage({ params }: CloseDetailPageProps) 
   const detail = await getCloseDetail(id);
   return <CloseDetailClient closeId={id} initialData={unwrap<CloseDetailData | null>(detail, null)} />;
 }
+

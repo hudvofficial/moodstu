@@ -11,7 +11,7 @@ import type {
 } from "@/types/printing-constants";
 
 export const metadata = {
-  title: "Printing | Mood Studio",
+  title: "In ấn",
 };
 
 export const dynamic = "force-dynamic";
@@ -65,3 +65,4 @@ export default async function PrintingPage({ searchParams }: Props) {
     />
   );
 }
+

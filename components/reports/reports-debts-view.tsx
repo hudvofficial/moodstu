@@ -13,6 +13,12 @@ interface ReportsDebtsViewProps {
 export function ReportsDebtsView({ debtStats, pending }: ReportsDebtsViewProps) {
   return (
     <div className="space-y-4">
+      <div className="card-base px-4 py-3">
+        <p className="text-caption text-text-muted">
+          Cong no hien tai, khong loc theo ky bao cao.
+        </p>
+      </div>
+
       <div className="hidden gap-4 lg:grid lg:grid-cols-5">
         <div className="lg:col-span-3">
           <DebtAgingCard stats={debtStats} />

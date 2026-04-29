@@ -3,6 +3,8 @@ import AuditLogList from "@/components/settings/audit-log-list";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Nhật ký hệ thống" };
+
 const PAGE_SIZE = 20;
 
 export default async function AuditLogsPage() {
@@ -33,3 +35,4 @@ export default async function AuditLogsPage() {
     />
   );
 }
+

@@ -1,6 +1,7 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import { withPrintingAccess } from "@/lib/auth_utils";
+import { printingFiltersSchema } from "@/lib/validations/printing.schema";
 import type {
   PrintingFilters,
   PrintingItem,
@@ -134,12 +135,18 @@ function buildPrintingSelect() {
 export async function fetchPrintingOrders(
   filters: PrintingFilters = {},
 ): Promise<ActionResult<PrintingOrdersPage>> {
-  return withAuth(async (supabase) => {
-    const page = filters.page && filters.page > 0 ? filters.page : 1;
-    const pageSize =
-      filters.pageSize && filters.pageSize > 0
-        ? filters.pageSize
-        : PRINTING_PAGE_SIZE;
+  const parsedFilters = printingFiltersSchema.safeParse(filters);
+  if (!parsedFilters.success) {
+    return {
+      success: false,
+      error: parsedFilters.error.issues[0]?.message || "Bo loc khong hop le",
+    };
+  }
+
+  return withPrintingAccess(async (supabase) => {
+    const filters = parsedFilters.data;
+    const page = filters.page || 1;
+    const pageSize = filters.pageSize || PRINTING_PAGE_SIZE;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
@@ -194,49 +201,26 @@ export async function fetchPrintingOrders(
 export async function getPrintingOrderStats(): Promise<
   ActionResult<PrintingStats>
 > {
-  return withAuth(async (supabase) => {
-    // C4 audit fix: parallel server-side COUNT instead of fetching all rows
-    const baseQuery = () =>
-      supabase
-        .from("printing_orders")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null);
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase.rpc("printing_stats");
 
-    const [
-      totalResult,
-      choXuLyResult,
-      dangInResult,
-      daInResult,
-      daNhanResult,
-      costStatsResult,
-    ] = await Promise.all([
-      baseQuery(),
-      baseQuery().eq("status", "cho_xu_ly"),
-      baseQuery().eq("status", "dang_in"),
-      baseQuery().eq("status", "da_in"),
-      baseQuery().eq("status", "da_nhan"),
-      // F3 perf fix: 1 RPC replaces 2 heavy SELECT queries
-      supabase.rpc("get_printing_cost_stats"),
-    ]);
-
-    if (totalResult.error) {
-      throw new Error(`Khong the tai thong ke don in: ${totalResult.error.message}`);
+    if (error) {
+      throw new Error(`Khong the tai thong ke don in: ${error.message}`);
     }
 
-    const costRow = Array.isArray(costStatsResult.data)
-      ? costStatsResult.data[0]
-      : costStatsResult.data;
-    const totalCost = Number(costRow?.total_cost ?? 0);
-    const unpaidCost = Number(costRow?.unpaid_cost ?? 0);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      throw new Error("Khong the tai thong ke don in");
+    }
 
     return {
-      total: totalResult.count ?? 0,
-      choXuLy: choXuLyResult.count ?? 0,
-      dangIn: dangInResult.count ?? 0,
-      daIn: daInResult.count ?? 0,
-      daNhan: daNhanResult.count ?? 0,
-      totalCost,
-      unpaidCost,
+      total: Number(row.total ?? 0),
+      choXuLy: Number(row.cho_xu_ly ?? 0),
+      dangIn: Number(row.dang_in ?? 0),
+      daIn: Number(row.da_in ?? 0),
+      daNhan: Number(row.da_nhan ?? 0),
+      totalCost: Number(row.total_cost ?? 0),
+      unpaidCost: Number(row.unpaid_cost ?? 0),
     };
   });
 }
@@ -244,7 +228,7 @@ export async function getPrintingOrderStats(): Promise<
 export async function getPrintingOrderDetail(
   id: string,
 ): Promise<ActionResult<PrintingOrderDetail>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const { data, error } = await supabase
       .from("printing_orders")
       .select(buildPrintingSelect())
@@ -284,4 +268,3 @@ export async function getPrintingOrderDetail(
     };
   });
 }
-

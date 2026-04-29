@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getStudioInfoAdmin } from "@/app/actions/settings-queries";
 import StudioInfoForm from "@/components/settings/studio-info-form";
 
+export const metadata = { title: "Thông tin studio" };
+
 export const dynamic = "force-dynamic";
 
 /* ═══════════════════════════════════════════
@@ -50,3 +52,4 @@ export default function StudioSettingsPage() {
     </Suspense>
   );
 }
+

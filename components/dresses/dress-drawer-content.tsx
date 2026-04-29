@@ -16,9 +16,9 @@ import { Shirt, Calendar, Undo2, Loader2, FileText, ShoppingBag, Play, CheckCirc
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
-import { DRESS_CONDITION_MAP, DRESS_STATUS_MAP, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
+import { DRESS_CATEGORY_MAP, DRESS_CONDITION_MAP, DRESS_STATUS_MAP, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { DressItem, DressReservation } from "@/types/dress";
-import type { DressCondition, DressStatus } from "@/lib/validations/dress.schema";
+import type { DressCategory, DressCondition, DressStatus } from "@/lib/validations/dress.schema";
 import { fetchDressDetail } from "@/app/actions/dress-queries";
 import { releaseReservation } from "@/app/actions/dress-mutations";
 import { startRental, cancelRental, markCleaned } from "@/app/actions/rental-mutations";
@@ -47,6 +47,9 @@ function MetaItem({ label, value }: { label: string; value: string | null }) {
 
 function InfoSection({ dress }: { dress: DressItem }) {
   const conditionLabel = dress.condition ? DRESS_CONDITION_MAP[dress.condition as DressCondition] : null;
+  const categoryLabel = dress.category
+    ? DRESS_CATEGORY_MAP[dress.category as DressCategory]?.label || dress.category
+    : null;
   const formatPrice = (v: number | null) => v ? new Intl.NumberFormat("vi-VN").format(v) + "đ" : "—";
 
   return (
@@ -76,7 +79,7 @@ function InfoSection({ dress }: { dress: DressItem }) {
 
             {/* Detail grid 2col (Stitch: grid-cols-2) */}
             <div className="grid grid-cols-2 gap-y-2.5 gap-x-2">
-              <MetaItem label="Danh mục" value={dress.category} />
+              <MetaItem label="Danh mục" value={categoryLabel} />
               <MetaItem label="Size" value={dress.size} />
               <MetaItem label="Màu" value={dress.color} />
             </div>

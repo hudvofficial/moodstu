@@ -9,7 +9,7 @@
  * Status: RENTAL_STATUS_MAP (SSOT from dress-constants.ts)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import useSWR from "swr";
 import {
@@ -33,6 +33,16 @@ import { toast } from "@/lib/toast-utils";
 import { useRealtime } from "@/hooks/use-realtime";
 
 const PAGE_SIZE = 20;
+const REALTIME_REFRESH_DELAY_MS = 600;
+
+interface StandaloneRentalsClientProps {
+  initialResult?: {
+    rentals: DressRental[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+}
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -285,37 +295,52 @@ function CalendarView({ rentals }: { rentals: DressRental[] }) {
 
 // ─── MAIN COMPONENT ─────────────────────────
 
-export default function StandaloneRentalsClient() {
+export default function StandaloneRentalsClient({ initialResult }: StandaloneRentalsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Read filters from URL ──
   const status = searchParams.get("status") || "all";
   const search = searchParams.get("search") || searchParams.get("q") || "";
+  const itemId = searchParams.get("item_id") || "";
   const page = Number(searchParams.get("page")) || 1;
   const view = searchParams.get("view") || "list";
 
   // 📡 Realtime — auto-refresh on dress_rentals changes
   useRealtime("dress_rentals", {
     onChange: () => {
-      void revalidateByPrefixes(cacheKeys.dresses());
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        void revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]);
+      }, REALTIME_REFRESH_DELAY_MS);
     },
   });
 
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
   // ── SWR data ──
   const { data: result, isLoading, error, mutate } = useSWR(
-    [cacheKeys.dresses(), "standalone-rentals", status, search, page],
+    [cacheKeys.dressRentals(), status, search, itemId, page],
     async () => {
       const res = await fetchAllRentals({
         status: status !== "all" ? status : undefined,
         search: search || undefined,
+        itemId: itemId || undefined,
         page,
         pageSize: PAGE_SIZE,
       });
-      return res && "data" in res ? res.data : { rentals: [], total: 0, page: 1, pageSize: PAGE_SIZE };
+      if (!res.success) {
+        throw new Error(res.error || "Khong the tai danh sach don thue trang phuc");
+      }
+      return res.data;
     },
-    { keepPreviousData: true },
+    { keepPreviousData: true, fallbackData: initialResult },
   );
 
   const rentals: DressRental[] = result?.rentals || [];
@@ -344,7 +369,7 @@ export default function StandaloneRentalsClient() {
     router.push(pathname);
   }, [router, pathname]);
 
-  const hasFilters = status !== "all" || !!search;
+  const hasFilters = status !== "all" || !!search || !!itemId;
 
   // ── Actions ──
   const handleStart = async (id: string) => {
@@ -352,7 +377,7 @@ export default function StandaloneRentalsClient() {
     try {
       const res = await startRental(id) as { success: boolean; error?: string };
       if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã bắt đầu thuê!", "success"); mutate(); revalidateByPrefixes(cacheKeys.dresses()); }
+      else { toast("Đã bắt đầu thuê!", "success"); mutate(); revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]); }
     } catch { toast("Lỗi khi bắt đầu thuê", "error"); }
     finally { setActionLoading(false); }
   };
@@ -363,7 +388,7 @@ export default function StandaloneRentalsClient() {
     try {
       const res = await cancelRental(cancelId) as { success: boolean; error?: string };
       if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã hủy đặt thuê", "success"); mutate(); revalidateByPrefixes(cacheKeys.dresses()); }
+      else { toast("Đã hủy đặt thuê", "success"); mutate(); revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]); }
     } catch { toast("Lỗi khi hủy", "error"); }
     finally { setActionLoading(false); setCancelId(null); }
   };
@@ -542,7 +567,7 @@ export default function StandaloneRentalsClient() {
           isOpen={!!returnRental}
           onClose={() => setReturnRental(null)}
           rental={returnRental}
-          onSaved={() => { mutate(); revalidateByPrefixes(cacheKeys.dresses()); revalidate(cacheKeys.dressStats()); }}
+          onSaved={() => { mutate(); revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]); revalidate(cacheKeys.dressStats()); }}
         />
       )}
 

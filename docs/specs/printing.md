@@ -1,5 +1,57 @@
 # Spec: Printing & Labs Module
 
+Status update: **FINAL v5.2** - 2026-04-28 audit fixes applied and migration pushed.
+
+## 2026-04-28 Ownership And Integrity Rules
+
+- Access: all `/printing` pages and printing/lab server actions require the `printing` module permission.
+- Contracts may initiate print orders only through printing-gated actions. Contract detail can display existing print order data through its contract read model.
+- Printing owns print order lifecycle, lab selection, order items, and status transitions.
+- Finance owns the accounting records created from printing costs. Printing mutations must sync expenses through atomic RPCs, not best-effort app-side inserts.
+- Lab payments must allocate to concrete printing orders through `lab_payment_allocations`. A payment can partially close debt, but only orders with fully allocated cost move to `da_thanh_toan`.
+- `da_nhan` means the studio has received the printed product from the lab. `received_date` is set on this transition. `delivered_date` remains reserved for a future customer-delivery workflow.
+
+### Integrity Queries
+
+Automated verification command:
+
+```powershell
+npm run verify:printing
+```
+
+Use these after finance/printing incidents or before release scoring:
+
+```sql
+-- Active print orders with cost but no active linked expense.
+SELECT po.id, po.order_code, po.total_amount
+FROM public.printing_orders po
+LEFT JOIN public.expenses e
+  ON e.printing_order_id = po.id
+ AND e.deleted_at IS NULL
+WHERE po.deleted_at IS NULL
+  AND COALESCE(po.status, '') <> 'da_huy'
+  AND COALESCE(po.total_amount, 0) > 0
+  AND e.id IS NULL;
+
+-- Deleted/cancelled print orders that still have active linked expenses.
+SELECT po.id, po.order_code, e.id AS expense_id, e.amount
+FROM public.printing_orders po
+JOIN public.expenses e
+  ON e.printing_order_id = po.id
+ AND e.deleted_at IS NULL
+WHERE po.deleted_at IS NOT NULL
+   OR COALESCE(po.status, '') = 'da_huy';
+
+-- Paid lab orders whose allocation does not cover the order cost.
+SELECT po.id, po.order_code, po.total_amount, COALESCE(SUM(lpa.amount), 0) AS allocated
+FROM public.printing_orders po
+LEFT JOIN public.lab_payment_allocations lpa ON lpa.printing_order_id = po.id
+WHERE po.deleted_at IS NULL
+  AND po.payment_status = 'da_thanh_toan'
+GROUP BY po.id, po.order_code, po.total_amount
+HAVING COALESCE(SUM(lpa.amount), 0) + 0.01 < COALESCE(po.total_amount, 0);
+```
+
 Status: ✅ **FINAL v5.1** — all gaps closed, approved for implementation
 
 ---

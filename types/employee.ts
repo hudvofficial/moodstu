@@ -40,7 +40,7 @@ export type EmployeeListItem = Pick<
   Employee,
   | "id" | "employee_code" | "full_name" | "department" | "position"
   | "role" | "phone" | "email" | "status" | "gender" | "avatar_url"
-  | "start_date" | "deleted_at"
+  | "start_date" | "deleted_at" | "updated_at"
 >;
 
 // Full data for detail page

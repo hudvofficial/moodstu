@@ -15,6 +15,7 @@ import type { BadgeVariant } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   EMPLOYEE_STATUS_MAP,
   ROLE_BADGE_MAP,
@@ -57,6 +58,7 @@ export default function EmployeeDetailDrawer({
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !employee?.id) {
@@ -108,7 +110,6 @@ export default function EmployeeDetailDrawer({
 
   const handleSoftDelete = async () => {
     if (!detail) return;
-    if (!window.confirm(`Xác nhận cho ${detail.full_name} nghỉ việc?`)) return;
 
     setActionLoading(true);
     try {
@@ -189,7 +190,7 @@ export default function EmployeeDetailDrawer({
           <Button
             type="button"
             unstyled
-            onClick={handleSoftDelete}
+            onClick={() => setConfirmDeleteOpen(true)}
             disabled={actionLoading}
             className={dangerActionClassName}
             title="Cho nghỉ việc"
@@ -346,6 +347,17 @@ export default function EmployeeDetailDrawer({
           onChanged?.();
         }}
         editEmployee={detail}
+      />
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          void handleSoftDelete();
+        }}
+        title="Cho nhân viên nghỉ việc"
+        message={`Nhân viên "${detail?.full_name || ""}" sẽ bị chuyển sang trạng thái nghỉ việc và không còn quyền truy cập hệ thống.`}
+        confirmLabel={actionLoading ? "Đang xử lý..." : "Cho nghỉ"}
+        variant="danger"
       />
     </>
   );

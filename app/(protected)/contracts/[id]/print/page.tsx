@@ -10,6 +10,8 @@ import type {
 import type { Customer } from "@/types/crm";
 import PrintContractClient from "@/components/contracts/print/print-contract-client";
 
+export const metadata = { title: "In hợp đồng" };
+
 // ═══════════════════════════════════════════
 // Print Contract Page — Server Component
 // Phase 02B: REUSE getContractById() — no separate fetch
@@ -61,3 +63,4 @@ export default async function PrintContractPage(props: {
     />
   );
 }
+

@@ -1,6 +1,10 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import {
+  requireContractDestructiveAccess,
+  requireContractWriteAccess,
+  withAuth,
+} from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import {
@@ -177,7 +181,7 @@ export async function generateContractEvents(
   workDate?: string | null,
 ) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
     const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
     revalidatePath(`/contracts/${contractId}`);
     return result;
@@ -192,7 +196,7 @@ export async function updateContractEvent(
   updates: EventUpdateFields,
 ) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     const { data, error } = await supabase
       .from("contract_events")
@@ -349,7 +353,7 @@ export async function addContractEvent(input: {
   notes?: string;
 }) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     if (!input.contractId) throw new Error("Thiếu contract ID");
     if (!input.title?.trim()) throw new Error("Tên sự kiện không được để trống");
@@ -374,7 +378,7 @@ export async function addContractEvent(input: {
         contract_id: input.contractId,
         event_type: input.eventType,
         title: input.title.trim(),
-        event_date: isOnSet ? (input.eventDate || today) : today,
+        event_date: isOnSet ? (input.eventDate || today) : null,
         deadline: !isOnSet ? (input.deadline || today) : null,
         location: input.location || null,
         notes: input.notes || null,
@@ -410,7 +414,7 @@ export async function addContractEvent(input: {
 // Cascade: xóa work_tasks liên quan
 export async function deleteContractEvent(eventId: string) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractDestructiveAccess(supabase, userId);
 
     if (!eventId) throw new Error("Thiếu event ID");
 

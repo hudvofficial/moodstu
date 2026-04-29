@@ -4,6 +4,8 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getServiceById, getServiceCategories, getBundleItems } from "@/app/actions/service-queries";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 
+export const metadata = { title: "Sửa dịch vụ" };
+
 // ═══════════════════════════════════════════
 // /services/[id] — Edit Service Page (SSR)
 // Fetches service + categories server-side
@@ -73,3 +75,4 @@ export default async function EditServicePage({ params }: Props) {
     </div>
   );
 }
+

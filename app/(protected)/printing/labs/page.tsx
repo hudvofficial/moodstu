@@ -3,7 +3,7 @@ import { getLabDebts } from "@/app/actions/printing-reference-queries";
 import LabListPage from "@/components/printing/labs/lab-list-page";
 
 export const metadata = {
-  title: "Labs | Mood Studio",
+  title: "Lab in ấn",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,3 +29,4 @@ export default async function PrintingLabsPage() {
     />
   );
 }
+

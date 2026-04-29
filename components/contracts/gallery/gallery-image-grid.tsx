@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Heart, ImageIcon, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";

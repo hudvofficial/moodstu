@@ -1,13 +1,20 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
-import type { ContractOption, LabDebtData } from "@/types/printing";
+import { withPrintingAccess } from "@/lib/auth_utils";
+import type { ContractOption, LabDebtData, LabDebtEntry } from "@/types/printing";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
 type RelationRecord = Record<string, unknown>;
+type LabDebtSummaryRow = {
+  lab_id: string;
+  lab_name: string | null;
+  order_count: number | null;
+  remaining: number | null;
+  last_order_date: string | null;
+};
 
 function getFirstRelation<T extends RelationRecord>(
   relation: T | T[] | null | undefined,
@@ -24,7 +31,7 @@ function escapeLikePattern(input: string): string {
 export async function getContractOptions(
   search?: string,
 ): Promise<ActionResult<ContractOption[]>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const term = search?.trim();
 
     if (!term) {
@@ -83,63 +90,30 @@ export async function getLabDebts(options?: {
   fromDate?: string;
   limit?: number;
 }): Promise<ActionResult<LabDebtData>> {
-  return withAuth(async (supabase) => {
-    let query = supabase
-      .from("printing_orders")
-      .select("lab_id, total_amount, order_date, labs (id, name:lab_name)")
-      .eq("payment_status", "chua_thanh_toan")
-      .not("lab_id", "is", null)
-      .is("deleted_at", null)
-      .order("order_date", { ascending: false });
-
-    if (options?.fromDate) {
-      query = query.gte("order_date", options.fromDate);
-    }
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const { data, error } = await query;
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase.rpc("finance_lab_debt_summary");
 
     if (error) {
       throw new Error(`Khong the tai cong no lab: ${error.message}`);
     }
 
-    const debtMap = new Map<
-      string,
-      { labName: string; totalDebt: number; unpaidOrders: number; lastOrderDate: string | null }
-    >();
-
-    (data ?? []).forEach((row) => {
-      if (!row.lab_id) return;
-
-      const lab = getFirstRelation(
-        row.labs as RelationRecord | RelationRecord[] | null,
-      );
-      const amount = Number(row.total_amount ?? 0);
-      const current = debtMap.get(row.lab_id) ?? {
-        labName: String(lab?.name ?? "Lab"),
-        totalDebt: 0,
-        unpaidOrders: 0,
-        lastOrderDate: row.order_date ?? null,
-      };
-
-      current.totalDebt += amount;
-      current.unpaidOrders += 1;
-      current.lastOrderDate = current.lastOrderDate ?? row.order_date ?? null;
-      debtMap.set(row.lab_id, current);
-    });
-
-    const items = Array.from(debtMap.entries())
-      .map(([labId, value]) => ({
-        labId,
-        labName: value.labName,
-        unpaidOrders: value.unpaidOrders,
-        totalDebt: value.totalDebt,
-        lastOrderDate: value.lastOrderDate,
+    let items: LabDebtEntry[] = ((data ?? []) as LabDebtSummaryRow[])
+      .map((row) => ({
+        labId: row.lab_id,
+        labName: row.lab_name || "Lab",
+        unpaidOrders: Number(row.order_count ?? 0),
+        totalDebt: Number(row.remaining ?? 0),
+        lastOrderDate: String(row.last_order_date ?? "") || null,
       }))
       .sort((left, right) => right.totalDebt - left.totalDebt);
+
+    if (options?.fromDate) {
+      items = items.filter((item) => !item.lastOrderDate || item.lastOrderDate >= options.fromDate!);
+    }
+
+    if (options?.limit && options.limit > 0) {
+      items = items.slice(0, options.limit);
+    }
 
     return {
       totalDebt: items.reduce((sum, item) => sum + item.totalDebt, 0),

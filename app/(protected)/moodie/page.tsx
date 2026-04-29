@@ -1,7 +1,7 @@
 import { getMoodiePageData } from "@/app/actions/moodie-queries";
 import { MoodiePageClient } from "@/components/moodie/moodie-page-client";
 
-export const metadata = { title: "Moodie | Mood Studio" };
+export const metadata = { title: "Moodie" };
 export const dynamic = "force-dynamic";
 
 export default async function MoodiePage() {
@@ -13,3 +13,4 @@ export default async function MoodiePage() {
 
   return <MoodiePageClient initialData={result.data} />;
 }
+

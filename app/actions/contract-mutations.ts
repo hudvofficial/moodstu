@@ -1,6 +1,10 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import {
+  requireContractDestructiveAccess,
+  requireContractWriteAccess,
+  withAuth,
+} from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
@@ -333,7 +337,7 @@ export async function createContract(rawData: unknown) {
   const isEdit = Boolean(data.existingContractId);
 
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     const contractPayload = {
       contract_code: data.formData.contract_code,
@@ -528,7 +532,7 @@ export async function updateContractStatus(
   adminOverride = false,
 ) {
   return withAuth(async (supabase, userId) => {
-    const access = await requireContractAccess(supabase, userId);
+    const access = await requireContractDestructiveAccess(supabase, userId);
 
     if (adminOverride && !["admin", "manager"].includes(access.role)) {
       throw new Error("Ban khong co quyen bo qua quy trinh trang thai");

@@ -216,7 +216,7 @@ async function fetchConversationHistory(
 
   const setupError = asMoodieSetupError(error);
   if (setupError) throw setupError;
-  if (error) throw new Error(`KhĂ´ng thá»ƒ táº£i ngá»¯ cáº£nh há»™i thoáº¡i: ${error.message}`);
+  if (error) throw new Error(`Không thể tải ngữ cảnh hội thoại: ${error.message}`);
 
   return [...(data || [])]
     .reverse()

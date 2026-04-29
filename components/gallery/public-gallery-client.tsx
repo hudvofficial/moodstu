@@ -32,7 +32,9 @@ interface GalleryImage {
 interface Gallery {
   id: string;
   title: string | null;
-  status: string;
+  access_url?: string | null;
+  accessToken?: string;
+  status: string | null;
   selection_deadline: string | null;
   gallery_images?: GalleryImage[];
 }
@@ -59,6 +61,8 @@ export default function PublicGalleryClient({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
   const isViewOnly = mode === "view";
+  const accessUrl = gallery.access_url || "";
+  const accessToken = gallery.accessToken || "";
 
   // Client identifier for anonymous reactions
   const getClientId = useCallback(() => {
@@ -122,7 +126,12 @@ export default function PublicGalleryClient({
         ),
       );
       setTogglingIds((prev) => new Set(prev).add(imageId));
-      const res = await toggleImageSelection(imageId, newSelected);
+      const res = await toggleImageSelection(
+        imageId,
+        newSelected,
+        accessUrl,
+        accessToken,
+      );
       if (!res.success) {
         setImages((prev) =>
           prev.map((i) =>
@@ -132,7 +141,7 @@ export default function PublicGalleryClient({
       }
       setTogglingIds((prev) => { const next = new Set(prev); next.delete(imageId); return next; });
     },
-    [images, isViewOnly],
+    [accessToken, accessUrl, images, isViewOnly],
   );
 
   // Like reaction toggle (separate from selection)
@@ -158,10 +167,14 @@ export default function PublicGalleryClient({
   // ─── Save note ─────────────────────────────
   const handleSaveNote = useCallback(
     async (imageId: string, note: string) => {
+      const previousNote = images.find((i) => i.id === imageId)?.client_note || null;
       setImages((prev) => prev.map((i) => i.id === imageId ? { ...i, client_note: note || null } : i));
-      await updateClientNote(imageId, note);
+      const res = await updateClientNote(imageId, note, accessUrl, accessToken);
+      if (!res.success) {
+        setImages((prev) => prev.map((i) => i.id === imageId ? { ...i, client_note: previousNote } : i));
+      }
     },
-    [],
+    [accessToken, accessUrl, images],
   );
 
   // ═════════════════════════════════════════
@@ -333,4 +346,3 @@ export default function PublicGalleryClient({
     </div>
   );
 }
-

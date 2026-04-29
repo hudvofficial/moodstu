@@ -4,6 +4,8 @@ import { useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { mutate } from "swr";
 import type { Arguments } from "swr";
+import { getEmployeeList } from "@/app/actions/employee-queries";
+import { getServices } from "@/app/actions/service-queries";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
@@ -134,14 +136,9 @@ function getPrefetchConfig(href: string): PrefetchConfig | null {
     return {
       key: cacheKeys.services(),
       fetcher: async () => {
-        const { data, error } = await supabase
-          .from("services")
-          .select("*, category:service_categories(id, name, icon)")
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .range(0, SERVICE_PAGE_SIZE - 1);
-        if (error) throw error;
-        return data ?? [];
+        const result = await getServices({ limit: SERVICE_PAGE_SIZE });
+        if (!result.success) throw new Error(result.error);
+        return result.data ?? { items: [], total: 0, page: 1, limit: SERVICE_PAGE_SIZE };
       },
     };
   }
@@ -150,22 +147,9 @@ function getPrefetchConfig(href: string): PrefetchConfig | null {
     return {
       key: [cacheKeys.employees(), "", "", "", "", "", "1"],
       fetcher: async () => {
-        const { data, error, count } = await supabase
-          .from("employees")
-          .select(
-            "id, employee_code, full_name, department, position, role, phone, email, status, gender, avatar_url, start_date, deleted_at",
-            { count: "exact" },
-          )
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .range(0, EMPLOYEE_PAGE_SIZE - 1);
-        if (error) throw error;
-        return {
-          employees: data ?? [],
-          total: count || 0,
-          page: 1,
-          pageSize: EMPLOYEE_PAGE_SIZE,
-        };
+        const result = await getEmployeeList({ pageSize: EMPLOYEE_PAGE_SIZE });
+        if (!result.success) throw new Error(result.error);
+        return result.data;
       },
     };
   }

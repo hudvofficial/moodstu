@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, Suspense } from "react";
+import { useState, useCallback, useMemo, Suspense, useEffect, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
@@ -22,6 +22,13 @@ import DressFormModal from "@/components/dresses/dress-form-modal";
 import { DressDrawer } from "@/components/dresses/dress-drawer";
 import { DressScannerModal } from "@/components/dresses/dress-scanner-modal";
 
+interface DressesListClientProps {
+  initialList?: { data: DressItem[]; count: number };
+  initialStats?: DressStats;
+  canManageCatalog?: boolean;
+}
+
+const REALTIME_REFRESH_DELAY_MS = 600;
 
 // ═══════════════════════════════════════════
 // DressesListClient — Main page component
@@ -29,10 +36,15 @@ import { DressScannerModal } from "@/components/dresses/dress-scanner-modal";
 // (share link, back button, bookmark)
 // ═══════════════════════════════════════════
 
-function DressesListInner() {
+function DressesListInner({
+  initialList,
+  initialStats,
+  canManageCatalog = false,
+}: DressesListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Read filters from URL ──
   const status = searchParams.get("status") || undefined;
@@ -41,7 +53,13 @@ function DressesListInner() {
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("q") || undefined;
 
-  const filters: DressFilters = { status: status as DressFilters["status"], category: category as DressFilters["category"], search, page };
+  const filters: DressFilters = {
+    status: status as DressFilters["status"],
+    category: category as DressFilters["category"],
+    search,
+    sort: sort as DressFilters["sort"],
+    page,
+  };
 
   // ── Form state (local only — not URL) ──
   const [formOpen, setFormOpen] = useState(false);
@@ -52,27 +70,36 @@ function DressesListInner() {
 
   // SWR — dress list
   const { data: listData, isLoading, error, mutate: mutateList } = useSWR(
-    [cacheKeys.dresses(), { ...filters, sort }],
-    () => fetchDressList({ ...filters, sort } as DressFilters & { sort?: string }),
-    { keepPreviousData: true }
+    [cacheKeys.dresses(), filters],
+    () => fetchDressList(filters),
+    { keepPreviousData: true, fallbackData: initialList }
   );
 
   // SWR — stats
   const { data: stats, mutate: mutateStats } = useSWR<DressStats>(
     cacheKeys.dressStats(),
     () => getDressStats(),
-    { keepPreviousData: true }
+    { keepPreviousData: true, fallbackData: initialStats }
   );
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
   const refreshDressCaches = useCallback(() => {
-    void revalidateByPrefixes(cacheKeys.dresses());
-    void mutateStats();
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      void revalidateByPrefixes([cacheKeys.dresses(), cacheKeys.dressRentals()]);
+      void mutateStats();
+    }, REALTIME_REFRESH_DELAY_MS);
   }, [mutateStats]);
 
   useRealtime("dresses", { onChange: refreshDressCaches });
   useRealtime("dress_reservations", { onChange: refreshDressCaches });
   useRealtime("dress_rentals", { onChange: refreshDressCaches });
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
 
   const dresses = useMemo(() => listData?.data || [], [listData?.data]);
   const totalCount = listData?.count || 0;
@@ -134,15 +161,17 @@ function DressesListInner() {
             <CalendarDays className="w-4 h-4" />
             <span>Xem lịch</span>
           </Link>
-          <Button unstyled onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
-            <Plus className="w-5 h-5" />
-            <span>Thêm trang phục</span>
-          </Button>
+          {canManageCatalog && (
+            <Button unstyled onClick={() => openForm()} className="btn btn-primary gap-2 shrink-0">
+              <Plus className="w-5 h-5" />
+              <span>Thêm trang phục</span>
+            </Button>
+          )}
         </div>
       </div>
 
       {/* 2 ─── FAB — mobile ─── */}
-      <FAB onClick={() => openForm()} label="Thêm trang phục" />
+      {canManageCatalog && <FAB onClick={() => openForm()} label="Thêm trang phục" />}
 
       {/* 3 ─── Filters (URL searchParams — Gold Standard) ─── */}
       <DressesFilters stats={stats || { total: 0, available: 0, reserved: 0, rented: 0, maintenance: 0 }} />
@@ -176,9 +205,9 @@ function DressesListInner() {
           <EmptyState
             icon={Shirt}
             title="Chưa có trang phục"
-            description="Thêm trang phục đầu tiên vào kho"
-            actionLabel="Thêm trang phục"
-            onAction={() => openForm()}
+            description={canManageCatalog ? "Thêm trang phục đầu tiên vào kho" : "Chưa có trang phục khả dụng"}
+            actionLabel={canManageCatalog ? "Thêm trang phục" : undefined}
+            onAction={canManageCatalog ? () => openForm() : undefined}
           />
         )
       ) : !isLoading && !error && (
@@ -187,7 +216,7 @@ function DressesListInner() {
             <DressCard
               key={dress.id}
               dress={dress}
-              onEdit={() => openForm(dress)}
+              onEdit={canManageCatalog ? () => openForm(dress) : undefined}
               onClick={() => setDrawerItem(dress)}
             />
           ))}
@@ -223,7 +252,7 @@ function DressesListInner() {
         dress={drawerItem}
         isOpen={!!drawerItem}
         onClose={() => setDrawerItem(null)}
-        onEdit={(dress) => openForm(dress)}
+        onEdit={canManageCatalog ? (dress) => openForm(dress) : undefined}
       />
 
       {/* 9 ─── Camera Scanner Modal ─── */}
@@ -239,10 +268,10 @@ function DressesListInner() {
 }
 
 // Suspense wrapper (Gold Standard pattern)
-export default function DressesListClient() {
+export default function DressesListClient(props: DressesListClientProps) {
   return (
     <Suspense>
-      <DressesListInner />
+      <DressesListInner {...props} />
     </Suspense>
   );
 }

@@ -1,22 +1,25 @@
 "use server";
 
-import { withAdmin } from "@/lib/auth_utils";
+import { withInventoryAccess } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
+import {
+  inventoryListFiltersSchema,
+  inventoryPickerFiltersSchema,
+  inventoryUuidSchema,
+  transactionFiltersSchema,
+} from "@/lib/validations/inventory.schema";
 import type {
-  InventoryItem,
-  InventoryFilters,
-  InventoryStats,
   InventoryDetail,
+  InventoryFilters,
+  InventoryItem,
+  InventoryPickerFilters,
+  InventoryPickerPage,
+  InventoryStats,
   InventoryTransaction,
+  InventoryTransactionTotals,
   TransactionFilters,
 } from "@/types/inventory";
 import { INVENTORY_PAGE_SIZE, TRANSACTION_PAGE_SIZE } from "@/types/inventory-constants";
-
-// ═══════════════════════════════════════════
-// Inventory Queries — Read-only server actions
-// DB: inventory_items, inventory_transactions
-// Pattern: withAdmin + return empty on error
-// ═══════════════════════════════════════════
 
 const ITEM_SELECT = `
   id, item_code, name, category, unit,
@@ -25,237 +28,194 @@ const ITEM_SELECT = `
   created_by, updated_by, created_at, updated_at, deleted_at
 `;
 
-const validStatuses = new Set(["active", "discontinued"]);
-const validCategories = new Set([
-  "khung_anh",
-  "album",
-  "hoa",
-  "tieu_hao",
-  "trang_tri",
-]);
-
-function normalizePage(value: number | undefined) {
-  if (!value || !Number.isFinite(value)) return 1;
-  return Math.max(1, Math.trunc(value));
-}
-
 function normalizeSearch(value: string | undefined) {
-  return value?.trim().replace(/[%(),]/g, " ").slice(0, 80) || "";
+  return value?.trim().replace(/[%_(),]/g, " ").slice(0, 80) || "";
 }
 
-// ─── FETCH LIST (paginated + filtered) ───────────────
+function normalizeStats(value: unknown): InventoryStats {
+  const data = (value && typeof value === "object" ? value : {}) as Partial<InventoryStats>;
+  return {
+    total: Number(data.total || 0),
+    active: Number(data.active || 0),
+    lowStock: Number(data.lowStock || 0),
+    outOfStock: Number(data.outOfStock || 0),
+    totalValue: Number(data.totalValue || 0),
+    transactionsThisMonth: Number(data.transactionsThisMonth || 0),
+  };
+}
+
+function normalizeTotals(value: unknown): InventoryTransactionTotals {
+  const data = (value && typeof value === "object" ? value : {}) as Partial<InventoryTransactionTotals>;
+  return {
+    totalIn: Number(data.totalIn || 0),
+    totalOut: Number(data.totalOut || 0),
+    transactionCount: Number(data.transactionCount || 0),
+  };
+}
+
+function unwrapActionResult<T>(
+  result: { success: true; data: T } | { success: false; error: string },
+  label: string,
+): T {
+  if (result.success) return result.data;
+  throw new Error(`${label}: ${result.error}`);
+}
 
 export async function fetchInventoryList(
-  filters: InventoryFilters = {}
+  filters: InventoryFilters = {},
 ): Promise<{ data: InventoryItem[]; count: number }> {
-  return profileAction("inventory.fetchInventoryList", () => withAdmin(async (supabase) => {
-    const page = normalizePage(filters.page);
-    const from = (page - 1) * INVENTORY_PAGE_SIZE;
-    const to = from + INVENTORY_PAGE_SIZE - 1;
+  const parsed = inventoryListFiltersSchema.safeParse(filters);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Bộ lọc kho không hợp lệ");
+  }
 
-    let query = supabase
-      .from("inventory_items")
-      .select(ITEM_SELECT, { count: "exact" })
-      .is("deleted_at", null);
+  return profileAction("inventory.fetchInventoryList", async () =>
+    unwrapActionResult(
+      await withInventoryAccess(async (supabase) => {
+        const page = parsed.data.page || 1;
+        const { data, error } = await supabase.rpc("inventory_list", {
+          p_search: normalizeSearch(parsed.data.search),
+          p_category:
+            parsed.data.category && parsed.data.category !== "all"
+              ? parsed.data.category
+              : null,
+          p_status:
+            parsed.data.status && parsed.data.status !== "all"
+              ? parsed.data.status
+              : null,
+          p_sort: parsed.data.sort || "newest",
+          p_page: page,
+          p_limit: INVENTORY_PAGE_SIZE,
+        });
 
-    // Status filter
-    if (
-      filters.status &&
-      filters.status !== "all" &&
-      validStatuses.has(filters.status)
-    ) {
-      query = query.eq("status", filters.status);
-    }
+        if (error) throw new Error(`Không thể tải danh sách kho: ${error.message}`);
 
-    // Category filter
-    if (
-      filters.category &&
-      filters.category !== "all" &&
-      validCategories.has(filters.category)
-    ) {
-      query = query.eq("category", filters.category);
-    }
+        const payload = (data && typeof data === "object" ? data : {}) as {
+          items?: InventoryItem[];
+          total?: number;
+        };
 
-    // Search (name or code)
-    const s = normalizeSearch(filters.search);
-    if (s) {
-      query = query.or(`name.ilike.%${s}%,item_code.ilike.%${s}%`);
-    }
-
-    const sortMap: Record<string, { column: string; ascending: boolean }> = {
-      newest: { column: "created_at", ascending: false },
-      name_asc: { column: "name", ascending: true },
-      stock_asc: { column: "current_stock", ascending: true },
-      stock_desc: { column: "current_stock", ascending: false },
-    };
-    const sort = sortMap[filters.sort || "newest"] || sortMap.newest;
-    query = query.order(sort.column, { ascending: sort.ascending });
-    query = query.range(from, to);
-
-    const { data, count, error } = await query;
-    if (error) {
-      console.error("[fetchInventoryList]", error);
-      return { data: [], count: 0 };
-    }
-    return { data: (data as InventoryItem[]) || [], count: count || 0 };
-  }).then((result) => {
-    if (result.success) return result.data;
-    console.error("[fetchInventoryList] auth error:", result.error);
-    return { data: [], count: 0 };
-  }));
+        return {
+          data: Array.isArray(payload.items) ? payload.items : [],
+          count: Number(payload.total || 0),
+        };
+      }),
+      "fetchInventoryList",
+    ),
+  );
 }
-
-// ─── FETCH DETAIL (single item + recent transactions) ──
 
 export async function fetchInventoryDetail(id: string): Promise<InventoryDetail | null> {
-  return profileAction("inventory.fetchInventoryDetail", () => withAdmin(async (supabase) => {
-    // Parallel: item + transactions
-    const [itemRes, txnRes] = await Promise.all([
-      supabase
-        .from("inventory_items")
-        .select(ITEM_SELECT)
-        .eq("id", id)
-        .is("deleted_at", null)
-        .single(),
-      supabase
-        .from("inventory_transactions")
-        .select("*")
-        .eq("item_id", id)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+  const parsedId = inventoryUuidSchema.safeParse(id);
+  if (!parsedId.success) throw new Error(parsedId.error.issues[0]?.message || "ID vật tư không hợp lệ");
 
-    if (itemRes.error || !itemRes.data) return null;
+  return profileAction("inventory.fetchInventoryDetail", async () =>
+    unwrapActionResult(
+      await withInventoryAccess(async (supabase) => {
+        const [itemRes, txnRes, totalsRes] = await Promise.all([
+          supabase
+            .from("inventory_items")
+            .select(ITEM_SELECT)
+            .eq("id", parsedId.data)
+            .is("deleted_at", null)
+            .maybeSingle(),
+          supabase
+            .from("inventory_transactions")
+            .select("*")
+            .eq("item_id", parsedId.data)
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase.rpc("inventory_item_transaction_totals", {
+            p_item_id: parsedId.data,
+          }),
+        ]);
 
-    return {
-      ...(itemRes.data as InventoryItem),
-      transactions: (txnRes.data || []) as unknown as InventoryTransaction[],
-    };
-  }).then((result) => {
-    if (result.success) return result.data;
-    return null;
-  }));
+        if (itemRes.error) throw new Error(`Không thể tải vật tư: ${itemRes.error.message}`);
+        if (!itemRes.data) return null;
+        if (txnRes.error) throw new Error(`Không thể tải lịch sử kho: ${txnRes.error.message}`);
+        if (totalsRes.error) {
+          throw new Error(`Không thể tải tổng hợp lịch sử kho: ${totalsRes.error.message}`);
+        }
+
+        return {
+          ...(itemRes.data as InventoryItem),
+          transactions: (txnRes.data || []) as unknown as InventoryTransaction[],
+          transactionTotals: normalizeTotals(totalsRes.data),
+        };
+      }),
+      "fetchInventoryDetail",
+    ),
+  );
 }
-
-// ─── TRANSACTION HISTORY (full log, filtered) ────────
 
 export async function fetchTransactionHistory(
-  filters: TransactionFilters = {}
+  filters: TransactionFilters = {},
 ): Promise<{ data: InventoryTransaction[]; count: number }> {
-  return profileAction("inventory.fetchTransactionHistory", () => withAdmin(async (supabase) => {
-    const page = normalizePage(filters.page);
-    const from = (page - 1) * TRANSACTION_PAGE_SIZE;
-    const to = from + TRANSACTION_PAGE_SIZE - 1;
+  const parsed = transactionFiltersSchema.safeParse(filters);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Bộ lọc lịch sử kho không hợp lệ");
+  }
 
-    let query = supabase
-      .from("inventory_transactions")
-      .select(
-        "*, inventory_items!inner(name, item_code)",
-        { count: "exact" }
-      )
-      .order("created_at", { ascending: false })
-      .range(from, to);
+  return profileAction("inventory.fetchTransactionHistory", async () =>
+    unwrapActionResult(
+      await withInventoryAccess(async (supabase) => {
+        const page = parsed.data.page || 1;
+        const from = (page - 1) * TRANSACTION_PAGE_SIZE;
+        const to = from + TRANSACTION_PAGE_SIZE - 1;
 
-    if (filters.type && filters.type !== "all") {
-      query = query.eq("transaction_type", filters.type);
-    }
-    if (filters.item_id) {
-      query = query.eq("item_id", filters.item_id);
-    }
-    if (filters.contract_id) {
-      query = query.eq("contract_id", filters.contract_id);
-    }
-    if (filters.start_date) {
-      query = query.gte("created_at", filters.start_date);
-    }
-    if (filters.end_date) {
-      query = query.lte("created_at", filters.end_date);
-    }
+        let query = supabase
+          .from("inventory_transactions")
+          .select("*, inventory_items!inner(name, item_code)", { count: "exact" })
+          .order("created_at", { ascending: false })
+          .range(from, to);
 
-    const { data, count, error } = await query;
-    if (error) {
-      console.error("[fetchTransactionHistory]", error);
-      return { data: [], count: 0 };
-    }
+        if (parsed.data.type && parsed.data.type !== "all") {
+          query = query.eq("transaction_type", parsed.data.type);
+        }
+        if (parsed.data.item_id) query = query.eq("item_id", parsed.data.item_id);
+        if (parsed.data.contract_id) query = query.eq("contract_id", parsed.data.contract_id);
+        if (parsed.data.start_date) query = query.gte("created_at", parsed.data.start_date);
+        if (parsed.data.end_date) query = query.lte("created_at", parsed.data.end_date);
 
-    // Map joined fields
-    const mapped = (data || []).map((t) => ({
-      ...t,
-      item_name: (t.inventory_items as Record<string, string>)?.name,
-      item_code: (t.inventory_items as Record<string, string>)?.item_code,
-    })) as InventoryTransaction[];
+        const { data, count, error } = await query;
+        if (error) throw new Error(`Không thể tải lịch sử kho: ${error.message}`);
 
-    return { data: mapped, count: count || 0 };
-  }).then((result) => {
-    if (result.success) return result.data;
-    console.error("[fetchTransactionHistory] auth error:", result.error);
-    return { data: [], count: 0 };
-  }));
+        const mapped = (data || []).map((txn) => ({
+          ...txn,
+          item_name: (txn.inventory_items as Record<string, string>)?.name,
+          item_code: (txn.inventory_items as Record<string, string>)?.item_code,
+        })) as InventoryTransaction[];
+
+        return { data: mapped, count: count || 0 };
+      }),
+      "fetchTransactionHistory",
+    ),
+  );
 }
-
-// ─── STATS ───────────────────────────────────────────
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-  return profileAction("inventory.getInventoryStats", () => withAdmin(async (supabase) => {
-    const [itemsRes, txnRes] = await Promise.all([
-      supabase
-        .from("inventory_items")
-        .select("current_stock, min_stock, average_unit_price, status")
-        .is("deleted_at", null),
-      supabase
-        .from("inventory_transactions")
-        .select("id", { count: "exact", head: true })
-        .gte(
-          "created_at",
-          new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-        ),
-    ]);
-
-    const items = itemsRes.data || [];
-    return {
-      total: items.length,
-      active: items.filter((i) => i.status === "active").length,
-      lowStock: items.filter(
-        (i) => i.min_stock && i.current_stock < i.min_stock
-      ).length,
-      totalValue: items.reduce(
-        (sum, i) => sum + (i.current_stock || 0) * (i.average_unit_price || 0),
-        0
-      ),
-      transactionsThisMonth: txnRes.count || 0,
-    };
-  }).then((result) => {
-    if (result.success) return result.data;
-    return { total: 0, active: 0, lowStock: 0, totalValue: 0, transactionsThisMonth: 0 };
-  }));
+  return profileAction("inventory.getInventoryStats", async () =>
+    unwrapActionResult(
+      await withInventoryAccess(async (supabase) => {
+        const { data, error } = await supabase.rpc("inventory_stats");
+        if (error) throw new Error(`Không thể tải thống kê kho: ${error.message}`);
+        return normalizeStats(data);
+      }),
+      "getInventoryStats",
+    ),
+  );
 }
-
-// ─── NEXT INVENTORY CODE (auto-gen VT-XXX) ───────────
 
 export async function getNextInventoryCode(): Promise<string> {
-  return withAdmin(async (supabase) => {
-    const { data, error } = await supabase
-      .from("inventory_items")
-      .select("item_code")
-      .ilike("item_code", "VT-%")
-      .range(0, 4999);
-
-    if (error) throw new Error(`Không thể tạo mã vật tư: ${error.message}`);
-
-    const maxNumber = (data || []).reduce((max, row) => {
-      const match = String(row.item_code || "").match(/^VT-(\d+)$/);
-      if (!match) return max;
-      return Math.max(max, Number(match[1]) || 0);
-    }, 0);
-
-    return `VT-${String(maxNumber + 1).padStart(3, "0")}`;
-  }).then((result) => {
-    if (result.success) return result.data;
-    return "VT-001";
-  });
+  return unwrapActionResult(
+    await withInventoryAccess(async (supabase) => {
+      const { data, error } = await supabase.rpc("nextval_inventory_code");
+      if (error) throw new Error(`Không thể tạo mã vật tư: ${error.message}`);
+      return String(data);
+    }),
+    "getNextInventoryCode",
+  );
 }
-
-// ─── FETCH FOR SALE (lightweight — for receipt form) ──
 
 export interface InventorySaleOption {
   id: string;
@@ -267,43 +227,64 @@ export interface InventorySaleOption {
 }
 
 export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
-  return withAdmin(async (supabase) => {
-    const { data, error } = await supabase
-      .from("inventory_items")
-      .select("id, name, item_code, current_stock, sale_price, unit")
-      .is("deleted_at", null)
-      .eq("status", "active")
-      .gt("current_stock", 0)
-      .order("name", { ascending: true });
+  return unwrapActionResult(
+    await withInventoryAccess(async (supabase) => {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("id, name, item_code, current_stock, sale_price, unit")
+        .is("deleted_at", null)
+        .eq("status", "active")
+        .gt("current_stock", 0)
+        .order("name", { ascending: true })
+        .range(0, 499);
 
-    if (error) {
-      console.error("[fetchInventoryForSale]", error);
-      return [];
-    }
-    return (data || []) as InventorySaleOption[];
-  }).then((result) => {
-    if (result.success) return result.data;
-    return [];
-  });
+      if (error) throw new Error(`Không thể tải vật tư bán ra: ${error.message}`);
+      return (data || []) as InventorySaleOption[];
+    }),
+    "fetchInventoryForSale",
+  );
 }
 
-export async function fetchInventoryPickerItems(): Promise<InventoryItem[]> {
-  return withAdmin(async (supabase) => {
-    const { data, error } = await supabase
-      .from("inventory_items")
-      .select(ITEM_SELECT)
-      .is("deleted_at", null)
-      .order("name", { ascending: true })
-      .range(0, 999);
+export async function fetchInventoryPickerItems(
+  filters: InventoryPickerFilters = {},
+): Promise<InventoryPickerPage> {
+  const parsed = inventoryPickerFiltersSchema.safeParse(filters);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Bộ lọc chọn vật tư không hợp lệ");
+  }
 
-    if (error) {
-      console.error("[fetchInventoryPickerItems]", error);
-      return [];
-    }
+  return unwrapActionResult(
+    await withInventoryAccess(async (supabase) => {
+      const page = parsed.data.page || 1;
+      const limit = parsed.data.limit || 30;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      const search = normalizeSearch(parsed.data.search);
 
-    return (data || []) as InventoryItem[];
-  }).then((result) => {
-    if (result.success) return result.data;
-    return [];
-  });
+      let query = supabase
+        .from("inventory_items")
+        .select(ITEM_SELECT, { count: "exact" })
+        .is("deleted_at", null)
+        .order("name", { ascending: true })
+        .range(from, to);
+
+      if (parsed.data.activeOnly !== false) {
+        query = query.eq("status", "active");
+      }
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,item_code.ilike.%${search}%`);
+      }
+
+      const { data, count, error } = await query;
+      if (error) throw new Error(`Không thể tải danh sách vật tư: ${error.message}`);
+
+      return {
+        items: (data || []) as InventoryItem[],
+        total: count || 0,
+        page,
+        limit,
+      };
+    }),
+    "fetchInventoryPickerItems",
+  );
 }

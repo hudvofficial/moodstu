@@ -7,7 +7,7 @@ import { X, Phone, MapPin } from "lucide-react";
 import { ModalPortal } from "@/components/ui/modal-portal";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { getStudioInfo } from "@/app/actions/settings-queries";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
 
@@ -62,18 +62,18 @@ export default function QuoteModal({ service, onClose }: Props) {
   // Fetch studio info (cached)
   useEffect(() => {
     if (cachedStudio) return;
-    const supabase = createClient();
-    supabase
-      .from("studio_info")
-      .select("name, hotline, address, logo_url")
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          cachedStudio = data as StudioCache;
-          setStudio(data as StudioCache);
-        }
-      });
+    getStudioInfo().then((result) => {
+      if (result.success && result.data) {
+        const studioInfo = {
+          name: result.data.name,
+          hotline: result.data.hotline,
+          address: result.data.address,
+          logo_url: result.data.logo_url,
+        };
+        cachedStudio = studioInfo;
+        setStudio(studioInfo);
+      }
+    });
   }, []);
 
   const studioName = studio?.name || "Mood Studio";

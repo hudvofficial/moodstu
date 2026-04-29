@@ -6,10 +6,11 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Công nợ lab | Mood Studio" };
+export const metadata = { title: "Công nợ lab" };
 export const dynamic = "force-dynamic";
 
 export default async function LabDebtsPage() {
   const data = await fetchLabDebts();
   return <LabDebtsClient initialData={unwrap<LabDebtItem[]>(data, [])} />;
 }
+

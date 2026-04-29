@@ -4,7 +4,7 @@ import {
 import { FinanceDashboardClient } from "@/components/finance/dashboard/finance-dashboard-client";
 import type { DashboardMetrics } from "@/types/finance-dashboard";
 
-export const metadata = { title: "Tai chinh | Mood Studio" };
+export const metadata = { title: "Tài chính" };
 export const dynamic = "force-dynamic";
 
 const EMPTY_METRICS: DashboardMetrics = {
@@ -33,3 +33,4 @@ export default async function FinanceDashboardPage() {
     />
   );
 }
+

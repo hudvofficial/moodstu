@@ -16,6 +16,7 @@ import { useListFilters } from "./useListFilters";
 // ── Default values ────────────────────────────────────────────
 const INVENTORY_FILTER_DEFAULTS = {
   status:   "all",    // "all" | "active" | "low_stock" | "out_of_stock" | "discontinued"
+  q:        "",
   search:   "",
   category: "all",    // "all" | category values from constants
   sort:     "newest", // "newest" | "name_asc" | "stock_asc" | "stock_desc"
@@ -30,7 +31,7 @@ export function useInventoryFilters() {
   // ── Computed (typed) filters ─────────────────────────────────
   const filters = {
     status:   params.status,
-    search:   params.search,
+    search:   params.q || params.search,
     category: params.category,
     sort:     params.sort,
     page:     Number(params.page) || 1,
@@ -43,7 +44,7 @@ export function useInventoryFilters() {
   );
 
   const setSearch = useCallback(
-    (search: string) => setParams({ search, page: "1" }),
+    (search: string) => setParams({ q: search, search: "", page: "1" }),
     [setParams]
   );
 

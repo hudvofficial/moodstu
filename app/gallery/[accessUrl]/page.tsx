@@ -22,13 +22,13 @@ export async function generateMetadata({
     return { title: "Album không tồn tại", robots: { index: false, follow: false } };
   }
 
-  const title = `${res.data.title || "Album ảnh"} — Mood Studio`;
+  const title = res.data.title || "Album ảnh";
   const imageCount = !res.data.needsPassword && "gallery_images" in res.data
     ? (res.data.gallery_images?.length || 0)
     : 0;
   const description = imageCount > 0
     ? `Xem ${imageCount} ảnh trong album "${res.data.title || "Album"}"`
-    : `Album ảnh — ${res.data.title || "Mood Studio"}`;
+    : `Album ảnh - ${res.data.title || "Mood Studio"}`;
   const coverImage = !res.data.needsPassword && "gallery_images" in res.data
     ? res.data.gallery_images?.[0]?.thumbnail_url
     : undefined;
@@ -59,7 +59,7 @@ export default async function GalleryPage({ params, searchParams }: PageProps) {
         style={{ background: "var(--color-bg-main, #faf8f5)" }}
       >
         <div className="text-center px-6">
-          <div className="text-6xl mb-4" style={{ opacity: 0.3 }}>📷</div>
+          <div className="text-6xl mb-4" style={{ opacity: 0.3 }}>{"📷"}</div>
           <h1
             className="text-xl font-bold mb-2"
             style={{ color: "var(--color-text-primary, #2c2c2c)" }}

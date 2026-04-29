@@ -33,7 +33,7 @@ import {
 import { SkeletonCard } from "@/components/ui/skeleton";
 import type { ActionResult } from "@/types/action-result";
 
-export const metadata = { title: "Dashboard thông minh | Mood Studio" };
+export const metadata = { title: "Dashboard tài chính" };
 export const dynamic = "force-dynamic";
 
 function unwrap<T>(result: ActionResult<T>, fallback: T): T {
@@ -201,3 +201,4 @@ export default function FinanceSmartDashboardPage() {
     </main>
   );
 }
+

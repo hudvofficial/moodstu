@@ -23,6 +23,10 @@ export interface Gallery {
   title: string | null;
   access_url: string | null;
   password: string | null;
+  password_hash?: string | null;
+  access_version?: number | null;
+  accessToken?: string;
+  needsPassword?: boolean;
   status: string;
   selection_deadline: string | null;
   shared_at: string | null;

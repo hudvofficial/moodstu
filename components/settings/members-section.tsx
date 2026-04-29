@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, Users } from "lucide-react";
 import { getAuthUsers } from "@/app/actions/user-management";
 import type { AuthUserWithEmployee } from "@/app/actions/user-management";
 import MemberCard from "./member-card";
+
+const PAGE_SIZE = 25;
 
 interface MembersSectionProps {
   currentUserEmail: string;
@@ -16,33 +18,60 @@ export default function MembersSection({
   const [users, setUsers] = useState<AuthUserWithEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const fetchUsers = useCallback(async (options?: { silent?: boolean }) => {
-    if (!options?.silent) {
+  const fetchUsers = useCallback(async (options?: {
+    append?: boolean;
+    page?: number;
+    silent?: boolean;
+  }) => {
+    const targetPage = options?.page ?? 1;
+    if (options?.append) {
+      setLoadingMore(true);
+    } else if (!options?.silent) {
       setRefreshing(true);
     }
 
-    const result = await getAuthUsers();
+    const result = await getAuthUsers({ page: targetPage, perPage: PAGE_SIZE });
     if (result.success && result.data) {
-      setUsers(result.data);
-    } else {
+      setUsers((current) => {
+        if (!options?.append) return result.data.users;
+
+        const existingIds = new Set(current.map((user) => user.auth_id));
+        const nextUsers = result.data.users.filter(
+          (user) => !existingIds.has(user.auth_id),
+        );
+        return [...current, ...nextUsers];
+      });
+      setPage(result.data.page);
+      setHasMore(result.data.hasMore);
+    } else if (!options?.append) {
       setUsers([]);
+      setHasMore(false);
+    } else {
+      setHasMore(false);
     }
     setLoading(false);
     setRefreshing(false);
+    setLoadingMore(false);
   }, []);
 
   useEffect(() => {
     let ignore = false;
 
     const loadUsers = async () => {
-      const result = await getAuthUsers();
+      const result = await getAuthUsers({ page: 1, perPage: PAGE_SIZE });
       if (ignore) return;
 
       if (result.success && result.data) {
-        setUsers(result.data);
+        setUsers(result.data.users);
+        setPage(result.data.page);
+        setHasMore(result.data.hasMore);
       } else {
         setUsers([]);
+        setHasMore(false);
       }
       setLoading(false);
       setRefreshing(false);
@@ -56,7 +85,12 @@ export default function MembersSection({
   }, [fetchUsers]);
 
   const handleRefresh = () => {
-    void fetchUsers();
+    void fetchUsers({ page: 1 });
+  };
+
+  const handleLoadMore = () => {
+    if (loadingMore || !hasMore) return;
+    void fetchUsers({ append: true, page: page + 1, silent: true });
   };
 
   const danglingCount = users.filter((user) => !user.linked_employee).length;
@@ -109,9 +143,25 @@ export default function MembersSection({
               key={user.auth_id}
               user={user}
               isCurrentUser={user.email === currentUserEmail}
-              onRefresh={fetchUsers}
+              onRefresh={handleRefresh}
             />
           ))}
+          {hasMore && (
+            /* eslint-disable-next-line react/forbid-elements -- compact pagination action */
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-border-base text-sm font-medium text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-60"
+              type="button"
+            >
+              {loadingMore ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              Tải thêm
+            </button>
+          )}
         </div>
       )}
     </section>

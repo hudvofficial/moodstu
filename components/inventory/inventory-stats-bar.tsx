@@ -26,7 +26,14 @@ interface InventoryStatsBarProps {
 }
 
 export function InventoryStatsBar({ stats }: InventoryStatsBarProps) {
-  const s = stats || { total: 0, active: 0, lowStock: 0, totalValue: 0, transactionsThisMonth: 0 };
+  const s = stats || {
+    total: 0,
+    active: 0,
+    lowStock: 0,
+    outOfStock: 0,
+    totalValue: 0,
+    transactionsThisMonth: 0,
+  };
 
   const items = [
     {

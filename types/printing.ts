@@ -110,6 +110,7 @@ export interface Lab {
   status: LabStatus;
   created_at: string | null;
   serviceCount: number;
+  servicePreview?: string[];
   services: LabService[];
   outstandingDebt: number;
   unpaidOrders: number;

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { fireAuditLog } from "@/lib/audit";
+import { writeAuditLog } from "@/lib/audit";
 import { withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
 import { ROLE_LABELS } from "@/types/employee-constants";
 import type { EmployeeRole } from "@/types/employee";
@@ -33,16 +33,25 @@ export type AuthUserWithEmployee = {
   } | null;
 };
 
+export type AuthUsersPage = {
+  users: AuthUserWithEmployee[];
+  page: number;
+  perPage: number;
+  hasMore: boolean;
+};
+
 const roleSchema = z.enum(["admin", "manager", "sale", "media", "ctv"], {
   error: "Quyền không hợp lệ",
 });
 
 const uuidSchema = z.string().uuid("ID không hợp lệ");
 
-export async function getAuthUsers() {
+export async function getAuthUsers(params?: { page?: number; perPage?: number }) {
   return withAdmin(async (supabase) => {
+    const page = Math.max(1, Math.trunc(Number(params?.page) || 1));
+    const perPage = Math.min(50, Math.max(1, Math.trunc(Number(params?.perPage) || 25)));
     const { data: authUsersRaw, error: authError } =
-      await supabase.auth.admin.listUsers();
+      await supabase.auth.admin.listUsers({ page, perPage });
 
     if (authError) throw new Error(authError.message);
 
@@ -87,14 +96,22 @@ export async function getAuthUsers() {
       };
     });
 
-    return result;
+    return {
+      users: result,
+      page,
+      perPage,
+      hasMore: authUsers.length === perPage,
+    } satisfies AuthUsersPage;
   });
 }
 
 export async function updateUserRole(authUserId: string, newRole: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase, userId) => {
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error(parsedId.error.issues[0]?.message);
+    if (parsedId.data === userId) {
+      throw new Error("KhĂ´ng thá»ƒ tá»± thay Ä‘á»•i quyá»n cá»§a chĂ­nh báº¡n");
+    }
 
     const parsedRole = roleSchema.safeParse(newRole);
     if (!parsedRole.success) {
@@ -105,15 +122,16 @@ export async function updateUserRole(authUserId: string, newRole: string) {
       role: parsedRole.data,
     });
 
-    await supabase
+    const { error: employeeError } = await supabase
       .from("employees")
       .update({
         role: parsedRole.data,
         updated_at: new Date().toISOString(),
       })
       .eq("auth_user_id", parsedId.data);
+    if (employeeError) throw new Error(employeeError.message);
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "auth.users",
       recordId: parsedId.data,
@@ -138,11 +156,14 @@ export async function linkUserToEmployee(
     const parsedEmp = uuidSchema.safeParse(employeeId);
     if (!parsedEmp.success) throw new Error("Employee ID không hợp lệ");
 
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("employees")
       .select("auth_user_id, full_name, role")
       .eq("id", parsedEmp.data)
-      .single();
+      .maybeSingle();
+
+    if (existingError) throw new Error(existingError.message);
+    if (!existing) throw new Error("Khong tim thay nhan vien.");
 
     if (existing?.auth_user_id && existing.auth_user_id !== parsedAuth.data) {
       throw new Error(
@@ -150,7 +171,7 @@ export async function linkUserToEmployee(
       );
     }
 
-    await supabase
+    const { error: clearExistingError } = await supabase
       .from("employees")
       .update({
         auth_user_id: null,
@@ -158,6 +179,7 @@ export async function linkUserToEmployee(
       })
       .eq("auth_user_id", parsedAuth.data)
       .neq("id", parsedEmp.data);
+    if (clearExistingError) throw new Error(clearExistingError.message);
 
     const { error } = await supabase
       .from("employees")
@@ -174,10 +196,13 @@ export async function linkUserToEmployee(
       role: existing?.role || "ctv",
     });
 
-    fireAuditLog({
+    await writeAuditLog({
       action: "UPDATE",
       tableName: "employees",
       recordId: parsedEmp.data,
+      oldData: { auth_user_id: existing.auth_user_id },
+      newData: { auth_user_id: parsedAuth.data, role: existing.role },
+      source: "server_action",
       description: `Liên kết auth user ${parsedAuth.data}`,
     });
 
@@ -187,15 +212,21 @@ export async function linkUserToEmployee(
 }
 
 export async function unlinkUserFromEmployee(authUserId: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase, userId) => {
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error("Auth ID không hợp lệ");
 
-    const { data: employee } = await supabase
+    if (parsedId.data === userId) {
+      throw new Error("KhĂ´ng thá»ƒ há»§y liĂªn káº¿t tĂ i khoáº£n cá»§a chĂ­nh báº¡n");
+    }
+
+    const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select("id, full_name")
+      .select("id, full_name, role")
       .eq("auth_user_id", parsedId.data)
-      .single();
+      .maybeSingle();
+
+    if (employeeError) throw new Error(employeeError.message);
 
     const { error } = await supabase
       .from("employees")
@@ -207,11 +238,19 @@ export async function unlinkUserFromEmployee(authUserId: string) {
 
     if (error) throw new Error(error.message);
 
+    await syncAuthIdentity(supabase, parsedId.data, {
+      fullName: null,
+      role: "ctv",
+    });
+
     if (employee) {
-      fireAuditLog({
+      await writeAuditLog({
         action: "UPDATE",
         tableName: "employees",
         recordId: employee.id,
+        oldData: { auth_user_id: parsedId.data, role: employee.role },
+        newData: { auth_user_id: null, revoked_auth_role: "ctv" },
+        source: "server_action",
         description: `Hủy liên kết ${employee.full_name} khỏi auth user`,
       });
     }

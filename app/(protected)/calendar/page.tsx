@@ -5,8 +5,8 @@ import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 import { ROLE_PERMISSIONS } from "@/types/roles";
 
 export const metadata: Metadata = {
-  title: "Lịch | Mood Studio",
-  description: "Trang hiển thị và quản lý lịch trình Studio",
+  title: "Lịch",
+  description: "Hiển thị và quản lý lịch trình studio",
 };
 
 export default async function CalendarPage() {
@@ -25,3 +25,4 @@ export default async function CalendarPage() {
     </div>
   );
 }
+

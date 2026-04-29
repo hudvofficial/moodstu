@@ -105,7 +105,7 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
       }
 
       const result = isEdit
-        ? await updateEmployee(editEmployee!.id, payload)
+        ? await updateEmployee(editEmployee!.id, payload, editEmployee!.updated_at)
         : await createEmployee(payload);
 
       if (result.success) {

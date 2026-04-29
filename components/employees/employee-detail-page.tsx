@@ -14,6 +14,7 @@ import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-muta
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import EmployeeInfoCard from "./employee-info-card";
 import EmployeeNotes from "./employee-notes";
 import EmployeeFormModal from "./employee-form-modal";
@@ -29,6 +30,7 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
   const [employee, setEmployee] = useState(initialEmployee);
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     setEmployee(initialEmployee);
@@ -75,7 +77,6 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
   ];
 
   const handleSoftDelete = async () => {
-    if (!window.confirm(`Xác nhận cho ${employee.full_name} nghỉ việc?`)) return;
     setActionLoading(true);
     try {
       const result = await softDeleteEmployee(employee.id);
@@ -151,7 +152,7 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
                 <Pencil className="w-4 h-4" />
                 <span className="hidden sm:inline">Sửa</span>
               </Button>
-              <Button unstyled onClick={handleSoftDelete} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
+              <Button unstyled onClick={() => setConfirmDeleteOpen(true)} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
                 <span className="hidden sm:inline">Cho nghỉ</span>
               </Button>
@@ -195,6 +196,17 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
         onClose={() => setShowForm(false)}
         onSaved={refreshEmployee}
         editEmployee={employee}
+      />
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          void handleSoftDelete();
+        }}
+        title="Cho nhân viên nghỉ việc"
+        message={`Nhân viên "${employee.full_name}" sẽ bị chuyển sang trạng thái nghỉ việc và không còn quyền truy cập hệ thống.`}
+        confirmLabel={actionLoading ? "Đang xử lý..." : "Cho nghỉ"}
+        variant="danger"
       />
     </div>
   );

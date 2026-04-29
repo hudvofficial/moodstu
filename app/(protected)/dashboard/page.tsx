@@ -13,11 +13,13 @@ import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
 import { RealtimeSync } from "@/components/shared/realtime-sync";
 import { DashboardWarmup } from "@/components/dashboard/dashboard-warmup";
 
+export const metadata = { title: "Tổng quan" };
+
 export default function DashboardPage() {
   return (
     <div className="main-container">
       <DashboardWarmup />
-      {/* 📡 Realtime — live KPI updates */}
+      {/* Realtime - live KPI updates */}
       <RealtimeSync
         table="contracts"
         prefixes={[
@@ -50,7 +52,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           label="Doanh thu tháng"
-          value="45.500.000 ₫"
+          value="45.500.000 â'«"
           icon={DollarSign}
           iconBg="bg-primary/10"
           iconColor="text-primary"
@@ -70,7 +72,7 @@ export default function DashboardPage() {
         />
         <KPICard
           label="Tổng công nợ"
-          value="23.200.000 ₫"
+          value="23.200.000 â'«"
           icon={AlertTriangle}
           iconBg="bg-warning/10"
           iconColor="text-warning"

@@ -54,6 +54,11 @@ const QuickNoteModal = dynamic(() => import("./quick-note-modal"), {
 
 const CONTRACT_DETAIL_REFRESH_SETTLE_MS = 160;
 const LOCAL_MUTATION_ECHO_MUTE_MS = 2000;
+const EMPTY_PAYMENTS: Payment[] = [];
+const EMPTY_PAYMENT_PLANS: PaymentPlan[] = [];
+const EMPTY_RESERVATIONS: DressReservationRow[] = [];
+const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
+const EMPTY_AUDIT_LOGS: AuditLogEntry[] = [];
 
 // ═══════════════════════════════════════════
 // Contract Detail Client — SWR wrapper + state
@@ -144,14 +149,36 @@ export default function ContractDetailClient({
   }, [id]);
 
   // SWR fallback — may be null on cold start (client-first mode)
-  const contract = (liveContract as unknown as Contract) || initialContract;
-  const payments = (livePayments as unknown as Payment[]) || initialPayments || [];
-  const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[]) || initialPaymentPlans || [];
-  const reservations = (liveReservations as unknown as DressReservationRow[]) || initialReservations || [];
-  const printOrders = (livePrintOrders as unknown as PrintingOrder[]) || initialPrintOrders || [];
-  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[]) || initialAuditLogs || [];
+  const contract = (liveContract as unknown as Contract | null) ?? initialContract;
+  const payments = (livePayments as unknown as Payment[] | null) ?? initialPayments ?? EMPTY_PAYMENTS;
+  const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[] | null) ?? initialPaymentPlans ?? EMPTY_PAYMENT_PLANS;
+  const reservations = (liveReservations as unknown as DressReservationRow[] | null) ?? initialReservations ?? EMPTY_RESERVATIONS;
+  const printOrders = (livePrintOrders as unknown as PrintingOrder[] | null) ?? initialPrintOrders ?? EMPTY_PRINT_ORDERS;
+  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[] | null) ?? initialAuditLogs ?? EMPTY_AUDIT_LOGS;
+  const renderedDetailRef = useRef({
+    contract,
+    payments,
+    paymentPlans,
+    reservations,
+    printOrders,
+    auditLogs,
+  });
+
+  useEffect(() => {
+    renderedDetailRef.current = {
+      contract,
+      payments,
+      paymentPlans,
+      reservations,
+      printOrders,
+      auditLogs,
+    };
+  }, [contract, payments, paymentPlans, reservations, printOrders, auditLogs]);
 
   const isCancelled = contract?.status === "da_huy";
+  const headerContractId = contract?.id;
+  const headerContractCode = contract?.contract_code;
+  const headerCustomerName = contract?.customers?.full_name || "KhĂ¡ch hĂ ng";
 
   const applyTaskStatusOptimistic = useCallback(
     (taskId: string, eventId: string, nextStatus: TaskStatus) => {
@@ -163,14 +190,7 @@ export default function ContractDetailClient({
         (current) => {
           // SWR fallbackData doesn't populate cache → current may be undefined.
           // Fall back to building from current rendered props.
-          const base = current ?? {
-            contract,
-            payments,
-            paymentPlans,
-            reservations,
-            printOrders,
-            auditLogs,
-          };
+          const base = current ?? renderedDetailRef.current;
           if (!base.contract) return current;
 
           const nextTasks = (base.contract.work_tasks || []).map((task) =>
@@ -204,7 +224,7 @@ export default function ContractDetailClient({
         { revalidate: false },
       );
     },
-    [muteRealtimeEcho, mutateContractDetail, contract, payments, paymentPlans, reservations, printOrders, auditLogs],
+    [muteRealtimeEcho, mutateContractDetail],
   );
 
   useEffect(() => {
@@ -216,7 +236,7 @@ export default function ContractDetailClient({
   }, []);
 
   useRealtime("contracts", { filter: `id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("receipts", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  useRealtime("payments", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
   useRealtime("contract_checklists", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
   useRealtime("contract_notes", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
   useRealtime("contract_events", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
@@ -228,19 +248,19 @@ export default function ContractDetailClient({
   // ── Set header slots for mobile ──
   const setHeaderSlots = useSetHeaderSlots();
   useEffect(() => {
-    if (!contract) return;
+    if (!headerContractId || !headerContractCode) return;
     setHeaderSlots({
       leftSlot: (
         <Link href="/contracts" className="lg:hidden btn-icon shrink-0">
           <ArrowLeft size={20} />
         </Link>
       ),
-      titleOverride: contract.contract_code,
+      titleOverride: headerContractCode,
       hideSearch: true,
       rightSlot: (
         <ContractActionsMenu
-          contractId={contract.id}
-          contractCode={contract.contract_code}
+          contractId={headerContractId}
+          contractCode={headerContractCode}
           customerName={contract.customers?.full_name || "Khách hàng"}
           hasReceipts={payments.length > 0}
           isCancelled={isCancelled}
@@ -248,7 +268,7 @@ export default function ContractDetailClient({
       ),
     });
     return () => setHeaderSlots({});
-  }, [setHeaderSlots, contract?.id, contract?.contract_code, contract?.customers?.full_name, payments.length, isCancelled]);
+  }, [setHeaderSlots, contract, headerContractId, headerContractCode, headerCustomerName, payments.length, isCancelled]);
 
   // ── Quick Action Modal State ──
   const [showPaymentForm, setShowPaymentForm] = useState(false);

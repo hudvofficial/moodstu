@@ -4,6 +4,7 @@ import {
   normalizeMoodieGeminiModelSetting,
   resolveMoodieGeminiRuntimeModel,
 } from "@/lib/moodie/model-options";
+import { decryptSecret } from "@/lib/settings-secrets";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import type { MoodieAiSettings } from "@/types/settings";
@@ -54,7 +55,7 @@ function firstMatchingValue(
 ): string | null {
   for (const key of keys) {
     const value = normalizeValue(rows.find((row) => row.key === key)?.value);
-    if (value) return value;
+    if (value) return decryptSecret(value);
   }
 
   return null;

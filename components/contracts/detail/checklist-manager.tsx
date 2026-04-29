@@ -11,7 +11,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { CheckSquare, Square, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "sonner";

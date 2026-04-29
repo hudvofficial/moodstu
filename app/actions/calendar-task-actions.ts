@@ -1,6 +1,7 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import { revalidatePath } from "next/cache";
 import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
 import { z } from "zod";
 
@@ -64,6 +65,8 @@ export async function assignCalendarTask(
 
     if (error) throw new Error("Lỗi giao việc: " + error.message);
 
+    revalidatePath("/calendar");
+    revalidatePath("/productivity");
     return true;
   });
 }
@@ -220,6 +223,8 @@ export async function updateCalendarTaskDetails(
       }
     }
 
+    revalidatePath("/calendar");
+    revalidatePath("/productivity");
     return { updated: true, autoPrintTriggered };
   });
 }

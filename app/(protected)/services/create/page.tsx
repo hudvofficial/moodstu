@@ -3,6 +3,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import ServiceForm from "@/components/services/form";
 import { getServiceCategories } from "@/app/actions/service-queries";
 
+export const metadata = { title: "Thêm dịch vụ" };
+
 export const dynamic = "force-dynamic";
 
 // ═══════════════════════════════════════════
@@ -42,3 +44,4 @@ export default async function CreateServicePage() {
     </div>
   );
 }
+

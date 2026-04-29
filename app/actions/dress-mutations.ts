@@ -1,71 +1,132 @@
 "use server";
 
-import { withAuth } from "@/lib/auth_utils";
+import {
+  withDressesAccess,
+  withDressesBookingAccess,
+  withDressesCatalogWriteAccess,
+} from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
-import { dressCreateSchema, dressUpdateSchema, reserveDressSchema } from "@/lib/validations/dress.schema";
+import {
+  dressCreateSchema,
+  dressUpdateSchema,
+  reserveDressSchema,
+} from "@/lib/validations/dress.schema";
 import { CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
 
+type RpcError = { message?: string; code?: string } | null;
+
 const ACTIVE_RESERVATION_STATUSES = ["reserved", "in_use", "rented"] as const;
+const ACTIVE_RENTAL_STATUSES = ["reserved", "renting", "overdue"] as const;
+const IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
-type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
+function isMissingRpc(error: RpcError) {
+  const message = error?.message?.toLowerCase() || "";
+  return message.includes("could not find the function") || error?.code === "PGRST202";
+}
 
-async function refreshDressStatus(supabase: AdminSupabase, dressId: string) {
-  const { data: activeReservations } = await supabase
-    .from("dress_reservations")
-    .select("status")
-    .eq("dress_id", dressId)
-    .in("status", [...ACTIVE_RESERVATION_STATUSES]);
+function revalidateDresses(contractId?: string | null) {
+  revalidatePath("/dresses");
+  revalidatePath("/dresses/rentals");
+  if (contractId) {
+    revalidatePath("/contracts");
+    revalidatePath(`/contracts/${contractId}`);
+  }
+}
 
-  const nextStatus = (activeReservations || []).some((row) =>
-    row.status === "in_use" || row.status === "rented"
-  )
+function extractDressStoragePath(imageUrl: string) {
+  const marker = "/storage/v1/object/public/dresses/";
+  const index = imageUrl.indexOf(marker);
+  if (index === -1) return null;
+
+  const rawPath = imageUrl.slice(index + marker.length).split("?")[0];
+  const decoded = decodeURIComponent(rawPath);
+  if (!decoded || decoded.includes("..")) return null;
+  return decoded;
+}
+
+async function fallbackRefreshDressStatus(
+  supabase: Parameters<Parameters<typeof withDressesAccess>[0]>[0],
+  dressId: string,
+  userId?: string,
+) {
+  const rpc = await supabase.rpc("refresh_dress_status_atomic", {
+    p_dress_id: dressId,
+    p_user_id: userId ?? null,
+  });
+
+  if (!rpc.error || !isMissingRpc(rpc.error)) return;
+
+  const [reservationRes, rentalRes, dressRes] = await Promise.all([
+    supabase
+      .from("dress_reservations")
+      .select("status")
+      .eq("dress_id", dressId)
+      .in("status", [...ACTIVE_RESERVATION_STATUSES]),
+    supabase
+      .from("dress_rentals")
+      .select("status")
+      .eq("item_id", dressId)
+      .in("status", [...ACTIVE_RENTAL_STATUSES]),
+    supabase.from("dresses").select("status").eq("id", dressId).maybeSingle(),
+  ]);
+
+  if (reservationRes.error) throw new Error(reservationRes.error.message);
+  if (rentalRes.error) throw new Error(rentalRes.error.message);
+  if (dressRes.error) throw new Error(dressRes.error.message);
+
+  const currentStatus = dressRes.data?.status;
+  if (["maintenance", "retired", "cleaning"].includes(String(currentStatus))) return;
+
+  const rentals = rentalRes.data || [];
+  const reservations = reservationRes.data || [];
+  const nextStatus = rentals.some((row) => row.status === "renting" || row.status === "overdue") ||
+    reservations.some((row) => row.status === "in_use" || row.status === "rented")
     ? "rented"
-    : (activeReservations || []).length > 0
+    : rentals.length > 0 || reservations.length > 0
       ? "reserved"
       : "available";
 
   await supabase
     .from("dresses")
-    .update({ status: nextStatus, updated_at: new Date().toISOString() })
+    .update({ status: nextStatus, updated_by: userId ?? null, updated_at: new Date().toISOString() })
     .eq("id", dressId);
 }
 
-// ═══════════════════════════════════════════
-// Dress Mutations — Create/Update/Delete
-// DB: dresses
-// Pattern: withAuth + Zod + fireAuditLog + revalidatePath
-// ═══════════════════════════════════════════
-
-// ─── CHECK ITEM CODE EXISTS ─────────────────────────────────
-
 export async function checkItemCodeExists(code: string, excludeId?: string) {
-  return withAuth(async (supabase) => {
+  return withDressesAccess(async (supabase) => {
     let query = supabase
       .from("dresses")
       .select("id")
       .eq("item_code", code.trim())
       .is("deleted_at", null)
       .limit(1);
+
     if (excludeId) query = query.neq("id", excludeId);
-    const { data } = await query;
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
     return { exists: (data?.length ?? 0) > 0 };
   });
 }
 
-// ─── CREATE ──────────────────────────────────────────────────
-
 export async function createDress(rawData: unknown) {
   const parsed = dressCreateSchema.safeParse(rawData);
   if (!parsed.success) {
-    return { success: false as const, error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" };
+    return {
+      success: false as const,
+      error: parsed.error.issues[0]?.message || "Du lieu khong hop le",
+    };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withDressesCatalogWriteAccess(async (supabase, userId) => {
     const data = parsed.data;
-
-    // Auto-gen item_code if empty — MAX() parse (kể cả đã xóa mềm)
     let itemCode = data.item_code?.trim();
+
     if (!itemCode) {
       const prefix = CATEGORY_PREFIX_MAP[data.category] || "K";
 
@@ -76,7 +137,7 @@ export async function createDress(rawData: unknown) {
         .like("item_code", `${prefix}-%`)
         .order("item_code", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       let nextNum = 1;
       if (maxRow?.item_code) {
@@ -86,46 +147,41 @@ export async function createDress(rawData: unknown) {
       itemCode = `${prefix}-${String(nextNum).padStart(3, "0")}`;
     }
 
+    const insertPayload = {
+      ...data,
+      item_code: itemCode,
+      image_url: data.image_url || null,
+      notes: data.notes || null,
+      status: "available",
+      current_stock: 1,
+      created_by: userId,
+      updated_by: userId,
+    };
+
     const { data: result, error } = await supabase
       .from("dresses")
-      .insert({
-        ...data,
-        item_code: itemCode,
-        image_url: data.image_url || null,
-        notes: data.notes || null,
-        status: "available",
-        current_stock: 1,
-        created_by: userId,
-        updated_by: userId,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
 
     if (error) {
-      // Auto-gen race condition: retry with incremented number
       if (error.code === "23505" && !parsed.data.item_code?.trim()) {
         const codeMatch = itemCode.match(/(\d+)$/);
         const currentNum = codeMatch ? parseInt(codeMatch[1], 10) : 0;
         const retryCode = `${itemCode.split("-")[0]}-${String(currentNum + 1).padStart(3, "0")}`;
         const { data: retryData, error: retryErr } = await supabase
           .from("dresses")
-          .insert({
-            ...data,
-            item_code: retryCode,
-            image_url: data.image_url || null,
-            notes: data.notes || null,
-            status: "available",
-            current_stock: 1,
-            created_by: userId,
-            updated_by: userId,
-          })
+          .insert({ ...insertPayload, item_code: retryCode })
           .select("id")
           .single();
-        if (retryErr) throw new Error("Mã trang phục đã tồn tại, vui lòng thử lại");
+
+        if (retryErr) throw new Error("Ma trang phuc da ton tai, vui long thu lai");
         itemCode = retryCode;
+        revalidateDresses();
         return { id: retryData.id };
       }
-      if (error.code === "23505") throw new Error("Mã trang phục đã tồn tại");
+
+      if (error.code === "23505") throw new Error("Ma trang phuc da ton tai");
       throw new Error(error.message);
     }
 
@@ -133,37 +189,37 @@ export async function createDress(rawData: unknown) {
       action: "CREATE",
       tableName: "dresses",
       recordId: result.id,
-      description: `Thêm trang phục: ${data.name} (${itemCode})`,
+      description: `Them trang phuc: ${data.name} (${itemCode})`,
       source: "server_action",
     });
 
-    revalidatePath("/dresses");
+    revalidateDresses();
     return { id: result.id };
   });
 }
 
-// ─── UPDATE (with Optimistic Locking) ────────────────────────
-
 export async function updateDress(rawData: unknown) {
   const parsed = dressUpdateSchema.safeParse(rawData);
   if (!parsed.success) {
-    return { success: false as const, error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" };
+    return {
+      success: false as const,
+      error: parsed.error.issues[0]?.message || "Du lieu khong hop le",
+    };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withDressesCatalogWriteAccess(async (supabase, userId) => {
     const { id, updated_at, data } = parsed.data;
 
-    // Optimistic Locking: check updated_at hasn't changed
-    const { data: current } = await supabase
+    const { data: current, error: fetchError } = await supabase
       .from("dresses")
       .select("updated_at")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
 
-    if (!current) throw new Error("Trang phục không tồn tại");
+    if (fetchError || !current) throw new Error("Trang phuc khong ton tai");
     if (current.updated_at !== updated_at) {
-      throw new Error("Dữ liệu đã được cập nhật bởi người khác. Vui lòng tải lại trang.");
+      throw new Error("Du lieu da duoc cap nhat boi nguoi khac. Vui long tai lai trang.");
     }
 
     const { error } = await supabase
@@ -183,70 +239,111 @@ export async function updateDress(rawData: unknown) {
       action: "UPDATE",
       tableName: "dresses",
       recordId: id,
-      description: `Cập nhật trang phục #${id.substring(0, 8)}`,
+      description: `Cap nhat trang phuc #${id.substring(0, 8)}`,
       source: "server_action",
     });
 
-    revalidatePath("/dresses");
+    revalidateDresses();
     return null;
   });
 }
 
-// ─── SOFT DELETE ──────────────────────────────────────────────
-
 export async function deleteDress(id: string) {
-  if (!id) return { success: false as const, error: "ID không hợp lệ" };
+  if (!id) return { success: false as const, error: "ID khong hop le" };
 
-  return withAuth(async (supabase, userId) => {
-    // Check: cannot delete if reserved/rented
-    const { data: reservations } = await supabase
-      .from("dress_reservations")
-      .select("id")
-      .eq("dress_id", id)
-      .in("status", [...ACTIVE_RESERVATION_STATUSES])
-      .limit(1);
+  return withDressesCatalogWriteAccess(async (supabase, userId) => {
+    const rpc = await supabase.rpc("delete_dress_atomic", {
+      p_dress_id: id,
+      p_user_id: userId,
+    });
 
-    if (reservations && reservations.length > 0) {
-      throw new Error("Không thể xóa trang phục đang được đặt hoặc đang thuê");
+    if (rpc.error && !isMissingRpc(rpc.error)) throw new Error(rpc.error.message);
+
+    if (rpc.error) {
+      const [activeReservations, activeRentals, history] = await Promise.all([
+        supabase
+          .from("dress_reservations")
+          .select("id")
+          .eq("dress_id", id)
+          .in("status", [...ACTIVE_RESERVATION_STATUSES])
+          .limit(1),
+        supabase
+          .from("dress_rentals")
+          .select("id")
+          .eq("item_id", id)
+          .in("status", [...ACTIVE_RENTAL_STATUSES])
+          .limit(1),
+        supabase
+          .from("dress_reservations")
+          .select("id")
+          .eq("dress_id", id)
+          .limit(1),
+      ]);
+
+      if (activeReservations.error) throw new Error(activeReservations.error.message);
+      if (activeRentals.error) throw new Error(activeRentals.error.message);
+      if (history.error) throw new Error(history.error.message);
+      if ((activeReservations.data?.length || 0) > 0 || (activeRentals.data?.length || 0) > 0) {
+        throw new Error("Khong the xoa trang phuc dang duoc dat hoac dang thue");
+      }
+
+      const updatePayload =
+        (history.data?.length || 0) > 0
+          ? { status: "retired", updated_by: userId, updated_at: new Date().toISOString() }
+          : { deleted_at: new Date().toISOString(), updated_by: userId, updated_at: new Date().toISOString() };
+
+      const { error } = await supabase.from("dresses").update(updatePayload).eq("id", id);
+      if (error) throw new Error(error.message);
     }
-
-    const { error } = await supabase
-      .from("dresses")
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_by: userId,
-      })
-      .eq("id", id);
-
-    if (error) throw new Error(error.message);
 
     fireAuditLog({
       action: "DELETE",
       tableName: "dresses",
       recordId: id,
-      description: `Xóa mềm trang phục #${id.substring(0, 8)}`,
+      description: `Xoa/ngung dung trang phuc #${id.substring(0, 8)}`,
       severity: "WARNING",
       source: "server_action",
     });
 
-    revalidatePath("/dresses");
+    revalidateDresses();
     return null;
   });
 }
 
-// ─── RESERVE DRESS FOR CONTRACT ──────────────────────────────
-
 export async function reserveDressForContract(rawData: unknown) {
   const parsed = reserveDressSchema.safeParse(rawData);
   if (!parsed.success) {
-    return { success: false as const, error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" };
+    return {
+      success: false as const,
+      error: parsed.error.issues[0]?.message || "Du lieu khong hop le",
+    };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase, userId) => {
     const input = parsed.data;
     const now = new Date().toISOString();
 
-    // 1. Check item exists + not deleted
+    const rpc = await supabase.rpc("create_dress_contract_reservation_atomic", {
+      p_dress_id: input.dressId,
+      p_contract_id: input.contractId,
+      p_contract_item_id: input.contractItemId || null,
+      p_customer_id: input.customerId || null,
+      p_start_date: input.startDate,
+      p_end_date: input.endDate,
+      p_export_type: input.exportType || null,
+      p_is_addon: input.isAddon,
+      p_rental_price: input.rentalPrice,
+      p_notes: input.notes || null,
+      p_user_id: userId,
+    });
+
+    if (!rpc.error) {
+      revalidateDresses(input.contractId);
+      return null;
+    }
+
+    if (!isMissingRpc(rpc.error)) throw new Error(rpc.error.message);
+
     const { data: item, error: itemErr } = await supabase
       .from("dresses")
       .select("id, name, status")
@@ -254,31 +351,44 @@ export async function reserveDressForContract(rawData: unknown) {
       .is("deleted_at", null)
       .single();
 
-    if (itemErr || !item) throw new Error("Trang phục không tồn tại hoặc đã bị xóa");
-
-    // 2. Date overlap check (prevent double-booking)
-    const { data: overlaps } = await supabase
-      .from("dress_reservations")
-      .select("id")
-      .eq("dress_id", input.dressId)
-      .in("status", [...ACTIVE_RESERVATION_STATUSES])
-      .lte("start_date", input.endDate)
-      .gte("end_date", input.startDate)
-      .limit(1);
-
-    if (overlaps && overlaps.length > 0) {
-      throw new Error("Trang phục đã được đặt trong khoảng thời gian này");
+    if (itemErr || !item) throw new Error("Trang phuc khong ton tai hoac da bi xoa");
+    if (["maintenance", "retired", "cleaning"].includes(String(item.status))) {
+      throw new Error("Trang phuc hien khong the dat");
     }
 
-    // 3. Handle addon billing (insert contract_item FIRST to get FK)
+    const [reservationOverlaps, rentalOverlaps] = await Promise.all([
+      supabase
+        .from("dress_reservations")
+        .select("id")
+        .eq("dress_id", input.dressId)
+        .in("status", [...ACTIVE_RESERVATION_STATUSES])
+        .lte("start_date", input.endDate)
+        .gte("end_date", input.startDate)
+        .limit(1),
+      supabase
+        .from("dress_rentals")
+        .select("id")
+        .eq("item_id", input.dressId)
+        .in("status", [...ACTIVE_RENTAL_STATUSES])
+        .lte("pickup_date", input.endDate)
+        .gte("return_date", input.startDate)
+        .limit(1),
+    ]);
+
+    if (reservationOverlaps.error) throw new Error(reservationOverlaps.error.message);
+    if (rentalOverlaps.error) throw new Error(rentalOverlaps.error.message);
+    if ((reservationOverlaps.data?.length || 0) > 0 || (rentalOverlaps.data?.length || 0) > 0) {
+      throw new Error("Trang phuc da duoc dat trong khoang thoi gian nay");
+    }
+
     let contractItemId = input.contractItemId || null;
 
     if (input.isAddon && input.rentalPrice > 0) {
-      const { data: newItem, error: ciErr } = await supabase
+      const { data: newItem, error: itemError } = await supabase
         .from("contract_items")
         .insert({
           contract_id: input.contractId,
-          item_name: item.name || "Trang phục phát sinh",
+          item_name: item.name || "Trang phuc phat sinh",
           type: "trang_phuc",
           quantity: 1,
           unit_price: input.rentalPrice,
@@ -286,36 +396,18 @@ export async function reserveDressForContract(rawData: unknown) {
           is_addon: true,
           addon_category: "trang_phuc",
           dress_id: input.dressId,
+          added_by: userId,
           created_at: now,
         })
         .select("id")
         .single();
 
-      if (ciErr) throw new Error(`Lỗi thêm phát sinh: ${ciErr.message}`);
+      if (itemError) throw new Error(`Loi them phat sinh: ${itemError.message}`);
       contractItemId = newItem.id;
-
-      // Update contract totals
-      const { data: contract } = await supabase
-        .from("contracts")
-        .select("total_amount, remaining_amount")
-        .eq("id", input.contractId)
-        .single();
-
-      if (contract) {
-        await supabase
-          .from("contracts")
-          .update({
-            total_amount: contract.total_amount + input.rentalPrice,
-            remaining_amount: contract.remaining_amount + input.rentalPrice,
-            updated_by: userId,
-            updated_at: now,
-          })
-          .eq("id", input.contractId);
-      }
+      await supabase.rpc("recalc_contract_totals", { p_contract_id: input.contractId });
     }
 
-    // 4. Insert reservation (correct column names)
-    const { error: resError } = await supabase.from("dress_reservations").insert({
+    const { error: reservationError } = await supabase.from("dress_reservations").insert({
       dress_id: input.dressId,
       contract_id: input.contractId,
       contract_item_id: contractItemId,
@@ -329,26 +421,18 @@ export async function reserveDressForContract(rawData: unknown) {
       updated_at: now,
     });
 
-    if (resError) throw new Error(`Lỗi đặt trang phục: ${resError.message}`);
+    if (reservationError) throw new Error(`Loi dat trang phuc: ${reservationError.message}`);
 
-    // 5. Update item status → reserved
-    await supabase
-      .from("dresses")
-      .update({ status: "reserved", updated_at: now })
-      .eq("id", input.dressId);
+    await fallbackRefreshDressStatus(supabase, input.dressId, userId);
 
-    // 6. Audit log
     fireAuditLog({
       action: "CREATE",
       tableName: "dress_reservations",
-      description: `Đặt trang phục: ${item.name} cho HĐ #${input.contractId.substring(0, 8)}`,
+      description: `Dat trang phuc: ${item.name} cho HD #${input.contractId.substring(0, 8)}`,
       source: "server_action",
     });
 
-    // 7. Revalidate
-    revalidatePath("/dresses");
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${input.contractId}`);
+    revalidateDresses(input.contractId);
     return null;
   });
 }
@@ -360,154 +444,132 @@ export async function updateReservationStatus(
 ) {
   if (!reservationId) return { success: false as const, error: "ID khong hop le" };
 
-  return withAuth(async (supabase) => {
+  return withDressesBookingAccess(async (supabase, userId) => {
     const validStatuses = ["reserved", "in_use", "rented", "returned", "cancelled"];
     if (!validStatuses.includes(status)) {
       throw new Error("Trang thai trang phuc khong hop le");
     }
 
-    const { data: reservation, error: fetchError } = await supabase
-      .from("dress_reservations")
-      .select("id, dress_id, contract_id")
-      .eq("id", reservationId)
-      .single();
+    const rpc = await supabase.rpc("update_dress_reservation_status_atomic", {
+      p_reservation_id: reservationId,
+      p_status: status,
+      p_user_id: userId,
+    });
 
-    if (fetchError || !reservation) {
-      throw new Error("Khong tim thay dat trang phuc");
+    if (rpc.error && !isMissingRpc(rpc.error)) throw new Error(rpc.error.message);
+
+    if (rpc.error) {
+      const { data: reservation, error: fetchError } = await supabase
+        .from("dress_reservations")
+        .select("id, dress_id, contract_id")
+        .eq("id", reservationId)
+        .single();
+
+      if (fetchError || !reservation) throw new Error("Khong tim thay dat trang phuc");
+
+      const { error } = await supabase
+        .from("dress_reservations")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", reservationId);
+
+      if (error) throw new Error(`Loi cap nhat trang thai trang phuc: ${error.message}`);
+      await fallbackRefreshDressStatus(supabase, reservation.dress_id, userId);
     }
 
-    const { error } = await supabase
-      .from("dress_reservations")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", reservationId);
-
-    if (error) throw new Error(`Loi cap nhat trang thai trang phuc: ${error.message}`);
-
-    await refreshDressStatus(supabase, reservation.dress_id);
-
-    // ⚡ No revalidatePath — client uses optimistic UI + Realtime for sync
+    if (contractId) revalidateDresses(contractId);
     return null;
   });
 }
 
 export async function releaseReservation(reservationId: string) {
-  if (!reservationId) return { success: false as const, error: "ID không hợp lệ" };
+  if (!reservationId) return { success: false as const, error: "ID khong hop le" };
 
-  return withAuth(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase, userId) => {
+    const rpc = await supabase.rpc("release_dress_reservation_atomic", {
+      p_reservation_id: reservationId,
+      p_user_id: userId,
+    });
+
+    if (!rpc.error) {
+      const payload = rpc.data as { contract_id?: string | null } | null;
+      revalidateDresses(payload?.contract_id || null);
+      return null;
+    }
+
+    if (!isMissingRpc(rpc.error)) throw new Error(rpc.error.message);
+
     const now = new Date().toISOString();
-
-    // 1. Fetch reservation details
     const { data: reservation, error: fetchErr } = await supabase
       .from("dress_reservations")
       .select("id, dress_id, contract_id, contract_item_id, status")
       .eq("id", reservationId)
       .single();
 
-    if (fetchErr || !reservation) throw new Error("Không tìm thấy đặt trang phục");
-    if (reservation.status === "returned") throw new Error("Trang phục đã được trả trước đó");
+    if (fetchErr || !reservation) throw new Error("Khong tim thay dat trang phuc");
+    if (reservation.status === "returned") throw new Error("Trang phuc da duoc tra truoc do");
 
-    // 2. Update reservation → returned
     const { error: updateErr } = await supabase
       .from("dress_reservations")
       .update({ status: "returned", updated_at: now })
       .eq("id", reservationId);
-    if (updateErr) throw new Error(`Lỗi trả trang phục: ${updateErr.message}`);
+    if (updateErr) throw new Error(`Loi tra trang phuc: ${updateErr.message}`);
 
-    await refreshDressStatus(supabase, reservation.dress_id);
-
-    // 4. Reverse addon billing if applicable (JOIN contract_items for is_addon + unit_price)
     if (reservation.contract_item_id && reservation.contract_id) {
-      const { data: contractItem } = await supabase
+      await supabase
         .from("contract_items")
-        .select("is_addon, unit_price")
+        .update({ deleted_at: now, updated_at: now })
         .eq("id", reservation.contract_item_id)
-        .single();
-
-      if (contractItem?.is_addon && contractItem.unit_price > 0) {
-        const { data: contract } = await supabase
-          .from("contracts")
-          .select("total_amount, remaining_amount")
-          .eq("id", reservation.contract_id)
-          .single();
-
-        if (contract) {
-          await supabase
-            .from("contracts")
-            .update({
-              total_amount: Math.max(0, contract.total_amount - contractItem.unit_price),
-              remaining_amount: Math.max(0, contract.remaining_amount - contractItem.unit_price),
-              updated_by: userId,
-              updated_at: now,
-            })
-            .eq("id", reservation.contract_id);
-        }
-      }
+        .eq("is_addon", true);
+      await supabase.rpc("recalc_contract_totals", { p_contract_id: reservation.contract_id });
     }
+
+    await fallbackRefreshDressStatus(supabase, reservation.dress_id, userId);
 
     fireAuditLog({
       action: "UPDATE",
       tableName: "dress_reservations",
       recordId: reservationId,
-      description: `Trả trang phục — reservation #${reservationId.substring(0, 8)}`,
+      description: `Tra trang phuc - reservation #${reservationId.substring(0, 8)}`,
       source: "server_action",
     });
 
-    revalidatePath("/dresses");
-    revalidatePath("/contracts");
-    if (reservation.contract_id) {
-      revalidatePath(`/contracts/${reservation.contract_id}`);
-    }
+    revalidateDresses(reservation.contract_id);
     return null;
   });
 }
 
-// ═══════════════════════════════════════════
-// Upload Dress Image — Server-side Storage
-// Pattern: profile-actions.ts uploadAvatar
-// ═══════════════════════════════════════════
-
 export async function uploadDressImage(formData: FormData) {
-  return withAuth(async (supabase) => {
-    const file = formData.get("file") as File;
-    const oldUrl = formData.get("oldUrl") as string | null;
+  return withDressesCatalogWriteAccess(async (supabase) => {
+    const file = formData.get("file") as File | null;
 
-    // Validate
-    if (!file || file.size === 0) throw new Error("Chưa chọn ảnh");
-    if (file.size > 10 * 1024 * 1024) throw new Error("Ảnh không được vượt quá 10MB");
-    if (!file.type.startsWith("image/")) throw new Error("Chỉ chấp nhận file ảnh");
+    if (!file || file.size === 0) throw new Error("Chua chon anh");
+    if (file.size > 10 * 1024 * 1024) throw new Error("Anh khong duoc vuot qua 10MB");
 
-    // Delete old file if exists
-    if (oldUrl) {
-      const oldPath = oldUrl.split("/dresses/")[1]?.split("?")[0];
-      if (oldPath) await supabase.storage.from("dresses").remove([oldPath]);
-    }
+    const ext = IMAGE_TYPES[file.type];
+    if (!ext) throw new Error("Chi chap nhan anh JPG, PNG hoac WebP");
 
-    // Upload new file
-    const ext = file.name.split(".").pop() || "jpg";
-    const filePath = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = `unassigned/${crypto.randomUUID()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("dresses")
-      .upload(filePath, file, { contentType: file.type });
-    if (uploadError) throw new Error(`Lỗi upload: ${uploadError.message}`);
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) throw new Error(`Loi upload: ${uploadError.message}`);
 
     const { data: urlData } = supabase.storage.from("dresses").getPublicUrl(filePath);
     return { url: urlData.publicUrl };
   });
 }
 
-// ═══════════════════════════════════════════
-// Delete Dress Image — Cleanup orphan files
-// Best-effort: lỗi vẫn return success
-// ═══════════════════════════════════════════
-
 export async function deleteDressImage(imageUrl: string) {
-  return withAuth(async (supabase) => {
-    try {
-      const path = imageUrl.split("/dresses/")[1]?.split("?")[0];
-      if (path) await supabase.storage.from("dresses").remove([path]);
-    } catch {
-      // Best-effort cleanup — don't block user
-    }
+  return withDressesCatalogWriteAccess(async (supabase) => {
+    const path = extractDressStoragePath(imageUrl);
+    if (!path) return null;
+
+    const { error } = await supabase.storage.from("dresses").remove([path]);
+    if (error) throw new Error(`Loi xoa anh: ${error.message}`);
     return null;
   });
 }

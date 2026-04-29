@@ -149,10 +149,9 @@ export default function SettingsView({
             ) : null}
           </p>
 
-          <div className="lg:hidden flex flex-col gap-4">{sidebarContent}</div>
         </div>
 
-        <div className="detail-sidebar">{sidebarContent}</div>
+        <div className="detail-sidebar flex!">{sidebarContent}</div>
       </div>
 
       <EditProfileModal

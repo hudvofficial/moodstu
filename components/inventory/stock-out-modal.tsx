@@ -13,6 +13,7 @@ import { ComboboxSearch } from "@/components/ui/combobox-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useDebounce } from "@/hooks/use-debounce";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { stockOut } from "@/app/actions/inventory-mutations";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
@@ -37,21 +38,35 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const debouncedPickerSearch = useDebounce(pickerSearch, 300);
 
   useEffect(() => {
     if (!isOpen || item) return;
     let cancelled = false;
-    fetchInventoryPickerItems().then((data) => {
-      if (!cancelled) setPickerItems(data);
-    });
+    fetchInventoryPickerItems({
+      search: debouncedPickerSearch,
+      limit: 30,
+      activeOnly: true,
+    })
+      .then((data) => {
+        if (!cancelled) setPickerItems(data.items);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Không thể tải vật tư");
+      });
     return () => {
       cancelled = true;
     };
-  }, [isOpen, item, items]);
+  }, [debouncedPickerSearch, isOpen, item, items]);
 
   const handleSubmit = (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!activeItem) return;
+    if (activeItem.status !== "active") {
+      setError("Vật tư đã ngưng, không thể xuất kho");
+      return;
+    }
     if (quantity < 1) { setError("Số lượng phải ≥ 1"); return; }
     if (quantity > activeItem.current_stock) {
       setError(`Không đủ tồn kho! Hiện có: ${activeItem.current_stock}`);
@@ -117,6 +132,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             <ComboboxSearch
               label="Chọn vật tư *"
               onChange={(id) => setPickedItem(pickerItems.find(i => i.id === id) || null)}
+              onSearchChange={setPickerSearch}
               options={itemOptions}
               placeholder="Tìm và chọn vật tư..."
             />

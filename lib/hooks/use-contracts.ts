@@ -38,6 +38,11 @@ const contractKeys = {
 
 const prefetchedDrawerExtras = new Set<string>();
 const prefetchedContractDetails = new Set<string>();
+const EMPTY_PAYMENTS: Payment[] = [];
+const EMPTY_PAYMENT_PLANS: PaymentPlan[] = [];
+const EMPTY_RESERVATIONS: DressReservationRow[] = [];
+const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
+const EMPTY_AUDIT_LOGS: AuditLogEntry[] = [];
 
 // ─── useContracts ───────────────────────────────────────
 
@@ -148,11 +153,11 @@ export function useContractDetail(
 
   return {
     contract: data?.contract || null,
-    payments: data?.payments || [],
-    paymentPlans: data?.paymentPlans || [],
-    reservations: data?.reservations || [],
-    printOrders: data?.printOrders || [],
-    auditLogs: data?.auditLogs || [],
+    payments: data?.payments ?? EMPTY_PAYMENTS,
+    paymentPlans: data?.paymentPlans ?? EMPTY_PAYMENT_PLANS,
+    reservations: data?.reservations ?? EMPTY_RESERVATIONS,
+    printOrders: data?.printOrders ?? EMPTY_PRINT_ORDERS,
+    auditLogs: data?.auditLogs ?? EMPTY_AUDIT_LOGS,
     isLoading,
     error,
     mutate: mutateLocal,

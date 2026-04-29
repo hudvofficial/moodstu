@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
-import { syncAuthIdentity, withAdmin } from "@/lib/auth_utils";
+import {
+  requireEmployeesWriteAccess,
+  syncAuthIdentity,
+  withEmployeesWriteAccess,
+} from "@/lib/auth_utils";
 import {
   employeeCreateSchema,
   employeeNotesSchema,
@@ -38,23 +42,58 @@ function normalizeEmptyStrings(payload: CleanEmployeePayload) {
 }
 
 async function generateNextEmployeeCode(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("employees")
-    .select("employee_code")
-    .ilike("employee_code", "NV-%")
-    .range(0, 4999);
-
+  const { data, error } = await supabase.rpc("next_employee_code");
   if (error) {
     throw new Error(`Không thể tạo mã nhân viên: ${error.message}`);
   }
+  return String(data);
+}
 
-  const maxNumber = (data || []).reduce((max, row) => {
-    const match = String(row.employee_code || "").match(/^NV-(\d+)$/);
-    if (!match) return max;
-    return Math.max(max, Number(match[1]) || 0);
-  }, 0);
+async function assertCanDeactivateEmployee(
+  supabase: SupabaseClient,
+  actorUserId: string,
+  target: {
+    id: string;
+    role: string | null;
+    auth_user_id: string | null;
+    deleted_at: string | null;
+    status: string | null;
+  },
+) {
+  const actorContext = await requireEmployeesWriteAccess(supabase, actorUserId);
 
-  return `NV-${String(maxNumber + 1).padStart(3, "0")}`;
+  if (actorContext.employee?.id === target.id || target.auth_user_id === actorUserId) {
+    throw new Error("Bạn không thể cho chính mình nghỉ việc");
+  }
+
+  const isPrivilegedTarget =
+    !target.deleted_at &&
+    target.status === "active" &&
+    (target.role === "admin" || target.role === "manager");
+
+  if (!isPrivilegedTarget) return;
+
+  const { count, error } = await supabase
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .in("role", ["admin", "manager"])
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .neq("id", target.id);
+
+  if (error) {
+    throw new Error(`Không thể kiểm tra quyền quản trị còn lại: ${error.message}`);
+  }
+
+  if ((count || 0) < 1) {
+    throw new Error("Không thể cho nghỉ nhân sự quản trị cuối cùng");
+  }
+}
+
+function revalidateEmployeePaths(employeeId: string) {
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath("/settings");
 }
 
 export async function createEmployee(payload: EmployeePayload) {
@@ -67,7 +106,7 @@ export async function createEmployee(payload: EmployeePayload) {
     };
   }
 
-  return withAdmin(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase) => {
     const data = normalizeEmptyStrings(
       sanitizePayload(parsed.data as EmployeePayload),
     );
@@ -111,7 +150,11 @@ export async function createEmployee(payload: EmployeePayload) {
   });
 }
 
-export async function updateEmployee(id: string, payload: EmployeePayload) {
+export async function updateEmployee(
+  id: string,
+  payload: EmployeePayload,
+  expectedUpdatedAt?: string | null,
+) {
   const parsedId = uuidSchema.safeParse(id);
   if (!parsedId.success) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
@@ -125,14 +168,14 @@ export async function updateEmployee(id: string, payload: EmployeePayload) {
     };
   }
 
-  return withAdmin(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase, userId) => {
     const data = normalizeEmptyStrings(
       sanitizePayload(parsed.data as EmployeePayload),
     );
 
     const { data: current, error: currentError } = await supabase
       .from("employees")
-      .select("id, full_name, role, auth_user_id, salary_info")
+      .select("id, full_name, role, auth_user_id, salary_info, updated_at, status, deleted_at")
       .eq("id", parsedId.data)
       .single();
 
@@ -140,17 +183,47 @@ export async function updateEmployee(id: string, payload: EmployeePayload) {
       throw new Error("Không tìm thấy nhân viên");
     }
 
+    if (
+      current.auth_user_id === userId &&
+      typeof data.status === "string" &&
+      data.status !== "active"
+    ) {
+      throw new Error("Bạn không thể tự vô hiệu hóa tài khoản của mình");
+    }
+
+    if (
+      current.auth_user_id === userId &&
+      typeof data.role === "string" &&
+      current.role !== data.role
+    ) {
+      throw new Error("Bạn không thể tự đổi vai trò của mình");
+    }
+
+    if (data.status === "inactive" || data.deleted_at) {
+      await assertCanDeactivateEmployee(supabase, userId, current);
+    }
+
     if (data.salary_info && typeof data.salary_info === "object") {
       const existing = (current.salary_info as SalaryInfo) || {};
       data.salary_info = { ...existing, ...(data.salary_info as SalaryInfo) };
     }
 
-    const { error } = await supabase
+    const now = new Date().toISOString();
+    let query = supabase
       .from("employees")
-      .update(data)
+      .update({ ...data, updated_at: now })
       .eq("id", parsedId.data);
 
+    if (expectedUpdatedAt) {
+      query = query.eq("updated_at", expectedUpdatedAt);
+    }
+
+    const { data: updatedRows, error } = await query.select("id, updated_at");
+
     if (error) throw new Error(`Lỗi cập nhật: ${error.message}`);
+    if (expectedUpdatedAt && (!updatedRows || updatedRows.length === 0)) {
+      throw new Error("Dữ liệu nhân viên đã thay đổi. Tải lại trước khi lưu.");
+    }
 
     if (current.auth_user_id && (data.full_name || data.role)) {
       await syncAuthIdentity(supabase, current.auth_user_id, {
@@ -167,14 +240,13 @@ export async function updateEmployee(id: string, payload: EmployeePayload) {
       description: `Cập nhật nhân viên: ${
         (data.full_name as string) || current.full_name || parsedId.data
       }`,
-      newData: data,
+      oldData: { updated_at: current.updated_at },
+      newData: { ...data, updated_at: now },
       source: "server_action",
     });
 
-    revalidatePath("/employees");
-    revalidatePath(`/employees/${parsedId.data}`);
-    revalidatePath("/settings");
-    return { id: parsedId.data };
+    revalidateEmployeePaths(parsedId.data);
+    return { id: parsedId.data, updated_at: updatedRows?.[0]?.updated_at || now };
   });
 }
 
@@ -184,35 +256,47 @@ export async function softDeleteEmployee(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withAdmin(async (supabase) => {
-    const { data: emp } = await supabase
+  return withEmployeesWriteAccess(async (supabase, userId) => {
+    const { data: emp, error: currentError } = await supabase
       .from("employees")
-      .select("full_name, employee_code")
+      .select("id, full_name, employee_code, role, auth_user_id, status, deleted_at")
       .eq("id", parsedId.data)
       .single();
 
+    if (currentError || !emp) {
+      throw new Error("Không tìm thấy nhân viên");
+    }
+
+    await assertCanDeactivateEmployee(supabase, userId, emp);
+
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("employees")
       .update({
-        deleted_at: new Date().toISOString(),
+        deleted_at: now,
         status: "inactive",
+        updated_at: now,
       })
       .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi cho nghỉ việc: ${error.message}`);
 
+    if (emp.auth_user_id) {
+      await syncAuthIdentity(supabase, emp.auth_user_id, { role: "viewer" });
+    }
+
     fireAuditLog({
       action: "DELETE",
       tableName: "employees",
       recordId: parsedId.data,
-      oldData: emp ?? undefined,
-      description: `Cho nghỉ việc: ${emp?.full_name || parsedId.data} (${emp?.employee_code || ""})`,
+      oldData: emp,
+      newData: { deleted_at: now, status: "inactive" },
+      description: `Cho nghỉ việc: ${emp.full_name || parsedId.data} (${emp.employee_code || ""})`,
       severity: "WARNING",
       source: "server_action",
     });
 
-    revalidatePath("/employees");
-    revalidatePath(`/employees/${parsedId.data}`);
+    revalidateEmployeePaths(parsedId.data);
     return null;
   });
 }
@@ -223,27 +307,44 @@ export async function restoreEmployee(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withAdmin(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase) => {
+    const { data: emp, error: currentError } = await supabase
+      .from("employees")
+      .select("id, full_name, role, auth_user_id, status, deleted_at")
+      .eq("id", parsedId.data)
+      .single();
+
+    if (currentError || !emp) {
+      throw new Error("Không tìm thấy nhân viên");
+    }
+
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("employees")
       .update({
         deleted_at: null,
         status: "active",
+        updated_at: now,
       })
       .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi khôi phục: ${error.message}`);
 
+    if (emp.auth_user_id && emp.role) {
+      await syncAuthIdentity(supabase, emp.auth_user_id, { role: emp.role });
+    }
+
     fireAuditLog({
       action: "UPDATE",
       tableName: "employees",
       recordId: parsedId.data,
-      description: `Khôi phục nhân viên #${parsedId.data.substring(0, 8)}`,
+      oldData: emp,
+      newData: { deleted_at: null, status: "active", updated_at: now },
+      description: `Khôi phục nhân viên: ${emp.full_name || parsedId.data}`,
       source: "server_action",
     });
 
-    revalidatePath("/employees");
-    revalidatePath(`/employees/${parsedId.data}`);
+    revalidateEmployeePaths(parsedId.data);
     return null;
   });
 }
@@ -262,10 +363,11 @@ export async function updateEmployeeNotes(id: string, notes: string | null) {
     };
   }
 
-  return withAdmin(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase) => {
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("employees")
-      .update({ notes: parsedNotes.data })
+      .update({ notes: parsedNotes.data, updated_at: now })
       .eq("id", parsedId.data);
 
     if (error) throw new Error(`Lỗi cập nhật ghi chú: ${error.message}`);

@@ -191,7 +191,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const rawCount = groupedImages.filter((g) => g.hasRaw).length;
   const jpgCount = groupedImages.filter((g) => g.hasJpg).length;
   const selectedCount = images.filter((i) => i.is_selected).length;
-  const hasPassword = !!activeGallery?.password;
+  const hasPassword = !!(activeGallery?.password_hash || activeGallery?.password);
   const totalHearts = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
 
   // ─── Star toggle (Admin đề xuất ảnh) ──────

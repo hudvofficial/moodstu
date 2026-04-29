@@ -8,7 +8,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Mục tiêu tài chính | Mood Studio" };
+export const metadata = { title: "Mục tiêu tài chính" };
 export const dynamic = "force-dynamic";
 
 export default async function GoalsPage() {
@@ -17,3 +17,4 @@ export default async function GoalsPage() {
   const cashflowData = unwrap<GoalsCashflowData | null>(cashflowResult, null);
   return <GoalsClient initialData={goalData.items} initialCashflow={cashflowData} />;
 }
+

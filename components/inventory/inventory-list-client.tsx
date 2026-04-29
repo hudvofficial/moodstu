@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * 📦 InventoryListClient — Main client component for inventory list page
@@ -20,7 +20,11 @@ import { useInventory, useInventoryStats, prefetchInventory, revalidateInventory
 import { InventoryStatsBar } from "@/components/inventory/inventory-stats-bar";
 import { InventoryFilters as InventoryFiltersBar } from "@/components/inventory/inventory-filters";
 import { InventoryTable } from "@/components/inventory/inventory-table";
-import type { InventoryFilters as InventoryFiltersType, InventoryItem } from "@/types/inventory";
+import type {
+  InventoryFilters as InventoryFiltersType,
+  InventoryItem,
+  InventoryStats,
+} from "@/types/inventory";
 import { InventoryFormModal } from "@/components/inventory/inventory-form-modal";
 import { StockInModal } from "@/components/inventory/stock-in-modal";
 import { StockOutModal } from "@/components/inventory/stock-out-modal";
@@ -30,14 +34,21 @@ import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { INVENTORY_PAGE_SIZE } from "@/types/inventory-constants";
 
+interface InventoryListClientProps {
+  initialList?: { data: InventoryItem[]; count: number };
+  initialStats?: InventoryStats;
+}
+
+const REALTIME_REFRESH_DELAY_MS = 600;
+
 // ─── INNER COMPONENT ─────────────────────────────────
 
-function InventoryListInner() {
+function InventoryListInner({ initialList, initialStats }: InventoryListClientProps) {
   const router = useRouter();
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     filters,
     setStatus,
-    // setSearch, // TODO: wire khi có search bar
     setCategory,
     setSort,
     setPage,
@@ -52,16 +63,28 @@ function InventoryListInner() {
     page: filters.page,
   } as InventoryFiltersType), [filters]);
 
-  const { items, total, page, pageSize, isLoading, error } = useInventory(swrFilters);
-  const { stats } = useInventoryStats();
+  const { items, total, page, pageSize, isLoading, error } = useInventory(
+    swrFilters,
+    initialList,
+  );
+  const { stats } = useInventoryStats(initialStats);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
   const refreshInventoryCaches = useCallback(() => {
-    void revalidateInventory();
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      void revalidateInventory();
+    }, REALTIME_REFRESH_DELAY_MS);
   }, []);
 
   useRealtime("inventory_items", { onChange: refreshInventoryCaches });
   useRealtime("inventory_transactions", { onChange: refreshInventoryCaches });
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
 
   // ── Modal states ──
   const [showCreate, setShowCreate] = useState(false);
@@ -201,10 +224,10 @@ function InventoryListInner() {
 
 // ─── MAIN EXPORT ─────────────────────────────────
 
-export default function InventoryListClient() {
+export default function InventoryListClient(props: InventoryListClientProps) {
   return (
     <Suspense>
-      <InventoryListInner />
+      <InventoryListInner {...props} />
     </Suspense>
   );
 }

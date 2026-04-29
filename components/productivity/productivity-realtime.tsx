@@ -9,15 +9,16 @@ export function ProductivityRealtimeBindings({
   overviewKey: string;
   detailKey: string | null;
 }) {
-  useRealtime("work_tasks", detailKey ? [overviewKey, detailKey] : [overviewKey]);
-  useRealtime("employees", [overviewKey]);
+  const cacheKeys = detailKey ? [overviewKey, detailKey] : [overviewKey];
 
-  return detailKey ? <ProductivityDetailRealtime detailKey={detailKey} /> : null;
-}
-
-function ProductivityDetailRealtime({ detailKey }: { detailKey: string }) {
-  useRealtime("contracts", [detailKey]);
-  useRealtime("customers", [detailKey]);
-  useRealtime("contract_events", [detailKey]);
+  useRealtime("work_tasks", {
+    cacheKeys,
+    debounceMs: 1000,
+  });
+  useRealtime("employees", {
+    cacheKeys: [overviewKey],
+    eventTypes: ["UPDATE"],
+    debounceMs: 2000,
+  });
   return null;
 }

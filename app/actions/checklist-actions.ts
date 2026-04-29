@@ -1,6 +1,10 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import {
+  requireContractAccess,
+  requireContractWriteAccess,
+  withAuth,
+} from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -27,7 +31,7 @@ export async function getContractChecklists(contractId: string) {
 /** Toggle a checklist item (optimistic-friendly) */
 export async function toggleChecklist(id: string, is_completed: boolean) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
 
     const { data, error } = await supabase
       .from("contract_checklists")
@@ -93,7 +97,7 @@ export async function _generateChecklistsInternal(
 /** Auto-generate checklists from templates for a new contract */
 export async function generateChecklists(contractId: string, serviceType: string) {
   return withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
+    await requireContractWriteAccess(supabase, userId);
     const result = await _generateChecklistsInternal(supabase, contractId, serviceType);
     revalidatePath(`/contracts/${contractId}`);
     return result;

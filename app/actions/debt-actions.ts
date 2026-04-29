@@ -37,7 +37,7 @@ export interface CreditCardInput {
   statement_day: number;
   due_day: number;
   due_next_month?: boolean;
-  credit_limit?: number;
+  credit_limit?: number | null;
 }
 
 function normalizeDebtStatus(status?: string | null) {
@@ -322,11 +322,16 @@ export async function createCreditCard(input: CreditCardInput) {
       description: `Thêm thẻ: ${input.bank_name}${input.last_4 ? ` *${input.last_4}` : ""}`
     });
     revalidatePath("/finance");
+    revalidatePath("/settings/credit-cards");
     return { id: data.id };
   });
 }
 
-export async function updateCreditCard(id: string, input: Partial<CreditCardInput>) {
+export async function updateCreditCard(
+  id: string,
+  input: Partial<CreditCardInput>,
+  expectedUpdatedAt?: string | null,
+) {
   return withAdmin(async (supabase) => {
     const parsed = updateCreditCardSchema.safeParse(input);
     if (!parsed.success) {
@@ -341,12 +346,21 @@ export async function updateCreditCard(id: string, input: Partial<CreditCardInpu
       .maybeSingle();
     if (!oldData) throw new Error("Khong tim thay the tin dung.");
 
-    const { error } = await supabase
+    let query = supabase
       .from("credit_cards")
       .update({ ...parsed.data, updated_at: new Date().toISOString() })
       .eq("id", id)
       .is("deleted_at", null);
+    if (expectedUpdatedAt) {
+      query = query.eq("updated_at", expectedUpdatedAt);
+    }
+
+    const { data: updated, error } = await query.select("id").maybeSingle();
     if (error) throw new Error(`Lỗi cập nhật thẻ: ${error.message}`);
+
+    if (!updated) {
+      throw new Error("The da duoc cap nhat boi nguoi khac. Vui long tai lai trang.");
+    }
 
     await writeAuditLog({
       action: "UPDATE",
@@ -357,6 +371,7 @@ export async function updateCreditCard(id: string, input: Partial<CreditCardInpu
       description: `Cập nhật thẻ #${id.substring(0, 8)}`
     });
     revalidatePath("/finance");
+    revalidatePath("/settings/credit-cards");
     return null;
   });
 }
@@ -370,6 +385,18 @@ export async function deleteCreditCard(id: string) {
       .is("deleted_at", null)
       .maybeSingle();
     if (!oldData) throw new Error("Khong tim thay the tin dung.");
+
+    const { count: linkedDebtCount, error: linkedDebtError } = await supabase
+      .from("debts")
+      .select("id", { count: "exact", head: true })
+      .eq("card_id", id)
+      .is("deleted_at", null);
+    if (linkedDebtError) {
+      throw new Error(`Loi kiem tra cong no lien ket: ${linkedDebtError.message}`);
+    }
+    if ((linkedDebtCount ?? 0) > 0) {
+      throw new Error("Khong the xoa the dang duoc lien ket voi cong no tra gop.");
+    }
 
     const deletedAt = new Date().toISOString();
     const { error } = await supabase
@@ -387,6 +414,7 @@ export async function deleteCreditCard(id: string) {
       description: `Xóa thẻ tín dụng #${id.substring(0, 8)}`
     });
     revalidatePath("/finance");
+    revalidatePath("/settings/credit-cards");
     return null;
   });
 }

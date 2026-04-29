@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import GalleryFullPage from "@/components/contracts/gallery/gallery-full-page";
 
+export const metadata = { title: "Thư viện hợp đồng" };
+
 // ═══════════════════════════════════════════
 // Gallery Full Page — Admin view all images in a gallery
 // Route: /contracts/[id]/gallery?galleryId=xxx
@@ -23,3 +25,4 @@ export default async function GalleryPage(props: {
     />
   );
 }
+

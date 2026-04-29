@@ -20,6 +20,8 @@ export interface ComboboxOption {
 interface ComboboxSearchProps {
   options: ComboboxOption[];
   onChange: (value: string) => void;
+  onSearchChange?: (query: string) => void;
+  isLoading?: boolean;
   placeholder?: string;
   label?: string;
   error?: string;
@@ -30,6 +32,8 @@ interface ComboboxSearchProps {
 export function ComboboxSearch({
   options,
   onChange,
+  onSearchChange,
+  isLoading = false,
   placeholder = "Tìm và chọn...",
   label,
   error,
@@ -116,6 +120,7 @@ export function ComboboxSearch({
 
   const handleClear = () => {
     setQuery("");
+    onSearchChange?.("");
     setIsOpen(false);
     inputRef.current?.focus();
   };
@@ -150,6 +155,7 @@ export function ComboboxSearch({
           onChange={(e) => {
             const val = e.target.value;
             setQuery(val);
+            onSearchChange?.(val);
             setIsOpen(val.trim().length > 0);
           }}
           onFocus={() => setIsFocused(true)}
@@ -182,7 +188,11 @@ export function ComboboxSearch({
       {/* Inline dropdown list — normal flow, no portal, no position tricks */}
       {isOpen && !disabled && query.trim().length > 0 && (
         <div className="dropdown-inline">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <p className="px-3 py-2.5 text-sm text-text-muted">
+              Dang tai...
+            </p>
+          ) : filtered.length === 0 ? (
             <p className="px-3 py-2.5 text-sm text-text-muted">
               Không tìm thấy kết quả
             </p>

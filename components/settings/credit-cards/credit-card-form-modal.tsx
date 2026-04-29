@@ -39,7 +39,7 @@ export default function CreditCardFormModal({
     initialData?.due_day || 25,
   );
   const [creditLimit, setCreditLimit] = useState<number | null>(
-    initialData?.credit_limit || null,
+    initialData?.credit_limit ?? null,
   );
 
   const onSubmit = (event: React.FormEvent) => {
@@ -62,11 +62,15 @@ export default function CreditCardFormModal({
           last_4: last4,
           statement_day: Number(statementDay) || 10,
           due_day: Number(dueDay) || 25,
-          credit_limit: creditLimit || undefined,
+          credit_limit: creditLimit,
         };
 
         if (isEditing && initialData) {
-          const response = await updateCreditCard(initialData.id, submitData);
+          const response = await updateCreditCard(
+            initialData.id,
+            submitData,
+            initialData.updated_at,
+          );
           if (!response.success) {
             throw new Error(response.error || "Cập nhật lỗi");
           }
@@ -188,7 +192,9 @@ export default function CreditCardFormModal({
               placeholder="VD: 5432"
               maxLength={4}
               value={last4}
-              onChange={(event) => setLast4(event.target.value)}
+              onChange={(event) =>
+                setLast4(event.target.value.replace(/\D/g, "").slice(0, 4))
+              }
               required
             />
           </div>
@@ -233,7 +239,7 @@ export default function CreditCardFormModal({
             Hạn mức tín dụng (Tùy chọn)
           </label>
           <CurrencyInput
-            value={creditLimit || 0}
+            value={creditLimit ?? 0}
             onChange={(value) => setCreditLimit(value || null)}
             placeholder="Nhập hạn mức..."
           />

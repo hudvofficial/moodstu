@@ -14,3 +14,4 @@ export default async function ReportsLayout({
 
   return <div className="relative">{children}</div>;
 }
+

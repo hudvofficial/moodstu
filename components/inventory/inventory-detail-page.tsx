@@ -39,7 +39,7 @@ import {
   INVENTORY_UNIT_MAP,
   TRANSACTION_TYPE_MAP,
 } from "@/types/inventory-constants";
-import type { InventoryItem } from "@/types/inventory";
+import type { InventoryDetail, InventoryItem } from "@/types/inventory";
 import type {
   InventoryStatus,
   InventoryCategory,
@@ -52,11 +52,12 @@ import type {
 
 interface InventoryDetailPageProps {
   id: string;
+  initialDetail?: InventoryDetail | null;
 }
 
-export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
+export function InventoryDetailPage({ id, initialDetail }: InventoryDetailPageProps) {
   const router = useRouter();
-  const { detail, isLoading, error } = useInventoryDetail(id);
+  const { detail, isLoading, error } = useInventoryDetail(id, initialDetail);
   const [showStockIn, setShowStockIn] = useState(false);
   const [showStockOut, setShowStockOut] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -142,6 +143,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
 
   const isLowStock =
     detail.min_stock > 0 && detail.current_stock < detail.min_stock;
+  const canMoveStock = detail.status === "active";
 
   // ── Info items (employee InfoCard pattern) ──
   const infoItems = [
@@ -163,10 +165,10 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
   ];
 
   // ── Summary stats ──
-  const totalIn = detail.transactions
+  const totalIn = detail.transactionTotals?.totalIn ?? detail.transactions
     .filter((t) => t.transaction_type === "stock_in")
     .reduce((s, t) => s + t.quantity, 0);
-  const totalOut = detail.transactions
+  const totalOut = detail.transactionTotals?.totalOut ?? detail.transactions
     .filter((t) => t.transaction_type === "stock_out")
     .reduce((s, t) => s + t.quantity, 0);
   const stockValue = detail.current_stock * (detail.average_unit_price || 0);
@@ -274,6 +276,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
                 <Button
                   variant="primary"
                   onClick={() => setShowStockIn(true)}
+                  disabled={!canMoveStock}
                   className="w-full gap-2"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
@@ -282,6 +285,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
                 <Button
                   variant="secondary"
                   onClick={() => setShowStockOut(true)}
+                  disabled={!canMoveStock}
                   className="w-full gap-2"
                 >
                   <ArrowUpFromLine className="w-4 h-4" />
@@ -319,6 +323,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
             <Button
               variant="primary"
               onClick={() => setShowStockIn(true)}
+              disabled={!canMoveStock}
               className="flex-1 gap-2"
             >
               <ArrowDownToLine className="w-4 h-4" />
@@ -327,6 +332,7 @@ export function InventoryDetailPage({ id }: InventoryDetailPageProps) {
             <Button
               variant="secondary"
               onClick={() => setShowStockOut(true)}
+              disabled={!canMoveStock}
               className="flex-1 gap-2"
             >
               <ArrowUpFromLine className="w-4 h-4" />

@@ -14,7 +14,19 @@
     "release:major": "node scripts/release.mjs --major",
     "changelog:generate": "node scripts/release.mjs --no-bump",
     "perf:chunks": "node scripts/perf-chunks.mjs",
-    "perf:audit": "node scripts/perf-audit.mjs"
+    "perf:audit": "node scripts/perf-audit.mjs",
+    "verify:printing": "node scripts/verify-printing.mjs",
+    "verify:reports": "node scripts/verify-reports.mjs",
+    "verify:productivity": "node scripts/verify-productivity.mjs",
+    "verify:services": "node scripts/verify-services.mjs",
+    "verify:inventory": "node scripts/verify-inventory.mjs",
+    "verify:dresses": "node scripts/verify-dresses.mjs",
+    "verify:contracts": "node scripts/verify-contracts.mjs",
+    "verify:settings": "node scripts/verify-settings.mjs",
+    "verify:employees": "node scripts/verify-employees.mjs",
+    "smoke:employees": "node scripts/smoke-employees.mjs",
+    "smoke:settings": "node scripts/smoke-settings.mjs",
+    "smoke:contracts": "node scripts/smoke-contracts.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

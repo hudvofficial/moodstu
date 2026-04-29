@@ -8,7 +8,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Sổ cái thu chi | Mood Studio" };
+export const metadata = { title: "Sổ cái thu chi" };
 export const dynamic = "force-dynamic";
 
 export default async function CashflowPage() {
@@ -30,3 +30,4 @@ export default async function CashflowPage() {
     />
   );
 }
+

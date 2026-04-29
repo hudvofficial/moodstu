@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { withAuth } from "@/lib/auth_utils";
-import { fireAuditLog, logError } from "@/lib/audit";
+import { withPrintingAccess } from "@/lib/auth_utils";
+import { fireAuditLog } from "@/lib/audit";
 import {
   createPrintingOrderSchema,
   printingStatusSchema,
@@ -21,65 +21,18 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   da_huy: [],
 };
 
-function buildOrderCode() {
-  return `IN-${Date.now().toString(36).toUpperCase()}`;
-}
-
 function calculateTotalAmount(
   items: { quantity: number; unitPrice: number }[],
 ): number {
   return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 }
 
-async function autoCreatePrintingExpense(params: {
-  supabase: Parameters<Parameters<typeof withAuth>[0]>[0];
-  userId: string;
-  contractId: string;
-  labId: string | null;
-  orderCode: string;
-  itemNames: string;
-  totalAmount: number;
-}) {
-  if (params.totalAmount <= 0) return;
-
-  try {
-    const { data: category } = await params.supabase
-      .from("transaction_categories")
-      .select("id")
-      .eq("type", "chi")
-      .ilike("name", "%in an%")
-      .limit(1)
-      .maybeSingle();
-
-    let labName = "Lab";
-    if (params.labId) {
-      const { data: lab } = await params.supabase
-        .from("labs")
-        .select("lab_name")
-        .eq("id", params.labId)
-        .maybeSingle();
-
-      if (lab?.lab_name) labName = lab.lab_name;
-    }
-
-    await params.supabase.from("expenses").insert({
-      expense_date: new Date().toISOString().split("T")[0],
-      payment_method: "chuyen_khoan",
-      category_id: category?.id ?? null,
-      amount: params.totalAmount,
-      description: `[Auto-Print] ${params.orderCode}: ${params.itemNames} (${labName})`,
-      recipient: labName,
-      contract_id: params.contractId,
-      created_by: params.userId,
-    });
-  } catch (error) {
-    await logError({
-      error,
-      context: "printing.autoExpense",
-      tableName: "expenses",
-      recordId: params.contractId,
-    });
+function asRpcRecord(data: unknown): Record<string, unknown> {
+  if (Array.isArray(data)) {
+    const first = data[0];
+    return first && typeof first === "object" ? first as Record<string, unknown> : {};
   }
+  return data && typeof data === "object" ? data as Record<string, unknown> : {};
 }
 
 export async function createPrintingOrder(
@@ -93,46 +46,26 @@ export async function createPrintingOrder(
     };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const input = parsed.data;
-    const now = new Date().toISOString();
     const totalAmount = calculateTotalAmount(input.items);
-    const orderCode = buildOrderCode();
 
-    const { error } = await supabase.from("printing_orders").insert({
-      contract_id: input.contractId,
-      lab_id: input.labId,
-      order_code: orderCode,
-      status: "cho_xu_ly",
-      payment_status: "chua_thanh_toan",
-      total_amount: totalAmount,
-      order_date: now,
-      expected_date: input.expectedDate,
-      items: input.items,
-      notes: input.notes,
-      created_by: userId,
-      created_at: now,
-      updated_at: now,
-      updated_by: userId,
+    const { data, error } = await supabase.rpc("create_printing_order_atomic", {
+      p_actor_id: userId,
+      p_order: input,
     });
 
     if (error) {
       throw new Error(`Khong the tao don in: ${error.message}`);
     }
 
-    await autoCreatePrintingExpense({
-      supabase,
-      userId,
-      contractId: input.contractId,
-      labId: input.labId,
-      orderCode,
-      itemNames: input.items.map((item) => item.name).join(", "),
-      totalAmount,
-    });
+    const result = asRpcRecord(data);
+    const orderCode = String(result.order_code || "");
 
     fireAuditLog({
       action: "CREATE",
       tableName: "printing_orders",
+      recordId: String(result.order_id || ""),
       description: `Tao don in ${orderCode}`,
       newData: {
         contract_id: input.contractId,
@@ -164,49 +97,28 @@ export async function updatePrintingOrder(
     };
   }
 
-  return withAuth(async (supabase, userId) => {
-    const { data: current, error: currentError } = await supabase
-      .from("printing_orders")
-      .select("id, order_code, updated_at, contract_id")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
-
-    if (currentError || !current) {
-      throw new Error(
-        `Khong the tai don in hien tai: ${currentError?.message || "Not found"}`,
-      );
-    }
-
-    if (expectedUpdatedAt && current.updated_at !== expectedUpdatedAt) {
-      throw new Error("Don in da duoc cap nhat boi nguoi khac. Vui long tai lai trang.");
-    }
-
+  return withPrintingAccess(async (supabase, userId) => {
     const totalAmount = calculateTotalAmount(parsed.data.items);
-    const now = new Date().toISOString();
-
-    const { error } = await supabase
-      .from("printing_orders")
-      .update({
-        lab_id: parsed.data.labId,
-        items: parsed.data.items,
-        notes: parsed.data.notes,
-        expected_date: parsed.data.expectedDate,
-        total_amount: totalAmount,
-        updated_at: now,
-        updated_by: userId,
-      })
-      .eq("id", id);
+    const { data, error } = await supabase.rpc("update_printing_order_atomic", {
+      p_actor_id: userId,
+      p_expected_updated_at: expectedUpdatedAt ?? null,
+      p_order: parsed.data,
+      p_order_id: id,
+    });
 
     if (error) {
       throw new Error(`Khong the cap nhat don in: ${error.message}`);
     }
 
+    const result = asRpcRecord(data);
+    const orderCode = String(result.order_code || id);
+    const contractId = typeof result.contract_id === "string" ? result.contract_id : null;
+
     fireAuditLog({
       action: "UPDATE",
       tableName: "printing_orders",
       recordId: id,
-      description: `Cap nhat don in ${current.order_code || id}`,
+      description: `Cap nhat don in ${orderCode}`,
       newData: {
         total_amount: totalAmount,
         lab_id: parsed.data.labId,
@@ -215,8 +127,8 @@ export async function updatePrintingOrder(
     });
 
     revalidatePath("/printing");
-    if (current.contract_id) {
-      revalidatePath(`/contracts/${current.contract_id}`);
+    if (contractId) {
+      revalidatePath(`/contracts/${contractId}`);
     }
     return null;
   });
@@ -225,14 +137,16 @@ export async function updatePrintingOrder(
 export async function updatePrintingOrderStatus(
   id: string,
   newStatus: string,
-  contractId: string,
+  _contractId: string,
 ): Promise<ActionResult<null>> {
+  void _contractId;
+
   const parsedStatus = printingStatusSchema.safeParse(newStatus);
   if (!parsedStatus.success) {
     return { success: false, error: "Trang thai don in khong hop le" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const { data: current, error: currentError } = await supabase
       .from("printing_orders")
       .select("id, order_code, status, received_date")
@@ -294,48 +208,33 @@ export async function updatePrintingOrderStatus(
 export async function deletePrintingOrder(
   id: string,
 ): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
-    const { data: current, error: currentError } = await supabase
-      .from("printing_orders")
-      .select("id, contract_id, order_code")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
-
-    if (currentError || !current) {
-      throw new Error(
-        `Khong the tai don in can xoa: ${currentError?.message || "Not found"}`,
-      );
-    }
-
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from("printing_orders")
-      .update({
-        deleted_at: now,
-        updated_at: now,
-        updated_by: userId,
-      })
-      .eq("id", id);
+  return withPrintingAccess(async (supabase, userId) => {
+    const { data, error } = await supabase.rpc("delete_printing_order_atomic", {
+      p_actor_id: userId,
+      p_order_id: id,
+    });
 
     if (error) {
       throw new Error(`Khong the xoa don in: ${error.message}`);
     }
 
+    const result = asRpcRecord(data);
+    const orderCode = String(result.order_code || id);
+    const contractId = typeof result.contract_id === "string" ? result.contract_id : null;
+
     fireAuditLog({
       action: "DELETE",
       tableName: "printing_orders",
       recordId: id,
-      description: `Xoa mem don in ${current.order_code || id}`,
+      description: `Xoa mem don in ${orderCode}`,
       source: "server_action",
     });
 
     revalidatePath("/printing");
-    if (current.contract_id) {
-      revalidatePath(`/contracts/${current.contract_id}`);
+    if (contractId) {
+      revalidatePath(`/contracts/${contractId}`);
     }
 
     return null;
   });
 }
-

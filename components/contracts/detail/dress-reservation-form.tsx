@@ -111,7 +111,7 @@ export default function DressReservationForm({
     const reservationEnd = endDate || reservationStart;
 
     if (reservationEnd < reservationStart) {
-      toast("NgĂ y káº¿t thĂºc pháº£i sau ngĂ y báº¯t Ä‘áº§u", "warning");
+      toast("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu", "warning");
       return;
     }
 
@@ -247,8 +247,8 @@ export default function DressReservationForm({
                 <DatePicker
                   value={endDate}
                   onChange={(date) => setEndDate(date)}
-                  label="Ngay ket thuc"
-                  placeholder={startDate || "Chon ngay"}
+                  label="Ngày kết thúc"
+                  placeholder={startDate || "Chọn ngày"}
                 />
               </div>
             </div>

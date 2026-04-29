@@ -1,16 +1,4 @@
-/**
- * 📦 Dress Zod Schemas (V2)
- *
- * Validates dress form submissions before DB operations.
- * DB table: dresses
- *
- * @see Lesson #65: V2 DB snake_case ENUM, NOT Vietnamese strings
- * @see Lesson #72: FK *_by → auth.users(id)
- */
-
 import { z } from "zod";
-
-// ─── Categories (snake_case ENUM — matches dress_category_enum in DB) ─
 
 export const DRESS_CATEGORIES = [
   "vay_cuoi",
@@ -25,8 +13,6 @@ export const DRESS_CATEGORIES = [
 
 export type DressCategory = (typeof DRESS_CATEGORIES)[number];
 
-// ─── Status (English — stored in DB) ────────────────────────
-
 export const DRESS_STATUSES = [
   "available",
   "reserved",
@@ -39,18 +25,9 @@ export const DRESS_STATUSES = [
 
 export type DressStatus = (typeof DRESS_STATUSES)[number];
 
-// ─── Condition ───────────────────────────────────────────────
-
-export const DRESS_CONDITIONS = [
-  "new",
-  "good",
-  "fair",
-  "worn",
-] as const;
+export const DRESS_CONDITIONS = ["new", "good", "fair", "worn"] as const;
 
 export type DressCondition = (typeof DRESS_CONDITIONS)[number];
-
-// ─── Create Schema ──────────────────────────────────────────
 
 export const dressCreateSchema = z.object({
   name: z.string().min(1, "Tên trang phục là bắt buộc").max(200),
@@ -68,17 +45,13 @@ export const dressCreateSchema = z.object({
 
 export type CreateDressInput = z.infer<typeof dressCreateSchema>;
 
-// ─── Update Schema (partial, requires id + updated_at for opt lock) ─
-
 export const dressUpdateSchema = z.object({
   id: z.string().uuid(),
-  updated_at: z.string(), // Optimistic locking
+  updated_at: z.string(),
   data: dressCreateSchema.partial(),
 });
 
 export type UpdateDressInput = z.infer<typeof dressUpdateSchema>;
-
-// ─── Reserve Dress Schema ───────────────────────────────────
 
 export const reserveDressSchema = z.object({
   dressId: z.string().uuid("ID trang phục không hợp lệ"),
@@ -92,7 +65,7 @@ export const reserveDressSchema = z.object({
   rentalPrice: z.number().min(0).default(0),
   notes: z.string().max(1000).optional(),
 }).refine((data) => data.endDate >= data.startDate, {
-  message: "NgĂ y káº¿t thĂºc pháº£i sau hoáº·c báº±ng ngĂ y báº¯t Ä‘áº§u",
+  message: "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu",
   path: ["endDate"],
 });
 

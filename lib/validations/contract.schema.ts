@@ -10,6 +10,10 @@
 
 import { z } from "zod";
 
+function isIsoDate(value: string | null | undefined) {
+  return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 // ─── Enum Validators (match DB ENUM exactly) ────────────
 
 export const contractStatusSchema = z.enum([
@@ -81,6 +85,38 @@ const contractFormDataSchema = z.object({
   groom_height: z.string().optional().default(""),
   groom_weight: z.string().optional().default(""),
   groom_shoe_size: z.string().optional().default(""),
+}).superRefine((data, ctx) => {
+  const contractDate = data.contract_date;
+  const workDate = data.work_date;
+  const deliveryDate = data.delivery_date;
+
+  if (isIsoDate(contractDate) && isIsoDate(workDate) && workDate < contractDate) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["work_date"],
+      message: "Ngay lam phai sau hoac bang ngay ky hop dong",
+    });
+  }
+
+  if (isIsoDate(workDate) && isIsoDate(deliveryDate) && deliveryDate < workDate) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["delivery_date"],
+      message: "Ngay giao phai sau hoac bang ngay lam",
+    });
+  }
+
+  if (
+    isIsoDate(contractDate) &&
+    isIsoDate(deliveryDate) &&
+    deliveryDate < contractDate
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["delivery_date"],
+      message: "Ngay giao phai sau hoac bang ngay ky hop dong",
+    });
+  }
 });
 
 // ─── Line Items ──────────────────────────────────────────

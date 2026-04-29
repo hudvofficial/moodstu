@@ -2,6 +2,8 @@ import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
 import { LeadStatus, CrmLead } from "@/types/crm";
 import LeadListPage from "@/components/crm/lead-list-page";
 
+export const metadata = { title: "Lead CRM" };
+
 export default async function LeadsRoute(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -47,3 +49,4 @@ export default async function LeadsRoute(props: {
     />
   );
 }
+

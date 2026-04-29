@@ -5,7 +5,7 @@ import {
 } from "@/app/actions/contract-queries";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 
-export const metadata = { title: "Hợp đồng | Mood Studio" };
+export const metadata = { title: "Hợp đồng" };
 
 function getStringParam(
   searchParams: Record<string, string | string[] | undefined>,
@@ -30,7 +30,10 @@ function parseFilters(
       "status",
       "all",
     ) as ContractFilters["status"],
-    search: getStringParam(searchParams, "search").trim(),
+    search: (
+      getStringParam(searchParams, "q") ||
+      getStringParam(searchParams, "search")
+    ).trim(),
     time: getStringParam(searchParams, "time", "all"),
     service: getStringParam(
       searchParams,

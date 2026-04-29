@@ -48,6 +48,11 @@ interface NextStepAction {
 }
 
 function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
+  const isReadyForLabReceive = (status as string) === "da_in";
+  if (isReadyForLabReceive) {
+    return { label: "Da nhan tu lab", nextStatus: "da_nhan" };
+  }
+
   switch (status) {
     case "cho_xu_ly":
       return { label: "Bắt đầu in", nextStatus: "dang_in" };

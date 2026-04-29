@@ -53,7 +53,10 @@ const splashScript = `
 `;
 
 export const metadata: Metadata = {
-  title: "Mood Studio — Quản lý studio cưới",
+  title: {
+    default: "Mood Studio",
+    template: "%s | Mood Studio",
+  },
   description: "Hệ thống quản lý studio cưới chuyên nghiệp",
   icons: {
     icon: [
@@ -157,3 +160,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+

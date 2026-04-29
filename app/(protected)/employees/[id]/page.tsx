@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { EmployeeDetail } from "@/types/employee";
 import EmployeeDetailPage from "@/components/employees/employee-detail-page";
 
-export const metadata = { title: "Nhan vien | Mood Studio" };
+export const metadata = { title: "Chi tiết nhân viên" };
 
 export default async function EmployeeDetailRoute(props: {
   params: Promise<{ id: string }>;
@@ -17,3 +17,4 @@ export default async function EmployeeDetailRoute(props: {
 
   return <EmployeeDetailPage employee={result.data as EmployeeDetail} />;
 }
+

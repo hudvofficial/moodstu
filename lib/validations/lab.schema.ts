@@ -22,7 +22,13 @@ export const createLabSchema = z.object({
   status: labStatusSchema.default("active"),
 });
 
-export const updateLabSchema = createLabSchema;
+export const updateLabSchema = z.object({
+  lab_name: z.string().trim().min(1, "Ten lab la bat buoc").optional(),
+  contact_person: optionalText,
+  phone: optionalText,
+  address: optionalText,
+  status: labStatusSchema.optional(),
+});
 
 export const createLabServiceSchema = z.object({
   lab_id: z.string().uuid("Lab khong hop le"),
@@ -40,6 +46,14 @@ export const labPaymentSchema = z.object({
   amount: z.number().positive("So tien thanh toan phai lon hon 0"),
   payment_method: z.enum(["tien_mat", "chuyen_khoan"]).default("chuyen_khoan"),
   note: optionalText,
+  allocations: z
+    .array(
+      z.object({
+        printing_order_id: z.string().uuid("Don in khong hop le"),
+        amount: z.number().positive("So tien phan bo phai lon hon 0"),
+      }),
+    )
+    .optional(),
 });
 
 export type LabStatus = z.infer<typeof labStatusSchema>;
@@ -48,4 +62,3 @@ export type ValidatedUpdateLab = z.infer<typeof updateLabSchema>;
 export type ValidatedCreateLabService = z.infer<typeof createLabServiceSchema>;
 export type ValidatedUpdateLabService = z.infer<typeof updateLabServiceSchema>;
 export type ValidatedLabPayment = z.infer<typeof labPaymentSchema>;
-

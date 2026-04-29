@@ -8,7 +8,11 @@
  * @see docs/specs/inventory.md for full spec
  */
 
-import type { InventoryCategory, InventoryStatus } from "@/lib/validations/inventory.schema";
+import type {
+  InventoryCategory,
+  InventoryFilterStatus,
+  InventoryStatus,
+} from "@/lib/validations/inventory.schema";
 
 // ─── CORE DATA MODEL (inventory_items row) ───────────
 
@@ -39,7 +43,7 @@ export interface InventoryItem {
 export interface InventoryFilters {
   search?: string;
   category?: InventoryCategory | "all";
-  status?: InventoryStatus | "all";
+  status?: InventoryFilterStatus;
   sort?: "newest" | "name_asc" | "stock_asc" | "stock_desc";
   page?: number;
 }
@@ -61,8 +65,15 @@ export interface InventoryStats {
   total: number;
   active: number;
   lowStock: number;
+  outOfStock: number;
   totalValue: number;
   transactionsThisMonth: number;
+}
+
+export interface InventoryTransactionTotals {
+  totalIn: number;
+  totalOut: number;
+  transactionCount: number;
 }
 
 // ─── TRANSACTION ROW ─────────────────────────────────
@@ -93,4 +104,19 @@ export interface InventoryTransaction {
 
 export interface InventoryDetail extends InventoryItem {
   transactions: InventoryTransaction[];
+  transactionTotals: InventoryTransactionTotals;
+}
+
+export interface InventoryPickerFilters {
+  search?: string;
+  page?: number;
+  limit?: number;
+  activeOnly?: boolean;
+}
+
+export interface InventoryPickerPage {
+  items: InventoryItem[];
+  total: number;
+  page: number;
+  limit: number;
 }

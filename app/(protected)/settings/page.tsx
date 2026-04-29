@@ -3,6 +3,8 @@ import { getSettingsPageData } from "@/app/actions/settings-queries";
 import SettingsView from "@/components/settings/settings-view";
 import SettingsLoading from "./loading";
 
+export const metadata = { title: "Cài đặt" };
+
 async function SettingsDataSection() {
   const data = await getSettingsPageData();
 
@@ -23,3 +25,4 @@ export default function SettingsPage() {
     </Suspense>
   );
 }
+

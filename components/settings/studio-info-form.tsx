@@ -179,13 +179,6 @@ export default function StudioInfoForm({
     }
   }
 
-  useEffect(() => {
-    if (!moodieAiSettings.hasGeminiKey) return;
-    void loadMoodieModels();
-    // Auto-load once for saved key; manual refresh uses the latest input key.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moodieAiSettings.hasGeminiKey]);
-
   function handleSave() {
     if (!name.trim()) {
       toast.error("Tên studio không được để trống");
@@ -198,10 +191,10 @@ export default function StudioInfoForm({
     }
 
     startTransition(async () => {
-      const tasks: Array<Promise<SaveResult>> = [];
+      const tasks: Array<() => Promise<SaveResult>> = [];
 
       if (hasStudioChanges) {
-        tasks.push(
+        tasks.push(() =>
           updateStudioInfo(studioPayload).then((result): SaveResult =>
             result.success
               ? { section: "Thông tin studio", success: true }
@@ -216,7 +209,7 @@ export default function StudioInfoForm({
 
       if (hasMoodieChanges) {
         const nextModel = moodieGeminiModel.trim();
-        tasks.push(
+        tasks.push(() =>
           updateMoodieAiSettings({
             gemini_api_key: moodieApiKeyInput.trim() || undefined,
             gemini_model:
@@ -235,7 +228,12 @@ export default function StudioInfoForm({
         );
       }
 
-      const results = await Promise.all(tasks);
+      const results: SaveResult[] = [];
+      for (const task of tasks) {
+        const result = await task();
+        results.push(result);
+        if (!result.success) break;
+      }
       const failed = results.find((result) => !result.success);
 
       if (failed) {

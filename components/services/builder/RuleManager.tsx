@@ -23,7 +23,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
     let active = true;
     async function load() {
       setLoading(true);
-      const data = await getPriceRules();
+      const data = await getPriceRules(true);
       if (active) {
         setRules(data as unknown as PriceRule[]);
         setLoading(false);
@@ -44,7 +44,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
       if (res.success) {
         toast.success("Đã lưu quy tắc thành công");
         setSelectedRule(null);
-        const data = await getPriceRules();
+        const data = await getPriceRules(true);
         setRules(data as unknown as PriceRule[]);
       } else {
         toast.error("Lỗi khi lưu: " + res.error);
@@ -56,7 +56,7 @@ export default function RuleManager({ onClose }: RuleManagerProps) {
     startTransition(async () => {
       const res = await upsertPriceRule({ ...rule, is_active: !rule.is_active } as Partial<PriceRule>);
       if (res.success) {
-        const data = await getPriceRules();
+        const data = await getPriceRules(true);
         setRules(data as unknown as PriceRule[]);
       } else {
         toast.error("Lỗi: " + res.error);

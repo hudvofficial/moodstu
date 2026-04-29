@@ -19,7 +19,7 @@ const emptySalaryData: SalaryPageData = {
   },
 };
 
-export const metadata = { title: "Bảng lương | Mood Studio" };
+export const metadata = { title: "Bảng lương" };
 export const dynamic = "force-dynamic";
 
 export default async function SalariesPage() {
@@ -36,3 +36,4 @@ export default async function SalariesPage() {
     />
   );
 }
+

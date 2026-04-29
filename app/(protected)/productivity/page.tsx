@@ -9,7 +9,7 @@ import { PRODUCTIVITY_ALLOWED_ROLES, isProductivityPeriod } from "@/types/produc
 import type { ProductivityPeriod } from "@/types/productivity";
 
 export const metadata = {
-  title: "Năng suất ekip | Mood Studio",
+  title: "Năng suất ekip",
 };
 
 export const dynamic = "force-dynamic";
@@ -77,3 +77,4 @@ export default async function ProductivityPage({
     />
   );
 }
+

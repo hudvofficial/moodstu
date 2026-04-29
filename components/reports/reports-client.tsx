@@ -22,17 +22,15 @@ import { ReportsOverviewView } from "@/components/reports/reports-overview-view"
 import { ReportsPageActions } from "@/components/reports/reports-page-actions";
 import { ReportsStatsBar } from "@/components/reports/reports-stats-bar";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
-import { getReportPeriodKey, getReportRange } from "@/lib/report-period";
+import { getReportRange } from "@/lib/report-period";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import type { ActionResult } from "@/types/action-result";
 import type {
-  ContractProfitRow,
   FinanceContractListItem,
   LedgerItem,
   PaginatedResult,
 } from "@/types/finance-dashboard";
 import type {
-  CashflowTimelinePoint,
   ReportFiltersInput,
   ReportPeriodType,
   ReportsSnapshot,
@@ -52,11 +50,6 @@ const ReportsCashflowView = dynamic(
 interface ReportsClientProps {
   initialFilters: ReportFiltersInput;
   initialSnapshot: ReportsSnapshot;
-  initialDebtStats: DebtStats;
-  initialCashflow: CashflowTimelinePoint[];
-  initialLedger: PaginatedResult<LedgerItem>;
-  initialPending: FinanceContractListItem[];
-  initialProfit: PaginatedResult<ContractProfitRow>;
 }
 
 const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {
@@ -65,6 +58,33 @@ const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {
   page: 1,
   pageSize: 5,
 };
+
+const EMPTY_DEBT_STATS: DebtStats = {
+  receivable: 0,
+  payable: 0,
+  overdue: 0,
+  net_debt: 0,
+  aging: {
+    not_due: 0,
+    days_1_30: 0,
+    days_31_60: 0,
+    days_61_90: 0,
+    over_90: 0,
+  },
+};
+
+const EMPTY_PENDING: FinanceContractListItem[] = [];
+
+function buildPeriodKey(range: ReportsSnapshot["range"]) {
+  return [
+    range.periodType,
+    range.year,
+    range.month || "all",
+    range.quarter || "all",
+    range.startDate,
+    range.endDate,
+  ].join(":");
+}
 
 async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   const result = await promise;
@@ -75,11 +95,6 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 export function ReportsClient({
   initialFilters,
   initialSnapshot,
-  initialDebtStats,
-  initialCashflow,
-  initialLedger,
-  initialPending,
-  initialProfit,
 }: ReportsClientProps) {
   const router = useRouter();
   const [filters, setFilters] = useState(initialFilters);
@@ -87,40 +102,66 @@ export function ReportsClient({
   const [isExporting, setIsExporting] = useState(false);
   const { monthOptions, yearOptions } = useFinanceFilters(filters.year);
 
-  const initialKey = useMemo(() => getReportPeriodKey(initialFilters), [initialFilters]);
-  const periodKey = useMemo(() => getReportPeriodKey(filters), [filters]);
-  const range = useMemo(() => getReportRange(filters), [filters]);
+  const initialRange = useMemo(() => getReportRange(initialFilters), [initialFilters]);
+  const initialKey = useMemo(() => buildPeriodKey(initialRange), [initialRange]);
+  const filterState = useMemo(() => {
+    try {
+      const nextRange = getReportRange(filters);
+      return {
+        error: null as string | null,
+        periodKey: buildPeriodKey(nextRange),
+        range: nextRange,
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Bo loc bao cao khong hop le.",
+        periodKey: null,
+        range: initialRange,
+      };
+    }
+  }, [filters, initialRange]);
+  const periodKey = filterState.periodKey ?? initialKey;
+  const range = filterState.range;
+  const hasFilterError = Boolean(filterState.error);
   const isInitialPeriod = periodKey === initialKey;
 
   const snapshot = useSWR(
-    cacheKeys.reportsSnapshot(periodKey),
+    hasFilterError ? null : cacheKeys.reportsSnapshot(periodKey),
     () => requireData(getReportsSnapshot(filters)),
-    isInitialPeriod ? { fallbackData: initialSnapshot, keepPreviousData: false } : { keepPreviousData: false },
+    isInitialPeriod
+      ? { fallbackData: initialSnapshot, keepPreviousData: false, revalidateOnMount: false }
+      : { keepPreviousData: false },
   );
 
   const cashflow = useSWR(
-    cacheKeys.financeCashflow(range.startDate, range.endDate),
+    view === "cashflow" && !hasFilterError ? cacheKeys.financeCashflow(range.startDate, range.endDate) : null,
     () => requireData(getCashflowTimeline(range.startDate, range.endDate)),
-    isInitialPeriod ? { fallbackData: initialCashflow, keepPreviousData: false } : { keepPreviousData: false },
+    { keepPreviousData: false },
   );
 
   const ledger = useSWR(
-    cacheKeys.reportsLedger(range.startDate, range.endDate),
+    view === "cashflow" && !hasFilterError ? cacheKeys.reportsLedger(range.startDate, range.endDate) : null,
     () => requireData(fetchLedger({ page: 1, pageSize: 5, fromDate: range.startDate, toDate: range.endDate, type: "all" })),
-    isInitialPeriod ? { fallbackData: initialLedger, keepPreviousData: false } : { keepPreviousData: false },
+    { keepPreviousData: false },
   );
 
   const debtStats = useSWR(
-    cacheKeys.debtStats(),
+    view === "debts" ? cacheKeys.debtStats() : null,
     () => requireData(fetchDebtStats()),
-    { fallbackData: initialDebtStats, keepPreviousData: false },
+    { keepPreviousData: false },
   );
 
   const pending = useSWR(
-    cacheKeys.financePending(),
+    view === "debts" ? cacheKeys.financePending() : null,
     () => requireData(getPendingCollections(5)),
-    { fallbackData: initialPending, keepPreviousData: false },
+    { keepPreviousData: false },
   );
+
+  useEffect(() => {
+    if (filterState.error) {
+      toast.error(filterState.error);
+    }
+  }, [filterState.error]);
 
   useEffect(() => {
     const firstError =
@@ -136,24 +177,38 @@ export function ReportsClient({
   }, [cashflow.error, debtStats.error, ledger.error, pending.error, snapshot.error]);
 
   const snapshotData = snapshot.data ?? (isInitialPeriod ? initialSnapshot : null);
-  const cashflowData = cashflow.data ?? (isInitialPeriod ? initialCashflow : []);
-  const ledgerData = ledger.data ?? (isInitialPeriod ? initialLedger : EMPTY_LEDGER);
-  const debtData = debtStats.data ?? initialDebtStats;
-  const pendingData = pending.data ?? initialPending;
+  const cashflowData = cashflow.data ?? [];
+  const ledgerData = ledger.data ?? EMPTY_LEDGER;
+  const debtData = debtStats.data ?? EMPTY_DEBT_STATS;
+  const pendingData = pending.data ?? EMPTY_PENDING;
   const isDebtView = view === "debts";
+  const isCashflowView = view === "cashflow";
+  const isCashflowLoading = isCashflowView && (!cashflow.data || !ledger.data) && !cashflow.error && !ledger.error;
+  const isDebtsLoading = isDebtView && (!debtStats.data || !pending.data) && !debtStats.error && !pending.error;
 
   const openLedger = () => router.push("/finance/cashflow");
 
   const handleExport = async () => {
     if (!snapshotData) return;
+    if (filterState.error) {
+      toast.error(filterState.error);
+      return;
+    }
 
     try {
       setIsExporting(true);
+      const [exportDebtStats, exportCashflow] = await Promise.all([
+        debtStats.data ? Promise.resolve(debtStats.data) : requireData(fetchDebtStats()),
+        cashflow.data
+          ? Promise.resolve(cashflow.data)
+          : requireData(getCashflowTimeline(snapshotData.range.startDate, snapshotData.range.endDate)),
+      ]);
+
       const result = await exportReportsWorkbook({
         filters,
         snapshot: snapshotData,
-        debtStats: debtData,
-        cashflow: cashflowData,
+        debtStats: exportDebtStats,
+        cashflow: exportCashflow,
         pendingFallback: pendingData,
       });
       toast.success(`Đã xuất ${result.filename}`);
@@ -267,7 +322,9 @@ export function ReportsClient({
       <section className="entrance entrance-2 space-y-4">
         {view === "overview" && <ReportsOverviewView snapshot={snapshotData} />}
 
-        {view === "cashflow" && (
+        {view === "cashflow" && isCashflowLoading && <SkeletonCard className="h-96" />}
+
+        {view === "cashflow" && !isCashflowLoading && (
           <ReportsCashflowView
             cashflow={cashflowData}
             ledgerItems={ledgerData.items}
@@ -275,7 +332,9 @@ export function ReportsClient({
           />
         )}
 
-        {view === "debts" && <ReportsDebtsView debtStats={debtData} pending={pendingData} />}
+        {view === "debts" && isDebtsLoading && <SkeletonCard className="h-96" />}
+
+        {view === "debts" && !isDebtsLoading && <ReportsDebtsView debtStats={debtData} pending={pendingData} />}
 
         {view === "profit" && (
           <>
@@ -293,7 +352,6 @@ export function ReportsClient({
 
             <ProfitReportTable
               key={`profit-${periodKey}`}
-              initialData={isInitialPeriod ? initialProfit : undefined}
               initialFromDate={snapshotData.range.startDate}
               initialToDate={snapshotData.range.endDate}
             />

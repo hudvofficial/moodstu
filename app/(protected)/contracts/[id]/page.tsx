@@ -1,3 +1,5 @@
+export const metadata = { title: "Chi tiết hợp đồng" };
+
 import ContractDetailClient from "@/components/contracts/detail/contract-detail-client";
 
 // ═══════════════════════════════════════════
@@ -13,3 +15,4 @@ export default async function ContractDetailPage(props: {
   const { id } = await props.params;
   return <ContractDetailClient contractId={id} />;
 }
+

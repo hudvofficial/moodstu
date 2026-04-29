@@ -4,8 +4,11 @@
 // Bê nguyên logic: token refresh, CRUD events, color mapping
 // ═══════════════════════════════════════════
 
-import { createClient } from "@/lib/supabase/server";
-import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/server";
+import {
+  decryptGoogleCalendarAuth,
+  encryptGoogleCalendarAuth,
+} from "@/lib/settings-secrets";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API =
@@ -73,12 +76,16 @@ export type GoogleCalendarEventPayload = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ensureValidToken(supabase: any, studioInfo: any) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let authData = studioInfo.google_calendar_auth as any;
+  let authData = decryptGoogleCalendarAuth(studioInfo.google_calendar_auth) as any;
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
     throw new Error("Missing Google Credentials");
+  }
+
+  if (!authData?.access_token) {
+    throw new Error("Missing Google Access Token");
   }
 
   const updatedAt = new Date(authData.updated_at).getTime();
@@ -99,12 +106,13 @@ async function ensureValidToken(supabase: any, studioInfo: any) {
     authData = {
       ...authData,
       ...newTokens,
+      refresh_token: newTokens.refresh_token || authData.refresh_token,
       updated_at: new Date().toISOString(),
     };
 
     await supabase
       .from("studio_info")
-      .update({ google_calendar_auth: authData })
+      .update({ google_calendar_auth: encryptGoogleCalendarAuth(authData) })
       .eq("id", studioInfo.id);
   }
 
@@ -136,23 +144,13 @@ export async function getGoogleCalendarEvents(
   timeMax: string,
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
-    // Cache the studio info fetch for 5 minutes to reduce DB load
-    const getCachedStudioInfo = unstable_cache(
-      async () => {
-        const { data } = await supabase
-          .from("studio_info")
-          .select("id, google_calendar_auth")
-          .limit(1)
-          .maybeSingle();
-        return data;
-      },
-      ["google-calendar-studio-info"],
-      { revalidate: 300, tags: ["studio-info"] },
-    );
-
-    const studioInfo = await getCachedStudioInfo();
+    const { data: studioInfo } = await supabase
+      .from("studio_info")
+      .select("id, google_calendar_auth")
+      .limit(1)
+      .maybeSingle();
 
     if (!studioInfo?.google_calendar_auth) return [];
 
@@ -216,7 +214,7 @@ export async function createGoogleCalendarEvent(eventData: {
   };
 }) {
   try {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
       .select("id, google_calendar_auth")
@@ -258,7 +256,7 @@ export async function updateGoogleCalendarEvent(
   eventData: GoogleCalendarEventPayload,
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
       .select("id, google_calendar_auth")
@@ -297,7 +295,7 @@ export async function updateGoogleCalendarEvent(
  */
 export async function deleteGoogleCalendarEvent(eventId: string) {
   try {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
       .select("id, google_calendar_auth")

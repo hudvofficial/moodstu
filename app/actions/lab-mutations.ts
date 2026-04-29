@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { withAuth } from "@/lib/auth_utils";
+import { withPrintingAccess } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
 import {
   createLabSchema,
@@ -27,7 +27,7 @@ export async function createLab(rawData: unknown): Promise<ActionResult<Lab>> {
     };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("labs")
@@ -85,7 +85,7 @@ export async function updateLab(
     };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const { error } = await supabase
       .from("labs")
       .update({
@@ -104,7 +104,7 @@ export async function updateLab(
       action: "UPDATE",
       tableName: "labs",
       recordId: id,
-      description: `Cap nhat lab ${parsed.data.lab_name}`,
+      description: `Cap nhat lab ${parsed.data.lab_name || id}`,
       source: "server_action",
     });
 
@@ -115,7 +115,7 @@ export async function updateLab(
 }
 
 export async function deleteLab(id: string): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const { count, error: usageError } = await supabase
       .from("printing_orders")
       .select("id", { count: "exact", head: true })
@@ -168,7 +168,7 @@ export async function toggleLabStatus(
     return { success: false, error: "Trang thai lab khong hop le" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase, userId) => {
     const { error } = await supabase
       .from("labs")
       .update({
@@ -208,7 +208,7 @@ export async function createLabService(
     };
   }
 
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const now = new Date().toISOString();
     const { error } = await supabase.from("lab_services").insert({
       ...parsed.data,
@@ -245,7 +245,7 @@ export async function updateLabService(
     };
   }
 
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const { error } = await supabase
       .from("lab_services")
       .update({
@@ -274,7 +274,7 @@ export async function updateLabService(
 export async function deleteLabService(
   id: string,
 ): Promise<ActionResult<null>> {
-  return withAuth(async (supabase) => {
+  return withPrintingAccess(async (supabase) => {
     const { error } = await supabase.from("lab_services").delete().eq("id", id);
 
     if (error) {
@@ -305,33 +305,18 @@ export async function recordLabPayment(
     };
   }
 
-  return withAuth(async (supabase, userId) => {
-    const now = new Date().toISOString();
-    const { error } = await supabase.from("lab_payments").insert({
-      ...parsed.data,
-      created_by: userId,
-      created_at: now,
+  return withPrintingAccess(async (supabase, userId) => {
+    const { error } = await supabase.rpc("record_lab_payment_atomic", {
+      p_actor_id: userId,
+      p_allocations: parsed.data.allocations ?? [],
+      p_amount: parsed.data.amount,
+      p_lab_id: parsed.data.lab_id,
+      p_note: parsed.data.note,
+      p_payment_method: parsed.data.payment_method,
     });
 
     if (error) {
       throw new Error(`Khong the ghi nhan thanh toan lab: ${error.message}`);
-    }
-
-    const { error: orderUpdateError } = await supabase
-      .from("printing_orders")
-      .update({
-        payment_status: "da_thanh_toan",
-        updated_at: now,
-        updated_by: userId,
-      })
-      .eq("lab_id", parsed.data.lab_id)
-      .eq("payment_status", "chua_thanh_toan")
-      .is("deleted_at", null);
-
-    if (orderUpdateError) {
-      throw new Error(
-        `Khong the dong bo thanh toan don in: ${orderUpdateError.message}`,
-      );
     }
 
     fireAuditLog({
@@ -348,4 +333,3 @@ export async function recordLabPayment(
     return null;
   });
 }
-

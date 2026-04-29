@@ -1,7 +1,7 @@
 import ContractForm from "@/components/contracts/form";
 
 export const metadata = {
-  title: "Sửa hợp đồng | Mood Studio",
+  title: "Sửa hợp đồng",
   description: "Chỉnh sửa thông tin hợp đồng",
 };
 
@@ -13,3 +13,4 @@ export default async function EditContractPage({ params }: PageProps) {
   const { id } = await params;
   return <ContractForm mode="edit" contractId={id} />;
 }
+

@@ -6,10 +6,11 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Chi phí cố định | Mood Studio" };
+export const metadata = { title: "Chi phí cố định" };
 export const dynamic = "force-dynamic";
 
 export default async function FixedCostsPage() {
   const data = await fetchFixedCosts();
   return <FixedCostsClient initialData={unwrap<FixedCostItem[]>(data, [])} />;
 }
+

@@ -10,6 +10,8 @@ import { PrintActions } from "./print-actions";
 import { notFound } from "next/navigation";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 
+export const metadata = { title: "Chi tiết phiếu thu" };
+
 export default async function ReceiptDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -255,3 +257,4 @@ export default async function ReceiptDetailPage(props: {
     </div>
   );
 }
+

@@ -456,13 +456,14 @@ export interface CreditCardOption {
   statement_day: number | null;
   due_day: number | null;
   credit_limit: number | null;
+  updated_at: string | null;
 }
 
 export async function fetchCreditCards() {
   return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase
       .from("credit_cards")
-      .select("id, bank_name, last_4, statement_day, due_day, credit_limit")
+      .select("id, bank_name, last_4, statement_day, due_day, credit_limit, updated_at")
       .is("deleted_at", null)
       .order("bank_name", { ascending: true });
 
@@ -474,50 +475,7 @@ export async function fetchCreditCards() {
 export async function fetchLabDebts() {
   return withFinanceRead(async (supabase) => {
     const { data, error } = await supabase.rpc("finance_lab_debt_summary");
-    if (!error) return (data || []) as LabDebtItem[];
-    if (isMissingRpcError(error)) {
-      const [ordersResult, paymentsResult] = await Promise.all([
-        supabase
-          .from("printing_orders")
-          .select("lab_id, total_amount, payment_status, lab:lab_id(lab_name)")
-          .is("deleted_at", null)
-          .not("lab_id", "is", null),
-        supabase.from("lab_payments").select("lab_id, amount"),
-      ]);
-
-      if (ordersResult.error) throw new Error(`Loi tai don lab: ${ordersResult.error.message}`);
-      if (paymentsResult.error) throw new Error(`Loi tai thanh toan lab: ${paymentsResult.error.message}`);
-
-      const byLab = new Map<string, LabDebtItem>();
-      for (const order of ordersResult.data || []) {
-        if (!order.lab_id) continue;
-        const paid = order.payment_status === "paid" || order.payment_status === "da_thanh_toan";
-        if (paid) continue;
-        const current = byLab.get(order.lab_id) || {
-          lab_id: order.lab_id,
-          lab_name: relationText((order as Record<string, unknown>).lab, "lab_name") || "Lab",
-          order_count: 0,
-          total_orders: 0,
-          total_paid: 0,
-          remaining: 0,
-        };
-        current.order_count += 1;
-        current.total_orders += order.total_amount || 0;
-        byLab.set(order.lab_id, current);
-      }
-
-      for (const payment of paymentsResult.data || []) {
-        if (!payment.lab_id) continue;
-        const current = byLab.get(payment.lab_id);
-        if (current) current.total_paid += payment.amount || 0;
-      }
-
-      return Array.from(byLab.values())
-        .map((item) => ({ ...item, remaining: Math.max(0, item.total_orders - item.total_paid) }))
-        .filter((item) => item.remaining > 0)
-        .sort((a, b) => b.remaining - a.remaining);
-    }
-    if (error) throw new Error(`Lỗi tải công nợ lab: ${error.message}`);
+    if (error) throw new Error(`Loi tai cong no lab: ${error.message}`);
     return (data || []) as LabDebtItem[];
   });
 }

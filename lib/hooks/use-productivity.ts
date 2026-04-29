@@ -74,7 +74,8 @@ export function useProductivityDetail({
         : Promise.resolve({ success: true, data: [] } as const),
     {
       fallbackData,
-      keepPreviousData: true,
+      keepPreviousData: false,
+      revalidateOnMount: fallbackData ? false : undefined,
       revalidateOnFocus: false,
       dedupingInterval: 5000,
     },

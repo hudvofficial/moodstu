@@ -42,15 +42,18 @@ export function DressDrawer({ dress, isOpen, onClose, onEdit }: DressDrawerProps
 
   const headerRight = (
     <>
-      <Button unstyled
-        onClick={() => {
-          if (onEdit) { onClose(); onEdit(dress); }
-        }}
-        className="btn-icon"
-        title="Sửa trang phục"
-      >
-        <Pencil className="w-4 h-4 text-text-secondary" />
-      </Button>
+      {onEdit && (
+        <Button unstyled
+          onClick={() => {
+            onClose();
+            onEdit(dress);
+          }}
+          className="btn-icon"
+          title="Sửa trang phục"
+        >
+          <Pencil className="w-4 h-4 text-text-secondary" />
+        </Button>
+      )}
       <Button unstyled
         onClick={() => setQrOpen(true)}
         className="btn-icon"
