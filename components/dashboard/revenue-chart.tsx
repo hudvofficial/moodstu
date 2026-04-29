@@ -2,59 +2,71 @@
 
 import { TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import type { RevenueChartData } from "@/types/dashboard";
 
-const MOCK_DATA = [
-  { month: "T10", revenue: 32000000 },
-  { month: "T11", revenue: 45000000 },
-  { month: "T12", revenue: 38000000 },
-  { month: "T1", revenue: 52000000 },
-  { month: "T2", revenue: 41000000 },
-  { month: "T3", revenue: 45500000 },
-];
+interface RevenueChartProps {
+  data: RevenueChartData[];
+  canView: boolean;
+  periodLabel?: string;
+}
 
-export function RevenueChart() {
-  const max = Math.max(...MOCK_DATA.map((d) => d.revenue));
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border bg-bg-base/50 px-4 text-center text-body-sm text-text-secondary">
+      {message}
+    </div>
+  );
+}
+
+export function RevenueChart({
+  data,
+  canView,
+  periodLabel = "6 tháng gần nhất",
+}: RevenueChartProps) {
+  const max = Math.max(1, ...data.map((item) => item.revenue));
 
   return (
     <div className="card-base h-full p-5 entrance entrance-3">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-primary/10">
-            <TrendingUp className="w-4 h-4 text-primary" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <h3 className="text-h3">Doanh thu theo tháng</h3>
         </div>
-        <span className="text-caption">6 tháng gần nhất</span>
+        <span className="shrink-0 text-caption">{periodLabel}</span>
       </div>
 
-      {/* Simple bar chart */}
-      <div className="flex gap-3 h-44">
-        {MOCK_DATA.map((item) => {
-          const height = (item.revenue / max) * 100;
-          return (
-            <div
-              key={item.month}
-              className="flex-1 flex flex-col items-center justify-end group relative"
-            >
-              {/* Tooltip */}
-              <span className="absolute -top-6 text-caption opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                {formatCurrency(item.revenue)} ₫
-              </span>
-              
-              {/* Bar Track - Fixed Height guarantees % works perfectly */}
-              <div className="w-full h-32 relative flex items-end">
-                <div
-                  className="w-full rounded-t-lg bg-primary transition-all duration-300"
-                  style={{ height: `${height}%`, opacity: 0.4 }}
-                />
+      {!canView ? (
+        <EmptyState message="Vai trò hiện tại không có quyền xem dữ liệu doanh thu." />
+      ) : data.length === 0 || data.every((item) => item.revenue === 0) ? (
+        <EmptyState message="Chưa có doanh thu trong kỳ hiển thị." />
+      ) : (
+        <div className="flex h-44 gap-3">
+          {data.map((item) => {
+            const height = Math.max(4, (item.revenue / max) * 100);
+            return (
+              <div
+                key={item.month}
+                className="group relative flex flex-1 flex-col items-center justify-end"
+              >
+                <span className="absolute -top-6 z-10 whitespace-nowrap text-caption opacity-0 transition-opacity group-hover:opacity-100">
+                  {formatCurrency(item.revenue)} ₫
+                </span>
+
+                <div className="relative flex h-32 w-full items-end">
+                  <div
+                    className="w-full rounded-t-lg bg-primary opacity-45 transition-all duration-300"
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
+
+                <span className="mt-2 text-caption font-medium">{item.month}</span>
               </div>
-              
-              {/* X-Axis Label */}
-              <span className="text-caption font-medium mt-2">{item.month}</span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,66 +1,85 @@
 "use client";
 
 import { PieChart as PieChartIcon } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import type { ServiceBreakdownData } from "@/types/dashboard";
 
-const MOCK_DATA = [
-  { name: "Cưới", value: 65, color: "#8b5e3c" }, // primary
-  { name: "Baby", value: 15, color: "#a67c5b" }, // primary-light
-  { name: "Concept", value: 10, color: "#3d2b1f" }, // text-primary
-  { name: "Hình thẻ", value: 5, color: "#b8a898" }, // text-muted
-  { name: "Khác", value: 5, color: "#f0e8db" }, // bg-hover
-];
+interface ServicePieChartProps {
+  data: ServiceBreakdownData[];
+  canView: boolean;
+  showRevenue: boolean;
+}
 
-export function ServicePieChart() {
-  const total = MOCK_DATA.reduce((sum, d) => sum + d.value, 0);
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-border bg-bg-base/50 px-4 text-center text-body-sm text-text-secondary">
+      {message}
+    </div>
+  );
+}
 
-  // Build conic-gradient (immutable — no let reassignment)
-  const gradientParts = MOCK_DATA.reduce<{ parts: string[]; offset: number }>(
+export function ServicePieChart({ data, canView, showRevenue }: ServicePieChartProps) {
+  const totalPercent = data.reduce((sum, item) => sum + item.value, 0);
+  const gradientParts = data.reduce<{ parts: string[]; offset: number }>(
     (acc, item) => {
       const start = acc.offset;
-      const end = start + (item.value / total) * 100;
-      acc.parts.push(`${item.color} ${start}% ${end}%`);
+      const end = start + item.value;
+      acc.parts.push(`${item.fill} ${start}% ${end}%`);
       return { parts: acc.parts, offset: end };
     },
-    { parts: [], offset: 0 }
+    { parts: [], offset: 0 },
   ).parts;
-
-  const gradient = `conic-gradient(${gradientParts.join(", ")})`;
+  const gradient = gradientParts.length
+    ? `conic-gradient(${gradientParts.join(", ")})`
+    : "conic-gradient(var(--color-border) 0% 100%)";
 
   return (
     <div className="card-base h-full p-5 entrance entrance-4">
-      <div className="flex items-center gap-2 mb-5">
+      <div className="mb-5 flex items-center gap-2">
         <div className="icon-box bg-accent/10">
-          <PieChartIcon className="w-4 h-4 text-accent" />
+          <PieChartIcon className="h-4 w-4 text-accent" />
         </div>
         <h3 className="text-h3">Phân bổ dịch vụ</h3>
       </div>
 
-      <div className="flex items-center gap-6">
-        {/* Donut */}
-        <div className="relative shrink-0">
-          <div
-            className="w-36 h-36 rounded-full"
-            style={{ background: gradient }}
-          />
-          <div className="absolute inset-8 rounded-full bg-bg-card flex items-center justify-center">
-            <span className="text-h3">{total}%</span>
+      {!canView ? (
+        <EmptyState message="Vai trò hiện tại không có quyền xem dữ liệu hợp đồng." />
+      ) : data.length === 0 ? (
+        <EmptyState message="Chưa có hợp đồng trong tháng này." />
+      ) : (
+        <div className="flex items-center gap-6">
+          <div className="relative shrink-0">
+            <div
+              className="h-36 w-36 rounded-full"
+              style={{ background: gradient }}
+              aria-label="Phân bổ dịch vụ"
+            />
+            <div className="absolute inset-8 flex items-center justify-center rounded-full bg-bg-card">
+              <span className="text-h3">{Math.round(totalPercent)}%</span>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            {data.map((item) => (
+              <div key={item.serviceType} className="flex min-w-0 items-center gap-2">
+                <div
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: item.fill }}
+                />
+                <span className="min-w-0 flex-1 truncate text-body-sm">{item.name}</span>
+                <span className="shrink-0 text-label font-bold">
+                  {item.value.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%
+                </span>
+                {showRevenue ? (
+                  <span className="hidden shrink-0 text-caption text-text-secondary sm:inline">
+                    {formatCurrency(item.revenue)} ₫
+                  </span>
+                ) : null}
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Legend */}
-        <div className="flex flex-col gap-2 flex-1">
-          {MOCK_DATA.map((item) => (
-            <div key={item.name} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-body-sm flex-1">{item.name}</span>
-              <span className="text-label font-bold">{item.value}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

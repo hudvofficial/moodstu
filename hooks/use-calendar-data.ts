@@ -1,6 +1,13 @@
 import { useState, useMemo, useCallback } from "react";
 import { useSWR, cacheKeys } from "@/lib/swr";
-import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
+import {
+  fetchCalendarEvents,
+  fetchCalendarFilterEmployees,
+  fetchCalendarGoogleEvents,
+  checkGoogleCalendarStatus,
+} from "@/app/actions/calendar-queries";
+import { useRealtime } from "@/hooks/use-realtime";
+import { CALENDAR_STATUS_ORDER, getCalendarStatusLabel } from "@/lib/utils/calendar-utils";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
 const CALENDAR_VIEW_MODES: CalendarViewMode[] = ["month", "week", "day"];
@@ -67,7 +74,27 @@ export function useCalendarData() {
     }
   );
 
-  const rawEvents = useMemo(() => data?.success ? data.data : [], [data]);
+  const { data: googleData, mutate: mutateGoogle } = useSWR(
+    isGoogleConnected ? cacheKeys.calendarGoogle(month, year) : null,
+    async () => {
+      const res = await fetchCalendarGoogleEvents(month, year);
+      return res.success ? res.data : [];
+    },
+  );
+
+  useRealtime("schedules", {
+    prefixes: "calendar",
+    debounceMs: 750,
+  });
+  useRealtime("work_tasks", {
+    prefixes: "calendar",
+    debounceMs: 750,
+  });
+
+  const rawEvents = useMemo(() => {
+    const internalEvents = data?.success ? data.data : [];
+    return [...internalEvents, ...(googleData || [])];
+  }, [data, googleData]);
   const serverError = data && !data.success ? data.error : null;
   const employeeNameById = useMemo(() => {
     return new Map((employeesData || []).map((e: { id: string; full_name: string }) => [e.id, e.full_name]));
@@ -127,9 +154,16 @@ export function useCalendarData() {
     rawEvents.forEach(e => {
       if (e.status) statusSet.add(e.status);
     });
-    return Array.from(statusSet).map(s => ({
-      label: s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " "),
-      value: s
+    const orderedStatuses = [
+      ...CALENDAR_STATUS_ORDER.filter((status) => statusSet.has(status)),
+      ...Array.from(statusSet)
+        .filter((status) => !CALENDAR_STATUS_ORDER.includes(status as (typeof CALENDAR_STATUS_ORDER)[number]))
+        .sort((left, right) => getCalendarStatusLabel(left).localeCompare(getCalendarStatusLabel(right), "vi-VN")),
+    ];
+
+    return orderedStatuses.map(status => ({
+      label: getCalendarStatusLabel(status),
+      value: status,
     }));
   }, [rawEvents]);
 
@@ -164,7 +198,10 @@ export function useCalendarData() {
     setViewMode: handleSetViewMode,
     isLoading,
     error: error?.message || serverError,
-    mutate,
+    mutate: async () => {
+      await mutate();
+      await mutateGoogle();
+    },
     filters: {
       selectedEmployees,
       setSelectedEmployees,

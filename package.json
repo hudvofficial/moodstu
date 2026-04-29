@@ -18,6 +18,8 @@
     "verify:printing": "node scripts/verify-printing.mjs",
     "verify:reports": "node scripts/verify-reports.mjs",
     "verify:productivity": "node scripts/verify-productivity.mjs",
+    "verify:calendar": "node scripts/verify-calendar.mjs",
+    "verify:dashboard": "node scripts/verify-dashboard.mjs",
     "verify:services": "node scripts/verify-services.mjs",
     "verify:inventory": "node scripts/verify-inventory.mjs",
     "verify:dresses": "node scripts/verify-dresses.mjs",
@@ -26,6 +28,8 @@
     "verify:employees": "node scripts/verify-employees.mjs",
     "smoke:employees": "node scripts/smoke-employees.mjs",
     "smoke:settings": "node scripts/smoke-settings.mjs",
+    "smoke:calendar": "node scripts/smoke-calendar.mjs",
+    "smoke:dashboard": "node scripts/smoke-dashboard.mjs",
     "smoke:contracts": "node scripts/smoke-contracts.mjs"
   },
   "dependencies": {

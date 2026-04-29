@@ -2,19 +2,41 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
-import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
+import {
+  requireCalendarAccess,
+  requireCalendarTaskAssignable,
+  requireCalendarTaskEditable,
+  requireCalendarTargetEmployee,
+} from "@/lib/calendar-auth";
 import { z } from "zod";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-const isoDateSchema = z.string().trim().min(1, "Ngày không hợp lệ").refine(val => !Number.isNaN(new Date(val).getTime()), "Định dạng ngày không hợp lệ");
+const isoDateSchema = z
+  .string()
+  .trim()
+  .min(1, "Ngày không hợp lệ")
+  .refine((value) => !Number.isNaN(new Date(value).getTime()), "Định dạng ngày không hợp lệ");
 
-/**
- * §1.3a — Giao việc nhanh: Assign task cho nhân viên
- * RBAC: Admin/Manager assign bất kỳ ai. Sale/Media chỉ self.
- */
+const TASK_STATUS_VALUES = ["chua_lam", "dang_lam", "hoan_thanh", "da_huy"] as const;
+
+function toDateKey(value: string) {
+  return value.split("T")[0];
+}
+
+function addOneDay(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function revalidateCalendarAndProductivity() {
+  revalidatePath("/calendar");
+  revalidatePath("/productivity");
+}
+
 export async function assignCalendarTask(
   taskId: string,
   assignToEmployeeId: string,
@@ -22,59 +44,24 @@ export async function assignCalendarTask(
   return withAuth(async (supabase, userId) => {
     const parsed = z.object({
       taskId: z.string().trim().min(1, "Thiếu ID công việc"),
-      assignToEmployeeId: z.string().trim().min(1, "Thiếu ID nhân sự nhận việc")
+      assignToEmployeeId: z.string().trim().min(1, "Thiếu ID nhân sự nhận việc"),
     }).parse({ taskId, assignToEmployeeId });
 
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("id, role")
-      .eq("auth_user_id", userId)
-      .maybeSingle();
-
-    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
-    
-    const role = normalizeRole(employee.role);
-    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
-      throw new Error("Bạn không có quyền chỉnh sửa dữ liệu lịch.");
-    }
-
-    const isGlobalAdmin = role === "admin" || role === "manager";
-
-    const { data: oldTask } = await supabase
-      .from("work_tasks")
-      .select("assigned_to")
-      .eq("id", parsed.taskId)
-      .single();
-
-    if (!oldTask) throw new Error("Không tìm thấy nhiệm vụ.");
-
-    // Non-admin can only assign to self if task is unassigned or already assigned to them
-    if (!isGlobalAdmin) {
-      if (oldTask.assigned_to !== null && oldTask.assigned_to !== employee.id) {
-        throw new Error("Không có quyền nhận nhiệm vụ của người khác.");
-      }
-      if (parsed.assignToEmployeeId !== employee.id) {
-        throw new Error("Không có quyền giao việc cho người khác.");
-      }
-    }
+    const access = await requireCalendarAccess(supabase, userId, "chỉnh sửa dữ liệu lịch");
+    await requireCalendarTaskAssignable(supabase, access, parsed.taskId, parsed.assignToEmployeeId);
 
     const { error } = await supabase
       .from("work_tasks")
       .update({ assigned_to: parsed.assignToEmployeeId })
       .eq("id", parsed.taskId);
 
-    if (error) throw new Error("Lỗi giao việc: " + error.message);
+    if (error) throw new Error(`Lỗi giao việc: ${error.message}`);
 
-    revalidatePath("/calendar");
-    revalidatePath("/productivity");
+    revalidateCalendarAndProductivity();
     return true;
   });
 }
 
-/**
- * §1.3b — Kiểm tra trùng lịch nhân viên trong khoảng thời gian
- * Trả về danh sách events bị conflict
- */
 export async function checkEmployeeAvailability(
   employeeId: string,
   dateIso: string,
@@ -82,46 +69,51 @@ export async function checkEmployeeAvailability(
   return withAuth(async (supabase, userId) => {
     const parsed = z.object({
       employeeId: z.string().trim().min(1, "Thiếu ID nhân sự"),
-      dateIso: isoDateSchema
+      dateIso: isoDateSchema,
     }).parse({ employeeId, dateIso });
 
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("id, role")
-      .eq("auth_user_id", userId)
-      .maybeSingle();
+    const access = await requireCalendarAccess(supabase, userId, "truy cập lịch");
+    await requireCalendarTargetEmployee(
+      supabase,
+      { ...access, isGlobalAdmin: true },
+      parsed.employeeId,
+    );
 
-    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
+    const dayStart = toDateKey(parsed.dateIso);
+    const dayEnd = addOneDay(dayStart);
 
-    const role = normalizeRole(employee.role);
-    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
-      throw new Error("Không có quyền truy cập lịch.");
+    const [schedulesResult, tasksResult] = await Promise.all([
+      supabase
+        .from("schedules")
+        .select("id, event_type, event_date")
+        .eq("employee_id", parsed.employeeId)
+        .gte("event_date", dayStart)
+        .lt("event_date", dayEnd),
+      supabase
+        .from("work_tasks")
+        .select("id, work_type, deadline")
+        .eq("assigned_to", parsed.employeeId)
+        .gte("deadline", dayStart)
+        .lt("deadline", dayEnd),
+    ]);
+
+    if (schedulesResult.error) {
+      throw new Error(`Lỗi kiểm tra lịch cá nhân: ${schedulesResult.error.message}`);
+    }
+    if (tasksResult.error) {
+      throw new Error(`Lỗi kiểm tra nhiệm vụ: ${tasksResult.error.message}`);
     }
 
-    // Check schedules on the same date
-    const { data: schedules } = await supabase
-      .from("schedules")
-      .select("id, event_type, event_date")
-      .eq("employee_id", parsed.employeeId)
-      .eq("event_date", parsed.dateIso);
-
-    // Check tasks on the same deadline
-    const { data: tasks } = await supabase
-      .from("work_tasks")
-      .select("id, work_type, deadline")
-      .eq("assigned_to", parsed.employeeId)
-      .eq("deadline", parsed.dateIso);
-
     const conflicts = [
-      ...(schedules || []).map(s => ({
-        id: s.id,
-        title: s.event_type || "Sự kiện",
-        start: s.event_date,
+      ...(schedulesResult.data || []).map((schedule) => ({
+        id: schedule.id,
+        title: schedule.event_type || "Sự kiện",
+        start: schedule.event_date,
       })),
-      ...(tasks || []).map(t => ({
-        id: t.id,
-        title: t.work_type || "Nhiệm vụ",
-        start: t.deadline || parsed.dateIso,
+      ...(tasksResult.data || []).map((task) => ({
+        id: task.id,
+        title: task.work_type || "Nhiệm vụ",
+        start: task.deadline || parsed.dateIso,
       })),
     ];
 
@@ -132,10 +124,6 @@ export async function checkEmployeeAvailability(
   });
 }
 
-/**
- * §1.3c — Cập nhật chi tiết task + Auto-print trigger
- * Khi post-production tasks hoàn thành → trigger tạo in order (nếu applicable)
- */
 export async function updateCalendarTaskDetails(
   taskId: string,
   updates: {
@@ -147,45 +135,19 @@ export async function updateCalendarTaskDetails(
   return withAuth(async (supabase, userId) => {
     const validTaskId = z.string().trim().min(1, "Thiếu ID công việc").parse(taskId);
     const validatedUpdates = z.object({
-      status: z.string().trim().min(1, "Trạng thái không hợp lệ").optional(),
+      status: z.enum(TASK_STATUS_VALUES, { error: "Trạng thái không hợp lệ" }).optional(),
       deadline: isoDateSchema.optional(),
-      assigned_to: z.string().trim().min(1, "Người nhận việc không hợp lệ").optional()
+      assigned_to: z.string().trim().min(1, "Người nhận việc không hợp lệ").optional(),
     }).parse(updates);
 
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("id, role")
-      .eq("auth_user_id", userId)
-      .maybeSingle();
+    const access = await requireCalendarAccess(supabase, userId, "thao tác dữ liệu lịch");
+    const oldTask = await requireCalendarTaskEditable(supabase, access, validTaskId);
 
-    if (!employee) throw new Error("Chưa thiết lập hồ sơ nhân sự");
-    
-    const role = normalizeRole(employee.role);
-    if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
-      throw new Error("Bạn không có quyền thao tác dữ liệu lịch.");
-    }
-
-    const isGlobalAdmin = role === "admin" || role === "manager";
-
-    // Check ownership
-    const { data: oldTask } = await supabase
-      .from("work_tasks")
-      .select("assigned_to, contract_id, work_type, status")
-      .eq("id", validTaskId)
-      .single();
-
-    if (!oldTask) throw new Error("Không tìm thấy nhiệm vụ.");
-
-    if (!isGlobalAdmin && oldTask.assigned_to !== employee.id) {
-      throw new Error("Không có quyền sửa nhiệm vụ của người khác.");
-    }
-
-    // Build update payload (only changed fields)
     const updatePayload: Record<string, string> = {};
     if (validatedUpdates.status) updatePayload.status = validatedUpdates.status;
-    if (validatedUpdates.deadline) updatePayload.deadline = validatedUpdates.deadline;
+    if (validatedUpdates.deadline) updatePayload.deadline = toDateKey(validatedUpdates.deadline);
     if (validatedUpdates.assigned_to) {
-      if (!isGlobalAdmin) throw new Error("Không có quyền chuyển giao nhiệm vụ.");
+      await requireCalendarTargetEmployee(supabase, access, validatedUpdates.assigned_to);
       updatePayload.assigned_to = validatedUpdates.assigned_to;
     }
 
@@ -198,15 +160,14 @@ export async function updateCalendarTaskDetails(
       .update(updatePayload)
       .eq("id", validTaskId);
 
-    if (error) throw new Error("Cập nhật nhiệm vụ thất bại: " + error.message);
+    if (error) throw new Error(`Cập nhật nhiệm vụ thất bại: ${error.message}`);
 
-    // Auto-print logic: When hậu kỳ tasks complete → check if all tasks done
     let autoPrintTriggered = false;
     const isPostProduction = ["retouch", "dung_phim", "hau_ky_anh"].includes(oldTask.work_type || "");
     const isCompleting = validatedUpdates.status === "hoan_thanh" && oldTask.status !== "hoan_thanh";
 
     if (isPostProduction && isCompleting && oldTask.contract_id) {
-      const { data: pendingTasks } = await supabase
+      const { data: pendingTasks, error: pendingError } = await supabase
         .from("work_tasks")
         .select("id")
         .eq("contract_id", oldTask.contract_id)
@@ -215,16 +176,16 @@ export async function updateCalendarTaskDetails(
         .neq("id", validTaskId)
         .limit(1);
 
+      if (pendingError) {
+        throw new Error(`Lỗi kiểm tra trạng thái nhiệm vụ: ${pendingError.message}`);
+      }
+
       if (!pendingTasks || pendingTasks.length === 0) {
-        // All tasks done → auto-print could be triggered here
-        // For now, just flag it — actual print order creation is Phase 03+
         autoPrintTriggered = true;
-        console.log(`[AutoPrint] Contract ${oldTask.contract_id} all tasks done — ready for print order`);
       }
     }
 
-    revalidatePath("/calendar");
-    revalidatePath("/productivity");
+    revalidateCalendarAndProductivity();
     return { updated: true, autoPrintTriggered };
   });
 }

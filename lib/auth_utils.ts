@@ -35,6 +35,8 @@ export interface AuthenticatedUserContext {
   employee: EmployeeContextRecord | null;
   shellRole: Role;
   userName: string;
+  isEmployeeDisabled: boolean;
+  disabledReason: string | null;
   canManageSettings: boolean;
   canManageMembers: boolean;
 }
@@ -245,14 +247,19 @@ const getAuthenticatedUserContextCached = cache(
       employee = await bootstrapEmployeeProfile(adminSupabase, verifiedUser);
     }
 
-    const activeEmployee = isActiveEmployeeContext(employee) ? employee : null;
-    const roleSource = employee
-      ? activeEmployee?.role ?? null
+    const disabledEmployee = !!employee && !isActiveEmployeeContext(employee);
+    const activeEmployee = disabledEmployee ? null : employee;
+    const roleSource = disabledEmployee
+      ? employee?.role ?? null
+      : employee
+        ? activeEmployee?.role ?? null
       : (user.app_metadata?.role as string | undefined) ??
         (user.user_metadata?.role as string | undefined);
-    const hasSettingsAdminAccess = activeEmployee
-      ? canManageSettingsRole(activeEmployee.role)
-      : process.env.ALLOW_SETTINGS_JWT_ADMIN_FALLBACK === "true" &&
+    const hasSettingsAdminAccess = disabledEmployee
+      ? false
+      : activeEmployee
+        ? canManageSettingsRole(activeEmployee.role)
+        : process.env.ALLOW_SETTINGS_JWT_ADMIN_FALLBACK === "true" &&
         canManageSettingsRole(roleSource);
 
     return {
@@ -266,6 +273,12 @@ const getAuthenticatedUserContextCached = cache(
           : undefined) ||
         user.email?.split("@")[0] ||
         "User",
+      isEmployeeDisabled: disabledEmployee,
+      disabledReason: disabledEmployee
+        ? employee?.deleted_at
+          ? "Tài khoản nhân sự đã bị xóa."
+          : "Tài khoản nhân sự đã bị vô hiệu hóa."
+        : null,
       canManageSettings: hasSettingsAdminAccess,
       canManageMembers: hasSettingsAdminAccess,
     };

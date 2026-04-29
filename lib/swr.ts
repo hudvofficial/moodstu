@@ -38,6 +38,7 @@ export const cacheKeys = {
 
   // Dashboard
   dashboard: () => "dashboard",
+  dashboardBootstrap: () => "dashboard:bootstrap",
   dashboardStats: () => "dashboard:stats",
   reportsSnapshot: (periodKey: string) => `reports:${periodKey}`,
   reportsLedger: (start: string, end: string, type = "all") => `reports-ledger:${start}:${end}:${type}`,
@@ -91,6 +92,8 @@ export const cacheKeys = {
   team: () => "team",
   calendar: (month?: number, year?: number) =>
     month && year ? `calendar:${month}:${year}` : "calendar",
+  calendarGoogle: (month?: number, year?: number) =>
+    month && year ? `calendar-google:${month}:${year}` : "calendar-google",
   jobs: () => "jobs",
   productivity: (period: string, viewMode: string) =>
     `productivity:${viewMode}:${period}`,

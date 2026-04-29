@@ -49,6 +49,48 @@ export function generateCalendarGroupKey(
   return `${contractId}_${datePart}`;
 }
 
+export const CALENDAR_STATUS_LABELS: Record<string, string> = {
+  chua_lam: "Chưa làm",
+  dang_lam: "Đang làm",
+  hoan_thanh: "Hoàn thành",
+  da_huy: "Đã hủy",
+  scheduled: "Đã lên lịch",
+  pending: "Chờ xử lý",
+  confirmed: "Đã xác nhận",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  canceled: "Đã hủy",
+  published: "Google Calendar",
+  google: "Google Calendar",
+};
+
+export const CALENDAR_STATUS_ORDER = [
+  "chua_lam",
+  "dang_lam",
+  "hoan_thanh",
+  "scheduled",
+  "confirmed",
+  "pending",
+  "published",
+  "da_huy",
+  "cancelled",
+] as const;
+
+export function getCalendarStatusLabel(status: string | null | undefined): string {
+  if (!status) return "Không rõ";
+
+  const key = status.trim();
+  const lowerKey = key.toLowerCase();
+  const mapped = CALENDAR_STATUS_LABELS[key] || CALENDAR_STATUS_LABELS[lowerKey];
+  if (mapped) return mapped;
+
+  return key
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export const GOOGLE_COLORS = [
   { id: "1", label: "Hoa oải hương (Lavender)", color: "bg-[#7986cb]" },
   { id: "2", label: "Cây xô thơm (Sage)", color: "bg-[#33b679]" },

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KPICardProps {
   label: string;
@@ -27,37 +27,39 @@ export function KPICard({
 }: KPICardProps) {
   const content = (
     <>
-      <div className="flex items-start justify-between mb-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div className={cn("icon-box", iconBg)}>
-          <Icon className={cn("w-5 h-5", iconColor)} />
+          <Icon className={cn("h-5 w-5", iconColor)} />
         </div>
-        {trend && (
+        {trend ? (
           <span
             className={cn(
-              "text-caption font-bold",
-              trendUp ? "text-success" : "text-error"
+              "shrink-0 text-caption font-bold",
+              trendUp ? "text-success" : "text-error",
             )}
           >
             {trendUp ? "↑" : "↓"} {trend}
           </span>
-        )}
+        ) : null}
       </div>
-      <p className="text-label mb-1">{label}</p>
+      <p className="mb-1 text-label">{label}</p>
       <p className="text-h2">{value}</p>
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className={cn("stats-card block transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", className)}>
+      <Link
+        href={href}
+        className={cn(
+          "stats-card block transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          className,
+        )}
+      >
         {content}
       </Link>
     );
   }
 
-  return (
-    <div className={cn("stats-card", className)}>
-      {content}
-    </div>
-  );
+  return <div className={cn("stats-card", className)}>{content}</div>;
 }

@@ -14,6 +14,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
+  if (context.isEmployeeDisabled) {
+    redirect("/account-disabled");
+  }
+
   return (
     <AppShell role={context.shellRole} userName={context.userName}>
       {children}
