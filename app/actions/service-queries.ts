@@ -121,7 +121,7 @@ export async function searchServicesForBundle(query: string, excludeId?: string)
     const excludedServiceId = excludeId ? serviceIdSchema.parse(excludeId) : null;
     let q = supabase
       .from("services")
-      .select("id, name, selling_price, unit, service_type")
+      .select("id, name, service_code, selling_price, unit, category_id, image_url")
       .is("deleted_at", null)
       .eq("status", "active")
       .eq("fulfillment_type", "single")

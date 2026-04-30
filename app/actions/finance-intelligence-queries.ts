@@ -1,5 +1,6 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
@@ -13,10 +14,41 @@ import type {
   ReceivableAgingResult,
 } from "@/types/finance-intelligence";
 
+const FINANCE_INTELLIGENCE_BASIS_TABLES = [
+  "contracts",
+  "payments",
+  "receipts",
+  "expenses",
+  "debts",
+  "budgets",
+  "fixed_costs",
+  "financial_goals",
+  "payment_plans",
+] as const;
+
+async function hasFinanceIntelligenceBasis(supabase: SupabaseClient) {
+  const checks = await Promise.all(
+    FINANCE_INTELLIGENCE_BASIS_TABLES.map(async (table) => {
+      const { count, error } = await supabase
+        .from(table)
+        .select("id", { count: "exact", head: true });
+
+      if (error) throw new Error(error.message);
+      return (count || 0) > 0;
+    }),
+  );
+
+  return checks.some(Boolean);
+}
+
 export async function getFinanceIntelligence(): Promise<ActionResult<FinanceIntelligenceResult | null>> {
   return profileAction("finance.getFinanceIntelligence", () =>
     withAuth(async (supabase, userId) => {
       await requireFinanceAccess(supabase, userId);
+
+      if (!(await hasFinanceIntelligenceBasis(supabase))) {
+        return null;
+      }
 
       const { data, error } = await supabase.rpc("get_finance_intelligence");
 

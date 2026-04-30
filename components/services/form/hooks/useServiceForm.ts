@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createService, updateService, deleteService } from "@/app/actions/service-mutations";
@@ -10,15 +10,6 @@ import type { ServiceRecord } from "@/types/service";
 import type { ContentSection } from "@/types/service";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import type { BundleItemInput } from "@/lib/validations/service.schema";
-
-// ═══════════════════════════════════════════
-// useServiceForm — V2 Gold Standard
-//
-// Manages all form state, validation, and submission
-// for both create and edit modes.
-//
-// @see Phase 1c / Task 1
-// ═══════════════════════════════════════════
 
 export interface ServiceFormData {
   name: string;
@@ -39,6 +30,10 @@ interface UseServiceFormOptions {
   initialBundleItems?: BundleItem[];
 }
 
+type ServiceFormErrors = Partial<
+  Record<keyof ServiceFormData | "bundle_items", string>
+>;
+
 const EMPTY_FORM: ServiceFormData = {
   name: "",
   service_code: "",
@@ -57,6 +52,7 @@ function initFormData(record?: ServiceRecord | null): ServiceFormData {
   if (!record) {
     return { ...EMPTY_FORM, service_code: generateServiceCode() };
   }
+
   return {
     name: record.name || "",
     service_code: record.service_code || "",
@@ -72,27 +68,35 @@ function initFormData(record?: ServiceRecord | null): ServiceFormData {
   };
 }
 
+function isDuplicateCodeError(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("service_code") ||
+    lower.includes("ma dich vu") ||
+    lower.includes("mã dịch vụ") ||
+    lower.includes("duplicate") ||
+    lower.includes("unique")
+  );
+}
+
 export function useServiceForm({ initialData, initialBundleItems }: UseServiceFormOptions = {}) {
   const router = useRouter();
   const isEditMode = !!initialData?.id;
+  const submitLockRef = useRef(false);
 
-  // ── State ──
   const [formData, setFormData] = useState<ServiceFormData>(() => initFormData(initialData));
   const [bundleItems, setBundleItems] = useState<BundleItem[]>(initialBundleItems || []);
-  const [errors, setErrors] = useState<Partial<Record<keyof ServiceFormData, string>>>({});
+  const [errors, setErrors] = useState<ServiceFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ── Content Sections (structured description) ──
   const sections = useMemo<ContentSection[]>(
     () => parseContentStructure(formData.description),
     [formData.description],
   );
 
-  // ── Handlers ──
   const handleChange = useCallback(
     <K extends keyof ServiceFormData>(key: K, value: ServiceFormData[K]) => {
       setFormData((prev) => ({ ...prev, [key]: value }));
-      // Clear error for this field
       setErrors((prev) => {
         if (!prev[key]) return prev;
         const next = { ...prev };
@@ -102,6 +106,15 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
     },
     [],
   );
+
+  const clearBundleError = useCallback(() => {
+    setErrors((prev) => {
+      if (!prev.bundle_items) return prev;
+      const next = { ...prev };
+      delete next.bundle_items;
+      return next;
+    });
+  }, []);
 
   const handleSectionsChange = useCallback(
     (newSections: ContentSection[]) => {
@@ -113,49 +126,83 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
     [],
   );
 
-  // ── Client-side Validate ──
   const validate = useCallback((): boolean => {
-    const errs: Partial<Record<keyof ServiceFormData, string>> = {};
+    const errs: ServiceFormErrors = {};
 
     if (!formData.name.trim()) {
       errs.name = "Tên dịch vụ là bắt buộc";
     }
-    if (formData.selling_price < 0) {
+    if (!Number.isFinite(formData.selling_price) || formData.selling_price < 0) {
       errs.selling_price = "Giá bán không hợp lệ";
     }
-    if (formData.cost_price < 0) {
+    if (!Number.isFinite(formData.cost_price) || formData.cost_price < 0) {
       errs.cost_price = "Giá vốn không hợp lệ";
+    }
+    if (formData.image_url.trim()) {
+      try {
+        const url = new URL(formData.image_url.trim());
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          errs.image_url = "Link ảnh phải bắt đầu bằng http hoặc https";
+        }
+      } catch {
+        errs.image_url = "Link ảnh không hợp lệ";
+      }
+    }
+    if (formData.fulfillment_type === "bundle" && bundleItems.length === 0) {
+      errs.bundle_items = "Gói/combo cần ít nhất một dịch vụ thành phần";
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [formData]);
+  }, [formData, bundleItems.length]);
 
-  // ── Submit ──
+  const applyActionError = useCallback((message?: string) => {
+    const errorMessage = message || "Đã có lỗi xảy ra";
+
+    if (isDuplicateCodeError(errorMessage)) {
+      setErrors((prev) => ({
+        ...prev,
+        service_code: "Mã dịch vụ đã tồn tại, vui lòng đổi mã khác",
+      }));
+      toast.error("Mã dịch vụ đã tồn tại");
+      return;
+    }
+
+    const lower = errorMessage.toLowerCase();
+    if (lower.includes("bundle") || lower.includes("gói")) {
+      setErrors((prev) => ({
+        ...prev,
+        bundle_items: errorMessage,
+      }));
+    }
+
+    toast.error(errorMessage);
+  }, []);
+
   const handleSubmit = useCallback(async () => {
+    if (submitLockRef.current) return;
     if (!validate()) return;
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     try {
       let result;
 
-      // Prepare bundle items for DB
       const bundleInputs: BundleItemInput[] = bundleItems.map((item, idx) => ({
         child_service_id: item.service_id,
         quantity: item.quantity,
-        adjustment_price: 0, // Not explicitly managed in UI yet
+        adjustment_price: 0,
         sort_order: idx,
       }));
 
       if (isEditMode && initialData) {
-        // Update mode — unwrap ActionResult
         result = await updateService({
           id: initialData.id,
           updated_at: initialData.updated_at,
           data: {
             name: formData.name.trim(),
-            service_code: formData.service_code,
+            service_code: formData.service_code.trim(),
             service_type: formData.service_type,
             category_id: formData.category_id || undefined,
             selling_price: formData.selling_price,
@@ -164,14 +211,13 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
             fulfillment_type: formData.fulfillment_type,
             status: formData.status,
             description: formData.description || undefined,
-            image_url: formData.image_url || undefined,
+            image_url: formData.image_url.trim() || undefined,
           },
         }, bundleInputs);
       } else {
-        // Create mode — unwrap ActionResult
         result = await createService({
           name: formData.name.trim(),
-          service_code: formData.service_code || undefined,
+          service_code: formData.service_code.trim() || undefined,
           service_type: formData.service_type,
           category_id: formData.category_id || undefined,
           selling_price: formData.selling_price,
@@ -180,12 +226,12 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
           fulfillment_type: formData.fulfillment_type,
           status: formData.status,
           description: formData.description || undefined,
-          image_url: formData.image_url || undefined,
+          image_url: formData.image_url.trim() || undefined,
         }, bundleInputs);
       }
 
       if (!result.success) {
-        toast.error(result.error || "Đã có lỗi xảy ra");
+        applyActionError(result.error);
         return;
       }
 
@@ -194,16 +240,17 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       router.push("/services");
     } catch (error: unknown) {
       const e = error as Error;
-      toast.error(e.message || "Đã có lỗi xảy ra");
+      applyActionError(e.message);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
-  }, [formData, bundleItems, validate, isEditMode, initialData, router]);
+  }, [formData, bundleItems, validate, isEditMode, initialData, router, applyActionError]);
 
-  // ── Delete ──
   const handleDelete = useCallback(async () => {
-    if (!initialData?.id) return;
+    if (!initialData?.id || submitLockRef.current) return;
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -221,6 +268,7 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       const e = error as Error;
       toast.error(e.message || "Không thể xóa dịch vụ");
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   }, [initialData, router]);
@@ -237,5 +285,6 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
     handleDelete,
     bundleItems,
     setBundleItems,
+    clearBundleError,
   };
 }

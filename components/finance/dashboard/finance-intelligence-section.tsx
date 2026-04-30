@@ -63,9 +63,22 @@ export function FinanceIntelligenceSection({ month, year }: FinanceIntelligenceS
 
       {/* Zone 1: P0 Highlights */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {isLoadingHealth ? <SkeletonCard className="h-40" /> : <HealthScoreCard data={healthData || null} />}
-        {isLoadingHealth ? <SkeletonCard className="h-40" /> : <CashflowRunwayCard data={healthData || null} />}
-        {isLoadingHealth ? <SkeletonCard className="h-40" /> : <BreakEvenCard data={healthData || null} />}
+        {isLoadingHealth ? (
+          <SkeletonCard className="h-40" />
+        ) : healthData ? (
+          <>
+            <HealthScoreCard data={healthData} />
+            <CashflowRunwayCard data={healthData} />
+            <BreakEvenCard data={healthData} />
+          </>
+        ) : (
+          <div className="card-base p-8 text-center md:col-span-3">
+            <h2 className="text-h3">Chưa có dữ liệu tài chính</h2>
+            <p className="mx-auto mt-2 max-w-2xl text-body-sm text-text-secondary">
+              Các chỉ số sức khỏe, runway và hòa vốn sẽ xuất hiện sau khi có dữ liệu production.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Zone 2: Charts (Forecast, Expense, Aging) */}

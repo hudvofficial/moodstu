@@ -11,17 +11,18 @@ interface ActionPanelProps {
   onCancel: () => void;
   onDelete?: () => void;
   onSubmit: () => void;
-  
   serviceName: string;
   sellingPrice: number;
   description: string;
   unit: string;
 }
 
-/**
- * Desktop (Right Sidebar) Panel
- * Displayed via FullpageFormShell's rightPanel (lg:flex)
- */
+function getPrimaryLabel(isEditMode: boolean, isSubmitting: boolean, compact = false) {
+  if (isSubmitting) return isEditMode ? "Đang lưu..." : "Đang tạo...";
+  if (compact) return isEditMode ? "Lưu" : "Tạo mới";
+  return isEditMode ? "Lưu thay đổi" : "Tạo dịch vụ mới";
+}
+
 export function DesktopSidebarPanel(props: ActionPanelProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -46,7 +47,7 @@ export function DesktopSidebarPanel(props: ActionPanelProps) {
           className="w-full flex justify-center gap-2 font-bold"
         >
           {props.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-          {props.isEditMode ? "Lưu thay đổi" : "Tạo dịch vụ mới"}
+          {getPrimaryLabel(props.isEditMode, props.isSubmitting)}
         </Button>
 
         <Button
@@ -65,7 +66,7 @@ export function DesktopSidebarPanel(props: ActionPanelProps) {
             variant="ghost"
             onClick={() => {
               if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này không thể hoàn tác.")) {
-                props.onDelete!();
+                props.onDelete?.();
               }
             }}
             disabled={props.isSubmitting}
@@ -79,31 +80,25 @@ export function DesktopSidebarPanel(props: ActionPanelProps) {
   );
 }
 
-/**
- * Mobile Sticky Panel
- * Fixed at the bottom of the viewport, handles iOS safe-areas and collapsible QuotePreview
- */
 export function MobileStickyPanel(props: ActionPanelProps) {
   const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card shadow-lg rounded-t-2xl flex flex-col">
-      
       <div className="relative">
-        {/* Toggle Button for Preview */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => setShowPreview(!showPreview)}
           className="absolute -top-10 left-1/2 -translate-x-1/2 bg-bg-card rounded-t-xl rounded-b-none shadow-sm flex items-center gap-2 text-caption font-semibold text-text-secondary h-10 px-4"
+          aria-expanded={showPreview}
         >
           Báo giá
           <ChevronUp className={`w-3 h-3 transition-transform duration-300 ${showPreview ? "rotate-180" : ""}`} />
         </Button>
 
-        {/* Collapsible Quote Preview */}
-        <div 
+        <div
           className={`overflow-hidden transition-all duration-300 ease-in-out bg-bg-body ${
             showPreview ? "max-h-125 opacity-100" : "max-h-0 opacity-0"
           }`}
@@ -119,7 +114,6 @@ export function MobileStickyPanel(props: ActionPanelProps) {
         </div>
       </div>
 
-      {/* Main Actions Bar */}
       <div className="px-4 py-3 flex flex-col gap-3 bg-bg-card pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="flex flex-row items-center gap-2">
           <Button
@@ -129,9 +123,9 @@ export function MobileStickyPanel(props: ActionPanelProps) {
             disabled={props.isSubmitting}
             className="shrink-0 px-4 text-text-secondary"
           >
-            Huỷ
+            Hủy
           </Button>
-          
+
           <Button
             type="button"
             variant="interactive"
@@ -140,7 +134,7 @@ export function MobileStickyPanel(props: ActionPanelProps) {
             className="flex-1 flex justify-center gap-2 font-semibold"
           >
             {props.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {props.isEditMode ? "Lưu" : "Tạo mới"}
+            {getPrimaryLabel(props.isEditMode, props.isSubmitting, true)}
           </Button>
         </div>
 
@@ -150,7 +144,7 @@ export function MobileStickyPanel(props: ActionPanelProps) {
             variant="ghost"
             onClick={() => {
               if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này không thể hoàn tác.")) {
-                props.onDelete!();
+                props.onDelete?.();
               }
             }}
             disabled={props.isSubmitting}

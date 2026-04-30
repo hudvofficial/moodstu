@@ -46,6 +46,7 @@ export default function ServiceForm({
     handleDelete,
     bundleItems,
     setBundleItems,
+    clearBundleError,
   } = useServiceForm({ initialData, initialBundleItems });
 
   // ── Local UI state ──
@@ -112,6 +113,8 @@ export default function ServiceForm({
             <ServiceBundleSection
               bundleItems={bundleItems}
               setBundleItems={setBundleItems}
+              error={errors.bundle_items}
+              onBundleChange={clearBundleError}
             />
           )}
 

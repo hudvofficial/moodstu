@@ -1,14 +1,3 @@
-/**
- * 🏷️ Service Constants — Labels, Maps, Icons
- *
- * SSOT for all service display logic.
- * Group B pattern: const array → type → display map
- *
- * @see Lesson #89-90: Group B VARCHAR + TS enum
- */
-
-// ─── Service Types (Group B — VARCHAR in DB) ─────
-
 export const SERVICE_TYPES = [
   "studio",
   "ngay_cuoi",
@@ -41,8 +30,6 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   khac: "Khác",
 };
 
-// ─── Service Status (Group B — VARCHAR in DB) ────
-
 export const SERVICE_STATUSES = ["active", "inactive"] as const;
 export type ServiceStatus = (typeof SERVICE_STATUSES)[number];
 
@@ -55,8 +42,6 @@ export const SERVICE_STATUS_VARIANTS: Record<ServiceStatus, string> = {
   active: "success",
   inactive: "muted",
 };
-
-// ─── Service Units (Group B — VARCHAR in DB) ─────
 
 export const SERVICE_UNITS = [
   "dich_vu",
@@ -80,8 +65,6 @@ export const SERVICE_UNIT_LABELS: Record<ServiceUnit, string> = {
   san_pham: "Sản phẩm",
 };
 
-// ─── Fulfillment Type (Group B) ──────────────────
-
 export const FULFILLMENT_TYPES = ["single", "bundle"] as const;
 export type FulfillmentType = (typeof FULFILLMENT_TYPES)[number];
 
@@ -89,8 +72,6 @@ export const FULFILLMENT_TYPE_LABELS: Record<FulfillmentType, string> = {
   single: "Đơn lẻ",
   bundle: "Gói combo",
 };
-
-// ─── View Modes ──────────────────────────────────
 
 export const VIEW_MODES = ["list", "grid"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];

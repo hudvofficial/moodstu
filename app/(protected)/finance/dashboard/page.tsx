@@ -70,6 +70,17 @@ function ZoneSkeleton({ className = "h-44" }: { className?: string }) {
 async function CriticalIntelligenceZone() {
   const intelligence = unwrap(await getCachedFinanceIntelligence(), null);
 
+  if (!intelligence) {
+    return (
+      <section className="card-base p-8 text-center">
+        <h2 className="text-h3">Chưa có dữ liệu tài chính</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-body-sm text-text-secondary">
+          Các chỉ số sức khỏe, runway và hòa vốn sẽ xuất hiện sau khi có dữ liệu production như hợp đồng, phiếu thu, chi phí hoặc công nợ.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
       <HealthScoreCard data={intelligence} />
@@ -201,4 +212,3 @@ export default function FinanceSmartDashboardPage() {
     </main>
   );
 }
-

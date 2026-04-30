@@ -66,7 +66,7 @@ Status: 🟡 In Progress
 - ✅ --radius-content: XÓA → gộp vào md
 
 ### BUG 5: Tailwind v4 syntax sai *(đã fix)*
-- ✅ `rounded-[var(--radius-*)]` → `rounded-*` (41 files)
+- ✅ Arbitrary radius wildcard class pattern was replaced by fixed radius utilities (41 files)
 
 ---
 

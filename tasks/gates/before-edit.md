@@ -78,7 +78,7 @@ grep "THAY CHO\|❌ KHÔNG" components/ui/REGISTRY.md
 
 - [ ] **z-index:** Dùng CSS variable (`--z-modal`, `--z-dropdown`) khai báo trong `globals.css @theme` → class trong `components.css`. ❌ KHÔNG `style={{ zIndex: 99999 }}`, ❌ KHÔNG `z-[99999]`
 - [ ] **background:** Dùng SSOT class (`.card-base`, `.portal-dropdown`) hoặc token `bg-bg-card`. ❌ KHÔNG `style={{ backgroundColor: '...' }}`
-- [ ] **color/spacing/radius:** Dùng CSS variable (`--color-*`, `--spacing-*`, `--radius-*`). ❌ KHÔNG hardcode hex/px
+- [ ] **color/spacing/radius:** Dùng CSS variable (`--color-*`, `--spacing-*`, `--radius-[name]`). ❌ KHÔNG hardcode hex/px
 - [ ] **Self-check trước submit:** Grep file vừa sửa → tìm `style={{` hoặc hardcode hex → nếu CÓ → DỪNG, refactor sang token
 
 **❌ VI PHẠM = REVERT. Không ngoại lệ.**

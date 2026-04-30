@@ -82,7 +82,7 @@ export default function EmployeeListPage({
         pageSize: initialPageSize,
       },
       keepPreviousData: true,
-      revalidateOnMount: false,
+      revalidateOnMount: true,
     },
   );
   const statsQuery = useSWR(cacheKeys.employees() + ":stats", async () => {
@@ -92,7 +92,7 @@ export default function EmployeeListPage({
   }, {
     fallbackData: initialStats,
     keepPreviousData: true,
-    revalidateOnMount: false,
+    revalidateOnMount: true,
   });
 
   const list = listQuery.data || {

@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { BadgeDollarSign } from "lucide-react";
 import type { ServiceFormData } from "./hooks/useServiceForm";
 import {
   SERVICE_UNIT_LABELS,
@@ -14,47 +15,36 @@ import type { ServiceUnit, ServiceStatus, FulfillmentType } from "@/types/servic
 import { SelectForm } from "@/components/ui/select/SelectForm";
 import { CurrencyInput } from "@/components/ui/currency-input";
 
-// ═══════════════════════════════════════════
-// ServicePriceSection — Prices, Unit, Status, Fulfillment
-// Part of: ServiceForm composition pattern
-// @see Phase 1c / Task 4
-// ═══════════════════════════════════════════
-
 interface Props {
   formData: ServiceFormData;
-  errors: Partial<Record<keyof ServiceFormData, string>>;
+  errors: Partial<Record<keyof ServiceFormData | "bundle_items", string>>;
   onChange: <K extends keyof ServiceFormData>(key: K, value: ServiceFormData[K]) => void;
 }
 
 function ServicePriceSectionInner({ formData, errors, onChange }: Props) {
+  const isProductUnit = formData.unit === "san_pham";
+  const belowCost =
+    isProductUnit &&
+    formData.selling_price > 0 &&
+    formData.cost_price > 0 &&
+    formData.selling_price < formData.cost_price;
+
   return (
-    <div className="card-base rounded-soft-2xl p-4 lg:p-6 space-y-4">
+    <div className="card-base rounded-soft-2xl p-3.5 sm:p-4 lg:p-6 space-y-3.5 lg:space-y-4">
       <h3 className="text-label text-primary flex items-center gap-2">
-        💰 Giá & phân loại
+        <BadgeDollarSign className="w-4 h-4" />
+        Giá bán & phân loại
       </h3>
 
-      {/* Prices — 2 cols on desktop, stacked on mobile */}
       <div className="form-grid-2col">
-        {/* Selling Price */}
         <CurrencyInput
           label="Giá bán *"
           value={formData.selling_price || 0}
           onChange={(v: number) => onChange("selling_price", v)}
           error={errors.selling_price}
-          className="text-lg text-primary"
+          className="h-11 text-primary"
         />
 
-        {/* Cost Price */}
-        <CurrencyInput
-          label="Giá vốn"
-          value={formData.cost_price || 0}
-          onChange={(v: number) => onChange("cost_price", v)}
-          error={errors.cost_price}
-        />
-      </div>
-
-      {/* Unit + Status (2 cols) */}
-      <div className="form-grid-2col">
         <SelectForm
           label="Đơn vị tính"
           value={formData.unit}
@@ -64,7 +54,28 @@ function ServicePriceSectionInner({ formData, errors, onChange }: Props) {
             label: SERVICE_UNIT_LABELS[u as ServiceUnit],
           }))}
         />
+      </div>
 
+      {isProductUnit && (
+        <div className="form-grid-2col">
+          <CurrencyInput
+            label="Giá vốn sản phẩm"
+            value={formData.cost_price || 0}
+            onChange={(v: number) => onChange("cost_price", v)}
+            error={errors.cost_price}
+            className="h-11"
+          />
+          <div className="hidden lg:block" />
+        </div>
+      )}
+
+      {belowCost && (
+        <p className="warning-text">
+          Giá bán đang thấp hơn giá vốn sản phẩm. Vẫn có thể lưu nếu đây là giá khuyến mãi.
+        </p>
+      )}
+
+      <div className="form-grid-2col">
         <SelectForm
           label="Trạng thái"
           value={formData.status}
@@ -74,10 +85,7 @@ function ServicePriceSectionInner({ formData, errors, onChange }: Props) {
             label: SERVICE_STATUS_LABELS[s as ServiceStatus],
           }))}
         />
-      </div>
 
-      {/* Fulfillment Type */}
-      <div className="space-y-1 min-w-0 w-full">
         <SelectForm
           label="Hình thức cung cấp"
           value={formData.fulfillment_type}

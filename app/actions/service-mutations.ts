@@ -52,6 +52,21 @@ function asRpcResult(value: Json | null, label: string): ServiceRpcResult {
   };
 }
 
+function serviceMutationError(prefix: string, error: { message: string }) {
+  const message = error.message || "Khong xac dinh";
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes("service_code") ||
+    lower.includes("duplicate") ||
+    lower.includes("unique")
+  ) {
+    return new Error("Ma dich vu da ton tai");
+  }
+
+  return new Error(`${prefix}: ${message}`);
+}
+
 export async function createService(
   rawData: Record<string, unknown>,
   bundleItems?: BundleItemInput[],
@@ -79,7 +94,7 @@ export async function createService(
       p_service: servicePayload as Json,
     });
 
-    if (error) throw new Error(`Loi tao dich vu: ${error.message}`);
+    if (error) throw serviceMutationError("Loi tao dich vu", error);
     const service = asRpcResult(rpcData, "save_service_atomic");
 
     fireAuditLog({
@@ -123,7 +138,7 @@ export async function updateService(
       p_service: servicePayload as Json,
     });
 
-    if (error) throw new Error(`Loi cap nhat dich vu: ${error.message}`);
+    if (error) throw serviceMutationError("Loi cap nhat dich vu", error);
     const service = asRpcResult(rpcData, "save_service_atomic");
 
     fireAuditLog({
