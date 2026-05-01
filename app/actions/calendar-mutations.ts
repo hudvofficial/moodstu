@@ -29,6 +29,31 @@ function datePart(value: string) {
   return value.split("T")[0];
 }
 
+function isDateOnly(value: string) {
+  return !value.includes("T");
+}
+
+function addOneDayDateKey(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function buildGoogleEventDates(startValue: string, endValue?: string | null) {
+  if (isDateOnly(startValue)) {
+    const endDate = endValue && isDateOnly(endValue) ? endValue : startValue;
+    return {
+      start: { date: startValue },
+      end: { date: addOneDayDateKey(endDate) },
+    };
+  }
+
+  return {
+    start: { dateTime: new Date(startValue).toISOString() },
+    end: { dateTime: new Date(endValue || startValue).toISOString() },
+  };
+}
+
 function revalidateCalendar() {
   revalidatePath("/calendar");
 }
@@ -108,6 +133,8 @@ export type CalendarSchedulePayload = {
   employee_id: string;
   color_id?: string;
   sync_to_google?: boolean;
+  location?: string | null;
+  notes?: string | null;
 };
 
 const calendarScheduleSchema = z.object({
@@ -121,6 +148,8 @@ const calendarScheduleSchema = z.object({
   employee_id: z.string().trim().min(1, "Thiếu ID nhân sự"),
   color_id: z.string().trim().optional(),
   sync_to_google: z.boolean().optional(),
+  location: z.string().trim().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
 }).superRefine((data, ctx) => {
   if (!data.end_date) return;
 
@@ -153,6 +182,8 @@ export async function createCalendarEvent(
         status: "scheduled",
         color_id: parsed.color_id || "blue",
         google_event_id: null,
+        location: parsed.location || null,
+        notes: parsed.notes || null,
       })
       .select("id")
       .single();
@@ -165,10 +196,13 @@ export async function createCalendarEvent(
 
     if (parsed.sync_to_google) {
       try {
+        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
         const googleEvent = await createGoogleCalendarEvent({
           summary: parsed.title,
-          start: { dateTime: new Date(parsed.event_date).toISOString() },
-          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
+          location: parsed.location || undefined,
+          description: parsed.notes || undefined,
+          start: googleDates.start,
+          end: googleDates.end,
         });
         const googleEventId = typeof googleEvent?.id === "string" ? googleEvent.id : null;
 
@@ -219,6 +253,8 @@ export async function updateCalendarEvent(
         end_date: parsed.end_date || null,
         employee_id: parsed.employee_id || oldRecord.employee_id,
         color_id: parsed.color_id || "blue",
+        location: parsed.location || null,
+        notes: parsed.notes || null,
       })
       .eq("id", parsed.eventId);
 
@@ -228,10 +264,13 @@ export async function updateCalendarEvent(
 
     if (oldRecord.google_event_id) {
       try {
+        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
         await updateGoogleCalendarEvent(oldRecord.google_event_id, {
           summary: parsed.title,
-          start: { dateTime: new Date(parsed.event_date).toISOString() },
-          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
+          location: parsed.location || undefined,
+          description: parsed.notes || undefined,
+          start: googleDates.start,
+          end: googleDates.end,
         });
       } catch (err) {
         warningMsg = err instanceof Error ? err.message : String(err);
@@ -239,10 +278,13 @@ export async function updateCalendarEvent(
       }
     } else if (parsed.sync_to_google) {
       try {
+        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
         const googleEvent = await createGoogleCalendarEvent({
           summary: parsed.title,
-          start: { dateTime: new Date(parsed.event_date).toISOString() },
-          end: { dateTime: new Date(parsed.end_date || parsed.event_date).toISOString() },
+          location: parsed.location || undefined,
+          description: parsed.notes || undefined,
+          start: googleDates.start,
+          end: googleDates.end,
         });
         const googleEventId = typeof googleEvent?.id === "string" ? googleEvent.id : null;
 

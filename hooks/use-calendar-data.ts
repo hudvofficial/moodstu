@@ -52,7 +52,7 @@ export function useCalendarData() {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
 
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
     cacheKeys.calendar(month, year),
     () => fetchCalendarEvents(month, year)
   );
@@ -197,6 +197,8 @@ export function useCalendarData() {
     viewMode,
     setViewMode: handleSetViewMode,
     isLoading,
+    isInitialLoading: isLoading && !data,
+    isRefreshing: isValidating && !!data,
     error: error?.message || serverError,
     mutate: async () => {
       await mutate();

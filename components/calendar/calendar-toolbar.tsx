@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, SlidersHorizontal, RefreshCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
+import { CalendarMonthYearPicker } from "./calendar-month-year-picker";
 import SolarLunarConverter from "./solar-lunar-converter";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
@@ -19,6 +20,9 @@ interface CalendarToolbarProps {
     availableStatuses: { label: string; value: string }[];
   };
   onNewEvent: () => void;
+  onNavigateDate?: (date: Date) => void;
+  onOpenLunarDay?: (date: Date) => void;
+  isUpdating?: boolean;
 }
 
 const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
@@ -27,11 +31,12 @@ const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
   { label: "Ngày", value: "day" },
 ];
 
-export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewModeChange, filters, onNewEvent }: CalendarToolbarProps) {
+export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewModeChange, filters, onNewEvent, onNavigateDate, onOpenLunarDay, isUpdating = false }: CalendarToolbarProps) {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
+  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
 
   const hasActiveFilter = filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
 
@@ -67,15 +72,25 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
     onDateChange(new Date());
   };
 
+  const handleOpenMonthYearPicker = () => {
+    setIsMonthYearPickerOpen(true);
+  };
+
   return (
     <>
       {/* ── Desktop Toolbar (unchanged) ── */}
       <div className="hidden lg:flex items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
+          <Button
+            unstyled
+            type="button"
+            onClick={handleOpenMonthYearPicker}
+            className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1 text-xl font-bold text-text-primary transition-colors hover:bg-bg-hover hover:text-primary"
+            aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
+          >
             <CalendarIcon className="w-5 h-5 text-text-muted" />
             Tháng {month}, {year}
-          </h2>
+          </Button>
           <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
             <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
               <ChevronLeft className="w-4 h-4" />
@@ -102,6 +117,12 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isUpdating && (
+            <div className="hidden xl:flex items-center gap-1.5 rounded-full bg-bg-hover px-2.5 py-1 text-xs font-medium text-text-muted">
+              <Loader2 className="size-3.5 animate-spin text-primary" />
+              Đang cập nhật
+            </div>
+          )}
           <SelectPill
             value={filters.selectedStatuses[0] || "all"}
             onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
@@ -143,7 +164,12 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
             <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" className="text-base font-bold px-2 py-1 rounded-lg" onClick={handleToday}>
+            <Button
+              variant="ghost"
+              className="text-base font-bold px-2 py-1 rounded-lg"
+              onClick={handleOpenMonthYearPicker}
+              aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
+            >
               T{month}, {year}
             </Button>
             <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handleNext}>
@@ -151,6 +177,11 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
             </Button>
           </div>
           <div className="flex items-center gap-1.5">
+            {isUpdating && (
+              <div className="flex w-10 h-10 items-center justify-center rounded-full bg-bg-card shadow-sm border border-border/50 text-primary">
+                <Loader2 size={20} strokeWidth={2.5} className="animate-spin" />
+              </div>
+            )}
             <Button
               variant="ghost"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -229,8 +260,18 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
       <SolarLunarConverter
         isOpen={isConverterOpen}
         onClose={() => setIsConverterOpen(false)}
-        onNavigateDate={onDateChange}
+        onNavigateDate={onNavigateDate ?? onDateChange}
+        onOpenDayDetail={onOpenLunarDay}
       />
+      {isMonthYearPickerOpen && (
+        <CalendarMonthYearPicker
+          open={isMonthYearPickerOpen}
+          currentDate={currentDate}
+          viewMode={viewMode}
+          onOpenChange={setIsMonthYearPickerOpen}
+          onSelectDate={onDateChange}
+        />
+      )}
     </>
   );
 }

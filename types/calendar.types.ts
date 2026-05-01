@@ -21,6 +21,8 @@ export interface UnifiedCalendarEvent {
   originalGoogleEvent?: { id: string; htmlLink?: string; colorId?: string } | null;
   workTypeLabel?: string;
   customerName?: string | null;
+  location?: string | null;
+  notes?: string | null;
 }
 
 export type CalendarViewMode = "month" | "week" | "day";

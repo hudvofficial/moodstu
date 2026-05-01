@@ -8,6 +8,7 @@ import { useCalendarKeyboard } from "@/hooks/use-calendar-keyboard";
 import { DayView } from "./views/day-view";
 import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
+import { LunarDayDrawer } from "./lunar-day-drawer";
 import { FAB } from "@/components/ui/fab";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
@@ -36,23 +37,45 @@ interface CalendarWrapperProps {
 // Skeleton loading component
 function CalendarSkeleton() {
   return (
-    <div className="w-full h-150 flex flex-col gap-4 p-4 animate-pulse">
-      <div className="h-10 w-48 bg-bg-input rounded-md"></div>
-      <div className="flex-1 w-full bg-bg-hover rounded-lg"></div>
+    <div className="w-full flex-1 min-h-0 flex flex-col animate-pulse">
+      <div className="grid grid-cols-7 bg-bg-input border-b border-border shrink-0">
+        {Array.from({ length: 7 }).map((_, index) => (
+          <div key={index} className="h-8 border-r border-border/60 last:border-r-0" />
+        ))}
+      </div>
+      <div className="grid flex-1 grid-cols-7 grid-rows-6 min-h-0">
+        {Array.from({ length: 42 }).map((_, index) => (
+          <div key={index} className="border-r border-b border-border/60 bg-bg-card last:border-r-0">
+            <div className="m-2 h-4 w-8 rounded bg-bg-hover" />
+            <div className="mx-2 mt-3 h-3 w-3/4 rounded bg-bg-hover/80" />
+            <div className="mx-2 mt-2 h-3 w-1/2 rounded bg-bg-hover/70" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 const SCROLL_DEBOUNCE_MS = 300;
 
+function removeLunarDrawerParam() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("drawer")) return;
+  url.searchParams.delete("drawer");
+  window.history.replaceState({}, "", url.toString());
+}
+
 export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: CalendarWrapperProps) {
-  const { currentDate, setCurrentDate, events, eventsByDate, viewMode, setViewMode, isLoading, error, filters, mutate } = useCalendarData();
+  const { currentDate, setCurrentDate, events, eventsByDate, viewMode, setViewMode, isInitialLoading, isRefreshing, error, filters, mutate } = useCalendarData();
   const [selectedMobileDate, setSelectedMobileDate] = useState<Date | null>(null);
+  const [selectedLunarDate, setSelectedLunarDate] = useState<Date | null>(null);
 
   // Slide animation direction for month transitions
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const slideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openedInitialLunarDrawerRef = useRef(false);
 
   // Auto-clear slideDirection after animation completes (250ms matches CSS duration)
   useEffect(() => {
@@ -174,11 +197,52 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
 
   const isSmallScreen = isMobile || isTablet;
 
+  const handleNavigateDate = useCallback((date: Date) => {
+    setCurrentDate(date);
+    if (isSmallScreen) {
+      setSelectedMobileDate(date);
+    } else {
+      setViewMode("day");
+    }
+  }, [isSmallScreen, setCurrentDate, setViewMode]);
+
+  const handleOpenLunarDay = useCallback((date: Date) => {
+    setSelectedLunarDate(date);
+  }, []);
+
+  const handleCloseLunarDay = useCallback(() => {
+    setSelectedLunarDate(null);
+    removeLunarDrawerParam();
+  }, []);
+
+  const handleCreateFromLunarDay = useCallback((date: Date) => {
+    setSelectedLunarDate(null);
+    removeLunarDrawerParam();
+    openCreateForm(date);
+  }, [openCreateForm]);
+
+  const handleGoToCalendarFromLunarDay = useCallback((date: Date) => {
+    setSelectedLunarDate(null);
+    removeLunarDrawerParam();
+    handleNavigateDate(date);
+  }, [handleNavigateDate]);
+
   useEffect(() => {
     if (mounted && isSmallScreen && viewMode !== "month") {
       setViewMode("month");
     }
   }, [mounted, isSmallScreen, setViewMode, viewMode]);
+
+  useEffect(() => {
+    if (!mounted || openedInitialLunarDrawerRef.current || typeof window === "undefined") return;
+    const params = new URL(window.location.href).searchParams;
+    if (params.get("drawer") !== "lunar") return;
+    openedInitialLunarDrawerRef.current = true;
+    const rafId = window.requestAnimationFrame(() => {
+      setSelectedLunarDate(currentDate);
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [currentDate, mounted]);
 
   if (error) return <div className="p-4 text-red-500">Lỗi tải dữ liệu lịch: {error}</div>;
 
@@ -228,10 +292,18 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
         onViewModeChange={setViewMode}
         filters={filters} 
         onNewEvent={handleNewEvent}
+        onNavigateDate={handleNavigateDate}
+        onOpenLunarDay={handleOpenLunarDay}
+        isUpdating={isInitialLoading || isRefreshing}
       />
+      {(isInitialLoading || isRefreshing) && mounted && (
+         <div className="h-0.5 w-full overflow-hidden bg-bg-hover">
+            <div className="h-full w-1/3 animate-pulse rounded-full bg-primary/70" />
+         </div>
+      )}
       <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
-         {(!mounted || isLoading) && (
-            <div className="absolute inset-0 z-20 flex flex-col gap-4 p-4 bg-bg-base/80 backdrop-blur-sm">
+         {!mounted && (
+            <div className="absolute inset-0 z-20 flex flex-col bg-bg-base">
                <CalendarSkeleton />
             </div>
          )}
@@ -261,6 +333,13 @@ export function CalendarWrapper({ userRole = 'viewer', currentUserId = '' }: Cal
          onClose={handleCloseDayDrawer}
          onEventClick={openEditForm}
          onCreateEvent={openCreateForm}
+      />
+
+      <LunarDayDrawer
+         date={selectedLunarDate}
+         onClose={handleCloseLunarDay}
+         onCreateEvent={handleCreateFromLunarDay}
+         onGoToCalendar={handleGoToCalendarFromLunarDay}
       />
 
       {isFormOpen && (

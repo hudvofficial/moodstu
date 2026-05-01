@@ -15,6 +15,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onNavigateDate?: (date: Date) => void;
+  onOpenDayDetail?: (date: Date) => void;
 }
 
 type Mode = "SolarToLunar" | "LunarToSolar";
@@ -30,7 +31,7 @@ interface ConversionResult {
   originalDate: Date;
 }
 
-export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate }: Props) {
+export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate, onOpenDayDetail }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("SolarToLunar");
   const [day, setDay] = useState(new Date().getDate());
@@ -106,13 +107,15 @@ export default function SolarLunarConverter({ isOpen, onClose, onNavigateDate }:
     if (!result) return;
     const d = result.originalDate;
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    if (onNavigateDate) {
+    if (onOpenDayDetail) {
+      onOpenDayDetail(d);
+    } else if (onNavigateDate) {
       onNavigateDate(d);
     } else {
-      router.push(`/calendar?date=${iso}`);
+      router.push(`/calendar?date=${iso}&drawer=lunar`);
     }
     onClose();
-  }, [result, router, onClose, onNavigateDate]);
+  }, [result, router, onClose, onNavigateDate, onOpenDayDetail]);
 
   return (
     <UnifiedModal isOpen={isOpen} onClose={onClose} size="sm" showCloseButton={false}>

@@ -191,6 +191,130 @@ export interface LunarDetails {
   weekday: string;
 }
 
+const VI_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"] as const;
+const VI_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"] as const;
+const VI_CAN_YEAR = ["Canh", "Tân", "Nhâm", "Quý", "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ"] as const;
+const VI_CHI_YEAR = ["Thân", "Dậu", "Tuất", "Hợi", "Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi"] as const;
+const VI_WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"] as const;
+
+const CHI_HOUR_RANGES = [
+  "23h-1h",
+  "1h-3h",
+  "3h-5h",
+  "5h-7h",
+  "7h-9h",
+  "9h-11h",
+  "11h-13h",
+  "13h-15h",
+  "15h-17h",
+  "17h-19h",
+  "19h-21h",
+  "21h-23h",
+] as const;
+
+const AUSPICIOUS_HOUR_BY_DAY_BRANCH: Record<number, number[]> = {
+  0: [0, 1, 3, 6, 8, 9],
+  1: [2, 3, 5, 8, 10, 11],
+  2: [0, 1, 4, 5, 7, 10],
+  3: [0, 2, 3, 6, 7, 9],
+  4: [2, 4, 5, 8, 9, 11],
+  5: [1, 4, 6, 7, 10, 11],
+  6: [0, 1, 3, 6, 8, 9],
+  7: [2, 3, 5, 8, 10, 11],
+  8: [0, 1, 4, 5, 7, 10],
+  9: [0, 2, 3, 6, 7, 9],
+  10: [2, 4, 5, 8, 9, 11],
+  11: [1, 4, 6, 7, 10, 11],
+};
+
+export interface LunarHourRange {
+  chi: string;
+  range: string;
+  label: string;
+}
+
+export interface LunarDaySummary {
+  solarDate: Date;
+  solarDay: number;
+  solarMonth: number;
+  solarYear: number;
+  weekday: string;
+  lunarDay: number;
+  lunarMonth: number;
+  lunarYear: number;
+  leap: boolean;
+  canChiDay: string;
+  canChiMonth: string;
+  canChiYear: string;
+  auspiciousHours: LunarHourRange[];
+  solarTerm: string | null;
+  conflictAges: string | null;
+  joyDirection: string | null;
+  wealthDirection: string | null;
+}
+
+function getVietnameseCanChiYear(year: number): string {
+  return `${VI_CAN_YEAR[year % 10]} ${VI_CHI_YEAR[year % 12]}`;
+}
+
+function getVietnameseDayCanChi(date: Date) {
+  const jd = jdFromDate(date.getDate(), date.getMonth() + 1, date.getFullYear());
+  const canIndex = (jd + 9) % 10;
+  const chiIndex = (jd + 1) % 12;
+  return {
+    chiIndex,
+    label: `${VI_CAN[canIndex]} ${VI_CHI[chiIndex]}`,
+  };
+}
+
+function getVietnameseMonthCanChi(lunarMonth: number, lunarYear: number): string {
+  const canNamIdx = lunarYear % 10;
+  let startCanMonthIdx = 0;
+  if (canNamIdx === 4 || canNamIdx === 9) startCanMonthIdx = 2;
+  else if (canNamIdx === 5 || canNamIdx === 0) startCanMonthIdx = 4;
+  else if (canNamIdx === 6 || canNamIdx === 1) startCanMonthIdx = 6;
+  else if (canNamIdx === 7 || canNamIdx === 2) startCanMonthIdx = 8;
+  else if (canNamIdx === 8 || canNamIdx === 3) startCanMonthIdx = 0;
+
+  const canThangIdx = (startCanMonthIdx + (lunarMonth - 1)) % 10;
+  const chiThangIdx = (2 + (lunarMonth - 1)) % 12;
+  return `${VI_CAN[canThangIdx]} ${VI_CHI[chiThangIdx]}`;
+}
+
+function getAuspiciousHours(dayBranchIndex: number): LunarHourRange[] {
+  return (AUSPICIOUS_HOUR_BY_DAY_BRANCH[dayBranchIndex] ?? []).map((chiIndex) => ({
+    chi: VI_CHI[chiIndex],
+    range: CHI_HOUR_RANGES[chiIndex],
+    label: `${VI_CHI[chiIndex]} (${CHI_HOUR_RANGES[chiIndex]})`,
+  }));
+}
+
+export function getLunarDaySummary(date: Date): LunarDaySummary {
+  const safeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const lunar = getLunarDate(safeDate.getDate(), safeDate.getMonth() + 1, safeDate.getFullYear());
+  const dayCanChi = getVietnameseDayCanChi(safeDate);
+
+  return {
+    solarDate: safeDate,
+    solarDay: safeDate.getDate(),
+    solarMonth: safeDate.getMonth() + 1,
+    solarYear: safeDate.getFullYear(),
+    weekday: VI_WEEKDAYS[safeDate.getDay()],
+    lunarDay: lunar.day,
+    lunarMonth: lunar.month,
+    lunarYear: lunar.year,
+    leap: lunar.leap,
+    canChiDay: dayCanChi.label,
+    canChiMonth: getVietnameseMonthCanChi(lunar.month, lunar.year),
+    canChiYear: getVietnameseCanChiYear(lunar.year),
+    auspiciousHours: getAuspiciousHours(dayCanChi.chiIndex),
+    solarTerm: null,
+    conflictAges: null,
+    joyDirection: null,
+    wealthDirection: null,
+  };
+}
+
 /**
  * Trả về thông tin Âm lịch chi tiết cho 1 ngày Dương lịch:
  * ngày/tháng/năm âm, Can Chi (ngày + tháng + năm), thứ trong tuần.

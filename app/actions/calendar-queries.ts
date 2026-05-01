@@ -22,6 +22,8 @@ type CalendarScheduleRow = {
   status: string | null;
   google_event_id: string | null;
   color_id: string | null;
+  location: string | null;
+  notes: string | null;
 };
 
 type CalendarTaskRow = {
@@ -99,7 +101,7 @@ export async function fetchCalendarEvents(
         .from("schedules")
         .select(`
           id, event_type, event_date, end_date, employee_id,
-          contract_id, status, google_event_id, color_id
+          contract_id, status, google_event_id, color_id, location, notes
         `)
         .gte("event_date", startDate)
         .lte("event_date", endDate),
@@ -134,7 +136,7 @@ export async function fetchCalendarEvents(
         title: schedule.event_type || "Sự kiện",
         start: schedule.event_date,
         end: schedule.end_date,
-        allDay: false,
+        allDay: !schedule.event_date.includes("T"),
         status: schedule.status || "pending",
         employeeId: schedule.employee_id,
         contractId: schedule.contract_id,
@@ -146,6 +148,8 @@ export async function fetchCalendarEvents(
         backgroundColor: schedule.color_id ? GOOGLE_COLORS[schedule.color_id] || "#039be5" : null,
         googleEventId: schedule.google_event_id,
         originalDateField: "event_date",
+        location: schedule.location,
+        notes: schedule.notes,
       });
     }
 
