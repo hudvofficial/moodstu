@@ -32,15 +32,34 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
   const [pickedItem, setPickedItem] = useState<InventoryItem | null>(null);
   const activeItem = item || pickedItem;
 
-  const [quantity, setQuantity] = useState(1);
-  const [unitCost, setUnitCost] = useState(0);
-  const [supplier, setSupplier] = useState("");
+  const [quantityInput, setQuantityInput] = useState("");
+  const [unitCost, setUnitCost] = useState(item?.purchase_price || 0);
+  const [supplier, setSupplier] = useState(item?.supplier || "");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
   const [pickerSearch, setPickerSearch] = useState("");
   const debouncedPickerSearch = useDebounce(pickerSearch, 300);
+  const quantity = Number(quantityInput);
+  const isQuantityValid =
+    quantityInput.trim() !== "" && Number.isInteger(quantity) && quantity >= 1;
+
+  const resetForm = () => {
+    setQuantityInput("");
+    setUnitCost(item?.purchase_price || 0);
+    setSupplier(item?.supplier || "");
+    setReason("");
+    setNotes("");
+    setError("");
+    setPickedItem(null);
+    setPickerSearch("");
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen || item) return;
@@ -68,7 +87,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
       setError("Vật tư đã ngưng, không thể nhập kho");
       return;
     }
-    if (quantity < 1) { setError("Số lượng phải ≥ 1"); return; }
+    if (!isQuantityValid) { setError("Số lượng phải ≥ 1"); return; }
 
     setError("");
     startTransition(async () => {
@@ -83,7 +102,7 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
       if (result && "success" in result && result.success) {
         toast.success(`Đã nhập ${quantity} ${activeItem.name} vào kho`);
-        onClose();
+        handleClose();
         void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
@@ -103,16 +122,16 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
   return (
     <UnifiedModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Nhập kho"
       description={activeItem ? `${activeItem.name} (${activeItem.item_code}) — Tồn: ${activeItem.current_stock}` : "Chọn vật tư cần nhập kho"}
       size="md"
       footer={
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>
             Hủy
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isPending}>
+          <Button type="button" onClick={handleSubmit} disabled={isPending || !activeItem || !isQuantityValid}>
             {isPending ? "Đang xử lý..." : "Xác nhận nhập kho"}
           </Button>
         </div>
@@ -150,8 +169,9 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
             <Input
               type="number"
               min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              step={1}
+              value={quantityInput}
+              onChange={(e) => setQuantityInput(e.target.value)}
             />
           </div>
           <div>

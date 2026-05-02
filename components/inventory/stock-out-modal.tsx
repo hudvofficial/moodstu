@@ -31,7 +31,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   const [pickedItem, setPickedItem] = useState<InventoryItem | null>(null);
   const activeItem = item || pickedItem;
 
-  const [quantity, setQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState("");
   const [reason, setReason] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -40,6 +40,27 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
   const [pickerSearch, setPickerSearch] = useState("");
   const debouncedPickerSearch = useDebounce(pickerSearch, 300);
+  const quantity = Number(quantityInput);
+  const hasValidQuantity =
+    quantityInput.trim() !== "" && Number.isInteger(quantity) && quantity >= 1;
+  const quantityExceedsStock = Boolean(activeItem && hasValidQuantity && quantity > activeItem.current_stock);
+  const canSubmit = Boolean(activeItem && hasValidQuantity && !quantityExceedsStock);
+
+  const resetForm = () => {
+    setQuantityInput("");
+    setReason("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setNotes("");
+    setError("");
+    setPickedItem(null);
+    setPickerSearch("");
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen || item) return;
@@ -67,7 +88,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       setError("Vật tư đã ngưng, không thể xuất kho");
       return;
     }
-    if (quantity < 1) { setError("Số lượng phải ≥ 1"); return; }
+    if (!hasValidQuantity) { setError("Số lượng phải ≥ 1"); return; }
     if (quantity > activeItem.current_stock) {
       setError(`Không đủ tồn kho! Hiện có: ${activeItem.current_stock}`);
       return;
@@ -89,7 +110,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         if (result.data?.warning) {
           toast.warning(result.data.warning);
         }
-        onClose();
+        handleClose();
         void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
@@ -108,16 +129,16 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   return (
     <UnifiedModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Xuất kho"
       description={activeItem ? `${activeItem.name} (${activeItem.item_code}) — Tồn: ${activeItem.current_stock}` : "Chọn vật tư cần xuất kho"}
       size="md"
       footer={
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
+          <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>
             Hủy
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isPending}>
+          <Button type="button" onClick={handleSubmit} disabled={isPending || !canSubmit}>
             {isPending ? "Đang xử lý..." : "Xác nhận xuất kho"}
           </Button>
         </div>
@@ -131,7 +152,11 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
           <div>
             <ComboboxSearch
               label="Chọn vật tư *"
-              onChange={(id) => setPickedItem(pickerItems.find(i => i.id === id) || null)}
+              onChange={(id) => {
+                setPickedItem(pickerItems.find(i => i.id === id) || null);
+                setQuantityInput("");
+                setError("");
+              }}
               onSearchChange={setPickerSearch}
               options={itemOptions}
               placeholder="Tìm và chọn vật tư..."
@@ -154,11 +179,12 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             type="number"
             min={1}
             max={activeItem.current_stock}
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
+            step={1}
+            value={quantityInput}
+            onChange={(e) => setQuantityInput(e.target.value)}
           />
-          <p className="text-xs text-text-muted mt-1">
-            Tối đa: {activeItem.current_stock}
+          <p className={`text-xs mt-1 ${quantityExceedsStock ? "text-error" : "text-text-muted"}`}>
+            {quantityExceedsStock ? `Vượt tồn kho. Tối đa: ${activeItem.current_stock}` : `Tối đa: ${activeItem.current_stock}`}
           </p>
         </div>
 
@@ -177,7 +203,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             <Input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="(tùy chọn)"
+              placeholder="VD: Nguyễn Văn A"
             />
           </div>
           <div>
@@ -185,7 +211,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             <Input
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="(tùy chọn)"
+              placeholder="VD: 0901234567"
             />
           </div>
         </div>

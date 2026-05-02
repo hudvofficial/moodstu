@@ -105,7 +105,11 @@ await expectStatus(baseUrl, "/contracts", [302, 303, 307, 308]);
 
 const swResponse = await expectStatus(baseUrl, "/sw.js", [200]);
 const serviceWorker = await swResponse.text();
-if (!serviceWorker.includes("supabase.co/rest")) {
+const hasSupabaseRestNetworkOnly =
+  /supabase\.co\/rest[\s\S]{0,200}?NetworkOnly/i.test(serviceWorker) ||
+  /supabase\\\.co\\\/rest[\s\S]{0,200}?NetworkOnly/i.test(serviceWorker);
+
+if (!hasSupabaseRestNetworkOnly) {
   throw new Error("/sw.js does not include the Supabase REST runtime cache rule");
 }
 

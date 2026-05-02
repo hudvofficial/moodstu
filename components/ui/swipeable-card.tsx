@@ -1,19 +1,11 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { motion, useAnimation, PanInfo } from "framer-motion";
-
-// ═══════════════════════════════════════════
-// SwipeableCard — iOS-like Swipe Actions
-// V2 Gold Standard - No CSS inline for styling
-// ONLY inline exceptions: Framer Motion's auto-generated x/y transforms
-// ═══════════════════════════════════════════
 
 export interface SwipeAction {
   id: string;
   label: string;
   icon: React.ReactNode;
-  // expects utility classes like "bg-success text-inverse" or "bg-error text-inverse"
   className: string;
   onClick: () => void;
 }
@@ -22,8 +14,15 @@ interface SwipeableCardProps {
   children: React.ReactNode;
   rightActions?: SwipeAction[];
   leftActions?: SwipeAction[];
-  actionWidth?: number; // px width per action button
+  actionWidth?: number;
   onSwipeOpen?: () => void;
+}
+
+const OPEN_THRESHOLD = 50;
+const VELOCITY_THRESHOLD = 0.5;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 export function SwipeableCard({
@@ -33,49 +32,81 @@ export function SwipeableCard({
   actionWidth = 72,
   onSwipeOpen,
 }: SwipeableCardProps) {
-  const controls = useAnimation();
-  const [isOpen, setIsOpen] = useState(false);
-  const swipeContainerRef = useRef<HTMLDivElement>(null);
+  const [x, setX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startOffsetRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const pointerIdRef = useRef<number | null>(null);
 
   const leftMax = leftActions.length * actionWidth;
   const rightMax = rightActions.length * actionWidth;
+  const minX = rightActions.length > 0 ? -rightMax : 0;
+  const maxX = leftActions.length > 0 ? leftMax : 0;
+  const isOpen = x !== 0;
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const offset = info.offset.x;
-    const velocity = info.velocity.x;
+  const closeSwipe = () => setX(0);
 
-    // Trigger open if dragged past threshold or swiped fast
-    if (offset < -50 || velocity < -500) {
-      if (rightActions.length > 0) {
-        controls.start({ x: -rightMax });
-        setIsOpen(true);
-        onSwipeOpen?.();
-        return;
-      }
-    } else if (offset > 50 || velocity > 500) {
-      if (leftActions.length > 0) {
-        controls.start({ x: leftMax });
-        setIsOpen(true);
-        onSwipeOpen?.();
-        return;
-      }
-    }
-
-    // Default: Snap back
-    controls.start({ x: 0 });
-    setIsOpen(false);
+  const openLeft = () => {
+    setX(leftMax);
+    onSwipeOpen?.();
   };
 
-  const closeSwipe = () => {
-    controls.start({ x: 0 });
-    setIsOpen(false);
+  const openRight = () => {
+    setX(-rightMax);
+    onSwipeOpen?.();
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    pointerIdRef.current = event.pointerId;
+    startXRef.current = event.clientX;
+    startOffsetRef.current = x;
+    startTimeRef.current = performance.now();
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || pointerIdRef.current !== event.pointerId) return;
+
+    const delta = event.clientX - startXRef.current;
+    setX(clamp(startOffsetRef.current + delta, minX, maxX));
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || pointerIdRef.current !== event.pointerId) return;
+
+    const delta = event.clientX - startXRef.current;
+    const elapsed = Math.max(performance.now() - startTimeRef.current, 1);
+    const velocity = delta / elapsed;
+
+    setIsDragging(false);
+    pointerIdRef.current = null;
+
+    if ((delta < -OPEN_THRESHOLD || velocity < -VELOCITY_THRESHOLD) && rightActions.length > 0) {
+      openRight();
+      return;
+    }
+
+    if ((delta > OPEN_THRESHOLD || velocity > VELOCITY_THRESHOLD) && leftActions.length > 0) {
+      openLeft();
+      return;
+    }
+
+    closeSwipe();
+  };
+
+  const handlePointerCancel = () => {
+    setIsDragging(false);
+    pointerIdRef.current = null;
+    closeSwipe();
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl bg-bg-base" ref={swipeContainerRef}>
-      {/* ── BACKGROUND ACTIONS LAYER ── */}
+    <div className="relative w-full overflow-hidden rounded-xl bg-bg-base">
       <div className="absolute inset-0 flex justify-between">
-        {/* Left Actions */}
         <div className="flex h-full">
           {leftActions.map((action) => (
             <div
@@ -83,6 +114,12 @@ export function SwipeableCard({
               role="button"
               tabIndex={0}
               onClick={() => {
+                action.onClick();
+                closeSwipe();
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
                 action.onClick();
                 closeSwipe();
               }}
@@ -95,7 +132,6 @@ export function SwipeableCard({
           ))}
         </div>
 
-        {/* Right Actions */}
         <div className="flex h-full">
           {rightActions.map((action) => (
             <div
@@ -103,6 +139,12 @@ export function SwipeableCard({
               role="button"
               tabIndex={0}
               onClick={() => {
+                action.onClick();
+                closeSwipe();
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
                 action.onClick();
                 closeSwipe();
               }}
@@ -116,25 +158,23 @@ export function SwipeableCard({
         </div>
       </div>
 
-      {/* ── FOREGROUND PANE ── */}
-      <motion.div
-        drag="x"
-        dragDirectionLock
-        onDragEnd={handleDragEnd}
-        animate={controls}
-        // Strict boundary constraints
-        dragConstraints={{
-          left: rightActions.length > 0 ? -rightMax : 0,
-          right: leftActions.length > 0 ? leftMax : 0,
+      <div
+        role="presentation"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerCancel}
+        onClick={() => {
+          if (isOpen && !isDragging) closeSwipe();
         }}
-        dragElastic={0.15}
-        // HIG requirement: touch-pan-y prevents page scroll lock when dragging horizontal
-        className="relative z-10 touch-pan-y w-full shadow-xs"
-        // Tap to close if open
-        onTap={() => isOpen && closeSwipe()}
+        className="relative z-10 touch-pan-y w-full shadow-xs will-change-transform"
+        style={{
+          transform: `translate3d(${x}px, 0, 0)`,
+          transition: isDragging ? "none" : "transform 180ms ease-out",
+        }}
       >
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # Plan: Performance & UX International Standard
 Created: 2026-04-23
-Status: Deployed - Production Validation Pending
+Status: Deployed - Public Production Smoke Passed, Authenticated/RUM Validation Pending
 Owner: Mood Studio Engineering
 
 ## Overview
@@ -65,8 +65,8 @@ Modules cần audit và chuẩn hóa:
 | 06 | Mutation UX & Optimistic Updates | Complete | 100% |
 | 07 | PWA/Cache Correctness | Complete | 100% |
 | 08 | Module-by-Module Performance Pass | Complete | 100% |
-| 09 | QA, Load Test & Production Monitoring | Blocked - Production Validation | 80% |
-| 10 | Rollout, Deploy & Regression Guard | Blocked - Deploy Validation | 85% |
+| 09 | QA, Load Test & Production Monitoring | Blocked - Authenticated/RUM Validation | 90% |
+| 10 | Rollout, Deploy & Regression Guard | Public Production Smoke Passed - Auth/Mobile Validation Pending | 95% |
 
 ## Progress Log
 ### 2026-05-02
@@ -111,12 +111,24 @@ Verification:
 - seeded smoke scripts: pass for contracts, dashboard, calendar, employees, and settings.
 - `npm run lint`: pass with the existing 5 warnings in `lib/navigation-data-prefetch.ts`.
 - `npm run build`: pass.
+- Supabase linked project `moodweddingstudio` already has migration `20260502073000_fix_inventory_generated_total_cost_rpcs` applied remotely.
+- Deployed Vercel production deployment `dpl_DB7VN6SWs4LuCKE9uPYn2sxVzd18`; production alias `https://stu.moodwedding.com` is live and Ready.
+- `npm run smoke:production`: pass after deploy.
+  - `/login`: 200.
+  - `/offline`: 200.
+  - protected `/contracts`: 307.
+  - `/sw.js`: 200 and contains Supabase REST `NetworkOnly` runtime rule.
+  - `/api/monitoring/web-vitals`: 200.
+- Synthetic unauthenticated production TTFB samples captured from current operator location:
+  - `/login` p75: 0.906s.
+  - `/offline` p75: 0.765s.
+  - protected `/contracts` redirect p75: 1.136s.
+  - `/api/monitoring/web-vitals` p75: 1.015s.
 
 Remaining:
-- `npm run smoke:production` currently reaches `/login`, `/offline`, protected `/contracts`, and `/sw.js`, but fails because the live production service worker does not yet expose the new Supabase REST runtime rule; deploy the current batch and rerun.
 - Run authenticated browser smoke for optimistic rollback, finance/dashboard refresh, CRM, operations, and service worker update behavior.
 - Capture production Web Vitals p75 and route TTFB before moving Phase 09/10 to 100%.
-- Deploy the current uncommitted performance batch, then re-run production smoke and mobile service worker validation.
+- Validate service worker update behavior on a real mobile authenticated session after deploy.
 
 ### 2026-04-23
 Implemented:
