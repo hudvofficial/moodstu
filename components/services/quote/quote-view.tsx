@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Printer, Pencil, Phone, MapPin } from "lucide-react";
+import { getStudioInfo } from "@/app/actions/settings-queries";
+import { useRealtime } from "@/hooks/use-realtime";
+import { cacheKeys, useSWR } from "@/lib/swr";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
@@ -28,14 +31,36 @@ interface Props {
 }
 
 export default function QuoteView({ service, studio }: Props) {
+  useRealtime("studio_info", {
+    cacheKeys: [cacheKeys.studioInfo()],
+    eventTypes: ["UPDATE"],
+    debounceMs: 120,
+  });
+
+  const { data: liveStudio } = useSWR<StudioInfo>(
+    cacheKeys.studioInfo(),
+    async () => {
+      const result = await getStudioInfo();
+      if (!result.success || !result.data) {
+        throw new Error("Không thể tải thông tin studio");
+      }
+      return result.data as StudioInfo;
+    },
+    {
+      fallbackData: studio,
+      revalidateOnMount: false,
+    },
+  );
+
   const structure = parseContentStructure(service.description || "");
   const itemCount = useMemo(
     () => structure.reduce((sum, s) => sum + s.items.length, 0),
     [structure],
   );
 
-  const studioLogo = studio?.logo_url || "/logo.png";
-  const studioName = studio?.name || "Mood Studio";
+  const currentStudio = liveStudio || studio;
+  const studioLogo = currentStudio?.logo_url || "/logo.png";
+  const studioName = currentStudio?.name || "Mood Studio";
   const formattedPrice = formatCurrency(service.selling_price);
 
 
@@ -210,16 +235,16 @@ export default function QuoteView({ service, studio }: Props) {
                 </div>
               </div>
               <div className="space-y-2.5 text-caption text-text-secondary">
-                {studio.hotline && (
+                {currentStudio.hotline && (
                   <div className="flex items-center gap-2.5">
                     <Phone className="w-3.5 h-3.5 text-primary/60" />
-                    <span className="font-medium">{studio.hotline}</span>
+                    <span className="font-medium">{currentStudio.hotline}</span>
                   </div>
                 )}
-                {studio.address && (
+                {currentStudio.address && (
                   <div className="flex items-center gap-2.5">
                     <MapPin className="w-3.5 h-3.5 text-primary/60" />
-                    <span className="font-medium">{studio.address}</span>
+                    <span className="font-medium">{currentStudio.address}</span>
                   </div>
                 )}
               </div>
@@ -327,16 +352,16 @@ export default function QuoteView({ service, studio }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="text-label font-bold text-text-main">{studioName}</p>
                 <div className="flex items-center gap-3 mt-0.5 text-caption text-text-muted">
-                  {studio.hotline && (
+                  {currentStudio.hotline && (
                     <span className="flex items-center gap-1">
                       <Phone className="w-3 h-3 text-primary/50" />
-                      {studio.hotline}
+                      {currentStudio.hotline}
                     </span>
                   )}
-                  {studio.address && (
+                  {currentStudio.address && (
                     <span className="flex items-center gap-1 truncate">
                       <MapPin className="w-3 h-3 text-primary/50" />
-                      {studio.address}
+                      {currentStudio.address}
                     </span>
                   )}
                 </div>

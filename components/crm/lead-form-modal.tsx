@@ -156,8 +156,8 @@ export default function LeadFormModal({ isOpen, onClose, onSaved, initialData }:
         const result = await createLead(payload);
         if (!result.success) throw new Error(result.error);
       }
-      onSaved();
       onClose();
+      onSaved();
     } catch (err: unknown) {
       if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
     } finally {

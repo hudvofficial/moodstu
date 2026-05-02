@@ -9,6 +9,7 @@ import ThemeProvider from "@/components/theme/ThemeProvider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { DevServiceWorkerReset } from "@/components/layout/dev-service-worker-reset";
+import { ServiceWorkerUpdateReload } from "@/components/layout/service-worker-update-reload";
 import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
 import { SWRProvider } from "@/components/providers/swr-provider";
 
@@ -136,6 +137,7 @@ export default function RootLayout({
                 />
                 <WebVitalsReporter />
                 <DevServiceWorkerReset />
+                <ServiceWorkerUpdateReload />
                 <OfflineIndicator />
                 {children}
                 <GlobalModal />

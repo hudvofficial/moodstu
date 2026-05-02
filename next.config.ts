@@ -201,8 +201,8 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: isDev,
   register: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true, // mcoffe pattern — auto reload khi có mạng lại
   fallbacks: {
     document: "/offline",
@@ -217,7 +217,7 @@ const withPWA = withPWAInit({
         urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/.*/i,
         handler: "NetworkOnly",
       },
-      // 🟢 RULE 2: HTML Navigation — StaleWhileRevalidate (instant App Shell)
+      // 🟢 RULE 2: HTML Navigation — NetworkOnly to avoid stale protected RSC shell
       {
         urlPattern: ({ request, url }: { request: Request; url: URL }) => {
           if (request.mode !== "navigate") return false;
@@ -237,15 +237,10 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🟡 RULE 4: Supabase REST API — NetworkFirst with 5s offline fallback
+      // 🔴 RULE 4: Supabase REST API — live business data, never cache
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
-        handler: "NetworkFirst",
-        options: {
-          cacheName: "supabase-api",
-          networkTimeoutSeconds: 5,
-          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 },
-        },
+        handler: "NetworkOnly",
       },
       // 🟢 RULE 5: Next.js static assets — CacheFirst (30 ngày)
       {

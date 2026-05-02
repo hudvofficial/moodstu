@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
 import DatePicker from "@/components/ui/date-picker";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { formatCurrency } from "@/lib/utils";
 import { isOnSetEvent } from "@/types/contract-constants";
 import {
@@ -22,13 +23,10 @@ import type { ActiveEmployee } from "@/types/employee";
 import { TaskListPanel } from "./task-list-panel";
 import type { TaskRow, Employee, ConflictItem } from "./task-list-panel";
 
-// ═══════════════════════════════════════════
-// EventTaskModal — V2 port of V1 EventTaskModal
+// EventTaskModal - V2 port of V1 EventTaskModal
 // V2: TaskListPanel extracted to task-list-panel.tsx
 // SSOT: .input-base, .label-base, Badge, UnifiedModal, CurrencyInput
-// ═══════════════════════════════════════════
 
-// ─── Types ────────────────────────────────
 interface EventForModal {
   id: string;
   event_type: EventType;
@@ -52,9 +50,6 @@ interface Props {
   onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
 }
 
-// ─── STATUS CYCLE REMOVED (V2 uses SelectStatus) ─
-
-// ─── Component ────────────────────────────
 export default function EventTaskModal({
   isOpen,
   event,
@@ -72,6 +67,7 @@ export default function EventTaskModal({
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingTaskIds, setDeletingTaskIds] = useState<Set<string>>(() => new Set());
 
   // New task form
   const [form, setForm] = useState({
@@ -97,7 +93,7 @@ export default function EventTaskModal({
     usedPrefetchRef.current = false;
   }, [event.id]);
 
-  // ─── Fetch data ───────────────────────
+  // Fetch modal data, using prefetched rows for first paint.
   const loadData = useCallback(async (forceRefresh = false) => {
     // Instant-load: use prefetched data on first open (zero network)
     if (!forceRefresh && !usedPrefetchRef.current && prefetchedTasks && prefetchedEmployees?.length) {
@@ -141,7 +137,11 @@ export default function EventTaskModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, event.id]);
 
-  // ─── Check time overlap ───────────────
+  useEffect(() => {
+    setDeletingTaskIds(new Set());
+  }, [event.id]);
+
+  // Check time overlap for on-set assignments.
   const doConflictCheck = useCallback(
     async (empId: string, startT: string, endT: string) => {
       if (!isOnSet || !empId || !startT || !endT || !event.event_date) {
@@ -186,7 +186,7 @@ export default function EventTaskModal({
     [doConflictCheck]
   );
 
-  // ─── Add task ─────────────────────────
+  // Add task.
   const handleAdd = async () => {
     if (submitting) return;
     if (!form.assigned_to) {
@@ -218,56 +218,58 @@ export default function EventTaskModal({
     }
   };
 
-  // ─── Delete task ──────────────────────
+  // Delete task with optimistic UI.
   const handleDelete = async (taskId: string) => {
+    if (deletingTaskIds.has(taskId)) return;
+    const previousTasks = tasks;
+
+    setDeletingTaskIds((prev) => new Set(prev).add(taskId));
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+
     try {
       const result = await deleteTask(taskId, event.id);
       if (!result.success) throw new Error(result.error);
-      toast.success("Đã xóa");
-      loadData(true);
+      toast.success("Đã xóa nhân sự");
       onSaved();
-    } catch {
-      toast.error("Lỗi xóa");
+    } catch (err) {
+      setTasks(previousTasks);
+      toast.error(err instanceof Error ? err.message : "Lỗi xóa nhân sự");
+    } finally {
+      setDeletingTaskIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
     }
   };
-
-  // ─── Update status (Optimistic UI) ─────────────
+  // Update status with optimistic UI.
   const handleStatusUpdate = async (taskId: string, newStatus: string) => {
     const previousStatus = tasks.find((t) => t.id === taskId)?.status;
     if (!previousStatus || previousStatus === newStatus) return;
 
-    // 1. Cập nhật UI ngay lập tức (Instant Feedback)
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-    );
-    onTaskStatusChange?.(taskId, event.id, newStatus as TaskStatus);
-
-    const rollback = () => {
+    const applyStatus = (status: string) => {
       setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? { ...t, status: previousStatus } : t))
+        prev.map((t) => (t.id === taskId ? { ...t, status } : t))
       );
-      onTaskStatusChange?.(taskId, event.id, previousStatus as TaskStatus);
+      onTaskStatusChange?.(taskId, event.id, status as TaskStatus);
     };
 
-    // 2. Chạy API ngầm (Fire-and-forget)
-    toggleTaskStatus(taskId, newStatus as TaskStatus, event.id).then((result) => {
-      if (!result.success) {
-        // Rollback nếu lỗi
-        rollback();
-        toast.error("Lỗi cập nhật: " + result.error);
-      }
-    }).catch((err) => {
-      rollback();
-      toast.error(err instanceof Error ? err.message : "Loi cap nhat task");
+    void runOptimisticMutation({
+      apply: () => applyStatus(newStatus),
+      rollback: () => applyStatus(previousStatus),
+      action: () => toggleTaskStatus(taskId, newStatus as TaskStatus, event.id),
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Lỗi cập nhật task");
+      },
     });
   };
 
-  // ─── Total cost ─────────────────────────
+  // Total cost.
   const totalCost =
     tasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0) +
     (Number(form.cost) || 0);
 
-  // ─── Footer ──────────────────────────────
+  // Footer.
   const footer = (
     <div className="flex items-center justify-between w-full">
       <div>
@@ -291,7 +293,7 @@ export default function EventTaskModal({
       size="xl"
     >
       <div className="space-y-4">
-        {/* ── Date + Info Pills ── */}
+        {/* Date + info pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <DatePicker
             compact
@@ -338,7 +340,7 @@ export default function EventTaskModal({
           </span>
         </div>
 
-        {/* ── Task list + Add form (extracted component) ── */}
+        {/* Task list + add form */}
         <TaskListPanel
           tasks={tasks}
           loading={loading}
@@ -348,6 +350,7 @@ export default function EventTaskModal({
           employees={employees}
           conflicts={conflicts}
           submitting={submitting}
+          deletingTaskIds={deletingTaskIds}
           onStatusUpdate={handleStatusUpdate}
           onDelete={handleDelete}
           onAdd={handleAdd}

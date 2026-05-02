@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { createPaymentReceipt, getTransactionCategories } from "@/app/actions/payment-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
 import { toast } from "@/lib/toast-utils";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -141,7 +141,7 @@ export default function PaymentReceiptForm({
         toast(isFullyPaid ? "Đã tạo phiếu phát sinh" : "Đã tạo phiếu thu", "success");
         resetForm();
         onClose();
-        await revalidateContractCaches(contractId);
+        void invalidateContractAfterWrite(contractId);
       } else {
         toast(result.error || "Lỗi tạo phiếu thu", "error");
       }

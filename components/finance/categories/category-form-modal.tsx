@@ -52,8 +52,8 @@ export function CategoryFormModal({ isOpen, onClose, onSaved, category }: Catego
     }
 
     toast.success(category ? "Đã cập nhật danh mục." : "Đã tạo danh mục.");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

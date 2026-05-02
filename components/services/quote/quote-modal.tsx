@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { X, Phone, MapPin } from "lucide-react";
@@ -8,6 +8,8 @@ import { ModalPortal } from "@/components/ui/modal-portal";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { formatCurrency } from "@/lib/utils";
 import { getStudioInfo } from "@/app/actions/settings-queries";
+import { useRealtime } from "@/hooks/use-realtime";
+import { cacheKeys, useSWR } from "@/lib/swr";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
 
@@ -33,8 +35,6 @@ interface StudioCache {
   logo_url: string | null;
 }
 
-let cachedStudio: StudioCache | null = null;
-
 interface Props {
   service: ServiceRecord;
   onClose: () => void;
@@ -42,7 +42,31 @@ interface Props {
 
 export default function QuoteModal({ service, onClose }: Props) {
   const structure = parseContentStructure(service.description || "");
-  const [studio, setStudio] = useState<StudioCache | null>(cachedStudio);
+
+  useRealtime("studio_info", {
+    cacheKeys: [cacheKeys.studioInfo()],
+    eventTypes: ["UPDATE"],
+    debounceMs: 120,
+  });
+
+  const { data: studio } = useSWR<StudioCache | null>(
+    cacheKeys.studioInfo(),
+    async () => {
+      const result = await getStudioInfo();
+      if (!result.success || !result.data) {
+        throw new Error("Không thể tải thông tin studio");
+      }
+      return {
+        name: result.data.name,
+        hotline: result.data.hotline,
+        address: result.data.address,
+        logo_url: result.data.logo_url,
+      };
+    },
+    {
+      fallbackData: null,
+    },
+  );
 
   // Smart sizing
   const totalItems = useMemo(
@@ -57,23 +81,6 @@ export default function QuoteModal({ service, onClose }: Props) {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, []);
-
-  // Fetch studio info (cached)
-  useEffect(() => {
-    if (cachedStudio) return;
-    getStudioInfo().then((result) => {
-      if (result.success && result.data) {
-        const studioInfo = {
-          name: result.data.name,
-          hotline: result.data.hotline,
-          address: result.data.address,
-          logo_url: result.data.logo_url,
-        };
-        cachedStudio = studioInfo;
-        setStudio(studioInfo);
-      }
-    });
   }, []);
 
   const studioName = studio?.name || "Mood Studio";

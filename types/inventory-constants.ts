@@ -29,6 +29,10 @@ interface CategoryConfig {
 }
 
 export const INVENTORY_CATEGORY_MAP: Record<InventoryCategory, CategoryConfig> = {
+  in_an:     { label: "In ấn",      icon: "printer" },
+  makeup:    { label: "Makeup",     icon: "brush" },
+  van_phong_pham: { label: "Văn phòng phẩm", icon: "file-pen-line" },
+  khac:      { label: "Khác",       icon: "shapes" },
   khung_anh: { label: "Khung ảnh",  icon: "frame" },
   album:     { label: "Album",      icon: "book-open" },
   hoa:       { label: "Hoa",        icon: "flower-2" },

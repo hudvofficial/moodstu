@@ -72,12 +72,44 @@ export async function createInventoryItem(rawData: unknown) {
         .single();
 
       if (!error && created) {
+        let initialStockResult: unknown = null;
+
+        if (data.initial_stock > 0) {
+          const initialUnitCost = data.initial_unit_cost || data.purchase_price || 0;
+          const { data: stockData, error: stockError } = await supabase.rpc(
+            "inventory_stock_in_atomic",
+            {
+              p_item_id: created.id,
+              p_quantity: data.initial_stock,
+              p_unit_cost: initialUnitCost,
+              p_supplier: normalizeOptionalText(data.supplier),
+              p_reason: "Nhập kho ban đầu",
+              p_notes: normalizeOptionalText(data.notes),
+              p_user_id: userId,
+            },
+          );
+
+          if (stockError && isMissingRpcError(stockError)) {
+            throw new Error(
+              "Migration inventory_stock_in_atomic chưa được chạy. Vui lòng push migration trước khi tạo vật tư có tồn đầu kỳ.",
+            );
+          }
+          if (stockError) {
+            throw new Error(`Không thể nhập tồn đầu kỳ: ${stockError.message}`);
+          }
+          initialStockResult = stockData;
+        }
+
         await fireAuditLog({
           action: "CREATE",
           tableName: "inventory_items",
           recordId: created.id,
           description: `Tạo vật tư: ${created.name} (${created.item_code})`,
-          newData: created,
+          newData: {
+            ...created,
+            initial_stock: data.initial_stock,
+            initial_stock_result: initialStockResult,
+          },
           source: "server_action",
         });
 
@@ -111,6 +143,8 @@ export async function updateInventoryItem(rawData: unknown) {
   return withInventoryAccess(async (supabase, userId) => {
     const { id, updated_at, data } = parsed.data;
     const updatePayload: Record<string, unknown> = { ...data };
+    delete updatePayload.initial_stock;
+    delete updatePayload.initial_unit_cost;
 
     if ("name" in data && typeof data.name === "string") {
       updatePayload.name = data.name.trim();

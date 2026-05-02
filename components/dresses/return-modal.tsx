@@ -93,10 +93,10 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
         toast(result.error || "Có lỗi xảy ra", "error");
       } else {
         toast("Trả trang phục thành công!", "success");
-        revalidateByPrefixes(cacheKeys.dresses());
-        revalidate(cacheKeys.dressStats());
-        onSaved();
         onClose();
+        onSaved();
+        void revalidateByPrefixes(cacheKeys.dresses());
+        void revalidate(cacheKeys.dressStats());
       }
     } catch {
       toast("Lỗi khi trả trang phục", "error");

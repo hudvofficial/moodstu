@@ -29,7 +29,7 @@ export default function CancelBanner({ contractId, notes, updatedAt }: Props) {
       if (!result.success) {
         alert(result.error);
       } else {
-        await revalidateContractCaches(contractId);
+        void revalidateContractCaches(contractId);
       }
     } catch {
       alert("Lỗi kích hoạt lại hợp đồng");

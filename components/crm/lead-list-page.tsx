@@ -9,6 +9,7 @@ import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
 import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
 import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -209,10 +210,12 @@ export default function LeadListPage({
     if (!baseLead) return;
 
     const previousOverride = statusOverrides[leadId];
-    setStatusOverrides((current) => ({
-      ...current,
-      [leadId]: { from: baseLead.status, to: nextStatus },
-    }));
+    const applyStatus = () => {
+      setStatusOverrides((current) => ({
+        ...current,
+        [leadId]: { from: baseLead.status, to: nextStatus },
+      }));
+    };
 
     const rollbackStatus = () => {
       setStatusOverrides((current) => {
@@ -223,24 +226,18 @@ export default function LeadListPage({
       });
     };
 
-    try {
-      const result = await moveLeadToStage(leadId, nextStatus);
-      if (!result.success) {
-        rollbackStatus();
-        toast.error(result.error || "Không thể cập nhật trạng thái");
-        return;
-      }
-
-      scheduleRefresh();
-      toast.success("Đã cập nhật trạng thái");
-    } catch (error: unknown) {
-      rollbackStatus();
-      if (error instanceof Error) {
-        toast.error(error.message || "Không thể cập nhật trạng thái");
-      } else {
-        toast.error("Không thể cập nhật trạng thái");
-      }
-    }
+    await runOptimisticMutation({
+      apply: applyStatus,
+      rollback: rollbackStatus,
+      action: () => moveLeadToStage(leadId, nextStatus),
+      onSuccess: () => {
+        scheduleRefresh();
+        toast.success("Đã cập nhật trạng thái");
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái");
+      },
+    });
   };
 
   const handleDataChanged = useCallback(() => {

@@ -59,8 +59,8 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
     }
 
     toast.success(item ? "Đã cập nhật chi phí cố định." : "Đã tạo chi phí cố định.");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

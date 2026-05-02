@@ -109,6 +109,7 @@ interface TaskListPanelProps {
   employees: Employee[];
   conflicts: ConflictItem[];
   submitting: boolean;
+  deletingTaskIds?: Set<string>;
   // Handlers
   onStatusUpdate: (taskId: string, newStatus: string) => Promise<void>;
   onDelete: (taskId: string) => void;
@@ -126,6 +127,7 @@ export function TaskListPanel({
   employees,
   conflicts,
   submitting,
+  deletingTaskIds = new Set(),
   onStatusUpdate,
   onDelete,
   onAdd,
@@ -144,10 +146,15 @@ export function TaskListPanel({
           <h4 className="text-overline">
             Nhân sự đã giao ({tasks.length})
           </h4>
-          {tasks.map((task) => (
+          {tasks.map((task) => {
+            const isDeleting = deletingTaskIds.has(task.id);
+
+            return (
             <div
               key={task.id}
-              className="flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors"
+              className={`flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors ${
+                isDeleting ? "opacity-60 pointer-events-none" : ""
+              }`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -182,12 +189,19 @@ export function TaskListPanel({
               {/* Delete */}
               <Button unstyled
                 onClick={() => onDelete(task.id)}
-                className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded-full hover:bg-error/10 transition-all"
+                disabled={isDeleting}
+                className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={`Xóa phân công ${getWorkTypeLabel(task.work_type as WorkType)}`}
               >
-                <X size={14} className="text-error" />
+                {isDeleting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <X size={14} />
+                )}
               </Button>
             </div>
-          ))}
+          );
+          })}
         </div>
       ) : (
         <div className="text-center py-6">

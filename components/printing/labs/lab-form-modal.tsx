@@ -217,8 +217,8 @@ export default function LabFormModal({
         toast("Tạo lab thành công", "success");
       }
 
-      await onSaved();
       onClose();
+      void onSaved();
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể lưu lab",
@@ -240,8 +240,8 @@ export default function LabFormModal({
       }
 
       toast("Đã xóa lab", "success");
-      await onSaved();
       onClose();
+      void onSaved();
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể xóa lab",

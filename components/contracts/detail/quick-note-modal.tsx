@@ -7,7 +7,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { addContractNote } from "@/app/actions/note-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
 
 // ═══════════════════════════════════════════
 // QuickNoteModal — Add a note quickly from Quick Actions
@@ -53,10 +53,10 @@ export default function QuickNoteModal({
       if (!result.success) throw new Error(result.error);
 
       toast.success("Đã thêm ghi chú");
-      await revalidateContractCaches(contractId);
       resetForm();
       onSaved();
       onClose();
+      void invalidateContractAfterWrite(contractId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm ghi chú");
     } finally {

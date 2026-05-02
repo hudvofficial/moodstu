@@ -11,7 +11,7 @@ import {
   fetchLabServices,
   getLabs,
 } from "@/app/actions/printing-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
 import { toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
@@ -157,7 +157,7 @@ export default function PrintingOrderForm({
         toast("Đã tạo đơn in thành công", "success");
         resetForm();
         onClose();
-        await revalidateContractCaches(contractId);
+        void invalidateContractAfterWrite(contractId);
       } else {
         toast(result.error || "Lỗi tạo đơn in", "error");
       }

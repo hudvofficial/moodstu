@@ -41,6 +41,41 @@ function syncCalendarUrl(date: Date, viewMode?: CalendarViewMode) {
   window.history.replaceState({}, "", url.toString());
 }
 
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function parseDateKey(value: string) {
+  const datePart = value.split("T")[0];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+  const [year, month, day] = datePart.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getEventDateKeys(startValue: string, endValue: string | null) {
+  const startDate = parseDateKey(startValue);
+  if (!startDate) return [];
+
+  const endDate = endValue ? parseDateKey(endValue) : null;
+  if (!endDate || endDate < startDate) return [toDateKey(startDate)];
+
+  const inclusiveEnd = new Date(endDate);
+  if (!endValue?.includes("T")) {
+    inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+  }
+
+  if (inclusiveEnd < startDate) return [toDateKey(startDate)];
+
+  const keys: string[] = [];
+  const cursor = new Date(startDate);
+  while (cursor <= inclusiveEnd && keys.length < 366) {
+    keys.push(toDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return keys;
+}
+
 export function useCalendarData() {
   const [currentDate, setCurrentDateState] = useState(parseInitialDate);
   const [viewMode, setViewModeState] = useState<CalendarViewMode>(parseInitialViewMode);
@@ -129,10 +164,11 @@ export function useCalendarData() {
   const eventsByDate = useMemo(() => {
     const map = new Map<string, typeof filteredEvents>();
     for (const ev of filteredEvents) {
-      const key = ev.start.split("T")[0];
-      const arr = map.get(key);
-      if (arr) arr.push(ev);
-      else map.set(key, [ev]);
+      for (const key of getEventDateKeys(ev.start, ev.end)) {
+        const arr = map.get(key);
+        if (arr) arr.push(ev);
+        else map.set(key, [ev]);
+      }
     }
     return map;
   }, [filteredEvents]);

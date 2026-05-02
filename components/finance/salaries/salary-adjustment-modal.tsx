@@ -52,8 +52,8 @@ export function SalaryAdjustmentModal({ salary, onClose, onSaved }: SalaryAdjust
     }
 
     toast.success("Đã thêm điều chỉnh lương.");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

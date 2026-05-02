@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Calendar, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,14 +9,15 @@ interface GoogleCalendarCardProps {
   isConnected: boolean;
   calendarEmail?: string | null;
   onDisconnect: () => Promise<{ success: boolean; error?: string }>;
+  onDisconnected?: () => void;
 }
 
 export default function GoogleCalendarCard({
   isConnected,
   calendarEmail,
   onDisconnect,
+  onDisconnected,
 }: GoogleCalendarCardProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleConnect = () => {
@@ -29,7 +29,7 @@ export default function GoogleCalendarCard({
       const result = await onDisconnect();
       if (result.success) {
         toast.success("Đã ngắt kết nối Google Calendar");
-        router.refresh();
+        onDisconnected?.();
       } else {
         toast.error(result.error || "Lỗi ngắt kết nối");
       }

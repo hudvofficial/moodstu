@@ -1,4 +1,4 @@
-import { cacheKeys, revalidateByPrefixes, revalidateMultiple } from "@/lib/swr";
+import { cacheKeys, mutate, revalidateByPrefixes, revalidateMultiple } from "@/lib/swr";
 
 type MonthYear = {
   month?: number;
@@ -58,12 +58,38 @@ export async function revalidateServiceCaches(serviceId?: string) {
   ]);
 }
 
+export async function revalidateContractCaches(contractId?: string) {
+  await Promise.all([
+    contractId ? mutate(["contract", contractId]) : Promise.resolve(),
+    contractId ? mutate(["contract-drawer-extra", contractId]) : Promise.resolve(),
+    mutate((key: unknown) => {
+      if (!Array.isArray(key)) return false;
+      return key[0] === "contracts";
+    }, undefined, { revalidate: true }),
+    mutate((key: unknown) => {
+      if (!Array.isArray(key)) return false;
+      if (key[0] !== "contract-notes") return false;
+      return contractId ? key[1] === contractId : true;
+    }, undefined, { revalidate: true }),
+    mutate(["contract-stats"]),
+  ]);
+}
+
+export async function revalidateContractDetailCaches(contractId: string) {
+  await Promise.all([
+    mutate(["contract", contractId]),
+    mutate(["contract-drawer-extra", contractId]),
+  ]);
+}
+
 export async function revalidateInventoryCaches(itemId?: string) {
-  await revalidateMultiple([
-    cacheKeys.inventory(),
-    cacheKeys.inventoryStats(),
-    cacheKeys.inventorySaleOptions(),
-    ...(itemId ? [cacheKeys.inventoryDetail(itemId), cacheKeys.inventoryHistory(itemId)] : []),
+  await Promise.all([
+    revalidateByPrefixes(cacheKeys.inventory()),
+    revalidateMultiple([
+      cacheKeys.inventoryStats(),
+      cacheKeys.inventorySaleOptions(),
+      ...(itemId ? [cacheKeys.inventoryDetail(itemId), cacheKeys.inventoryHistory(itemId)] : []),
+    ]),
   ]);
 }
 
@@ -95,3 +121,10 @@ export async function revalidateCalendarCaches(month?: number, year?: number) {
   ]);
 }
 
+export const invalidateContractAfterWrite = revalidateContractCaches;
+export const invalidateContractDetailAfterWrite = revalidateContractDetailCaches;
+export const invalidateInventoryAfterWrite = revalidateInventoryCaches;
+export const invalidateServiceAfterWrite = revalidateServiceCaches;
+export const invalidateEmployeeAfterWrite = revalidateEmployeeCaches;
+export const invalidateFinanceAfterWrite = revalidateFinanceCaches;
+export const invalidatePrintingAfterWrite = revalidatePrintingCaches;

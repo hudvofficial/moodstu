@@ -40,8 +40,8 @@ export function CloseCreateModal({ isOpen, onClose, onSaved, initialMonth, initi
     }
 
     toast.success("Đã tạo kỳ chốt sổ.");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

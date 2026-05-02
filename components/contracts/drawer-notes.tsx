@@ -80,11 +80,10 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
       if (!res.success) {
         toast.error("Lỗi khi gửi ghi chú");
       } else {
-        await revalidateContractCaches(contractId);
+        void revalidateContractCaches(contractId);
       }
       // Revalidate from server to get real data
-      await mutate();
-      setOptimisticNotes([]);
+      void mutate().then(() => setOptimisticNotes([]));
     } catch {
       toast.error("Lỗi kết nối!");
       await mutate();

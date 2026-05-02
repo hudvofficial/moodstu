@@ -128,8 +128,8 @@ export function InvestmentFormModal({
     }
 
     toast.success(item ? "Đã cập nhật tài sản." : "Đã tạo tài sản.");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

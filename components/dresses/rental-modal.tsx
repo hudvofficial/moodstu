@@ -99,10 +99,10 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
         toast(result.error || "Có lỗi xảy ra", "error");
       } else {
         toast("Đặt thuê thành công!", "success");
-        revalidateByPrefixes(cacheKeys.dresses());
-        revalidate(cacheKeys.dressStats());
-        onSaved();
         onClose();
+        onSaved();
+        void revalidateByPrefixes(cacheKeys.dresses());
+        void revalidate(cacheKeys.dressStats());
       }
     } catch {
       toast("Lỗi khi đặt thuê", "error");

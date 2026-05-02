@@ -11,7 +11,8 @@
  */
 
 import useSWR from "swr";
-import { cacheKeys, mutate, prefetch, revalidateByPrefixes } from "@/lib/swr";
+import { cacheKeys, mutate, prefetch } from "@/lib/swr";
+import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import {
   fetchInventoryList,
   fetchInventoryDetail,
@@ -108,12 +109,7 @@ export function prefetchInventory(id: string) {
 // ─── MUTATE HELPERS (after create/update/delete) ────────────
 
 export async function revalidateInventory(itemId?: string) {
-  await Promise.all([
-    revalidateByPrefixes(cacheKeys.inventory()),
-    mutate(cacheKeys.inventorySaleOptions()),
-    mutate(cacheKeys.inventoryStats()),
-    itemId ? mutate(cacheKeys.inventoryDetail(itemId)) : Promise.resolve(),
-  ]);
+  await invalidateInventoryAfterWrite(itemId);
 }
 
 export async function revalidateInventoryDetail(id: string) {

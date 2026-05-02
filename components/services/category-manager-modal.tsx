@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { upsertCategory, deleteCategory } from "@/app/actions/category-actions";
-import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
+import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
 import type { ServiceCategory } from "@/types/service";
 
 interface Props {
@@ -108,7 +108,7 @@ export function CategoryManagerModal({
       }
 
       toast.success(isEditing ? "Cập nhật thành công" : "Tạo danh mục mới thành công");
-      await revalidateByPrefixes([cacheKeys.categories(), cacheKeys.services()]);
+      void invalidateServiceAfterWrite();
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Đã có lỗi xảy ra");
@@ -131,7 +131,7 @@ export function CategoryManagerModal({
         throw new Error(response.error);
       }
       toast.success("Đã xóa danh mục");
-      await revalidateByPrefixes([cacheKeys.categories(), cacheKeys.services()]);
+      void invalidateServiceAfterWrite();
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Không thể xóa danh mục này");
@@ -237,11 +237,14 @@ export function CategoryManagerModal({
               <div className="rounded-xl overflow-hidden shadow-md ring-1 ring-black/3 bg-bg-card">
                 {localCategories.map((cat) => {
                   const Icon = cat.icon ? resolveIcon(cat.icon) : null;
+                  const isCurrentEdit = editingId === cat.id;
 
                   return (
                     <div
                       key={cat.id}
-                      className="flex items-center justify-between gap-3 p-3 hover:bg-bg-hover transition-colors bg-bg-card border-b border-border-light last:border-b-0"
+                      className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3 transition-colors border-b border-border-light last:border-b-0 ${
+                        isCurrentEdit ? "bg-bg-hover" : "bg-bg-card hover:bg-bg-hover/70"
+                      }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-bg-hover text-accent flex items-center justify-center shrink-0">
@@ -260,29 +263,31 @@ export function CategoryManagerModal({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <Button
                           type="button"
-                          variant="ghost"
+                          unstyled
                           onClick={() => startEdit(cat)}
                           disabled={isSubmitting || cat.id.startsWith("temp_")}
-                          className="w-8 h-8 p-0 flex items-center justify-center rounded-md text-text-muted hover:text-text-main hover:bg-bg-hover transition-colors disabled:opacity-50"
+                          className="icon-btn h-10 w-10 rounded-md bg-bg-input text-text-secondary hover:text-text-main disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:w-9"
                           title="Sửa danh mục"
                           aria-label={`Sửa danh mục ${cat.name}`}
                         >
                           <Edit2 className="w-4 h-4" />
+                          <span className="sr-only">Sửa</span>
                         </Button>
 
                         <Button
                           type="button"
-                          variant="ghost"
+                          unstyled
                           onClick={() => setDeletingId(cat.id)}
                           disabled={isSubmitting || cat.id.startsWith("temp_")}
-                          className="w-8 h-8 p-0 flex items-center justify-center rounded-md text-text-muted hover:text-error hover:bg-error/10 transition-colors disabled:opacity-50"
+                          className="icon-btn h-10 w-10 rounded-md bg-bg-input text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:w-9"
                           title="Xóa danh mục"
                           aria-label={`Xóa danh mục ${cat.name}`}
                         >
                           <Trash2 className="w-4 h-4" />
+                          <span className="sr-only">Xóa</span>
                         </Button>
                       </div>
                     </div>

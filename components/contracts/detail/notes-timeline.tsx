@@ -73,7 +73,7 @@ export default function NotesTimeline({ contractId }: Props) {
         setNotes((prev) =>
           prev.map((n) => (n.id === tempId ? (result.data as unknown as Note) : n))
         );
-        await revalidateContractCaches(contractId);
+        void revalidateContractCaches(contractId);
       } else {
         // Rollback
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
@@ -101,7 +101,7 @@ export default function NotesTimeline({ contractId }: Props) {
           setNotes(refetch.data as unknown as Note[]);
         }
       } else {
-        await revalidateContractCaches(contractId);
+        void revalidateContractCaches(contractId);
       }
     },
     [contractId]

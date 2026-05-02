@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createService, updateService, deleteService } from "@/app/actions/service-mutations";
-import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
+import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
 import { generateServiceCode, sectionsToJson, parseContentStructure } from "@/lib/utils/service-utils";
 import type { ServiceRecord } from "@/types/service";
 import type { ContentSection } from "@/types/service";
@@ -236,8 +236,8 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       }
 
       toast.success(isEditMode ? "Cập nhật dịch vụ thành công" : "Tạo dịch vụ thành công");
-      await revalidateByPrefixes([cacheKeys.services(), cacheKeys.categories()]);
       router.push("/services");
+      void invalidateServiceAfterWrite(result.data?.id);
     } catch (error: unknown) {
       const e = error as Error;
       applyActionError(e.message);
@@ -262,8 +262,8 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       }
 
       toast.success("Đã xóa dịch vụ");
-      await revalidateByPrefixes([cacheKeys.services(), cacheKeys.categories()]);
       router.push("/services");
+      void invalidateServiceAfterWrite(initialData.id);
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Không thể xóa dịch vụ");

@@ -44,6 +44,32 @@ function getEventIcon(eventType: string) {
   return EVENT_ICON_MAP[eventType] || CalendarDays;
 }
 
+function normalizeEventTitle(title: string | null | undefined, eventType: EventType): string {
+  const trimmed = title?.trim();
+  const fallback = getEventTypeLabel(eventType);
+  if (!trimmed) return fallback;
+
+  const normalized = trimmed.toLowerCase();
+  const exactMap: Record<string, string> = {
+    "ngay cuoi": "Ngày cưới",
+    "giao san pham": "Giao sản phẩm",
+    "du an": "Dự án",
+    "ky yeu": "Kỷ yếu",
+    "gia dinh": "Gia đình",
+    "sinh nhat": "Sinh nhật",
+  };
+
+  if (exactMap[normalized]) return exactMap[normalized];
+  if (normalized.startsWith("hau ky ")) {
+    return `Hậu kỳ ${normalizeEventTitle(trimmed.slice(7), eventType)}`;
+  }
+  if (normalized.startsWith("thuc hien ")) {
+    return `Thực hiện ${normalizeEventTitle(trimmed.slice(10), eventType)}`;
+  }
+
+  return trimmed;
+}
+
 // ─── Helpers (from V1/V2) ──────────────────────────────
 function formatTime(t: string | null) {
   if (!t) return null;
@@ -186,6 +212,10 @@ export default function EventTimeline({
           const displayDate = getDisplayDate(event);
           const isOnSet = isOnSetEvent(event.event_type);
           const Icon = getEventIcon(event.event_type);
+          const displayTitle = normalizeEventTitle(
+            event.title,
+            event.event_type as EventType,
+          );
 
           return (
             <div
@@ -218,9 +248,7 @@ export default function EventTimeline({
               <div className="flex items-start gap-1.5 mb-1.5">
                 <Icon size={14} className="text-text-muted shrink-0 mt-0.5" />
                 <p className="text-body-sm font-semibold text-text-primary line-clamp-2 leading-tight">
-                  {event.title ||
-                    getEventTypeLabel(event.event_type as EventType) ||
-                    event.event_type}
+                  {displayTitle}
                 </p>
               </div>
 
@@ -286,9 +314,10 @@ export default function EventTimeline({
           event={{
             id: modalEvent.id,
             event_type: modalEvent.event_type as EventType,
-            title:
-              modalEvent.title ||
-              getEventTypeLabel(modalEvent.event_type as EventType),
+            title: normalizeEventTitle(
+              modalEvent.title,
+              modalEvent.event_type as EventType,
+            ),
             event_date: modalEvent.event_date,
             deadline: modalEvent.deadline,
             location: modalEvent.location,

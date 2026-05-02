@@ -20,6 +20,7 @@ import { fetchAllRentals } from "@/app/actions/rental-queries";
 import { startRental, cancelRental } from "@/app/actions/rental-mutations";
 import { RENTAL_STATUS_MAP } from "@/types/dress-constants";
 import type { DressRental } from "@/types/dress";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { cacheKeys, revalidate, revalidateByPrefixes } from "@/lib/swr";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -371,28 +372,69 @@ export default function StandaloneRentalsClient({ initialResult }: StandaloneRen
 
   const hasFilters = status !== "all" || !!search || !!itemId;
 
-  // ── Actions ──
+  // Actions
+  const patchRentalStatus = (rentalId: string, nextStatus: string) => {
+    void mutate((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        rentals: current.rentals.map((rental) =>
+          rental.id === rentalId ? { ...rental, status: nextStatus } : rental,
+        ),
+      };
+    }, { revalidate: false });
+  };
+
   const handleStart = async (id: string) => {
+    if (actionLoading) return;
+    const rental = rentals.find((item) => item.id === id);
+    if (!rental) return;
+
     setActionLoading(true);
     try {
-      const res = await startRental(id) as { success: boolean; error?: string };
-      if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã bắt đầu thuê!", "success"); mutate(); revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]); }
-    } catch { toast("Lỗi khi bắt đầu thuê", "error"); }
-    finally { setActionLoading(false); }
+      await runOptimisticMutation({
+        apply: () => patchRentalStatus(id, "renting"),
+        rollback: () => patchRentalStatus(id, rental.status),
+        action: () => startRental(id) as Promise<{ success: boolean; error?: string }>,
+        onSuccess: () => {
+          toast("Đã bắt đầu thuê!", "success");
+          void mutate();
+          void revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]);
+        },
+        onError: (error) => {
+          toast(error instanceof Error ? error.message : "Lỗi khi bắt đầu thuê", "error");
+        },
+      });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleCancelConfirmed = async () => {
-    if (!cancelId) return;
+    if (!cancelId || actionLoading) return;
+    const rental = rentals.find((item) => item.id === cancelId);
+    if (!rental) return;
+
     setActionLoading(true);
     try {
-      const res = await cancelRental(cancelId) as { success: boolean; error?: string };
-      if (!res.success) toast(res.error || "Lỗi", "error");
-      else { toast("Đã hủy đặt thuê", "success"); mutate(); revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]); }
-    } catch { toast("Lỗi khi hủy", "error"); }
-    finally { setActionLoading(false); setCancelId(null); }
+      await runOptimisticMutation({
+        apply: () => patchRentalStatus(cancelId, "cancelled"),
+        rollback: () => patchRentalStatus(cancelId, rental.status),
+        action: () => cancelRental(cancelId) as Promise<{ success: boolean; error?: string }>,
+        onSuccess: () => {
+          toast("Đã hủy đặt thuê", "success");
+          void mutate();
+          void revalidateByPrefixes([cacheKeys.dressRentals(), cacheKeys.dresses()]);
+        },
+        onError: (error) => {
+          toast(error instanceof Error ? error.message : "Lỗi khi hủy", "error");
+        },
+      });
+    } finally {
+      setActionLoading(false);
+      setCancelId(null);
+    }
   };
-
   return (
     <div className="main-container gap-3!">
 

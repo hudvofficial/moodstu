@@ -37,6 +37,7 @@ import {
   moveLeadToStage,
 } from "@/app/actions/lead-lifecycle";
 import { cacheKeys } from "@/lib/swr";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import {
   LEAD_STATUS_MAP,
   POTENTIAL_MAP,
@@ -151,19 +152,29 @@ export default function LeadDetailDrawer({
     if (!lead || !newStage || newStage === lead.status) return;
     setIsStageUpdating(true);
     try {
-      const res = await moveLeadToStage(lead.id, newStage as LeadStatus);
-      if (!res.success) throw new Error(res.error);
-      globalMutate(cacheKeys.leadDetail(lead.id));
-      globalMutate(cacheKeys.leads());
-      onChanged?.();
-    } catch (err: unknown) {
-      if (err instanceof Error)
-        alert(err.message || "Lỗi khi chuyển trạng thái");
+      await runOptimisticMutation({
+        apply: () => {
+          void mutate({ ...lead, status: newStage as LeadStatus }, { revalidate: false });
+        },
+        rollback: () => {
+          void mutate(lead, { revalidate: false });
+        },
+        action: () => moveLeadToStage(lead.id, newStage as LeadStatus),
+        onSuccess: () => {
+          globalMutate(cacheKeys.leadDetail(lead.id));
+          globalMutate(cacheKeys.leads());
+          onChanged?.();
+        },
+        onError: (error) => {
+          if (error instanceof Error) {
+            alert(error.message || "Lỗi khi chuyển trạng thái");
+          }
+        },
+      });
     } finally {
       setIsStageUpdating(false);
     }
   };
-
   const handleConvert = async () => {
     if (!lead) return;
     setIsConvertConfirmOpen(false);

@@ -57,18 +57,67 @@ Modules cần audit và chuẩn hóa:
 | Phase | Name | Status | Progress |
 | --- | --- | --- | --- |
 | 00 | Baseline & Instrumentation | Complete | 100% |
-| 01 | Cache/Refetch Contract | In Progress | 85% |
-| 02 | Realtime Strategy | In Progress | 85% |
-| 03 | Server Data & Database Performance | In Progress | 65% |
-| 04 | Bundle & Code Splitting | In Progress | 90% |
-| 05 | Route UX, Streaming & Skeletons | In Progress | 60% |
-| 06 | Mutation UX & Optimistic Updates | In Progress | 60% |
-| 07 | PWA/Cache Correctness | In Progress | 75% |
-| 08 | Module-by-Module Performance Pass | In Progress | 70% |
-| 09 | QA, Load Test & Production Monitoring | In Progress | 45% |
-| 10 | Rollout, Deploy & Regression Guard | In Progress | 60% |
+| 01 | Cache/Refetch Contract | Complete | 100% |
+| 02 | Realtime Strategy | Complete | 100% |
+| 03 | Server Data & Database Performance | Complete | 100% |
+| 04 | Bundle & Code Splitting | Complete | 100% |
+| 05 | Route UX, Streaming & Skeletons | Complete | 100% |
+| 06 | Mutation UX & Optimistic Updates | Complete | 100% |
+| 07 | PWA/Cache Correctness | Complete | 100% |
+| 08 | Module-by-Module Performance Pass | Complete | 100% |
+| 09 | QA, Load Test & Production Monitoring | Blocked - Production Validation | 80% |
+| 10 | Rollout, Deploy & Regression Guard | Blocked - Deploy Validation | 85% |
 
 ## Progress Log
+### 2026-05-02
+Implemented:
+- Added focused save/refresh acceleration batch under `plans/260502-accelerate-save-system`.
+- Removed more post-write full-route refreshes in Inventory, Services, Contracts detail, Printing, Finance forms, CRM, Dresses, Employees, and Settings.
+- Added or expanded shared cache invalidation helpers in `lib/cache-invalidation.ts`.
+- Settings now updates local state/SWR cache for studio info, Moodie AI settings, Google Calendar disconnect, credit cards, and profile/avatar saves instead of doing a full route refresh.
+- Added `lib/optimistic-mutation.ts` as the shared optimistic apply/rollback contract.
+- Migrated contract detail checklist, drawer checklist, and event task status updates to the shared optimistic rollback helper.
+- Migrated CRM lead status, printing order status, standalone dress rental start/cancel, and dress drawer status actions to the shared optimistic rollback helper.
+- Kept money/stock writes conservative: server action success is still required before final financial/stock cache revalidation.
+- Replaced Moodie setup `window.location.reload()` with a route-level refresh and tightened `npm run perf:audit` so client reloads stay blocked outside the offline page.
+- Completed PWA/cache correctness pass:
+  - Supabase REST business data is now `NetworkOnly`.
+  - PWA front-end navigation caching is disabled for protected server-rendered routes.
+  - service worker updates trigger a controlled one-time reload per app version.
+  - static/storage asset caches remain long-lived only where safe.
+- Completed Phase 08 module-by-module performance pass:
+  - verified the module cache key registry in `lib/swr.ts` covers Contracts, Finance, CRM, Calendar/Productivity, Inventory, Dresses, Printing, Services, Employees, Settings, Reports, and Shell data.
+  - verified module invalidators in `lib/cache-invalidation.ts` cover the main cross-module write paths.
+  - re-ran route chunk budget; no app route chunk exceeds the 80KB budget.
+  - audited remaining reload/refresh usage; only route/setup-level refreshes and the controlled service worker update reload remain.
+  - audited broad `select("*")` usage in `app` and `lib`; no simple hot-path matches remain.
+- Closed Phase 01-05 local/code acceptance:
+  - Phase 01 cache/refetch contract is complete through `lib/swr.ts`, `lib/cache-invalidation.ts`, and targeted module revalidation.
+  - Phase 02 realtime strategy is complete locally through payload-aware realtime, filters/prefixes, and debounced list invalidation.
+  - Phase 03 server data/DB performance is complete locally through hot-path migrations, RPC/table verification, and no simple `select("*")` matches in `app`/`lib`.
+  - Phase 04 bundle/code splitting is complete locally through dynamic heavy imports and the 80KB app route chunk guard.
+  - Phase 05 route UX/skeleton pass is complete locally across the protected modules audited in Phase 08.
+- Added Phase 09/10 release-readiness guard:
+  - `npm run verify:performance-release` verifies required performance/release scripts and guardrails.
+  - `npm run smoke:production` checks public production routes, protected redirect behavior, service worker reachability, and the Web Vitals endpoint.
+  - `docs/release/performance-regression-checklist.md` records the required local, module, smoke, manual browser, and release evidence gates.
+
+Verification:
+- `npx tsc --noEmit --pretty false`: pass.
+- `npm run perf:audit`: pass.
+- `npm run perf:chunks`: pass, no app route chunk over 80KB.
+- `npm run verify:performance-release`: pass.
+- module verify scripts: pass for contracts, reports, dashboard, services, inventory, dresses, printing, calendar, productivity, settings, and employees.
+- seeded smoke scripts: pass for contracts, dashboard, calendar, employees, and settings.
+- `npm run lint`: pass with the existing 5 warnings in `lib/navigation-data-prefetch.ts`.
+- `npm run build`: pass.
+
+Remaining:
+- `npm run smoke:production` currently reaches `/login`, `/offline`, protected `/contracts`, and `/sw.js`, but fails because the live production service worker does not yet expose the new Supabase REST runtime rule; deploy the current batch and rerun.
+- Run authenticated browser smoke for optimistic rollback, finance/dashboard refresh, CRM, operations, and service worker update behavior.
+- Capture production Web Vitals p75 and route TTFB before moving Phase 09/10 to 100%.
+- Deploy the current uncommitted performance batch, then re-run production smoke and mobile service worker validation.
+
 ### 2026-04-23
 Implemented:
 - Added Web Vitals client reporter and `/api/monitoring/web-vitals` endpoint.

@@ -25,6 +25,10 @@ import {
   getContractDrawerExtra,
 } from "@/app/actions/contract-queries";
 import { getActiveEmployees } from "@/app/actions/employee-queries";
+import {
+  revalidateContractCaches as revalidateContractCachesSSOT,
+  revalidateContractDetailCaches as revalidateContractDetailCachesSSOT,
+} from "@/lib/cache-invalidation";
 
 // ─── Cache Key Factory ──────────────────────────────────
 
@@ -220,20 +224,7 @@ export function useActiveEmployees() {
 
 /** Invalidate all contract-related SWR caches after mutation */
 export async function revalidateContractCaches(contractId?: string) {
-  await Promise.all([
-    contractId ? mutate(contractKeys.detail(contractId)) : Promise.resolve(),
-    contractId ? mutate(contractKeys.drawerExtra(contractId)) : Promise.resolve(),
-    mutate((key: unknown) => {
-      if (!Array.isArray(key)) return false;
-      return key[0] === "contracts";
-    }, undefined, { revalidate: true }),
-    mutate((key: unknown) => {
-      if (!Array.isArray(key)) return false;
-      if (key[0] !== "contract-notes") return false;
-      return contractId ? key[1] === contractId : true;
-    }, undefined, { revalidate: true }),
-    mutate(contractKeys.stats()),
-  ]);
+  await revalidateContractCachesSSOT(contractId);
 }
 
 /** Invalidate only contract list and stats caches. Use for list-page realtime. */
@@ -249,10 +240,7 @@ export async function revalidateContractListCaches() {
 
 /** Revalidate only the detail-side caches. Use for detail page realtime to avoid list/stat refresh storms. */
 export async function revalidateContractDetailCaches(contractId: string) {
-  await Promise.all([
-    mutate(contractKeys.detail(contractId)),
-    mutate(contractKeys.drawerExtra(contractId)),
-  ]);
+  await revalidateContractDetailCachesSSOT(contractId);
 }
 
 /** Pre-warm SWR cache for drawer — lightweight action (4 queries vs 6) */

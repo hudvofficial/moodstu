@@ -119,8 +119,8 @@ export function InventoryDetailDrawer({
       const result = await deleteInventoryItem(source.id);
       if (!result.success) throw new Error(result.error || "Không thể xóa vật tư");
       toast.success("Đã xóa vật tư");
-      await refresh();
       onClose();
+      void refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi xử lý");
     } finally {
@@ -313,9 +313,9 @@ export function InventoryDetailDrawer({
       {source && showStockIn ? (
         <StockInModal
           isOpen
-          onClose={async () => {
+          onClose={() => {
             setShowStockIn(false);
-            await refresh();
+            void refresh();
           }}
           item={source}
         />
@@ -323,9 +323,9 @@ export function InventoryDetailDrawer({
       {source && showStockOut ? (
         <StockOutModal
           isOpen
-          onClose={async () => {
+          onClose={() => {
             setShowStockOut(false);
-            await refresh();
+            void refresh();
           }}
           item={source}
         />

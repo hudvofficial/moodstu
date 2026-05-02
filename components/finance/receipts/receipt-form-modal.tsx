@@ -10,8 +10,10 @@ import { ReceiptFormSaleSection } from "@/components/finance/receipts/receipt-fo
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
-import { revalidateInventory } from "@/lib/hooks/use-inventory";
+import {
+  invalidateContractAfterWrite,
+  invalidateInventoryAfterWrite,
+} from "@/lib/cache-invalidation";
 import type { ActionResult, FinanceCategory, FinanceContractOption } from "@/types/finance-operations";
 interface ReceiptFormModalProps {
   isOpen: boolean;
@@ -199,12 +201,12 @@ export function ReceiptFormModal({
       const contractIds = new Set(
         [initialData?.contract_id, isContractReceipt ? form.contract_id : null].filter(Boolean) as string[],
       );
-      await Promise.all(Array.from(contractIds).map((id) => revalidateContractCaches(id)));
-      if (isSale || initialData?.receipt_type === "sale_receipt") {
-        await revalidateInventory();
-      }
       onSaved();
       onClose();
+      void Promise.all(Array.from(contractIds).map((id) => invalidateContractAfterWrite(id)));
+      if (isSale || initialData?.receipt_type === "sale_receipt") {
+        void invalidateInventoryAfterWrite();
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Đã xảy ra lỗi");
     } finally {

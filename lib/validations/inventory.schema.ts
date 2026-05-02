@@ -13,6 +13,10 @@ import { z } from "zod";
 // ─── Categories (Group B — VARCHAR in DB) ────────────
 
 export const INVENTORY_CATEGORIES = [
+  "in_an",
+  "makeup",
+  "van_phong_pham",
+  "khac",
   "khung_anh",
   "album",
   "hoa",
@@ -76,6 +80,8 @@ export const inventoryCreateSchema = z.object({
   min_stock: z.number().int().min(0).default(0),
   purchase_price: z.number().min(0).default(0),
   sale_price: z.number().min(0).default(0),
+  initial_stock: z.number().int().min(0).default(0),
+  initial_unit_cost: z.number().min(0).default(0),
   supplier: z.string().max(200).optional(),
   image_url: z.string().url().optional().or(z.literal("")),
   notes: z.string().max(1000).optional(),

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getAvailableItems } from "@/app/actions/dress-queries";
 import { reserveDressForContract } from "@/app/actions/dress-mutations";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
 import { toast } from "@/lib/toast-utils";
 import DatePicker from "@/components/ui/date-picker";
 
@@ -131,7 +131,7 @@ export default function DressReservationForm({
         toast("Đã đặt trang phục thành công", "success");
         resetForm();
         onClose();
-        await revalidateContractCaches(contractId);
+        void invalidateContractAfterWrite(contractId);
       } else {
         toast(result.error || "Lỗi đặt trang phục", "error");
       }

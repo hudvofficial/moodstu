@@ -52,8 +52,8 @@ export function BudgetFormModal({ isOpen, onClose, onSaved, month, year }: Budge
 
     toast.success("Đã lưu ngân sách.");
     setForm({ category_name: "", budget_amount: 0, notes: "" });
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

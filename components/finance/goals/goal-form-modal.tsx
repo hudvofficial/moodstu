@@ -68,8 +68,8 @@ export function GoalFormModal({ isOpen, goal, cashflow = null, onClose, onSaved 
 
     toast.success(goal ? "Đã cập nhật mục tiêu." : "Đã tạo mục tiêu.");
     setForm(EMPTY_FORM);
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

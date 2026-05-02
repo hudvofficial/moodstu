@@ -31,6 +31,7 @@ export default function SettingsView({
   canManageMembers,
 }: SettingsViewProps) {
   const router = useRouter();
+  const [currentEmployee, setCurrentEmployee] = useState(employee);
   const [editOpen, setEditOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [prefs, setPrefs] = useState(notificationPrefs);
@@ -126,7 +127,7 @@ export default function SettingsView({
       <div className="detail-grid">
         <div className="detail-main">
           <ProfileCard
-            employee={employee}
+            employee={currentEmployee}
             onEdit={() => setEditOpen(true)}
             onLogout={handleLogout}
             loggingOut={loggingOut}
@@ -158,8 +159,9 @@ export default function SettingsView({
         key={String(editOpen)}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
-        profile={employee}
+        profile={currentEmployee}
         canManageSettings={canManageSettings}
+        onSaved={(nextProfile) => setCurrentEmployee(nextProfile)}
       />
     </div>
   );

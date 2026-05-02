@@ -14,6 +14,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getEventTypeLabel } from "@/types/contract-constants";
@@ -89,23 +90,23 @@ export default function ContractChecklistManager({
   // Toggle (optimistic)
   const handleToggle = useCallback(async (item: ChecklistItem) => {
     const newVal = !item.is_completed;
-
-    setItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, is_completed: newVal } : i))
-    );
-
-    try {
-      const res = await toggleChecklist(item.id, newVal);
-      if (!res.success) {
-        throw new Error(res.error);
-      }
-      await revalidateContractCaches(res.data.contract_id);
-    } catch {
+    const applyState = (isCompleted: boolean) => {
       setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, is_completed: !newVal } : i))
+        prev.map((i) => (i.id === item.id ? { ...i, is_completed: isCompleted } : i))
       );
-      toast.error("Lỗi cập nhật checklist");
-    }
+    };
+
+    await runOptimisticMutation({
+      apply: () => applyState(newVal),
+      rollback: () => applyState(!newVal),
+      action: () => toggleChecklist(item.id, newVal),
+      onSuccess: (res) => {
+        void revalidateContractCaches(res.data.contract_id);
+      },
+      onError: () => {
+        toast.error("Lỗi cập nhật checklist");
+      },
+    });
   }, []);
 
   if (total === 0) {

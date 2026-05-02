@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import type { EmployeeDetail, EmployeeRole, SalaryInfo } from "@/types/employee";
 import { ROLE_BADGE_MAP, EMPLOYEE_STATUS_MAP, getRoleLabel } from "@/types/employee-constants";
 import { formatCurrency, formatDate, formatPhone, getInitials } from "@/lib/utils";
-import { revalidateEmployeeCaches } from "@/lib/cache-invalidation";
+import { invalidateEmployeeAfterWrite, revalidateEmployeeCaches } from "@/lib/cache-invalidation";
 import { useRealtime } from "@/hooks/use-realtime";
 import { getEmployeeById } from "@/app/actions/employee-queries";
 import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-mutations";
@@ -82,8 +82,8 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
       const result = await softDeleteEmployee(employee.id);
       if (result.success) {
         toast.success("Đã cho nghỉ việc");
-        await revalidateEmployeeCaches(employee.id);
         router.push("/employees");
+        void invalidateEmployeeAfterWrite(employee.id);
       } else { throw new Error(result.error || "Lỗi"); }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi xử lý");
@@ -96,7 +96,7 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
       const result = await restoreEmployee(employee.id);
       if (result.success) {
         toast.success("Đã khôi phục nhân viên");
-        await refreshEmployee();
+        void refreshEmployee();
       } else { throw new Error(result.error || "Lỗi"); }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi khôi phục");

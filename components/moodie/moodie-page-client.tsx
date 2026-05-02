@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Database, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -50,6 +51,7 @@ function toSummary(
 }
 
 export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
+  const router = useRouter();
   const [conversations, setConversations] = useState(initialData.conversations);
   const [conversationCache, setConversationCache] = useState<
     Record<string, MoodieConversationDetail>
@@ -319,7 +321,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             <Button
               type="button"
               className="gap-2"
-              onClick={() => window.location.reload()}
+              onClick={() => router.refresh()}
             >
               <RefreshCw className="h-4 w-4" />
               <span>{"T\u1ea3i l\u1ea1i sau khi migrate"}</span>

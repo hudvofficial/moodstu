@@ -108,6 +108,7 @@ export const cacheKeys = {
   employees: () => "employees",
   notifications: () => "notifications",
   settings: () => "settings",
+  studioInfo: () => "studio-info",
   printingOrders: () => "printing-orders",
   printingStats: () => "printing-stats",
   printingDetail: (id: string) => `printing:${id}`,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save, Loader2 } from "lucide-react";
 import {
@@ -17,6 +16,7 @@ import {
   MOODIE_GEMINI_MODEL_OPTIONS,
   type MoodieGeminiModelOption,
 } from "@/lib/moodie/model-options";
+import { cacheKeys, mutate } from "@/lib/swr";
 import GoogleCalendarCard from "./google-calendar-card";
 import MoodieAiCard from "./moodie-ai-card";
 import StudioIdentitySection from "./studio/studio-identity-section";
@@ -59,8 +59,9 @@ export default function StudioInfoForm({
   studioInfo,
   moodieAiSettings,
 }: StudioInfoFormProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [savedStudioInfo, setSavedStudioInfo] = useState(studioInfo);
+  const [savedMoodieSettings, setSavedMoodieSettings] = useState(moodieAiSettings);
   const [name, setName] = useState(studioInfo.name || "");
   const [hotline, setHotline] = useState(studioInfo.hotline || "");
   const [address, setAddress] = useState(studioInfo.address || "");
@@ -96,12 +97,14 @@ export default function StudioInfoForm({
   );
 
   useEffect(() => {
+    setSavedMoodieSettings(moodieAiSettings);
     setMoodieGeminiModel(moodieAiSettings.geminiModel);
-  }, [moodieAiSettings.geminiModel]);
+  }, [moodieAiSettings]);
 
   useEffect(() => {
+    setSavedStudioInfo(studioInfo);
     setLogoUrl(studioInfo.logo_url || "");
-  }, [studioInfo.logo_url]);
+  }, [studioInfo]);
 
   const studioPayload = {
     name: normalizeRequiredText(name),
@@ -113,29 +116,29 @@ export default function StudioInfoForm({
     bank_info: bankInfo,
     social_links: socialLinks,
     working_hours: workingHours,
-    expected_updated_at: studioInfo.updated_at,
+    expected_updated_at: savedStudioInfo.updated_at,
   };
 
   const hasStudioChanges =
-    studioPayload.name !== (studioInfo.name || "") ||
-    studioPayload.hotline !== (studioInfo.hotline || "N/A") ||
-    studioPayload.address !== (studioInfo.address || null) ||
-    studioPayload.representative !== (studioInfo.representative || null) ||
-    studioPayload.logo_url !== (studioInfo.logo_url || null) ||
-    studioPayload.timezone !== (studioInfo.timezone || "Asia/Ho_Chi_Minh") ||
-    !sameRecord(studioPayload.bank_info, studioInfo.bank_info) ||
-    !sameRecord(studioPayload.social_links, studioInfo.social_links) ||
-    !sameRecord(studioPayload.working_hours, studioInfo.working_hours);
+    studioPayload.name !== (savedStudioInfo.name || "") ||
+    studioPayload.hotline !== (savedStudioInfo.hotline || "N/A") ||
+    studioPayload.address !== (savedStudioInfo.address || null) ||
+    studioPayload.representative !== (savedStudioInfo.representative || null) ||
+    studioPayload.logo_url !== (savedStudioInfo.logo_url || null) ||
+    studioPayload.timezone !== (savedStudioInfo.timezone || "Asia/Ho_Chi_Minh") ||
+    !sameRecord(studioPayload.bank_info, savedStudioInfo.bank_info) ||
+    !sameRecord(studioPayload.social_links, savedStudioInfo.social_links) ||
+    !sameRecord(studioPayload.working_hours, savedStudioInfo.working_hours);
 
   const hasMoodieChanges =
     moodieApiKeyInput.trim().length > 0 ||
-    moodieGeminiModel.trim() !== moodieAiSettings.geminiModel;
+    moodieGeminiModel.trim() !== savedMoodieSettings.geminiModel;
   const hasChanges = hasStudioChanges || hasMoodieChanges;
 
   async function loadMoodieModels(showToast = false) {
     const overrideKey = moodieApiKeyInput.trim();
 
-    if (!moodieAiSettings.hasGeminiKey && !overrideKey) {
+    if (!savedMoodieSettings.hasGeminiKey && !overrideKey) {
       const message = "Nhập khóa Gemini trước khi tải danh sách model từ API";
       setMoodieModelMessage(message);
       if (showToast) toast.info(message);
@@ -197,7 +200,16 @@ export default function StudioInfoForm({
         tasks.push(() =>
           updateStudioInfo(studioPayload).then((result): SaveResult =>
             result.success
-              ? { section: "Thông tin studio", success: true }
+              ? (() => {
+                  const publicStudioInfo = {
+                    ...result.data,
+                    google_calendar_auth: null,
+                  };
+                  setSavedStudioInfo(result.data);
+                  void mutate(cacheKeys.studioInfo(), publicStudioInfo, { revalidate: false });
+                  void mutate(cacheKeys.settings(), publicStudioInfo, { revalidate: false });
+                  return { section: "Studio", success: true };
+                })()
               : {
                   section: "Thông tin studio",
                   success: false,
@@ -213,12 +225,19 @@ export default function StudioInfoForm({
           updateMoodieAiSettings({
             gemini_api_key: moodieApiKeyInput.trim() || undefined,
             gemini_model:
-              nextModel && nextModel !== moodieAiSettings.geminiModel
+              nextModel && nextModel !== savedMoodieSettings.geminiModel
                 ? nextModel
                 : undefined,
           }).then((result): SaveResult =>
             result.success
-              ? { section: "Moodie AI", success: true }
+              ? (() => {
+                  setSavedMoodieSettings((current) => ({
+                    ...current,
+                    hasGeminiKey: current.hasGeminiKey || moodieApiKeyInput.trim().length > 0,
+                    geminiModel: nextModel || current.geminiModel,
+                  }));
+                  return { section: "Moodie AI", success: true };
+                })()
               : {
                   section: "Moodie AI",
                   success: false,
@@ -251,13 +270,12 @@ export default function StudioInfoForm({
       ].filter(Boolean);
 
       toast.success(`Đã lưu ${savedSections.join(" và ")}`);
-      router.refresh();
     });
   }
 
   const moodieCard = (
     <MoodieAiCard
-      settings={moodieAiSettings}
+      settings={savedMoodieSettings}
       apiKeyInput={moodieApiKeyInput}
       setApiKeyInput={setMoodieApiKeyInput}
       geminiModel={moodieGeminiModel}
@@ -328,8 +346,12 @@ export default function StudioInfoForm({
 
         <div className="detail-sidebar">
           <GoogleCalendarCard
-            isConnected={!!studioInfo.google_calendar_auth}
+            isConnected={!!savedStudioInfo.google_calendar_auth}
             onDisconnect={disconnectGoogleCalendar}
+            onDisconnected={() => {
+              setSavedStudioInfo((current) => ({ ...current, google_calendar_auth: null }));
+              void mutate(cacheKeys.studioInfo());
+            }}
           />
           {moodieCard}
           {saveButton}
@@ -338,8 +360,12 @@ export default function StudioInfoForm({
 
       <div className="lg:hidden flex flex-col gap-4">
         <GoogleCalendarCard
-          isConnected={!!studioInfo.google_calendar_auth}
+          isConnected={!!savedStudioInfo.google_calendar_auth}
           onDisconnect={disconnectGoogleCalendar}
+          onDisconnected={() => {
+            setSavedStudioInfo((current) => ({ ...current, google_calendar_auth: null }));
+            void mutate(cacheKeys.studioInfo());
+          }}
         />
         {moodieCard}
         <div className="flex justify-end">{saveButton}</div>

@@ -8,11 +8,12 @@ const extensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 const allowedRouterRefresh = [
   /^hooks[\\/]use-realtime\.ts$/,
   /^components[\\/]settings[\\/]/,
+  /^components[\\/]moodie[\\/]moodie-page-client\.tsx$/,
 ];
 
 const allowedReload = [
   /^app[\\/]offline[\\/]page\.tsx$/,
-  /^components[\\/]moodie[\\/]moodie-page-client\.tsx$/,
+  /^components[\\/]layout[\\/]service-worker-update-reload\.tsx$/,
 ];
 
 const heavyStaticImports = [

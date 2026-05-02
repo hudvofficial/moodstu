@@ -17,8 +17,8 @@ import {
   deletePrintingOrder,
   updatePrintingOrder,
 } from "@/app/actions/printing-mutations";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
 import { useDebounce } from "@/hooks/use-debounce";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 import { Badge } from "@/components/ui/badge";
 import type {
@@ -250,9 +250,9 @@ export default function PrintingDetailDrawer({
         toast("Tạo đơn in thành công", "success");
       }
 
-      await onSaved();
-      await revalidateContractCaches(order?.contractId || form.contractId);
       onClose();
+      void onSaved();
+      void invalidateContractAfterWrite(order?.contractId || form.contractId);
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể lưu đơn in",
@@ -291,9 +291,9 @@ export default function PrintingDetailDrawer({
       }
 
       toast("Đã xóa đơn in", "success");
-      await onSaved();
-      if (order.contractId) await revalidateContractCaches(order.contractId);
       onClose();
+      void onSaved();
+      if (order.contractId) void invalidateContractAfterWrite(order.contractId);
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể xóa đơn in",

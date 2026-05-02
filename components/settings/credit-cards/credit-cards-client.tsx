@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, CreditCard, Banknote, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { CreditCardOption } from "@/app/actions/finance-operations-queries";
+import {
+  fetchCreditCards,
+  type CreditCardOption,
+} from "@/app/actions/finance-operations-queries";
 import CreditCardFormModal from "./credit-card-form-modal";
 
 export default function CreditCardsClient({
@@ -12,8 +14,7 @@ export default function CreditCardsClient({
 }: {
   initialCards: CreditCardOption[];
 }) {
-  const router = useRouter();
-  const cards = initialCards || [];
+  const [cards, setCards] = useState<CreditCardOption[]>(initialCards || []);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CreditCardOption | null>(null);
 
@@ -28,7 +29,9 @@ export default function CreditCardsClient({
   };
 
   const onSuccess = () => {
-    router.refresh();
+    void fetchCreditCards().then((response) => {
+      if (response.success) setCards(response.data);
+    });
   };
 
   return (

@@ -113,8 +113,8 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
       description: "",
       contract_id: "none",
     });
-    onSaved();
     onClose();
+    onSaved();
   };
 
   return (

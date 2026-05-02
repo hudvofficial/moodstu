@@ -1,13 +1,16 @@
 "use client";
 
 /**
- * 📦 InventoryFormModal — Create / Edit inventory item
- * Clone: contracts/contract-form pattern
- * Uses: UnifiedModal + SelectForm (form, NOT SelectPill) + CurrencyInput
- * SSOT: .input-base, .label-base, .form-grid-2col, .error-text
+ * InventoryFormModal - Create / edit inventory item.
+ * SSOT: UnifiedModal, input-base, label-base, form-grid-2col, error-text.
  */
 
-import { useState, useTransition } from "react";
+import {
+  useState,
+  useTransition,
+  type FormEvent,
+  type MouseEvent,
+} from "react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { SelectForm } from "@/components/ui/select/SelectForm";
@@ -15,7 +18,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { revalidateInventory } from "@/lib/hooks/use-inventory";
+import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { createInventoryItem, updateInventoryItem } from "@/app/actions/inventory-mutations";
 import {
   INVENTORY_CATEGORIES,
@@ -26,18 +29,30 @@ import {
 import { INVENTORY_CATEGORY_MAP, INVENTORY_UNIT_MAP } from "@/types/inventory-constants";
 import type { InventoryItem } from "@/types/inventory";
 
-// ── Options ──────────────────────────
-const CATEGORY_OPTIONS = INVENTORY_CATEGORIES.map((v) => ({
-  value: v,
-  label: INVENTORY_CATEGORY_MAP[v]?.label || v,
+const UNIT_OPTIONS = INVENTORY_UNITS.map((value) => ({
+  value,
+  label: INVENTORY_UNIT_MAP[value] || value,
 }));
 
-const UNIT_OPTIONS = INVENTORY_UNITS.map((v) => ({
-  value: v,
-  label: INVENTORY_UNIT_MAP[v] || v,
+const CATEGORY_ORDER: InventoryCategory[] = [
+  "in_an",
+  "album",
+  "khung_anh",
+  "makeup",
+  "trang_tri",
+  "hoa",
+  "tieu_hao",
+  "van_phong_pham",
+  "khac",
+];
+
+const CATEGORY_OPTIONS = CATEGORY_ORDER
+  .filter((value) => INVENTORY_CATEGORIES.includes(value))
+  .map((value) => ({
+  value,
+  label: INVENTORY_CATEGORY_MAP[value]?.label || value,
 }));
 
-// ── Props ────────────────────────────
 interface InventoryFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,31 +63,44 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
   const isEdit = !!editItem;
   const [isPending, startTransition] = useTransition();
 
-  // ── Form state ──
+  const [itemCode, setItemCode] = useState(editItem?.item_code || "");
   const [name, setName] = useState(editItem?.name || "");
   const [category, setCategory] = useState<InventoryCategory | "">(
-    (editItem?.category as InventoryCategory) || ""
+    (editItem?.category as InventoryCategory) || "",
   );
   const [unit, setUnit] = useState<InventoryUnit | "">(
-    (editItem?.unit as InventoryUnit) || ""
+    (editItem?.unit as InventoryUnit) || "",
   );
-  const [minStock, setMinStock] = useState(editItem?.min_stock || 0);
-  const [purchasePrice, setPurchasePrice] = useState(editItem?.purchase_price || 0);
+  const [minStock, setMinStock] = useState(editItem?.min_stock ?? 5);
+  const [initialStock, setInitialStock] = useState(0);
+  const [purchasePrice, setPurchasePrice] = useState(
+    editItem?.purchase_price || editItem?.average_unit_price || 0,
+  );
   const [salePrice, setSalePrice] = useState(editItem?.sale_price || 0);
   const [supplier, setSupplier] = useState(editItem?.supplier || "");
   const [notes, setNotes] = useState(editItem?.notes || "");
   const [error, setError] = useState("");
 
-  // ── Submit ──
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) { setError("Tên vật tư là bắt buộc"); return; }
-    if (!category) { setError("Vui lòng chọn phân loại"); return; }
-    if (!unit) { setError("Vui lòng chọn đơn vị"); return; }
+  const handleSubmit = (event?: FormEvent | MouseEvent) => {
+    event?.preventDefault();
+
+    if (!name.trim()) {
+      setError("Tên vật tư là bắt buộc");
+      return;
+    }
+    if (!category) {
+      setError("Vui lòng chọn phân loại");
+      return;
+    }
+    if (!unit) {
+      setError("Vui lòng chọn đơn vị");
+      return;
+    }
 
     setError("");
     startTransition(async () => {
       const formData = {
+        item_code: itemCode.trim() || undefined,
         name: name.trim(),
         category,
         unit,
@@ -84,17 +112,26 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
       };
 
       const result = isEdit
-        ? await updateInventoryItem({ id: editItem.id, updated_at: editItem.updated_at, data: formData })
-        : await createInventoryItem(formData);
+        ? await updateInventoryItem({
+            id: editItem.id,
+            updated_at: editItem.updated_at,
+            data: formData,
+          })
+        : await createInventoryItem({
+            ...formData,
+            initial_stock: initialStock,
+            initial_unit_cost: purchasePrice,
+          });
 
-      if (result && 'success' in result && result.success) {
-        toast.success(isEdit ? "Đã cập nhật vật tư" : "Đã tạo vật tư mới");
-        await revalidateInventory();
+      if (result && "success" in result && result.success) {
+        toast.success(isEdit ? "Đã cập nhật vật tư" : "Đã nhập kho vật tư mới");
         onClose();
-      } else {
-        const errMsg = (result && 'error' in result) ? result.error : "Có lỗi xảy ra";
-        setError(typeof errMsg === 'string' ? errMsg : "Có lỗi xảy ra");
+        void invalidateInventoryAfterWrite(isEdit ? editItem.id : undefined);
+        return;
       }
+
+      const errMsg = result && "error" in result ? result.error : "Có lỗi xảy ra";
+      setError(typeof errMsg === "string" ? errMsg : "Có lỗi xảy ra");
     });
   };
 
@@ -102,15 +139,15 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
     <UnifiedModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? "Sửa vật tư" : "Khai báo vật tư mới"}
-      size="lg"
+      title={isEdit ? "Sửa vật tư" : "Nhập kho mới"}
+      size="xl"
       footer={
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
+        <div className="grid grid-cols-2 gap-3 w-full">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending} className="h-12">
             Hủy
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isPending}>
-            {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo mới"}
+          <Button type="button" onClick={(event) => handleSubmit(event)} disabled={isPending} className="h-12">
+            {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Nhập kho"}
           </Button>
         </div>
       }
@@ -118,53 +155,39 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="error-text">{error}</p>}
 
-        {/* Tên vật tư */}
         <div>
           <label className="label-base">Tên vật tư *</label>
           <Input
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="VD: Album cưới 30x40"
+            onChange={(event) => setName(event.target.value)}
+            placeholder="VD: Phôi ảnh 60x90, cọ trang điểm..."
           />
         </div>
 
-        {/* Category + Unit (2 cột) */}
         <div className="form-grid-2col">
+          <div>
+            <label className="label-base">Mã vật tư</label>
+            <Input
+              value={itemCode}
+              onChange={(event) => setItemCode(event.target.value)}
+              placeholder="Tự động khi lưu"
+              className="font-mono"
+            />
+          </div>
           <div>
             <label className="label-base">Phân loại *</label>
             <SelectForm
               value={category}
-              onChange={(v) => setCategory(v as InventoryCategory)}
-              placeholder="Chọn phân loại"
+              onChange={(value) => setCategory(value as InventoryCategory)}
               options={CATEGORY_OPTIONS}
-            />
-          </div>
-          <div>
-            <label className="label-base">Đơn vị *</label>
-            <SelectForm
-              value={unit}
-              onChange={(v) => setUnit(v as InventoryUnit)}
-              placeholder="Chọn đơn vị"
-              options={UNIT_OPTIONS}
+              placeholder="Chọn phân loại"
             />
           </div>
         </div>
 
-        {/* Tồn kho tối thiểu */}
-        <div>
-          <label className="label-base">Tồn kho tối thiểu</label>
-          <Input
-            type="number"
-            min={0}
-            value={minStock}
-            onChange={(e) => setMinStock(Number(e.target.value))}
-          />
-        </div>
-
-        {/* Giá (2 cột) */}
         <div className="form-grid-2col">
           <div>
-            <label className="label-base">Giá nhập</label>
+            <label className="label-base">Giá nhập TB</label>
             <CurrencyInput value={purchasePrice} onChange={setPurchasePrice} />
           </div>
           <div>
@@ -173,24 +196,57 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
           </div>
         </div>
 
-        {/* Nhà cung cấp */}
-        <div>
-          <label className="label-base">Nhà cung cấp</label>
-          <Input
-            value={supplier}
-            onChange={(e) => setSupplier(e.target.value)}
-            placeholder="VD: Công ty ABC"
-          />
+        <div className="form-grid-2col">
+          {!isEdit && (
+            <div>
+              <label className="label-base">Số lượng tồn</label>
+              <Input
+                type="number"
+                min={0}
+                value={initialStock}
+                onChange={(event) => setInitialStock(Number(event.target.value))}
+              />
+            </div>
+          )}
+          <div>
+            <label className="label-base">Tồn kho tối thiểu</label>
+            <Input
+              type="number"
+              min={0}
+              value={minStock}
+              onChange={(event) => setMinStock(Number(event.target.value))}
+              className="text-danger"
+            />
+          </div>
         </div>
 
-        {/* Ghi chú */}
+        <div className="form-grid-2col">
+          <div>
+            <label className="label-base">Đơn vị *</label>
+            <SelectForm
+              value={unit}
+              onChange={(value) => setUnit(value as InventoryUnit)}
+              options={UNIT_OPTIONS}
+              placeholder="Chọn đơn vị"
+            />
+          </div>
+          <div>
+            <label className="label-base">Nhà cung cấp</label>
+            <Input
+              value={supplier}
+              onChange={(event) => setSupplier(event.target.value)}
+              placeholder="VD: Công ty ABC"
+            />
+          </div>
+        </div>
+
         <div>
           <label className="label-base">Ghi chú</label>
           <Textarea
             className="min-h-20"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ghi chú thêm..."
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Cách bảo quản, lưu ý..."
           />
         </div>
       </form>

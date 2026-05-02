@@ -11,6 +11,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -94,37 +95,29 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
     if (pendingIds.has(item.id)) return;
 
     const newVal = !item.is_completed;
+    const applyState = (isCompleted: boolean) => {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, is_completed: isCompleted } : i
+        )
+      );
+    };
 
     // Lock item
     setPendingIds((prev) => new Set(prev).add(item.id));
 
-    // Optimistic update
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id ? { ...i, is_completed: newVal } : i
-      )
-    );
-
     try {
-      const res = await toggleChecklist(item.id, newVal);
-      if (!res.success) {
-        // Revert
-        setItems((prev) =>
-          prev.map((i) =>
-            i.id === item.id ? { ...i, is_completed: !newVal } : i
-          )
-        );
-        toast.error("Lỗi cập nhật checklist");
-        return;
-      }
-      await revalidateContractCaches(res.data.contract_id);
-    } catch {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, is_completed: !newVal } : i
-        )
-      );
-      toast.error("Lỗi kết nối");
+      await runOptimisticMutation({
+        apply: () => applyState(newVal),
+        rollback: () => applyState(!newVal),
+        action: () => toggleChecklist(item.id, newVal),
+        onSuccess: (res) => {
+          void revalidateContractCaches(res.data.contract_id);
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
+        },
+      });
     } finally {
       // Unlock item
       setPendingIds((prev) => {

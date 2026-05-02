@@ -100,10 +100,10 @@ export function GoalDetailDrawer({
     }
 
     toast.success("Đã hoàn tác khoản góp.");
-    await mutate(cacheKeys.goals());
-    await mutate(cacheKeys.goalsCashflow());
-    if (goal?.id) await mutate(cacheKeys.goalContributions(goal.id));
     setConfirmingUndo(null);
+    void mutate(cacheKeys.goals());
+    void mutate(cacheKeys.goalsCashflow());
+    if (goal?.id) void mutate(cacheKeys.goalContributions(goal.id));
   };
 
   const titleBadge = goal ? (

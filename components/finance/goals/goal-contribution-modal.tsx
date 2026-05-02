@@ -68,12 +68,12 @@ export function GoalContributionModal({ goal, cashflow = null, onCelebrate, onCl
       }
     }
 
-    await mutate(cacheKeys.goalContributions(goal.id));
+    void mutate(cacheKeys.goalContributions(goal.id));
 
     setAmount(0);
     setNotes("");
-    onSaved();
     onClose();
+    onSaved();
   };
 
   const palette = goal ? resolveGoalColor(goal.color) : null;

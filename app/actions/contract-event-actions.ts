@@ -49,32 +49,32 @@ function addDays(base: Date, offset: number): string {
 function fallbackEventTemplates(serviceType: ServiceType): EventTemplateRow[] {
   const serviceLabel: Partial<Record<ServiceType, string>> = {
     studio: "Studio",
-    ngay_cuoi: "Ngay cuoi",
+    ngay_cuoi: "Ngày cưới",
     combo: "Combo",
     baby: "Baby",
-    gia_dinh: "Gia dinh",
-    sinh_nhat: "Sinh nhat",
-    bau: "Bau",
+    gia_dinh: "Gia đình",
+    sinh_nhat: "Sinh nhật",
+    bau: "Bầu",
     concept: "Concept",
     couple: "Couple",
-    ky_yeu: "Ky yeu",
+    ky_yeu: "Kỷ yếu",
     media: "Media",
-    khac: "Du an",
+    khac: "Dự án",
   };
 
-  const label = serviceLabel[serviceType] || "Du an";
+  const label = serviceLabel[serviceType] || "Dự án";
   if (serviceType === "ngay_cuoi") {
     return [
       { event_type: "ngay_to_chuc", event_name: label, default_days_offset: 0, sort_order: 1 },
-      { event_type: "hau_ky", event_name: `Hau ky ${label}`, default_days_offset: 5, sort_order: 2 },
-      { event_type: "giao_san_pham", event_name: "Giao san pham", default_days_offset: 10, sort_order: 3 },
+      { event_type: "hau_ky", event_name: `Hậu kỳ ${label}`, default_days_offset: 5, sort_order: 2 },
+      { event_type: "giao_san_pham", event_name: "Giao sản phẩm", default_days_offset: 10, sort_order: 3 },
     ];
   }
 
   return [
-    { event_type: "ngay_chup", event_name: `Thuc hien ${label}`, default_days_offset: 0, sort_order: 1 },
-    { event_type: "hau_ky", event_name: `Hau ky ${label}`, default_days_offset: 3, sort_order: 2 },
-    { event_type: "giao_san_pham", event_name: "Giao san pham", default_days_offset: 7, sort_order: 3 },
+    { event_type: "ngay_chup", event_name: `Thực hiện ${label}`, default_days_offset: 0, sort_order: 1 },
+    { event_type: "hau_ky", event_name: `Hậu kỳ ${label}`, default_days_offset: 3, sort_order: 2 },
+    { event_type: "giao_san_pham", event_name: "Giao sản phẩm", default_days_offset: 7, sort_order: 3 },
   ];
 }
 

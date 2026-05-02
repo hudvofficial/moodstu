@@ -71,8 +71,8 @@ export function InventoryDetailPage({ id, initialDetail }: InventoryDetailPagePr
       const result = await deleteInventoryItem(detail.id);
       if (result && "success" in result && result.success) {
         toast.success("Đã xóa vật tư");
-        await revalidateInventory();
         router.push("/inventory");
+        void revalidateInventory();
       } else {
         toast.error("Không thể xóa vật tư");
       }

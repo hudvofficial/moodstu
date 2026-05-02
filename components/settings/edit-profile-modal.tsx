@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Camera, BadgeCheck, Save, Loader2 } from "lucide-react";
@@ -25,6 +24,7 @@ interface EditProfileModalProps {
   onClose: () => void;
   profile: EmployeeProfile;
   canManageSettings: boolean;
+  onSaved?: (profile: EmployeeProfile) => void;
 }
 
 export default function EditProfileModal({
@@ -32,8 +32,8 @@ export default function EditProfileModal({
   onClose,
   profile,
   canManageSettings,
+  onSaved,
 }: EditProfileModalProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(profile.full_name || "");
@@ -69,6 +69,7 @@ export default function EditProfileModal({
     }
 
     startTransition(async () => {
+      let nextAvatarUrl = profile.avatar_url;
       if (avatarFile) {
         const formData = new FormData();
         formData.append("avatar", avatarFile);
@@ -77,6 +78,7 @@ export default function EditProfileModal({
           toast.error(avatarResult.error || "Lỗi tải ảnh");
           return;
         }
+        nextAvatarUrl = avatarResult.data.url;
       }
 
       const result = await updateProfile({
@@ -111,8 +113,16 @@ export default function EditProfileModal({
       }
 
       toast.success("Đã cập nhật hồ sơ");
-      router.refresh();
       onClose();
+      onSaved?.({
+        ...profile,
+        full_name: name.trim(),
+        phone,
+        gender,
+        department,
+        position,
+        avatar_url: nextAvatarUrl,
+      });
     });
   }
 

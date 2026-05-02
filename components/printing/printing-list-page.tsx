@@ -17,7 +17,8 @@ import {
 } from "@/app/actions/printing-queries";
 import { usePrintingFilters } from "@/hooks/usePrintingFilters";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { cacheKeys } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import type {
@@ -27,6 +28,7 @@ import type {
   PrintingOrdersPage,
   PrintingStats,
 } from "@/types/printing";
+import type { PrintingOrderStatus } from "@/types/printing-constants";
 import PrintingFiltersBar from "@/components/printing/printing-filters";
 import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped";
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
@@ -139,23 +141,38 @@ function PrintingListInner({
       toast("Đơn in này không có hợp đồng để cập nhật", "error");
       return;
     }
+    const contractId = order.contractId;
+    const nextStatus = newStatus as PrintingOrderStatus;
 
-    const result = await updatePrintingOrderStatus(
-      order.id,
-      newStatus,
-      order.contractId,
-    );
+    const patchOrderStatus = (status: PrintingOrderStatus) => {
+      void mutateOrders((current) => {
+        if (!current?.success) return current;
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            orders: current.data.orders.map((item) =>
+              item.id === order.id ? { ...item, status } : item,
+            ),
+          },
+        };
+      }, { revalidate: false });
+    };
 
-    if (!result.success) {
-      toast(result.error, "error");
-      return;
-    }
-
-    toast("Cập nhật trạng thái thành công", "success");
-    await handleSaved();
-    await revalidateContractCaches(order.contractId);
+    await runOptimisticMutation({
+      apply: () => patchOrderStatus(nextStatus),
+      rollback: () => patchOrderStatus(order.status),
+      action: () => updatePrintingOrderStatus(order.id, nextStatus, contractId),
+      onSuccess: async () => {
+        toast("Cập nhật trạng thái thành công", "success");
+        void invalidateContractAfterWrite(contractId);
+        await handleSaved();
+      },
+      onError: (error) => {
+        toast(error instanceof Error ? error.message : "Không thể cập nhật trạng thái", "error");
+      },
+    });
   };
-
 
 
   return (

@@ -18,7 +18,7 @@ interface CreditCardFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: CreditCardOption | null;
-  onSuccess: () => void;
+  onSuccess: () => Promise<void> | void;
 }
 
 export default function CreditCardFormModal({
@@ -83,8 +83,8 @@ export default function CreditCardFormModal({
           toast.success("Đã thêm thẻ mới");
         }
 
-        onSuccess();
         onClose();
+        void onSuccess();
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -116,8 +116,8 @@ export default function CreditCardFormModal({
           throw new Error(response.error || "Xóa lỗi");
         }
         toast.success("Đã xóa thẻ");
-        onSuccess();
         onClose();
+        void onSuccess();
       } catch (error: unknown) {
         const message =
           error instanceof Error

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDebounce } from "@/hooks/use-debounce";
-import { revalidateInventory } from "@/lib/hooks/use-inventory";
+import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { stockOut } from "@/app/actions/inventory-mutations";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type { InventoryItem } from "@/types/inventory";
@@ -89,8 +89,8 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         if (result.data?.warning) {
           toast.warning(result.data.warning);
         }
-        await revalidateInventory();
         onClose();
+        void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
           result && "error" in result && typeof result.error === "string"

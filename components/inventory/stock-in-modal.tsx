@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDebounce } from "@/hooks/use-debounce";
-import { revalidateInventory } from "@/lib/hooks/use-inventory";
+import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { stockIn } from "@/app/actions/inventory-mutations";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type { InventoryItem } from "@/types/inventory";
@@ -83,8 +83,8 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
       if (result && "success" in result && result.success) {
         toast.success(`Đã nhập ${quantity} ${activeItem.name} vào kho`);
-        await revalidateInventory();
         onClose();
+        void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
           result && "error" in result && typeof result.error === "string"

@@ -26,6 +26,7 @@ import { fetchRentalsByItem, fetchActiveRental } from "@/app/actions/rental-quer
 import type { DressRental } from "@/types/dress";
 import { RentalModal } from "@/components/dresses/rental-modal";
 import { ReturnModal } from "@/components/dresses/return-modal";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { cacheKeys, revalidate, revalidateByPrefixes } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
 import { useState } from "react";
@@ -212,7 +213,10 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
   const [showRentalModal, setShowRentalModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const status = (dress.status as DressStatus) || "available";
+  const [localStatus, setLocalStatus] = useState<DressStatus>(
+    (dress.status as DressStatus) || "available",
+  );
+  const status = localStatus;
 
   // Fetch active rental for this dress
   const { data: activeRentalResult, mutate: mutateActive } = useSWR(
@@ -224,25 +228,34 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
   );
   const activeRental = activeRentalResult ?? null;
 
-  const handleAction = async (action: () => Promise<unknown>, successMsg: string) => {
+  const handleAction = async (
+    action: () => Promise<unknown>,
+    successMsg: string,
+    nextStatus: DressStatus,
+  ) => {
+    if (loading) return;
+    const previousStatus = localStatus;
+
     setLoading(true);
     try {
-      const result = await action() as { success: boolean; error?: string } | undefined;
-      if (result && !result.success) {
-        toast(result.error || "Có lỗi xảy ra", "error");
-      } else {
-        toast(successMsg, "success");
-        revalidateByPrefixes(cacheKeys.dresses());
-        revalidate(cacheKeys.dressStats());
-        mutateActive();
-      }
-    } catch {
-      toast("Có lỗi xảy ra", "error");
+      await runOptimisticMutation({
+        apply: () => setLocalStatus(nextStatus),
+        rollback: () => setLocalStatus(previousStatus),
+        action: () => action() as Promise<{ success: boolean; error?: string }>,
+        onSuccess: () => {
+          toast(successMsg, "success");
+          void revalidateByPrefixes(cacheKeys.dresses());
+          void revalidate(cacheKeys.dressStats());
+          void mutateActive();
+        },
+        onError: (error) => {
+          toast(error instanceof Error ? error.message : "Có lỗi xảy ra", "error");
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="space-y-2 mt-4">
       <h4 className="section-title">Hành động</h4>
@@ -267,7 +280,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         {/* Bắt đầu thuê */}
         {status === "reserved" && activeRental && (
           <Button unstyled
-            onClick={() => handleAction(() => startRental(activeRental.id), "Đã bắt đầu thuê!")}
+            onClick={() => handleAction(() => startRental(activeRental.id), "Đã bắt đầu thuê!", "rented")}
             disabled={loading}
             className="btn btn-primary w-full gap-2"
           >
@@ -279,7 +292,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         {/* Hủy đặt */}
         {status === "reserved" && activeRental && (
           <Button unstyled
-            onClick={() => handleAction(() => cancelRental(activeRental.id), "Đã hủy đặt thuê")}
+            onClick={() => handleAction(() => cancelRental(activeRental.id), "Đã hủy đặt thuê", "available")}
             disabled={loading}
             className="btn btn-ghost text-error w-full gap-2"
           >
@@ -304,7 +317,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         {/* Đã giặt xong */}
         {status === "cleaning" && (
           <Button unstyled
-            onClick={() => handleAction(() => markCleaned(dress.id), "Đã giặt xong — sẵn sàng!")}
+            onClick={() => handleAction(() => markCleaned(dress.id), "Đã giặt xong — sẵn sàng!", "available")}
             disabled={loading}
             className="btn btn-primary w-full gap-2"
           >
@@ -329,6 +342,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
         onClose={() => setShowRentalModal(false)}
         dress={dress}
         onSaved={() => {
+          setLocalStatus("reserved");
           mutateActive();
           revalidateByPrefixes(cacheKeys.dresses());
           revalidate(cacheKeys.dressStats());
@@ -342,6 +356,7 @@ function RentalActionsSection({ dress }: { dress: DressItem }) {
           onClose={() => setShowReturnModal(false)}
           rental={activeRental}
           onSaved={() => {
+            setLocalStatus("cleaning");
             mutateActive();
             revalidateByPrefixes(cacheKeys.dresses());
             revalidate(cacheKeys.dressStats());

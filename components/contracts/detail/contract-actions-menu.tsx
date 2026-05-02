@@ -51,7 +51,7 @@ export default function ContractActionsMenu({
         toast("Đã hủy hợp đồng thành công", "success");
         setShowCancel(false);
         setCancelReason("");
-        await revalidateContractCaches(contractId);
+        void revalidateContractCaches(contractId);
       } else {
         toast(result.error || "Lỗi hủy hợp đồng", "error");
       }
@@ -70,8 +70,8 @@ export default function ContractActionsMenu({
       const result = await deleteContract(contractId);
       if (result.success) {
         toast("Đã xóa hợp đồng", "success");
-        await revalidateContractCaches(contractId);
         router.push("/contracts");
+        void revalidateContractCaches(contractId);
       } else {
         toast(result.error || "Lỗi xóa hợp đồng", "error");
       }
