@@ -17,7 +17,10 @@ import {
   deletePrintingOrder,
   updatePrintingOrder,
 } from "@/app/actions/printing-mutations";
-import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
+import {
+  invalidateContractAfterWrite,
+  invalidatePrintingAfterWrite,
+} from "@/lib/cache-invalidation";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/lib/toast-utils";
 import { Badge } from "@/components/ui/badge";
@@ -250,9 +253,14 @@ export default function PrintingDetailDrawer({
         toast("Tạo đơn in thành công", "success");
       }
 
+      await Promise.all([
+        Promise.resolve(onSaved()),
+        invalidatePrintingAfterWrite(order?.id),
+        order?.contractId || form.contractId
+          ? invalidateContractAfterWrite(order?.contractId || form.contractId)
+          : Promise.resolve(),
+      ]);
       onClose();
-      void onSaved();
-      void invalidateContractAfterWrite(order?.contractId || form.contractId);
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể lưu đơn in",
@@ -291,9 +299,12 @@ export default function PrintingDetailDrawer({
       }
 
       toast("Đã xóa đơn in", "success");
+      await Promise.all([
+        Promise.resolve(onSaved()),
+        invalidatePrintingAfterWrite(order.id),
+        order.contractId ? invalidateContractAfterWrite(order.contractId) : Promise.resolve(),
+      ]);
       onClose();
-      void onSaved();
-      if (order.contractId) void invalidateContractAfterWrite(order.contractId);
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể xóa đơn in",

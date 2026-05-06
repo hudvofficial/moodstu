@@ -11,6 +11,9 @@ import type { StudioInfo } from "@/types/settings";
 
 export interface ReceiptPrintData {
   id: string;
+  source_table?: string | null;
+  source_id?: string | null;
+  receipt_code?: string | null;
   receipt_date: string;
   receipt_type: string;
   payment_type: string;
@@ -30,11 +33,16 @@ interface PrintReceiptClientProps {
 }
 
 function receiptCode(receipt: ReceiptPrintData) {
+  if (receipt.receipt_code) return receipt.receipt_code;
   const date = new Date(receipt.receipt_date);
   const datePart = Number.isNaN(date.getTime()) ? "0000" : format(date, "yyMM");
   return receipt.contract_code
     ? `PT-${receipt.contract_code}`
     : `PT-${datePart}-${receipt.id.slice(0, 6).toUpperCase()}`;
+}
+
+function receiptRawId(receipt: ReceiptPrintData) {
+  return receipt.source_id || receipt.id.replace(/^payment:/, "");
 }
 
 function ReceiptTemplate({ receipt, studioInfo, copyLabel }: { receipt: ReceiptPrintData; studioInfo: StudioInfo | null; copyLabel?: string }) {
@@ -43,6 +51,7 @@ function ReceiptTemplate({ receipt, studioInfo, copyLabel }: { receipt: ReceiptP
     ? receipt.receipt_date
     : `Ngày ${format(date, "dd")} tháng ${format(date, "MM")} năm ${format(date, "yyyy")}`;
   const code = receiptCode(receipt);
+  const rawId = receiptRawId(receipt);
 
   return (
     <section className="print-sheet relative h-full flex flex-col p-6 sm:p-8 bg-white">
@@ -62,7 +71,7 @@ function ReceiptTemplate({ receipt, studioInfo, copyLabel }: { receipt: ReceiptP
         <div className="text-right text-caption text-text-secondary shrink-0 pt-8 sm:pt-0">
           <p className="font-semibold text-text-primary">Mẫu số 01-TT</p>
           <p>Phiếu thu hệ thống</p>
-          <p>ID: {receipt.id.slice(0, 8)}</p>
+          <p>ID: {rawId.slice(0, 8)}</p>
         </div>
       </header>
 
@@ -129,7 +138,7 @@ function ReceiptTemplate({ receipt, studioInfo, copyLabel }: { receipt: ReceiptP
 
       <div className="mt-auto pt-6 border-t border-border flex justify-between items-center text-xs text-text-muted font-bold opacity-60">
         <span>moodwedding.com</span>
-        <span>id: {receipt.id.slice(0, 8)}</span>
+        <span>id: {rawId.slice(0, 8)}</span>
         <span>Bản in hệ thống Mood Studio ERP</span>
       </div>
     </section>

@@ -18,6 +18,7 @@ interface ReceiptQrPaymentModalProps {
 }
 
 function buildReceiptCode(receipt: ReceiptListItem) {
+  if (receipt.receipt_code) return receipt.receipt_code;
   return receipt.contract_code
     ? `PT-${receipt.contract_code}`
     : `PT-${receipt.id.slice(0, 8).toUpperCase()}`;

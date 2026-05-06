@@ -6,6 +6,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { createInvestmentSchema, updateInvestmentSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
+import { formatVnd } from "@/lib/utils";
 
 // ═══════════════════════════════════════════
 // Investment Actions — CRUD + Maintenance Logs
@@ -73,7 +74,7 @@ export async function createInvestment(input: CreateInvestmentInput) {
       tableName: "investments",
       recordId: data.id,
       newData: input as unknown as Record<string, unknown>,
-      description: `Thêm tài sản: ${parsed.data.name} (${parsed.data.purchase_price.toLocaleString("vi-VN")}₫)`
+      description: `Thêm tài sản: ${parsed.data.name} (${formatVnd(parsed.data.purchase_price)})`
     });
 
     revalidatePath("/finance/investments");
@@ -216,7 +217,7 @@ export async function addMaintenanceLog(
     await writeAuditLog({
       action: "CREATE",
       tableName: "investment_maintenance_logs",
-      description: `Ghi nhận bảo trì tài sản #${investmentId.substring(0, 8)}${input.cost ? ` (${input.cost.toLocaleString("vi-VN")}₫)` : ""}`
+      description: `Ghi nhận bảo trì tài sản #${investmentId.substring(0, 8)}${input.cost ? ` (${formatVnd(input.cost)})` : ""}`
     });
 
     revalidatePath("/finance/investments");

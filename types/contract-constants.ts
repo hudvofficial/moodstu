@@ -148,14 +148,113 @@ export function getPaymentMethodLabel(method: string): string {
 // Used by: ContractPaymentSection
 
 export const PAYMENT_STAGE_MAP: Record<string, string> = {
-  dat_coc: "Đặt cọc",
-  thanh_toan_dot_1: "Thanh toán đợt 1",
-  thanh_toan_dot_2: "Thanh toán đợt 2",
+  dat_coc: "Cọc",
+  coc: "Cọc",
+  tien_coc: "Cọc",
+  deposit: "Cọc",
+  contract_deposit: "Cọc",
+  dot_1: "Đợt 1",
+  lan_1: "Đợt 1",
+  thanh_toan_dot_1: "Đợt 1",
+  installment_1: "Đợt 1",
+  first: "Đợt 1",
+  stage_1: "Đợt 1",
+  dot_2: "Đợt 2",
+  lan_2: "Đợt 2",
+  thanh_toan_dot_2: "Đợt 2",
+  installment_2: "Đợt 2",
+  second: "Đợt 2",
+  stage_2: "Đợt 2",
+  thanh_toan: "Thanh toán",
   tat_toan: "Tất toán",
+  final: "Tất toán",
+  remaining: "Tất toán",
+  thanh_toan_con_lai: "Thanh toán hết",
+  con_lai: "Thanh toán hết",
+  phat_sinh: "Phát sinh hợp đồng",
+  adjustment: "Phát sinh hợp đồng",
+  contract_adjustment: "Phát sinh hợp đồng",
+  thu_khong_theo_dot: "Thu ngoài đợt",
+  thu_ngoai_dot: "Thu ngoài đợt",
+  thanh_toan_khac: "Thu ngoài đợt",
+  outside: "Thu ngoài đợt",
 };
 
-export function getPaymentStageLabel(stage: string): string {
-  return PAYMENT_STAGE_MAP[stage] || stage;
+function normalizePaymentStageKey(stage: string): string {
+  return stage
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function getPaymentStageLabel(stage?: string | null, fallback = "Đợt thu"): string {
+  const rawStage = String(stage || "").trim();
+  if (!rawStage) return fallback;
+
+  const normalized = normalizePaymentStageKey(rawStage);
+  const mapped = PAYMENT_STAGE_MAP[rawStage] || PAYMENT_STAGE_MAP[normalized];
+  if (mapped) return mapped;
+
+  if (
+    normalized.includes("phat_sinh") ||
+    normalized.includes("thu_khac") ||
+    normalized.includes("adjustment")
+  ) {
+    return "Phát sinh hợp đồng";
+  }
+  if (
+    normalized.includes("dat_coc") ||
+    normalized.includes("tien_coc") ||
+    normalized === "coc" ||
+    normalized === "deposit" ||
+    normalized === "contract_deposit"
+  ) {
+    return "Cọc";
+  }
+  if (
+    normalized.includes("dot_1") ||
+    normalized.includes("lan_1") ||
+    normalized.includes("installment_1") ||
+    normalized === "first" ||
+    normalized === "stage_1"
+  ) {
+    return "Đợt 1";
+  }
+  if (
+    normalized.includes("dot_2") ||
+    normalized.includes("lan_2") ||
+    normalized.includes("installment_2") ||
+    normalized === "second" ||
+    normalized === "stage_2"
+  ) {
+    return "Đợt 2";
+  }
+  if (
+    normalized.includes("thanh_toan_het") ||
+    normalized.includes("tat_toan") ||
+    normalized.includes("thanh_toan_con_lai") ||
+    normalized === "con_lai" ||
+    normalized === "final" ||
+    normalized === "remaining"
+  ) {
+    return "Thanh toán hết";
+  }
+  if (
+    normalized.includes("khong_theo_dot") ||
+    normalized.includes("ngoai_dot") ||
+    normalized.includes("hop_dong_khac") ||
+    normalized.includes("thanh_toan_khac") ||
+    normalized === "outside"
+  ) {
+    return "Thu ngoài đợt";
+  }
+
+  const looksLikeDbKey = /^[a-z0-9_\-\s]+$/.test(rawStage) && rawStage === rawStage.toLowerCase();
+  return looksLikeDbKey ? fallback : rawStage;
 }
 
 // ─── ITEM TYPE MAP ───────────────────────────────────

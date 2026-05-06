@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/finance-dashboard-queries";
 import { financeStatusLabel, formatFinanceDate } from "@/components/finance/finance-format";
 import { downloadExcelXml, type ExcelWorksheet } from "@/lib/excel-xml";
+import { getReportRevenueLabel, getReportServiceLabel } from "@/lib/report-labels";
 import { getReportRange } from "@/lib/report-period";
 import type { ActionResult } from "@/types/action-result";
 import type {
@@ -66,6 +67,15 @@ function createFileSlug(label: string) {
   );
 }
 
+function ledgerSourceLabel(sourceTable: LedgerItem["sourceTable"]) {
+  const labels: Record<LedgerItem["sourceTable"], string> = {
+    payments: "Thanh toán hợp đồng",
+    receipts: "Phiếu thu",
+    expenses: "Phiếu chi",
+  };
+  return labels[sourceTable] || sourceTable;
+}
+
 function buildOverviewSheet(snapshot: ReportsSnapshot): ExcelWorksheet {
   return {
     name: "Tổng quan",
@@ -94,10 +104,10 @@ function buildOverviewSheet(snapshot: ReportsSnapshot): ExcelWorksheet {
       ["Tỷ trọng phát sinh (%)", snapshot.summary.addonPercentage],
       [],
       ["Nguồn doanh thu", "Số tiền", "Tỷ trọng (%)"],
-      ...snapshot.revenueBreakdown.map((item) => [item.label, item.amount, item.percentage]),
+      ...snapshot.revenueBreakdown.map((item) => [getReportRevenueLabel(item.label), item.amount, item.percentage]),
       [],
       ["Phân bổ dịch vụ", "Số HĐ", "Doanh thu"],
-      ...snapshot.serviceDistribution.map((item) => [item.name, item.value, item.revenue]),
+      ...snapshot.serviceDistribution.map((item) => [getReportServiceLabel(item.name), item.value, item.revenue]),
     ],
   };
 }
@@ -211,7 +221,7 @@ function buildLedgerSheet(rows: LedgerItem[]): ExcelWorksheet {
       ],
       ...rows.map((item) => [
         formatFinanceDate(item.transactionDate),
-        item.sourceTable,
+        ledgerSourceLabel(item.sourceTable),
         item.direction === "in" ? "Tiền vào" : "Tiền ra",
         item.code || "",
         item.customerName || "",

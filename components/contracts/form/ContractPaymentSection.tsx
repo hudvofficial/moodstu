@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import type { UseContractFinancialsReturn } from "./hooks/useContractFinancials";
 import {
   PAYMENT_METHOD_MAP,
-  PAYMENT_STAGE_MAP,
   PAYMENT_STATUS_MAP,
 } from "@/types/contract-constants";
 
@@ -19,8 +18,6 @@ import {
 
 // ─── Options from SSOT ────────────────────────
 const PAYMENT_METHODS = Object.entries(PAYMENT_METHOD_MAP).map(([value, label]) => ({ value, label }));
-const PAYMENT_STAGES = Object.entries(PAYMENT_STAGE_MAP).map(([value, label]) => ({ value, label }));
-
 // Status badge config — labels from SSOT, styling local
 const STATUS_STYLES: Record<string, string> = {
   chua_thanh_toan: "bg-text-muted/10 text-text-secondary",
@@ -82,18 +79,8 @@ export function ContractPaymentSection({ financials }: Props) {
           </div>
         </div>
 
-        {/* Stage + Notes row */}
+        {/* Initial payment is always allocated to the deposit stage. Later collections use the real schedule on contract detail. */}
         <div className="grid grid-cols-1 gap-4">
-          <div>
-            <SimpleSelect
-              label="Giai đoạn thanh toán"
-              value={paymentForm.payment_stage}
-              onChange={(v) => updatePaymentForm("payment_stage", v)}
-              options={PAYMENT_STAGES}
-              placeholder="Chọn giai đoạn..."
-            />
-          </div>
-
           <div>
             <label className="label-base">
               Ghi chú thanh toán

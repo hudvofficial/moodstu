@@ -12,13 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import {
   invalidateContractAfterWrite,
+  invalidateFinanceAfterWrite,
   invalidateInventoryAfterWrite,
 } from "@/lib/cache-invalidation";
 import type { ActionResult, FinanceCategory, FinanceContractOption } from "@/types/finance-operations";
 interface ReceiptFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
   categories: FinanceCategory[];
   contracts: FinanceContractOption[];
   initialData?: {
@@ -201,12 +202,15 @@ export function ReceiptFormModal({
       const contractIds = new Set(
         [initialData?.contract_id, isContractReceipt ? form.contract_id : null].filter(Boolean) as string[],
       );
-      onSaved();
+      await Promise.all([
+        Promise.resolve(onSaved()),
+        invalidateFinanceAfterWrite(),
+        ...Array.from(contractIds).map((id) => invalidateContractAfterWrite(id)),
+        isSale || initialData?.receipt_type === "sale_receipt"
+          ? invalidateInventoryAfterWrite()
+          : Promise.resolve(),
+      ]);
       onClose();
-      void Promise.all(Array.from(contractIds).map((id) => invalidateContractAfterWrite(id)));
-      if (isSale || initialData?.receipt_type === "sale_receipt") {
-        void invalidateInventoryAfterWrite();
-      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Đã xảy ra lỗi");
     } finally {

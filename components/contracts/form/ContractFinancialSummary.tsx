@@ -47,11 +47,11 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
           </span>
         </div>
 
-        {/* Discount with VNĐ/% toggle */}
+        {/* Discount with VND/% toggle */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-body-sm text-text-secondary">Giảm giá</span>
-            {/* Toggle VNĐ / % */}
+            {/* Toggle VND / % */}
             <div className="flex overflow-hidden rounded-md bg-neutral-100 p-0.5">
               <Button unstyled
                 type="button"

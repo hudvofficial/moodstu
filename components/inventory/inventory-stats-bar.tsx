@@ -7,19 +7,8 @@
 
 import { Package, AlertTriangle, DollarSign, ArrowLeftRight } from "lucide-react";
 import type { InventoryStats } from "@/types/inventory";
-import { CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { StatsBar } from "@/components/ui/stats-bar";
-
-function formatCompact(amount: number): string {
-  if (amount >= 1_000_000) {
-    return (
-      new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(
-        amount / 1_000_000
-      ) + "M " + CURRENCY_SYMBOL
-    );
-  }
-  return new Intl.NumberFormat("vi-VN").format(amount) + " " + CURRENCY_SYMBOL;
-}
 
 interface InventoryStatsBarProps {
   stats: InventoryStats | null;
@@ -53,7 +42,7 @@ export function InventoryStatsBar({ stats }: InventoryStatsBarProps) {
     {
       icon: DollarSign,
       label: "tổng giá trị",
-      value: formatCompact(s.totalValue),
+      value: formatVnd(s.totalValue),
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },

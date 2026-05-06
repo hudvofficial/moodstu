@@ -19,6 +19,7 @@ import { FAB } from "@/components/ui/fab";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/ux-states";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, GoalItem } from "@/types/finance-operations";
 
@@ -111,8 +112,11 @@ export function GoalsClient({ initialData, initialCashflow }: GoalsClientProps) 
   const goals = data || initialData;
   const cashflow = cashflowData || initialCashflow || null;
   const refresh = () => {
-    void mutate(key);
-    void mutate(cashflowKey);
+    void Promise.all([
+      mutate(key),
+      mutate(cashflowKey),
+      invalidateFinanceAfterWrite(),
+    ]);
   };
 
   const detailingGoal = useMemo(() => {

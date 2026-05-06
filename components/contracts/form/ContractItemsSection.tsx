@@ -6,6 +6,7 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { THead, TBody, TH, TD, TR } from "@/components/ui/table";
+import { prefetchCatalogItems } from "./modals/catalog-cache";
 import type { UseContractItemsReturn } from "./hooks/useContractItems";
 import type { ContractItemFormData } from "@/types/contract-form";
 import { getItemTypeLabel } from "@/types/contract-constants";
@@ -42,6 +43,8 @@ export function ContractItemsSection({ items, error }: Props) {
       setDeleteConfirm(null);
     }
   };
+  const warmServiceCatalog = () => prefetchCatalogItems("dich_vu");
+
   return (
     <section className="card-base p-6 space-y-6">
       {/* Header + action buttons */}
@@ -68,6 +71,8 @@ export function ContractItemsSection({ items, error }: Props) {
           <Button
             type="button"
             onClick={items.openAddServiceModal}
+            onPointerEnter={warmServiceCatalog}
+            onFocus={warmServiceCatalog}
             variant="interactive"
             className="text-sm font-bold shadow-sm shadow-interactive/20"
           >
@@ -226,12 +231,16 @@ function MobileCard({
 
 // ── Empty state ──
 function EmptyState({ onAddService }: { onAddService: () => void }) {
+  const warmServiceCatalog = () => prefetchCatalogItems("dich_vu");
+
   return (
     <div className="card-base flex flex-col items-center justify-center py-10">
       <p className="text-body-sm text-text-muted">Chưa có dịch vụ nào</p>
       <Button
         type="button"
         onClick={onAddService}
+        onPointerEnter={warmServiceCatalog}
+        onFocus={warmServiceCatalog}
         variant="interactive"
       >
         <Plus className="h-4 w-4" />

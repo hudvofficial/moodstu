@@ -11,11 +11,12 @@ interface CurrencyInputProps
   label?: string;
   error?: string;
   suffix?: string;
+  emptyWhenZero?: boolean;
 }
 
-/** Format số → chuỗi VNĐ: 1000000 → "1.000.000" */
-function formatVND(val: number): string {
-  if (isNaN(val) || val === 0) return "0";
+/** Format số → chuỗi VND: 1000000 → "1.000.000" */
+function formatVND(val: number, emptyWhenZero = false): string {
+  if (isNaN(val) || val === 0) return emptyWhenZero ? "" : "0";
   return new Intl.NumberFormat("vi-VN").format(val);
 }
 
@@ -35,7 +36,9 @@ export function CurrencyInput({
   label,
   error,
   suffix = CURRENCY_SYMBOL,
+  emptyWhenZero = false,
   className,
+  placeholder,
   ...props
 }: CurrencyInputProps) {
   // Local editing state — chỉ dùng khi đang focus
@@ -43,7 +46,7 @@ export function CurrencyInput({
   const isFocusedRef = useRef(false);
 
   // Display: nếu đang edit → dùng local, không → format từ prop
-  const displayValue = editingValue !== null ? editingValue : formatVND(value);
+  const displayValue = editingValue !== null ? editingValue : formatVND(value, emptyWhenZero);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,18 +68,18 @@ export function CurrencyInput({
       const digits = raw.replace(/\D/g, "");
       const num = digits === "" ? 0 : parseInt(digits, 10);
 
-      setEditingValue(formatVND(num));
+      setEditingValue(formatVND(num, emptyWhenZero));
       onChange(num);
     },
-    [onChange],
+    [emptyWhenZero, onChange],
   );
 
   const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
     isFocusedRef.current = true;
-    setEditingValue(formatVND(value));
+    setEditingValue(formatVND(value, emptyWhenZero));
     // Select all after React re-render
     requestAnimationFrame(() => e.target.select());
-  }, [value]);
+  }, [emptyWhenZero, value]);
 
   const handleBlur = useCallback(() => {
     isFocusedRef.current = false;
@@ -95,7 +98,7 @@ export function CurrencyInput({
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholder="0"
+          placeholder={placeholder ?? (emptyWhenZero ? "" : "0")}
           className={cn(
             "input-base text-right pr-16 font-semibold",
             error && "input-error",

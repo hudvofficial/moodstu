@@ -1,64 +1,45 @@
 import { CheckCircle2, Clock, Banknote } from "lucide-react";
-import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
-import type { Payment } from "@/types/contract";
-import { getPaymentMethodLabel } from "@/types/contract-constants";
-
-
-// ═══════════════════════════════════════════
-// Financial Dashboard — Unified finance card
-// Stitch SSOT: line 344-382 (stitch_contract_detail.html)
-// Structure: h3 → overline → amount → progress → payments → CTA
-// ═══════════════════════════════════════════
-
-
+import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  payments?: Payment[];
   onPaymentClick?: () => void;
   subtotal?: number;
   discountAmount?: number;
+  estimatedProfit?: number | null;
 }
 
 export default function FinancialDashboard({
   totalAmount,
   paidAmount,
   remainingAmount,
-  payments = [],
   onPaymentClick,
   subtotal,
   discountAmount = 0,
+  estimatedProfit = null,
 }: Props) {
   const progress =
     totalAmount > 0
       ? Math.min(100, Math.round((paidAmount / totalAmount) * 100))
       : 0;
 
-  // Sort payments by date desc
-  const sortedPayments = [...payments].sort(
-    (a, b) =>
-      new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
-  );
-
   return (
     <div className="card-base p-5 lg:p-6">
-      {/* ══════════ MOBILE VARIANT ══════════ Stitch lines 72-101 */}
-      <div className="lg:hidden space-y-5">
-        {/* Total — centered */}
+      <div className="space-y-5 lg:hidden">
         <div className="text-center">
-          <p className="text-caption font-bold uppercase tracking-widest mb-1">
+          <p className="mb-1 text-caption font-bold uppercase tracking-widest">
             Tổng giá trị hợp đồng
           </p>
-          <p className="text-amount text-text-primary tracking-tight">
+          <p className="text-amount tracking-tight text-text-primary">
             {formatCurrency(totalAmount)} {CURRENCY_SYMBOL}
           </p>
         </div>
 
-        {/* Progress bar */}
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="mb-2 flex items-center justify-between">
             <span className="text-caption font-bold uppercase tracking-wider">
               Tiến độ thanh toán
             </span>
@@ -72,18 +53,30 @@ export default function FinancialDashboard({
           </div>
         </div>
 
-        {/* Grid 2-col: Đã thu + Còn nợ — Stitch: slate-50 bg + inset accent */}
+        {estimatedProfit != null && (
+          <div className="rounded-md bg-bg-hover/50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-body-sm font-semibold text-text-secondary">
+                Lợi nhuận ròng
+              </span>
+              <span className="text-body font-bold text-success">
+                {formatCurrency(estimatedProfit)} {CURRENCY_SYMBOL}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-bg-hover p-3 rounded-md inset-success">
-            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+          <div className="rounded-md bg-bg-hover p-3 inset-success">
+            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
               Đã thu
             </p>
             <p className="text-sm font-semibold text-success">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="bg-bg-hover p-3 rounded-md inset-warning">
-            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+          <div className="rounded-md bg-bg-hover p-3 inset-warning">
+            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
               Còn nợ
             </p>
             <p className="text-sm font-semibold text-interactive">
@@ -92,108 +85,85 @@ export default function FinancialDashboard({
           </div>
         </div>
 
-        {/* Payment Items — compact list */}
-        {sortedPayments.length > 0 && (
-          <div className="space-y-3 pt-1">
-            {sortedPayments.map((payment, index) => {
-              const isRefund = payment.amount < 0;
-              return (
-                <div key={payment.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    {isRefund ? (
-                      <Clock size={18} className="text-warning shrink-0" />
-                    ) : (
-                      <CheckCircle2 size={18} className="text-success shrink-0" />
-                    )}
-                    <div>
-                      <p className="text-body-sm font-medium text-text-primary">
-                        {payment.notes || payment.payment_stage || `Đợt ${index + 1}`}
-                      </p>
-                      <p className="text-caption">
-                        {formatDate(payment.payment_date)}
-                        {payment.payment_method && (
-                          <> · {getPaymentMethodLabel(payment.payment_method)}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-body-sm font-semibold text-text-primary shrink-0">
-                    {formatCurrency(Math.abs(payment.amount))} {CURRENCY_SYMBOL}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* CTA — full width, h-12 */}
         {remainingAmount > 0 && (
-          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) { onPaymentClick(); } }}   onClick={onPaymentClick}  className="btn btn-interactive w-full h-12 text-sm" >
+          <Button
+            unstyled
+            type="button"
+            onClick={onPaymentClick}
+            className="btn btn-interactive h-12 w-full text-sm"
+          >
             <Banknote size={20} />
             Thu tiền
-          </div>
+          </Button>
         )}
       </div>
 
-      {/* ══════════ DESKTOP OPTIMIZED (Phase 1) ══════════ */}
-      <div className="max-lg:hidden space-y-6">
-        {/* Header */}
+      <div className="hidden space-y-6 lg:block">
         <h3 className="text-h3">Tài chính</h3>
 
-        {/* Total */}
         <div>
-          <p className="text-overline mb-1">Tổng cộng</p>
-          <p className="text-amount">{formatCurrency(totalAmount)} {CURRENCY_SYMBOL}</p>
+          <p className="mb-1 text-overline">Tổng cộng</p>
+          <p className="text-amount">
+            {formatCurrency(totalAmount)} {CURRENCY_SYMBOL}
+          </p>
           {discountAmount > 0 && subtotal != null && (
-            <p className="text-caption mt-1">
+            <p className="mt-1 text-caption">
               Tạm tính: {formatCurrency(subtotal)} · Giảm: −{formatCurrency(discountAmount)}
             </p>
           )}
         </div>
 
-        {/* Status Banner */}
         {remainingAmount <= 0 ? (
-          <div className="flex items-center gap-2 bg-success/10 text-success px-4 py-2.5 rounded-md">
+          <div className="flex items-center gap-2 rounded-md bg-success/10 px-4 py-2.5 text-success">
             <CheckCircle2 size={18} className="shrink-0" />
             <span className="text-body-sm font-semibold">Đã thanh toán đầy đủ</span>
           </div>
         ) : progress === 0 ? (
-          <div className="flex items-center gap-2 bg-error/10 text-error px-4 py-2.5 rounded-md">
+          <div className="flex items-center gap-2 rounded-md bg-error/10 px-4 py-2.5 text-error">
             <Clock size={18} className="shrink-0" />
             <span className="text-body-sm font-semibold">Chưa thanh toán</span>
           </div>
         ) : null}
 
-        {/* Progress — only show when partial payment */}
-        {progress > 0 && remainingAmount > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-body-sm font-medium text-primary">
-                Đã thanh toán: {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-caption font-semibold text-text-secondary">
+              Tiến độ thanh toán
+            </span>
+            <span className="text-caption font-bold text-text-primary">{progress}%</span>
+          </div>
+          <div className="progress-track h-2">
+            <div
+              className={remainingAmount <= 0 ? "progress-fill-interactive bg-success" : "progress-fill"}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        {estimatedProfit != null && (
+          <div className="rounded-md bg-bg-hover/50 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-body-sm font-semibold text-text-secondary">
+                Lợi nhuận ròng
               </span>
-              <span className="text-caption">{progress}%</span>
-            </div>
-            <div className="progress-track">
-              <div
-                className="progress-fill"
-                style={{ width: `${progress}%` }}
-              />
+              <span className="text-body font-bold text-success">
+                {formatCurrency(estimatedProfit)} {CURRENCY_SYMBOL}
+              </span>
             </div>
           </div>
         )}
 
-        {/* Grid 2-col: Đã thu + Còn nợ — match mobile */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-bg-hover p-3 rounded-md inset-success">
-            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+          <div className="rounded-md bg-bg-hover p-3 inset-success">
+            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
               Đã thu
             </p>
             <p className="text-body font-semibold text-success">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="bg-bg-hover p-3 rounded-md inset-warning">
-            <p className="text-tiny font-semibold text-text-muted uppercase tracking-wider mb-1">
+          <div className="rounded-md bg-bg-hover p-3 inset-warning">
+            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
               Còn nợ
             </p>
             <p className="text-body font-semibold text-interactive">
@@ -202,55 +172,16 @@ export default function FinancialDashboard({
           </div>
         </div>
 
-        {/* Payment Items */}
-        {sortedPayments.length > 0 && (
-          <div className="space-y-4 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
-            {sortedPayments.map((payment, index) => {
-              const isRefund = payment.amount < 0;
-              return (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    {isRefund ? (
-                      <Clock size={20} className="text-warning shrink-0" />
-                    ) : (
-                      <CheckCircle2
-                        size={20}
-                        className="text-success shrink-0"
-                      />
-                    )}
-                    <div>
-                      <p className="text-body-sm font-medium text-text-primary">
-                        {payment.notes ||
-                          payment.payment_stage ||
-                          `Đợt ${index + 1}`}
-                      </p>
-                      <p className="text-caption">
-                        {formatDate(payment.payment_date)}
-                        {payment.payment_method && (
-                          <> · {getPaymentMethodLabel(payment.payment_method)}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-body-sm font-semibold text-text-primary shrink-0">
-                    {formatCurrency(Math.abs(payment.amount))} {CURRENCY_SYMBOL}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* CTA */}
         {remainingAmount > 0 && (
-          <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) { onPaymentClick(); } }}   onClick={onPaymentClick}  className="btn-cta">
+          <Button
+            unstyled
+            type="button"
+            onClick={onPaymentClick}
+            className="btn-cta"
+          >
             Thu tiền
-          </div>
+          </Button>
         )}
-
       </div>
     </div>
   );

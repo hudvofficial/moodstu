@@ -6,23 +6,9 @@
  */
 
 import { CheckCircle2, Coins, Flag, Wallet } from "lucide-react";
-import { CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { StatsBar } from "@/components/ui/stats-bar";
 import type { GoalItem } from "@/types/finance-operations";
-
-function formatCompact(amount: number): string {
-  const abs = Math.abs(amount);
-  if (abs >= 1_000_000_000) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(amount / 1_000_000_000) + "B " + CURRENCY_SYMBOL;
-  }
-  if (abs >= 1_000_000) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(amount / 1_000_000) + "M " + CURRENCY_SYMBOL;
-  }
-  if (abs >= 1_000) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(amount / 1_000) + "K " + CURRENCY_SYMBOL;
-  }
-  return new Intl.NumberFormat("vi-VN").format(amount) + " " + CURRENCY_SYMBOL;
-}
 
 interface GoalsStatsBarProps {
   goals: GoalItem[];
@@ -44,14 +30,14 @@ export function GoalsStatsBar({ goals }: GoalsStatsBarProps) {
     {
       icon: Coins,
       label: "đã góp",
-      value: formatCompact(totalSaved),
+      value: formatVnd(totalSaved),
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },
     {
       icon: Wallet,
       label: "còn lại",
-      value: formatCompact(totalRemaining),
+      value: formatVnd(totalRemaining),
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
     },
@@ -66,4 +52,3 @@ export function GoalsStatsBar({ goals }: GoalsStatsBarProps) {
 
   return <StatsBar items={items} />;
 }
-

@@ -15,7 +15,7 @@ import type { FinanceCategory, ExpenseListItem } from "@/types/finance-operation
 interface ExpenseFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
   categories: FinanceCategory[];
   initialData?: ExpenseListItem | null;
 }
@@ -113,8 +113,8 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
       description: "",
       contract_id: "none",
     });
+    await Promise.resolve(onSaved());
     onClose();
-    onSaved();
   };
 
   return (

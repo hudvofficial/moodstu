@@ -3,7 +3,7 @@
 
 
 import { parseContentStructure } from "@/lib/utils/service-utils";
-import { formatCurrency } from "@/lib/utils";
+import { CURRENCY_SYMBOL, formatCurrency } from "@/lib/utils";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 
 // ═══════════════════════════════════════════
@@ -83,12 +83,10 @@ export default function QuotePreview({
         </p>
         <div className="flex items-baseline gap-1.5">
           <span className="text-amount font-black text-interactive tracking-tighter tabular-nums">
-            {sellingPrice > 0
-              ? formatCurrency(sellingPrice).replace("₫", "")
-              : "0"}
+            {sellingPrice > 0 ? formatCurrency(sellingPrice) : "0"}
           </span>
           <span className="text-caption font-bold text-text-muted">
-            VNĐ
+            {CURRENCY_SYMBOL}
           </span>
         </div>
       </div>

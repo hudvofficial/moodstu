@@ -6,20 +6,9 @@
  */
 
 import { ReceiptText, CheckCircle2, Clock, DollarSign } from "lucide-react";
-import { CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { StatsBar } from "@/components/ui/stats-bar";
 import type { ReceiptStats } from "@/app/actions/finance-operations-queries";
-
-function formatCompact(amount: number): string {
-  if (amount >= 1_000_000) {
-    return (
-      new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(
-        amount / 1_000_000,
-      ) + "M " + CURRENCY_SYMBOL
-    );
-  }
-  return new Intl.NumberFormat("vi-VN").format(amount) + " " + CURRENCY_SYMBOL;
-}
 
 interface ReceiptStatsBarProps {
   stats: ReceiptStats | null;
@@ -39,7 +28,7 @@ export function ReceiptStatsBar({ stats }: ReceiptStatsBarProps) {
     {
       icon: DollarSign,
       label: "tổng thu",
-      value: formatCompact(s.totalAmount),
+      value: formatVnd(s.totalAmount),
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
     },

@@ -125,8 +125,8 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
 
       if (result && "success" in result && result.success) {
         toast.success(isEdit ? "Đã cập nhật vật tư" : "Đã nhập kho vật tư mới");
+        await invalidateInventoryAfterWrite(isEdit ? editItem.id : undefined);
         onClose();
-        void invalidateInventoryAfterWrite(isEdit ? editItem.id : undefined);
         return;
       }
 

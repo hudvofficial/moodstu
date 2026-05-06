@@ -10,7 +10,10 @@ interface RecentTransactionsProps {
 
 function transactionHref(item: LedgerItem) {
   if (item.sourceTable === "expenses") return "/finance/expenses";
-  if (item.sourceTable === "receipts") return "/finance/receipts";
+  if (item.sourceTable === "receipts") return `/finance/receipts/${item.id}`;
+  if (item.sourceTable === "payments") {
+    return `/finance/receipts/${item.id.startsWith("payment:") ? item.id : `payment:${item.id}`}`;
+  }
   return "/finance/cashflow";
 }
 

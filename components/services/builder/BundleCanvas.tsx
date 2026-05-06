@@ -8,6 +8,7 @@ import { getPriceRules } from "@/app/actions/builder-actions";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import type { PriceRule } from "@/types/service";
 import Image from "next/image";
+import { formatVnd } from "@/lib/utils";
 
 interface BundleCanvasProps {
   items: BundleItem[];
@@ -44,7 +45,7 @@ export default function BundleCanvas({
           Gói combo đang soạn
         </h3>
         <span className="text-primary font-bold text-h3">
-          {totalPrice.toLocaleString()} ₫
+          {formatVnd(totalPrice)}
         </span>
       </div>
 
@@ -95,7 +96,7 @@ export default function BundleCanvas({
                 </div>
                 <div className="flex justify-between items-end mt-2">
                   <div className="text-body-sm text-primary font-bold">
-                    {item.selling_price.toLocaleString()} ₫
+                    {formatVnd(item.selling_price)}
                   </div>
                   <div className="flex items-center gap-2 bg-surface rounded-lg p-1 shadow-xs">
                     <Button
@@ -137,12 +138,12 @@ export default function BundleCanvas({
             <div className="flex justify-between text-body-sm text-text-secondary">
               <span>Tạm tính gộp:</span>
               <span className="line-through">
-                {calculation.originalTotal.toLocaleString()} ₫
+                {formatVnd(calculation.originalTotal)}
               </span>
             </div>
             <div className="flex justify-between text-body-sm text-state-success font-bold">
               <span>Khuyến mãi áp dụng:</span>
-              <span>-{calculation.discountAmount.toLocaleString()} ₫</span>
+              <span>-{formatVnd(calculation.discountAmount)}</span>
             </div>
             {calculation.appliedRules.length > 0 && (
               <div className="pt-2 flex flex-wrap gap-2">

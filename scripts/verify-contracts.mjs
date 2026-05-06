@@ -99,7 +99,10 @@ if (passwordGate.includes("gallery_pwd_") || passwordGate.includes("localStorage
 if (detailClient.includes('useRealtime("receipts"')) {
   fail("contract detail still subscribes to receipts instead of payments");
 }
-if (!detailClient.includes('useRealtime("payments"')) {
+if (
+  !detailClient.includes('useRealtime("payments"') &&
+  !detailClient.includes('table: "payments"')
+) {
   fail("contract detail is missing payments realtime subscription");
 }
 if (!contractSchema.includes("superRefine") || !contractSchema.includes("Ngay giao phai")) {

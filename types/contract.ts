@@ -274,29 +274,34 @@ export interface PrintingOrder {
   labs: { id: string; name: string } | null;
 }
 
-/** Audit log from `audit_logs` JOIN `employees` */
-export interface AuditLogEntry {
-  id: string;
-  action: string;
-  table_name: string | null;
-  old_data: Record<string, unknown> | null;
-  new_data: Record<string, unknown> | null;
-  created_at: string | null;
-  employees: { id: string; full_name: string } | null;
-}
-
 // ─── PAYMENT PLAN (Phase 00B) ────────────────────────────
+
+/** Payment plan allocation from `payment_plan_allocations` table */
+export interface PaymentPlanAllocation {
+  id: string;
+  contract_id: string;
+  payment_plan_id: string;
+  payment_id: string;
+  amount: number;
+  created_at: string;
+  created_by: string | null;
+}
 
 /** Payment plan/milestone from `payment_plans` table */
 export interface PaymentPlan {
   id: string;
   contract_id: string;
   stage_name: string;           // DB column: stage_name (NOT milestone_name)
+  stage_key: string | null;
+  sort_order: number;
   amount: number;
   due_date: string | null;
   status: string | null;        // "pending" | "paid" | "cancelled"
   receipt_id: string | null;    // FK → payments.id when paid
   created_at: string | null;
+  allocations?: PaymentPlanAllocation[];
+  paid_amount?: number;
+  remaining_amount?: number;
 }
 
 // ─── STUDIO INFO (Centralized → types/settings.ts) ───────

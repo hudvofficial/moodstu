@@ -6,7 +6,7 @@ import Image from "next/image";
 import { X, Phone, MapPin } from "lucide-react";
 import { ModalPortal } from "@/components/ui/modal-portal";
 import { parseContentStructure } from "@/lib/utils/service-utils";
-import { formatCurrency } from "@/lib/utils";
+import { CURRENCY_SYMBOL, formatCurrency } from "@/lib/utils";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 import { useRealtime } from "@/hooks/use-realtime";
 import { cacheKeys, useSWR } from "@/lib/swr";
@@ -147,10 +147,10 @@ export default function QuoteModal({ service, onClose }: Props) {
                 <div className="bg-white/15 h-px -mx-6 mb-3" />
                 <div className="flex items-baseline justify-center gap-1.5">
                   <span className="text-h1 font-black tracking-tighter tabular-nums leading-none drop-shadow-sm text-text-inverse">
-                    {formatCurrency(service.selling_price).replace("₫", "")}
+                    {formatCurrency(service.selling_price)}
                   </span>
                   <span className="text-caption font-bold opacity-80 text-text-inverse">
-                    VNĐ
+                    {CURRENCY_SYMBOL}
                   </span>
                 </div>
               </div>

@@ -15,7 +15,6 @@ import type {
   PaymentPlan,
   DressReservationRow,
   PrintingOrder,
-  AuditLogEntry,
 } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
 import {
@@ -46,7 +45,6 @@ const EMPTY_PAYMENTS: Payment[] = [];
 const EMPTY_PAYMENT_PLANS: PaymentPlan[] = [];
 const EMPTY_RESERVATIONS: DressReservationRow[] = [];
 const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
-const EMPTY_AUDIT_LOGS: AuditLogEntry[] = [];
 
 // ─── useContracts ───────────────────────────────────────
 
@@ -123,7 +121,6 @@ export type ContractDetailData = {
   paymentPlans: PaymentPlan[];
   reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
-  auditLogs: AuditLogEntry[];
 };
 
 export function useContractDetail(
@@ -161,7 +158,6 @@ export function useContractDetail(
     paymentPlans: data?.paymentPlans ?? EMPTY_PAYMENT_PLANS,
     reservations: data?.reservations ?? EMPTY_RESERVATIONS,
     printOrders: data?.printOrders ?? EMPTY_PRINT_ORDERS,
-    auditLogs: data?.auditLogs ?? EMPTY_AUDIT_LOGS,
     isLoading,
     error,
     mutate: mutateLocal,

@@ -14,7 +14,7 @@ export async function revalidateFinanceCaches(scope: MonthYear = {}) {
   const { month, year } = { ...currentMonthYear(), ...scope };
 
   await revalidateByPrefixes([
-    cacheKeys.financeDashboard(month, year),
+    "finance-dashboard",
     "finance-revenue",
     "finance-service-dist",
     "finance-ledger",
@@ -22,15 +22,33 @@ export async function revalidateFinanceCaches(scope: MonthYear = {}) {
     "finance-receipt-stats",
     "finance-expenses",
     "finance-expense-stats",
+    "debts",
+    "debt-stats",
     "finance-profit",
+    "finance-cashflow",
+    "finance-upcoming-contracts",
+    "finance-pending-collections",
     "reports",
     "reports-ledger",
+    "finance-intelligence",
+    "finance-integrity",
     cacheKeys.financeCashflowForecast(30),
     cacheKeys.financeReceivableAging(),
     cacheKeys.financeBudgetVsActual(month, year),
     cacheKeys.financeAdvancedIntelligence(month, year),
+    "finance-expense-breakdown",
+    "finance-categories",
+    cacheKeys.financeContracts(),
+    cacheKeys.labDebts(),
+    cacheKeys.financeFixedCosts(),
+    cacheKeys.financeInvestments(),
+    "finance-salaries",
+    "finance-budgets",
+    "finance-closes",
+    "finance-close",
     cacheKeys.goals(),
     cacheKeys.goalsCashflow(),
+    "goal-contributions",
   ]);
 }
 
@@ -107,6 +125,7 @@ export async function revalidatePrintingCaches(orderId?: string) {
     cacheKeys.printingOrders(),
     cacheKeys.printingStats(),
     cacheKeys.labs(),
+    cacheKeys.labDebts(),
     orderId ? cacheKeys.printingDetail(orderId) : "printing",
   ]);
 }
@@ -127,4 +146,5 @@ export const invalidateInventoryAfterWrite = revalidateInventoryCaches;
 export const invalidateServiceAfterWrite = revalidateServiceCaches;
 export const invalidateEmployeeAfterWrite = revalidateEmployeeCaches;
 export const invalidateFinanceAfterWrite = revalidateFinanceCaches;
+export const invalidateDressAfterWrite = revalidateDressCaches;
 export const invalidatePrintingAfterWrite = revalidatePrintingCaches;

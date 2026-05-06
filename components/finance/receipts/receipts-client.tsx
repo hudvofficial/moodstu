@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { voidContractPayment } from "@/app/actions/payment-actions";
 import { deleteReceipt } from "@/app/actions/receipt-actions";
 import {
   fetchContractOptions,
@@ -24,6 +25,9 @@ import { FAB } from "@/components/ui/fab";
 import { Pagination } from "@/components/ui/pagination";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
@@ -55,6 +59,9 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptListItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [voidingReceipt, setVoidingReceipt] = useState<ReceiptListItem | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [isVoiding, setIsVoiding] = useState(false);
   const [filterType, setFilterType] = useState("all");
 
   const pageSize = 12;
@@ -111,14 +118,27 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
 
 
 
-  const refresh = () => {
-    void mutate(key);
-    void mutate(statsKey);
-    void mutate(cacheKeys.financeDashboard(month, year));
-    void mutate(cacheKeys.financeLedger(1, month, year, "all"));
+  const refresh = async () => {
+    await Promise.all([
+      mutate(key),
+      mutate(statsKey),
+      mutate(cacheKeys.financeDashboard(month, year)),
+      mutate(cacheKeys.financeLedger(1, month, year, "all")),
+      invalidateFinanceAfterWrite({ month, year }),
+    ]);
   };
 
+  const isContractGeneratedReceipt = (receipt: ReceiptListItem | null | undefined) =>
+    Boolean(receipt && (receipt.source_table === "payments" || receipt.id.startsWith("payment:")));
+
   const handleDelete = async (id: string) => {
+    const targetReceipt = receipts.items.find((item) => item.id === id);
+    if (isContractGeneratedReceipt(targetReceipt)) {
+      setVoidingReceipt(targetReceipt || null);
+      setVoidReason("");
+      return;
+    }
+
     if (!window.confirm("Xóa phiếu thu này?")) return;
     const target = receipts.items.find((item) => item.id === id);
     setDeletingId(id);
@@ -129,9 +149,45 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
       return;
     }
     toast.success("Đã xóa phiếu thu.");
-    if (target?.contract_id) void revalidateContractCaches(target.contract_id);
-    if (target?.receipt_type === "sale_receipt") void revalidateInventory();
-    refresh();
+    await Promise.all([
+      target?.contract_id ? revalidateContractCaches(target.contract_id) : Promise.resolve(),
+      target?.receipt_type === "sale_receipt" ? revalidateInventory() : Promise.resolve(),
+      refresh(),
+    ]);
+  };
+
+  const closeVoidModal = () => {
+    if (isVoiding) return;
+    setVoidingReceipt(null);
+    setVoidReason("");
+  };
+
+  const confirmVoidPayment = async () => {
+    if (!voidingReceipt) return;
+    const reason = voidReason.trim();
+    if (reason.length < 5) {
+      toast.error("Lý do hủy phiếu thu phải có ít nhất 5 ký tự.");
+      return;
+    }
+
+    const paymentId = voidingReceipt.source_id || voidingReceipt.id.replace(/^payment:/, "");
+    setIsVoiding(true);
+    setDeletingId(voidingReceipt.id);
+    const result = await voidContractPayment({ paymentId, reason });
+    setIsVoiding(false);
+    setDeletingId(null);
+
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Đã hủy phiếu thu hợp đồng.");
+    await Promise.all([
+      voidingReceipt.contract_id ? revalidateContractCaches(voidingReceipt.contract_id) : Promise.resolve(),
+      refresh(),
+    ]);
+    closeVoidModal();
   };
 
   const handleEdit = (receipt: ReceiptListItem) => {
@@ -211,6 +267,42 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
         contracts={contractData || contracts || []}
         initialData={editingReceipt}
       />
+
+      <UnifiedModal
+        isOpen={Boolean(voidingReceipt)}
+        onClose={closeVoidModal}
+        title="Hủy phiếu thu hợp đồng"
+        description={voidingReceipt?.receipt_code || voidingReceipt?.contract_code || undefined}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-body-sm text-text-secondary">
+            Phiếu thu hợp đồng sẽ được void bằng giao dịch DB; công nợ hợp đồng và đợt thanh toán liên quan sẽ được tính lại.
+          </div>
+          <Textarea
+            unstyled
+            value={voidReason}
+            onChange={(event) => setVoidReason(event.target.value)}
+            rows={3}
+            className="input-base w-full resize-none"
+            placeholder="Nhập lý do hủy phiếu thu..."
+            disabled={isVoiding}
+          />
+          <div className="form-actions">
+            <Button type="button" variant="outline" onClick={closeVoidModal} disabled={isVoiding}>
+              Đóng
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={confirmVoidPayment}
+              disabled={isVoiding || voidReason.trim().length < 5}
+            >
+              {isVoiding ? "Đang hủy..." : "Hủy phiếu thu"}
+            </Button>
+          </div>
+        </div>
+      </UnifiedModal>
 
       {/* FAB Mobile - Shared Component */}
       <FAB onClick={openNewModal} label="Thêm phiếu thu" />

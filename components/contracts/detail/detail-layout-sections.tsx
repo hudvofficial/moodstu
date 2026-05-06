@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import SummaryCard from "./summary-card";
 import CustomerInfoBlock from "./customer-info-block";
 import FinancialDashboard from "./financial-dashboard";
+import PaymentPlanCard from "./payment-plan-card";
+import PaymentReceiptsCard from "./payment-receipts-card";
 import WorkflowStepper from "./workflow-stepper";
 import QuickActionsGrid from "./quick-actions-grid";
 import MobileTabNav from "./mobile-tab-nav";
@@ -11,17 +13,12 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import type {
   Contract,
   Payment,
+  PaymentPlan,
   DressReservationRow,
   PrintingOrder,
-  AuditLogEntry,
   TaskStatus,
 } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
-
-const ActivityLog = dynamic(() => import("./activity-log"), {
-  ssr: false,
-  loading: () => <SkeletonCard className="h-64" />,
-});
 
 const CostumesBlock = dynamic(() => import("./costumes-block"), {
   ssr: false,
@@ -62,13 +59,14 @@ const ServiceDetailsBlock = dynamic(() => import("./service-details-block"), {
 interface LayoutProps {
   contract: Contract;
   payments: Payment[];
+  paymentPlans: PaymentPlan[];
   reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
-  auditLogs: AuditLogEntry[];
   activeEmployees?: ActiveEmployee[];
   refreshContract: () => void;
   onTaskStatusChange: (taskId: string, eventId: string, status: TaskStatus) => void;
   onPaymentClick: () => void;
+  onCollectPlan?: (planId?: string) => void;
   onAddEvent: () => void;
   onQuickAction: (key: string) => void;
   onMuteRealtime?: () => void;
@@ -78,17 +76,21 @@ interface LayoutProps {
 export function DesktopLayout({
   contract,
   payments,
+  paymentPlans,
   reservations,
   printOrders,
-  auditLogs,
   activeEmployees,
   refreshContract,
   onTaskStatusChange,
   onPaymentClick,
+  onCollectPlan,
   onAddEvent,
   onQuickAction,
   onMuteRealtime,
 }: LayoutProps) {
+  const taskCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
+  const estimatedProfit = taskCost > 0 ? contract.total_amount - taskCost : null;
+
   return (
     <div className="max-lg:hidden">
       <WorkflowStepper
@@ -134,7 +136,10 @@ export function DesktopLayout({
           />
 
           {/* Thao tác nhanh */}
-          <QuickActionsGrid onAction={onQuickAction} />
+          <QuickActionsGrid
+            onAction={onQuickAction}
+            paymentLabel={contract.remaining_amount > 0 ? "Thu tiền" : "Phát sinh"}
+          />
 
           {/* Service Details */}
           <ServiceDetailsBlock
@@ -152,21 +157,28 @@ export function DesktopLayout({
 
         {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
         <div className="detail-sidebar">
-          <FinancialDashboard
-            totalAmount={contract.total_amount}
-            paidAmount={contract.paid_amount}
-            remainingAmount={contract.remaining_amount}
-            payments={payments}
-            onPaymentClick={onPaymentClick}
-            subtotal={contract.total_amount + (contract.discount_amount || 0)}
-            discountAmount={contract.discount_amount}
-          />
+          <div data-section-payment className="flex flex-col gap-6">
+            <FinancialDashboard
+              totalAmount={contract.total_amount}
+              paidAmount={contract.paid_amount}
+              remainingAmount={contract.remaining_amount}
+              onPaymentClick={onPaymentClick}
+              subtotal={contract.total_amount + (contract.discount_amount || 0)}
+              discountAmount={contract.discount_amount}
+              estimatedProfit={estimatedProfit}
+            />
+
+            <PaymentPlanCard
+              paymentPlans={paymentPlans}
+              onCollectPlan={(planId) => onCollectPlan?.(planId)}
+            />
+
+            <PaymentReceiptsCard payments={payments} />
+          </div>
 
           <div id="section-drive">
             <DriveGalleryBlock contractId={contract.id} />
           </div>
-
-          <ActivityLog logs={auditLogs} />
 
           <NotesTimeline contractId={contract.id} />
         </div>
@@ -189,13 +201,14 @@ interface MobileLayoutProps extends LayoutProps {
 export function MobileLayout({
   contract,
   payments,
+  paymentPlans,
   reservations,
   printOrders,
-  auditLogs,
   activeEmployees,
   refreshContract,
   onTaskStatusChange,
   onPaymentClick,
+  onCollectPlan,
   onAddEvent,
   onQuickAction,
   onMuteRealtime,
@@ -206,6 +219,9 @@ export function MobileLayout({
   setActiveTab,
   tabSentinelRef,
 }: MobileLayoutProps) {
+  const taskCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
+  const estimatedProfit = taskCost > 0 ? contract.total_amount - taskCost : null;
+
   return (
     <div className="lg:hidden">
       <div className="flex flex-col gap-4">
@@ -216,13 +232,24 @@ export function MobileLayout({
           />
         </div>
 
-        <FinancialDashboard
-          totalAmount={contract.total_amount}
-          paidAmount={contract.paid_amount}
-          remainingAmount={contract.remaining_amount}
-          payments={payments}
-          onPaymentClick={onPaymentClick}
-        />
+        <div data-section-payment className="flex flex-col gap-4">
+          <FinancialDashboard
+            totalAmount={contract.total_amount}
+            paidAmount={contract.paid_amount}
+            remainingAmount={contract.remaining_amount}
+            onPaymentClick={onPaymentClick}
+            subtotal={contract.total_amount + (contract.discount_amount || 0)}
+            discountAmount={contract.discount_amount}
+            estimatedProfit={estimatedProfit}
+          />
+
+          <PaymentPlanCard
+            paymentPlans={paymentPlans}
+            onCollectPlan={(planId) => onCollectPlan?.(planId)}
+          />
+
+          <PaymentReceiptsCard payments={payments} />
+        </div>
 
         <WorkflowStepper
           contract={contract}
@@ -255,7 +282,10 @@ export function MobileLayout({
         </div>
 
         <div id="section-actions">
-          <QuickActionsGrid onAction={onQuickAction} />
+          <QuickActionsGrid
+            onAction={onQuickAction}
+            paymentLabel={contract.remaining_amount > 0 ? "Thu tiền" : "Phát sinh"}
+          />
         </div>
 
         <div id="section-drive-mobile">
@@ -277,8 +307,6 @@ export function MobileLayout({
         <div id="section-print">
           <PrintOrdersBlock orders={printOrders} contractId={contract.id} onStatusChange={onMuteRealtime} />
         </div>
-
-        <ActivityLog logs={auditLogs} />
       </div>
     </div>
   );

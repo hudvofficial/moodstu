@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import type { RevenueChartData } from "@/types/dashboard";
 
 interface RevenueChartProps {
@@ -51,7 +51,7 @@ export function RevenueChart({
                 className="group relative flex flex-1 flex-col items-center justify-end"
               >
                 <span className="absolute -top-6 z-10 whitespace-nowrap text-caption opacity-0 transition-opacity group-hover:opacity-100">
-                  {formatCurrency(item.revenue)} ₫
+                  {formatVnd(item.revenue)}
                 </span>
 
                 <div className="relative flex h-32 w-full items-end">

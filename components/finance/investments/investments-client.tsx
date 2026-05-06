@@ -25,6 +25,7 @@ import { FAB } from "@/components/ui/fab";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/ux-states";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, InvestmentItem } from "@/types/finance-operations";
 
@@ -219,7 +220,12 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
     setSort("newest");
   }, []);
 
-  const refresh = () => void mutate(key);
+  const refresh = () => {
+    void Promise.all([
+      mutate(key),
+      invalidateFinanceAfterWrite(),
+    ]);
+  };
 
   const remove = async (item: InvestmentItem) => {
     if (!window.confirm(`Xóa tài sản "${item.name}"?`)) return;

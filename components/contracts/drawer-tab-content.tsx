@@ -4,8 +4,7 @@ import { useState } from "react";
 import {
   Phone,
   MapPin,
-  CheckCircle,
-  Circle,
+  Banknote,
   ExternalLink,
 } from "lucide-react";
 import { DrawerEventTimeline } from "@/components/contracts/drawer-event-timeline";
@@ -75,6 +74,7 @@ interface DrawerContentProps {
   };
   isLoadingExtra?: boolean;
   onViewDetail: () => void;
+  onTrackPayment: () => void;
 }
 
 export function DrawerContent({
@@ -82,6 +82,7 @@ export function DrawerContent({
   extra,
   isLoadingExtra = false,
   onViewDetail,
+  onTrackPayment,
 }: DrawerContentProps) {
   const totalAmount = c.total_amount || 0;
   const paidAmount = c.paid_amount || 0;
@@ -99,10 +100,6 @@ export function DrawerContent({
     ? extra.checklists
     : c.contract_checklists || [];
   const workTasks = extra?.workTasks?.length ? extra.workTasks : c.work_tasks || [];
-  const paymentPlans = extra?.paymentPlans?.length
-    ? extra.paymentPlans
-    : c.payment_plans || [];
-
   return (
     <div className="flex flex-col gap-5">
 
@@ -193,35 +190,15 @@ export function DrawerContent({
           />
         </div>
 
-        {/* Payment schedule */}
-        {paymentPlans.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-dashed border-border/50">
-            {paymentPlans.map((plan) => {
-              const p = plan as Record<string, unknown>;
-              const isPaid = p.status === "paid";
-              return (
-                <div key={String(p.id)} className="flex items-center gap-2">
-                  {isPaid ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-success shrink-0" />
-                  ) : (
-                    <Circle className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                  )}
-                  <span className={`text-tiny font-medium flex-1 ${isPaid ? "text-text-muted line-through" : "text-text-main"}`}>
-                    {(p.stage_name as string) || "Đợt"}
-                  </span>
-                  <span className="text-tiny font-bold text-text-main">
-                    {fmt(Number(p.amount) || 0)}
-                  </span>
-                  {typeof p.due_date === "string" && p.due_date && !isPaid && (
-                    <span className="text-tiny text-text-muted">
-                      ({formatDate(p.due_date)})
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <Button
+          unstyled
+          type="button"
+          onClick={onTrackPayment}
+          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-success/10 px-4 py-3 text-caption font-bold uppercase tracking-wide text-text-secondary transition-colors hover:bg-success/15 hover:text-success active:scale-[0.99]"
+        >
+          <Banknote className="h-4 w-4 text-success" />
+          Theo dõi thanh toán
+        </Button>
       </section>
 
       {/* ── Section: Operations Tabs ── */}
@@ -274,13 +251,15 @@ function OperationsTabs({
       {/* Tab buttons */}
       <div className="flex gap-1 mb-3 bg-neutral-100/60 rounded-lg p-1">
         {TABS.map((tab) => (
-          <Button unstyled
+          <Button
+            unstyled
+            type="button"
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 px-3 rounded-md text-body-sm font-semibold transition-all ${
+            className={`flex-1 cursor-pointer rounded-md px-3 py-2 text-body-sm font-semibold transition-all active:scale-[0.98] ${
               activeTab === tab.key
                 ? "bg-bg-base text-text-main shadow-md"
-                : "text-text-muted hover:text-text-secondary"
+                : "text-text-muted hover:bg-bg-base/70 hover:text-text-secondary"
             }`}
           >
             {tab.label}

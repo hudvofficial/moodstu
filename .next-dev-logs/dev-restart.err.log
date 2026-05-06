@@ -1,0 +1,1228 @@
+Error: Failed to find Server Action "40eeca4da4f6ca44b104452d1b5c8d70f917d36a6c". This request might be from an older or newer deployment.
+Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+    at ignore-listed frames
+Error: Failed to find Server Action "40eeca4da4f6ca44b104452d1b5c8d70f917d36a6c". This request might be from an older or newer deployment.
+Read more: https://nextjs.org/docs/messages/failed-to-find-server-action
+    at ignore-listed frames
+[action-profile] contracts.getContractDetail 2597ms
+[action-profile] contracts.getContractDetail 5153ms
+[action-profile] contracts.getContractDetail 4441ms
+[action-profile] contracts.getContractDetail 2940ms
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./components/contracts/detail/detail-layout-sections.tsx:7:1
+Module not found: Can't resolve './payment-plan-card'
+[0m [90m  5 |[39m [36mimport[39m [33mCustomerInfoBlock[39m [36mfrom[39m [32m"./customer-info-block"[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m [33mFinancialDashboard[39m [36mfrom[39m [32m"./financial-dashboard"[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m [33mPaymentPlanCard[39m [36mfrom[39m [32m"./payment-plan-card"[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m [33mWorkflowStepper[39m [36mfrom[39m [32m"./workflow-stepper"[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m [33mQuickActionsGrid[39m [36mfrom[39m [32m"./quick-actions-grid"[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m [33mMobileTabNav[39m [36mfrom[39m [32m"./mobile-tab-nav"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component Browser]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/contracts/detail/detail-layout-sections.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Client Component SSR]
+    ./components/contracts/detail/contract-detail-client.tsx [Server Component]
+    ./app/(protected)/contracts/[id]/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⚠ Fast Refresh had to perform a full reload when ./components/contracts/detail/detail-layout-sections.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[action-profile] contracts.getContractDetail 4265ms
+[withAuth] Error: Error: Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.
+    at <unknown> (app\actions\finance-operations-queries.ts:988:13)
+    at async withAuth (lib\auth_utils.ts:305:20)
+    at async profileAction (lib\action-profiler.ts:17:12)
+    at async ReceiptDetailPage (app\(protected)\finance\receipts\[id]\page.tsx:20:35)
+  986 |
+  987 |     if (error || !receipt) {
+> 988 |       throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
+      |             ^
+  989 |     }
+  990 |
+  991 |     return {
+[action-profile] finance.getReceiptDetail 1666ms
+[action-profile] finance.fetchReceipts 1044ms
+[action-profile] finance.fetchReceipts 1066ms
+[withAuth] Error: Error: Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.
+    at <unknown> (app\actions\finance-operations-queries.ts:988:13)
+    at async withAuth (lib\auth_utils.ts:305:20)
+    at async profileAction (lib\action-profiler.ts:17:12)
+    at async ReceiptDetailPage (app\(protected)\finance\receipts\[id]\page.tsx:20:35)
+  986 |
+  987 |     if (error || !receipt) {
+> 988 |       throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
+      |             ^
+  989 |     }
+  990 |
+  991 |     return {
+[action-profile] finance.getReceiptDetail 993ms
+[withAuth] Error: Error: Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.
+    at <unknown> (app\actions\finance-operations-queries.ts:988:13)
+    at async withAuth (lib\auth_utils.ts:305:20)
+    at async profileAction (lib\action-profiler.ts:17:12)
+    at async ReceiptDetailPage (app\(protected)\finance\receipts\[id]\page.tsx:20:35)
+  986 |
+  987 |     if (error || !receipt) {
+> 988 |       throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
+      |             ^
+  989 |     }
+  990 |
+  991 |     return {
+[action-profile] finance.getReceiptDetail 1018ms
+[action-profile] finance.fetchReceipts 6906ms
+[action-profile] finance.fetchReceiptStats 2301ms
+[action-profile] contracts.getContractDetail 1380ms
+⨯ ./app/(protected)/finance/receipts/[id]/page.tsx:158:16
+Parsing ecmascript source code failed
+[0m [90m 156 |[39m                   [33m<[39m[33mp[39m[33m>[39m[33mHotline[39m[33m:[39m {studioInfo[33m?[39m[33m.[39mhotline [33m||[39m [32m"0909 123 456"[39m}[33m<[39m[33m/[39m[33mp[39m[33m>[39m
+ [90m 157 |[39m                 [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+[31m[1m>[22m[39m[90m 158 |[39m               [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m     |[39m                [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 159 |[39m             [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 160 |[39m             [33m<[39m[33mdiv[39m className[33m=[39m[32m"hidden md:block text-right text-xs text-text-secondary print:text-gray-900 min-w-fit"[39m[33m>[39m
+ [90m 161 |[39m               [33m<[39m[33mp[39m className[33m=[39m[32m"font-bold text-text-primary print:text-black"[39m[33m>[39m[33mMẫu[39m số [35m01[39m[33m-[39mtt[33m<[39m[33m/[39m[33mp[39m[33m>[39m[0m
+
+Unterminated regexp literal
+
+
+[action-profile] finance.getReceiptDetail 1812ms
+[action-profile] finance.fetchReceipts 1324ms
+[action-profile] contracts.getContractList 1131ms
+[action-profile] contracts.getContractDetail 913ms
+[action-profile] contracts.getContractDrawerExtra 972ms
+[action-profile] contracts.getContractDrawerExtra 3253ms
+[action-profile] employees.getEmployeeList 897ms
+[action-profile] services.getServices 803ms
+[action-profile] services.getServiceCategories 1663ms
+[action-profile] services.getServices 1914ms
+[action-profile] services.getServiceCategories 1523ms
+[action-profile] services.getServiceCategories 3902ms
+[action-profile] services.getServices 4148ms
+[action-profile] services.getServiceCategories 1274ms
+[action-profile] services.getServiceById 1370ms
+[action-profile] contracts.getContractList 833ms
+[action-profile] contracts.getContractDetail 1750ms
+[action-profile] services.getServices 1335ms
+[action-profile] inventory.fetchInventoryDetail 888ms
+[action-profile] employees.getEmployeeList 2563ms
+[action-profile] services.getServiceCategories 2288ms
+[action-profile] services.getServices 2340ms
+[action-profile] services.getServiceCategories 1459ms
+[action-profile] services.getServiceCategories 1159ms
+[action-profile] services.getServiceCategories 957ms
+[action-profile] services.getServices 1048ms
+[action-profile] contracts.getContractDrawerExtra 1478ms
+[action-profile] contracts.getContractDrawerExtra 2151ms
+[action-profile] contracts.getContractList 1775ms
+[action-profile] contracts.getContractStats 933ms
+[action-profile] finance.dashboardBootstrap 1425ms
+[action-profile] contracts.getContractDrawerExtra 1101ms
+[action-profile] finance.getFinanceIntelligence 851ms
+[action-profile] finance.getFinanceIntelligence 828ms
+[action-profile] finance.getCashflowForecast 880ms
+[action-profile] services.getServiceCategories 995ms
+[action-profile] services.getServices 1090ms
+[action-profile] services.getServiceCategories 1596ms
+[action-profile] services.getServices 1984ms

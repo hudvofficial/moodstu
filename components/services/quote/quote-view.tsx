@@ -10,7 +10,7 @@ import { getStudioInfo } from "@/app/actions/settings-queries";
 import { useRealtime } from "@/hooks/use-realtime";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import { parseContentStructure } from "@/lib/utils/service-utils";
-import { formatCurrency } from "@/lib/utils";
+import { CURRENCY_SYMBOL, formatCurrency } from "@/lib/utils";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
 import type { StudioInfo } from "@/types/service";
@@ -189,9 +189,9 @@ export default function QuoteView({ service, studio }: Props) {
               </p>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-amount font-black text-interactive tabular-nums tracking-tighter">
-                  {formattedPrice.replace("₫", "").trim()}
+                  {formattedPrice}
                 </span>
-                <span className="text-caption font-bold text-text-muted">VNĐ</span>
+                <span className="text-caption font-bold text-text-muted">{CURRENCY_SYMBOL}</span>
               </div>
 
               {/* Divider */}
@@ -376,9 +376,9 @@ export default function QuoteView({ service, studio }: Props) {
             <p className="text-overline text-text-muted">Trọn gói</p>
             <div className="flex items-baseline gap-1">
               <span className="text-amount font-black text-interactive tabular-nums">
-                {formattedPrice.replace("₫", "").trim()}
+                {formattedPrice}
               </span>
-              <span className="text-caption font-bold text-text-muted">VNĐ</span>
+              <span className="text-caption font-bold text-text-muted">{CURRENCY_SYMBOL}</span>
             </div>
           </div>
           <Button

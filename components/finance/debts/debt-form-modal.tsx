@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { formatVnd } from "@/lib/utils";
 import { CreditCard, Calculator } from "lucide-react";
 
 interface DebtFormModalProps {
@@ -302,8 +303,8 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted">Tổng tiền trả góp</p>
                   <p className="text-base font-semibold text-primary">
-                    {form.installment_total} kỳ × {form.installment_amount.toLocaleString("vi-VN")}₫ ={" "}
-                    <span className="text-interactive">{autoTotal.toLocaleString("vi-VN")}₫</span>
+                    {form.installment_total} kỳ × {formatVnd(form.installment_amount)} ={" "}
+                    <span className="text-interactive">{formatVnd(autoTotal)}</span>
                   </p>
                 </div>
               </div>

@@ -136,6 +136,10 @@ export function ContractDrawer({
           onClose();
           router.push(`/contracts/${contractId}`);
         }}
+        onTrackPayment={() => {
+          onClose();
+          router.push(`/contracts/${contractId}#section-payment`);
+        }}
       />
     </Drawer>
   );

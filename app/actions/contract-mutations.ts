@@ -11,7 +11,6 @@ import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
 import { _generateChecklistsInternal } from "@/app/actions/checklist-actions";
 import { _generateContractEventsInternal } from "@/app/actions/contract-event-actions";
-import { _generateWorkTasksInternal } from "@/app/actions/work-task-actions";
 import { syncContractEventsToGoogle } from "@/lib/contract-event-google-sync";
 import type { ContractStatus, ExportType, ServiceType } from "@/types/contract";
 
@@ -305,7 +304,6 @@ async function upsertAddonHistoryItems(
 
 async function ensureContractAutomation(
   supabase: AdminSupabase,
-  userId: string,
   contractId: string,
   serviceType: ServiceType,
   workDate?: string | null,
@@ -313,10 +311,10 @@ async function ensureContractAutomation(
   // Events must complete first (tasks depend on events)
   const eventResult = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
 
-  // Checklists + tasks can run in parallel (both independent)
+  // Checklists and external calendar sync can run in parallel.
+  // Staff work_tasks are created only when a user explicitly assigns someone.
   await Promise.all([
     _generateChecklistsInternal(supabase, contractId, serviceType),
-    _generateWorkTasksInternal(supabase, contractId, userId),
     syncContractEventsToGoogle(supabase, eventResult.eventIds || []).catch((syncError) => {
       console.warn("Best effort contract events Google sync failed:", syncError);
     }),
@@ -475,10 +473,9 @@ export async function createContract(rawData: unknown) {
         postSaveWarnings,
       ),
       runPostSaveTask(
-        "Tự động tạo lịch trình/checklist/công việc",
+        "Tự động tạo lịch trình/checklist",
         () => ensureContractAutomation(
           supabase,
-          userId,
           contractId,
           data.formData.service_type,
           data.formData.work_date || null,
@@ -494,6 +491,11 @@ export async function createContract(rawData: unknown) {
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/dresses");
+    revalidatePath("/dresses/rentals");
 
     fireAuditLog({
       action: isEdit ? "UPDATE" : "CREATE",
@@ -576,6 +578,11 @@ export async function updateContractStatus(
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${id}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/dresses");
+    revalidatePath("/dresses/rentals");
 
     fireAuditLog({
       action: "UPDATE",

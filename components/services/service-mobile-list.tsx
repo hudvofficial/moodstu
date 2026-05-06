@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, FileText, Pencil } from "lucide-react";
 import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
 import type { ServiceType, ServiceUnit } from "@/types/service-constants";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { Button } from "@/components/ui/button";
 import { getServiceBadgeColor } from "@/constants/service-colors";
@@ -66,7 +66,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit, onPrefetch }: Props
 
             {/* Row 4: Price */}
             <p className="text-sm font-semibold text-text-main">
-              {formatCurrency(Number(service.selling_price))}
+              {formatVnd(Number(service.selling_price))}
             </p>
 
             {isExpanded && (
@@ -81,7 +81,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit, onPrefetch }: Props
                   <div>
                     <span className="text-text-muted">Giá vốn</span>
                     <p className="text-text-main font-medium mt-0.5">
-                      {formatCurrency(Number(service.cost_price))}
+                      {formatVnd(Number(service.cost_price))}
                     </p>
                   </div>
                 </div>

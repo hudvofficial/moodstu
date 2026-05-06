@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { returnDressRental } from "@/app/actions/rental-mutations";
 import { toast } from "@/lib/toast-utils";
 import { revalidate, revalidateByPrefixes, cacheKeys } from "@/lib/swr";
+import { formatVnd } from "@/lib/utils";
 import type { DressRental } from "@/types/dress";
 
 // ═══════════════════════════════════════════
@@ -154,7 +155,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
               <div className="flex justify-between">
                 <span className="text-text-muted text-sm">Tiền cọc</span>
                 <span className="text-sm font-medium">
-                  {rental.deposit.toLocaleString("vi-VN")}₫
+                  {formatVnd(rental.deposit)}
                 </span>
               </div>
             )}
@@ -197,7 +198,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
               <div>
                 <span className="text-sm font-medium">Hoàn cọc cho khách</span>
                 <p className="text-text-muted text-xs">
-                  {rental.deposit.toLocaleString("vi-VN")}₫
+                  {formatVnd(rental.deposit)}
                 </p>
               </div>
             </label>
@@ -225,7 +226,7 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
         onClose={() => setShowConfirm(false)}
         onConfirm={handleConfirmedSubmit}
         title="Xác nhận trả trang phục"
-        message={`Trả trang phục cho ${rental.customer_name}? Tình trạng: ${CONDITION_OPTIONS.find(o => o.value === form.return_condition)?.label || form.return_condition}.${hasDamage && form.damage_fee > 0 ? ` Phí hư hại: ${form.damage_fee.toLocaleString("vi-VN")}₫.` : ""}${form.deposit_returned && rental.deposit > 0 ? ` Hoàn cọc: ${rental.deposit.toLocaleString("vi-VN")}₫.` : ""}`}
+        message={`Trả trang phục cho ${rental.customer_name}? Tình trạng: ${CONDITION_OPTIONS.find(o => o.value === form.return_condition)?.label || form.return_condition}.${hasDamage && form.damage_fee > 0 ? ` Phí hư hại: ${formatVnd(form.damage_fee)}.` : ""}${form.deposit_returned && rental.deposit > 0 ? ` Hoàn cọc: ${formatVnd(rental.deposit)}.` : ""}`}
         confirmLabel="Xác nhận trả"
         variant="warning"
       />

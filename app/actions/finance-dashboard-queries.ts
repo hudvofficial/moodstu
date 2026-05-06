@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
+import { getPaymentStageLabel } from "@/types/contract-constants";
 import type {
   ContractProfitReportParams,
   ContractProfitRow,
@@ -367,7 +368,7 @@ async function fetchLedgerFallback(
         customerName: "-",
         categoryName: "-",
         paymentMethod: asString(item.payment_method, "-"),
-        description: item.notes || item.payment_stage || "",
+        description: item.notes || getPaymentStageLabel(item.payment_stage, ""),
         status: item.approved_by ? "approved" : "pending",
         createdAt: item.created_at,
       });

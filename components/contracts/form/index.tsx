@@ -12,6 +12,7 @@ import { FormActions } from "./FormActions";
 import { ItemModal } from "./modals/ItemModal";
 import { CreateServiceModal } from "./modals/CreateServiceModal";
 import { CustomerFormModal } from "./modals/CustomerFormModal";
+import { prefetchCatalogItems } from "./modals/catalog-cache";
 import { FullpageFormShell } from "@/components/layout/fullpage-form-shell";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -69,6 +70,24 @@ export default function ContractForm({ mode, contractId }: Props) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, contractId]);
+
+  useEffect(() => {
+    if (mode !== "create") return;
+
+    const warm = () => prefetchCatalogItems("dich_vu");
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      const idleId = idleWindow.requestIdleCallback(warm, { timeout: 1500 });
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(warm, 500);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [mode]);
 
   // ── Loading state ──
   if (form.isLoading) {

@@ -17,28 +17,12 @@ type ContractEventForTasks = {
 };
 
 function getDefaultWorkTypes(serviceType: ServiceType, eventType: EventType): WorkType[] {
-  if (eventType === "chuan_bi") return ["concept", "kich_ban"];
-
-  if (eventType === "ngay_chup") {
-    if (serviceType === "media") return ["quay_phim", "cameraman"];
-    if (serviceType === "ky_yeu") return ["chup_anh", "quay_phim", "tro_ly"];
-    return ["chup_anh", "makeup", "tro_ly"];
-  }
-
-  if (eventType === "ngay_to_chuc") {
-    return ["chup_anh", "quay_phim", "makeup", "cameraman"];
-  }
-
-  if (eventType === "hau_ky") {
-    if (serviceType === "media") return ["dung_phim", "bien_tap"];
-    if (["combo", "ngay_cuoi"].includes(serviceType)) {
-      return ["hau_ky_anh", "dung_phim", "retouch"];
-    }
-    return ["hau_ky_anh", "retouch"];
-  }
-
-  if (eventType === "giao_san_pham") return ["khac"];
-  return ["khac"];
+  // Work tasks represent staff assignments. The old automation created
+  // unassigned placeholder tasks, which made contract detail look like staff
+  // had been added without an editable assignee.
+  void serviceType;
+  void eventType;
+  return [];
 }
 
 function getTaskDates(event: ContractEventForTasks) {
@@ -158,8 +142,11 @@ export async function _generateWorkTasksInternal(
   }
 
   const rows = (events as ContractEventForTasks[]).flatMap((event) => {
+    const workTypes = getDefaultWorkTypes(contract.service_type as ServiceType, event.event_type);
+    if (workTypes.length === 0) return [];
+
     const dates = getTaskDates(event);
-    return getDefaultWorkTypes(contract.service_type as ServiceType, event.event_type).map((workType) => ({
+    return workTypes.map((workType) => ({
       contract_id: contractId,
       event_id: event.id,
       work_type: workType,
@@ -170,6 +157,10 @@ export async function _generateWorkTasksInternal(
       created_by: userId,
     }));
   });
+
+  if (rows.length === 0) {
+    return { generated: 0, message: "Automatic staff task generation disabled" };
+  }
 
   const { data, error } = await supabase
     .from("work_tasks")

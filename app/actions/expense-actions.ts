@@ -5,6 +5,7 @@ import { withAdmin, withFinanceRead } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import { createExpenseSchema, updateExpenseSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
+import { formatVnd } from "@/lib/utils";
 
 // ═══════════════════════════════════════════
 // Expense Actions — V2 (Hardened)
@@ -49,7 +50,7 @@ export async function approveExpense(id: string) {
     if (!updated || updated.length === 0) throw new Error("Phiếu chi không tồn tại, đã xóa, hoặc đã được duyệt từ trước.");
 
     // 3. Audit log
-    await writeAuditLog({ action: "UPDATE", tableName: "expenses", recordId: id, source: "server_action", description: `Duyệt chi phí #${id.substring(0, 8)} (${expense.amount?.toLocaleString("vi-VN")}₫)` });
+    await writeAuditLog({ action: "UPDATE", tableName: "expenses", recordId: id, source: "server_action", description: `Duyệt chi phí #${id.substring(0, 8)} (${formatVnd(expense.amount)})` });
 
     // 4. Revalidate cache
     revalidatePath("/finance");
@@ -87,7 +88,7 @@ export async function createExpense(input: CreateExpenseInput) {
       recordId: created.id,
       source: "server_action",
       newData: insertData as unknown as Record<string, unknown>,
-      description: `Tạo phiếu chi ${validated.amount.toLocaleString("vi-VN")}₫${validated.recipient ? ` cho ${validated.recipient}` : ""}`,
+      description: `Tạo phiếu chi ${formatVnd(validated.amount)}${validated.recipient ? ` cho ${validated.recipient}` : ""}`,
     });
 
     // 5. Revalidate
@@ -198,7 +199,7 @@ export async function deleteExpense(id: string) {
       recordId: id,
       source: "server_action",
       oldData: oldData as unknown as Record<string, unknown>,
-      description: `Xóa phiếu chi #${id.substring(0, 8)} (${oldData.amount?.toLocaleString("vi-VN")}₫)`,
+      description: `Xóa phiếu chi #${id.substring(0, 8)} (${formatVnd(oldData.amount)})`,
     });
 
     revalidatePath("/finance");
@@ -315,7 +316,7 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
     await writeAuditLog({
       action: "CREATE",
       tableName: "expenses",
-      description: `Auto-generate ${createdCount} chi phí cố định tháng ${month}/${year} (${totalAmount.toLocaleString("vi-VN")}₫)`,
+      description: `Auto-generate ${createdCount} chi phí cố định tháng ${month}/${year} (${formatVnd(totalAmount)})`,
       newData: { month, year, created: createdCount, skipped: skippedCount },
     });
 

@@ -12,7 +12,7 @@
 
 import { FileText, DollarSign, Loader, CheckCircle } from "lucide-react";
 import { KPICard } from "@/components/ui/kpi-card";
-import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import type { ContractStats } from "@/types/contract";
 
 interface ContractsStatsProps {
@@ -44,7 +44,7 @@ export function ContractsStats({ stats }: ContractsStatsProps) {
       />
       <KPICard
         label="Doanh thu"
-        value={formatCurrency(stats.revenue) + " " + CURRENCY_SYMBOL}
+        value={formatVnd(stats.revenue)}
         icon={DollarSign}
         iconBg="bg-warning/10"
         iconColor="text-warning"

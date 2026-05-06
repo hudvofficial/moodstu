@@ -1,6 +1,6 @@
 import { Banknote, UserPlus, Users } from "lucide-react";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import type { CustomerStats } from "@/types/crm";
 
 interface Props {
@@ -32,7 +32,7 @@ export default function CustomerStatsBar({ stats, compact }: Props) {
       id: "avgLtv",
       icon: Banknote,
       label: "LTV TB",
-      value: formatCurrency(stats.avgLifetimeValue),
+      value: formatVnd(stats.avgLifetimeValue),
       iconBg: "bg-info/10",
       iconColor: "text-info",
     },

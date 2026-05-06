@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import {
@@ -18,7 +18,6 @@ import type {
   PaymentPlan,
   DressReservationRow,
   PrintingOrder,
-  AuditLogEntry,
   TaskStatus,
 } from "@/types/contract";
 import TopActionBar from "./top-action-bar";
@@ -58,7 +57,6 @@ const EMPTY_PAYMENTS: Payment[] = [];
 const EMPTY_PAYMENT_PLANS: PaymentPlan[] = [];
 const EMPTY_RESERVATIONS: DressReservationRow[] = [];
 const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
-const EMPTY_AUDIT_LOGS: AuditLogEntry[] = [];
 
 // ═══════════════════════════════════════════
 // Contract Detail Client — SWR wrapper + state
@@ -72,7 +70,6 @@ interface Props {
   initialPaymentPlans?: PaymentPlan[];
   initialReservations?: DressReservationRow[];
   initialPrintOrders?: PrintingOrder[];
-  initialAuditLogs?: AuditLogEntry[];
 }
 
 export default function ContractDetailClient({
@@ -82,7 +79,6 @@ export default function ContractDetailClient({
   initialPaymentPlans,
   initialReservations,
   initialPrintOrders,
-  initialAuditLogs,
 }: Props) {
   const params = useParams<{ id: string }>();
   const id = contractId || params.id;
@@ -92,7 +88,6 @@ export default function ContractDetailClient({
     paymentPlans: livePaymentPlans,
     reservations: liveReservations,
     printOrders: livePrintOrders,
-    auditLogs: liveAuditLogs,
     error: contractError,
     mutate: mutateContractDetail,
   } = useContractDetail(
@@ -104,7 +99,6 @@ export default function ContractDetailClient({
           paymentPlans: initialPaymentPlans || [],
           reservations: initialReservations || [],
           printOrders: initialPrintOrders || [],
-          auditLogs: initialAuditLogs || [],
         }
       : undefined,
   );
@@ -154,14 +148,12 @@ export default function ContractDetailClient({
   const paymentPlans = (livePaymentPlans as unknown as PaymentPlan[] | null) ?? initialPaymentPlans ?? EMPTY_PAYMENT_PLANS;
   const reservations = (liveReservations as unknown as DressReservationRow[] | null) ?? initialReservations ?? EMPTY_RESERVATIONS;
   const printOrders = (livePrintOrders as unknown as PrintingOrder[] | null) ?? initialPrintOrders ?? EMPTY_PRINT_ORDERS;
-  const auditLogs = (liveAuditLogs as unknown as AuditLogEntry[] | null) ?? initialAuditLogs ?? EMPTY_AUDIT_LOGS;
   const renderedDetailRef = useRef({
     contract,
     payments,
     paymentPlans,
     reservations,
     printOrders,
-    auditLogs,
   });
 
   useEffect(() => {
@@ -171,9 +163,24 @@ export default function ContractDetailClient({
       paymentPlans,
       reservations,
       printOrders,
-      auditLogs,
     };
-  }, [contract, payments, paymentPlans, reservations, printOrders, auditLogs]);
+  }, [contract, payments, paymentPlans, reservations, printOrders]);
+
+  useEffect(() => {
+    if (!contract || window.location.hash !== "#section-payment") return;
+
+    const timer = window.setTimeout(() => {
+      const sections = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-section-payment]"),
+      );
+      const target = sections.find((section) => section.offsetParent !== null)
+        || sections[0];
+
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [contract]);
 
   const isCancelled = contract?.status === "da_huy";
   const headerContractId = contract?.id;
@@ -235,15 +242,26 @@ export default function ContractDetailClient({
     };
   }, []);
 
-  useRealtime("contracts", { filter: `id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("payments", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("contract_checklists", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("contract_notes", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("contract_events", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("work_tasks", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("payment_plans", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("dress_reservations", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
-  useRealtime("printing_orders", { filter: `contract_id=eq.${id}`, onChange: refreshContractCaches });
+  const detailRealtimeConfigs = useMemo(
+    () => [
+      { table: "contracts", filter: `id=eq.${id}` },
+      { table: "payments", filter: `contract_id=eq.${id}` },
+      { table: "contract_checklists", filter: `contract_id=eq.${id}` },
+      { table: "contract_notes", filter: `contract_id=eq.${id}` },
+      { table: "contract_events", filter: `contract_id=eq.${id}` },
+      { table: "work_tasks", filter: `contract_id=eq.${id}` },
+      { table: "payment_plans", filter: `contract_id=eq.${id}` },
+      { table: "dress_reservations", filter: `contract_id=eq.${id}` },
+      { table: "printing_orders", filter: `contract_id=eq.${id}` },
+    ],
+    [id],
+  );
+
+  useRealtimeMulti(detailRealtimeConfigs, {
+    channelName: `contract-detail-${id}`,
+    onChange: refreshContractCaches,
+    debounceMs: CONTRACT_DETAIL_REFRESH_SETTLE_MS,
+  });
 
   // ── Set header slots for mobile ──
   const setHeaderSlots = useSetHeaderSlots();
@@ -272,6 +290,8 @@ export default function ContractDetailClient({
 
   // ── Quick Action Modal State ──
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [initialPaymentPlanId, setInitialPaymentPlanId] = useState<string | undefined>(undefined);
+
   const [showPrintForm, setShowPrintForm] = useState(false);
   const [showCostumeForm, setShowCostumeForm] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
@@ -280,6 +300,8 @@ export default function ContractDetailClient({
   const handleQuickAction = useCallback((key: string) => {
     switch (key) {
       case "payment":
+        setInitialPaymentPlanId(undefined);
+
         setShowPaymentForm(true);
         break;
       case "print":
@@ -305,6 +327,11 @@ export default function ContractDetailClient({
         setShowNoteModal(true);
         break;
     }
+  }, []);
+
+  const openPaymentForm = useCallback((planId?: string) => {
+    setInitialPaymentPlanId(planId);
+    setShowPaymentForm(true);
   }, []);
 
   // ── Auto-hide header logic ──
@@ -403,13 +430,14 @@ export default function ContractDetailClient({
   const layoutProps = {
     contract,
     payments,
+    paymentPlans,
     reservations,
     printOrders,
-    auditLogs,
     activeEmployees,
     refreshContract: refreshContractCaches,
     onTaskStatusChange: applyTaskStatusOptimistic,
-    onPaymentClick: () => setShowPaymentForm(true),
+    onPaymentClick: () => openPaymentForm(),
+    onCollectPlan: (planId?: string) => openPaymentForm(planId),
     onAddEvent: () => setShowAddEventModal(true),
     onQuickAction: handleQuickAction,
     onMuteRealtime: muteRealtimeEcho,
@@ -430,6 +458,7 @@ export default function ContractDetailClient({
       {isCancelled && (
         <CancelBanner
           contractId={contract.id}
+          paidAmount={contract.paid_amount}
           notes={contract.notes}
           updatedAt={contract.updated_at}
         />
@@ -452,18 +481,23 @@ export default function ContractDetailClient({
         contractId={contract.id}
         isCancelled={isCancelled}
         remainingAmount={contract.remaining_amount}
-        onPaymentClick={() => setShowPaymentForm(true)}
+        onPaymentClick={() => openPaymentForm()}
       />
 
       {/* ── Quick Action Modals ── */}
       {showPaymentForm && (
         <PaymentReceiptForm
           isOpen={showPaymentForm}
-          onClose={() => setShowPaymentForm(false)}
+          onClose={() => {
+            setShowPaymentForm(false);
+            setInitialPaymentPlanId(undefined);
+          }}
           contractId={contract.id}
           contractCode={contract.contract_code}
           remainingAmount={contract.remaining_amount}
+          paidAmount={contract.paid_amount}
           paymentPlans={paymentPlans}
+          initialPlanId={initialPaymentPlanId}
         />
       )}
       {showPrintForm && (

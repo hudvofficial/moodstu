@@ -9,7 +9,9 @@ import { FAB } from "@/components/ui/fab";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/ux-states";
 import { cacheKeys, useSWR } from "@/lib/swr";
+import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
 import { calculateServiceStats } from "@/lib/utils/service-utils";
+import { useRealtime } from "@/hooks/use-realtime";
 import type { ServiceCategory, ServiceRecord } from "@/types/service";
 import type { ViewMode } from "@/types/service-constants";
 import { CategoryManagerModal } from "./category-manager-modal";
@@ -122,6 +124,20 @@ export default function ServicesListClient({
       : undefined,
   );
   const mutateServices = servicesQuery.mutate;
+  const refreshServiceCaches = useCallback(() => {
+    void invalidateServiceAfterWrite();
+  }, []);
+
+  useRealtime("services", {
+    onChange: refreshServiceCaches,
+    debounceMs: 500,
+    channelName: "services-list-services",
+  });
+  useRealtime("service_categories", {
+    onChange: refreshServiceCaches,
+    debounceMs: 500,
+    channelName: "services-list-categories",
+  });
 
   const servicesPayload = useMemo(
     () => normalizeServicesPayload(servicesQuery.data, initialServicesPayload),

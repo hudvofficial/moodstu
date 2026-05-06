@@ -2848,6 +2848,58 @@ export type Database = {
           },
         ]
       }
+      payment_plan_allocations: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          payment_id: string
+          payment_plan_id: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id: string
+          payment_plan_id: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id?: string
+          payment_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_plan_allocations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plan_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_plan_allocations_payment_plan_id_fkey"
+            columns: ["payment_plan_id"]
+            isOneToOne: false
+            referencedRelation: "payment_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_plans: {
         Row: {
           amount: number
@@ -2856,6 +2908,8 @@ export type Database = {
           due_date: string | null
           id: string
           receipt_id: string | null
+          sort_order: number
+          stage_key: string | null
           stage_name: string
           status: string | null
         }
@@ -2866,6 +2920,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           receipt_id?: string | null
+          sort_order?: number
+          stage_key?: string | null
           stage_name: string
           status?: string | null
         }
@@ -2876,6 +2932,8 @@ export type Database = {
           due_date?: string | null
           id?: string
           receipt_id?: string | null
+          sort_order?: number
+          stage_key?: string | null
           stage_name?: string
           status?: string | null
         }
@@ -2901,6 +2959,7 @@ export type Database = {
           amount: number
           approved_by: string | null
           category_id: string | null
+          contract_adjustment_item_id: string | null
           contract_id: string | null
           created_at: string | null
           created_by: string | null
@@ -2908,17 +2967,22 @@ export type Database = {
           deleted_at: string | null
           id: string
           image_url: string | null
+          is_contract_adjustment: boolean
           notes: string | null
           payment_date: string
           payment_method: Database["public"]["Enums"]["payment_method_enum"]
           payment_stage: string | null
           receipt_code: string | null
           updated_at: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
           approved_by?: string | null
           category_id?: string | null
+          contract_adjustment_item_id?: string | null
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2926,17 +2990,22 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_contract_adjustment?: boolean
           notes?: string | null
           payment_date?: string
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
           payment_stage?: string | null
           receipt_code?: string | null
           updated_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
           approved_by?: string | null
           category_id?: string | null
+          contract_adjustment_item_id?: string | null
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2944,14 +3013,25 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           image_url?: string | null
+          is_contract_adjustment?: boolean
           notes?: string | null
           payment_date?: string
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
           payment_stage?: string | null
           receipt_code?: string | null
           updated_at?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_contract_adjustment_item_id_fkey"
+            columns: ["contract_adjustment_item_id"]
+            isOneToOne: false
+            referencedRelation: "contract_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_category_id_fkey"
             columns: ["category_id"]

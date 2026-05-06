@@ -5,6 +5,7 @@ import { Paintbrush, X, Image as LucideImage, ImageIcon, Send } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { CalculationResult } from "@/lib/logic/bundle-calculator";
 import Image from "next/image";
+import { formatVnd } from "@/lib/utils";
 
 interface QuoteItem {
   service_name: string;
@@ -97,7 +98,7 @@ export default function QuoteModernView({
                   Tổng giá trị gói
                 </p>
                 <p className="text-2xl font-black text-primary tracking-tighter">
-                  {calculation.finalTotal.toLocaleString()} VNĐ
+                  {formatVnd(calculation.finalTotal)}
                 </p>
               </div>
               <div className="text-right">
@@ -144,14 +145,12 @@ export default function QuoteModernView({
                           {item.service_name}
                         </h4>
                         <span className="text-caption font-black text-text-main">
-                          {(
-                            item.selling_price * item.quantity
-                          ).toLocaleString()}
+                          {formatVnd(item.selling_price * item.quantity)}
                         </span>
                       </div>
                       <p className="text-caption text-text-muted mt-0.5">
                         SL: {item.quantity} x{" "}
-                        {item.selling_price.toLocaleString()}{" "}
+                        {formatVnd(item.selling_price)}{" "}
                         {item.unit || "món"}
                       </p>
                     </div>

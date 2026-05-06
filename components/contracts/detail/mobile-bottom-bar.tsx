@@ -20,6 +20,7 @@ export default function MobileBottomBar({
   onPaymentClick,
 }: Props) {
   if (isCancelled) return null;
+  const paymentLabel = remainingAmount > 0 ? "Thu tiền" : "Phát sinh";
 
   return (
     <div
@@ -41,21 +42,21 @@ export default function MobileBottomBar({
           Sửa
         </Link>
 
-        {/* Thu tiền — opens payment form */}
-        {remainingAmount > 0 && (
+        {/* Thu tien / phat sinh — opens payment form */}
+        {onPaymentClick && (
           <div
             role="button"
             tabIndex={0}
             onClick={onPaymentClick}
             onKeyDown={(e) => { if (e.key === "Enter" && onPaymentClick) onPaymentClick(); }}
-            className="flex-1 h-12 flex items-center justify-center
+            className={`flex-1 h-12 flex items-center justify-center
                        rounded-md
-                       bg-interactive text-white
+                       ${remainingAmount > 0 ? "bg-interactive text-white" : "bg-bg-hover text-text-primary"}
                        font-bold text-sm
                        shadow-lg shadow-interactive/20
-                       active:scale-[0.98] transition-all"
+                       active:scale-[0.98] transition-all`}
           >
-            Thu tiền
+            {paymentLabel}
           </div>
         )}
       </div>

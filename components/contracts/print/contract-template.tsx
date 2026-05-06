@@ -12,6 +12,7 @@ import type {
   StudioInfo,
 } from "@/types/contract";
 import type { Customer } from "@/types/crm";
+import { getPaymentStageLabel } from "@/types/contract-constants";
 
 const PRINT_FONT_FAMILY = "var(--font-sans)";
 const PRINT_BODY_SIZE = "calc(var(--font-size-micro) + 0.5px)";
@@ -49,7 +50,7 @@ function getPaymentScheduleRows(
     .filter((plan) => plan.status !== "cancelled")
     .map((plan) => ({
       id: plan.id,
-      label: plan.stage_name || "Đợt thanh toán",
+      label: getPaymentStageLabel(plan.stage_key || plan.stage_name, "Đợt thanh toán"),
       amount: Number(plan.amount) || 0,
       dueDate: plan.due_date,
       status: plan.status,
@@ -81,7 +82,7 @@ function getPaymentScheduleRows(
   return [
     {
       id: "remaining-balance",
-      label: "Thanh toán còn lại",
+      label: "Thanh toán hết",
       amount: remaining,
       dueDate:
         contract.delivery_date ||

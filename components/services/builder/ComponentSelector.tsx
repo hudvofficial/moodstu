@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getServices } from "@/app/actions/service-queries";
 import type { ServiceCategory, ServiceRecord } from "@/types/service";
 import Image from "next/image";
+import { formatVnd } from "@/lib/utils";
 
 interface ComponentSelectorProps {
   onSelect: (service: ServiceRecord) => void;
@@ -122,7 +123,7 @@ export default function ComponentSelector({
                   {service.service_code}
                 </p>
                 <p className="text-caption text-primary font-bold">
-                  {(service.selling_price || 0).toLocaleString()} ₫
+                  {formatVnd(service.selling_price || 0)}
                 </p>
               </div>
             ))}

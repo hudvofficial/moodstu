@@ -53,10 +53,10 @@ export default function QuickNoteModal({
       if (!result.success) throw new Error(result.error);
 
       toast.success("Đã thêm ghi chú");
+      await invalidateContractAfterWrite(contractId);
       resetForm();
       onSaved();
       onClose();
-      void invalidateContractAfterWrite(contractId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm ghi chú");
     } finally {

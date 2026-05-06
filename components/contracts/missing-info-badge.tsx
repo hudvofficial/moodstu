@@ -14,7 +14,7 @@
 import { useRef, useState, useEffect } from "react";
 import { CheckCircle, Clock, ChevronDown } from "lucide-react";
 import { getCategoryColor } from "@/constants/service-colors";
-// V2 DB doesn't have contract_checklists table yet — define inline
+
 interface ContractChecklist {
   id: string;
   contract_id: string;

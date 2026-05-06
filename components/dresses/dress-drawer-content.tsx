@@ -29,6 +29,7 @@ import { ReturnModal } from "@/components/dresses/return-modal";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { cacheKeys, revalidate, revalidateByPrefixes } from "@/lib/swr";
 import { toast } from "@/lib/toast-utils";
+import { formatVnd } from "@/lib/utils";
 import { useState } from "react";
 
 
@@ -51,7 +52,7 @@ function InfoSection({ dress }: { dress: DressItem }) {
   const categoryLabel = dress.category
     ? DRESS_CATEGORY_MAP[dress.category as DressCategory]?.label || dress.category
     : null;
-  const formatPrice = (v: number | null) => v ? new Intl.NumberFormat("vi-VN").format(v) + "đ" : "—";
+  const formatPrice = (v: number | null) => v ? formatVnd(v) : "—";
 
   return (
     <div className="space-y-4">

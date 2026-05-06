@@ -110,8 +110,8 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
         if (result.data?.warning) {
           toast.warning(result.data.warning);
         }
+        await invalidateInventoryAfterWrite(activeItem.id);
         handleClose();
-        void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
           result && "error" in result && typeof result.error === "string"

@@ -94,6 +94,12 @@ export async function cancelContract(
     });
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/dresses");
+    revalidatePath("/dresses/rentals");
+    revalidatePath("/printing");
 
     fireAuditLog({
       action: "UPDATE",
@@ -127,6 +133,12 @@ export async function deleteContract(contractId: string) {
       console.warn("Best effort contract delete Google cleanup failed:", syncError);
     });
     revalidatePath("/contracts");
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/dresses");
+    revalidatePath("/dresses/rentals");
+    revalidatePath("/printing");
 
     fireAuditLog({
       action: "DELETE",
@@ -237,6 +249,12 @@ export async function reactivateContract(contractId: string) {
 
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${contractId}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/dresses");
+    revalidatePath("/dresses/rentals");
+    revalidatePath("/printing");
 
     fireAuditLog({
       action: "UPDATE",

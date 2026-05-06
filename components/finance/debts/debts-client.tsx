@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Pagination } from "@/components/ui/pagination";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, DebtListItem, IntegrityReportItem } from "@/types/finance-operations";
 import type { PaginatedResult } from "@/types/finance-dashboard";
@@ -60,8 +61,11 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
   const summary = globalStats || initialStats;
 
   const refresh = () => {
-    void mutate(key);
-    void mutate(cacheKeys.financeDashboard(new Date().getMonth() + 1, new Date().getFullYear()));
+    void Promise.all([
+      mutate(key),
+      mutate(statsKey),
+      invalidateFinanceAfterWrite(),
+    ]);
   };
 
   const markPaid = async (item: DebtListItem) => {

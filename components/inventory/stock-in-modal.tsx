@@ -102,8 +102,8 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
 
       if (result && "success" in result && result.success) {
         toast.success(`Đã nhập ${quantity} ${activeItem.name} vào kho`);
+        await invalidateInventoryAfterWrite(activeItem.id);
         handleClose();
-        void invalidateInventoryAfterWrite(activeItem.id);
       } else {
         setError(
           result && "error" in result && typeof result.error === "string"

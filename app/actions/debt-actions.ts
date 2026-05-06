@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createCreditCardSchema, createDebtSchema, updateCreditCardSchema, updateDebtSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
+import { formatVnd } from "@/lib/utils";
 
 // ═══════════════════════════════════════════
 // Debt + Credit Card Actions (Hardened V2)
@@ -102,7 +103,7 @@ export async function createDebt(input: DebtInput) {
       tableName: "debts",
       recordId: data.id,
       newData: input as unknown as Record<string, unknown>,
-      description: `Tạo công nợ ${input.type}: ${input.entity_name} (${input.amount?.toLocaleString("vi-VN")}₫)`
+      description: `Tạo công nợ ${input.type}: ${input.entity_name} (${formatVnd(input.amount)})`
     });
 
     revalidatePath("/finance");

@@ -13,13 +13,13 @@ import { DashboardWarmup } from "@/components/dashboard/dashboard-warmup";
 import { RealtimeSync } from "@/components/shared/realtime-sync";
 import { KPICard } from "@/components/ui/kpi-card";
 import { getDashboardBootstrap } from "@/lib/api/dashboard";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 
 export const metadata = { title: "Tổng quan" };
 export const dynamic = "force-dynamic";
 
 function formatMoney(value: number) {
-  return `${formatCurrency(value)} ₫`;
+  return formatVnd(value);
 }
 
 function formatTrend(value: number | null) {

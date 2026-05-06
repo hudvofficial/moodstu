@@ -14,6 +14,7 @@ const RECEIPT_TYPE_TABS = [
   { label: "Tất cả", value: "all" },
   { label: "Thu hợp đồng", value: "contract_payment" },
   { label: "Cọc hợp đồng", value: "contract_deposit" },
+  { label: "Phát sinh", value: "contract_adjustment" },
   { label: "Bán vật tư", value: "sale_receipt" },
   { label: "Thu khác", value: "other_income" },
 ];

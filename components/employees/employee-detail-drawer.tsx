@@ -22,7 +22,7 @@ import {
   getRoleLabel,
 } from "@/types/employee-constants";
 import type { EmployeeDetail, EmployeeListItem, EmployeeRole, SalaryInfo } from "@/types/employee";
-import { formatCurrency, formatDate, formatPhone, getInitials } from "@/lib/utils";
+import { formatDate, formatPhone, formatVnd, getInitials } from "@/lib/utils";
 import { invalidateEmployeeAfterWrite, revalidateEmployeeCaches } from "@/lib/cache-invalidation";
 import EmployeeFormModal from "./employee-form-modal";
 import EmployeeInfoCard from "./employee-info-card";
@@ -116,9 +116,9 @@ export default function EmployeeDetailDrawer({
       const result = await softDeleteEmployee(detail.id);
       if (!result.success) throw new Error(result.error || "Lỗi cho nghỉ việc");
       toast.success("Đã cho nghỉ việc");
+      await invalidateEmployeeAfterWrite(detail.id);
       onChanged?.();
       onClose();
-      void invalidateEmployeeAfterWrite(detail.id);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi xử lý");
     } finally {
@@ -134,8 +134,10 @@ export default function EmployeeDetailDrawer({
       const result = await restoreEmployee(detail.id);
       if (!result.success) throw new Error(result.error || "Lỗi khôi phục");
       toast.success("Đã khôi phục nhân viên");
-      void refreshDrawer();
-      void revalidateEmployeeCaches(detail.id);
+      await Promise.all([
+        refreshDrawer(),
+        revalidateEmployeeCaches(detail.id),
+      ]);
       onChanged?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi khôi phục");
@@ -245,7 +247,7 @@ export default function EmployeeDetailDrawer({
           label: "Lương cơ bản",
           value:
             typeof salary.base_salary === "number"
-              ? `${formatCurrency(salary.base_salary)} ₫`
+              ? formatVnd(salary.base_salary)
               : null,
         },
         { label: "Ngân hàng", value: salary.bank_name || null },

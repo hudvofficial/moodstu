@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Check, Search, Plus, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { getAvailableCatalogItems } from "@/app/actions/category-actions";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  fetchCatalogItems,
+  getCachedCatalogItems,
+  type CatalogResult,
+} from "./catalog-cache";
 import type { ContractItemFormData } from "@/types/contract-form";
 import type { ExportType, ItemType } from "@/types/contract";
 
@@ -18,19 +22,6 @@ import type { ExportType, ItemType } from "@/types/contract";
 // ═══════════════════════════════════════════
 
 type CatalogItemType = Exclude<ItemType, "phat_sinh">;
-
-interface CatalogResult {
-  id: string;
-  source: "service" | "dress";
-  item_name: string;
-  service_name: string;
-  code?: string | null;
-  selling_price: number;
-  service_type: string;
-  item_type: CatalogItemType;
-  unit?: string | null;
-  meta?: string | null;
-}
 
 const ITEM_COPY: Record<CatalogItemType, { search: string; empty: string; add: string; quickCreate: string }> = {
   dich_vu: {
@@ -101,19 +92,24 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
 
   // Search V2 catalog by selected business item type.
   useEffect(() => {
+    if (isEditing) return;
+
     let cancelled = false;
-    async function search() {
+    const cached = getCachedCatalogItems(itemType, debouncedQuery);
+    if (cached) {
+      setResults(cached);
+      setIsSearching(false);
+      setSearchError("");
+    } else {
       setIsSearching(true);
+    }
+
+    async function search() {
       setSearchError("");
       try {
-        const result = await getAvailableCatalogItems(itemType, debouncedQuery);
+        const data = await fetchCatalogItems(itemType, debouncedQuery);
         if (cancelled) return;
-        if (result.success) {
-          setResults(result.data as CatalogResult[]);
-        } else {
-          setResults([]);
-          setSearchError(result.error);
-        }
+        setResults(data);
       } catch (error) {
         if (!cancelled) {
           setResults([]);
@@ -125,7 +121,7 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
     }
     search();
     return () => { cancelled = true; };
-  }, [debouncedQuery, itemType]);
+  }, [debouncedQuery, isEditing, itemType]);
 
   // Toggle select catalog item for batch add
   const toggleService = useCallback((svc: CatalogResult) => {

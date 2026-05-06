@@ -11,6 +11,7 @@ import { FixedCostFormModal } from "@/components/finance/fixed-costs/fixed-cost-
 import { Button } from "@/components/ui/button";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, FixedCostItem } from "@/types/finance-operations";
 
@@ -38,7 +39,12 @@ export function FixedCostsClient({ initialData }: FixedCostsClientProps) {
   const items = data || initialData;
   const now = new Date();
 
-  const refresh = () => void mutate(key);
+  const refresh = () => {
+    void Promise.all([
+      mutate(key),
+      invalidateFinanceAfterWrite(),
+    ]);
+  };
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -58,7 +64,10 @@ export function FixedCostsClient({ initialData }: FixedCostsClientProps) {
       return;
     }
     toast.success(`Đã tạo ${result.data.created} phiếu chi cố định.`);
-    void mutate(cacheKeys.financeExpenses(1, now.getMonth() + 1, now.getFullYear(), "all"));
+    void Promise.all([
+      mutate(cacheKeys.financeExpenses(1, now.getMonth() + 1, now.getFullYear(), "all")),
+      invalidateFinanceAfterWrite(),
+    ]);
   };
 
   const remove = async (item: FixedCostItem) => {

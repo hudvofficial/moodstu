@@ -4,6 +4,7 @@ import { withAdmin } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { checkPeriodLock, firstDayOfMonth } from "@/lib/finance-utils";
+import { formatVnd } from "@/lib/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ═══════════════════════════════════════════
@@ -108,7 +109,7 @@ export async function addSalaryAdjustment(data: AdjustmentData) {
       action: "CREATE",
       tableName: "salary_adjustments",
       recordId: data.employee_salary_id,
-      description: `Thêm ${data.type === "bonus" ? "thưởng" : "phạt"}: ${data.amount.toLocaleString("vi-VN")}₫ - ${data.reason}`
+      description: `Thêm ${data.type === "bonus" ? "thưởng" : "phạt"}: ${formatVnd(data.amount)} - ${data.reason}`
     });
 
     revalidatePath("/finance");
@@ -186,7 +187,7 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number) 
       action: "UPDATE",
       tableName: "employee_salaries",
       recordId: salaryId,
-      description: `Thanh toán lương: +${amount.toLocaleString("vi-VN")}₫. Đã trả: ${newPaid.toLocaleString("vi-VN")}`
+      description: `Thanh toán lương: +${formatVnd(amount)}. Đã trả: ${formatVnd(newPaid)}`
     });
 
     revalidatePath("/finance/salaries");
@@ -416,7 +417,7 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
         action: "CREATE",
         tableName: "monthly_salaries",
         recordId: monthlySalaryId,
-        description: `Khởi tạo bảng lương tháng ${month}/${year} cho ${newRecords.length} nhân sự. Tổng quỹ lương: ${totalSalaries.toLocaleString("vi-VN")}₫`,
+        description: `Khởi tạo bảng lương tháng ${month}/${year} cho ${newRecords.length} nhân sự. Tổng quỹ lương: ${formatVnd(totalSalaries)}`,
       });
 
       revalidatePath("/finance/salaries");

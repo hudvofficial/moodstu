@@ -1,7 +1,7 @@
 "use client";
 
 import { PieChart as PieChartIcon } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import type { ServiceBreakdownData } from "@/types/dashboard";
 
 interface ServicePieChartProps {
@@ -72,7 +72,7 @@ export function ServicePieChart({ data, canView, showRevenue }: ServicePieChartP
                 </span>
                 {showRevenue ? (
                   <span className="hidden shrink-0 text-caption text-text-secondary sm:inline">
-                    {formatCurrency(item.revenue)} ₫
+                    {formatVnd(item.revenue)}
                   </span>
                 ) : null}
               </div>

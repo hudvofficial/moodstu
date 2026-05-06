@@ -44,6 +44,109 @@ function sanitizePostgrestSearch(value: string) {
   return value.replace(/[%_(),."\\]/g, "").trim().slice(0, 100);
 }
 
+type ReceiptDocumentRow = {
+  id?: string | null;
+  source_table?: string | null;
+  source_id?: string | null;
+  receipt_date?: string | null;
+  receipt_type?: string | null;
+  payment_type?: string | null;
+  contract_id?: string | null;
+  contract_code?: string | null;
+  customer_name?: string | null;
+  receipt_amount?: number | null;
+  total_amount?: number | null;
+  remaining_amount?: number | null;
+  category_id?: string | null;
+  category_name?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  receipt_code?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  total_count?: number | string | null;
+};
+
+function normalizeReceiptRouteId(id: string) {
+  const raw = String(id || "").trim();
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function isPaymentReceiptId(id: string) {
+  return normalizeReceiptRouteId(id).startsWith("payment:");
+}
+
+function receiptSourceId(id: string) {
+  const normalized = normalizeReceiptRouteId(id);
+  return normalized.startsWith("payment:") ? normalized.slice("payment:".length) : normalized;
+}
+
+function relationRecord(value: unknown): Record<string, unknown> | null {
+  const item = Array.isArray(value) ? value[0] : value;
+  return item && typeof item === "object" ? item as Record<string, unknown> : null;
+}
+
+function normalizePaymentStageText(stage: unknown) {
+  return typeof stage === "string"
+    ? stage
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+    : "";
+}
+
+function paymentReceiptType(stage: unknown, isAdjustment: unknown = false) {
+  if (isAdjustment === true) return "contract_adjustment";
+  const normalized = normalizePaymentStageText(stage);
+  if (normalized === "phat_sinh" || normalized === "contract_adjustment") return "contract_adjustment";
+  return normalized.includes("coc") || normalized === "deposit" || normalized === "contract_deposit"
+    ? "contract_deposit"
+    : "contract_payment";
+}
+
+function mapReceiptDocumentRow(row: ReceiptDocumentRow): ReceiptListItem {
+  const id = row.id || (row.source_table === "payments" && row.source_id ? `payment:${row.source_id}` : row.source_id) || "";
+  return {
+    id,
+    source_table: row.source_table || null,
+    source_id: row.source_id || receiptSourceId(id) || null,
+    receipt_code: row.receipt_code || null,
+    receipt_date: row.receipt_date || "",
+    receipt_type: row.receipt_type || "other_income",
+    payment_type: row.payment_type || "tien_mat",
+    contract_id: row.contract_id || null,
+    contract_code: row.contract_code || null,
+    customer_name: row.customer_name || null,
+    receipt_amount: Number(row.receipt_amount) || 0,
+    total_amount: row.total_amount == null ? null : Number(row.total_amount) || 0,
+    remaining_amount: row.remaining_amount == null ? null : Number(row.remaining_amount) || 0,
+    category_id: row.category_id || null,
+    category_name: row.category_name || null,
+    status: row.status || null,
+    notes: row.notes || null,
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null,
+  };
+}
+
+function receiptSearchText(item: ReceiptListItem) {
+  return [
+    item.receipt_code,
+    item.contract_code,
+    item.customer_name,
+    item.category_name,
+    item.notes,
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
 function investmentBookValue(row: {
   purchase_date: string;
   purchase_price: number;
@@ -123,35 +226,98 @@ export async function fetchReceipts(params: MonthYearPageParams & { search?: str
   return profileAction("finance.fetchReceipts", () => withFinanceRead(async (supabase) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
-    let query = supabase
-      .from("receipts")
-      .select(
-        "id, receipt_date, receipt_type, payment_type, contract_id, contract_code, customer_name, receipt_amount, total_amount, remaining_amount, category_id, category_name, status, notes, created_at, updated_at",
-        { count: "exact" },
-      )
-      .is("deleted_at", null)
-      .order("receipt_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const sanitizedSearch = params.search ? sanitizePostgrestSearch(params.search) : "";
+    const { data: rpcData, error: rpcError } = await supabase.rpc("finance_receipt_documents", {
+      p_month: params.month ?? null,
+      p_year: params.year ?? null,
+      p_receipt_type: params.receiptType && params.receiptType !== "all" ? params.receiptType : null,
+      p_search: sanitizedSearch || null,
+      p_limit: size,
+      p_offset: from,
+    });
 
-    if (window) query = query.gte("receipt_date", window.start).lt("receipt_date", window.end);
+    if (!rpcError) {
+      const rows = ((rpcData || []) as ReceiptDocumentRow[]).map(mapReceiptDocumentRow);
+      return {
+        items: rows,
+        total: rpcData && rpcData.length > 0 ? Number((rpcData[0] as ReceiptDocumentRow).total_count) || 0 : 0,
+        page: current,
+        pageSize: size,
+      } satisfies PaginatedResult<ReceiptListItem>;
+    }
+
+    if (!isMissingRpcError(rpcError)) {
+      throw new Error(`Loi tai phieu thu: ${rpcError.message}`);
+    }
+
+    const [paymentsResult, receiptsResult] = await Promise.all([
+      supabase
+        .from("payments")
+        .select("id, payment_date, amount, payment_method, payment_stage, contract_id, receipt_code, approved_by, category_id, notes, is_contract_adjustment, created_at, updated_at, contract:contract_id(contract_code,total_amount,remaining_amount,customer:customer_id(full_name)), category:category_id(name)")
+        .is("deleted_at", null)
+        .not("contract_id", "is", null)
+        .order("payment_date", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("receipts")
+        .select("id, receipt_date, receipt_type, payment_type, contract_id, contract_code, customer_name, receipt_amount, total_amount, remaining_amount, category_id, category_name, status, notes, created_at, updated_at")
+        .is("deleted_at", null)
+        .is("contract_id", null)
+        .order("receipt_date", { ascending: false })
+        .limit(1000),
+    ]);
+
+    if (paymentsResult.error) throw new Error(`Loi tai thanh toan hop dong: ${paymentsResult.error.message}`);
+    if (receiptsResult.error) throw new Error(`Loi tai phieu thu: ${receiptsResult.error.message}`);
+
+    const paymentItems = (paymentsResult.data || []).map((row) => {
+      const contract = relationRecord((row as Record<string, unknown>).contract);
+      return mapReceiptDocumentRow({
+        id: `payment:${row.id}`,
+        source_table: "payments",
+        source_id: row.id,
+        receipt_date: row.payment_date,
+        receipt_type: paymentReceiptType(row.payment_stage, (row as Record<string, unknown>).is_contract_adjustment),
+        payment_type: row.payment_method,
+        contract_id: row.contract_id,
+        contract_code: contract?.contract_code as string | null | undefined,
+        customer_name: relationText(contract?.customer, "full_name"),
+        receipt_amount: row.amount,
+        total_amount: contract?.total_amount as number | null | undefined,
+        remaining_amount: contract?.remaining_amount as number | null | undefined,
+        category_id: row.category_id,
+        category_name: relationText((row as Record<string, unknown>).category, "name"),
+        status: row.approved_by ? "confirmed" : "pending",
+        notes: row.notes,
+        receipt_code: row.receipt_code,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      });
+    });
+
+    const receiptItems = (receiptsResult.data || []).map((row) => mapReceiptDocumentRow({
+      ...row,
+      source_table: "receipts",
+      source_id: row.id,
+    }));
+
+    let items = [...paymentItems, ...receiptItems];
+    if (window) {
+      items = items.filter((item) => item.receipt_date >= window.start && item.receipt_date < window.end);
+    }
     if (params.receiptType && params.receiptType !== "all") {
-      query = query.eq("receipt_type", params.receiptType);
+      items = items.filter((item) => item.receipt_type === params.receiptType);
+    }
+    if (sanitizedSearch) {
+      const needle = sanitizedSearch.toLowerCase();
+      items = items.filter((item) => receiptSearchText(item).includes(needle));
     }
 
-    if (params.search) {
-      const sanitized = sanitizePostgrestSearch(params.search);
-      if (sanitized) {
-        const s = `%${sanitized}%`;
-        query = query.or(`contract_code.ilike.${s},customer_name.ilike.${s},category_name.ilike.${s},notes.ilike.${s}`);
-      }
-    }
+    items.sort((a, b) => b.receipt_date.localeCompare(a.receipt_date) || (b.created_at || "").localeCompare(a.created_at || ""));
 
-    const { data, error, count } = await query;
-    if (error) throw new Error(`Loi tai phieu thu: ${error.message}`);
     return {
-      items: (data || []) as ReceiptListItem[],
-      total: count || 0,
+      items: items.slice(from, to + 1),
+      total: items.length,
       page: current,
       pageSize: size,
     } satisfies PaginatedResult<ReceiptListItem>;
@@ -168,7 +334,7 @@ export interface ReceiptStats {
 export async function fetchReceiptStats(month?: number, year?: number) {
   return profileAction("finance.fetchReceiptStats", () => withFinanceRead(async (supabase) => {
     const { data: rpcData, error: rpcError } = await supabase
-      .rpc("finance_receipt_stats", {
+      .rpc("finance_receipt_document_stats", {
         p_month: month ?? null,
         p_year: year ?? null,
       })
@@ -189,18 +355,27 @@ export async function fetchReceiptStats(month?: number, year?: number) {
     }
 
     const window = monthWindowOptional(month, year);
-    let query = supabase
-      .from("receipts")
-      .select("receipt_amount, status", { count: "exact" })
-      .is("deleted_at", null);
+    const [paymentsResult, receiptsResult] = await Promise.all([
+      supabase.from("payments").select("amount, approved_by, payment_date").is("deleted_at", null).not("contract_id", "is", null),
+      supabase.from("receipts").select("receipt_amount, status, receipt_date").is("deleted_at", null).is("contract_id", null),
+    ]);
+    if (paymentsResult.error) throw new Error(`Loi tai receipt stats: ${paymentsResult.error.message}`);
+    if (receiptsResult.error) throw new Error(`Loi tai receipt stats: ${receiptsResult.error.message}`);
 
-    if (window) query = query.gte("receipt_date", window.start).lt("receipt_date", window.end);
+    const rows = [
+      ...(paymentsResult.data || []).map((r) => ({
+        amount: r.amount || 0,
+        status: r.approved_by ? "confirmed" : "pending",
+        date: r.payment_date,
+      })),
+      ...(receiptsResult.data || []).map((r) => ({
+        amount: r.receipt_amount || 0,
+        status: r.status || "confirmed",
+        date: r.receipt_date,
+      })),
+    ].filter((row) => !window || (row.date >= window.start && row.date < window.end));
 
-    const { data, error, count } = await query;
-    if (error) throw new Error(`Loi tai receipt stats: ${error.message}`);
-
-    const rows = data || [];
-    const totalAmount = rows.reduce((sum, r) => sum + (r.receipt_amount || 0), 0);
+    const totalAmount = rows.reduce((sum, r) => sum + r.amount, 0);
     const doneStatuses = new Set(["completed", "confirmed", "approved", "hoan_thanh"]);
     const cancelledStatuses = new Set(["cancelled", "da_huy"]);
 
@@ -211,7 +386,7 @@ export async function fetchReceiptStats(month?: number, year?: number) {
     }).length;
 
     return {
-      totalReceipts: count || rows.length,
+      totalReceipts: rows.length,
       totalAmount,
       completedCount,
       pendingCount,
@@ -779,10 +954,49 @@ export async function fetchGoalContributions(
 
 export async function getReceiptDetail(id: string) {
   return profileAction("finance.getReceiptDetail", () => withFinanceRead(async (supabase) => {
+    const routeId = normalizeReceiptRouteId(id);
+
+    if (isPaymentReceiptId(routeId)) {
+      const paymentId = receiptSourceId(routeId);
+      const { data: payment, error: paymentError } = await supabase
+        .from("payments")
+        .select("id, payment_date, payment_method, payment_stage, amount, receipt_code, notes, approved_by, is_contract_adjustment, created_at, updated_at, contract_id, category_id, contract:contract_id(contract_code,total_amount,remaining_amount,customer:customer_id(full_name)), category:category_id(name)")
+        .eq("id", paymentId)
+        .is("deleted_at", null)
+        .single();
+
+      if (paymentError || !payment) {
+        throw new Error("Khong tim thay phieu thu hop dong hoac phieu thu da bi xoa.");
+      }
+
+      const contract = relationRecord((payment as Record<string, unknown>).contract);
+      return {
+        id: routeId,
+        source_table: "payments",
+        source_id: payment.id,
+        receipt_code: payment.receipt_code || null,
+        receipt_date: payment.payment_date,
+        receipt_type: paymentReceiptType(payment.payment_stage, (payment as Record<string, unknown>).is_contract_adjustment),
+        payment_type: payment.payment_method,
+        contract_id: payment.contract_id,
+        contract_code: contract?.contract_code || null,
+        customer_name: relationText(contract?.customer, "full_name"),
+        receipt_amount: payment.amount || 0,
+        total_amount: Number(contract?.total_amount) || 0,
+        remaining_amount: Number(contract?.remaining_amount) || 0,
+        category_id: payment.category_id,
+        category_name: relationText((payment as Record<string, unknown>).category, "name"),
+        status: payment.approved_by ? "confirmed" : "pending",
+        notes: payment.notes,
+        created_at: payment.created_at,
+        updated_at: payment.updated_at,
+      };
+    }
+
     const { data: receipt, error } = await supabase
       .from("receipts")
       .select("*")
-      .eq("id", id)
+      .eq("id", routeId)
       .is("deleted_at", null)
       .single();
 
@@ -790,7 +1004,12 @@ export async function getReceiptDetail(id: string) {
       throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
     }
 
-    return receipt;
+    return {
+      ...receipt,
+      source_table: "receipts",
+      source_id: receipt.id,
+      receipt_code: null,
+    };
   }));
 }
 

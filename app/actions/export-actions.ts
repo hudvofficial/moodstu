@@ -2,6 +2,7 @@
 
 import { withAuth } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
+import { isMissingRpcError } from "@/lib/finance-utils";
 
 // ═══════════════════════════════════════════
 // Export Actions — CSV Export
@@ -50,6 +51,45 @@ export async function exportToCSV(target: ExportTarget, filters?: { dateFrom?: s
         break;
       }
       case "receipts": {
+        const documentsResult = await supabase.rpc("finance_receipt_documents", {
+          p_month: null,
+          p_year: null,
+          p_receipt_type: null,
+          p_search: null,
+          p_limit: 5000,
+          p_offset: 0,
+        });
+
+        if (documentsResult.error && !isMissingRpcError(documentsResult.error)) {
+          throw documentsResult.error;
+        }
+
+        if (!documentsResult.error) {
+          const filtered = ((documentsResult.data || []) as Array<Record<string, unknown>>).filter((r) => {
+            const date = String(r.receipt_date || "");
+            if (filters?.dateFrom && date < filters.dateFrom) return false;
+            if (filters?.dateTo && date > filters.dateTo) return false;
+            return true;
+          });
+          headers = ["Ngay thu", "So phieu", "Nguon", "Hinh thuc", "Danh muc", "Ma HD", "Dot", "So tien", "Tong HD", "Con lai", "Trang thai", "Ghi chu"];
+          rows = filtered.map((r) => [
+            r.receipt_date ? new Date(String(r.receipt_date)).toLocaleDateString("vi-VN") : "",
+            r.receipt_code || "",
+            r.source_table === "payments" ? "Thu hop dong" : "Phieu thu",
+            r.receipt_type || "",
+            r.category_name || "",
+            r.contract_code || "",
+            r.payment_type || "",
+            r.receipt_amount || 0,
+            r.total_amount || 0,
+            r.remaining_amount || 0,
+            r.status || "",
+            r.notes || "",
+          ]);
+          filename = `phieu-thu_${today}.csv`;
+          break;
+        }
+
         let q = supabase.from("receipts").select("receipt_date, receipt_type, category_name, contract_code, payment_type, receipt_amount, total_amount, remaining_amount, status, notes").order("receipt_date", { ascending: false });
         if (filters?.dateFrom) q = q.gte("receipt_date", filters.dateFrom);
         if (filters?.dateTo) q = q.lte("receipt_date", filters.dateTo);

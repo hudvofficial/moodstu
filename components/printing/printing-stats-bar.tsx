@@ -9,7 +9,7 @@ import {
   Truck,
 } from "lucide-react";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import type { PrintingStats } from "@/types/printing";
 
 interface Props {
@@ -56,7 +56,7 @@ export default function PrintingStatsBar({ stats, compact }: Props) {
     {
       icon: CircleDollarSign,
       label: "Công nợ",
-      value: formatCurrency(stats.unpaidCost),
+      value: formatVnd(stats.unpaidCost),
       iconBg: "bg-error/10",
       iconColor: "text-error",
     },

@@ -108,7 +108,7 @@ export function CategoryManagerModal({
       }
 
       toast.success(isEditing ? "Cập nhật thành công" : "Tạo danh mục mới thành công");
-      void invalidateServiceAfterWrite();
+      await invalidateServiceAfterWrite();
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Đã có lỗi xảy ra");
@@ -131,7 +131,7 @@ export function CategoryManagerModal({
         throw new Error(response.error);
       }
       toast.success("Đã xóa danh mục");
-      void invalidateServiceAfterWrite();
+      await invalidateServiceAfterWrite();
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Không thể xóa danh mục này");

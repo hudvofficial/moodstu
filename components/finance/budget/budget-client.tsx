@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, BudgetActualItem } from "@/types/finance-operations";
 
@@ -46,7 +47,12 @@ export function BudgetClient({ initialMonth, initialYear, initialData }: BudgetC
   }, [error]);
 
   const budgets = data || initialData;
-  const refresh = () => void mutate(key);
+  const refresh = () => {
+    void Promise.all([
+      mutate(key),
+      invalidateFinanceAfterWrite({ month, year }),
+    ]);
+  };
 
   const remove = async (item: BudgetActualItem) => {
     if (!window.confirm(`Xóa ngân sách ${item.category_name}?`)) return;

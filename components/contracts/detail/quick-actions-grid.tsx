@@ -24,9 +24,10 @@ const ACTIONS = [
 
 interface Props {
   onAction?: (key: string) => void;
+  paymentLabel?: string;
 }
 
-export default function QuickActionsGrid({ onAction }: Props) {
+export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền" }: Props) {
   return (
     <div className="card-base p-4 lg:p-5 mb-4 lg:mb-0 entrance entrance-1">
       <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3 lg:mb-4 px-1 lg:px-0">
@@ -35,6 +36,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
       <div className="flex flex-row overflow-x-auto gap-3 pb-2 -mx-2 px-2 lg:-mx-0 lg:px-0 snap-x hide-scrollbar">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
+          const label = action.key === "payment" ? paymentLabel : action.label;
           return (
             <Button unstyled
               key={action.key}
@@ -54,7 +56,7 @@ export default function QuickActionsGrid({ onAction }: Props) {
                 <Icon size={22} className={action.text} />
               </div>
               <span className="text-caption font-medium text-text-secondary group-hover:text-text-primary transition-colors text-center w-full truncate px-1">
-                {action.label}
+                {label}
               </span>
             </Button>
           );

@@ -264,7 +264,7 @@ export async function quickCreateService(serviceData: {
 
     const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
       p_actor_id: userId,
-      p_bundle_items: [],
+      p_bundle_items: null,
       p_expected_updated_at: null,
       p_service: servicePayload as Json,
     });

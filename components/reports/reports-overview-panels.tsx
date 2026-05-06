@@ -3,6 +3,7 @@
 import { Layers3, Percent, WalletCards } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
 import { Badge } from "@/components/ui/badge";
+import { formatReportPercent, getReportRevenueLabel } from "@/lib/report-labels";
 import type { ReportRevenueBreakdownItem, ReportSummary } from "@/types/reports";
 
 interface ReportsOverviewPanelsProps {
@@ -42,12 +43,12 @@ function RevenueBreakdownCard({
         {revenueBreakdown.map((item) => (
           <div key={item.label} className="rounded-xl bg-bg-base px-3 py-2">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-body-sm font-semibold text-text-primary">{item.label}</span>
+              <span className="text-body-sm font-semibold text-text-primary">{getReportRevenueLabel(item.label)}</span>
               <span className="text-body-sm font-bold text-text-primary">{formatVnd(item.amount)}</span>
             </div>
             <div className="flex items-center justify-between gap-3 text-caption text-text-muted">
               <span>Tỷ trọng doanh thu</span>
-              <span>{item.percentage}%</span>
+              <span>{formatReportPercent(item.percentage)}</span>
             </div>
           </div>
         ))}
@@ -86,7 +87,7 @@ function CostStructureCard({ summary }: { summary: ReportSummary }) {
         <Badge variant={summary.netProfit >= 0 ? "success" : "error"}>
           <span className="inline-flex items-center gap-1">
             <Percent className="h-3.5 w-3.5" />
-            % margin {summary.profitMargin}%
+            Biên LN {formatReportPercent(summary.profitMargin)}
           </span>
         </Badge>
       </div>
@@ -103,7 +104,7 @@ function CostStructureCard({ summary }: { summary: ReportSummary }) {
               </div>
               <div className="flex items-center justify-between gap-3 text-caption text-text-muted">
                 <span>Tỷ trọng tổng chi</span>
-                <span>{share}%</span>
+                <span>{formatReportPercent(share)}</span>
               </div>
             </div>
           );

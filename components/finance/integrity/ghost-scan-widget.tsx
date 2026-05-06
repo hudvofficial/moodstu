@@ -22,6 +22,25 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   return result.data;
 }
 
+type IntegrityCheck = {
+  check_name?: string;
+  severity?: string;
+  issue_count?: number;
+  details?: string;
+};
+
+function normalizeChecks(value: unknown): IntegrityCheck[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .map((item) => ({
+      check_name: typeof item.check_name === "string" ? item.check_name : undefined,
+      severity: typeof item.severity === "string" ? item.severity : undefined,
+      issue_count: Number(item.issue_count) || 0,
+      details: typeof item.details === "string" ? item.details : undefined,
+    }));
+}
+
 export function GhostScanWidget({ initialData, variant = "sidebar" }: GhostScanWidgetProps) {
   const [running, setRunning] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +53,7 @@ export function GhostScanWidget({ initialData, variant = "sidebar" }: GhostScanW
   }, [error]);
 
   const latest = (data || initialData)[0];
+  const latestChecks = normalizeChecks(latest?.checks);
 
   const runScan = async () => {
     setRunning(true);
@@ -67,22 +87,39 @@ export function GhostScanWidget({ initialData, variant = "sidebar" }: GhostScanW
       {isLoading && !data ? (
         <SkeletonText lines={3} />
       ) : latest ? (
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="accent-card accent-card-orange p-3">
-            <div className="text-caption text-text-muted">Tổng lỗi</div>
-            <div className="text-h3 tabular-nums">{latest.total_issues || 0}</div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="accent-card accent-card-orange p-3">
+              <div className="text-caption text-text-muted">Tổng lỗi</div>
+              <div className="text-h3 tabular-nums">{latest.total_issues || 0}</div>
+            </div>
+            <div className="accent-card accent-card-gold p-3">
+              <div className="text-caption text-text-muted">Cảnh báo</div>
+              <div className="text-h3 tabular-nums">{latest.warning_count || 0}</div>
+            </div>
+            <div className="accent-card accent-card-sky p-3">
+              <div className="text-caption text-text-muted">Info</div>
+              <div className="text-h3 tabular-nums">{latest.info_count || 0}</div>
+            </div>
+            <p className="col-span-3 text-caption text-text-muted pt-2">
+              Lần quét: {formatFinanceDate(latest.scan_date || latest.created_at)}
+            </p>
           </div>
-          <div className="accent-card accent-card-gold p-3">
-            <div className="text-caption text-text-muted">Cảnh báo</div>
-            <div className="text-h3 tabular-nums">{latest.warning_count || 0}</div>
-          </div>
-          <div className="accent-card accent-card-sky p-3">
-            <div className="text-caption text-text-muted">Info</div>
-            <div className="text-h3 tabular-nums">{latest.info_count || 0}</div>
-          </div>
-          <p className="col-span-3 text-caption text-text-muted pt-2">
-            Lần quét: {formatFinanceDate(latest.scan_date || latest.created_at)}
-          </p>
+          {latestChecks.length > 0 && (
+            <div className="space-y-2">
+              {latestChecks.slice(0, 6).map((check) => (
+                <div key={check.check_name} className="rounded-md border border-border p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-label truncate">{check.check_name || "unknown_check"}</span>
+                    <span className={`badge badge-${check.severity === "CRITICAL" ? "error" : "warning"}`}>
+                      {check.issue_count || 0}
+                    </span>
+                  </div>
+                  {check.details && <p className="text-caption text-text-muted mt-1">{check.details}</p>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-body-sm text-text-muted pt-2">Chưa có lần scan nào.</p>

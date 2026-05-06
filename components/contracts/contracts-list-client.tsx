@@ -10,9 +10,7 @@
 import {
   Suspense,
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import dynamic from "next/dynamic";
@@ -21,7 +19,8 @@ import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import { ContractsListSkeleton } from "@/components/contracts/contracts-list-skeleton";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
 import {
@@ -128,56 +127,34 @@ function ContractsListInner({
     swrFilters,
     initialData,
   );
-  const { stats } = useContractStats(initialStats);
-  const realtimeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
+  const { stats, isLoading: statsLoading } = useContractStats(initialStats);
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
   const refreshContractList = useCallback(() => {
-    if (realtimeRefreshTimerRef.current) {
-      clearTimeout(realtimeRefreshTimerRef.current);
-    }
-    realtimeRefreshTimerRef.current = setTimeout(() => {
-      realtimeRefreshTimerRef.current = null;
-      void revalidateContractListCaches();
-    }, REALTIME_REFRESH_DELAY_MS);
+    void revalidateContractListCaches();
   }, []);
 
-  useRealtime("contracts", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
-  useRealtime("contract_checklists", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
-  useRealtime("contract_notes", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
-  useRealtime("contract_events", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
-  useRealtime("work_tasks", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
-  useRealtime("payment_plans", {
-    onChange: refreshContractList,
-    debounceMs: REALTIME_REFRESH_DELAY_MS,
-  });
+  const realtimeConfigs = useMemo(
+    () => [
+      { table: "contracts" },
+      { table: "contract_checklists" },
+      { table: "contract_notes" },
+      { table: "contract_events" },
+      { table: "work_tasks" },
+      { table: "payment_plans" },
+    ],
+    [],
+  );
 
-  useEffect(() => {
-    return () => {
-      if (realtimeRefreshTimerRef.current) {
-        clearTimeout(realtimeRefreshTimerRef.current);
-      }
-    };
-  }, []);
+  useRealtimeMulti(realtimeConfigs, {
+    channelName: "contracts-list",
+    onChange: refreshContractList,
+    debounceMs: REALTIME_REFRESH_DELAY_MS,
+  });
 
   const displayStats = stats ?? DEFAULT_STATS;
+  const showInitialSkeleton =
+    (isLoading && contracts.length === 0) ||
+    (statsLoading && !stats && contracts.length === 0);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const visibleStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const visibleEnd = total === 0 ? 0 : Math.min(page * pageSize, total);
@@ -278,6 +255,10 @@ function ContractsListInner({
     }
     return map;
   }, [contracts]);
+
+  if (showInitialSkeleton) {
+    return <ContractsListSkeleton />;
+  }
 
   return (
     <>

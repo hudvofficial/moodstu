@@ -3,13 +3,13 @@
 import { fireAuditLog } from "@/lib/audit";
 import { withServicesAccess } from "@/lib/auth_utils";
 import { generateServiceCode } from "@/lib/utils/service-utils";
+import { revalidatePath } from "next/cache";
 import {
   bundleItemSchema,
   serviceCreateSchema,
   serviceIdSchema,
   serviceUpdateSchema,
 } from "@/lib/validations/service.schema";
-import { revalidatePath } from "next/cache";
 import type { BundleItemInput } from "@/lib/validations/service.schema";
 import type { Json } from "@/types/database.types";
 
@@ -89,7 +89,7 @@ export async function createService(
 
     const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
       p_actor_id: userId,
-      p_bundle_items: normalizeBundleItems(bundleItems),
+      p_bundle_items: bundleItems === undefined ? null : normalizeBundleItems(bundleItems),
       p_expected_updated_at: null,
       p_service: servicePayload as Json,
     });
@@ -107,6 +107,8 @@ export async function createService(
     });
 
     revalidatePath("/services");
+    revalidatePath(`/services/${service.id}`);
+
     return { id: service.id, service_code: service.service_code };
   });
 }
@@ -152,7 +154,8 @@ export async function updateService(
     });
 
     revalidatePath("/services");
-    revalidatePath(`/services/${id}`);
+    revalidatePath(`/services/${service.id}`);
+
     return { id };
   });
 }
@@ -178,6 +181,8 @@ export async function deleteService(id: string) {
     });
 
     revalidatePath("/services");
+    revalidatePath(`/services/${serviceId}`);
+
     return null;
   });
 }

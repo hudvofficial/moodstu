@@ -605,7 +605,9 @@ async function queryPaymentReminders(
         contractCode: asString(contract?.contract_code),
         customerName: relationText(contract?.customers, "full_name") || "Khách hàng",
         stageName: asString(row.stage_name, "Đợt thanh toán"),
-        remainingAmount: asNumber(row.amount),
+        remainingAmount: asNumber(row.amount) > 0
+          ? asNumber(row.amount)
+          : asNumber(contract?.remaining_amount),
         dueDate,
         source: "payment_plans" as const,
         isOverdue: !!dueDate && dueDate < today,

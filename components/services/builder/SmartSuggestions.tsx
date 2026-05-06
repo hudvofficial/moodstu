@@ -5,6 +5,7 @@ import { Sparkles, CheckCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import type { ServiceRecord } from "@/types/service";
+import { formatVnd } from "@/lib/utils";
 
 // Temporary typing since ServiceRelation isn't fully typed in @/types/service yet
 export interface ServiceRelation {
@@ -106,7 +107,7 @@ export default function SmartSuggestions({
 
                 {!satisfied && rel.child_service && (
                   <p className="text-caption text-primary font-bold mt-1">
-                    +{(rel.child_service.selling_price || 0).toLocaleString()} ₫
+                    +{formatVnd(rel.child_service.selling_price || 0)}
                   </p>
                 )}
               </div>

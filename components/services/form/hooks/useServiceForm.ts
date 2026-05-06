@@ -79,6 +79,49 @@ function isDuplicateCodeError(message: string) {
   );
 }
 
+function normalizeOptionalText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeOptionalId(value: unknown) {
+  return typeof value === "string" && value ? value : "";
+}
+
+function toBundleInputs(items: BundleItem[]): BundleItemInput[] {
+  return items.map((item, idx) => ({
+    child_service_id: item.service_id,
+    quantity: item.quantity,
+    adjustment_price: 0,
+    sort_order: idx,
+  }));
+}
+
+function bundleSignature(inputs: BundleItemInput[]) {
+  return JSON.stringify(
+    inputs.map((item) => ({
+      child_service_id: item.child_service_id,
+      quantity: item.quantity,
+      sort_order: item.sort_order,
+    })),
+  );
+}
+
+function hasServiceFormChanged(formData: ServiceFormData, initialData: ServiceRecord) {
+  return (
+    normalizeOptionalText(formData.name) !== normalizeOptionalText(initialData.name) ||
+    normalizeOptionalText(formData.service_code) !== normalizeOptionalText(initialData.service_code) ||
+    formData.service_type !== (initialData.service_type || "studio") ||
+    normalizeOptionalId(formData.category_id) !== normalizeOptionalId(initialData.category_id) ||
+    Number(formData.selling_price || 0) !== Number(initialData.selling_price || 0) ||
+    Number(formData.cost_price || 0) !== Number(initialData.cost_price || 0) ||
+    formData.unit !== (initialData.unit || "dich_vu") ||
+    formData.fulfillment_type !== (initialData.fulfillment_type || "single") ||
+    formData.status !== (initialData.status || "active") ||
+    normalizeOptionalText(formData.description) !== normalizeOptionalText(initialData.description) ||
+    normalizeOptionalText(formData.image_url) !== normalizeOptionalText(initialData.image_url)
+  );
+}
+
 export function useServiceForm({ initialData, initialBundleItems }: UseServiceFormOptions = {}) {
   const router = useRouter();
   const isEditMode = !!initialData?.id;
@@ -189,14 +232,22 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
     try {
       let result;
 
-      const bundleInputs: BundleItemInput[] = bundleItems.map((item, idx) => ({
-        child_service_id: item.service_id,
-        quantity: item.quantity,
-        adjustment_price: 0,
-        sort_order: idx,
-      }));
+      const shouldSyncBundle =
+        formData.fulfillment_type === "bundle" ||
+        initialData?.fulfillment_type === "bundle";
+      const bundleInputs = shouldSyncBundle ? toBundleInputs(bundleItems) : undefined;
 
       if (isEditMode && initialData) {
+        const formChanged = hasServiceFormChanged(formData, initialData);
+        const bundleChanged =
+          shouldSyncBundle &&
+          bundleSignature(bundleInputs || []) !== bundleSignature(toBundleInputs(initialBundleItems || []));
+
+        if (!formChanged && !bundleChanged) {
+          toast.info("Không có thay đổi để lưu");
+          return;
+        }
+
         result = await updateService({
           id: initialData.id,
           updated_at: initialData.updated_at,
@@ -236,8 +287,8 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       }
 
       toast.success(isEditMode ? "Cập nhật dịch vụ thành công" : "Tạo dịch vụ thành công");
+      await invalidateServiceAfterWrite(result.data?.id);
       router.push("/services");
-      void invalidateServiceAfterWrite(result.data?.id);
     } catch (error: unknown) {
       const e = error as Error;
       applyActionError(e.message);
@@ -245,7 +296,7 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       submitLockRef.current = false;
       setIsSubmitting(false);
     }
-  }, [formData, bundleItems, validate, isEditMode, initialData, router, applyActionError]);
+  }, [formData, bundleItems, validate, isEditMode, initialData, initialBundleItems, router, applyActionError]);
 
   const handleDelete = useCallback(async () => {
     if (!initialData?.id || submitLockRef.current) return;
@@ -262,8 +313,8 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       }
 
       toast.success("Đã xóa dịch vụ");
+      await invalidateServiceAfterWrite(initialData.id);
       router.push("/services");
-      void invalidateServiceAfterWrite(initialData.id);
     } catch (error: unknown) {
       const e = error as Error;
       toast.error(e.message || "Không thể xóa dịch vụ");

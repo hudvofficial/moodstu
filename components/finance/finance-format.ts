@@ -1,14 +1,7 @@
-import { formatCurrency, safeFormatDate } from "@/lib/utils";
+import { formatVnd as formatVndCore, safeFormatDate } from "@/lib/utils";
 
-export function formatVnd(amount: number): string {
-  return `${formatCurrency(amount)}đ`;
-}
-
-export function formatCompactVnd(amount: number): string {
-  if (Math.abs(amount) >= 1_000_000_000) return `${(amount / 1_000_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}B`;
-  if (Math.abs(amount) >= 1_000_000) return `${(amount / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
-  if (Math.abs(amount) >= 1_000) return `${(amount / 1_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
-  return `${amount}`;
+export function formatVnd(amount: number | null | undefined): string {
+  return formatVndCore(amount);
 }
 
 export function formatFinanceDate(date: string | null | undefined): string {
@@ -64,6 +57,7 @@ export function financeReceiptTypeLabel(type: string | null | undefined): string
   const labels: Record<string, string> = {
     contract_payment: "Thanh toán hợp đồng",
     contract_deposit: "Cọc hợp đồng",
+    contract_adjustment: "Phát sinh hợp đồng",
     other_income: "Thu nhập khác",
     service_fee: "Phí dịch vụ",
     sale_receipt: "Bán vật tư",
@@ -75,6 +69,7 @@ export function financeReceiptTypeVariant(type: string | null | undefined) {
   const t = type?.toLowerCase();
   if (t === "contract_payment") return "success" as const;
   if (t === "contract_deposit") return "info" as const;
+  if (t === "contract_adjustment") return "warning" as const;
   if (t === "sale_receipt") return "warning" as const;
   if (t === "other_income") return "neutral" as const;
   return "neutral" as const;

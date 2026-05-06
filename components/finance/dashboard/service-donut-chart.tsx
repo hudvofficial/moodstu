@@ -4,6 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { PieChart as PieChartIcon } from "lucide-react";
 import type { ServiceDistributionItem } from "@/types/finance-dashboard";
 import { formatVnd } from "@/components/finance/finance-format";
+import { getReportServiceLabel } from "@/lib/report-labels";
 
 const COLORS = [
   "var(--color-primary)",
@@ -43,7 +44,7 @@ function ServiceDonutTooltip({ active, payload }: ServiceTooltipProps) {
 
   return (
     <div className="card-base min-w-40 p-3">
-      <p className="text-body-sm font-semibold text-text-primary">{item.name}</p>
+      <p className="text-body-sm font-semibold text-text-primary">{getReportServiceLabel(item.name)}</p>
       <div className="mt-2 space-y-1 text-caption text-text-secondary">
         <div className="flex items-center justify-between gap-3">
           <span>Số hợp đồng</span>
@@ -64,6 +65,10 @@ export function ServiceDonutChart({
   emptyText = "Chưa có hợp đồng trong tháng.",
 }: ServiceDonutChartProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const chartData = data.map((item) => ({
+    ...item,
+    displayName: getReportServiceLabel(item.name),
+  }));
 
   return (
     <div className="card-base h-full p-4">
@@ -83,8 +88,8 @@ export function ServiceDonutChart({
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" innerRadius="52%" outerRadius="78%" paddingAngle={2}>
-                  {data.map((item, index) => (
+                <Pie data={chartData} dataKey="value" nameKey="displayName" innerRadius="52%" outerRadius="78%" paddingAngle={2}>
+                  {chartData.map((item, index) => (
                     <Cell key={item.name} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -94,10 +99,10 @@ export function ServiceDonutChart({
           </div>
 
           <div className="space-y-2">
-            {data.map((item, index) => (
+            {chartData.map((item, index) => (
               <div key={item.name} className="flex items-center gap-2 text-body-sm">
                 <span className={`size-3 shrink-0 rounded-full ${COLOR_CLASSES[index % COLOR_CLASSES.length]}`} />
-                <span className="flex-1 truncate">{item.name}</span>
+                <span className="flex-1 truncate">{item.displayName}</span>
                 <span className="tabular-nums font-bold">{item.value}</span>
               </div>
             ))}

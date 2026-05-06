@@ -134,6 +134,68 @@ export function TaskListPanel({
   onEmployeeChange,
   onTimeChange,
 }: TaskListPanelProps) {
+  const assignedTasks = tasks.filter((task) => Boolean(task.assigned_to));
+  const unassignedTasks = tasks.filter((task) => !task.assigned_to);
+
+  const renderTaskRow = (task: TaskRow, mode: "assigned" | "unassigned") => {
+    const isDeleting = deletingTaskIds.has(task.id);
+    const employeeName = Array.isArray(task.employees)
+      ? task.employees[0]?.full_name
+      : task.employees?.full_name;
+    const workTypeLabel = getWorkTypeLabel(task.work_type as WorkType);
+
+    return (
+      <div
+        key={task.id}
+        className={`flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors ${
+          isDeleting ? "opacity-60 pointer-events-none" : ""
+        }`}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-label">
+              {mode === "assigned" ? employeeName || "Nhân sự đã lưu" : workTypeLabel}
+            </span>
+            <span className="text-caption text-text-muted">
+              {mode === "assigned" ? workTypeLabel : "Chưa giao"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-caption text-error font-semibold">
+              {formatCurrency(task.cost)}
+            </span>
+            {isOnSet && task.start_time && task.end_time && (
+              <span className="inline-flex items-center gap-0.5 text-caption text-interactive font-medium">
+                <Clock size={10} />
+                {task.start_time.slice(0, 5)} - {task.end_time.slice(0, 5)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <SelectStatus
+          current={task.status}
+          options={TASK_STATUS_OPTIONS}
+          onUpdate={(newStatus) => onStatusUpdate(task.id, newStatus)}
+          variant="compact"
+        />
+
+        <Button unstyled
+          onClick={() => onDelete(task.id)}
+          disabled={isDeleting}
+          className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label={`Xóa ${mode === "assigned" ? "phân công" : "công việc"} ${workTypeLabel}`}
+        >
+          {isDeleting ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <X size={14} />
+          )}
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* ── Existing tasks ── */}
@@ -142,66 +204,24 @@ export function TaskListPanel({
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
         </div>
       ) : tasks.length > 0 ? (
-        <div className="space-y-1.5">
-          <h4 className="text-overline">
-            Nhân sự đã giao ({tasks.length})
-          </h4>
-          {tasks.map((task) => {
-            const isDeleting = deletingTaskIds.has(task.id);
-
-            return (
-            <div
-              key={task.id}
-              className={`flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors ${
-                isDeleting ? "opacity-60 pointer-events-none" : ""
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-label">
-                    {(Array.isArray(task.employees) ? task.employees[0]?.full_name : task.employees?.full_name) || "Chưa giao"}
-                  </span>
-                  <span className="text-caption text-text-muted">
-                    {getWorkTypeLabel(task.work_type as WorkType)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-caption text-error font-semibold">
-                    {formatCurrency(task.cost)}
-                  </span>
-                  {isOnSet && task.start_time && task.end_time && (
-                    <span className="inline-flex items-center gap-0.5 text-caption text-interactive font-medium">
-                      <Clock size={10} />
-                      {task.start_time.slice(0, 5)} - {task.end_time.slice(0, 5)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Status toggle */}
-              <SelectStatus
-                current={task.status}
-                options={TASK_STATUS_OPTIONS}
-                onUpdate={(newStatus) => onStatusUpdate(task.id, newStatus)}
-                variant="compact"
-              />
-
-              {/* Delete */}
-              <Button unstyled
-                onClick={() => onDelete(task.id)}
-                disabled={isDeleting}
-                className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label={`Xóa phân công ${getWorkTypeLabel(task.work_type as WorkType)}`}
-              >
-                {isDeleting ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <X size={14} />
-                )}
-              </Button>
+        <div className="space-y-3">
+          {assignedTasks.length > 0 && (
+            <div className="space-y-1.5">
+              <h4 className="text-overline">
+                Nhân sự đã giao ({assignedTasks.length})
+              </h4>
+              {assignedTasks.map((task) => renderTaskRow(task, "assigned"))}
             </div>
-          );
-          })}
+          )}
+
+          {unassignedTasks.length > 0 && (
+            <div className="space-y-1.5">
+              <h4 className="text-overline text-text-muted">
+                Công việc chưa giao ({unassignedTasks.length})
+              </h4>
+              {unassignedTasks.map((task) => renderTaskRow(task, "unassigned"))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-6">

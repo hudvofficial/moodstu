@@ -7,7 +7,7 @@ import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
 import type { ServiceType, ServiceUnit } from "@/types/service-constants";
 import { parseContentStructure } from "@/lib/utils/service-utils";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 
 interface Props {
   services: ServiceRecord[];
@@ -117,9 +117,8 @@ const ServiceTableRow = memo(function ServiceTableRow({
         </TD>
         <TD className="text-right">
           <span className="font-semibold text-text-main">
-            {formatCurrency(Number(service.selling_price))}
+            {formatVnd(Number(service.selling_price))}
           </span>
-          <span className="text-caption text-text-muted ml-1">VNĐ</span>
         </TD>
         <TD className="w-24 text-center">
           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

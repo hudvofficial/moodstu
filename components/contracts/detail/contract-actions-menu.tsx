@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cancelContract, deleteContract } from "@/app/actions/contract-lifecycle";
+import {
+  invalidateDressAfterWrite,
+  invalidateFinanceAfterWrite,
+  invalidatePrintingAfterWrite,
+} from "@/lib/cache-invalidation";
 import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
 import { toast } from "@/lib/toast-utils";
 
@@ -49,9 +54,14 @@ export default function ContractActionsMenu({
       const result = await cancelContract(contractId, cancelReason.trim());
       if (result.success) {
         toast("Đã hủy hợp đồng thành công", "success");
+        await Promise.all([
+          revalidateContractCaches(contractId),
+          invalidateFinanceAfterWrite(),
+          invalidateDressAfterWrite(),
+          invalidatePrintingAfterWrite(),
+        ]);
         setShowCancel(false);
         setCancelReason("");
-        void revalidateContractCaches(contractId);
       } else {
         toast(result.error || "Lỗi hủy hợp đồng", "error");
       }
@@ -70,8 +80,13 @@ export default function ContractActionsMenu({
       const result = await deleteContract(contractId);
       if (result.success) {
         toast("Đã xóa hợp đồng", "success");
+        await Promise.all([
+          revalidateContractCaches(contractId),
+          invalidateFinanceAfterWrite(),
+          invalidateDressAfterWrite(),
+          invalidatePrintingAfterWrite(),
+        ]);
         router.push("/contracts");
-        void revalidateContractCaches(contractId);
       } else {
         toast(result.error || "Lỗi xóa hợp đồng", "error");
       }

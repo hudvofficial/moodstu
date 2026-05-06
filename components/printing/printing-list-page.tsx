@@ -165,8 +165,10 @@ function PrintingListInner({
       action: () => updatePrintingOrderStatus(order.id, nextStatus, contractId),
       onSuccess: async () => {
         toast("Cập nhật trạng thái thành công", "success");
-        void invalidateContractAfterWrite(contractId);
-        await handleSaved();
+        await Promise.all([
+          invalidateContractAfterWrite(contractId),
+          handleSaved(),
+        ]);
       },
       onError: (error) => {
         toast(error instanceof Error ? error.message : "Không thể cập nhật trạng thái", "error");

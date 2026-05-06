@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createGoalSchema, updateGoalSchema, upsertBudgetSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock, firstDayOfMonth, isMissingRpcError } from "@/lib/finance-utils";
+import { formatVnd } from "@/lib/utils";
 import type { BudgetActualItem } from "@/types/finance-operations";
 
 // ═══════════════════════════════════════════
@@ -183,7 +184,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
     }
     if (error) throw new Error(`Lỗi góp vốn: ${error.message}`);
 
-    await writeAuditLog({ action: "CREATE", tableName: "goal_contributions", description: `Góp vốn ${amount.toLocaleString("vi-VN")}₫ vào mục tiêu #${goalId.substring(0, 8)}` });
+    await writeAuditLog({ action: "CREATE", tableName: "goal_contributions", description: `Góp vốn ${formatVnd(amount)} vào mục tiêu #${goalId.substring(0, 8)}` });
 
     revalidatePath("/finance");
     return null;
@@ -255,7 +256,7 @@ export async function undoContribution(contributionId: string) {
       action: "DELETE",
       tableName: "goal_contributions",
       recordId: contributionId,
-      description: `Hoàn tác góp vốn ${result.removed_amount.toLocaleString("vi-VN")}₫`
+      description: `Hoàn tác góp vốn ${formatVnd(result.removed_amount)}`
     });
 
     revalidatePath("/finance");

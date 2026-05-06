@@ -12,6 +12,11 @@ import { getStudioInfo } from "@/app/actions/settings-queries";
 
 export const metadata = { title: "Chi tiết phiếu thu" };
 
+function cleanStudioText(value?: string | null) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length >= 4 ? text : "";
+}
+
 export default async function ReceiptDetailPage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -42,14 +47,22 @@ export default async function ReceiptDetailPage(props: {
   const statusVariant = financeStatusVariant(receipt.status);
   const statusColor = statusColorMap[statusVariant] || statusColorMap.default;
 
-  const refCode = `REC-${receipt.id.slice(0, 8).toUpperCase()}`;
-  const receiptCode = receipt.contract_code
+  const rawId = receipt.source_id || receipt.id;
+  const refCode = receipt.receipt_code || `REC-${rawId.slice(0, 8).toUpperCase()}`;
+  const receiptCode = receipt.receipt_code || (receipt.contract_code
     ? `PT-${receipt.contract_code}`
-    : `PT-${format(receiptDate, "yyMM")}-${receipt.id.slice(0, 3).toUpperCase()}`;
+    : `PT-${format(receiptDate, "yyMM")}-${receipt.id.slice(0, 3).toUpperCase()}`);
+  const studioName = cleanStudioText(studioInfo?.name) || "Mood Studio";
+  const studioAddress = cleanStudioText(studioInfo?.address);
+  const studioHotline = cleanStudioText(studioInfo?.hotline);
+  const studioMeta = [
+    studioAddress,
+    studioHotline ? `Hotline: ${studioHotline}` : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <div className="min-h-screen bg-surface-base flex flex-col pt-4 lg:pt-6">
-      <div className="w-full max-w-4xl mx-auto px-4 lg:px-6 grow">
+      <div className="w-full max-w-[230mm] mx-auto px-4 lg:px-6 grow">
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between mb-4 print:hidden">
           <Link
@@ -81,43 +94,62 @@ export default async function ReceiptDetailPage(props: {
         </div>
 
         {/* Digital Document Card (A5 Landscape) */}
-        <div className="card-elevated p-6 lg:p-10 relative overflow-hidden transition-all print:shadow-none print:border-none print:p-0 print:m-0 print:w-full bg-surface-base print:bg-white print:text-black">
+        <div className="receipt-a5-preview card-elevated relative mx-auto overflow-hidden bg-surface-base p-6 transition-all print:bg-white print:text-black">
           <style>{`
+            .receipt-a5-preview {
+              width: min(100%, 210mm);
+              min-height: 148mm;
+            }
+            @media (min-width: 1024px) {
+              .receipt-a5-preview {
+                aspect-ratio: 210 / 148;
+                padding: 9mm 11mm;
+              }
+            }
             @media print {
               @page { size: A5 landscape; margin: 0; }
-              body { background: white; margin: 0; padding: 10mm; }
+              body { background: white; margin: 0; padding: 0; }
               main { padding: 0 !important; margin: 0 !important; }
+              .receipt-a5-preview {
+                width: 210mm !important;
+                min-height: 148mm !important;
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                padding: 10mm 12mm !important;
+              }
             }
           `}</style>
 
           {/* Stamp */}
-          <div className="absolute top-6 right-6 md:top-10 md:right-10 z-0 pointer-events-none select-none">
+          <div className="absolute top-6 right-6 md:top-8 md:right-10 z-0 pointer-events-none select-none">
             <div
-              className={`border-2 px-5 py-2 rounded font-bold text-sm md:text-base transform -rotate-12 opacity-70 ${statusColor}`}
+              className={`border-2 px-4 py-1.5 rounded font-bold text-xs md:text-sm transform -rotate-12 opacity-70 ${statusColor}`}
             >
               {financeStatusLabel(receipt.status)}
             </div>
           </div>
 
           {/* Branding & Header */}
-          <div className="relative z-10 flex justify-between items-start border-b border-border pb-4 mb-6 gap-3">
-            <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 bg-surface border border-border rounded flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+          <div className="relative z-10 flex justify-between items-start border-b border-border pb-3 mb-4 gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="relative w-10 h-10 bg-surface border border-border rounded flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
                 <Image
                   src={studioInfo?.logo_url || "/logo.png"}
-                  alt={studioInfo?.name || "Mood Studio"}
+                  alt={studioName}
                   fill
                   className="object-contain p-1.5"
                 />
               </div>
-              <div>
-                <h2 className="text-base font-bold text-text-primary print:text-black leading-tight">
-                  {studioInfo?.name || "Mood Studio"}
+              <div className="min-w-0">
+                <h2 className="truncate text-body font-semibold text-text-primary print:text-black">
+                  {studioName}
                 </h2>
-                <div className="text-xs text-text-secondary print:text-gray-900 mt-0.5 max-w-xs md:max-w-md line-clamp-2">
-                  <p>{studioInfo?.address || "123 Nguyễn Văn Linh, Quận 7, TP.HCM"}</p>
-                  <p>Hotline: {studioInfo?.hotline || "0909 123 456"}</p>
-                </div>
+                {studioMeta && (
+                  <p className="mt-0.5 max-w-[118mm] truncate text-caption text-text-secondary print:text-gray-900">
+                    {studioMeta}
+                  </p>
+                )}
               </div>
             </div>
             <div className="hidden md:block text-right text-xs text-text-secondary print:text-gray-900 min-w-fit">
@@ -127,14 +159,14 @@ export default async function ReceiptDetailPage(props: {
           </div>
 
           {/* Document Title */}
-          <div className="text-center mb-6 relative z-10">
-            <h1 className="text-xl lg:text-3xl font-bold text-text-primary uppercase tracking-tight">
+          <div className="text-center mb-4 relative z-10">
+            <h1 className="text-h2 text-text-primary uppercase">
               Phiếu Thu
             </h1>
-            <p className="text-text-secondary italic text-xs lg:text-sm mt-1">
+            <p className="text-body-sm text-text-secondary italic mt-1">
               {formattedDate}
             </p>
-            <div className="mt-3 inline-block bg-surface-muted px-4 py-1.5 rounded-full border border-border">
+            <div className="mt-2 inline-block bg-surface-muted px-4 py-1.5 rounded-full border border-border">
               <p className="text-xs text-text-secondary">
                 Số phiếu: <span className="text-text-primary font-bold">{receiptCode}</span>
               </p>
@@ -142,9 +174,9 @@ export default async function ReceiptDetailPage(props: {
           </div>
 
           {/* Content Fields */}
-          <div className="space-y-4 text-sm relative z-10">
+          <div className="space-y-2 text-body-sm relative z-10">
             {/* Người nộp */}
-            <div className="grid grid-cols-12 gap-2 pb-3 border-b border-dashed border-border px-2">
+            <div className="grid grid-cols-12 gap-2 pb-2 border-b border-dashed border-border px-2">
               <div className="col-span-12 md:col-span-3 text-text-secondary text-xs font-medium pt-0.5">
                 Người nộp tiền
               </div>
@@ -154,7 +186,7 @@ export default async function ReceiptDetailPage(props: {
             </div>
 
             {/* Nội dung */}
-            <div className="grid grid-cols-12 gap-2 pb-3 border-b border-dashed border-border px-2">
+            <div className="grid grid-cols-12 gap-2 pb-2 border-b border-dashed border-border px-2">
               <div className="col-span-12 md:col-span-3 text-text-secondary text-xs font-medium pt-0.5">
                 Nội dung thu
               </div>
@@ -169,12 +201,12 @@ export default async function ReceiptDetailPage(props: {
             </div>
 
             {/* Số tiền */}
-            <div className="grid grid-cols-12 gap-2 pb-3 border-b border-dashed border-border px-2 bg-success/5 rounded items-center">
+            <div className="grid grid-cols-12 gap-2 py-2 border-b border-dashed border-border px-2 bg-success/5 rounded items-center">
               <div className="col-span-12 md:col-span-3 text-text-secondary text-xs font-medium pt-0.5">
                 Số tiền
               </div>
               <div className="col-span-12 md:col-span-9">
-                <div className="text-xl font-bold text-success">
+                <div className="text-h2 text-success">
                   {formatVnd(receipt.receipt_amount)}
                 </div>
                 <div className="text-text-secondary italic text-xs mt-1">
@@ -185,7 +217,7 @@ export default async function ReceiptDetailPage(props: {
 
             {/* Ghi chú */}
             {receipt.notes && (
-              <div className="grid grid-cols-12 gap-2 pb-3 border-b border-dashed border-border px-2">
+              <div className="grid grid-cols-12 gap-2 pb-2 border-b border-dashed border-border px-2">
                 <div className="col-span-12 md:col-span-3 text-text-secondary text-xs font-medium pt-0.5">
                   Ghi chú
                 </div>
@@ -197,16 +229,16 @@ export default async function ReceiptDetailPage(props: {
           </div>
 
           {/* Signatures */}
-          <div className="mt-8 lg:mt-12 grid grid-cols-3 gap-4 text-center border-t border-border pt-6">
+          <div className="mt-5 grid grid-cols-3 gap-4 text-center border-t border-border pt-4">
             <div className="flex flex-col items-center">
               <p className="font-bold text-text-primary text-xs mb-1">
                 Người nộp tiền
               </p>
-              <p className="text-xs text-text-secondary italic mb-4">
+              <p className="text-xs text-text-secondary italic mb-2">
                 (Ký, họ tên)
               </p>
-              <div className="h-12 w-full flex items-center justify-center opacity-80">
-                <span className="font-serif italic text-lg transform -rotate-6">
+              <div className="h-9 w-full flex items-center justify-center opacity-80">
+                <span className="font-serif italic text-body transform -rotate-6">
                   {receipt.customer_name || "K/H"}
                 </span>
               </div>
@@ -218,10 +250,10 @@ export default async function ReceiptDetailPage(props: {
               <p className="font-bold text-text-primary text-xs mb-1">
                 Kế toán trưởng
               </p>
-              <p className="text-xs text-text-secondary italic mb-4">
+              <p className="text-xs text-text-secondary italic mb-2">
                 (Ký, họ tên)
               </p>
-              <div className="h-12 w-full flex items-center justify-center text-text-muted">
+              <div className="h-9 w-full flex items-center justify-center text-text-muted">
                 <span className="text-xs italic">Chưa ký</span>
               </div>
             </div>
@@ -229,10 +261,10 @@ export default async function ReceiptDetailPage(props: {
               <p className="font-bold text-text-primary text-xs mb-1">
                 Thủ quỹ
               </p>
-              <p className="text-xs text-text-secondary italic mb-4">
+              <p className="text-xs text-text-secondary italic mb-2">
                 (Ký, họ tên, đóng dấu)
               </p>
-              <div className="h-12 w-full flex items-center justify-center">
+              <div className="h-9 w-full flex items-center justify-center">
                 <div className="border-2 border-success text-success px-3 py-1 rounded font-bold text-xs transform -rotate-12">
                   ĐÃ THU
                 </div>
@@ -244,7 +276,7 @@ export default async function ReceiptDetailPage(props: {
           </div>
 
           {/* Footer Meta */}
-          <div className="mt-8 lg:mt-12 text-center pt-4 border-t border-dashed border-border opacity-50 flex flex-col gap-1">
+          <div className="mt-4 text-center pt-3 border-t border-dashed border-border opacity-50 flex flex-col gap-1">
             <p className="text-xs text-text-secondary font-medium uppercase tracking-widest">
               Mood Studio V2 ERP
             </p>
@@ -257,4 +289,3 @@ export default async function ReceiptDetailPage(props: {
     </div>
   );
 }
-

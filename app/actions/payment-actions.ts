@@ -1,6 +1,6 @@
 "use server";
 
-import { requirePaymentRecordAccess, withAuth } from "@/lib/auth_utils";
+import { requireContractDestructiveAccess, requirePaymentRecordAccess, withAuth } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
@@ -23,8 +23,12 @@ interface CreatePaymentInput {
   updateTotal: boolean; // If true → increase contract total (phát sinh)
 }
 
+interface VoidPaymentInput {
+  paymentId: string;
+  reason: string;
+}
+
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
-type PaymentResult = { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
 
 async function validatePaymentPlanAmount(
   supabase: AdminSupabase,
@@ -34,83 +38,14 @@ async function validatePaymentPlanAmount(
 
   const { data: plan, error } = await supabase
     .from("payment_plans")
-    .select("id, amount, status")
+    .select("id, status")
     .eq("id", input.paymentPlanId)
     .eq("contract_id", input.contractId)
     .single();
 
-  if (error || !plan) throw new Error("Dot thanh toan khong hop le");
-  if (plan.status === "paid") throw new Error("Dot thanh toan nay da duoc thu");
-  if (plan.status === "cancelled") throw new Error("Dot thanh toan nay da bi huy");
-  if (input.amount < plan.amount) {
-    throw new Error("So tien thu khong du de tat toan dot thanh toan da chon");
-  }
-}
-
-async function processContractPaymentFallback(
-  supabase: AdminSupabase,
-  userId: string,
-  input: CreatePaymentInput,
-): Promise<PaymentResult> {
-  const { data: contract, error: contractError } = await supabase
-    .from("contracts")
-    .select("total_amount, paid_amount")
-    .eq("id", input.contractId)
-    .single();
-
-  if (contractError || !contract) throw new Error(`Khong tim thay hop dong: ${contractError?.message || ""}`);
-
-  const totalAmount = (contract.total_amount || 0) + (input.updateTotal ? input.amount : 0);
-  const newPaid = (contract.paid_amount || 0) + input.amount;
-  const newRemaining = Math.max(0, totalAmount - newPaid);
-  const paymentStatus = newRemaining <= 0 ? "da_thanh_toan" : "thanh_toan_mot_phan";
-
-  const { data: payment, error: paymentError } = await supabase
-    .from("payments")
-    .insert({
-      contract_id: input.contractId,
-      amount: input.amount,
-      payment_method: input.paymentMethod,
-      payment_date: input.paymentDate,
-      payment_stage: input.paymentStage || null,
-      category_id: input.categoryId || null,
-      notes: input.notes || null,
-      created_by: userId,
-    })
-    .select("id")
-    .single();
-
-  if (paymentError || !payment) throw new Error(`Khong the tao phieu thu hop dong: ${paymentError?.message || ""}`);
-
-  const { error: updateError } = await supabase
-    .from("contracts")
-    .update({
-      total_amount: totalAmount,
-      paid_amount: newPaid,
-      remaining_amount: newRemaining,
-      payment_status: paymentStatus,
-      updated_by: userId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.contractId);
-
-  if (updateError) throw new Error(`Khong the cap nhat cong no hop dong: ${updateError.message}`);
-
-  if (input.paymentPlanId) {
-    const { error: planError } = await supabase
-      .from("payment_plans")
-      .update({ status: "paid", receipt_id: payment.id })
-      .eq("id", input.paymentPlanId)
-      .eq("contract_id", input.contractId);
-    if (planError) throw new Error(`Khong the cap nhat dot thanh toan: ${planError.message}`);
-  }
-
-  return {
-    payment_id: payment.id,
-    new_paid: newPaid,
-    new_remaining: newRemaining,
-    payment_status: paymentStatus,
-  };
+  if (error || !plan) throw new Error("Đợt thanh toán không hợp lệ");
+  if (plan.status === "paid") throw new Error("Đợt thanh toán này đã được thu");
+  if (plan.status === "cancelled") throw new Error("Đợt thanh toán này đã bị hủy");
 }
 
 /** Create payment receipt + atomically update contract amounts (Atomic RPC) */
@@ -144,26 +79,19 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
     });
 
     if (error && isMissingRpcError(error)) {
-      const fallbackResult = await processContractPaymentFallback(supabase, userId, paymentInput);
-      await writeAuditLog({
-        action: "CREATE",
-        tableName: "payments",
-        recordId: fallbackResult.payment_id,
-        newData: paymentInput as unknown as Record<string, unknown>,
-        source: "server_action",
-        description: `Thu tien hop dong #${paymentInput.contractId.substring(0, 8)}: ${paymentInput.amount.toLocaleString("vi-VN")} VND`,
-      });
-
-      revalidatePath("/contracts");
-      revalidatePath(`/contracts/${paymentInput.contractId}`);
-      revalidatePath("/finance");
-
-      return { paymentId: fallbackResult.payment_id };
+      throw new Error("Migration process_contract_payment_v2 chưa được chạy. Không dùng fallback vì có thể làm sai công nợ/báo cáo.");
     }
 
     if (error) throw new Error(`Lỗi thanh toán: ${error.message}`);
 
-    const result = data as { payment_id: string; new_paid: number; new_remaining: number; payment_status: string };
+    const result = data as {
+      payment_id: string;
+      receipt_code?: string;
+      adjustment_item_id?: string | null;
+      new_paid: number;
+      new_remaining: number;
+      payment_status: string;
+    };
 
     // Audit log
     await writeAuditLog({
@@ -178,8 +106,71 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
     revalidatePath("/contracts");
     revalidatePath(`/contracts/${paymentInput.contractId}`);
     revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/reports");
 
-    return { paymentId: result.payment_id };
+    return { paymentId: result.payment_id, receiptCode: result.receipt_code || null };
+  });
+}
+
+/** Void a contract payment through an atomic DB reversal. */
+export async function voidContractPayment(input: VoidPaymentInput) {
+  const paymentId = input.paymentId?.trim();
+  const reason = input.reason?.trim();
+
+  if (!paymentId) {
+    return { success: false as const, error: "Payment ID không hợp lệ" };
+  }
+
+  if (!reason || reason.length < 5) {
+    return { success: false as const, error: "Lý do hủy phiếu thu phải có ít nhất 5 ký tự" };
+  }
+
+  return withAuth(async (supabase, userId) => {
+    await requireContractDestructiveAccess(supabase, userId);
+
+    const { data, error } = await supabase.rpc("void_contract_payment_v2", {
+      p_payment_id: paymentId,
+      p_reason: reason,
+      p_actor_id: userId,
+    });
+
+    if (error && isMissingRpcError(error)) {
+      throw new Error("Migration void_contract_payment_v2 chưa được chạy. Chưa thể hủy phiếu thu hợp đồng.");
+    }
+
+    if (error) throw new Error(`Không thể hủy phiếu thu: ${error.message}`);
+
+    const result = data as {
+      payment_id: string;
+      contract_id: string;
+      voided_amount: number;
+      restored_payment_plans: number;
+      new_paid: number;
+      new_remaining: number;
+      payment_status: string;
+    };
+
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "payments",
+      recordId: result.payment_id,
+      oldData: { payment_id: result.payment_id, amount: result.voided_amount },
+      newData: { reason, ...result },
+      source: "server_action",
+      severity: "WARNING",
+      description: `Huy phieu thu hop dong #${result.payment_id.substring(0, 8)}: ${Number(result.voided_amount || 0).toLocaleString("vi-VN")} VND`,
+    });
+
+    revalidatePath("/contracts");
+    revalidatePath(`/contracts/${result.contract_id}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/finance/cashflow");
+    revalidatePath("/reports");
+
+    return result;
   });
 }
 
@@ -190,7 +181,7 @@ export async function getTransactionCategories(type: "thu" | "chi" = "thu") {
 
     const { data, error } = await supabase
       .from("transaction_categories")
-      .select("id, name, type")
+      .select("id, name, type, category_code")
       .eq("type", type)
       .order("name");
 

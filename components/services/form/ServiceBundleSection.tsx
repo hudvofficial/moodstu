@@ -5,7 +5,7 @@ import type { BundleItem } from "@/lib/logic/bundle-calculator";
 import { useServiceSearch, type BundleSearchResult } from "./hooks/useServiceSearch";
 import BuilderMode from "../builder/BuilderMode";
 import { Layers, PenLine, GripVertical, Search, Trash2, Loader2 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -168,7 +168,7 @@ export default function ServiceBundleSection({
                       </span>
                     </span>
                     <span className="text-caption font-bold text-primary">
-                      {formatCurrency(svc.selling_price || 0)}
+                      {formatVnd(svc.selling_price || 0)}
                     </span>
                   </Button>
                 ))}
@@ -192,7 +192,7 @@ export default function ServiceBundleSection({
                     {item.service_name}
                   </div>
                   <div className="text-caption text-text-muted font-mono">
-                    ID: {item.service_id.slice(0, 8)}... | Giá gốc: {formatCurrency(item.original_price || 0)}
+                    ID: {item.service_id.slice(0, 8)}... | Giá gốc: {formatVnd(item.original_price || 0)}
                   </div>
                 </div>
 

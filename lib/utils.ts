@@ -13,12 +13,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Currency symbol — SSOT, đổi 1 chỗ = đổi toàn app */
-export const CURRENCY_SYMBOL = "VNĐ";
+/** Currency token — SSOT, đổi 1 chỗ = đổi toàn app */
+export const CURRENCY_CODE = "VND";
+export const CURRENCY_SYMBOL = CURRENCY_CODE;
 
 /** Format number to VND currency */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("vi-VN").format(amount);
+export function formatCurrency(amount: number | null | undefined): string {
+  const value = Number(amount || 0);
+  return new Intl.NumberFormat("vi-VN").format(Number.isFinite(value) ? value : 0);
+}
+
+/** Format amount with the shared VND token */
+export function formatVnd(amount: number | null | undefined): string {
+  return `${formatCurrency(amount)} ${CURRENCY_SYMBOL}`;
 }
 
 /** Format date defensively via date-fns to prevent Invalid Date crash */

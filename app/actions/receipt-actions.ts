@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { checkPeriodLock, isMissingRpcError } from "@/lib/finance-utils";
 import { createReceiptSchema, updateReceiptWithLockSchema } from "@/lib/validations/finance.schema";
+import { formatVnd } from "@/lib/utils";
 import { z } from "zod";
 // ═══════════════════════════════════════════
 // Receipt Actions — CRUD + Sale Receipt (Atomic)
@@ -41,6 +42,10 @@ export interface SaleItem {
 
 export async function deleteReceipt(id: string) {
   return withAdmin(async (supabase) => {
+    if (id.startsWith("payment:")) {
+      throw new Error("Phieu thu hop dong duoc tao tu thanh toan hop dong. Vui long xu ly tu chi tiet hop dong.");
+    }
+
     const { data: receipt } = await supabase
       .from("receipts")
       .select("receipt_amount, contract_id, contract_code, receipt_date")
@@ -160,7 +165,7 @@ export async function createReceipt(input: CreateReceiptInput) {
       tableName: "receipts", 
       recordId: data?.id,
       newData: insertData as unknown as Record<string, unknown>,
-      description: `Tạo phiếu thu ${parsed.data.receipt_amount.toLocaleString("vi-VN")}₫`,
+      description: `Tạo phiếu thu ${formatVnd(parsed.data.receipt_amount)}`,
       source: "server_action",
     });
     
@@ -173,6 +178,10 @@ export async function createReceipt(input: CreateReceiptInput) {
 
 export async function updateReceipt(input: z.infer<typeof updateReceiptWithLockSchema>) {
   return withAdmin(async (supabase, userId) => {
+    if (String(input.id || "").startsWith("payment:")) {
+      throw new Error("Phieu thu hop dong duoc tao tu thanh toan hop dong. Vui long xu ly tu chi tiet hop dong.");
+    }
+
     // 1. Validate
     const parsed = updateReceiptWithLockSchema.safeParse(input);
     if (!parsed.success) {
@@ -316,7 +325,7 @@ export async function createSaleReceipt(input: {
       recordId: receiptId, 
       newData: input as unknown as Record<string, unknown>,
       source: "server_action",
-      description: `Bán vật tư ${input.receipt_amount.toLocaleString("vi-VN")}₫` 
+      description: `Bán vật tư ${formatVnd(input.receipt_amount)}` 
     });
     
     revalidatePath("/finance");

@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createContract } from "@/app/actions/contract-mutations";
 import { getNextContractCode, getContractForEdit } from "@/app/actions/contract-queries";
-import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
+import {
+  invalidateContractAfterWrite,
+  invalidateDressAfterWrite,
+  invalidateFinanceAfterWrite,
+} from "@/lib/cache-invalidation";
 import { useContractCustomer } from "./useContractCustomer";
 import { useContractItems } from "./useContractItems";
 import { useContractFinancials } from "./useContractFinancials";
@@ -227,8 +231,12 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
           { duration: 7000 },
         );
       }
+      await Promise.all([
+        invalidateContractAfterWrite(result.data.id),
+        invalidateFinanceAfterWrite(),
+        invalidateDressAfterWrite(),
+      ]);
       router.push(`/contracts/${result.data.id}`);
-      void invalidateContractAfterWrite(result.data.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Lỗi không xác định";
       setErrors({ submit: message });

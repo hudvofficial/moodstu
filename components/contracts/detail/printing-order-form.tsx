@@ -11,7 +11,10 @@ import {
   fetchLabServices,
   getLabs,
 } from "@/app/actions/printing-actions";
-import { invalidateContractAfterWrite } from "@/lib/cache-invalidation";
+import {
+  invalidateContractAfterWrite,
+  invalidatePrintingAfterWrite,
+} from "@/lib/cache-invalidation";
 import { toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
@@ -155,9 +158,12 @@ export default function PrintingOrderForm({
 
       if (result.success) {
         toast("Đã tạo đơn in thành công", "success");
+        await Promise.all([
+          invalidateContractAfterWrite(contractId),
+          invalidatePrintingAfterWrite(),
+        ]);
         resetForm();
         onClose();
-        void invalidateContractAfterWrite(contractId);
       } else {
         toast(result.error || "Lỗi tạo đơn in", "error");
       }

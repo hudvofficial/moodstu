@@ -36,7 +36,7 @@ import { toast } from "@/lib/toast-utils";
 import type { Lab, LabDebtData } from "@/types/printing";
 import { LAB_STATUS_LABELS } from "@/types/printing-constants";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatVnd } from "@/lib/utils";
 
 const LabFormModal = dynamic(
   () => import("@/components/printing/labs/lab-form-modal"),
@@ -181,7 +181,7 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete }: LabCardProps) 
                 debt > 0 ? "text-error" : "text-text-primary",
               )}
             >
-              {formatCurrency(debt)}
+              {formatVnd(debt)}
             </p>
           </div>
         </div>
@@ -404,7 +404,7 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
               {
                 icon: WalletCards,
                 label: "Công nợ",
-                value: formatCurrency(stats.debt),
+                value: formatVnd(stats.debt),
                 iconBg: "bg-error/10",
                 iconColor: "text-error",
               },

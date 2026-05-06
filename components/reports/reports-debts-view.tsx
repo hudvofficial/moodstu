@@ -15,7 +15,7 @@ export function ReportsDebtsView({ debtStats, pending }: ReportsDebtsViewProps) 
     <div className="space-y-4">
       <div className="card-base px-4 py-3">
         <p className="text-caption text-text-muted">
-          Cong no hien tai, khong loc theo ky bao cao.
+          Công nợ hiện tại, không lọc theo kỳ báo cáo.
         </p>
       </div>
 

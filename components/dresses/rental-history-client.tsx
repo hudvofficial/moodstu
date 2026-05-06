@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/ux-states";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { formatVnd } from "@/lib/utils";
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -33,7 +34,7 @@ const STATUS_TABS = [
 // ─── HELPERS ────────────────────────────────
 
 const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
-const formatPrice = (v: number | null) => v ? new Intl.NumberFormat("vi-VN").format(v) + "đ" : "—";
+const formatPrice = (v: number | null) => v ? formatVnd(v) : "—";
 
 // ─── DESKTOP TABLE ROW ──────────────────────
 

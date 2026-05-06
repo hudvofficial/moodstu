@@ -12,7 +12,7 @@ import type { PaymentStatus } from "@/types/contract";
 const DEFAULT_PAYMENT: ContractPaymentFormData = {
   amount: 0,
   payment_method: "tien_mat",
-  payment_stage: "",
+  payment_stage: "dat_coc",
   notes: "",
 };
 
@@ -44,8 +44,6 @@ export function useContractFinancials(subtotal: number) {
   const paymentStatus: PaymentStatus = useMemo(() => {
     if (paidAmount <= 0) return "chua_thanh_toan";
     if (paidAmount >= totalAmount) return "da_thanh_toan";
-    // Check if it's just deposit (< 50% of total)
-    if (paidAmount < totalAmount * 0.5) return "da_coc";
     return "thanh_toan_mot_phan";
   }, [paidAmount, totalAmount]);
 

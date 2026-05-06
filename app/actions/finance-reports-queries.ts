@@ -2,6 +2,7 @@
 
 import { withFinanceRead } from "@/lib/auth_utils";
 import { asNumber, asString, isMissingRpcError } from "@/lib/finance-utils";
+import { getReportRevenueLabel, getReportServiceLabel } from "@/lib/report-labels";
 import { enumerateMonthsInRange, getReportRange } from "@/lib/report-period";
 import { reportFiltersSchema } from "@/lib/validations/reports.schema";
 import type { FixedCostItem } from "@/types/finance-operations";
@@ -107,7 +108,7 @@ function normalizeReportsSnapshotPayload(payload: unknown, range: ReportsSnapsho
     serviceDistribution: serviceDistribution.map((item) => {
       const row = asRecord(item);
       return {
-        name: asString(row.name, "Khac"),
+        name: getReportServiceLabel(asString(row.name, "khac")),
         value: asNumber(row.value),
         revenue: asNumber(row.revenue),
       };
@@ -115,7 +116,7 @@ function normalizeReportsSnapshotPayload(payload: unknown, range: ReportsSnapsho
     revenueBreakdown: revenueBreakdown.map((item) => {
       const row = asRecord(item);
       return {
-        label: asString(row.label),
+        label: getReportRevenueLabel(asString(row.label)),
         amount: asNumber(row.amount),
         percentage: asNumber(row.percentage),
       };
@@ -236,7 +237,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
     let addonCount = 0;
 
     for (const contract of contracts) {
-      const serviceName = asString(contract.service_type, "Khac") || "Khac";
+      const serviceName = getReportServiceLabel(asString(contract.service_type, "khac"));
       const current = serviceMap.get(serviceName) || { value: 0, revenue: 0 };
       current.value += 1;
       current.revenue += asNumber(contract.total_amount);
@@ -296,12 +297,12 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
       serviceDistribution,
       revenueBreakdown: [
         {
-          label: "Doanh thu hop dong",
+          label: getReportRevenueLabel("contract_revenue"),
           amount: contractRevenue,
           percentage: reportRevenue > 0 ? Math.round((contractRevenue / reportRevenue) * 1000) / 10 : 0,
         },
         {
-          label: "Thu khac",
+          label: getReportRevenueLabel("other_revenue"),
           amount: standaloneReceiptRevenue,
           percentage: reportRevenue > 0 ? Math.round((standaloneReceiptRevenue / reportRevenue) * 1000) / 10 : 0,
         },

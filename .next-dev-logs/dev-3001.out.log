@@ -1,0 +1,16 @@
+
+> mood-studio-temp@2.0.6 dev
+> node scripts/prepare-dev-sw.mjs && next dev -p 3001
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.123.192:3001
+- Environments: .env.local
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · optimizePackageImports
+  · staleTimes
+
+✓ Starting...
+  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
+[?25h

@@ -10,7 +10,7 @@
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
-import type { ContractFilters, ContractStats } from "@/types/contract";
+import type { ContractFilters, ContractStats, PaymentPlan } from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
 
 // ─── Helpers ─────────────────────────────────
@@ -79,6 +79,101 @@ function assertQueryOk(
   }
 }
 
+type PaymentPlanRow = PaymentPlan & {
+  payment_plan_allocations?: Array<{
+    id: string;
+    contract_id: string;
+    payment_plan_id: string;
+    payment_id: string;
+    amount: number;
+    created_at: string;
+    created_by: string | null;
+  }> | null;
+};
+
+function normalizePlanStatus(status: string | null | undefined, paidAmount: number, amount: number) {
+  const raw = String(status || "pending").toLowerCase();
+  if (raw === "cancelled" || raw === "da_huy" || raw === "huy") return "cancelled";
+  if (raw === "paid" || raw === "closed" || raw === "da_thanh_toan") return "paid";
+  if (amount <= 0) return paidAmount > 0 ? "partial" : "pending";
+  if (paidAmount <= 0) return "pending";
+  if (paidAmount + 0.01 >= amount) return "paid";
+  return "partial";
+}
+
+function mapPaymentPlans(rows: unknown[] | null | undefined): PaymentPlan[] {
+  return ((rows || []) as PaymentPlanRow[])
+    .map((plan) => {
+      const allocations = plan.payment_plan_allocations || plan.allocations || [];
+      const paidAmount = allocations.reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0);
+      const amount = Number(plan.amount || 0);
+      const remainingAmount = amount > 0 ? Math.max(0, amount - paidAmount) : 0;
+
+      return {
+        id: plan.id,
+        contract_id: plan.contract_id,
+        stage_name: plan.stage_name,
+        stage_key: plan.stage_key || null,
+        sort_order: Number(plan.sort_order || 0),
+        amount,
+        due_date: plan.due_date,
+        status: normalizePlanStatus(plan.status, paidAmount, amount),
+        receipt_id: plan.receipt_id,
+        created_at: plan.created_at,
+        allocations,
+        paid_amount: paidAmount,
+        remaining_amount: remainingAmount,
+      };
+    })
+    .sort((a, b) => {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      return String(a.created_at || "").localeCompare(String(b.created_at || ""));
+    });
+}
+
+type ContractListPayload = {
+  contracts: Record<string, unknown>[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+async function getContractListFromRpc(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
+  filters: ContractFilters,
+): Promise<ContractListPayload | null> {
+  const page = Math.max(1, filters.page || 1);
+
+  const { data, error } = await supabase.rpc("get_contract_list_v2", {
+    p_status: filters.status || "all",
+    p_search: filters.search ? sanitizeSearch(filters.search) : "",
+    p_service_type: filters.service || "all",
+    p_sort: filters.sort || "newest",
+    p_time_filter: filters.time || "all",
+    p_start_date: filters.startDate || null,
+    p_end_date: filters.endDate || null,
+    p_page: page,
+    p_page_size: 20,
+  });
+
+  if (error) {
+    console.warn("[contracts.getContractList] RPC fallback:", error.message);
+    return null;
+  }
+
+  const payload = data as Record<string, unknown> | null;
+  if (!payload || !Array.isArray(payload.contracts)) {
+    return null;
+  }
+
+  return {
+    contracts: payload.contracts as Record<string, unknown>[],
+    total: Number(payload.total) || 0,
+    page: Number(payload.page) || page,
+    pageSize: Number(payload.pageSize) || 20,
+  };
+}
+
 // ─── getNextContractCode ─────────────────────
 
 export async function getNextContractCode() {
@@ -112,6 +207,9 @@ export async function getNextContractCode() {
 export async function getContractList(filters: ContractFilters) {
   return profileAction("contracts.getContractList", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
+
+    const rpcPayload = await getContractListFromRpc(supabase, filters);
+    if (rpcPayload) return rpcPayload;
 
     const page = Math.max(1, filters.page || 1);
     const pageSize = 20;
@@ -343,7 +441,7 @@ export async function getContractDetail(id: string) {
   return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // ⚡ Single-pass: all 6 queries fire simultaneously
+    // ⚡ Single-pass: operational detail queries fire simultaneously.
     const [
       contractResult,
       eventsResult,
@@ -352,7 +450,6 @@ export async function getContractDetail(id: string) {
       paymentsResult,
       reservationsResult,
       printOrdersResult,
-      auditLogsResult,
       paymentPlansResult,
     ] = await Promise.all([
       // 1) Contract + embedded FK joins
@@ -418,7 +515,8 @@ export async function getContractDetail(id: string) {
         )
         .eq("contract_id", id)
         .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .limit(30),
       // 6) Dress reservations
       supabase
         .from("dress_reservations")
@@ -435,23 +533,14 @@ export async function getContractDetail(id: string) {
         )
         .eq("contract_id", id)
         .order("created_at", { ascending: false }),
-      // 8) Audit logs
-      supabase
-        .from("audit_logs")
-        .select(
-          `id, action, table_name, old_data, new_data, created_at, employees:employee_id(id, full_name)`
-        )
-        .eq("table_name", "contracts")
-        .eq("record_id", id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      // 9) Payment plans
+      // 8) Payment plans
       supabase
         .from("payment_plans")
         .select(
-          "id, contract_id, stage_name, amount, due_date, status, receipt_id, created_at"
+          "id, contract_id, stage_name, stage_key, sort_order, amount, due_date, status, receipt_id, created_at, payment_plan_allocations(id, contract_id, payment_plan_id, payment_id, amount, created_at, created_by)"
         )
         .eq("contract_id", id)
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
     ]);
 
@@ -464,7 +553,6 @@ export async function getContractDetail(id: string) {
     assertQueryOk("Lỗi tải thanh toán hợp đồng", paymentsResult);
     assertQueryOk("Lỗi tải lịch đặt trang phục", reservationsResult);
     assertQueryOk("Lỗi tải đơn in", printOrdersResult);
-    assertQueryOk("Lỗi tải lịch sử thao tác", auditLogsResult);
     assertQueryOk("Lỗi tải kế hoạch thanh toán", paymentPlansResult);
 
     const contractData = data as typeof data & {
@@ -486,8 +574,7 @@ export async function getContractDetail(id: string) {
       payments: paymentsResult.data || [],
       reservations: reservationsResult.data || [],
       printOrders: printOrdersResult.data || [],
-      auditLogs: auditLogsResult.data || [],
-      paymentPlans: paymentPlansResult.data || [],
+      paymentPlans: mapPaymentPlans(paymentPlansResult.data || []),
     };
   }));
 }
@@ -530,8 +617,9 @@ export async function getContractDrawerExtra(id: string) {
         .order("deadline", { ascending: true }),
       supabase
         .from("payment_plans")
-        .select("*")
+        .select("id, contract_id, stage_name, stage_key, sort_order, amount, due_date, status, receipt_id, created_at, payment_plan_allocations(id, contract_id, payment_plan_id, payment_id, amount, created_at, created_by)")
         .eq("contract_id", id)
+        .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
     ]);
 
@@ -544,7 +632,7 @@ export async function getContractDrawerExtra(id: string) {
       events: eventsResult.data || [],
       checklists: checklistsResult.data || [],
       workTasks: workTasksResult.data || [],
-      paymentPlans: paymentPlansResult.data || [],
+      paymentPlans: mapPaymentPlans(paymentPlansResult.data || []),
     };
   }));
 }

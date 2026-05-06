@@ -71,7 +71,7 @@ function normalizeText(value: string) {
 }
 
 function formatCurrency(value: number | null | undefined) {
-  return `${Math.round(value || 0).toLocaleString("vi-VN")}đ`;
+  return `${Math.round(value || 0).toLocaleString("vi-VN")} VND`;
 }
 
 function formatPercent(value: number | null | undefined) {

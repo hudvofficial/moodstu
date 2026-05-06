@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatVnd } from "@/lib/utils";
 import type { PaymentReminderData } from "@/types/dashboard";
 
 interface PaymentRemindersProps {
@@ -64,7 +64,7 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-body-sm font-bold text-warning">
-                  {formatCurrency(item.remainingAmount)} ₫
+                  {formatVnd(item.remainingAmount)}
                 </p>
                 {item.isOverdue ? (
                   <p className="text-caption font-semibold text-error">Quá hạn</p>

@@ -23,6 +23,7 @@ import { FAB } from "@/components/ui/fab";
 import { Pagination } from "@/components/ui/pagination";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, ApprovalFilter, ExpensePage, FinanceCategory, ExpenseListItem } from "@/types/finance-operations";
 
@@ -91,11 +92,14 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const expenses = data || initialData || { items: [], total: 0, page: 1, pageSize };
   const totalPages = Math.max(1, Math.ceil(expenses.total / expenses.pageSize));
 
-  const refresh = () => {
-    void mutate(key);
-    void mutate(statsKey);
-    void mutate(cacheKeys.financeDashboard(month, year));
-    void mutate(cacheKeys.financeLedger(1, month, year, "all"));
+  const refresh = async () => {
+    await Promise.all([
+      mutate(key),
+      mutate(statsKey),
+      mutate(cacheKeys.financeDashboard(month, year)),
+      mutate(cacheKeys.financeLedger(1, month, year, "all")),
+      invalidateFinanceAfterWrite({ month, year }),
+    ]);
   };
 
   const handleApprove = async (id: string) => {
@@ -107,7 +111,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
       return;
     }
     toast.success("Đã duyệt phiếu chi.");
-    refresh();
+    await refresh();
   };
 
   const handleDelete = async (id: string) => {
@@ -120,7 +124,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
       return;
     }
     toast.success("Đã xóa phiếu chi.");
-    refresh();
+    await refresh();
   };
 
   const handleEdit = (item: ExpenseListItem) => {

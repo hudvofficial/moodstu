@@ -107,10 +107,11 @@ export function ReceiptDetailModal({ isOpen, onClose, receiptId }: ReceiptDetail
     const statusVariant = financeStatusVariant(receipt.status);
     const statusColor = statusColorMap[statusVariant] || statusColorMap.default;
     
-    const refCode = `REC-${receipt.id.slice(0, 8).toUpperCase()}`;
-    const receiptCode = receipt.contract_code
+    const rawId = receipt.source_id || receipt.id;
+    const refCode = receipt.receipt_code || `REC-${rawId.slice(0, 8).toUpperCase()}`;
+    const receiptCode = receipt.receipt_code || (receipt.contract_code
       ? `PT-${receipt.contract_code}`
-      : `PT-${format(receiptDate, "yyMM")}-${receipt.id.slice(0, 3).toUpperCase()}`;
+      : `PT-${format(receiptDate, "yyMM")}-${receipt.id.slice(0, 3).toUpperCase()}`);
 
     content = (
       <div className="relative overflow-hidden pt-8 sm:pt-10 pb-2 w-full min-h-[400px]">

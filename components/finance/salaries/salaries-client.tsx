@@ -23,6 +23,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
+import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
 import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
@@ -74,8 +75,11 @@ export function SalariesClient({
   const handlePay = useCallback((item: SalaryItem) => setPaying(item), []);
   const handlePrint = useCallback((item: SalaryItem) => setPrinting(item), []);
   const refresh = useCallback(() => {
-    void mutate(key);
-  }, [key]);
+    void Promise.all([
+      mutate(key),
+      invalidateFinanceAfterWrite({ month, year }),
+    ]);
+  }, [key, month, year]);
 
   const handleDelete = useCallback(
     async (item: SalaryItem) => {

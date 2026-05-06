@@ -3,24 +3,13 @@
 /**
  * 📊 CompactStats — Contract stats (uses shared StatsBar)
  * Phase 5: refactored to shared StatsBar component
- * Keeps: formatCompact(), items logic
+ * Keeps: items logic
  */
 
 import { FileText, Zap, DollarSign, CheckCircle } from "lucide-react";
 import type { ContractStats } from "@/types/contract";
-import { CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatVnd } from "@/lib/utils";
 import { StatsBar } from "@/components/ui/stats-bar";
-
-function formatCompact(amount: number): string {
-  if (amount >= 1_000_000) {
-    return (
-      new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(
-        amount / 1_000_000
-      ) + "M " + CURRENCY_SYMBOL
-    );
-  }
-  return new Intl.NumberFormat("vi-VN").format(amount) + " " + CURRENCY_SYMBOL;
-}
 
 interface CompactStatsProps {
   stats: ContractStats;
@@ -45,7 +34,7 @@ export function CompactStats({ stats }: CompactStatsProps) {
     {
       icon: DollarSign,
       label: "doanh thu",
-      value: formatCompact(stats.revenue),
+      value: formatVnd(stats.revenue),
       iconBg: "bg-success/10",
       iconColor: "text-success",
     },

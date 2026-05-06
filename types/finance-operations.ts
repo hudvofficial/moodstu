@@ -33,6 +33,9 @@ export interface FinanceContractOption {
 
 export interface ReceiptListItem {
   id: string;
+  source_table?: "payments" | "receipts" | string | null;
+  source_id?: string | null;
+  receipt_code?: string | null;
   receipt_date: string;
   receipt_type: string;
   payment_type: string;
@@ -47,6 +50,7 @@ export interface ReceiptListItem {
   status: string | null;
   notes: string | null;
   created_at: string | null;
+  updated_at?: string | null;
 }
 
 export interface ExpenseListItem {

@@ -9,6 +9,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
+import { clearCatalogItemsCache } from "./catalog-cache";
 import { SERVICE_TYPES, SERVICE_TYPE_LABELS } from "@/types/service-constants";
 import type { ItemType } from "@/types/contract";
 
@@ -57,6 +59,8 @@ export function CreateServiceModal({ isOpen, onClose, itemType, onCreated }: Pro
         setError(result.error);
         return;
       }
+      clearCatalogItemsCache(itemType);
+      await invalidateServiceAfterWrite(result.data.id);
       onCreated(result.data);
       setName("");
       setPrice(0);
