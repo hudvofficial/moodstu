@@ -66,7 +66,8 @@ function RevenueBreakdownCard({
 
 function CostStructureCard({ summary }: { summary: ReportSummary }) {
   const items = [
-    { label: "Chi trực tiếp", value: summary.directCost },
+    { label: "Chi trực tiếp khác", value: Math.max(0, summary.directCost - summary.inventoryCost) },
+    { label: "Giá vốn vật tư", value: summary.inventoryCost },
     { label: "Vận hành", value: summary.operatingCost },
     { label: "Lương", value: summary.salaryCost },
     { label: "Cố định", value: summary.fixedCost },

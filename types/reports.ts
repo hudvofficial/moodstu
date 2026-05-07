@@ -38,6 +38,7 @@ export interface ReportSummary {
   totalRevenue: number;
   totalCost: number;
   directCost: number;
+  inventoryCost: number;
   operatingCost: number;
   salaryCost: number;
   fixedCost: number;

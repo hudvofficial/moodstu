@@ -256,20 +256,28 @@ async function getContractProfitReportFallback(
   const taskCost = new Map<string, number>();
   const printCost = new Map<string, number>();
   const expenseCost = new Map<string, number>();
+  const inventoryCost = new Map<string, number>();
   const packageRev = new Map<string, number>();
   const addonRev = new Map<string, number>();
 
   if (ids.length > 0) {
-    const [items, tasks, prints, expenses] = await Promise.all([
+    const [items, tasks, prints, expenses, inventory] = await Promise.all([
       supabase.from("contract_items").select("contract_id, total_amount, is_addon").is("deleted_at", null).in("contract_id", ids),
       supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids),
       supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", ids),
       supabase.from("expenses").select("contract_id, amount, description").is("deleted_at", null).in("contract_id", ids),
+      supabase
+        .from("inventory_transactions")
+        .select("contract_id, quantity, unit_cost, total_cost, source_type")
+        .eq("transaction_type", "stock_out")
+        .in("source_type", ["contract_fulfillment", "contract_addon_sale"])
+        .in("contract_id", ids),
     ]);
     if (items.error) throw new Error(items.error.message);
     if (tasks.error) throw new Error(tasks.error.message);
     if (prints.error) throw new Error(prints.error.message);
     if (expenses.error) throw new Error(expenses.error.message);
+    if (inventory.error) throw new Error(inventory.error.message);
     addByContract(taskCost, tasks.data, "cost");
     addByContract(printCost, prints.data, "total_amount");
     addByContract(
@@ -277,6 +285,14 @@ async function getContractProfitReportFallback(
       (expenses.data || []).filter((row) => !row.description?.startsWith("[Auto-Print]")),
       "amount",
     );
+    for (const row of inventory.data || []) {
+      const cId = row.contract_id;
+      if (!cId) continue;
+      inventoryCost.set(
+        cId,
+        (inventoryCost.get(cId) || 0) + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)),
+      );
+    }
 
     for (const item of items.data || []) {
       const cId = item.contract_id;
@@ -294,7 +310,8 @@ async function getContractProfitReportFallback(
     const tasks = taskCost.get(contract.id) || 0;
     const prints = printCost.get(contract.id) || 0;
     const expenses = expenseCost.get(contract.id) || 0;
-    const totalCost = tasks + prints + expenses;
+    const inventory = inventoryCost.get(contract.id) || 0;
+    const totalCost = tasks + prints + expenses + inventory;
     const totalAmount = contract.total_amount || 0;
     const profit = totalAmount - totalCost;
     return {
@@ -312,6 +329,7 @@ async function getContractProfitReportFallback(
       taskCost: tasks,
       printCost: prints,
       expenseCost: expenses,
+      inventoryCost: inventory,
       totalCost,
       profit,
       profitMargin: totalAmount > 0 ? Math.round((profit / totalAmount) * 1000) / 10 : 0,
@@ -551,6 +569,7 @@ async function queryContractProfitReport(
     taskCost: asNumber(row.task_cost),
     printCost: asNumber(row.print_cost),
     expenseCost: asNumber(row.expense_cost),
+    inventoryCost: asNumber(row.inventory_cost),
     totalCost: asNumber(row.total_cost),
     profit: asNumber(row.profit),
     profitMargin: asNumber(row.profit_margin),
@@ -749,6 +768,7 @@ export async function getContractProfitReport(filters: ContractProfitReportParam
       taskCost: asNumber(row.task_cost),
       printCost: asNumber(row.print_cost),
       expenseCost: asNumber(row.expense_cost),
+      inventoryCost: asNumber(row.inventory_cost),
       totalCost: asNumber(row.total_cost),
       profit: asNumber(row.profit),
       profitMargin: asNumber(row.profit_margin),
@@ -842,7 +862,7 @@ export async function getContractFinanceDetails(contractId: string) {
 
     if (contractErr) throw new Error(`Lỗi tải hợp đồng: ${contractErr.message}`);
 
-    const [details, tasks, prints, expenses] = await Promise.all([
+    const [details, tasks, prints, expenses, inventory] = await Promise.all([
       supabase
         .from("contract_items")
         .select("id, item_name, quantity, unit_price, total_amount, type, is_addon, addon_category")
@@ -855,12 +875,20 @@ export async function getContractFinanceDetails(contractId: string) {
         .eq("contract_id", contractId)
         .is("deleted_at", null),
       supabase.from("expenses").select("id, description, amount, expense_date").eq("contract_id", contractId).is("deleted_at", null).not("description", "like", "[Auto-Print]%"),
+      supabase
+        .from("inventory_transactions")
+        .select("id, quantity, unit_cost, total_cost, source_type, created_at, inventory_items(name, item_code)")
+        .eq("contract_id", contractId)
+        .eq("transaction_type", "stock_out")
+        .in("source_type", ["contract_fulfillment", "contract_addon_sale"])
+        .order("created_at", { ascending: false }),
     ]);
 
     if (details.error) throw new Error(`Lỗi tải chi tiết dịch vụ: ${details.error.message}`);
     if (tasks.error) throw new Error(`Lỗi tải chi phí nhân sự: ${tasks.error.message}`);
     if (prints.error) throw new Error(`Lỗi tải chi phí in ấn: ${prints.error.message}`);
     if (expenses.error) throw new Error(`Lỗi tải chi phí khác: ${expenses.error.message}`);
+    if (inventory.error) throw new Error(`Lỗi tải giá vốn vật tư: ${inventory.error.message}`);
 
     const subtotal = asNumber(contract.total_amount);
 
@@ -908,6 +936,27 @@ export async function getContractFinanceDetails(contractId: string) {
         amount: asNumber(e.amount),
         transaction_date: asString(e.expense_date) || undefined,
       })),
+      inventory: inventory.data.map((item: Record<string, unknown>) => {
+        const rawItem = Array.isArray(item.inventory_items)
+          ? item.inventory_items[0]
+          : item.inventory_items;
+        const inventoryItem = rawItem && typeof rawItem === "object" ? rawItem as Record<string, unknown> : {};
+        const quantity = asNumber(item.quantity);
+        const unitCost = asNumber(item.unit_cost);
+
+        return {
+          id: item.id as string,
+          item_name: [
+            asString(inventoryItem.name, "Vật tư"),
+            asString(inventoryItem.item_code) ? `(${asString(inventoryItem.item_code)})` : "",
+          ].filter(Boolean).join(" "),
+          quantity,
+          unit_cost: unitCost,
+          total_cost: asNumber(item.total_cost || quantity * unitCost),
+          source_type: asString(item.source_type) || null,
+          transaction_date: asString(item.created_at) || undefined,
+        };
+      }),
     };
 
     return detailData;

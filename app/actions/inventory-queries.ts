@@ -11,6 +11,7 @@ import {
 import type {
   InventoryDetail,
   InventoryFilters,
+  InventoryContractOption,
   InventoryItem,
   InventoryPickerFilters,
   InventoryPickerPage,
@@ -51,6 +52,11 @@ function normalizeTotals(value: unknown): InventoryTransactionTotals {
     totalOut: Number(data.totalOut || 0),
     transactionCount: Number(data.transactionCount || 0),
   };
+}
+
+function firstRelation(value: unknown): Record<string, unknown> | null {
+  const item = Array.isArray(value) ? value[0] : value;
+  return item && typeof item === "object" ? (item as Record<string, unknown>) : null;
 }
 
 function unwrapActionResult<T>(
@@ -242,6 +248,41 @@ export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
       return (data || []) as InventorySaleOption[];
     }),
     "fetchInventoryForSale",
+  );
+}
+
+export async function fetchInventoryContractOptions(
+  search?: string,
+): Promise<InventoryContractOption[]> {
+  return unwrapActionResult(
+    await withInventoryAccess(async (supabase) => {
+      const term = normalizeSearch(search);
+      let query = supabase
+        .from("contracts")
+        .select("id, contract_code, customers!inner(full_name, phone)")
+        .is("deleted_at", null)
+        .neq("status", "da_huy")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (term) {
+        query = query.or(`contract_code.ilike.%${term}%,customers.full_name.ilike.%${term}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(`Không thể tải hợp đồng xuất kho: ${error.message}`);
+
+      return (data || []).map((contract) => {
+        const customer = firstRelation((contract as Record<string, unknown>).customers);
+        return {
+          id: String(contract.id),
+          contract_code: String(contract.contract_code || ""),
+          customer_name: String(customer?.full_name || "Khách hàng"),
+          customer_phone: typeof customer?.phone === "string" ? customer.phone : null,
+        };
+      });
+    }),
+    "fetchInventoryContractOptions",
   );
 }
 

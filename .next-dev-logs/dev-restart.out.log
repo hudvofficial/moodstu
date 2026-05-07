@@ -852,3 +852,29 @@ Creating turbopack project {
  POST /contracts/create 200 in 468ms (compile: 4ms, proxy.ts: 5ms, render: 460ms)
  POST /contracts/create 200 in 438ms (compile: 4ms, proxy.ts: 5ms, render: 428ms)
  POST /contracts/create 200 in 503ms (compile: 5ms, proxy.ts: 6ms, render: 491ms)
+✓ Compiled in 504ms
+✓ Compiled in 243ms
+✓ Compiled in 285ms
+✓ Compiled in 231ms
+✓ Compiled in 237ms
+✓ Compiled in 247ms
+✓ Compiled in 685ms
+✓ Compiled in 353ms
+✓ Compiled in 284ms
+✓ Compiled in 188ms
+✓ Compiled in 182ms
+✓ Compiled in 344ms
+✓ Compiled in 122ms
+✓ Compiled in 138ms
+✓ Compiled in 224ms
+✓ Compiled in 236ms
+✓ Compiled in 185ms
+✓ Compiled in 176ms
+✓ Compiled in 194ms
+✓ Compiled in 255ms
+✓ Compiled in 240ms
+✓ Compiled in 220ms
+✓ Compiled in 219ms
+✓ Compiled in 324ms
+✓ Compiled in 119ms
+✓ Compiled in 127ms

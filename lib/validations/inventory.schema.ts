@@ -126,6 +126,29 @@ export const stockOutSchema = z.object({
 
 export type StockOutInput = z.infer<typeof stockOutSchema>;
 
+export const inventoryRetailSaleSchema = z.object({
+  itemId: z.string().uuid("ID vật tư không hợp lệ"),
+  itemName: z.string().trim().min(1).max(200).optional(),
+  quantity: z.number().int().min(1, "Số lượng phải >= 1"),
+  saleUnitPrice: z.number().min(1, "Giá bán phải lớn hơn 0"),
+  paymentMethod: z.enum(["tien_mat", "chuyen_khoan"]),
+  receiptDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày thu không hợp lệ"),
+  customerName: z.string().trim().max(200).optional(),
+  customerPhone: z.string().trim().max(20).optional(),
+  customerAddress: z.string().trim().max(300).optional(),
+  notes: z.string().max(1000).optional(),
+  categoryId: z.string().uuid().optional(),
+  categoryName: z.string().trim().max(120).optional(),
+});
+
+export type InventoryRetailSaleInput = z.infer<typeof inventoryRetailSaleSchema>;
+
+export const inventoryContractAddonSaleSchema = inventoryRetailSaleSchema.extend({
+  contractId: z.string().uuid("ID hợp đồng không hợp lệ"),
+});
+
+export type InventoryContractAddonSaleInput = z.infer<typeof inventoryContractAddonSaleSchema>;
+
 export const inventoryListFiltersSchema = z.object({
   search: z.string().trim().max(80).optional(),
   category: z.enum(INVENTORY_FILTER_CATEGORIES).optional(),

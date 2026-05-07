@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, type ReactNode } from "react";
-import { AlertCircle, FileText, Printer, Receipt, SearchX, Users, type LucideIcon } from "lucide-react";
+import { AlertCircle, FileText, Package, Printer, Receipt, SearchX, Users, type LucideIcon } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -94,8 +94,9 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
   const payrollTotal = useMemo(() => data?.tasks.reduce((acc, cur) => acc + cur.cost, 0) || 0, [data]);
   const printTotal = useMemo(() => data?.orders.reduce((acc, cur) => acc + cur.cost, 0) || 0, [data]);
   const opsTotal = useMemo(() => data?.expenses.reduce((acc, cur) => acc + cur.amount, 0) || 0, [data]);
+  const inventoryTotal = useMemo(() => data?.inventory.reduce((acc, cur) => acc + cur.total_cost, 0) || 0, [data]);
   
-  const totalCost = payrollTotal + printTotal + opsTotal;
+  const totalCost = payrollTotal + printTotal + opsTotal + inventoryTotal;
   const netProfit = (data?.contract.total_amount || 0) - totalCost;
 
   useEffect(() => {
@@ -254,6 +255,36 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
                         </span>
                       </div>
                       <div className="font-medium text-error tabular-nums">{formatVnd(order.cost)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ProfitDetailSection>
+
+            <ProfitDetailSection
+              icon={Package}
+              iconToneClassName="bg-success/10 text-success"
+              title="Giá vốn vật tư"
+              total={inventoryTotal}
+            >
+              {data.inventory.length === 0 ? (
+                <CompactEmptyState
+                  icon={Package}
+                  title="Chưa có xuất vật tư"
+                  description="Hợp đồng này chưa phát sinh giá vốn từ kho vật tư."
+                />
+              ) : (
+                <div className="card-base divide-y divide-border/50">
+                  {data.inventory.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-text-primary">{item.item_name}</span>
+                        <span className="text-xs text-text-tertiary">
+                          {item.quantity} x {formatVnd(item.unit_cost)}
+                          {item.source_type === "contract_addon_sale" ? " (Bán thêm)" : ""}
+                        </span>
+                      </div>
+                      <div className="font-medium text-error tabular-nums">{formatVnd(item.total_cost)}</div>
                     </div>
                   ))}
                 </div>

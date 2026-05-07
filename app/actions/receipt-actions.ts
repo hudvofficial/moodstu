@@ -35,7 +35,8 @@ export interface SaleItem {
   item_id: string;
   item_name: string;
   quantity: number;
-  unit_cost: number;
+  sale_unit_price: number;
+  unit_cost?: number;
 }
 
 // ─── DELETE RECEIPT ───────────────────────────
@@ -48,7 +49,7 @@ export async function deleteReceipt(id: string) {
 
     const { data: receipt } = await supabase
       .from("receipts")
-      .select("receipt_amount, contract_id, contract_code, receipt_date")
+      .select("receipt_amount, contract_id, contract_code, receipt_date, receipt_type")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -81,6 +82,10 @@ export async function deleteReceipt(id: string) {
     });
     
     revalidatePath("/finance");
+    if (receipt.receipt_type === "sale_receipt") {
+      revalidatePath("/inventory");
+      revalidatePath("/reports");
+    }
     return null;
   });
 }
@@ -192,13 +197,16 @@ export async function updateReceipt(input: z.infer<typeof updateReceiptWithLockS
     // 2. Fetch current & check optimistic lock
     const { data: currentReceipt, error: fetchError } = await supabase
       .from("receipts")
-      .select("receipt_date, updated_at, contract_id")
+      .select("receipt_date, receipt_type, updated_at, contract_id")
       .eq("id", data.id)
       .is("deleted_at", null)
       .single();
 
     if (fetchError || !currentReceipt) throw new Error("Không tìm thấy phiếu thu hoặc phiếu thu đã bị xóa.");
-    
+    if (currentReceipt.receipt_type === "sale_receipt") {
+      throw new Error("Phiếu bán vật tư phải được xử lý từ luồng kho để giữ khớp giá bán, tồn kho và giá vốn.");
+    }
+
     if (currentReceipt.updated_at && data.updated_at && currentReceipt.updated_at !== data.updated_at) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng làm mới trang và thử lại.");
     }
@@ -286,6 +294,8 @@ export async function createSaleReceipt(input: {
     for (const item of input.sale_items) {
       if (!item.item_id) throw new Error("Có vật tư chưa được chọn");
       if (!item.quantity || item.quantity <= 0) throw new Error(`${item.item_name}: Số lượng phải lớn hơn 0`);
+      const saleUnitPrice = item.sale_unit_price ?? item.unit_cost ?? 0;
+      if (saleUnitPrice <= 0) throw new Error(`${item.item_name}: Giá bán phải lớn hơn 0`);
     }
 
     await checkPeriodLock(supabase, input.receipt_date);
@@ -307,7 +317,8 @@ export async function createSaleReceipt(input: {
         item_id: i.item_id, 
         item_name: i.item_name, 
         quantity: i.quantity, 
-        unit_cost: i.unit_cost || 0 
+        sale_unit_price: i.sale_unit_price ?? i.unit_cost ?? 0,
+        unit_cost: i.sale_unit_price ?? i.unit_cost ?? 0 
       })),
     });
 
@@ -329,7 +340,10 @@ export async function createSaleReceipt(input: {
     });
     
     revalidatePath("/finance");
-    revalidatePath("/dresses");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/inventory");
+    revalidatePath("/reports");
+    revalidatePath("/dashboard");
     return { receipt_id: receiptId };
   });
 }

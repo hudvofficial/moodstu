@@ -50,6 +50,11 @@ export function getReportRevenueLabel(value: string | null | undefined): string 
     other_revenue: "Thu khác",
     other_income: "Thu khác",
     standalone_receipts: "Thu khác",
+    sale_receipt: "Bán vật tư",
+    retail_sale: "Bán lẻ vật tư",
+    contract_fulfillment: "Xuất theo hợp đồng",
+    internal_use: "Xuất nội bộ",
+    loss_adjustment: "Hao hụt kho",
     thu_khac: "Thu khác",
   };
 

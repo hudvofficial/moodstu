@@ -2312,9 +2312,15 @@ export type Database = {
           item_id: string
           notes: string | null
           performed_by: string | null
+          payment_method: string | null
           printing_order_id: string | null
           quantity: number
           reason: string | null
+          receipt_id: string | null
+          sale_total: number | null
+          sale_unit_price: number | null
+          source_id: string | null
+          source_type: string | null
           supplier: string | null
           total_cost: number | null
           transaction_type: string
@@ -2332,9 +2338,15 @@ export type Database = {
           item_id: string
           notes?: string | null
           performed_by?: string | null
+          payment_method?: string | null
           printing_order_id?: string | null
           quantity?: number
           reason?: string | null
+          receipt_id?: string | null
+          sale_total?: number | null
+          sale_unit_price?: number | null
+          source_id?: string | null
+          source_type?: string | null
           supplier?: string | null
           total_cost?: number | null
           transaction_type: string
@@ -2352,9 +2364,15 @@ export type Database = {
           item_id?: string
           notes?: string | null
           performed_by?: string | null
+          payment_method?: string | null
           printing_order_id?: string | null
           quantity?: number
           reason?: string | null
+          receipt_id?: string | null
+          sale_total?: number | null
+          sale_unit_price?: number | null
+          source_id?: string | null
+          source_type?: string | null
           supplier?: string | null
           total_cost?: number | null
           transaction_type?: string
@@ -2373,6 +2391,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
             referencedColumns: ["id"]
           },
         ]
@@ -3924,6 +3949,19 @@ export type Database = {
         Args: { p_items: Json; p_receipt: Json }
         Returns: Json
       }
+      create_contract_inventory_addon_sale_atomic: {
+        Args: {
+          p_contract_id: string
+          p_item_id: string
+          p_payment_date: string
+          p_payment_method: Database["public"]["Enums"]["payment_method_enum"]
+          p_quantity: number
+          p_sale_unit_price: number
+          p_notes?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       decrement_goal_amount: {
         Args: { p_amount: number; p_goal_id: string }
         Returns: undefined
@@ -3964,6 +4002,7 @@ export type Database = {
           discount: number
           expense_cost: number
           id: string
+          inventory_cost: number
           package_revenue: number
           paid_amount: number
           print_cost: number

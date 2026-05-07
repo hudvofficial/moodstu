@@ -129,7 +129,7 @@ function ProfitDesktopTable({
                 <div className="flex flex-col items-end">
                   <span className="tabular-nums font-semibold text-text-primary">{formatVnd(item.totalCost)}</span>
                   <span className="text-caption text-text-muted">
-                    Lương {formatVnd(item.taskCost)} · In {formatVnd(item.printCost)}
+                    Lương {formatVnd(item.taskCost)} · In {formatVnd(item.printCost)} · Kho {formatVnd(item.inventoryCost)}
                   </span>
                 </div>
               </TD>

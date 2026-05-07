@@ -41,7 +41,7 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
     }));
 
   const recalcTotal = useCallback((list: SaleItem[]) => {
-    const total = list.reduce((sum, item) => sum + item.quantity * item.unit_cost, 0);
+    const total = list.reduce((sum, item) => sum + item.quantity * (item.sale_unit_price ?? item.unit_cost ?? 0), 0);
     onTotalChange?.(total);
   }, [onTotalChange]);
 
@@ -56,7 +56,7 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
         item_id: inv.id,
         item_name: inv.name,
         quantity: 1,
-        unit_cost: inv.sale_price || 0,
+        sale_unit_price: inv.sale_price || 0,
       },
     ];
     onChange(newItems);
@@ -85,9 +85,9 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
     [items, inventoryOptions, onChange, recalcTotal],
   );
 
-  const updateUnitCost = useCallback(
-    (index: number, cost: number) => {
-      const newItems = items.map((item, i) => (i === index ? { ...item, unit_cost: cost } : item));
+  const updateSalePrice = useCallback(
+    (index: number, price: number) => {
+      const newItems = items.map((item, i) => (i === index ? { ...item, sale_unit_price: price } : item));
       onChange(newItems);
       recalcTotal(newItems);
     },
@@ -120,7 +120,8 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
         <div className="space-y-2">
           {items.map((item, index) => {
             const inv = inventoryOptions.find((o) => o.id === item.item_id);
-            const lineTotal = item.quantity * item.unit_cost;
+            const salePrice = item.sale_unit_price ?? item.unit_cost ?? 0;
+            const lineTotal = item.quantity * salePrice;
             return (
               <div key={item.item_id} className="bg-elevated rounded-lg p-3">
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -154,9 +155,9 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
                     />
                   </div>
                   <CurrencyInput
-                    label="Đơn giá"
-                    value={item.unit_cost}
-                    onChange={(v) => updateUnitCost(index, v)}
+                    label="Giá bán"
+                    value={salePrice}
+                    onChange={(v) => updateSalePrice(index, v)}
                   />
                 </div>
                 <div className="flex justify-end mt-2 text-body-sm font-medium text-text-primary tabular-nums min-w-24">
@@ -168,7 +169,7 @@ export function SaleItemSelector({ items, onChange, inventoryOptions, onTotalCha
           <div className="flex justify-between items-center pt-2 border-t border-border text-body font-bold">
             <span>Tổng cộng</span>
             <span className="tabular-nums text-success">
-              {formatVnd(items.reduce((sum, item) => sum + item.quantity * item.unit_cost, 0))}
+              {formatVnd(items.reduce((sum, item) => sum + item.quantity * (item.sale_unit_price ?? item.unit_cost ?? 0), 0))}
             </span>
           </div>
         </div>

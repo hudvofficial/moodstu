@@ -55,6 +55,7 @@ export interface ContractProfitRow {
   taskCost: number;
   printCost: number;
   expenseCost: number;
+  inventoryCost: number;
   totalCost: number;
   profit: number;
   profitMargin: number;
@@ -127,6 +128,16 @@ export interface OperationalExpense {
   transaction_date?: string;
 }
 
+export interface InventoryCostItem {
+  id: string;
+  item_name: string;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  source_type?: string | null;
+  transaction_date?: string;
+}
+
 export interface ContractProfitDetailData {
   contract: {
     id: string;
@@ -142,4 +153,5 @@ export interface ContractProfitDetailData {
   tasks: PersonalTask[];
   orders: ProductionOrder[];
   expenses: OperationalExpense[];
+  inventory: InventoryCostItem[];
 }

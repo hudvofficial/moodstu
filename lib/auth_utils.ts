@@ -44,25 +44,55 @@ export interface AuthenticatedUserContext {
 const EMPLOYEE_CONTEXT_SELECT =
   "id, full_name, email, phone, avatar_url, department, position, role, gender, auth_user_id, status, deleted_at";
 
+const EMPLOYEE_CONTEXT_RETRY_DELAYS_MS = [150, 450, 900];
+
 function isActiveEmployeeContext(employee: EmployeeContextRecord | null) {
   return !!employee && !employee.deleted_at && employee.status === "active";
+}
+
+function isRetryableSchemaCacheError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || "";
+  return (
+    error.code === "PGRST002" ||
+    error.code === "PGRST003" ||
+    message.includes("schema cache") ||
+    message.includes("retrying")
+  );
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getEmployeeByAuthUserId(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<EmployeeContextRecord | null> {
-  const { data, error } = await supabase
-    .from("employees")
-    .select(EMPLOYEE_CONTEXT_SELECT)
-    .eq("auth_user_id", userId)
-    .maybeSingle();
+  let lastError: { code?: string; message?: string } | null = null;
 
-  if (error) {
-    throw new Error(`Không thể tải hồ sơ nhân viên: ${error.message}`);
+  for (let attempt = 0; attempt <= EMPLOYEE_CONTEXT_RETRY_DELAYS_MS.length; attempt += 1) {
+    const { data, error } = await supabase
+      .from("employees")
+      .select(EMPLOYEE_CONTEXT_SELECT)
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (!error) return (data as EmployeeContextRecord | null) ?? null;
+
+    lastError = error;
+    if (!isRetryableSchemaCacheError(error) || attempt === EMPLOYEE_CONTEXT_RETRY_DELAYS_MS.length) {
+      break;
+    }
+
+    await wait(EMPLOYEE_CONTEXT_RETRY_DELAYS_MS[attempt]);
   }
 
-  return (data as EmployeeContextRecord | null) ?? null;
+  if (lastError) {
+    throw new Error(`Không thể tải hồ sơ nhân viên: ${lastError.message || "Unknown database error"}`);
+  }
+
+  throw new Error("Không thể tải hồ sơ nhân viên: Unknown database error");
 }
 
 const getVerifiedUser = cache(async (): Promise<User | null> => {

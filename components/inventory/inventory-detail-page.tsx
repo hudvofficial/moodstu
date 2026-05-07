@@ -37,6 +37,7 @@ import {
   INVENTORY_STATUS_MAP,
   INVENTORY_CATEGORY_MAP,
   INVENTORY_UNIT_MAP,
+  INVENTORY_SOURCE_TYPE_MAP,
   TRANSACTION_TYPE_MAP,
 } from "@/types/inventory-constants";
 import type { InventoryDetail, InventoryItem } from "@/types/inventory";
@@ -431,6 +432,8 @@ function TransactionTable({
     transaction_type: string;
     quantity: number;
     unit_cost: number;
+    sale_unit_price?: number | null;
+    source_type?: string | null;
     reason: string | null;
     created_at: string;
   }>;
@@ -448,7 +451,8 @@ function TransactionTable({
         <tr>
           <TH>Loại</TH>
           <TH className="text-right">SL</TH>
-          <TH className="text-right">Đơn giá</TH>
+          <TH className="text-right">Giá vốn</TH>
+          <TH className="text-right">Giá bán</TH>
           <TH>Lý do</TH>
           <TH>Ngày</TH>
         </tr>
@@ -459,13 +463,17 @@ function TransactionTable({
             label: txn.transaction_type,
             variant: "neutral" as const,
           };
+          const sourceConfig = txn.source_type
+            ? INVENTORY_SOURCE_TYPE_MAP[txn.source_type] || typeConfig
+            : typeConfig;
           return (
             <TR key={txn.id}>
               <TD>
-                <Badge variant={typeConfig.variant}>{typeConfig.label}</Badge>
+                <Badge variant={sourceConfig.variant}>{sourceConfig.label}</Badge>
               </TD>
               <TD className="text-right font-semibold">{txn.quantity}</TD>
               <TD className="text-right">{fmt(txn.unit_cost)}</TD>
+              <TD className="text-right">{txn.sale_unit_price ? fmt(txn.sale_unit_price) : "—"}</TD>
               <TD>{txn.reason || "—"}</TD>
               <TD>{formatDate(txn.created_at)}</TD>
             </TR>

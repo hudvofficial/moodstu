@@ -1,23 +1,23 @@
 "use client";
 
-/**
- * 📤 StockOutModal — Xuất kho vật tư
- * Uses: UnifiedModal
- * Action: stockOut() → decreases current_stock + warns if low
- */
-
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { CircleMinus, FileText, Search, ShoppingCart, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
-import { UnifiedModal } from "@/components/ui/unified-modal";
+import { createInventoryContractAddonSale, createInventoryRetailSale, stockOut } from "@/app/actions/inventory-mutations";
+import {
+  fetchInventoryContractOptions,
+  fetchInventoryPickerItems,
+} from "@/app/actions/inventory-queries";
 import { ComboboxSearch } from "@/components/ui/combobox-search";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { UnifiedModal } from "@/components/ui/unified-modal";
 import { useDebounce } from "@/hooks/use-debounce";
-import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
-import { stockOut } from "@/app/actions/inventory-mutations";
-import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
-import type { InventoryItem } from "@/types/inventory";
+import { invalidateFinanceAfterWrite, invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
+import { cn, formatVnd } from "@/lib/utils";
+import type { InventoryContractOption, InventoryItem } from "@/types/inventory";
 
 interface StockOutModalProps {
   isOpen: boolean;
@@ -26,34 +26,94 @@ interface StockOutModalProps {
   items?: InventoryItem[];
 }
 
+type OperationMode = "retail_sale" | "contract_fulfillment" | "contract_addon_sale" | "internal_use";
+type PaymentMethod = "tien_mat" | "chuyen_khoan";
+
+const modes: Array<{
+  value: OperationMode;
+  label: string;
+  icon: typeof ShoppingCart;
+}> = [
+  { value: "retail_sale", label: "Bán lẻ", icon: ShoppingCart },
+  { value: "contract_fulfillment", label: "Xuất HĐ", icon: FileText },
+  { value: "contract_addon_sale", label: "Bán thêm HĐ", icon: ShoppingCart },
+  { value: "internal_use", label: "Nội bộ", icon: Wrench },
+];
+
+const today = () => new Date().toISOString().split("T")[0];
+
+function contractLabel(contract: InventoryContractOption) {
+  return `${contract.contract_code} - ${contract.customer_name}`;
+}
+
+function paymentLabel(method: PaymentMethod) {
+  return method === "chuyen_khoan" ? "Chuyển khoản" : "Tiền mặt";
+}
+
 export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalProps) {
   const [isPending, startTransition] = useTransition();
+  const contractDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [mode, setMode] = useState<OperationMode>("retail_sale");
   const [pickedItem, setPickedItem] = useState<InventoryItem | null>(null);
   const activeItem = item || pickedItem;
 
+  const [contractQuery, setContractQuery] = useState("");
+  const [selectedContract, setSelectedContract] = useState<InventoryContractOption | null>(null);
+  const [showContractDropdown, setShowContractDropdown] = useState(false);
+  const [contractOptions, setContractOptions] = useState<InventoryContractOption[]>([]);
+  const [isLoadingContracts, setIsLoadingContracts] = useState(false);
+  const [contractError, setContractError] = useState("");
+  const debouncedContractQuery = useDebounce(contractQuery, 250);
+
   const [quantityInput, setQuantityInput] = useState("");
-  const [reason, setReason] = useState("");
+  const [saleUnitPrice, setSaleUnitPrice] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("tien_mat");
+  const [receiptDate, setReceiptDate] = useState(today());
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+
   const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
   const [pickerSearch, setPickerSearch] = useState("");
-  const debouncedPickerSearch = useDebounce(pickerSearch, 300);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const debouncedPickerSearch = useDebounce(pickerSearch, 250);
+
   const quantity = Number(quantityInput);
-  const hasValidQuantity =
-    quantityInput.trim() !== "" && Number.isInteger(quantity) && quantity >= 1;
+  const hasValidQuantity = quantityInput.trim() !== "" && Number.isInteger(quantity) && quantity >= 1;
   const quantityExceedsStock = Boolean(activeItem && hasValidQuantity && quantity > activeItem.current_stock);
-  const canSubmit = Boolean(activeItem && hasValidQuantity && !quantityExceedsStock);
+  const retailTotal = hasValidQuantity ? quantity * saleUnitPrice : 0;
+  const canSell = mode === "retail_sale" && saleUnitPrice > 0 && Boolean(receiptDate);
+  const canFulfillContract = mode === "contract_fulfillment" && Boolean(selectedContract);
+  const canSellContractAddon = mode === "contract_addon_sale" && Boolean(selectedContract) && saleUnitPrice > 0 && Boolean(receiptDate);
+  const canUseInternal = mode === "internal_use" && reason.trim().length >= 3;
+  const canSubmit = Boolean(
+    activeItem &&
+      hasValidQuantity &&
+      !quantityExceedsStock &&
+      (canSell || canFulfillContract || canSellContractAddon || canUseInternal),
+  );
 
   const resetForm = () => {
+    setMode("retail_sale");
+    setPickedItem(null);
+    setContractQuery("");
+    setSelectedContract(null);
+    setShowContractDropdown(false);
+    setContractError("");
     setQuantityInput("");
-    setReason("");
+    setSaleUnitPrice(0);
+    setPaymentMethod("tien_mat");
+    setReceiptDate(today());
     setCustomerName("");
     setCustomerPhone("");
+    setCustomerAddress("");
+    setReason("");
     setNotes("");
     setError("");
-    setPickedItem(null);
     setPickerSearch("");
   };
 
@@ -62,61 +122,221 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
     onClose();
   };
 
+  const selectItem = (selected: InventoryItem | null) => {
+    setPickedItem(selected);
+    setQuantityInput("");
+    setSaleUnitPrice(selected?.sale_price || 0);
+    setError("");
+  };
+
+  const selectContract = (contract: InventoryContractOption) => {
+    setSelectedContract(contract);
+    setContractQuery(contractLabel(contract));
+    setCustomerName(contract.customer_name);
+    setCustomerPhone(contract.customer_phone || "");
+    setShowContractDropdown(false);
+    setContractError("");
+    setError("");
+  };
+
+  const clearContract = () => {
+    setSelectedContract(null);
+    setContractQuery("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setShowContractDropdown(true);
+  };
+
+  const switchMode = (nextMode: OperationMode) => {
+    setMode(nextMode);
+    setError("");
+    if (nextMode !== "contract_fulfillment" && nextMode !== "contract_addon_sale") {
+      setSelectedContract(null);
+      setContractQuery("");
+      setShowContractDropdown(false);
+    }
+    if (nextMode !== "internal_use") {
+      setReason("");
+    }
+  };
+
+  const contractReason = () => {
+    if (!selectedContract) return "";
+    return `Xuất cho HĐ ${selectedContract.contract_code} - ${selectedContract.customer_name}`;
+  };
+
+  const internalReason = () => reason.trim();
+
   useEffect(() => {
-    if (!isOpen || item) return;
+    if (!activeItem) {
+      setSaleUnitPrice(0);
+      return;
+    }
+    setSaleUnitPrice(activeItem.sale_price || 0);
+  }, [activeItem]);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (
+        contractDropdownRef.current &&
+        !contractDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowContractDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || (mode !== "contract_fulfillment" && mode !== "contract_addon_sale") || selectedContract) return;
     let cancelled = false;
-    fetchInventoryPickerItems({
-      search: debouncedPickerSearch,
-      limit: 30,
-      activeOnly: true,
-    })
-      .then((data) => {
-        if (!cancelled) setPickerItems(data.items);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Không thể tải vật tư");
-      });
+
+    async function loadContracts() {
+      setIsLoadingContracts(true);
+      setContractError("");
+
+      try {
+        const data = await fetchInventoryContractOptions(debouncedContractQuery);
+        if (!cancelled) setContractOptions(data);
+      } catch (err) {
+        if (!cancelled) {
+          setContractOptions([]);
+          setContractError(err instanceof Error ? err.message : "Không thể tải hợp đồng");
+        }
+      } finally {
+        if (!cancelled) setIsLoadingContracts(false);
+      }
+    }
+
+    void loadContracts();
+
     return () => {
       cancelled = true;
     };
-  }, [debouncedPickerSearch, isOpen, item, items]);
+  }, [debouncedContractQuery, isOpen, mode, selectedContract]);
+
+  useEffect(() => {
+    if (!isOpen || item || pickedItem) return;
+    let cancelled = false;
+
+    async function loadItems() {
+      setIsLoadingItems(true);
+
+      try {
+        const data = await fetchInventoryPickerItems({
+          search: debouncedPickerSearch,
+          limit: 30,
+          activeOnly: true,
+        });
+        if (!cancelled) setPickerItems(data.items);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Không thể tải vật tư");
+      } finally {
+        if (!cancelled) setIsLoadingItems(false);
+      }
+    }
+
+    void loadItems();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedPickerSearch, isOpen, item, pickedItem]);
+
+  const validateBase = () => {
+    if (!activeItem) return "Chọn vật tư trước khi xử lý";
+    if (activeItem.status !== "active") return "Vật tư đã ngưng, không thể xử lý";
+    if (!hasValidQuantity) return "Số lượng phải >= 1";
+    if (quantity > activeItem.current_stock) return `Không đủ tồn kho. Hiện có: ${activeItem.current_stock}`;
+    return "";
+  };
 
   const handleSubmit = (event?: React.FormEvent) => {
     event?.preventDefault();
-    if (!activeItem) return;
-    if (activeItem.status !== "active") {
-      setError("Vật tư đã ngưng, không thể xuất kho");
+
+    const baseError = validateBase();
+    if (baseError) {
+      setError(baseError);
       return;
     }
-    if (!hasValidQuantity) { setError("Số lượng phải ≥ 1"); return; }
-    if (quantity > activeItem.current_stock) {
-      setError(`Không đủ tồn kho! Hiện có: ${activeItem.current_stock}`);
+
+    if (!activeItem) return;
+
+    if (mode === "retail_sale" && saleUnitPrice <= 0) {
+      setError("Bán lẻ bắt buộc nhập giá bán");
+      return;
+    }
+    if ((mode === "contract_fulfillment" || mode === "contract_addon_sale") && !selectedContract) {
+      setError("Luồng hợp đồng bắt buộc chọn hợp đồng");
+      return;
+    }
+    if (mode === "contract_addon_sale" && saleUnitPrice <= 0) {
+      setError("Bán thêm hợp đồng bắt buộc nhập giá bán");
+      return;
+    }
+    if (mode === "internal_use" && reason.trim().length < 3) {
+      setError("Xuất nội bộ/hao hụt bắt buộc nhập lý do");
       return;
     }
 
     setError("");
     startTransition(async () => {
-      const result = await stockOut({
-        itemId: activeItem.id,
-        quantity,
-        reason: reason.trim() || undefined,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        notes: notes.trim() || undefined,
-      });
+      const result =
+        mode === "retail_sale"
+          ? await createInventoryRetailSale({
+              itemId: activeItem.id,
+              itemName: activeItem.name,
+              quantity,
+              saleUnitPrice,
+              paymentMethod,
+              receiptDate,
+              customerName: customerName.trim() || undefined,
+              customerPhone: customerPhone.trim() || undefined,
+              customerAddress: customerAddress.trim() || undefined,
+              notes: notes.trim() || undefined,
+            })
+          : mode === "contract_addon_sale" && selectedContract
+            ? await createInventoryContractAddonSale({
+                contractId: selectedContract.id,
+                itemId: activeItem.id,
+                itemName: activeItem.name,
+                quantity,
+                saleUnitPrice,
+                paymentMethod,
+                receiptDate,
+                notes: notes.trim() || undefined,
+              })
+            : await stockOut({
+              itemId: activeItem.id,
+              quantity,
+              contractId: selectedContract?.id,
+              reason: mode === "contract_fulfillment" ? contractReason() : internalReason(),
+              customerName: selectedContract?.customer_name,
+              customerPhone: selectedContract?.customer_phone || undefined,
+              notes: notes.trim() || undefined,
+            });
 
       if (result && "success" in result && result.success) {
-        toast.success(`Đã xuất ${quantity} ${activeItem.name}`);
-        if (result.data?.warning) {
-          toast.warning(result.data.warning);
+        if (mode === "retail_sale" || mode === "contract_addon_sale") {
+          toast.success(mode === "contract_addon_sale" ? `Đã bán thêm ${quantity} ${activeItem.name}` : `Đã bán ${quantity} ${activeItem.name}`);
+          await Promise.all([
+            invalidateInventoryAfterWrite(activeItem.id),
+            invalidateFinanceAfterWrite(),
+          ]);
+        } else {
+          toast.success(`Đã xuất ${quantity} ${activeItem.name}`);
+          const stockResult = result.data as { warning?: string | null } | undefined;
+          if (stockResult?.warning) toast.warning(stockResult.warning);
+          await invalidateInventoryAfterWrite(activeItem.id);
         }
-        await invalidateInventoryAfterWrite(activeItem.id);
         handleClose();
       } else {
         setError(
           result && "error" in result && typeof result.error === "string"
             ? result.error
-            : "Không thể xuất kho",
+            : "Không thể xử lý giao dịch kho",
         );
       }
     });
@@ -124,22 +344,40 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
   if (!isOpen) return null;
 
-  const itemOptions = pickerItems.map(i => ({ value: i.id, label: `${i.item_code} — ${i.name}` }));
+  const itemOptions = pickerItems.map((option) => ({
+    value: option.id,
+    label: `${option.item_code} - ${option.name} - tồn: ${option.current_stock}${option.unit ? ` ${option.unit}` : ""}`,
+  }));
+
+  const submitLabel =
+    mode === "retail_sale"
+      ? "Bán lẻ"
+      : mode === "contract_fulfillment"
+        ? "Xuất HĐ"
+        : mode === "contract_addon_sale"
+          ? "Bán thêm HĐ"
+        : "Xuất nội bộ";
 
   return (
     <UnifiedModal
       isOpen={isOpen}
       onClose={handleClose}
       title="Xuất kho"
-      description={activeItem ? `${activeItem.name} (${activeItem.item_code}) — Tồn: ${activeItem.current_stock}` : "Chọn vật tư cần xuất kho"}
+      description={activeItem ? `${activeItem.name} (${activeItem.item_code}) - Tồn: ${activeItem.current_stock}` : undefined}
       size="md"
       footer={
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>
             Hủy
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isPending || !canSubmit}>
-            {isPending ? "Đang xử lý..." : "Xác nhận xuất kho"}
+          <Button
+            type="button"
+            variant={mode === "retail_sale" ? "primary" : "danger"}
+            onClick={handleSubmit}
+            disabled={isPending || !canSubmit}
+          >
+            <CircleMinus className="h-4 w-4" />
+            {isPending ? "Đang xử lý..." : submitLabel}
           </Button>
         </div>
       }
@@ -147,86 +385,306 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="error-text">{error}</p>}
 
-        {/* Item Picker */}
-        {!activeItem && (
-          <div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {modes.map((option) => {
+            const Icon = option.icon;
+            const active = mode === option.value;
+            return (
+              <Button
+                key={option.value}
+                type="button"
+                variant={active ? "primary" : "secondary"}
+                onClick={() => switchMode(option.value)}
+                className="justify-center gap-2 px-2"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="truncate">{option.label}</span>
+              </Button>
+            );
+          })}
+        </div>
+
+        <div>
+          <label className="label-base">Vật tư *</label>
+          {activeItem ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-base px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="truncate text-body-sm font-semibold text-text-primary">{activeItem.name}</p>
+                <p className="text-caption text-text-secondary">
+                  {activeItem.item_code} - Tồn: {activeItem.current_stock}
+                  {activeItem.unit ? ` ${activeItem.unit}` : ""}
+                </p>
+              </div>
+              {!item && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => selectItem(null)}
+                >
+                  Đổi
+                </Button>
+              )}
+            </div>
+          ) : (
             <ComboboxSearch
-              label="Chọn vật tư *"
-              onChange={(id) => {
-                setPickedItem(pickerItems.find(i => i.id === id) || null);
-                setQuantityInput("");
-                setError("");
-              }}
+              onChange={(id) => selectItem(pickerItems.find((option) => option.id === id) || null)}
               onSearchChange={setPickerSearch}
+              isLoading={isLoadingItems}
               options={itemOptions}
               placeholder="Tìm và chọn vật tư..."
             />
+          )}
+        </div>
+
+        {activeItem && activeItem.min_stock > 0 && activeItem.current_stock <= activeItem.min_stock && (
+          <div className="rounded-lg bg-warning/10 px-4 py-2.5 text-body-sm font-medium text-warning">
+            Tồn kho thấp. Hiện có {activeItem.current_stock}, tối thiểu {activeItem.min_stock}.
           </div>
         )}
 
-        {activeItem && (
-          <>
-        {/* Cảnh báo nếu sắp hết stock */}
-        {activeItem.min_stock && activeItem.current_stock <= activeItem.min_stock && (
-          <div className="bg-warning/10 text-warning text-sm font-medium px-4 py-2.5 rounded-xl">
-            ⚠️ Tồn kho thấp! Hiện có: {activeItem.current_stock} (Tối thiểu: {activeItem.min_stock})
+        {(mode === "contract_fulfillment" || mode === "contract_addon_sale") && (
+          <div ref={contractDropdownRef} className="relative">
+            <label className="label-base">Hợp đồng *</label>
+
+            {selectedContract ? (
+              <div className="flex items-center gap-2 rounded-lg border border-primary bg-primary/5 px-3 py-2.5">
+                <span className="badge badge-primary shrink-0">{selectedContract.contract_code}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-body-sm font-semibold text-text-primary">
+                    {selectedContract.customer_name}
+                  </p>
+                  {selectedContract.customer_phone && (
+                    <p className="text-caption text-text-secondary">{selectedContract.customer_phone}</p>
+                  )}
+                </div>
+                <Button
+                  unstyled
+                  type="button"
+                  onClick={clearContract}
+                  className="rounded-full p-1 text-text-muted transition-colors hover:bg-primary/10 hover:text-primary"
+                  aria-label="Bỏ chọn hợp đồng"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Input
+                  value={contractQuery}
+                  onChange={(event) => {
+                    setContractQuery(event.target.value);
+                    setShowContractDropdown(true);
+                    setError("");
+                  }}
+                  onFocus={() => setShowContractDropdown(true)}
+                  placeholder="Gõ mã HĐ hoặc tên khách..."
+                  className="pl-10"
+                  autoComplete="off"
+                />
+              </div>
+            )}
+
+            {showContractDropdown && !selectedContract && (
+              <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-bg-card shadow-lg">
+                <div className="dropdown-section-label">
+                  {debouncedContractQuery.trim() ? "Hợp đồng khớp" : "Hợp đồng gần đây"}
+                </div>
+
+                {isLoadingContracts ? (
+                  <p className="px-4 py-3 text-body-sm text-text-muted">Đang tải hợp đồng...</p>
+                ) : contractError ? (
+                  <p className="px-4 py-3 text-body-sm text-warning">{contractError}</p>
+                ) : contractOptions.length === 0 ? (
+                  <p className="px-4 py-3 text-body-sm text-text-muted">Không tìm thấy hợp đồng</p>
+                ) : (
+                  contractOptions.map((contract) => (
+                    <Button
+                      unstyled
+                      key={contract.id}
+                      type="button"
+                      onClick={() => selectContract(contract)}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bg-hover"
+                    >
+                      <span className="badge badge-primary shrink-0">{contract.contract_code}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-body-sm font-medium text-text-primary">
+                          {contract.customer_name}
+                        </p>
+                        {contract.customer_phone && (
+                          <p className="text-caption text-text-secondary">{contract.customer_phone}</p>
+                        )}
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        <div>
-          <label className="label-base">Số lượng xuất *</label>
-          <Input
-            type="number"
-            min={1}
-            max={activeItem.current_stock}
-            step={1}
-            value={quantityInput}
-            onChange={(e) => setQuantityInput(e.target.value)}
-          />
-          <p className={`text-xs mt-1 ${quantityExceedsStock ? "text-error" : "text-text-muted"}`}>
-            {quantityExceedsStock ? `Vượt tồn kho. Tối đa: ${activeItem.current_stock}` : `Tối đa: ${activeItem.current_stock}`}
-          </p>
-        </div>
+        {mode === "retail_sale" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label-base">Tên khách</label>
+              <Input
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                placeholder="Khách lẻ"
+              />
+            </div>
+            <div>
+              <label className="label-base">SĐT</label>
+              <Input
+                value={customerPhone}
+                onChange={(event) => setCustomerPhone(event.target.value)}
+                placeholder="0901234567"
+              />
+            </div>
+            <div>
+              <label className="label-base">Ngày thu</label>
+              <Input
+                type="date"
+                value={receiptDate}
+                onChange={(event) => setReceiptDate(event.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label-base">Thanh toán</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["tien_mat", "chuyen_khoan"] as PaymentMethod[]).map((method) => (
+                  <Button
+                    key={method}
+                    type="button"
+                    variant={paymentMethod === method ? "primary" : "secondary"}
+                    onClick={() => setPaymentMethod(method)}
+                    className="justify-center"
+                  >
+                    {paymentLabel(method)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label-base">Địa chỉ</label>
+              <Input
+                value={customerAddress}
+                onChange={(event) => setCustomerAddress(event.target.value)}
+                placeholder="Quận, thành phố"
+              />
+            </div>
+          </div>
+        )}
 
-        <div>
-          <label className="label-base">Lý do xuất</label>
-          <Input
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="VD: Dùng cho HĐ #HD-001"
-          />
-        </div>
+        {mode === "contract_addon_sale" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label-base">Ngày thu</label>
+              <Input
+                type="date"
+                value={receiptDate}
+                onChange={(event) => setReceiptDate(event.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label-base">Thanh toán</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["tien_mat", "chuyen_khoan"] as PaymentMethod[]).map((method) => (
+                  <Button
+                    key={method}
+                    type="button"
+                    variant={paymentMethod === method ? "primary" : "secondary"}
+                    onClick={() => setPaymentMethod(method)}
+                    className="justify-center"
+                  >
+                    {paymentLabel(method)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
-        <div className="form-grid-2col">
+        {mode === "internal_use" && (
           <div>
-            <label className="label-base">Tên khách hàng</label>
+            <label className="label-base">Lý do xuất *</label>
             <Input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="VD: Nguyễn Văn A"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="VD: hao hụt, dùng nội bộ, mẫu tặng..."
             />
           </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label-base">SĐT</label>
+            <label className="label-base">Số lượng *</label>
             <Input
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="VD: 0901234567"
+              type="number"
+              min={1}
+              max={activeItem?.current_stock}
+              step={1}
+              value={quantityInput}
+              onChange={(event) => setQuantityInput(event.target.value)}
+              placeholder="0"
             />
+            {activeItem && (
+              <p className={cn("mt-1 text-caption", quantityExceedsStock ? "text-error" : "text-text-muted")}>
+                {quantityExceedsStock ? `Vượt tồn kho. Tối đa: ${activeItem.current_stock}` : `Tối đa: ${activeItem.current_stock}`}
+              </p>
+            )}
           </div>
+
+          {mode === "retail_sale" || mode === "contract_addon_sale" ? (
+            <CurrencyInput
+              label="Giá bán"
+              value={saleUnitPrice}
+              onChange={setSaleUnitPrice}
+              emptyWhenZero
+            />
+          ) : (
+            <div>
+              <label className="label-base">Giá vốn TB</label>
+              <Input
+                value={formatVnd(activeItem?.average_unit_price || 0)}
+                readOnly
+                className="text-right font-semibold"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-bg-base px-3 py-2.5">
+          <p className="text-caption font-semibold uppercase text-text-muted">Ảnh hưởng báo cáo</p>
+          {mode === "retail_sale" ? (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Ghi phiếu thu {formatVnd(retailTotal)} và xuất tồn theo giá vốn.
+            </p>
+          ) : mode === "contract_addon_sale" ? (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Tăng phát sinh HĐ {formatVnd(retailTotal)}, ghi phiếu thu HĐ và xuất tồn theo giá vốn.
+            </p>
+          ) : mode === "contract_fulfillment" ? (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Chỉ ghi xuất tồn/giá vốn cho hợp đồng, không tạo doanh thu mới.
+            </p>
+          ) : (
+            <p className="mt-1 text-body-sm text-text-secondary">
+              Chỉ ghi xuất tồn nội bộ/hao hụt, không tạo doanh thu.
+            </p>
+          )}
         </div>
 
         <div>
           <label className="label-base">Ghi chú</label>
           <Textarea
-            className="min-h-15"
+            className="min-h-16"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Thông tin thêm..."
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Ghi chú thêm..."
           />
         </div>
-          </>
-        )}
       </form>
     </UnifiedModal>
   );

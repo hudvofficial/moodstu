@@ -91,6 +91,7 @@ function normalizeReportsSnapshotPayload(payload: unknown, range: ReportsSnapsho
       totalRevenue: asNumber(summary.totalRevenue),
       totalCost: asNumber(summary.totalCost),
       directCost: asNumber(summary.directCost),
+      inventoryCost: asNumber(summary.inventoryCost),
       operatingCost: asNumber(summary.operatingCost),
       salaryCost: asNumber(summary.salaryCost),
       fixedCost: asNumber(summary.fixedCost),
@@ -152,7 +153,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
     const monthSlices = enumerateMonthsInRange(range.startDate, range.endDate);
     const reportYears = Array.from(new Set(monthSlices.map((slice) => slice.year)));
 
-    const [contractsResult, fixedCostsResult, salariesResult, paymentsResult, receiptsResult, operationsResult] = await Promise.all([
+    const [contractsResult, fixedCostsResult, salariesResult, paymentsResult, receiptsResult, operationsResult, retailInventoryResult] = await Promise.all([
       supabase
         .from("contracts")
         .select("id, status, total_amount, discount_amount, service_type, contract_items(total_amount, is_addon)")
@@ -186,6 +187,13 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
         .is("deleted_at", null)
         .gte("expense_date", range.startDate)
         .lte("expense_date", range.endDate),
+      supabase
+        .from("inventory_transactions")
+        .select("quantity, unit_cost, total_cost, source_type, receipt_id, receipts(receipt_date)")
+        .eq("transaction_type", "stock_out")
+        .eq("source_type", "retail_sale")
+        .gte("created_at", `${range.startDate}T00:00:00`)
+        .lte("created_at", `${range.endDate}T23:59:59`),
     ]);
 
     const firstError =
@@ -194,7 +202,8 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
       salariesResult.error ||
       paymentsResult.error ||
       receiptsResult.error ||
-      operationsResult.error;
+      operationsResult.error ||
+      retailInventoryResult.error;
 
     if (firstError) {
       throw new Error(`Loi tai bao cao: ${firstError.message}`);
@@ -203,7 +212,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
     const contracts = (contractsResult.data || []) as ContractRow[];
     const contractIds = contracts.map((contract) => contract.id);
 
-    const [tasksResult, printsResult, contractExpensesResult] = contractIds.length > 0
+    const [tasksResult, printsResult, contractExpensesResult, contractInventoryResult] = contractIds.length > 0
       ? await Promise.all([
           supabase.from("work_tasks").select("contract_id, cost").in("contract_id", contractIds),
           supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", contractIds),
@@ -212,14 +221,21 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
             .select("contract_id, amount, description")
             .is("deleted_at", null)
             .in("contract_id", contractIds),
+          supabase
+            .from("inventory_transactions")
+            .select("contract_id, quantity, unit_cost, total_cost, source_type")
+            .eq("transaction_type", "stock_out")
+            .in("source_type", ["contract_fulfillment", "contract_addon_sale"])
+            .in("contract_id", contractIds),
         ])
       : [
           { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
+          { data: [], error: null },
         ];
 
-    const directError = tasksResult.error || printsResult.error || contractExpensesResult.error;
+    const directError = tasksResult.error || printsResult.error || contractExpensesResult.error || contractInventoryResult.error;
     if (directError) {
       throw new Error(`Loi tai chi phi hop dong: ${directError.message}`);
     }
@@ -260,7 +276,10 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
     const contractExpenseCost = (contractExpensesResult.data || []).reduce((sum, row) => {
       return asString(row.description).startsWith("[Auto-Print]") ? sum : sum + asNumber(row.amount);
     }, 0);
-    const directCost = taskCost + printCost + contractExpenseCost;
+    const inventoryCost =
+      (contractInventoryResult.data || []).reduce((sum, row) => sum + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)), 0) +
+      (retailInventoryResult.data || []).reduce((sum, row) => sum + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)), 0);
+    const directCost = taskCost + printCost + contractExpenseCost + inventoryCost;
 
     const operatingCost = (operationsResult.data || []).reduce((sum, row) => {
       return row.contract_id ? sum : sum + asNumber(row.amount);
@@ -280,6 +299,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
         totalRevenue: reportRevenue,
         totalCost,
         directCost,
+        inventoryCost,
         operatingCost,
         salaryCost,
         fixedCost,

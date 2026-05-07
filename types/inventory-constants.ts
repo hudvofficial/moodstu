@@ -58,6 +58,17 @@ export const TRANSACTION_TYPE_MAP: Record<string, StatusConfig> = {
   stock_out: { label: "Xuất kho", variant: "warning" },
 };
 
+export const INVENTORY_SOURCE_TYPE_MAP: Record<string, StatusConfig> = {
+  stock_in: { label: "Nhập kho", variant: "success" },
+  contract_fulfillment: { label: "Xuất HĐ", variant: "primary" },
+  retail_sale: { label: "Bán lẻ", variant: "success" },
+  contract_addon_sale: { label: "Bán thêm HĐ", variant: "primary" },
+  internal_use: { label: "Nội bộ", variant: "warning" },
+  loss_adjustment: { label: "Hao hụt", variant: "error" },
+  correction: { label: "Điều chỉnh", variant: "neutral" },
+  return: { label: "Hoàn trả", variant: "info" },
+};
+
 // ─── PAGE SIZE ───────────────────────────────────────
 
 export const INVENTORY_PAGE_SIZE = 20;

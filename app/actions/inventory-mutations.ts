@@ -5,8 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
 import { withInventoryAccess } from "@/lib/auth_utils";
-import { isMissingRpcError } from "@/lib/finance-utils";
+import { checkPeriodLock, isMissingRpcError } from "@/lib/finance-utils";
 import {
+  inventoryContractAddonSaleSchema,
+  inventoryRetailSaleSchema,
   inventoryCreateSchema,
   inventoryUpdateSchema,
   stockInSchema,
@@ -328,6 +330,15 @@ export async function stockOut(rawData: unknown) {
       customerPhone,
       notes,
     } = parsed.data;
+    const hasWalkInRecipient = !contractId && Boolean(customerName?.trim() || customerPhone?.trim());
+
+    if (hasWalkInRecipient) {
+      throw new Error("Bán lẻ vật tư phải tạo phiếu bán để ghi nhận giá bán và doanh thu.");
+    }
+
+    if (!contractId && !reason?.trim()) {
+      throw new Error("Xuất nội bộ/hao hụt bắt buộc nhập lý do.");
+    }
 
     const { data, error } = await supabase.rpc("inventory_stock_out_atomic", {
       p_item_id: itemId,
@@ -359,5 +370,154 @@ export async function stockOut(rawData: unknown) {
     revalidatePath("/inventory");
     revalidatePath(`/inventory/${itemId}`);
     return data as { current_stock?: number; warning?: string | null };
+  });
+}
+
+export async function createInventoryRetailSale(rawData: unknown) {
+  const parsed = inventoryRetailSaleSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      error: parsed.error.issues[0]?.message || "Dữ liệu bán vật tư không hợp lệ",
+    };
+  }
+
+  return withInventoryAccess(async (supabase, userId) => {
+    const input = parsed.data;
+    const receiptAmount = input.quantity * input.saleUnitPrice;
+    const customerAddress = normalizeOptionalText(input.customerAddress);
+    const receiptNotes = [
+      customerAddress ? `Địa chỉ khách lẻ: ${customerAddress}` : "",
+      normalizeOptionalText(input.notes) || "",
+    ].filter(Boolean).join("\n");
+
+    await checkPeriodLock(supabase, input.receiptDate);
+
+    const { data, error } = await supabase.rpc("create_sale_receipt_atomic", {
+      p_receipt: {
+        receipt_date: input.receiptDate,
+        receipt_type: "sale_receipt",
+        payment_type: input.paymentMethod,
+        receipt_amount: receiptAmount,
+        notes: receiptNotes,
+        category_id: input.categoryId || "",
+        category_name: input.categoryName || "Bán vật tư",
+        customer_name: input.customerName?.trim() || "Khách lẻ",
+        customer_phone: input.customerPhone?.trim() || "",
+        created_by: userId,
+      },
+      p_items: [{
+        item_id: input.itemId,
+        item_name: input.itemName || "",
+        quantity: input.quantity,
+        sale_unit_price: input.saleUnitPrice,
+        unit_cost: input.saleUnitPrice,
+      }],
+    });
+
+    if (error && isMissingRpcError(error)) {
+      throw new Error("Migration create_sale_receipt_atomic chưa được chạy. Vui lòng push migration trước khi bán vật tư.");
+    }
+    if (error) throw new Error(error.message);
+
+    const receiptId = (data as { receipt_id?: string } | null)?.receipt_id || null;
+
+    await fireAuditLog({
+      action: "CREATE",
+      tableName: "receipts",
+      recordId: receiptId || input.itemId,
+      description: `Bán vật tư: ${input.quantity} x ${input.itemName || input.itemId}`,
+      newData: {
+        ...input,
+        receipt_amount: receiptAmount,
+        receipt_id: receiptId,
+      },
+      source: "server_action",
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${input.itemId}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/reports");
+    revalidatePath("/dashboard");
+
+    return { receipt_id: receiptId, receipt_amount: receiptAmount };
+  });
+}
+
+export async function createInventoryContractAddonSale(rawData: unknown) {
+  const parsed = inventoryContractAddonSaleSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      error: parsed.error.issues[0]?.message || "Dữ liệu bán thêm hợp đồng không hợp lệ",
+    };
+  }
+
+  return withInventoryAccess(async (supabase, userId) => {
+    const input = parsed.data;
+    const totalAmount = input.quantity * input.saleUnitPrice;
+    const noteLines = [
+      `Bán thêm vật tư: ${input.itemName || input.itemId}`,
+      normalizeOptionalText(input.notes) || "",
+    ].filter(Boolean);
+
+    await checkPeriodLock(supabase, input.receiptDate);
+
+    const { data, error } = await supabase.rpc("create_contract_inventory_addon_sale_atomic", {
+      p_contract_id: input.contractId,
+      p_item_id: input.itemId,
+      p_quantity: input.quantity,
+      p_sale_unit_price: input.saleUnitPrice,
+      p_payment_method: input.paymentMethod,
+      p_payment_date: input.receiptDate,
+      p_notes: noteLines.join("\n"),
+      p_user_id: userId,
+    });
+
+    if (error && isMissingRpcError(error)) {
+      throw new Error("Migration create_contract_inventory_addon_sale_atomic chưa được chạy. Vui lòng push migration trước khi bán thêm vật tư cho hợp đồng.");
+    }
+    if (error) throw new Error(error.message);
+
+    const result = (data || {}) as {
+      payment_id?: string;
+      receipt_code?: string | null;
+      contract_item_id?: string | null;
+      current_stock?: number;
+    };
+
+    await fireAuditLog({
+      action: "CREATE",
+      tableName: "payments",
+      recordId: result.payment_id || input.contractId,
+      description: `Bán thêm vật tư cho HĐ: ${input.quantity} x ${input.itemName || input.itemId}`,
+      newData: {
+        ...input,
+        total_amount: totalAmount,
+        payment_id: result.payment_id || null,
+        receipt_code: result.receipt_code || null,
+        contract_item_id: result.contract_item_id || null,
+      },
+      source: "server_action",
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${input.itemId}`);
+    revalidatePath("/contracts");
+    revalidatePath(`/contracts/${input.contractId}`);
+    revalidatePath("/finance");
+    revalidatePath("/finance/receipts");
+    revalidatePath("/reports");
+    revalidatePath("/dashboard");
+
+    return {
+      payment_id: result.payment_id || null,
+      receipt_code: result.receipt_code || null,
+      contract_item_id: result.contract_item_id || null,
+      receipt_amount: totalAmount,
+      current_stock: result.current_stock,
+    };
   });
 }

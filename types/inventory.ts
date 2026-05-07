@@ -86,10 +86,18 @@ export interface InventoryTransaction {
   unit_cost: number;
   total_cost: number;
   contract_id: string | null;
+  contract_code?: string | null;
   reason: string | null;
   supplier: string | null;
   customer_name: string | null;
   customer_phone: string | null;
+  customer_address?: string | null;
+  source_type?: string | null;
+  source_id?: string | null;
+  receipt_id?: string | null;
+  sale_unit_price?: number | null;
+  sale_total?: number | null;
+  payment_method?: string | null;
   performed_by: string | null;
   created_by: string | null;
   notes: string | null;
@@ -119,4 +127,11 @@ export interface InventoryPickerPage {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface InventoryContractOption {
+  id: string;
+  contract_code: string;
+  customer_name: string;
+  customer_phone: string | null;
 }

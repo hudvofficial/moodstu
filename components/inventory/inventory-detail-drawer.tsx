@@ -26,6 +26,7 @@ import {
 import { CURRENCY_SYMBOL, formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import {
   INVENTORY_CATEGORY_MAP,
+  INVENTORY_SOURCE_TYPE_MAP,
   INVENTORY_STATUS_MAP,
   INVENTORY_UNIT_MAP,
   TRANSACTION_TYPE_MAP,
@@ -358,6 +359,8 @@ function TransactionPreview({
     transaction_type: string;
     quantity: number;
     unit_cost: number;
+    sale_unit_price?: number | null;
+    source_type?: string | null;
     reason: string | null;
     created_at: string;
   }>;
@@ -372,7 +375,8 @@ function TransactionPreview({
         <tr>
           <TH>Loại</TH>
           <TH className="text-right">SL</TH>
-          <TH className="text-right">Đơn giá</TH>
+          <TH className="text-right">Giá vốn</TH>
+          <TH className="text-right">Giá bán</TH>
           <TH>Ngày</TH>
         </tr>
       </THead>
@@ -382,15 +386,19 @@ function TransactionPreview({
             label: txn.transaction_type,
             variant: "neutral" as const,
           };
+          const sourceConfig = txn.source_type
+            ? INVENTORY_SOURCE_TYPE_MAP[txn.source_type] || typeConfig
+            : typeConfig;
           return (
             <TR key={txn.id}>
               <TD>
-                <Badge variant={asBadgeVariant(typeConfig.variant)}>
-                  {typeConfig.label}
+                <Badge variant={asBadgeVariant(sourceConfig.variant)}>
+                  {sourceConfig.label}
                 </Badge>
               </TD>
               <TD className="text-right font-semibold">{txn.quantity}</TD>
               <TD className="text-right">{fmt(txn.unit_cost)}</TD>
+              <TD className="text-right">{txn.sale_unit_price ? fmt(txn.sale_unit_price) : "—"}</TD>
               <TD>{formatDate(txn.created_at)}</TD>
             </TR>
           );
