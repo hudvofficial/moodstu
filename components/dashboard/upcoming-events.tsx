@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Calendar, Camera, Heart, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, safeFormatDate } from "@/lib/utils";
 import type { UpcomingEventData } from "@/types/dashboard";
 
 const SERVICE_ICON: Record<string, typeof Camera> = {
@@ -20,9 +20,7 @@ interface UpcomingEventsListProps {
 }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "--/--";
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return safeFormatDate(dateStr, "dd/MM");
 }
 
 function getDaysUntil(dateStr: string) {
@@ -70,6 +68,20 @@ export function UpcomingEventsList({ events, canView }: UpcomingEventsListProps)
         <div className="space-y-3">
           {events.map((event) => {
             const Icon = SERVICE_ICON[event.serviceType] || SERVICE_ICON.default;
+            const milestones = event.milestones?.length
+              ? event.milestones
+              : [
+                  {
+                    id: event.id,
+                    eventDate: event.eventDate,
+                    source: event.source,
+                    sourceLabel: event.sourceLabel,
+                  },
+                ];
+            const eventCount = event.eventCount || milestones.length;
+            const visibleDates = milestones.slice(0, 3);
+            const hiddenDateCount = Math.max(eventCount - visibleDates.length, 0);
+
             return (
               <Link
                 key={`${event.source}-${event.id}`}
@@ -84,9 +96,23 @@ export function UpcomingEventsList({ events, canView }: UpcomingEventsListProps)
                   <Icon className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-body-sm font-medium">{event.customerName}</p>
-                  <p className="text-caption">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="truncate text-body-sm font-medium">{event.customerName}</p>
+                    {eventCount > 1 && (
+                      <span className="text-tiny shrink-0 rounded-full bg-primary/8 px-2 py-0.5 font-semibold text-primary">
+                        {eventCount} mốc
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-caption">
                     {event.contractCode || event.sourceLabel}
+                    {eventCount > 1 && (
+                      <>
+                        {" · "}
+                        {visibleDates.map((item) => formatDate(item.eventDate)).join(", ")}
+                        {hiddenDateCount > 0 ? ` +${hiddenDateCount}` : ""}
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">

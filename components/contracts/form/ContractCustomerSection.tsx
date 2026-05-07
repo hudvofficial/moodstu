@@ -8,12 +8,6 @@ import { CoupleDetailFields } from "./CoupleDetailFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-// ═══════════════════════════════════════════
-// ContractCustomerSection — Search + Select + Couple Fields
-// 3 states: empty → searching → selected
-// V2: CoupleFields extracted to CoupleDetailFields.tsx
-// ═══════════════════════════════════════════
-
 interface Props {
   customer: UseContractCustomerReturn;
   showCoupleFields: boolean;
@@ -31,18 +25,17 @@ export function ContractCustomerSection({
 }: Props) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    function handleClick(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         customer.setShowDropdown(false);
       }
     }
+
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [customer]);
 
-  // ── State: Customer selected ──
   if (customer.selectedCustomer) {
     return (
       <section className="space-y-4">
@@ -52,10 +45,9 @@ export function ContractCustomerSection({
           </h3>
         </div>
 
-        {/* Selected card */}
         <div className="card-base flex items-center justify-between p-4">
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-text-primary truncate">
+            <p className="truncate font-semibold text-text-primary">
               {customer.selectedCustomer.full_name}
               {customer.isNewCustomer && (
                 <span className="badge badge-success ml-2">Mới</span>
@@ -74,16 +66,16 @@ export function ContractCustomerSection({
               </p>
             )}
           </div>
-          <Button unstyled
+          <Button
+            unstyled
             type="button"
             onClick={customer.clearCustomer}
-            className="btn btn-ghost text-body-sm ml-3"
+            className="btn btn-ghost ml-3 text-body-sm"
           >
             Đổi
           </Button>
         </div>
 
-        {/* Couple fields (conditional) */}
         {showCoupleFields && (
           <CoupleDetailFields formData={formData} updateField={updateField} />
         )}
@@ -91,18 +83,16 @@ export function ContractCustomerSection({
     );
   }
 
-  // ── State: Searching / Empty ──
   return (
     <section className="space-y-4">
-      {/* H3 + search + create btn — 1 row (Stitch L119-132) */}
       <div className="section-header-row">
         <h3 className="form-section-heading whitespace-nowrap">
           2. Khách hàng
         </h3>
+
         <div className="section-search-inline">
           <div className="relative flex-1" ref={dropdownRef}>
             <div className="relative">
-              {/* Dynamic icon — V1 pattern: search→selected→new */}
               {customer.selectedCustomer ? (
                 <UserCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-interactive" />
               ) : customer.isNewCustomer ? (
@@ -110,26 +100,29 @@ export function ContractCustomerSection({
               ) : (
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               )}
-              <Input unstyled
+              <Input
+                unstyled
                 type="text"
                 value={customer.searchQuery}
-                onChange={(e) => customer.setSearchQuery(e.target.value)}
+                onChange={(event) => customer.setSearchQuery(event.target.value)}
+                onFocus={customer.reopenSearchDropdown}
                 placeholder="Tìm kiếm khách hàng..."
                 readOnly={!!customer.selectedCustomer}
                 className={`input-base pl-10 pr-10 ${customer.selectedCustomer ? "input-selected" : ""}`}
               />
-              {/* T3: Clear button — V1 pattern */}
+
               {(customer.selectedCustomer || customer.isNewCustomer) && (
-                <Button unstyled
+                <Button
+                  unstyled
                   type="button"
                   onClick={customer.clearCustomer}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-error transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-error"
                   title="Bỏ chọn"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
-              {/* Spinner khi đang search */}
+
               {customer.isSearching && !customer.selectedCustomer && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-interactive" />
@@ -137,27 +130,27 @@ export function ContractCustomerSection({
               )}
             </div>
 
-            {/* T4: Dropdown V1-style — header + results + sticky create */}
             {customer.showDropdown && (
               <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-radius-md bg-bg-card shadow-lg">
                 {customer.searchResults.length > 0 && (
                   <>
                     <div className="dropdown-section-label">Khách hàng cũ</div>
                     <ul className="max-h-48 overflow-y-auto">
-                      {customer.searchResults.map((c) => (
-                        <li key={c.id}>
-                          <Button unstyled
+                      {customer.searchResults.map((item) => (
+                        <li key={item.id}>
+                          <Button
+                            unstyled
                             type="button"
-                            onClick={() => customer.selectCustomer(c)}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-bg-hover transition-colors"
+                            onClick={() => customer.selectCustomer(item)}
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-bg-hover"
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="text-body-sm font-medium text-text-primary truncate">
-                                {c.full_name}
+                              <p className="truncate text-body-sm font-medium text-text-primary">
+                                {item.full_name}
                               </p>
-                              {c.phone && (
+                              {item.phone && (
                                 <p className="text-caption text-text-secondary">
-                                  {c.phone}
+                                  {item.phone}
                                 </p>
                               )}
                             </div>
@@ -168,14 +161,26 @@ export function ContractCustomerSection({
                   </>
                 )}
 
-                {customer.searchResults.length === 0 && (
+                {customer.isSearching && customer.searchResults.length === 0 && (
                   <p className="px-4 py-3 text-body-sm text-text-muted">
-                    Không tìm thấy khách hàng
+                    Đang tìm khách hàng...
                   </p>
                 )}
 
-                {/* Sticky bottom: "Tạo KH mới" với context — V1 pattern */}
-                <Button unstyled
+                {!customer.isSearching && customer.searchError && (
+                  <p className="px-4 py-3 text-body-sm text-warning">
+                    {customer.searchError}
+                  </p>
+                )}
+
+                {!customer.isSearching && !customer.searchError && customer.searchResults.length === 0 && (
+                  <p className="px-4 py-3 text-body-sm text-text-muted">
+                    Chưa có khách hàng trùng khớp
+                  </p>
+                )}
+
+                <Button
+                  unstyled
                   type="button"
                   onClick={customer.openCreateCustomer}
                   className="dropdown-create-action"
@@ -184,7 +189,7 @@ export function ContractCustomerSection({
                     <UserPlus className="h-3.5 w-3.5 text-interactive" />
                   </span>
                   <div>
-                    <p className="text-sm font-bold">Xác nhận tạo khách hàng mới</p>
+                    <p className="text-sm font-bold">Tạo khách hàng mới</p>
                     {customer.searchQuery && (
                       <p className="text-caption text-text-secondary">
                         với tên &quot;{customer.searchQuery}&quot;
@@ -196,12 +201,12 @@ export function ContractCustomerSection({
             )}
           </div>
 
-          {/* T5: Inline button — chỉ hiện khi dropdown đóng */}
           {!customer.showDropdown && (
-            <Button unstyled
+            <Button
+              unstyled
               type="button"
               onClick={customer.openCreateCustomer}
-              className="flex items-center gap-1.5 text-interactive text-sm font-semibold hover:underline whitespace-nowrap shrink-0"
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-interactive hover:underline"
             >
               <UserPlus className="h-4 w-4" />
               <span className="max-lg:hidden">Tạo khách hàng mới</span>
@@ -210,12 +215,10 @@ export function ContractCustomerSection({
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <p className="error-text">{error}</p>
       )}
 
-      {/* Couple fields (show before selection if service type needs it) */}
       {showCoupleFields && (
         <CoupleDetailFields formData={formData} updateField={updateField} />
       )}

@@ -1226,3 +1226,6 @@ Unterminated regexp literal
 [action-profile] services.getServices 1090ms
 [action-profile] services.getServiceCategories 1596ms
 [action-profile] services.getServices 1984ms
+[action-profile] contracts.getContractDetail 1819ms
+[action-profile] contracts.getContractList 1355ms
+[action-profile] contracts.getContractDrawerExtra 2164ms

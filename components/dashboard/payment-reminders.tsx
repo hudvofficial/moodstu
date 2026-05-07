@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
-import { cn, formatVnd } from "@/lib/utils";
+import { cn, formatVnd, safeFormatDate } from "@/lib/utils";
 import type { PaymentReminderData } from "@/types/dashboard";
 
 interface PaymentRemindersProps {
@@ -18,9 +18,14 @@ function EmptyState({ message }: { message: string }) {
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return null;
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  const formatted = safeFormatDate(dateStr, "dd/MM");
+  return formatted === "-" ? null : formatted;
+}
+
+function formatMilestone(item: { stageName: string | null; dueDate: string | null }) {
+  const date = formatDate(item.dueDate);
+  if (!date) return item.stageName || "Đợt thu";
+  return `${item.stageName || "Đợt thu"} · ${date}`;
 }
 
 export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) {
@@ -44,34 +49,64 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
         <EmptyState message="Không có hợp đồng còn công nợ." />
       ) : (
         <div className="space-y-3">
-          {reminders.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg p-3",
-                "bg-bg-base/60 transition-colors hover:bg-bg-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              )}
-            >
-              <div className="h-2 w-2 shrink-0 rounded-full bg-warning" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-body-sm font-medium">{item.customerName}</p>
-                <p className="text-caption">
-                  {item.stageName || item.contractCode}
-                  {formatDate(item.dueDate) ? ` · ${formatDate(item.dueDate)}` : ""}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-body-sm font-bold text-warning">
-                  {formatVnd(item.remainingAmount)}
-                </p>
-                {item.isOverdue ? (
-                  <p className="text-caption font-semibold text-error">Quá hạn</p>
-                ) : null}
-              </div>
-            </Link>
-          ))}
+          {reminders.map((item) => {
+            const milestones = item.milestones?.length
+              ? item.milestones
+              : [
+                  {
+                    id: item.id,
+                    stageName: item.stageName,
+                    amount: item.remainingAmount,
+                    dueDate: item.dueDate,
+                    source: item.source,
+                    isOverdue: item.isOverdue,
+                  },
+                ];
+            const installmentCount = item.installmentCount || milestones.length;
+            const overdueCount = item.overdueCount || (item.isOverdue ? 1 : 0);
+            const visibleMilestones = milestones.slice(0, 2);
+            const hiddenCount = Math.max(installmentCount - visibleMilestones.length, 0);
+
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg p-3",
+                  "bg-bg-base/60 transition-colors hover:bg-bg-hover",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                )}
+              >
+                <div className="h-2 w-2 shrink-0 rounded-full bg-warning" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="truncate text-body-sm font-medium">{item.customerName}</p>
+                    {installmentCount > 1 && (
+                      <span className="text-tiny shrink-0 rounded-full bg-warning/10 px-2 py-0.5 font-semibold text-warning">
+                        {installmentCount} đợt
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-caption">
+                    {item.contractCode}
+                    {" · "}
+                    {visibleMilestones.map(formatMilestone).join(", ")}
+                    {hiddenCount > 0 ? ` +${hiddenCount}` : ""}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-body-sm font-bold text-warning">
+                    {formatVnd(item.remainingAmount)}
+                  </p>
+                  {item.isOverdue ? (
+                    <p className="text-caption font-semibold text-error">
+                      {overdueCount > 1 ? `${overdueCount} quá hạn` : "Quá hạn"}
+                    </p>
+                  ) : null}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -263,10 +263,7 @@ export default function ContractForm({ mode, contractId }: Props) {
       <CustomerFormModal
         isOpen={form.customer.showCustomerModal}
         onClose={() => form.customer.setShowCustomerModal(false)}
-        onCreated={(cust) => {
-          form.customer.selectCustomer(cust);
-          form.customer.setShowCustomerModal(false);
-        }}
+        onCreated={form.customer.onCustomerCreated}
         showCoupleFields={form.shouldShowCoupleFields}
         initialName={form.customer.searchQuery}
       />

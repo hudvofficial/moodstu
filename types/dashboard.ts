@@ -43,6 +43,15 @@ export interface ServiceBreakdownData {
   fill: string;
 }
 
+export type UpcomingEventSource = "contract_events" | "schedules" | "work_tasks";
+
+export interface UpcomingEventMilestone {
+  id: string;
+  eventDate: string;
+  source: UpcomingEventSource;
+  sourceLabel: string;
+}
+
 export interface UpcomingEventData {
   id: string;
   contractId: string | null;
@@ -50,9 +59,22 @@ export interface UpcomingEventData {
   customerName: string;
   eventDate: string;
   serviceType: ServiceTypeEnum | "khac";
-  source: "contract_events" | "schedules" | "work_tasks";
+  source: UpcomingEventSource;
   sourceLabel: string;
   href: string;
+  milestones?: UpcomingEventMilestone[];
+  eventCount?: number;
+}
+
+export type PaymentReminderSource = "payment_plans" | "contracts";
+
+export interface PaymentReminderMilestone {
+  id: string;
+  stageName: string | null;
+  amount: number;
+  dueDate: string | null;
+  source: PaymentReminderSource;
+  isOverdue: boolean;
 }
 
 export interface PaymentReminderData {
@@ -63,9 +85,12 @@ export interface PaymentReminderData {
   stageName: string | null;
   remainingAmount: number;
   dueDate: string | null;
-  source: "payment_plans" | "contracts";
+  source: PaymentReminderSource;
   isOverdue: boolean;
   href: string;
+  milestones?: PaymentReminderMilestone[];
+  installmentCount?: number;
+  overdueCount?: number;
 }
 
 export interface DashboardBootstrapData {

@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { searchCustomers } from "@/app/actions/customer-actions";
 import type { SelectedCustomer } from "@/types/contract-form";
-
-// ═══════════════════════════════════════════
-// useContractCustomer — Customer Search + Selection
-// V1 pattern: search debounce → select → auto-fill
-// ═══════════════════════════════════════════
 
 interface CustomerSearchResult {
   id: string;
@@ -28,43 +23,112 @@ interface CustomerSearchResult {
   address: string | null;
 }
 
+const MIN_SEARCH_LENGTH = 2;
+const SEARCH_DEBOUNCE_MS = 200;
+const SEARCH_SLOW_MS = 1800;
+
 export function useContractCustomer() {
-  // ── State ──
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQueryState] = useState("");
   const [searchResults, setSearchResults] = useState<CustomerSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const searchRequestId = useRef(0);
 
-  // ── Debounce search query (300ms) ──
-  const debouncedQuery = useDebounce(searchQuery, 300);
+  const debouncedQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
 
-  // ── Search effect ──
+  const setSearchQuery = useCallback((value: string) => {
+    const normalized = value.trim();
+
+    setSearchQueryState(value);
+    setSearchError("");
+    setSearchResults([]);
+    setShowDropdown(normalized.length >= MIN_SEARCH_LENGTH);
+
+    if (normalized.length < MIN_SEARCH_LENGTH) {
+      searchRequestId.current += 1;
+      setIsSearching(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
+    const query = debouncedQuery.trim();
+    const requestId = searchRequestId.current + 1;
+    searchRequestId.current = requestId;
 
-    async function doSearch() {
-      if (!debouncedQuery || debouncedQuery.length < 2) {
-        setSearchResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      const result = await searchCustomers(debouncedQuery);
-      if (!cancelled && result.success) {
-        setSearchResults(result.data as CustomerSearchResult[]);
-        setShowDropdown(true);
-      }
-      if (!cancelled) setIsSearching(false);
+    if (query.length < MIN_SEARCH_LENGTH) {
+      setSearchResults([]);
+      setSearchError("");
+      setIsSearching(false);
+      return;
     }
 
-    doSearch();
-    return () => { cancelled = true; };
+    let cancelled = false;
+    const slowTimer = window.setTimeout(() => {
+      if (cancelled || searchRequestId.current !== requestId) return;
+      setIsSearching(false);
+      setShowDropdown(true);
+      setSearchError("Tìm kiếm đang chậm, có thể tạo khách mới ngay.");
+    }, SEARCH_SLOW_MS);
+
+    async function doSearch() {
+      setIsSearching(true);
+      setSearchError("");
+      setShowDropdown(true);
+
+      try {
+        const result = await searchCustomers(query);
+        if (cancelled || searchRequestId.current !== requestId) return;
+
+        if (result.success) {
+          setSearchResults(result.data as CustomerSearchResult[]);
+          setSearchError("");
+        } else {
+          setSearchResults([]);
+          setSearchError(result.error || "Không tải được danh sách khách hàng.");
+        }
+      } catch (error) {
+        if (cancelled || searchRequestId.current !== requestId) return;
+        setSearchResults([]);
+        setSearchError(error instanceof Error ? error.message : "Không tải được danh sách khách hàng.");
+      } finally {
+        window.clearTimeout(slowTimer);
+        if (!cancelled && searchRequestId.current === requestId) {
+          setIsSearching(false);
+          setShowDropdown(true);
+        }
+      }
+    }
+
+    void doSearch();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(slowTimer);
+    };
   }, [debouncedQuery]);
 
-  // ── Select customer ──
+  useEffect(() => {
+    const normalized = searchQuery.trim();
+    if (normalized.length >= MIN_SEARCH_LENGTH && !selectedCustomer) {
+      setShowDropdown(true);
+      return;
+    }
+
+    if (normalized.length < MIN_SEARCH_LENGTH) {
+      setShowDropdown(false);
+    }
+  }, [searchQuery, selectedCustomer]);
+
+  const reopenSearchDropdown = useCallback(() => {
+    if (searchQuery.trim().length >= MIN_SEARCH_LENGTH && !selectedCustomer) {
+      setShowDropdown(true);
+    }
+  }, [searchQuery, selectedCustomer]);
+
   const selectCustomer = useCallback((customer: CustomerSearchResult) => {
     setSelectedCustomer({
       id: customer.id,
@@ -83,48 +147,54 @@ export function useContractCustomer() {
       wedding_date: customer.wedding_date,
       address: customer.address,
     });
-    setSearchQuery("");
+    setSearchQueryState("");
     setSearchResults([]);
+    setSearchError("");
     setShowDropdown(false);
   }, []);
 
-  // ── Clear selection ──
   const clearCustomer = useCallback(() => {
+    searchRequestId.current += 1;
     setSelectedCustomer(null);
-    setSearchQuery("");
+    setSearchQueryState("");
     setSearchResults([]);
+    setSearchError("");
+    setIsSearching(false);
+    setShowDropdown(false);
     setIsNewCustomer(false);
   }, []);
 
-  // ── Open create customer modal ──
   const openCreateCustomer = useCallback(() => {
     setShowCustomerModal(true);
     setShowDropdown(false);
   }, []);
 
-  // ── Callback after customer created ──
   const onCustomerCreated = useCallback((newCustomer: CustomerSearchResult) => {
     selectCustomer(newCustomer);
     setIsNewCustomer(true);
     setShowCustomerModal(false);
   }, [selectCustomer]);
 
-  // ── Pre-fill for edit mode ──
   const prefillCustomer = useCallback((customer: SelectedCustomer) => {
+    searchRequestId.current += 1;
     setSelectedCustomer(customer);
+    setSearchResults([]);
+    setSearchError("");
+    setIsSearching(false);
+    setShowDropdown(false);
   }, []);
 
   return {
-    // State
     searchQuery,
     searchResults,
     isSearching,
+    searchError,
     selectedCustomer,
     showDropdown,
     showCustomerModal,
     isNewCustomer,
-    // Actions
     setSearchQuery,
+    reopenSearchDropdown,
     setShowDropdown,
     selectCustomer,
     clearCustomer,

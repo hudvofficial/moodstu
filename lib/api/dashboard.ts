@@ -24,6 +24,7 @@ const DASHBOARD_CHART_MONTHS = 6;
 const UPCOMING_DAYS = 14;
 const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
+const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
 
 const SERVICE_LABELS: Record<string, string> = {
   studio: "Studio",
@@ -406,7 +407,7 @@ async function queryContractEvents(
     .gte("event_date", start)
     .lt("event_date", end)
     .order("event_date", { ascending: true })
-    .limit(LIST_LIMIT);
+    .limit(UPCOMING_SOURCE_LIMIT);
 
   assertQueryOk("Lỗi tải lịch hợp đồng sắp tới", error);
 
@@ -447,7 +448,7 @@ async function queryPersonalSchedules(
     .gte("event_date", start)
     .lt("event_date", end)
     .order("event_date", { ascending: true })
-    .limit(LIST_LIMIT * 2);
+    .limit(UPCOMING_SOURCE_LIMIT);
 
   if (!canSeeAll) {
     query = query.eq("employee_id", access.employeeId);
@@ -500,7 +501,7 @@ async function queryWorkTasks(
     .select("id, deadline, start_date, work_type, status, contract_id, contracts(id, contract_code, service_type, status, deleted_at, customers(full_name))")
     .or(`and(deadline.gte.${start},deadline.lt.${end}),and(deadline.is.null,start_date.gte.${start},start_date.lt.${end})`)
     .order("deadline", { ascending: true, nullsFirst: false })
-    .limit(LIST_LIMIT * 2);
+    .limit(UPCOMING_SOURCE_LIMIT);
 
   if (!canSeeAll) {
     query = query.eq("assigned_to", access.employeeId);
@@ -558,15 +559,39 @@ async function queryUpcomingEvents(
   const deduped = new Map<string, UpcomingEventData>();
   for (const item of [...contractEvents, ...schedules, ...tasks]) {
     const key =
-      item.source === "work_tasks"
-        ? `${item.source}:${item.id}`
-        : item.contractId
-          ? `calendar:${item.contractId}:${dateKey(item.eventDate)}`
-          : `${item.source}:${item.id}`;
+      item.contractId
+        ? `calendar:${item.contractId}:${dateKey(item.eventDate)}`
+        : `${item.source}:${item.id}`;
     if (!deduped.has(key)) deduped.set(key, item);
   }
 
-  return Array.from(deduped.values())
+  const grouped = new Map<string, UpcomingEventData>();
+  for (const item of Array.from(deduped.values()).sort((left, right) =>
+    compareDateAsc(left.eventDate, right.eventDate),
+  )) {
+    const groupKey = item.contractId ? `contract:${item.contractId}` : `${item.source}:${item.id}`;
+    const milestone = {
+      id: item.id,
+      eventDate: item.eventDate,
+      source: item.source,
+      sourceLabel: item.sourceLabel,
+    };
+    const existing = grouped.get(groupKey);
+
+    if (!existing) {
+      grouped.set(groupKey, {
+        ...item,
+        milestones: [milestone],
+        eventCount: 1,
+      });
+      continue;
+    }
+
+    existing.milestones = [...(existing.milestones || []), milestone];
+    existing.eventCount = existing.milestones.length;
+  }
+
+  return Array.from(grouped.values())
     .sort((left, right) => compareDateAsc(left.eventDate, right.eventDate))
     .slice(0, LIST_LIMIT);
 }
@@ -648,7 +673,41 @@ async function queryPaymentReminders(
       };
     });
 
-  return [...planReminders, ...fallbackReminders].slice(0, LIST_LIMIT);
+  const grouped = new Map<string, PaymentReminderData>();
+
+  for (const item of [...planReminders, ...fallbackReminders].sort((left, right) =>
+    compareDateAsc(left.dueDate, right.dueDate),
+  )) {
+    const milestone = {
+      id: item.id,
+      stageName: item.stageName,
+      amount: item.remainingAmount,
+      dueDate: item.dueDate,
+      source: item.source,
+      isOverdue: item.isOverdue,
+    };
+    const existing = grouped.get(item.contractId);
+
+    if (!existing) {
+      grouped.set(item.contractId, {
+        ...item,
+        milestones: [milestone],
+        installmentCount: 1,
+        overdueCount: item.isOverdue ? 1 : 0,
+      });
+      continue;
+    }
+
+    existing.remainingAmount += item.remainingAmount;
+    existing.isOverdue = existing.isOverdue || item.isOverdue;
+    existing.milestones = [...(existing.milestones || []), milestone];
+    existing.installmentCount = existing.milestones.length;
+    existing.overdueCount = (existing.overdueCount || 0) + (item.isOverdue ? 1 : 0);
+  }
+
+  return Array.from(grouped.values())
+    .sort((left, right) => compareDateAsc(left.dueDate, right.dueDate))
+    .slice(0, LIST_LIMIT);
 }
 
 export const getDashboardBootstrap = cache(async (): Promise<DashboardBootstrapData> => {
