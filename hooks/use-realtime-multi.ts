@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { ConnectionStatus, RealtimePayload } from "@/hooks/use-realtime";
 
@@ -15,7 +14,7 @@ export type RealtimeMultiConfig = {
 export type RealtimeMultiOptions = {
   channelName?: string;
   debounceMs?: number;
-  onChange?: (payload: RealtimePayload) => void | Promise<void>;
+  onChange: (payload: RealtimePayload) => void | Promise<void>;
 };
 
 function configKey(configs: RealtimeMultiConfig[]) {
@@ -33,12 +32,11 @@ function configKey(configs: RealtimeMultiConfig[]) {
 
 export function useRealtimeMulti(
   configs: RealtimeMultiConfig[],
-  options: RealtimeMultiOptions = {},
+  options: RealtimeMultiOptions,
 ) {
-  const router = useRouter();
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onChangeRef = useRef<RealtimeMultiOptions["onChange"]>(undefined);
+  const onChangeRef = useRef<RealtimeMultiOptions["onChange"]>(options.onChange);
   const configsKey = useMemo(() => configKey(configs), [configs]);
   const channelName = options.channelName || `realtime-multi-${configsKey}`;
   const debounceMs = options.debounceMs ?? 300;
@@ -66,11 +64,7 @@ export function useRealtimeMulti(
       const handler = (payload: RealtimePayload) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
-          if (onChangeRef.current) {
-            void onChangeRef.current(payload);
-            return;
-          }
-          router.refresh();
+          void onChangeRef.current(payload);
         }, debounceMs);
       };
 

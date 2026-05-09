@@ -34,12 +34,22 @@ export function ContractPaymentSection({ financials }: Props) {
   const {
     paymentForm,
     totalAmount,
-    paymentStatus,
+    hasInitialPayment,
+    initialPaymentRemainingAmount,
+    initialPaymentStatus,
     updatePaymentForm,
   } = financials;
 
-  const statusLabel = PAYMENT_STATUS_MAP[paymentStatus] || paymentStatus;
-  const statusStyle = STATUS_STYLES[paymentStatus] || STATUS_STYLES.chua_thanh_toan;
+  const statusLabel = PAYMENT_STATUS_MAP[initialPaymentStatus] || initialPaymentStatus;
+  const statusStyle = STATUS_STYLES[initialPaymentStatus] || STATUS_STYLES.chua_thanh_toan;
+
+  const handleAmountChange = (value: number) => {
+    const amount = totalAmount > 0 ? Math.min(Math.max(0, value), totalAmount) : 0;
+    updatePaymentForm("amount", amount);
+    if (amount <= 0 && paymentForm.notes) {
+      updatePaymentForm("notes", "");
+    }
+  };
 
   return (
     <section>
@@ -49,19 +59,25 @@ export function ContractPaymentSection({ financials }: Props) {
             5. Thanh toán ban đầu
           </h3>
           <span className={`badge ${statusStyle}`}>
-            {statusLabel}
+            {statusLabel.toUpperCase()}
           </span>
         </div>
 
-        {/* Amount + Method row */}
         <div className="grid grid-cols-1 gap-4">
           <div>
             <CurrencyInput
-              label="Số tiền thanh toán"
+              label="Số tiền thanh toán ban đầu"
               value={paymentForm.amount || 0}
-              onChange={(v) => updatePaymentForm("amount", v)}
+              onChange={handleAmountChange}
               suffix={CURRENCY_SYMBOL}
+              emptyWhenZero
+              placeholder="0"
             />
+            {!hasInitialPayment && (
+              <p className="mt-1 text-caption text-text-muted">
+                Bỏ trống nếu chưa phát sinh thanh toán.
+              </p>
+            )}
             {totalAmount > 0 && (
               <p className="mt-1 text-caption text-text-muted">
                 Tổng: {formatCurrency(totalAmount)} {CURRENCY_SYMBOL}
@@ -69,30 +85,38 @@ export function ContractPaymentSection({ financials }: Props) {
             )}
           </div>
 
-          <div>
-            <SimpleSelect
-              label="Phương thức"
-              value={paymentForm.payment_method}
-              onChange={(v) => updatePaymentForm("payment_method", v as "tien_mat" | "chuyen_khoan")}
-              options={PAYMENT_METHODS}
-            />
-          </div>
-        </div>
+          {hasInitialPayment && (
+            <>
+              <div className="rounded-md bg-bg-base px-3 py-2 text-caption text-text-secondary">
+                Đã ghi nhận {formatCurrency(paymentForm.amount)} {CURRENCY_SYMBOL}
+                {initialPaymentRemainingAmount > 0
+                  ? `, còn lại ${formatCurrency(initialPaymentRemainingAmount)} ${CURRENCY_SYMBOL}`
+                  : ", hợp đồng đã thanh toán đủ"}
+              </div>
 
-        {/* Initial payment is always allocated to the deposit stage. Later collections use the real schedule on contract detail. */}
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="label-base">
-              Ghi chú thanh toán
-            </label>
-            <Input unstyled
-              type="text"
-              value={paymentForm.notes}
-              onChange={(e) => updatePaymentForm("notes", e.target.value)}
-              placeholder="Ghi chú..."
-              className="input-base"
-            />
-          </div>
+              <div>
+                <SimpleSelect
+                  label="Phương thức"
+                  value={paymentForm.payment_method}
+                  onChange={(v) => updatePaymentForm("payment_method", v as "tien_mat" | "chuyen_khoan")}
+                  options={PAYMENT_METHODS}
+                />
+              </div>
+
+              <div>
+                <label className="label-base">
+                  Ghi chú thanh toán
+                </label>
+                <Input unstyled
+                  type="text"
+                  value={paymentForm.notes}
+                  onChange={(e) => updatePaymentForm("notes", e.target.value)}
+                  placeholder="Ghi chú..."
+                  className="input-base"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

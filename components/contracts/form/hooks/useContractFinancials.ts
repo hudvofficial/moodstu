@@ -41,6 +41,39 @@ export function useContractFinancials(subtotal: number) {
     [totalAmount, paidAmount]
   );
 
+  const initialPaymentAmount = useMemo(
+    () => {
+      const amount = Math.max(0, paymentForm.amount || 0);
+      return totalAmount > 0 ? Math.min(amount, totalAmount) : 0;
+    },
+    [paymentForm.amount, totalAmount]
+  );
+
+  const hasInitialPayment = initialPaymentAmount > 0;
+
+  const normalizedPaymentForm = useMemo(
+    () => ({
+      ...paymentForm,
+      amount: initialPaymentAmount,
+      notes: hasInitialPayment ? paymentForm.notes : "",
+    }),
+    [hasInitialPayment, initialPaymentAmount, paymentForm]
+  );
+
+  const initialPaymentRemainingAmount = useMemo(
+    () => Math.max(0, totalAmount - initialPaymentAmount),
+    [totalAmount, initialPaymentAmount]
+  );
+
+  const initialPaymentStatus: PaymentStatus = useMemo(() => {
+    if (!hasInitialPayment) return "chua_thanh_toan";
+    if (totalAmount > 0 && initialPaymentAmount >= totalAmount) return "da_thanh_toan";
+    if (totalAmount > 0 && initialPaymentAmount >= totalAmount * 0.5) {
+      return "thanh_toan_mot_phan";
+    }
+    return "da_coc";
+  }, [hasInitialPayment, initialPaymentAmount, totalAmount]);
+
   const paymentStatus: PaymentStatus = useMemo(() => {
     if (paidAmount <= 0) return "chua_thanh_toan";
     if (paidAmount >= totalAmount) return "da_thanh_toan";
@@ -91,12 +124,16 @@ export function useContractFinancials(subtotal: number) {
     discount,
     discountType,
     paidAmount,
-    paymentForm,
+    paymentForm: normalizedPaymentForm,
     // Derived
     discountAmount,
     totalAmount,
     remainingAmount,
     paymentStatus,
+    initialPaymentAmount,
+    hasInitialPayment,
+    initialPaymentRemainingAmount,
+    initialPaymentStatus,
     // Actions
     updateDiscount,
     setDiscountType,
