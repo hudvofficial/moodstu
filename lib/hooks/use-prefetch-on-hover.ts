@@ -4,10 +4,12 @@ import { useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { mutate } from "swr";
 import type { Arguments } from "swr";
+import { getContractList } from "@/app/actions/contract-queries";
 import { getEmployeeList } from "@/app/actions/employee-queries";
 import { getServices } from "@/app/actions/service-queries";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
+import type { ContractFilters } from "@/types/contract";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 
 type PrefetchConfig = {
@@ -15,11 +17,10 @@ type PrefetchConfig = {
   fetcher: () => Promise<unknown>;
 };
 
-const CONTRACT_PAGE_SIZE = 20;
 const EMPLOYEE_PAGE_SIZE = 20;
 const SERVICE_PAGE_SIZE = 50;
 
-const DEFAULT_CONTRACT_FILTERS = {
+const DEFAULT_CONTRACT_FILTERS: ContractFilters = {
   status: "all",
   search: "",
   time: "all",
@@ -44,67 +45,12 @@ const DEFAULT_DRESS_FILTERS = {
   sort: "newest",
 };
 
-const CONTRACT_PREFETCH_SELECT = `
-  id, contract_code, customer_id, service_type,
-  contract_date, work_date, delivery_date,
-  total_amount, discount_amount, paid_amount,
-  remaining_amount, status, payment_status,
-  updated_at, created_at,
-  customers (id, customer_code, full_name, phone, address, bride_name, groom_name),
-  contract_checklists (
-    id, contract_id, event_stage, category, item_name,
-    is_completed, created_at, updated_at
-  ),
-  contract_notes (
-    id, content, created_by, created_at
-  ),
-  contract_events (
-    id, contract_id, event_type, title, event_date, deadline,
-    sort_order, status, deleted_at
-  ),
-  work_tasks (
-    id, contract_id, event_id, work_type, assigned_to, status,
-    deadline, start_date, start_time, end_time, completion_date, cost, notes,
-    employees:assigned_to(id, full_name, avatar_url, department)
-  ),
-  payment_plans (
-    id, contract_id, stage_name, amount, due_date,
-    status, receipt_id, created_at
-  )
-`;
-
 const DRESS_PREFETCH_SELECT = `
   id, item_code, name, category, size, color, condition,
   rental_price, sale_price, purchase_price,
   current_stock, min_stock, image_url, status, notes,
   created_at, updated_at, created_by, updated_by, deleted_at
 `;
-
-function normalizeContractListRows(rows: Record<string, unknown>[]) {
-  return rows.map((contract) => {
-    const events = Array.isArray(contract.contract_events)
-      ? (contract.contract_events as Record<string, unknown>[])
-      : [];
-    const paymentPlans = Array.isArray(contract.payment_plans)
-      ? (contract.payment_plans as Record<string, unknown>[])
-      : [];
-
-    return {
-      ...contract,
-      contract_events: events
-        .filter((event) => !event.deleted_at)
-        .sort((a, b) => {
-          const sortA = Number(a.sort_order) || 0;
-          const sortB = Number(b.sort_order) || 0;
-          if (sortA !== sortB) return sortA - sortB;
-          return String(a.event_date || "").localeCompare(String(b.event_date || ""));
-        }),
-      payment_plans: paymentPlans.sort((a, b) =>
-        String(a.created_at || "").localeCompare(String(b.created_at || "")),
-      ),
-    };
-  });
-}
 
 function getPrefetchConfig(href: string): PrefetchConfig | null {
   const supabase = createClient();
@@ -114,20 +60,9 @@ function getPrefetchConfig(href: string): PrefetchConfig | null {
     return {
       key: CONTRACT_LIST_KEY,
       fetcher: async () => {
-        const { data, error, count } = await supabase
-          .from("contracts")
-          .select(CONTRACT_PREFETCH_SELECT, { count: "estimated" })
-          .is("deleted_at", null)
-          .neq("status", "da_huy")
-          .order("created_at", { ascending: false })
-          .range(0, CONTRACT_PAGE_SIZE - 1);
-        if (error) throw error;
-        return {
-          contracts: normalizeContractListRows((data || []) as Record<string, unknown>[]),
-          total: count || 0,
-          page: 1,
-          pageSize: CONTRACT_PAGE_SIZE,
-        };
+        const result = await getContractList(DEFAULT_CONTRACT_FILTERS);
+        if (!result.success) throw new Error(result.error);
+        return result.data;
       },
     };
   }

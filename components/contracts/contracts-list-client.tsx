@@ -96,11 +96,13 @@ interface ContractsInitialData {
 
 interface ContractsListClientProps {
   initialData?: ContractsInitialData;
+  initialFilters?: ContractFilters;
   initialStats?: ContractStats;
 }
 
 function ContractsListInner({
   initialData,
+  initialFilters,
   initialStats,
 }: ContractsListClientProps) {
   const router = useRouter();
@@ -123,9 +125,19 @@ function ContractsListInner({
   // ── SWR: Real data from Server Actions ──
   // Cast: ContractFilterState uses `string`, ContractFilters uses typed enums
   const swrFilters = filters as unknown as ContractFilters;
+  const initialFiltersKey = useMemo(
+    () => initialFilters ? JSON.stringify(initialFilters) : null,
+    [initialFilters],
+  );
+  const currentFiltersKey = useMemo(
+    () => JSON.stringify(swrFilters),
+    [swrFilters],
+  );
+  const initialDataForCurrentFilters =
+    initialFiltersKey === currentFiltersKey ? initialData : undefined;
   const { contracts, total, page, pageSize, isLoading, error } = useContracts(
     swrFilters,
-    initialData,
+    initialDataForCurrentFilters,
   );
   const { stats, isLoading: statsLoading } = useContractStats(initialStats);
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user

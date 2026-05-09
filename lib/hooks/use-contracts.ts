@@ -72,10 +72,22 @@ export function useContracts(
     {
       keepPreviousData: true,
       revalidateOnFocus: false,
+      revalidateOnMount: fallbackData ? false : undefined,
       dedupingInterval: 10_000,
       fallbackData,
     }
   );
+
+  useEffect(() => {
+    const fallbackCount = fallbackData?.contracts?.length || 0;
+    const currentCount = data?.contracts?.length || 0;
+    const fallbackTotal = Number(fallbackData?.total) || 0;
+    const currentTotal = Number(data?.total) || 0;
+
+    if (fallbackCount > 0 && fallbackTotal > 0 && currentCount === 0 && currentTotal === 0) {
+      void mutate(fallbackData, { revalidate: false });
+    }
+  }, [data?.contracts?.length, data?.total, fallbackData, mutate]);
 
   return {
     contracts: data?.contracts || [],
@@ -100,6 +112,7 @@ export function useContractStats(fallbackData?: ContractStats) {
     },
     {
       revalidateOnFocus: false,
+      revalidateOnMount: fallbackData ? false : undefined,
       dedupingInterval: 60_000,
       fallbackData,
     }

@@ -8,7 +8,6 @@ const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PERSIST_WHITELIST = [
   "calendar",
   "categories",
-  "contracts",
   "crm",
   "customer",
   "dashboard",
