@@ -15,6 +15,7 @@ import { Search, X, ChevronDown } from "lucide-react";
 export interface ComboboxOption {
   value: string;
   label: string;
+  meta?: string;
 }
 
 interface ComboboxSearchProps {
@@ -190,7 +191,7 @@ export function ComboboxSearch({
         <div className="dropdown-inline">
           {isLoading ? (
             <p className="px-3 py-2.5 text-sm text-text-muted">
-              Dang tai...
+              Đang tải...
             </p>
           ) : filtered.length === 0 ? (
             <p className="px-3 py-2.5 text-sm text-text-muted">
@@ -202,7 +203,7 @@ export function ComboboxSearch({
                 key={option.value}
                 type="button"
                 className={`
-                  w-full text-left px-3 py-2.5 text-sm transition-colors
+                  flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors
                   ${
                     idx === safeHighlightIndex
                       ? "bg-primary/10 text-primary"
@@ -212,7 +213,12 @@ export function ComboboxSearch({
                 onMouseEnter={() => setHighlightIndex(idx)}
                 onClick={() => selectItem(option.value)}
               >
-                {option.label}
+                <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                {option.meta && (
+                  <span className="shrink-0 text-caption font-medium text-text-muted">
+                    {option.meta}
+                  </span>
+                )}
               </button>
             ))
           )}

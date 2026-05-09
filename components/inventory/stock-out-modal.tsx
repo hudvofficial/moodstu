@@ -44,10 +44,15 @@ const modes: Array<{
 ];
 
 const today = () => format(new Date(), "yyyy-MM-dd");
+const quantityFormatter = new Intl.NumberFormat("vi-VN");
 
 
 function contractLabel(contract: InventoryContractOption) {
   return `${contract.contract_code} - ${contract.customer_name}`;
+}
+
+function stockLabel(item: InventoryItem) {
+  return `${quantityFormatter.format(item.current_stock)}${item.unit ? ` ${item.unit}` : ""}`;
 }
 
 export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalProps) {
@@ -346,7 +351,8 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
   const itemOptions = pickerItems.map((option) => ({
     value: option.id,
-    label: `${option.item_code} - ${option.name} - tồn: ${option.current_stock}${option.unit ? ` ${option.unit}` : ""}`,
+    label: `${option.item_code} - ${option.name}`,
+    meta: `Tồn: ${stockLabel(option)}`,
   }));
   const modeOptions = modes.map((option) => ({
     value: option.value,
@@ -404,10 +410,6 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
                 <p className="min-w-0 flex-1 truncate text-body-sm font-semibold text-text-primary">
                   {activeItem.item_code} - {activeItem.name}
                 </p>
-                <span className="shrink-0 text-caption font-medium text-text-secondary">
-                  Tồn: {activeItem.current_stock}
-                  {activeItem.unit ? ` ${activeItem.unit}` : ""}
-                </span>
                 {!item && (
                   <Button
                     type="button"
@@ -427,6 +429,11 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
                 options={itemOptions}
                 placeholder="Tìm và chọn vật tư..."
               />
+            )}
+            {activeItem && (
+              <p className="mt-1 ml-1 text-caption font-medium text-text-muted">
+                Tồn kho hiện tại: {stockLabel(activeItem)}
+              </p>
             )}
           </div>
         </div>
