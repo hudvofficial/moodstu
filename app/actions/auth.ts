@@ -1,20 +1,58 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { normalizeAuthIdentifier } from "@/lib/validations/auth.schema";
-
-// ═══════════════════════════════════════════
-// Auth Server Actions — Copy from V1 (proven)
-// Rate limiting + Remember Me + Employee cache
-// ═══════════════════════════════════════════
 
 type LoginResult = { success: true } | { error: string };
 
+type LoginAttempt = {
+  attempt_count: number | null;
+  locked_until: string | null;
+};
 
+const MAX_ATTEMPTS = 5;
+const LOCK_SECONDS = 60;
+const ATTEMPT_HINT_COOKIE = "login_attempt_hint";
+const ATTEMPT_HINT_MAX_AGE = 10 * 60;
+const DEFAULT_LOGIN_PROFILE_SLOW_MS = 700;
 
-/** Sanitize auth errors — user-friendly messages */
+function getLoginProfileSlowMs() {
+  const configured = Number(process.env.AUTH_LOGIN_PROFILE_SLOW_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_LOGIN_PROFILE_SLOW_MS;
+}
+
+function shouldLogLoginTiming(totalMs: number) {
+  if (process.env.AUTH_LOGIN_PROFILE === "1") return true;
+  if (process.env.AUTH_LOGIN_PROFILE === "0") return false;
+  return totalMs >= getLoginProfileSlowMs();
+}
+
+function createLoginTiming() {
+  const startedAt = performance.now();
+  let stepStartedAt = startedAt;
+  const steps: string[] = [];
+
+  return {
+    mark(label: string) {
+      const now = performance.now();
+      steps.push(`${label}=${Math.round(now - stepStartedAt)}ms`);
+      stepStartedAt = now;
+    },
+    done(outcome: string) {
+      const totalMs = Math.round(performance.now() - startedAt);
+      if (shouldLogLoginTiming(totalMs)) {
+        console.warn(
+          `[auth-login-profile] outcome=${outcome} total=${totalMs}ms ${steps.join(" ")}`,
+        );
+      }
+    },
+  };
+}
+
 function sanitizeAuthError(message: string): string {
   if (message.includes("Invalid login credentials")) {
     return "Email hoặc mật khẩu không đúng";
@@ -28,53 +66,112 @@ function sanitizeAuthError(message: string): string {
   return "Đã xảy ra lỗi. Vui lòng thử lại";
 }
 
+function getLockError(attempt: LoginAttempt | null) {
+  if (!attempt?.locked_until) return null;
+
+  const lockedUntil = new Date(attempt.locked_until);
+  if (lockedUntil <= new Date()) return null;
+
+  const remainSec = Math.ceil((lockedUntil.getTime() - Date.now()) / 1000);
+  return `Bạn đã thử quá nhiều lần. Vui lòng đợi ${remainSec} giây`;
+}
+
+function setAttemptHintCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  cookieStore.set(ATTEMPT_HINT_COOKIE, "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/login",
+    maxAge: ATTEMPT_HINT_MAX_AGE,
+  });
+}
+
+function clearAttemptHintCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  cookieStore.set(ATTEMPT_HINT_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/login",
+    maxAge: 0,
+  });
+}
+
+async function loadLoginAttempt(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string,
+) {
+  const { data } = await supabase
+    .from("login_attempts")
+    .select("attempt_count, locked_until")
+    .eq("email", email)
+    .maybeSingle();
+
+  return (data as LoginAttempt | null) ?? null;
+}
+
 export async function login(formData: FormData): Promise<LoginResult> {
+  const timing = createLoginTiming();
   const email = (formData.get("email") as string)?.toLowerCase().trim();
   const password = formData.get("password") as string;
 
   if (!email || !password) {
+    timing.done("invalid-form");
     return { error: "Vui lòng nhập email và mật khẩu" };
   }
 
+  const cookieStore = await cookies();
   const supabase = await createClient();
-
-  // 2. Smart Username Logic: Append @moodwedding.com if no @ is present
   const finalEmail = normalizeAuthIdentifier(email);
+  timing.mark("bootstrap");
 
-  // 3. Rate Limiting Check (Database-backed)
-  const { data: attempt } = await supabase
-    .from("login_attempts")
-    .select("attempt_count, locked_until")
-    .eq("email", finalEmail)
-    .maybeSingle();
+  let attempt: LoginAttempt | null = null;
+  const shouldPrecheckRateLimit =
+    cookieStore.get(ATTEMPT_HINT_COOKIE)?.value === "1";
 
-  const MAX_ATTEMPTS = 5;
+  if (shouldPrecheckRateLimit) {
+    attempt = await loadLoginAttempt(supabase, finalEmail);
+    timing.mark("rate-limit-precheck");
 
-  if (attempt && attempt.locked_until) {
-    const lockedUntil = new Date(attempt.locked_until);
-    if (lockedUntil > new Date()) {
-      const remainSec = Math.ceil((lockedUntil.getTime() - Date.now()) / 1000);
-      return { error: `Bạn đã thử quá nhiều lần. Vui lòng đợi ${remainSec} giây` };
+    const lockError = getLockError(attempt);
+    if (lockError) {
+      timing.done("rate-limited");
+      return { error: lockError };
     }
+  } else {
+    timing.mark("rate-limit-skip");
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ 
-    email: finalEmail, 
-    password 
+  const { error } = await supabase.auth.signInWithPassword({
+    email: finalEmail,
+    password,
   });
+  timing.mark("supabase-auth");
 
   if (error) {
-    // 📝 Record failed attempt in DB
+    if (!attempt) {
+      attempt = await loadLoginAttempt(supabase, finalEmail);
+      timing.mark("rate-limit-load");
+    }
+
+    const lockError = getLockError(attempt);
+    if (lockError) {
+      setAttemptHintCookie(cookieStore);
+      timing.done("rate-limited-after-auth");
+      return { error: lockError };
+    }
+
     if (attempt) {
-      const newCount = attempt.attempt_count + 1;
+      const newCount = (attempt.attempt_count || 0) + 1;
       const isLocking = newCount >= MAX_ATTEMPTS;
-      
+
       await supabase
         .from("login_attempts")
         .update({
           attempt_count: isLocking ? 0 : newCount,
           last_attempt: new Date().toISOString(),
-          locked_until: isLocking ? new Date(Date.now() + 60000).toISOString() : null
+          locked_until: isLocking
+            ? new Date(Date.now() + LOCK_SECONDS * 1000).toISOString()
+            : null,
         })
         .eq("email", finalEmail);
     } else {
@@ -82,26 +179,30 @@ export async function login(formData: FormData): Promise<LoginResult> {
         .from("login_attempts")
         .insert({ email: finalEmail, attempt_count: 1 });
     }
-    
+
+    setAttemptHintCookie(cookieStore);
+    timing.mark("record-failure");
+    timing.done("auth-error");
     return { error: sanitizeAuthError(error.message) };
   }
 
-  // ✅ Success → Clear attempts (only if there was an existing record to save 1 round-trip)
   if (attempt) {
     await supabase.from("login_attempts").delete().eq("email", finalEmail);
+    timing.mark("clear-attempts");
+  } else {
+    timing.mark("clear-attempts-skip");
   }
 
-  // 🔒 Remember Me cookie pattern (from V1)
-  const rememberMe = formData.get("rememberMe") === "on";
-  const cookieStore = await cookies();
+  clearAttemptHintCookie(cookieStore);
 
+  const rememberMe = formData.get("rememberMe") === "on";
   if (rememberMe) {
     cookieStore.set("session_type", "persistent", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
     });
   } else {
     cookieStore.set("session_type", "temporary", {
@@ -112,6 +213,8 @@ export async function login(formData: FormData): Promise<LoginResult> {
     });
   }
 
+  timing.mark("cookies");
+  timing.done("success");
   return { success: true };
 }
 
@@ -127,6 +230,8 @@ export async function logout() {
 
 export async function getUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user;
 }

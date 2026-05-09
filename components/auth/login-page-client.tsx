@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -40,8 +41,14 @@ export default function LoginPageClient() {
   }, []);
 
   // 2. Login handler
-  const handleSubmit = async (formData: FormData) => {
-    setLoginState("transitioning");
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (loginState !== "idle") return;
+
+    const formData = new FormData(event.currentTarget);
+    flushSync(() => {
+      setLoginState("transitioning");
+    });
 
     const result = await login(formData);
 
@@ -120,7 +127,7 @@ export default function LoginPageClient() {
               </div>
 
             {/* Form */}
-            <form action={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" aria-busy={isLoading}>
               <div className="space-y-4">
                 <div className="relative">
                   <Input
@@ -183,12 +190,12 @@ export default function LoginPageClient() {
               <Button type="submit" disabled={isLoading} className="w-full h-12 text-sm uppercase tracking-widest font-bold relative overflow-hidden group/btn">
                 <div className={cn(
                   "flex items-center justify-center gap-2 transition-all duration-300",
-                  isLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                  "opacity-100 scale-100"
                 )}>
                   Đăng nhập
                 </div>
                 {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
                     <Loader2 className="w-5 h-5 animate-spin text-white" />
                   </div>
                 )}
@@ -217,4 +224,3 @@ export default function LoginPageClient() {
     </>
   );
 }
-

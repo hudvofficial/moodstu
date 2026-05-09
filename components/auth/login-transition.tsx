@@ -1,7 +1,5 @@
 "use client";
 
-
-
 interface LoginTransitionProps {
   isVisible: boolean;
   state: "transitioning" | "navigating";
@@ -11,17 +9,15 @@ export default function LoginTransition({ isVisible, state }: LoginTransitionPro
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-bg-base/80 backdrop-blur-md animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-bg-base/85 backdrop-blur-md animate-in fade-in duration-150">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="relative">
-          {/* Outer ring */}
           <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          {/* Inner pulse */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-8 h-8 bg-primary/10 rounded-full animate-pulse" />
           </div>
         </div>
-        
+
         <div className="space-y-1">
           <p className="text-h3">
             {state === "transitioning" ? "Đang xác thực..." : "Chuẩn bị vào hệ thống..."}
