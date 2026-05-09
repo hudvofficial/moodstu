@@ -22,10 +22,7 @@ interface ExpenseFormModalProps {
 
 const today = () => new Date().toISOString().split("T")[0];
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: "tien_mat", label: "Tiền mặt" },
-  { value: "chuyen_khoan", label: "Chuyển khoản" },
-];
+import { PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
 
 export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initialData }: ExpenseFormModalProps) {
   const [saving, setSaving] = useState(false);

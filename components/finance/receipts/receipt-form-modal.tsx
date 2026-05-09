@@ -40,10 +40,9 @@ const RECEIPT_TYPE_OPTIONS = [
   { value: "contract_deposit", label: "Cọc hợp đồng" }, { value: "sale_receipt", label: "Bán vật tư" },
 ];
 
-const PAYMENT_TYPE_OPTIONS = [
-  { value: "tien_mat", label: "Tiền mặt" },
-  { value: "chuyen_khoan", label: "Chuyển khoản" },
-];
+import { PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
+
+const PAYMENT_TYPE_OPTIONS = PAYMENT_METHOD_OPTIONS;
 
 const today = () => new Date().toISOString().split("T")[0];
 

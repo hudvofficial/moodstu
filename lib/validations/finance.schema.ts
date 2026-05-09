@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paymentMethodSchema } from "@/lib/validations/contract.schema";
 
 export const createReceiptSchema = z.object({
   receipt_date: z.string().date(),
@@ -20,7 +21,7 @@ export const updateReceiptWithLockSchema = updateReceiptSchema.extend({
 
 export const createExpenseSchema = z.object({
   expense_date: z.string().date(),
-  payment_method: z.enum(["tien_mat", "chuyen_khoan"]),
+  payment_method: paymentMethodSchema,
   category_id: z.string().uuid().optional().nullable(),
   amount: z.number().positive("Số tiền chi phải > 0"),
   description: z.string().optional().nullable(),
@@ -134,7 +135,7 @@ export const createPaymentSchema = z.object({
   contractId: z.string().uuid("Contract ID không hợp lệ"),
   amount: z.number().positive("Số tiền phải lớn hơn 0"),
   paymentDate: z.string().date(),
-  paymentMethod: z.enum(["tien_mat", "chuyen_khoan"]),
+  paymentMethod: paymentMethodSchema,
   paymentStage: z.string().optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),
   notes: z.string().optional().nullable(),

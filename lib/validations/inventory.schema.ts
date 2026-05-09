@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { paymentMethodSchema } from "@/lib/validations/contract.schema";
 
 // ─── Categories (Group B — VARCHAR in DB) ────────────
 
@@ -131,7 +132,7 @@ export const inventoryRetailSaleSchema = z.object({
   itemName: z.string().trim().min(1).max(200).optional(),
   quantity: z.number().int().min(1, "Số lượng phải >= 1"),
   saleUnitPrice: z.number().min(1, "Giá bán phải lớn hơn 0"),
-  paymentMethod: z.enum(["tien_mat", "chuyen_khoan"]),
+  paymentMethod: paymentMethodSchema,
   receiptDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày thu không hợp lệ"),
   customerName: z.string().trim().max(200).optional(),
   customerPhone: z.string().trim().max(20).optional(),

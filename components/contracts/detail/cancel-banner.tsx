@@ -44,10 +44,8 @@ interface RefundSummary {
   refundableAmount: number;
 }
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: "tien_mat", label: "Tiền mặt" },
-  { value: "chuyen_khoan", label: "Chuyển khoản" },
-];
+import { PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
+
 
 export default function CancelBanner({ contractId, paidAmount, notes, updatedAt }: Props) {
   const [isReactivating, setIsReactivating] = useState(false);

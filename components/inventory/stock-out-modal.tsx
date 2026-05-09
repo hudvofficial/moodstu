@@ -12,11 +12,13 @@ import { ComboboxSearch } from "@/components/ui/combobox-search";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
+import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { useDebounce } from "@/hooks/use-debounce";
 import { invalidateFinanceAfterWrite, invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { cn, formatVnd } from "@/lib/utils";
+import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
 import type { InventoryContractOption, InventoryItem } from "@/types/inventory";
 
 interface StockOutModalProps {
@@ -42,12 +44,9 @@ const modes: Array<{
 
 const today = () => new Date().toISOString().split("T")[0];
 
+
 function contractLabel(contract: InventoryContractOption) {
   return `${contract.contract_code} - ${contract.customer_name}`;
-}
-
-function paymentLabel(method: PaymentMethod) {
-  return method === "chuyen_khoan" ? "Chuyển khoản" : "Tiền mặt";
 }
 
 export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalProps) {
@@ -395,9 +394,9 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
                 type="button"
                 variant={active ? "primary" : "secondary"}
                 onClick={() => switchMode(option.value)}
-                className="justify-center gap-2 px-2"
+                className="justify-center gap-1.5 px-2 text-xs sm:gap-2 sm:text-sm"
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="hidden h-4 w-4 sm:block" />
                 <span className="truncate">{option.label}</span>
               </Button>
             );
@@ -552,19 +551,11 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             </div>
             <div>
               <label className="label-base">Thanh toán</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["tien_mat", "chuyen_khoan"] as PaymentMethod[]).map((method) => (
-                  <Button
-                    key={method}
-                    type="button"
-                    variant={paymentMethod === method ? "primary" : "secondary"}
-                    onClick={() => setPaymentMethod(method)}
-                    className="justify-center"
-                  >
-                    {paymentLabel(method)}
-                  </Button>
-                ))}
-              </div>
+              <SimpleSelect
+                value={paymentMethod}
+                onChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                options={PAYMENT_METHOD_OPTIONS}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="label-base">Địa chỉ</label>
@@ -589,19 +580,11 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             </div>
             <div>
               <label className="label-base">Thanh toán</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["tien_mat", "chuyen_khoan"] as PaymentMethod[]).map((method) => (
-                  <Button
-                    key={method}
-                    type="button"
-                    variant={paymentMethod === method ? "primary" : "secondary"}
-                    onClick={() => setPaymentMethod(method)}
-                    className="justify-center"
-                  >
-                    {paymentLabel(method)}
-                  </Button>
-                ))}
-              </div>
+              <SimpleSelect
+                value={paymentMethod}
+                onChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                options={PAYMENT_METHOD_OPTIONS}
+              />
             </div>
           </div>
         )}

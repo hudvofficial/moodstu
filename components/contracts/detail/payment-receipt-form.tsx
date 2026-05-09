@@ -15,7 +15,7 @@ import { toast } from "@/lib/toast-utils";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import type { PaymentPlan } from "@/types/contract";
-import { getPaymentStageLabel } from "@/types/contract-constants";
+import { getPaymentStageLabel, PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
 import DatePicker from "@/components/ui/date-picker";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 
@@ -43,10 +43,8 @@ const PLAN_PREFIX = "plan:";
 const OUTSIDE_TARGET = "outside";
 const ADJUSTMENT_TARGET = "adjustment";
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: "tien_mat", label: "Tiền mặt" },
-  { value: "chuyen_khoan", label: "Chuyển khoản" },
-];
+
+
 
 function normalizeText(value: string | null | undefined) {
   return String(value || "")

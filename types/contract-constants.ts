@@ -144,6 +144,11 @@ export function getPaymentMethodLabel(method: string): string {
   return PAYMENT_METHOD_MAP[method] || method;
 }
 
+/** SSOT options array for SimpleSelect / SelectForm dropdowns */
+export const PAYMENT_METHOD_OPTIONS = Object.entries(PAYMENT_METHOD_MAP).map(
+  ([value, label]) => ({ value, label }),
+);
+
 // ─── PAYMENT STAGE MAP ───────────────────────────────
 // Used by: ContractPaymentSection
 

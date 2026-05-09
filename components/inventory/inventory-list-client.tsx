@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 /**
  * 📦 InventoryListClient — Main client component for inventory list page
@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Suspense, useMemo, useCallback } from "react";
 import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 
 import { useInventoryFilters } from "@/hooks/useInventoryFilters";
 import { useInventory, useInventoryStats, prefetchInventory, revalidateInventory } from "@/lib/hooks/use-inventory";
@@ -45,7 +45,7 @@ const REALTIME_REFRESH_DELAY_MS = 600;
 
 function InventoryListInner({ initialList, initialStats }: InventoryListClientProps) {
   const router = useRouter();
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const {
     filters,
     setStatus,
@@ -69,22 +69,22 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
   );
   const { stats } = useInventoryStats(initialStats);
 
-  // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
+  // 📡 Realtime — single multi-table channel for both items + transactions
   const refreshInventoryCaches = useCallback(() => {
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => {
-      void revalidateInventory();
-    }, REALTIME_REFRESH_DELAY_MS);
+    void revalidateInventory();
   }, []);
 
-  useRealtime("inventory_items", { onChange: refreshInventoryCaches });
-  useRealtime("inventory_transactions", { onChange: refreshInventoryCaches });
-
-  useEffect(() => {
-    return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    };
-  }, []);
+  useRealtimeMulti(
+    [
+      { table: "inventory_items" },
+      { table: "inventory_transactions" },
+    ],
+    {
+      channelName: "inventory-realtime",
+      debounceMs: REALTIME_REFRESH_DELAY_MS,
+      onChange: refreshInventoryCaches,
+    },
+  );
 
   // ── Modal states ──
   const [showCreate, setShowCreate] = useState(false);

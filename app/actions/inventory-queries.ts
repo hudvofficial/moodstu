@@ -118,6 +118,22 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
   return profileAction("inventory.fetchInventoryDetail", async () =>
     unwrapActionResult(
       await withInventoryAccess(async (supabase) => {
+        // 🚀 Phase 04: Try new single-RPC pattern first
+        const { data: v2Data, error: v2Error } = await supabase.rpc("inventory_detail_v2", {
+          p_item_id: parsedId.data,
+        });
+
+        if (!v2Error && v2Data) {
+          const detail = v2Data as any;
+          if (!detail.item) return null;
+          return {
+            ...(detail.item as InventoryItem),
+            transactions: (detail.transactions || []) as unknown as InventoryTransaction[],
+            transactionTotals: normalizeTotals(detail.totals),
+          };
+        }
+
+        // 🛡️ Fallback: Legacy 3-query pattern (safe migration)
         const [itemRes, txnRes, totalsRes] = await Promise.all([
           supabase
             .from("inventory_items")

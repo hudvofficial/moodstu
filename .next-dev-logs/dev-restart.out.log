@@ -878,3 +878,66 @@ Creating turbopack project {
 ✓ Compiled in 324ms
 ✓ Compiled in 119ms
 ✓ Compiled in 127ms
+ GET / 307 in 5.3s (compile: 1031ms, proxy.ts: 1578ms, render: 2.7s)
+ GET /dashboard 200 in 4.4s (compile: 2.1s, proxy.ts: 113ms, render: 2.2s)
+ GET /dashboard 200 in 4.7s (compile: 107ms, proxy.ts: 1527ms, render: 3.1s)
+ GET /inventory 200 in 7.4s (compile: 1334ms, proxy.ts: 12ms, render: 6.0s)
+ POST /dashboard 200 in 8.4s (compile: 13ms, proxy.ts: 7ms, render: 8.4s)
+ POST /inventory 200 in 571ms (compile: 6ms, proxy.ts: 9ms, render: 556ms)
+ POST /inventory 200 in 319ms (compile: 6ms, proxy.ts: 7ms, render: 306ms)
+ POST /inventory 200 in 331ms (compile: 5ms, proxy.ts: 5ms, render: 321ms)
+ GET /inventory 200 in 1934ms (compile: 5ms, proxy.ts: 6ms, render: 1924ms)
+ POST /inventory 200 in 335ms (compile: 5ms, proxy.ts: 6ms, render: 324ms)
+ POST /inventory 200 in 322ms (compile: 3ms, proxy.ts: 4ms, render: 314ms)
+ POST /inventory 200 in 1491ms (compile: 13ms, proxy.ts: 636ms, render: 843ms)
+ POST /inventory 200 in 588ms (compile: 13ms, proxy.ts: 20ms, render: 554ms)
+✓ Compiled in 568ms
+ GET /inventory 200 in 465ms (compile: 5ms, proxy.ts: 13ms, render: 447ms)
+ GET /inventory 200 in 358ms (compile: 8ms, proxy.ts: 8ms, render: 343ms)
+ GET /inventory 200 in 276ms (compile: 4ms, proxy.ts: 7ms, render: 265ms)
+ GET /inventory 200 in 197ms (compile: 4ms, proxy.ts: 5ms, render: 188ms)
+ GET /inventory 200 in 117ms (compile: 7ms, proxy.ts: 10ms, render: 99ms)
+ POST /inventory 200 in 2.1s (compile: 7ms, proxy.ts: 6ms, render: 2.1s)
+✓ Compiled in 937ms
+ POST /inventory 200 in 1392ms (compile: 9ms, proxy.ts: 12ms, render: 1372ms)
+ GET /inventory 200 in 2.7s (compile: 449ms, proxy.ts: 9ms, render: 2.3s)
+ POST /inventory 200 in 1356ms (compile: 7ms, proxy.ts: 7ms, render: 1342ms)
+ GET /inventory 200 in 1255ms (compile: 4ms, proxy.ts: 7ms, render: 1245ms)
+ POST /inventory 200 in 1139ms (compile: 3ms, proxy.ts: 5ms, render: 1131ms)
+✓ Compiled in 632ms
+✓ Compiled in 689ms
+ GET /inventory 200 in 830ms (compile: 202ms, proxy.ts: 484ms, render: 144ms)
+ GET /inventory 200 in 1117ms (compile: 11ms, proxy.ts: 12ms, render: 1095ms)
+ GET /inventory 200 in 829ms (compile: 58ms, proxy.ts: 100ms, render: 671ms)
+✓ Compiled in 1476ms
+✓ Compiled in 579ms
+ GET /inventory 200 in 555ms (compile: 300ms, proxy.ts: 9ms, render: 247ms)
+ GET /inventory 200 in 99ms (compile: 5ms, proxy.ts: 6ms, render: 88ms)
+✓ Compiled in 194ms
+ GET /inventory 200 in 111ms (compile: 7ms, proxy.ts: 8ms, render: 97ms)
+✓ Compiled in 545ms
+✓ Compiled in 853ms
+✓ Compiled in 2.6s
+ GET /inventory 200 in 9.2s (compile: 1034ms, proxy.ts: 930ms, render: 7.2s)
+ POST /inventory 200 in 1396ms (compile: 28ms, proxy.ts: 27ms, render: 1341ms)
+ POST /inventory 200 in 739ms (compile: 38ms, proxy.ts: 16ms, render: 685ms)
+ POST /inventory 200 in 625ms (compile: 40ms, proxy.ts: 17ms, render: 568ms)
+ POST /inventory 200 in 440ms (compile: 10ms, proxy.ts: 12ms, render: 417ms)
+ POST /inventory 200 in 403ms (compile: 20ms, proxy.ts: 12ms, render: 370ms)
+ POST /inventory 200 in 1182ms (compile: 22ms, proxy.ts: 24ms, render: 1137ms)
+ POST /inventory 200 in 535ms (compile: 26ms, proxy.ts: 21ms, render: 488ms)
+ GET /inventory 200 in 682ms (compile: 340ms, proxy.ts: 7ms, render: 335ms)
+ GET /inventory 200 in 81ms (compile: 4ms, proxy.ts: 5ms, render: 72ms)
+ POST /inventory 200 in 3.0s (compile: 8ms, proxy.ts: 7ms, render: 3.0s)
+ POST /inventory 200 in 633ms (compile: 5ms, proxy.ts: 15ms, render: 613ms)
+ POST /inventory 200 in 946ms (compile: 4ms, proxy.ts: 6ms, render: 936ms)
+ POST /inventory 200 in 539ms (compile: 5ms, proxy.ts: 11ms, render: 523ms)
+ POST /inventory 200 in 360ms (compile: 3ms, proxy.ts: 5ms, render: 352ms)
+ POST /inventory 200 in 1683ms (compile: 10ms, proxy.ts: 408ms, render: 1265ms)
+ POST /inventory 200 in 645ms (compile: 4ms, proxy.ts: 11ms, render: 629ms)
+ POST /inventory 200 in 868ms (compile: 6ms, proxy.ts: 7ms, render: 855ms)
+ POST /inventory 200 in 797ms (compile: 6ms, proxy.ts: 7ms, render: 783ms)
+ POST /inventory 200 in 609ms (compile: 7ms, proxy.ts: 7ms, render: 596ms)
+ POST /inventory 200 in 533ms (compile: 6ms, proxy.ts: 8ms, render: 519ms)
+ POST /inventory 200 in 506ms (compile: 4ms, proxy.ts: 8ms, render: 494ms)
+ POST /inventory 200 in 533ms (compile: 7ms, proxy.ts: 10ms, render: 517ms)
