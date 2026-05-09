@@ -14,6 +14,7 @@ import {
   format,
   isToday,
   isSameDay,
+  parse,
   startOfMonth,
   endOfMonth,
   startOfWeek,
@@ -30,6 +31,13 @@ import {
 import { vi } from "date-fns/locale";
 
 // ─── Props ──────────────────────────────────────────────────────
+function parseDateValue(value?: string) {
+  if (!value) return undefined;
+  const datePart = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? value;
+  const parsed = parse(datePart, "yyyy-MM-dd", new Date());
+  return isValid(parsed) ? parsed : undefined;
+}
+
 interface DatePickerProps {
   value?: string;
   onChange: (date: string) => void;
@@ -66,9 +74,7 @@ export default function DatePicker({
 
   const isDesktop = !isNarrow;
 
-  const [viewDate, setViewDate] = useState(() =>
-    value && isValid(new Date(value)) ? new Date(value) : new Date(),
-  );
+  const [viewDate, setViewDate] = useState(() => parseDateValue(value) ?? new Date());
   const [viewMode, setViewMode] = useState<"day" | "month" | "year">("day");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const yearsContainerRef = useRef<HTMLDivElement>(null);
@@ -78,10 +84,7 @@ export default function DatePicker({
   });
 
   // ─── Derived state ────────────────────────────────────────
-  const selectedDate = useMemo(() => {
-    if (value && isValid(new Date(value))) return new Date(value);
-    return undefined;
-  }, [value]);
+  const selectedDate = useMemo(() => parseDateValue(value), [value]);
 
   // ─── Scroll to current year ───────────────────────────────
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function DatePicker({
     const updatePosition = () => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      const calendarWidth = compact ? 230 : 400;
+      const calendarWidth = compact ? 224 : 352;
       const calendarHeight = 340;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
@@ -220,12 +223,12 @@ export default function DatePicker({
   // ─── Shared Calendar Panel ────────────────────────────────
   const calendarPanel = (
     <div
-      className={`bg-elevated ${
+      className={`border border-border bg-bg-card ${
         !isDesktop
           ? "w-full rounded-md p-3"
           : compact
-            ? "w-56 shadow-2xl rounded-md p-2.5"
-            : "w-full lg:w-82 lg:shadow-2xl rounded-md p-3"
+            ? "w-56 rounded-md p-2.5 shadow-float"
+            : "w-[22rem] rounded-md p-3 shadow-float"
       }`}
     >
       {/* Header */}
@@ -236,8 +239,7 @@ export default function DatePicker({
           <button
             type="button"
             onClick={prevMonth}
-            className={`flex items-center justify-center hover:bg-surface text-text-secondary transition-colors active:scale-90 ${compact ? "w-7 h-7 rounded-full" : "w-11 h-11 rounded-full"}`}
-            style={{ border: "1px solid var(--color-border)" }}
+            className={`flex items-center justify-center border border-border text-text-secondary transition-colors hover:bg-bg-hover active:scale-90 ${compact ? "w-7 h-7 rounded-full" : "w-11 h-11 rounded-full"}`}
           >
             <ChevronLeft size={iconSize} />
           </button>
@@ -256,7 +258,7 @@ export default function DatePicker({
                   : "day",
             )
           }
-          className={`font-semibold text-text-main hover:text-primary transition-colors hover:bg-surface uppercase tracking-tight ${compact ? "text-xs px-3 py-1 rounded-md" : "text-xs px-3 py-1.5 rounded-md"}`}
+          className={`font-semibold text-text-primary transition-colors hover:bg-bg-hover hover:text-primary uppercase tracking-normal ${compact ? "text-xs px-3 py-1 rounded-md" : "text-xs px-3 py-1.5 rounded-md"}`}
         >
           {viewMode === "day" && format(viewDate, "MMMM yyyy", { locale: vi })}
           {viewMode === "month" && format(viewDate, "yyyy")}
@@ -267,8 +269,7 @@ export default function DatePicker({
           <button
             type="button"
             onClick={nextMonth}
-            className={`flex items-center justify-center hover:bg-surface text-text-secondary transition-colors active:scale-90 ${compact ? "w-7 h-7 rounded-full" : "w-11 h-11 rounded-full"}`}
-            style={{ border: "1px solid var(--color-border)" }}
+            className={`flex items-center justify-center border border-border text-text-secondary transition-colors hover:bg-bg-hover active:scale-90 ${compact ? "w-7 h-7 rounded-full" : "w-11 h-11 rounded-full"}`}
           >
             <ChevronRight size={iconSize} />
           </button>
@@ -303,12 +304,17 @@ export default function DatePicker({
                   disabled={!isCurrentMonth}
                   className={`
                     flex items-center justify-center transition-colors ${compact ? "w-7 h-7 rounded-full text-xs" : "w-10 h-10 rounded-full text-sm"}
-                    ${!isCurrentMonth ? "text-transparent cursor-default" : ""}
-                    ${selected ? "bg-primary text-text-inverse font-medium shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main font-normal"}
-                    ${today && !selected ? "text-primary font-medium bg-primary/5 border-2 border-primary/30" : ""}
+                    ${
+                      !isCurrentMonth
+                        ? "cursor-default text-text-muted/45 hover:bg-transparent"
+                        : selected
+                          ? "bg-primary text-text-inverse font-semibold shadow-sm"
+                          : "text-text-primary hover:bg-bg-hover font-normal"
+                    }
+                    ${today && !selected && isCurrentMonth ? "text-primary font-semibold bg-primary/5 ring-1 ring-primary/30" : ""}
                   `}
                 >
-                  {isCurrentMonth ? format(day, "d") : ""}
+                  {format(day, "d")}
                 </button>
               );
             })}
@@ -328,10 +334,9 @@ export default function DatePicker({
                 setViewMode("day");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
-                ${monthIdx === viewDate.getMonth() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
+                font-semibold uppercase tracking-normal transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
+                ${monthIdx === viewDate.getMonth() ? "bg-primary text-text-inverse shadow-sm" : "border border-border text-text-primary hover:bg-bg-hover"}
               `}
-              style={monthIdx !== viewDate.getMonth() ? { border: "1px solid var(--color-border)" } : undefined}
             >
               T{monthIdx + 1}
             </button>
@@ -355,10 +360,9 @@ export default function DatePicker({
                 setViewMode("month");
               }}
               className={`
-                font-semibold uppercase tracking-wider transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
-                ${year === viewDate.getFullYear() ? "bg-primary text-text-inverse shadow-lg shadow-primary/30" : "hover:bg-surface text-text-main"}
+                font-semibold uppercase tracking-normal transition-colors ${compact ? "p-2 rounded-md text-tiny" : "p-2.5 rounded-md text-micro"}
+                ${year === viewDate.getFullYear() ? "bg-primary text-text-inverse shadow-sm" : "border border-border text-text-primary hover:bg-bg-hover"}
               `}
-              style={year !== viewDate.getFullYear() ? { border: "1px solid var(--color-border)" } : undefined}
             >
               {year}
             </button>
@@ -368,14 +372,12 @@ export default function DatePicker({
 
       {/* Footer */}
       <div
-        className={`flex justify-between ${compact ? "mt-2 pt-2 gap-2" : "mt-3 pt-2.5 gap-2"}`}
-        style={{ borderTop: "1px solid var(--color-border)" }}
+        className={`flex justify-between border-t border-border ${compact ? "mt-2 pt-2 gap-2" : "mt-3 pt-2.5 gap-2"}`}
       >
         <button
           type="button"
           onClick={handleClear}
-          className={`flex-1 font-medium text-error hover:bg-error/5 transition-colors ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
-          style={{ border: "1px solid var(--color-error)" }}
+          className={`flex-1 border border-error/40 font-medium text-error transition-colors hover:bg-error/5 ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
         >
           Xóa chọn
         </button>
@@ -408,7 +410,7 @@ export default function DatePicker({
           className={`input-base flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
         >
           <span
-            className={`font-medium truncate mr-2 ${selectedDate ? "text-text-main" : "text-text-muted"}`}
+            className={`font-medium truncate mr-2 ${selectedDate ? "text-text-primary" : "text-text-muted"}`}
           >
             {selectedDate
               ? format(selectedDate, "dd/MM/yyyy", { locale: vi })
@@ -428,7 +430,7 @@ export default function DatePicker({
                 position: "fixed",
                 top: popoverPos.top,
                 left: popoverPos.left,
-                zIndex: 9999,
+                zIndex: "var(--z-dropdown)",
               }}
             >
               {calendarPanel}
@@ -444,7 +446,7 @@ export default function DatePicker({
           <>
             <div
               className="fixed inset-0 bg-black/40 animate-backdrop-in"
-              style={{ zIndex: 10001 }}
+              style={{ zIndex: "var(--z-dropdown)" }}
               onClick={() => {
                 setIsOpen(false);
                 setViewMode("day");
@@ -452,14 +454,14 @@ export default function DatePicker({
             />
             <div
               className="fixed bottom-0 left-0 right-0 animate-slide-up"
-              style={{ zIndex: 10002 }}
+              style={{ zIndex: "var(--z-dropdown)" }}
             >
-              <div className="bg-elevated rounded-t-lg shadow-2xl pb-[env(safe-area-inset-bottom)] max-h-[85vh] overflow-hidden">
+              <div className="bg-bg-card rounded-t-lg shadow-float pb-[env(safe-area-inset-bottom)] max-h-[85vh] overflow-hidden">
                 <div className="flex justify-center pt-2.5 pb-1">
                   <div className="w-10 h-1 bg-border opacity-60 rounded-full" />
                 </div>
                 <div className="px-4 pb-4">
-                  <div className="bg-elevated rounded-md">
+                  <div className="bg-bg-card rounded-md">
                     {calendarPanel}
                   </div>
                 </div>

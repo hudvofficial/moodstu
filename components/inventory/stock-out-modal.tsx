@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CircleMinus, FileText, Search, ShoppingCart, Wrench, X } from "lucide-react";
+import { format } from "date-fns";
+import { CircleMinus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { createInventoryContractAddonSale, createInventoryRetailSale, stockOut } from "@/app/actions/inventory-mutations";
 import {
@@ -11,6 +12,7 @@ import {
 import { ComboboxSearch } from "@/components/ui/combobox-search";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import DatePicker from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +20,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { useDebounce } from "@/hooks/use-debounce";
 import { invalidateFinanceAfterWrite, invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { cn, formatVnd } from "@/lib/utils";
-import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
+import { PAYMENT_METHOD_OPTIONS } from "@/types/contract-constants";
 import type { InventoryContractOption, InventoryItem } from "@/types/inventory";
 
 interface StockOutModalProps {
@@ -34,15 +36,14 @@ type PaymentMethod = "tien_mat" | "chuyen_khoan";
 const modes: Array<{
   value: OperationMode;
   label: string;
-  icon: typeof ShoppingCart;
 }> = [
-  { value: "retail_sale", label: "Bán lẻ", icon: ShoppingCart },
-  { value: "contract_fulfillment", label: "Xuất HĐ", icon: FileText },
-  { value: "contract_addon_sale", label: "Bán thêm HĐ", icon: ShoppingCart },
-  { value: "internal_use", label: "Nội bộ", icon: Wrench },
+  { value: "retail_sale", label: "Bán lẻ" },
+  { value: "contract_fulfillment", label: "Xuất HĐ" },
+  { value: "contract_addon_sale", label: "Bán thêm HĐ" },
+  { value: "internal_use", label: "Nội bộ" },
 ];
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => format(new Date(), "yyyy-MM-dd");
 
 
 function contractLabel(contract: InventoryContractOption) {
@@ -347,6 +348,10 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
     value: option.id,
     label: `${option.item_code} - ${option.name} - tồn: ${option.current_stock}${option.unit ? ` ${option.unit}` : ""}`,
   }));
+  const modeOptions = modes.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
 
   const submitLabel =
     mode === "retail_sale"
@@ -363,7 +368,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       onClose={handleClose}
       title="Xuất kho"
       description={activeItem ? `${activeItem.name} (${activeItem.item_code}) - Tồn: ${activeItem.current_stock}` : undefined}
-      size="md"
+      size="lg"
       footer={
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={handleClose} disabled={isPending}>
@@ -384,56 +389,46 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <p className="error-text">{error}</p>}
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {modes.map((option) => {
-            const Icon = option.icon;
-            const active = mode === option.value;
-            return (
-              <Button
-                key={option.value}
-                type="button"
-                variant={active ? "primary" : "secondary"}
-                onClick={() => switchMode(option.value)}
-                className="justify-center gap-1.5 px-2 text-xs sm:gap-2 sm:text-sm"
-              >
-                <Icon className="hidden h-4 w-4 sm:block" />
-                <span className="truncate">{option.label}</span>
-              </Button>
-            );
-          })}
-        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SimpleSelect
+            label="Loại xuất kho"
+            value={mode}
+            onChange={(value) => switchMode(value as OperationMode)}
+            options={modeOptions}
+          />
 
-        <div>
-          <label className="label-base">Vật tư *</label>
-          {activeItem ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-base px-3 py-2.5">
-              <div className="min-w-0">
-                <p className="truncate text-body-sm font-semibold text-text-primary">{activeItem.name}</p>
-                <p className="text-caption text-text-secondary">
-                  {activeItem.item_code} - Tồn: {activeItem.current_stock}
-                  {activeItem.unit ? ` ${activeItem.unit}` : ""}
+          <div>
+            <label className="label-base">Vật tư *</label>
+            {activeItem ? (
+              <div className="flex min-h-11 items-center justify-between gap-3 rounded-sm border border-border bg-bg-card px-3 py-2">
+                <p className="min-w-0 flex-1 truncate text-body-sm font-semibold text-text-primary">
+                  {activeItem.item_code} - {activeItem.name}
                 </p>
+                <span className="shrink-0 text-caption font-medium text-text-secondary">
+                  Tồn: {activeItem.current_stock}
+                  {activeItem.unit ? ` ${activeItem.unit}` : ""}
+                </span>
+                {!item && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => selectItem(null)}
+                  >
+                    Đổi
+                  </Button>
+                )}
               </div>
-              {!item && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => selectItem(null)}
-                >
-                  Đổi
-                </Button>
-              )}
-            </div>
-          ) : (
-            <ComboboxSearch
-              onChange={(id) => selectItem(pickerItems.find((option) => option.id === id) || null)}
-              onSearchChange={setPickerSearch}
-              isLoading={isLoadingItems}
-              options={itemOptions}
-              placeholder="Tìm và chọn vật tư..."
-            />
-          )}
+            ) : (
+              <ComboboxSearch
+                onChange={(id) => selectItem(pickerItems.find((option) => option.id === id) || null)}
+                onSearchChange={setPickerSearch}
+                isLoading={isLoadingItems}
+                options={itemOptions}
+                placeholder="Tìm và chọn vật tư..."
+              />
+            )}
+          </div>
         </div>
 
         {activeItem && activeItem.min_stock > 0 && activeItem.current_stock <= activeItem.min_stock && (
@@ -543,10 +538,9 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
             </div>
             <div>
               <label className="label-base">Ngày thu</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={receiptDate}
-                onChange={(event) => setReceiptDate(event.target.value)}
+                onChange={setReceiptDate}
               />
             </div>
             <div>
@@ -572,10 +566,9 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="label-base">Ngày thu</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={receiptDate}
-                onChange={(event) => setReceiptDate(event.target.value)}
+                onChange={setReceiptDate}
               />
             </div>
             <div>

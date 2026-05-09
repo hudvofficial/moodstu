@@ -67,6 +67,12 @@ function unwrapActionResult<T>(
   throw new Error(`${label}: ${result.error}`);
 }
 
+interface InventoryDetailV2Payload {
+  item?: InventoryItem | null;
+  transactions?: unknown;
+  totals?: unknown;
+}
+
 export async function fetchInventoryList(
   filters: InventoryFilters = {},
 ): Promise<{ data: InventoryItem[]; count: number }> {
@@ -124,11 +130,11 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
         });
 
         if (!v2Error && v2Data) {
-          const detail = v2Data as any;
+          const detail = v2Data as InventoryDetailV2Payload;
           if (!detail.item) return null;
           return {
-            ...(detail.item as InventoryItem),
-            transactions: (detail.transactions || []) as unknown as InventoryTransaction[],
+            ...detail.item,
+            transactions: (Array.isArray(detail.transactions) ? detail.transactions : []) as InventoryTransaction[],
             transactionTotals: normalizeTotals(detail.totals),
           };
         }
