@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface LoginTransitionProps {
   isVisible: boolean;
   state: "transitioning" | "navigating";
@@ -14,7 +16,16 @@ export default function LoginTransition({ isVisible, state }: LoginTransitionPro
         <div className="relative">
           <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 bg-primary/10 rounded-full animate-pulse" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-bg-card shadow-xs">
+              <Image
+                src="/logo.png"
+                alt=""
+                aria-hidden="true"
+                width={28}
+                height={28}
+                className="object-contain"
+              />
+            </div>
           </div>
         </div>
 
