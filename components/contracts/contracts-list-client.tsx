@@ -20,11 +20,14 @@ import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
+import type { RealtimePayload } from "@/hooks/use-realtime";
 import { ContractsListSkeleton } from "@/components/contracts/contracts-list-skeleton";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
 import {
   revalidateContractListCaches,
+  updateContractListChecklistCache,
   useContracts,
   useContractStats,
   prefetchContract,
@@ -100,6 +103,33 @@ interface ContractsListClientProps {
   initialStats?: ContractStats;
 }
 
+function toContractListItem(contractRecord: Record<string, unknown>): ContractListItem {
+  return {
+    id: (contractRecord.id as string) || "",
+    contract_code: (contractRecord.contract_code as string) || null,
+    status: (contractRecord.status as ContractListItem["status"]) || null,
+    service_type: (contractRecord.service_type as string) || null,
+    work_date: (contractRecord.work_date as string) || null,
+    contract_date: (contractRecord.contract_date as string) || null,
+    total_amount: Number(contractRecord.total_amount) || 0,
+    paid_amount: Number(contractRecord.paid_amount) || 0,
+    remaining_amount: Number(contractRecord.remaining_amount) || 0,
+    customer_id: (contractRecord.customer_id as string) || null,
+    customers:
+      (contractRecord.customers as ContractListItem["customers"]) ?? null,
+    contract_events:
+      (contractRecord.contract_events as ContractListItem["contract_events"]) ?? undefined,
+    contract_checklists:
+      (contractRecord.contract_checklists as ContractListItem["contract_checklists"]) ?? undefined,
+    work_tasks:
+      (contractRecord.work_tasks as ContractListItem["work_tasks"]) ?? undefined,
+    payment_plans:
+      (contractRecord.payment_plans as ContractListItem["payment_plans"]) ?? undefined,
+    contract_notes:
+      (contractRecord.contract_notes as ContractListItem["contract_notes"]) ?? undefined,
+  };
+}
+
 function ContractsListInner({
   initialData,
   initialFilters,
@@ -141,16 +171,48 @@ function ContractsListInner({
   );
   const { stats, isLoading: statsLoading } = useContractStats(initialStats);
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  const refreshContractList = useCallback(() => {
-    void revalidateContractListCaches();
+  const patchChecklistRealtimePayload = useCallback((payload: RealtimePayload) => {
+    if (payload.table === "contract_checklists") {
+      if (payload.eventType === "UPDATE") {
+        const row = payload.new;
+        const contractId = typeof row.contract_id === "string" ? row.contract_id : "";
+        const checklistId = typeof row.id === "string" ? row.id : "";
+
+        if (contractId && checklistId && typeof row.is_completed === "boolean") {
+          updateContractListChecklistCache(contractId, checklistId, row.is_completed);
+          return true;
+        }
+      }
+    }
+
+    return false;
   }, []);
 
-  const realtimeConfigs = useMemo(
+  const handleContractRealtime = useCallback((payload: RealtimePayload) => {
+    if (patchChecklistRealtimePayload(payload)) return;
+    void revalidateContractListCaches();
+  }, [patchChecklistRealtimePayload]);
+
+  const handleContractRealtimeBatch = useCallback((payloads: RealtimePayload[]) => {
+    let needsRevalidate = false;
+
+    for (const payload of payloads) {
+      if (!patchChecklistRealtimePayload(payload)) {
+        needsRevalidate = true;
+      }
+    }
+
+    if (needsRevalidate) {
+      void revalidateContractListCaches();
+    }
+  }, [patchChecklistRealtimePayload]);
+
+  const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(
     () => [
       { table: "contracts" },
-      { table: "contract_checklists" },
       { table: "contract_notes" },
       { table: "contract_events" },
+      { table: "contract_checklists", eventTypes: ["INSERT", "UPDATE", "DELETE"] },
       { table: "work_tasks" },
       { table: "payment_plans" },
     ],
@@ -159,7 +221,8 @@ function ContractsListInner({
 
   useRealtimeMulti(realtimeConfigs, {
     channelName: "contracts-list",
-    onChange: refreshContractList,
+    onChange: handleContractRealtime,
+    onBatchChange: handleContractRealtimeBatch,
     debounceMs: REALTIME_REFRESH_DELAY_MS,
   });
 
@@ -189,9 +252,19 @@ function ContractsListInner({
   );
 
   // ── Drawer state (0ms Full Inline pattern) ──
-  const [selectedContract, setSelectedContract] =
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [selectedContractFallback, setSelectedContractFallback] =
     useState<ContractListItem | null>(null);
-  const isDrawerOpen = selectedContract !== null;
+  const selectedContract = useMemo(() => {
+    if (!selectedContractId) return null;
+
+    const currentRecord = contracts.find(
+      (contract) => (contract as Record<string, unknown>).id === selectedContractId,
+    ) as Record<string, unknown> | undefined;
+
+    return currentRecord ? toContractListItem(currentRecord) : selectedContractFallback;
+  }, [contracts, selectedContractFallback, selectedContractId]);
+  const isDrawerOpen = selectedContractId !== null && selectedContract !== null;
 
   // Handlers
   const handleView = useCallback(
@@ -205,21 +278,8 @@ function ContractsListInner({
       }
 
       // Build ContractListItem from Record — drawer sections lazy-loaded by useContractDrawerExtra
-      const item: ContractListItem = {
-        id,
-        contract_code: (contractRecord.contract_code as string) || null,
-        status: (contractRecord.status as ContractListItem["status"]) || null,
-        service_type: (contractRecord.service_type as string) || null,
-        work_date: (contractRecord.work_date as string) || null,
-        contract_date: (contractRecord.contract_date as string) || null,
-        total_amount: Number(contractRecord.total_amount) || 0,
-        paid_amount: Number(contractRecord.paid_amount) || 0,
-        remaining_amount: Number(contractRecord.remaining_amount) || 0,
-        customer_id: (contractRecord.customer_id as string) || null,
-        customers:
-          (contractRecord.customers as ContractListItem["customers"]) ?? null,
-      };
-      setSelectedContract(item);
+      setSelectedContractFallback(toContractListItem(contractRecord));
+      setSelectedContractId(id);
     },
     [router],
   );
@@ -421,7 +481,10 @@ function ContractsListInner({
       <ContractDrawer
         contract={selectedContract}
         isOpen={isDrawerOpen}
-        onClose={() => setSelectedContract(null)}
+        onClose={() => {
+          setSelectedContractId(null);
+          setSelectedContractFallback(null);
+        }}
       />
     </>
   );

@@ -106,6 +106,7 @@ export interface Contract {
   contract_events?: ContractEvent[];
   work_tasks?: WorkTask[];
   contract_checklists?: ContractChecklist[];
+  checklist_summary?: ContractChecklistSummary;
 }
 
 /** Contract item from `contract_items` table */
@@ -188,6 +189,12 @@ export interface ContractChecklist {
   is_completed: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ContractChecklistSummary {
+  total: number;
+  done: number;
+  missing: number;
 }
 
 /** Payment from `payments` table */

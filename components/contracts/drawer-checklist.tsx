@@ -1,21 +1,12 @@
 "use client";
 
-/**
- * ✅ DrawerChecklist — Compact checklist view for contract drawer
- *
- * Shows progress bar + grouped by category with toggleable items.
- * Optimistic UI: checkbox updates instantly, syncs in background.
- */
-
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { updateContractListChecklistCache } from "@/lib/hooks/use-contracts";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-
-// ─── TYPES ───────────────────────────────────
 
 interface ChecklistItem {
   id: string;
@@ -29,8 +20,6 @@ interface DrawerChecklistProps {
   items: ChecklistItem[];
 }
 
-// ─── CATEGORY COLORS ────────────────────────
-
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "lễ tân": { bg: "bg-warning/10", text: "text-warning" },
   "makeup": { bg: "bg-accent/10", text: "text-accent" },
@@ -38,90 +27,79 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function getCatStyle(category: string) {
-  const key = Object.keys(CATEGORY_COLORS).find((k) =>
-    category.toLowerCase().includes(k)
+  const key = Object.keys(CATEGORY_COLORS).find((item) =>
+    category.toLowerCase().includes(item),
   );
   return key
     ? CATEGORY_COLORS[key]
     : { bg: "bg-bg-hover", text: "text-text-secondary" };
 }
 
-// ─── COMPONENT ───────────────────────────────
-
 export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   const [items, setItems] = useState(initialItems);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
-  // Sync state when props change (SWR revalidation, drawer reopen)
   useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
 
-  // Stats
   const total = items.length;
-  const done = items.filter((i) => i.is_completed).length;
+  const done = items.filter((item) => item.is_completed).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  // Group by category
   const grouped = useMemo(() => {
     const map: Record<string, ChecklistItem[]> = {};
     for (const item of items) {
-      const cat = item.category;
-      if (!map[cat]) map[cat] = [];
-      map[cat].push(item);
+      if (!map[item.category]) map[item.category] = [];
+      map[item.category].push(item);
     }
     return map;
   }, [items]);
 
   const categories = Object.keys(grouped);
 
-  // Toggle expand
-  const toggleExpand = useCallback((cat: string) => {
-    setExpandedCats((prev) => {
-      const next = new Set(prev);
-      if (next.has(cat)) {
-        next.delete(cat);
+  const toggleExpand = useCallback((category: string) => {
+    setExpandedCats((current) => {
+      const next = new Set(current);
+      if (next.has(category)) {
+        next.delete(category);
       } else {
-        next.add(cat);
+        next.add(category);
       }
       return next;
     });
   }, []);
 
-  // Toggle item (optimistic + race condition lock)
   const handleToggle = useCallback(async (item: ChecklistItem) => {
-    // Prevent double-click race condition
     if (pendingIds.has(item.id)) return;
 
-    const newVal = !item.is_completed;
+    const nextCompleted = !item.is_completed;
     const applyState = (isCompleted: boolean) => {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, is_completed: isCompleted } : i
-        )
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id ? { ...entry, is_completed: isCompleted } : entry,
+        ),
       );
     };
 
-    // Lock item
-    setPendingIds((prev) => new Set(prev).add(item.id));
+    setPendingIds((current) => new Set(current).add(item.id));
 
     try {
       await runOptimisticMutation({
-        apply: () => applyState(newVal),
-        rollback: () => applyState(!newVal),
-        action: () => toggleChecklist(item.id, newVal),
-        onSuccess: (res) => {
-          void revalidateContractCaches(res.data.contract_id);
+        apply: () => applyState(nextCompleted),
+        rollback: () => applyState(item.is_completed),
+        action: () => toggleChecklist(item.id, nextCompleted),
+        onSuccess: (result) => {
+          updateContractListChecklistCache(result.data.contract_id, item.id, nextCompleted);
         },
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
         },
       });
     } finally {
-      // Unlock item
-      setPendingIds((prev) => {
-        const next = new Set(prev);
+      setPendingIds((current) => {
+        const next = new Set(current);
         next.delete(item.id);
         return next;
       });
@@ -142,7 +120,6 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
 
   return (
     <section className="card-base p-4">
-      {/* Header + Progress */}
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-caption font-semibold text-text-secondary">
           <CheckSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
@@ -153,7 +130,6 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
         </span>
       </div>
 
-      {/* Progress bar */}
       <div className="w-full h-1.5 bg-bg-hover rounded-full mb-3 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
@@ -163,68 +139,68 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
         />
       </div>
 
-      {/* Category groups */}
       <div className="flex flex-col gap-1.5">
-        {categories.map((cat) => {
-          const catItems = grouped[cat];
-          const catDone = catItems.filter((i) => i.is_completed).length;
-          const isExpanded = expandedCats.has(cat);
-          const style = getCatStyle(cat);
+        {categories.map((category) => {
+          const catItems = grouped[category];
+          const catDone = catItems.filter((item) => item.is_completed).length;
+          const isExpanded = expandedCats.has(category);
+          const style = getCatStyle(category);
 
           return (
-            <div key={cat}>
-              {/* Category header */}
-              <Button unstyled
-                onClick={() => toggleExpand(cat)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors hover:bg-hover/30 ${style.bg}`}
+            <div key={category}>
+              <Button
+                unstyled
+                onClick={() => toggleExpand(category)}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left cursor-pointer transition-colors hover:bg-hover/30 ${style.bg}`}
               >
                 {isExpanded ? (
                   <ChevronDown className="w-3 h-3 text-text-muted shrink-0" />
                 ) : (
                   <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
                 )}
-                <span className={`text-tiny font-bold ${style.text}`}>
-                  {cat}
-                </span>
+                <span className={`text-tiny font-bold ${style.text}`}>{category}</span>
                 <span className={`text-tiny ml-auto font-bold ${
                   catDone === catItems.length ? "text-success" : "text-text-muted"
-                }`}>
+                }`}
+                >
                   {catDone === catItems.length ? "✓ " : ""}{catDone}/{catItems.length}
                 </span>
               </Button>
 
-              {/* Items */}
               {isExpanded && (
                 <div className="ml-4 mt-1 flex flex-col gap-0.5">
-                  {catItems.map((item) => (
-                    <label
-                      key={item.id}
-                      className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-hover/20 transition-colors ${
-                        pendingIds.has(item.id) ? "opacity-50 cursor-wait" : ""
-                      }`}
-                    >
-                      {item.is_completed ? (
-                        <CheckSquare
-                          className="w-4 h-4 text-success shrink-0 cursor-pointer"
-                          onClick={() => handleToggle(item)}
-                        />
-                      ) : (
-                        <Square
-                          className="w-4 h-4 text-text-muted shrink-0 cursor-pointer"
-                          onClick={() => handleToggle(item)}
-                        />
-                      )}
-                      <span
-                        className={`text-body-sm leading-snug select-none ${
-                          item.is_completed
-                            ? "line-through text-text-muted"
-                            : "text-text-main"
+                  {catItems.map((item) => {
+                    const isPending = pendingIds.has(item.id);
+                    return (
+                      <Button
+                        unstyled
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleToggle(item)}
+                        disabled={isPending}
+                        className={`w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-[0.98] ${
+                          isPending ? "opacity-50 cursor-wait" : "hover:bg-hover/20"
                         }`}
                       >
-                        {item.item_name}
-                      </span>
-                    </label>
-                  ))}
+                        <div className="shrink-0 transition-transform duration-200 group-active:scale-90">
+                          {item.is_completed ? (
+                            <CheckSquare className="w-4 h-4 text-success" />
+                          ) : (
+                            <Square className="w-4 h-4 text-text-muted" />
+                          )}
+                        </div>
+                        <span
+                          className={`text-body-sm leading-snug select-none transition-all duration-200 ${
+                            item.is_completed
+                              ? "line-through text-text-muted opacity-70"
+                              : "text-text-main"
+                          }`}
+                        >
+                          {item.item_name}
+                        </span>
+                      </Button>
+                    );
+                  })}
                 </div>
               )}
             </div>

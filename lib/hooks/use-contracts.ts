@@ -11,6 +11,7 @@ import type {
   ContractFilters,
   ContractStats,
   Contract,
+  ContractChecklistSummary,
   Payment,
   PaymentPlan,
   DressReservationRow,
@@ -46,6 +47,88 @@ const EMPTY_PAYMENT_PLANS: PaymentPlan[] = [];
 const EMPTY_RESERVATIONS: DressReservationRow[] = [];
 const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
 
+type ContractListCache = {
+  contracts?: Record<string, unknown>[];
+} & Record<string, unknown>;
+
+type ContractChecklistCacheItem = {
+  id?: unknown;
+  is_completed?: unknown;
+} & Record<string, unknown>;
+
+type ChecklistArrayUpdate = {
+  value: unknown;
+  changed: boolean;
+  previousCompleted?: boolean;
+};
+
+type ContractChecklistSummaryCache = Partial<ContractChecklistSummary> &
+  Record<string, unknown>;
+
+type ContractDrawerExtraCache = {
+  checklists?: unknown[];
+} & Record<string, unknown>;
+
+function updateChecklistArray(
+  value: unknown,
+  checklistId: string,
+  isCompleted: boolean,
+): ChecklistArrayUpdate {
+  if (!Array.isArray(value)) {
+    return { value, changed: false };
+  }
+
+  let changed = false;
+  let previousCompleted: boolean | undefined;
+  const next = value.map((entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+
+    const checklist = entry as ContractChecklistCacheItem;
+    if (checklist.id !== checklistId) return entry;
+
+    previousCompleted = checklist.is_completed === true;
+    if (previousCompleted === isCompleted) return entry;
+
+    changed = true;
+    return { ...checklist, is_completed: isCompleted };
+  });
+
+  return { value: changed ? next : value, changed, previousCompleted };
+}
+
+function updateChecklistSummary(
+  value: unknown,
+  previousCompleted: boolean | undefined,
+  isCompleted: boolean,
+): { value: unknown; changed: boolean } {
+  if (
+    previousCompleted === undefined ||
+    previousCompleted === isCompleted ||
+    !value ||
+    typeof value !== "object"
+  ) {
+    return { value, changed: false };
+  }
+
+  const summary = value as ContractChecklistSummaryCache;
+  const total = Number(summary.total) || 0;
+  const currentDone = Number(summary.done) || 0;
+  const done = Math.min(
+    total,
+    Math.max(0, currentDone + (isCompleted ? 1 : -1)),
+  );
+
+  return {
+    value: {
+      ...summary,
+      total,
+      done,
+      missing: Math.max(0, total - done),
+    },
+    changed: true,
+  };
+}
+
 // ─── useContracts ───────────────────────────────────────
 
 export function useContracts(
@@ -79,15 +162,10 @@ export function useContracts(
   );
 
   useEffect(() => {
-    const fallbackCount = fallbackData?.contracts?.length || 0;
-    const currentCount = data?.contracts?.length || 0;
-    const fallbackTotal = Number(fallbackData?.total) || 0;
-    const currentTotal = Number(data?.total) || 0;
-
-    if (fallbackCount > 0 && fallbackTotal > 0 && currentCount === 0 && currentTotal === 0) {
+    if (fallbackData) {
       void mutate(fallbackData, { revalidate: false });
     }
-  }, [data?.contracts?.length, data?.total, fallbackData, mutate]);
+  }, [fallbackData, mutate]);
 
   return {
     contracts: data?.contracts || [],
@@ -245,6 +323,98 @@ export async function revalidateContractListCaches() {
     }, undefined, { revalidate: true }),
     mutate(contractKeys.stats()),
   ]);
+}
+
+export function updateContractListChecklistCache(
+  contractId: string,
+  checklistId: string,
+  isCompleted: boolean,
+) {
+  // Keep all client-side contract views in sync without a network refetch.
+  void mutate(
+    (key: unknown) => Array.isArray(key) && key[0] === "contracts",
+    (currentData: unknown) => {
+      if (!currentData || typeof currentData !== "object") return currentData;
+
+      const current = currentData as ContractListCache;
+      if (!Array.isArray(current.contracts)) return currentData;
+
+      let didChange = false;
+      const contracts = current.contracts.map((contract) => {
+        if (contract.id !== contractId) return contract;
+
+        const nextChecklists = updateChecklistArray(
+          contract.contract_checklists,
+          checklistId,
+          isCompleted,
+        );
+        const nextSummary = updateChecklistSummary(
+          contract.checklist_summary,
+          nextChecklists.previousCompleted,
+          isCompleted,
+        );
+        if (!nextChecklists.changed && !nextSummary.changed) return contract;
+
+        didChange = true;
+        return {
+          ...contract,
+          ...(nextChecklists.changed
+            ? { contract_checklists: nextChecklists.value }
+            : {}),
+          ...(nextSummary.changed ? { checklist_summary: nextSummary.value } : {}),
+        };
+      });
+
+      return didChange ? { ...current, contracts } : currentData;
+    },
+    { revalidate: false },
+  );
+
+  void mutate(
+    contractKeys.drawerExtra(contractId),
+    (currentData: unknown) => {
+      if (!currentData || typeof currentData !== "object") return currentData;
+
+      const current = currentData as ContractDrawerExtraCache;
+      const nextChecklists = updateChecklistArray(
+        current.checklists,
+        checklistId,
+        isCompleted,
+      );
+
+      return nextChecklists.changed
+        ? { ...current, checklists: nextChecklists.value }
+        : currentData;
+    },
+    { revalidate: false },
+  );
+
+  void mutate(
+    contractKeys.detail(contractId),
+    (currentData: unknown) => {
+      if (!currentData || typeof currentData !== "object") return currentData;
+
+      const current = currentData as Partial<ContractDetailData>;
+      if (!current.contract) return currentData;
+
+      const nextChecklists = updateChecklistArray(
+        current.contract.contract_checklists,
+        checklistId,
+        isCompleted,
+      );
+
+      return nextChecklists.changed
+        ? {
+            ...current,
+            contract: {
+              ...current.contract,
+              contract_checklists: nextChecklists.value as Contract["contract_checklists"],
+            },
+          }
+        : currentData;
+    },
+    { revalidate: false },
+  );
 }
 
 /** Revalidate only the detail-side caches. Use for detail page realtime to avoid list/stat refresh storms. */

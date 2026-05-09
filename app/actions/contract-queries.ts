@@ -91,6 +91,17 @@ type PaymentPlanRow = PaymentPlan & {
   }> | null;
 };
 
+type ContractDetailRpcPayload = {
+  contract?: Record<string, unknown> | null;
+  events?: unknown[] | null;
+  work_tasks?: unknown[] | null;
+  checklists?: unknown[] | null;
+  payments?: unknown[] | null;
+  reservations?: unknown[] | null;
+  print_orders?: unknown[] | null;
+  payment_plans?: unknown[] | null;
+};
+
 function normalizePlanStatus(status: string | null | undefined, paidAmount: number, amount: number) {
   const raw = String(status || "pending").toLowerCase();
   if (raw === "cancelled" || raw === "da_huy" || raw === "huy") return "cancelled";
@@ -138,6 +149,27 @@ type ContractListPayload = {
   pageSize: number;
 };
 
+function buildChecklistSummary(items: Record<string, unknown>[]) {
+  const total = items.length;
+  const done = items.filter((item) => item.is_completed === true).length;
+  return {
+    total,
+    done,
+    missing: Math.max(0, total - done),
+  };
+}
+
+function attachChecklistSummaryFromArray(contract: Record<string, unknown>) {
+  if (!Array.isArray(contract.contract_checklists)) return contract;
+
+  return {
+    ...contract,
+    checklist_summary: buildChecklistSummary(
+      contract.contract_checklists as Record<string, unknown>[],
+    ),
+  };
+}
+
 async function getContractListFromRpc(
   supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
   filters: ContractFilters,
@@ -167,7 +199,9 @@ async function getContractListFromRpc(
   }
 
   return {
-    contracts: payload.contracts as Record<string, unknown>[],
+    contracts: (payload.contracts as Record<string, unknown>[]).map(
+      attachChecklistSummaryFromArray,
+    ),
     total: Number(payload.total) || 0,
     page: Number(payload.page) || page,
     pageSize: Number(payload.pageSize) || 20,
@@ -330,8 +364,10 @@ export async function getContractList(filters: ContractFilters) {
       for (const contract of contracts) {
         const contractId = contract.id;
         if (typeof contractId !== "string") continue;
+        const checklists = checklistsByContract.get(contractId) || [];
         contract.work_tasks = tasksByContract.get(contractId) || [];
-        contract.contract_checklists = checklistsByContract.get(contractId) || [];
+        contract.contract_checklists = checklists;
+        contract.checklist_summary = buildChecklistSummary(checklists);
       }
     }
 
@@ -441,7 +477,33 @@ export async function getContractDetail(id: string) {
   return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // ⚡ Single-pass: operational detail queries fire simultaneously.
+    // ⚡ Try RPC first for max performance (single request)
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc("get_contract_detail_v2", { p_contract_id: id });
+
+    if (!rpcError && rpcData) {
+      const data = rpcData as ContractDetailRpcPayload;
+      if (data.contract) {
+        const contractData = {
+          ...data.contract,
+          contract_events: data.events || [],
+          work_tasks: data.work_tasks || [],
+          contract_checklists: data.checklists || [],
+        };
+
+        return {
+          contract: contractData,
+          payments: data.payments || [],
+          reservations: data.reservations || [],
+          printOrders: data.print_orders || [],
+          paymentPlans: mapPaymentPlans(data.payment_plans || []),
+        };
+      }
+    }
+
+    console.warn("RPC get_contract_detail_v2 failed or returned invalid data, falling back to parallel queries:", rpcError);
+
+    // ⚡ Fallback: Single-pass operational detail queries fire simultaneously.
     const [
       contractResult,
       eventsResult,

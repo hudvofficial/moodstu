@@ -15,6 +15,7 @@ export type RealtimeMultiOptions = {
   channelName?: string;
   debounceMs?: number;
   onChange: (payload: RealtimePayload) => void | Promise<void>;
+  onBatchChange?: (payloads: RealtimePayload[]) => void | Promise<void>;
 };
 
 function configKey(configs: RealtimeMultiConfig[]) {
@@ -36,12 +37,17 @@ export function useRealtimeMulti(
 ) {
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const payloadQueueRef = useRef<RealtimePayload[]>([]);
   const onChangeRef = useRef<RealtimeMultiOptions["onChange"]>(options.onChange);
+  const onBatchChangeRef = useRef<RealtimeMultiOptions["onBatchChange"]>(
+    options.onBatchChange,
+  );
   const configsKey = useMemo(() => configKey(configs), [configs]);
   const channelName = options.channelName || `realtime-multi-${configsKey}`;
   const debounceMs = options.debounceMs ?? 300;
 
   onChangeRef.current = options.onChange;
+  onBatchChangeRef.current = options.onBatchChange;
 
   useEffect(() => {
     let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
@@ -61,11 +67,27 @@ export function useRealtimeMulti(
 
       channel = supabase.channel(channelName);
 
+      const flushPayloads = () => {
+        const payloads = payloadQueueRef.current;
+        payloadQueueRef.current = [];
+        if (payloads.length === 0) return;
+
+        if (onBatchChangeRef.current) {
+          void onBatchChangeRef.current(payloads);
+          return;
+        }
+
+        void (async () => {
+          for (const payload of payloads) {
+            await onChangeRef.current(payload);
+          }
+        })();
+      };
+
       const handler = (payload: RealtimePayload) => {
+        payloadQueueRef.current.push(payload);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          void onChangeRef.current(payload);
-        }, debounceMs);
+        debounceRef.current = setTimeout(flushPayloads, debounceMs);
       };
 
       for (const config of configs) {
@@ -103,6 +125,7 @@ export function useRealtimeMulti(
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      payloadQueueRef.current = [];
       if (channel) supabase.removeChannel(channel);
       setStatus("disconnected");
     };

@@ -4,10 +4,12 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import type { RealtimePayload } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import {
   revalidateContractDetailCaches,
+  updateContractListChecklistCache,
   useContractDetail,
   useActiveEmployees,
 } from "@/lib/hooks/use-contracts";
@@ -122,7 +124,24 @@ export default function ContractDetailClient({
   }, []);
 
   // 📡 Realtime — auto-refresh on contract or receipt changes
-  const refreshContractCaches = useCallback(() => {
+  const patchChecklistRealtimePayload = useCallback((payload: RealtimePayload) => {
+    if (payload.table === "contract_checklists" && payload.eventType === "UPDATE") {
+      const row = payload.new;
+      const contractId = typeof row.contract_id === "string" ? row.contract_id : id;
+      const checklistId = typeof row.id === "string" ? row.id : "";
+
+      if (contractId && checklistId && typeof row.is_completed === "boolean") {
+        updateContractListChecklistCache(contractId, checklistId, row.is_completed);
+        return true;
+      }
+    }
+
+    return false;
+  }, [id]);
+
+  const refreshContractCaches = useCallback((payload?: RealtimePayload) => {
+    if (payload && patchChecklistRealtimePayload(payload)) return;
+
     if (Date.now() < muteRealtimeUntilRef.current) return;
 
     const now = Date.now();
@@ -140,7 +159,21 @@ export default function ContractDetailClient({
       refreshCooldownUntilRef.current = Date.now() + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
       void revalidateContractDetailCaches(id);
     }, Math.max(refreshCooldownUntilRef.current - now, 0));
-  }, [id]);
+  }, [id, patchChecklistRealtimePayload]);
+
+  const refreshContractCachesBatch = useCallback((payloads: RealtimePayload[]) => {
+    let needsRefresh = false;
+
+    for (const payload of payloads) {
+      if (!patchChecklistRealtimePayload(payload)) {
+        needsRefresh = true;
+      }
+    }
+
+    if (needsRefresh) {
+      refreshContractCaches();
+    }
+  }, [patchChecklistRealtimePayload, refreshContractCaches]);
 
   // SWR fallback — may be null on cold start (client-first mode)
   const contract = (liveContract as unknown as Contract | null) ?? initialContract;
@@ -260,6 +293,7 @@ export default function ContractDetailClient({
   useRealtimeMulti(detailRealtimeConfigs, {
     channelName: `contract-detail-${id}`,
     onChange: refreshContractCaches,
+    onBatchChange: refreshContractCachesBatch,
     debounceMs: CONTRACT_DETAIL_REFRESH_SETTLE_MS,
   });
 

@@ -19,8 +19,9 @@ import {
   getServiceLabel,
   getStatusLabel,
 } from "@/types/contract-constants";
-import type { ContractStatus } from "@/types/contract";
+import type { ContractChecklistSummary, ContractStatus } from "@/types/contract";
 import MissingInfoBadge from "@/components/contracts/missing-info-badge";
+import type { ContractChecklistForBadge } from "@/components/contracts/missing-info-badge";
 import ProgressBadge from "@/components/contracts/progress-badge";
 
 // ─── HELPERS ─────────────────────────────────────
@@ -74,6 +75,22 @@ function getNum(obj: Record<string, unknown>, key: string): number {
 function getArr(obj: Record<string, unknown>, key: string): Record<string, unknown>[] {
   const val = obj[key];
   return Array.isArray(val) ? val : [];
+}
+
+function getChecklistSummary(
+  obj: Record<string, unknown>,
+): ContractChecklistSummary | null {
+  const value = obj.checklist_summary;
+  if (!value || typeof value !== "object") return null;
+
+  const summary = value as Record<string, unknown>;
+  const total = Math.max(0, Number(summary.total) || 0);
+  const done = Math.min(total, Math.max(0, Number(summary.done) || 0));
+  return {
+    total,
+    done,
+    missing: Math.min(total, Math.max(0, Number(summary.missing) || total - done)),
+  };
 }
 
 // ─── DESKTOP TABLE ───────────────────────────────
@@ -147,7 +164,12 @@ function DesktopTable({ contracts, customerMap, onView, onHover }: ContractsTabl
                   )}
                 </TD>
                 <TD className="text-center">
-                  <MissingInfoBadge items={(getArr(c, "contract_checklists") as { id: string; contract_id: string; event_stage: string | null; category: string; item_name: string; is_completed: boolean; created_at: string; updated_at: string }[])} />
+                  <MissingInfoBadge
+                    summary={getChecklistSummary(c)}
+                    items={
+                      getArr(c, "contract_checklists") as unknown as ContractChecklistForBadge[]
+                    }
+                  />
                 </TD>
                 <TD>
                   <ProgressBadge tasks={getArr(c, "work_tasks") as { id: string; work_type: string; status: string; deadline: string | null }[]} />
