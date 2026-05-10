@@ -17,6 +17,12 @@ interface Props {
   }>;
 }
 
+function warnInitialLoadFailure(label: string, result: PromiseSettledResult<unknown>) {
+  if (result.status === "rejected") {
+    console.warn(`[dresses] ${label} initial load failed`, result.reason);
+  }
+}
+
 export default async function DressesPage({ searchParams }: Props) {
   const params = await searchParams;
   const filters: DressFilters = {
@@ -27,11 +33,18 @@ export default async function DressesPage({ searchParams }: Props) {
     page: params.page ? Number(params.page) : 1,
   };
 
-  const [list, stats, context] = await Promise.all([
+  const [listResult, statsResult, contextResult] = await Promise.allSettled([
     fetchDressList(filters),
     getDressStats(),
     getAuthenticatedUserContext(),
   ]);
+  warnInitialLoadFailure("list", listResult);
+  warnInitialLoadFailure("stats", statsResult);
+  warnInitialLoadFailure("context", contextResult);
+
+  const list = listResult.status === "fulfilled" ? listResult.value : undefined;
+  const stats = statsResult.status === "fulfilled" ? statsResult.value : undefined;
+  const context = contextResult.status === "fulfilled" ? contextResult.value : null;
   const canManageCatalog = context?.shellRole === "admin" || context?.shellRole === "manager";
 
   return (

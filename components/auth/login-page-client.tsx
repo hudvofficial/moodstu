@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { login } from "@/app/actions/auth";
+import { prewarmDashboardForNavigation } from "@/app/actions/dashboard-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +16,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type LoginState = "idle" | "transitioning" | "navigating";
+const DASHBOARD_PREWARM_BUDGET_MS = 250;
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 export default function LoginPageClient() {
   const router = useRouter();
@@ -57,6 +63,17 @@ export default function LoginPageClient() {
       toast.error(result.error);
     } else {
       setLoginState("navigating");
+      router.prefetch("/dashboard");
+
+      const dashboardPrewarm = prewarmDashboardForNavigation().catch((error) => {
+        console.warn("[login] dashboard prewarm failed", error);
+      });
+
+      await Promise.race([
+        dashboardPrewarm,
+        wait(DASHBOARD_PREWARM_BUDGET_MS),
+      ]);
+
       router.replace("/dashboard");
     }
   };

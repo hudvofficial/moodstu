@@ -20,6 +20,12 @@ interface Props {
   }>;
 }
 
+function warnInitialLoadFailure(label: string, result: PromiseSettledResult<unknown>) {
+  if (result.status === "rejected") {
+    console.warn(`[inventory] ${label} initial load failed`, result.reason);
+  }
+}
+
 export default async function InventoryPage({ searchParams }: Props) {
   const params = await searchParams;
   const filters: InventoryFilters = {
@@ -30,10 +36,15 @@ export default async function InventoryPage({ searchParams }: Props) {
     page: params.page ? Number(params.page) : 1,
   };
 
-  const [list, stats] = await Promise.all([
+  const [listResult, statsResult] = await Promise.allSettled([
     fetchInventoryList(filters),
     getInventoryStats(),
   ]);
+  warnInitialLoadFailure("list", listResult);
+  warnInitialLoadFailure("stats", statsResult);
+
+  const list = listResult.status === "fulfilled" ? listResult.value : undefined;
+  const stats = statsResult.status === "fulfilled" ? statsResult.value : undefined;
 
   return <InventoryListClient initialList={list} initialStats={stats} />;
 }

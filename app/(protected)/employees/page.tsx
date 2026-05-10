@@ -6,8 +6,24 @@ export const metadata = { title: "Nhân viên" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+const EMPTY_EMPLOYEE_STATS = {
+  total: 0,
+  active: 0,
+  inactive: 0,
+  departments: {},
+};
+
 function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function pageNumber(value: string | undefined) {
+  const page = Number.parseInt(value || "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function warnInitialLoadFailure(label: string, error: unknown) {
+  console.warn(`[employees] ${label} initial load failed`, error);
 }
 
 export default async function EmployeesPage({
@@ -25,30 +41,49 @@ export default async function EmployeesPage({
     page: firstParam(params.page),
   };
 
-  const [listResult, statsResult] = await Promise.all([
+  const [listSettled, statsSettled] = await Promise.allSettled([
     getEmployeeList(listParams),
     getEmployeeStats(),
   ]);
 
-  if (!listResult.success) {
-    throw new Error(listResult.error || "Không thể tải danh sách nhân viên");
+  if (listSettled.status === "rejected") {
+    warnInitialLoadFailure("list", listSettled.reason);
+  }
+  if (statsSettled.status === "rejected") {
+    warnInitialLoadFailure("stats", statsSettled.reason);
   }
 
-  if (!statsResult.success) {
-    throw new Error(statsResult.error || "Không thể tải thống kê nhân viên");
+  const listResult =
+    listSettled.status === "fulfilled" && listSettled.value.success
+      ? listSettled.value.data
+      : {
+          employees: [],
+          total: 0,
+          page: pageNumber(listParams.page),
+          pageSize: 20,
+        };
+  const statsResult =
+    statsSettled.status === "fulfilled" && statsSettled.value.success
+      ? statsSettled.value.data
+      : EMPTY_EMPLOYEE_STATS;
+
+  if (listSettled.status === "fulfilled" && !listSettled.value.success) {
+    warnInitialLoadFailure("list", listSettled.value.error);
+  }
+  if (statsSettled.status === "fulfilled" && !statsSettled.value.success) {
+    warnInitialLoadFailure("stats", statsSettled.value.error);
   }
 
   return (
     <>
       <RealtimeSync table="employees" prefixes="employees" debounceMs={600} />
       <EmployeeListPage
-        employees={listResult.data.employees}
-        total={listResult.data.total}
-        page={listResult.data.page}
-        pageSize={listResult.data.pageSize}
-        stats={statsResult.data}
+        employees={listResult.employees}
+        total={listResult.total}
+        page={listResult.page}
+        pageSize={listResult.pageSize}
+        stats={statsResult}
       />
     </>
   );
 }
-
