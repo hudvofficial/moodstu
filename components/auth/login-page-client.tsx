@@ -57,12 +57,17 @@ export default function LoginPageClient() {
       toast.error(result.error);
     } else {
       setLoginState("navigating");
-      toast.success("Đăng nhập thành công");
       router.replace("/dashboard");
     }
   };
 
   const isLoading = loginState === "transitioning" || loginState === "navigating";
+  const submitLabel =
+    loginState === "transitioning"
+      ? "Đang xác thực"
+      : loginState === "navigating"
+        ? "Đang mở hệ thống"
+        : "Đăng nhập";
 
   return (
     <>
@@ -192,7 +197,7 @@ export default function LoginPageClient() {
                   "flex items-center justify-center gap-2 transition-all duration-300",
                   "opacity-100 scale-100"
                 )}>
-                  Đăng nhập
+                  {submitLabel}
                 </div>
                 {isLoading && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
