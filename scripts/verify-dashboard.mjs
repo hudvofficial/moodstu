@@ -60,6 +60,8 @@ const revenueChart = read("components/dashboard/revenue-chart.tsx");
 const serviceChart = read("components/dashboard/service-pie-chart.tsx");
 const events = read("components/dashboard/upcoming-events.tsx");
 const reminders = read("components/dashboard/payment-reminders.tsx");
+const dashboardRealtime = read("components/dashboard/dashboard-realtime-refresh.tsx");
+const dashboardCacheAction = read("app/actions/dashboard-cache.ts");
 const quickAccess = read("components/dashboard/quick-access-grid.tsx");
 const navigation = read("lib/navigation.ts");
 const kpiCard = read("components/ui/kpi-card.tsx");
@@ -78,6 +80,8 @@ const dashboardSources = {
   "service chart": serviceChart,
   "upcoming events": events,
   "payment reminders": reminders,
+  "dashboard realtime": dashboardRealtime,
+  "dashboard cache action": dashboardCacheAction,
   "quick access": quickAccess,
   navigation,
   "kpi card": kpiCard,
@@ -108,17 +112,29 @@ for (const forbidden of [
   }
 }
 
-if (!page.includes("getDashboardBootstrap")) {
-  fail("dashboard page does not render from getDashboardBootstrap");
+if (!page.includes("getDashboardCritical")) {
+  fail("dashboard page does not render from critical dashboard data");
+}
+if (!page.includes("<Suspense")) {
+  fail("dashboard page does not stream deferred sections with Suspense");
 }
 if (!page.includes('export const dynamic = "force-dynamic"')) {
   fail("dashboard page is not force-dynamic");
 }
-if (!page.includes('<RealtimeSync table="payments"') || !page.includes('<RealtimeSync table="receipts"')) {
-  fail("dashboard page is missing finance source realtime refresh");
+if (!page.includes("<DashboardRealtimeRefresh")) {
+  fail("dashboard page is missing dashboard realtime refresh bridge");
 }
-if (!page.includes('<RealtimeSync table="payment_plans"')) {
-  fail("dashboard page is missing payment_plans realtime refresh");
+if (!dashboardRealtime.includes('"payments"') || !dashboardRealtime.includes('"receipts"')) {
+  fail("dashboard realtime bridge is missing finance source refresh");
+}
+if (!dashboardRealtime.includes('"payment_plans"')) {
+  fail("dashboard realtime bridge is missing payment_plans refresh");
+}
+if (!dashboardRealtime.includes("invalidateDashboardCache")) {
+  fail("dashboard realtime bridge does not invalidate dashboard cache before refresh");
+}
+if (!dashboardCacheAction.includes("revalidateTag") || !dashboardCacheAction.includes('revalidatePath("/dashboard")')) {
+  fail("dashboard cache action does not invalidate tag and path");
 }
 if (!api.includes("requireDashboardAccess")) {
   fail("dashboard data loader is missing explicit dashboard access guard");
@@ -135,6 +151,15 @@ if (!api.includes('.is("contract_id", null)')) {
 if (!api.includes("safeSection")) {
   fail("dashboard data loader does not expose controlled section errors");
 }
+if (!api.includes("prewarmDashboardCritical")) {
+  fail("dashboard data loader is missing critical prewarm entrypoint");
+}
+if (!api.includes("profileDashboardSection")) {
+  fail("dashboard data loader is missing section timing profiling");
+}
+if (!api.includes("DASHBOARD_CRITICAL_CACHE_TAG") || !api.includes("tags: [DASHBOARD_CRITICAL_CACHE_TAG]")) {
+  fail("dashboard critical cache is missing tag-based invalidation");
+}
 if (!api.includes("queryWorkTasks") || !api.includes('source: "work_tasks"')) {
   fail("dashboard upcoming work does not include work_tasks");
 }
@@ -146,6 +171,9 @@ if (!api.includes('from("payment_plans")') || !api.includes("isPaidPlanStatus"))
 }
 if (!types.includes("DashboardBootstrapData")) {
   fail("dashboard bootstrap data type is missing");
+}
+if (!types.includes("DashboardCriticalData") || !types.includes("DashboardSectionResult")) {
+  fail("dashboard split data types are missing");
 }
 if (!types.includes('"work_tasks"') || !types.includes('"payment_plans" | "contracts"')) {
   fail("dashboard types do not expose release-final source contracts");

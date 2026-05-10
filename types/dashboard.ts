@@ -29,6 +29,12 @@ export interface DashboardKPIs {
   completedChange: number | null;
 }
 
+export interface DashboardPeriod {
+  month: number;
+  year: number;
+  label: string;
+}
+
 export interface RevenueChartData {
   month: string;
   revenue: number;
@@ -95,15 +101,23 @@ export interface PaymentReminderData {
 
 export interface DashboardBootstrapData {
   access: DashboardAccess;
-  period: {
-    month: number;
-    year: number;
-    label: string;
-  };
+  period: DashboardPeriod;
   kpis: DashboardKPIs;
   revenueChart: RevenueChartData[];
   serviceBreakdown: ServiceBreakdownData[];
   upcomingEvents: UpcomingEventData[];
   paymentReminders: PaymentReminderData[];
+  errors: string[];
+}
+
+export interface DashboardCriticalData {
+  access: DashboardAccess;
+  period: DashboardPeriod;
+  kpis: DashboardKPIs;
+  errors: string[];
+}
+
+export interface DashboardSectionResult<T> {
+  data: T;
   errors: string[];
 }

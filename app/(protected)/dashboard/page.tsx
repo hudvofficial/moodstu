@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   AlertTriangle,
   CheckCircle,
@@ -9,11 +10,19 @@ import { QuickAccessGrid } from "@/components/dashboard/quick-access-grid";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { ServicePieChart } from "@/components/dashboard/service-pie-chart";
 import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
+import { DashboardRealtimeRefresh } from "@/components/dashboard/dashboard-realtime-refresh";
 import { DashboardWarmup } from "@/components/dashboard/dashboard-warmup";
-import { RealtimeSync } from "@/components/shared/realtime-sync";
 import { KPICard } from "@/components/ui/kpi-card";
-import { getDashboardBootstrap } from "@/lib/api/dashboard";
+import { SkeletonCard } from "@/components/ui/skeleton";
+import {
+  getDashboardCritical,
+  getDashboardPaymentRemindersSection,
+  getDashboardRevenueChartSection,
+  getDashboardServiceBreakdownSection,
+  getDashboardUpcomingEventsSection,
+} from "@/lib/api/dashboard";
 import { formatVnd } from "@/lib/utils";
+import type { DashboardKPIs, DashboardVisibility } from "@/types/dashboard";
 
 export const metadata = { title: "Tổng quan" };
 export const dynamic = "force-dynamic";
@@ -45,97 +54,164 @@ function DashboardErrorBanner({ errors }: { errors: string[] }) {
   );
 }
 
+function SectionErrorNotice({ errors }: { errors: string[] }) {
+  if (errors.length === 0) return null;
+
+  return (
+    <div className="mb-3 rounded-md border border-warning/25 bg-warning/8 px-3 py-2 text-caption text-text-secondary">
+      Phần này đang dùng dữ liệu dự phòng do truy vấn chưa hoàn tất.
+    </div>
+  );
+}
+
+function DashboardKpiGrid({
+  kpis,
+  visibility,
+}: {
+  kpis: DashboardKPIs;
+  visibility: DashboardVisibility;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <KPICard
+        label="Doanh thu tháng"
+        value={visibility.canViewFinancials ? formatMoney(kpis.totalRevenue) : "Ẩn"}
+        icon={DollarSign}
+        iconBg="bg-primary/10"
+        iconColor="text-primary"
+        trend={visibility.canViewFinancials ? formatTrend(kpis.revenueChange) : undefined}
+        trendUp={(kpis.revenueChange ?? 0) >= 0}
+        href={visibility.canViewFinancials ? "/finance" : undefined}
+        className="entrance entrance-1"
+      />
+      <KPICard
+        label="Hợp đồng mới"
+        value={visibility.canViewContracts ? String(kpis.newContracts) : "Ẩn"}
+        icon={FileText}
+        iconBg="bg-info/10"
+        iconColor="text-info"
+        trend={visibility.canViewContracts ? formatTrend(kpis.contractsChange) : undefined}
+        trendUp={(kpis.contractsChange ?? 0) >= 0}
+        href={visibility.canViewContracts ? "/contracts" : undefined}
+        className="entrance entrance-2"
+      />
+      <KPICard
+        label="Tổng công nợ"
+        value={visibility.canViewFinancials ? formatMoney(kpis.totalDebt) : "Ẩn"}
+        icon={AlertTriangle}
+        iconBg="bg-warning/10"
+        iconColor="text-warning"
+        trend={visibility.canViewFinancials ? formatTrend(kpis.debtChange) : undefined}
+        trendUp={(kpis.debtChange ?? 0) >= 0}
+        href={visibility.canViewFinancials ? "/finance" : undefined}
+        className="entrance entrance-3"
+      />
+      <KPICard
+        label="Hoàn thành"
+        value={visibility.canViewContracts ? String(kpis.completedContracts) : "Ẩn"}
+        icon={CheckCircle}
+        iconBg="bg-success/10"
+        iconColor="text-success"
+        trend={visibility.canViewContracts ? formatTrend(kpis.completedChange) : undefined}
+        trendUp={(kpis.completedChange ?? 0) >= 0}
+        href={visibility.canViewContracts ? "/contracts?status=hoan_thanh" : undefined}
+        className="entrance entrance-4"
+      />
+    </div>
+  );
+}
+
+async function RevenueChartSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardRevenueChartSection();
+
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <RevenueChart
+        data={result.data}
+        canView={visibility.canViewFinancials}
+        periodLabel="6 tháng gần nhất"
+      />
+    </>
+  );
+}
+
+async function ServiceBreakdownSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardServiceBreakdownSection();
+
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <ServicePieChart
+        data={result.data}
+        canView={visibility.canViewContracts}
+        showRevenue={visibility.canViewFinancials}
+      />
+    </>
+  );
+}
+
+async function UpcomingEventsSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardUpcomingEventsSection();
+
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <UpcomingEventsList
+        events={result.data}
+        canView={visibility.canViewCalendar || visibility.canViewContracts}
+      />
+    </>
+  );
+}
+
+async function PaymentRemindersSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardPaymentRemindersSection();
+
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <PaymentReminders
+        reminders={result.data}
+        canView={visibility.canViewFinancials}
+      />
+    </>
+  );
+}
+
 export default async function DashboardPage() {
-  const data = await getDashboardBootstrap();
-  const { visibility } = data.access;
+  const critical = await getDashboardCritical();
+  const { visibility } = critical.access;
 
   return (
     <div className="main-container">
       <DashboardWarmup />
-      <RealtimeSync table="contracts" debounceMs={500} />
-      <RealtimeSync table="payments" debounceMs={500} />
-      <RealtimeSync table="receipts" debounceMs={500} />
-      <RealtimeSync table="payment_plans" debounceMs={500} />
-      <RealtimeSync table="contract_events" debounceMs={500} />
-      <RealtimeSync table="schedules" debounceMs={500} />
-      <RealtimeSync table="work_tasks" debounceMs={500} />
+      <DashboardRealtimeRefresh />
 
-      <QuickAccessGrid role={data.access.role} />
-      <DashboardErrorBanner errors={data.errors} />
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KPICard
-          label="Doanh thu tháng"
-          value={visibility.canViewFinancials ? formatMoney(data.kpis.totalRevenue) : "Ẩn"}
-          icon={DollarSign}
-          iconBg="bg-primary/10"
-          iconColor="text-primary"
-          trend={visibility.canViewFinancials ? formatTrend(data.kpis.revenueChange) : undefined}
-          trendUp={(data.kpis.revenueChange ?? 0) >= 0}
-          href={visibility.canViewFinancials ? "/finance" : undefined}
-          className="entrance entrance-1"
-        />
-        <KPICard
-          label="Hợp đồng mới"
-          value={visibility.canViewContracts ? String(data.kpis.newContracts) : "Ẩn"}
-          icon={FileText}
-          iconBg="bg-info/10"
-          iconColor="text-info"
-          trend={visibility.canViewContracts ? formatTrend(data.kpis.contractsChange) : undefined}
-          trendUp={(data.kpis.contractsChange ?? 0) >= 0}
-          href={visibility.canViewContracts ? "/contracts" : undefined}
-          className="entrance entrance-2"
-        />
-        <KPICard
-          label="Tổng công nợ"
-          value={visibility.canViewFinancials ? formatMoney(data.kpis.totalDebt) : "Ẩn"}
-          icon={AlertTriangle}
-          iconBg="bg-warning/10"
-          iconColor="text-warning"
-          trend={visibility.canViewFinancials ? formatTrend(data.kpis.debtChange) : undefined}
-          trendUp={(data.kpis.debtChange ?? 0) >= 0}
-          href={visibility.canViewFinancials ? "/finance" : undefined}
-          className="entrance entrance-3"
-        />
-        <KPICard
-          label="Hoàn thành"
-          value={visibility.canViewContracts ? String(data.kpis.completedContracts) : "Ẩn"}
-          icon={CheckCircle}
-          iconBg="bg-success/10"
-          iconColor="text-success"
-          trend={visibility.canViewContracts ? formatTrend(data.kpis.completedChange) : undefined}
-          trendUp={(data.kpis.completedChange ?? 0) >= 0}
-          href={visibility.canViewContracts ? "/contracts?status=hoan_thanh" : undefined}
-          className="entrance entrance-4"
-        />
-      </div>
+      <QuickAccessGrid role={critical.access.role} />
+      <DashboardErrorBanner errors={critical.errors} />
+      <DashboardKpiGrid kpis={critical.kpis} visibility={visibility} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <RevenueChart
-            data={data.revenueChart}
-            canView={visibility.canViewFinancials}
-            periodLabel="6 tháng gần nhất"
-          />
+          <Suspense fallback={<SkeletonCard className="h-80" />}>
+            <RevenueChartSection visibility={visibility} />
+          </Suspense>
         </div>
         <div className="lg:col-span-2">
-          <ServicePieChart
-            data={data.serviceBreakdown}
-            canView={visibility.canViewContracts}
-            showRevenue={visibility.canViewFinancials}
-          />
+          <Suspense fallback={<SkeletonCard className="h-80" />}>
+            <ServiceBreakdownSection visibility={visibility} />
+          </Suspense>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <UpcomingEventsList
-          events={data.upcomingEvents}
-          canView={visibility.canViewCalendar || visibility.canViewContracts}
-        />
-        <PaymentReminders
-          reminders={data.paymentReminders}
-          canView={visibility.canViewFinancials}
-        />
+        <Suspense fallback={<SkeletonCard className="h-64" />}>
+          <UpcomingEventsSection visibility={visibility} />
+        </Suspense>
+        <Suspense fallback={<SkeletonCard className="h-64" />}>
+          <PaymentRemindersSection visibility={visibility} />
+        </Suspense>
       </div>
     </div>
   );

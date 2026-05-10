@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, subMonths } from "date-fns";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
@@ -8,7 +9,9 @@ import { canAccess, type Role } from "@/types/roles";
 import type {
   DashboardAccess,
   DashboardBootstrapData,
+  DashboardCriticalData,
   DashboardKPIs,
+  DashboardSectionResult,
   DashboardVisibility,
   PaymentReminderData,
   RevenueChartData,
@@ -25,6 +28,9 @@ const UPCOMING_DAYS = 14;
 const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
 const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
+export const DASHBOARD_CRITICAL_CACHE_TAG = "dashboard-critical";
+const DASHBOARD_CRITICAL_CACHE_SECONDS = 5;
+const DEFAULT_DASHBOARD_PROFILE_SLOW_MS = 500;
 
 const SERVICE_LABELS: Record<string, string> = {
   studio: "Studio",
@@ -55,6 +61,35 @@ const SERVICE_COLORS = [
 function assertQueryOk(label: string, error: QueryError) {
   if (error) {
     throw new Error(`${label}: ${error.message || "Unknown database error"}`);
+  }
+}
+
+function getDashboardProfileSlowMs() {
+  const configured = Number(process.env.DASHBOARD_PROFILE_SLOW_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_DASHBOARD_PROFILE_SLOW_MS;
+}
+
+function shouldLogDashboardTiming(durationMs: number) {
+  if (process.env.DASHBOARD_PROFILE === "1") return true;
+  if (process.env.DASHBOARD_PROFILE === "0") return false;
+  return durationMs >= getDashboardProfileSlowMs();
+}
+
+async function profileDashboardSection<T>(
+  label: string,
+  loader: () => Promise<T>,
+): Promise<T> {
+  const startedAt = performance.now();
+
+  try {
+    return await loader();
+  } finally {
+    const durationMs = Math.round(performance.now() - startedAt);
+    if (shouldLogDashboardTiming(durationMs)) {
+      console.warn(`[dashboard-profile] ${label}=${durationMs}ms`);
+    }
   }
 }
 
@@ -135,7 +170,11 @@ function visibilityForRole(role: Role): DashboardVisibility {
   };
 }
 
-async function requireDashboardAccess(): Promise<DashboardAccess> {
+type DashboardAccessWithUser = DashboardAccess & {
+  userId: string;
+};
+
+async function requireDashboardAccess(): Promise<DashboardAccessWithUser> {
   const context = await getAuthenticatedUserContext();
 
   if (!context) {
@@ -147,6 +186,7 @@ async function requireDashboardAccess(): Promise<DashboardAccess> {
   }
 
   return {
+    userId: context.user.id,
     employeeId: context.employee?.id ?? null,
     role: context.shellRole,
     visibility: visibilityForRole(context.shellRole),
@@ -710,11 +750,151 @@ async function queryPaymentReminders(
     .slice(0, LIST_LIMIT);
 }
 
-export const getDashboardBootstrap = cache(async (): Promise<DashboardBootstrapData> => {
-  const [supabase, access] = await Promise.all([
-    createAdminClient(),
-    requireDashboardAccess(),
-  ]);
+const getDashboardAccess = cache(async () =>
+  profileDashboardSection("dashboard.access", requireDashboardAccess),
+);
+
+function dashboardAccessFromArgs(employeeId: string, role: Role): DashboardAccess {
+  return {
+    employeeId: employeeId || null,
+    role,
+    visibility: visibilityForRole(role),
+  };
+}
+
+async function loadDashboardSection<T>(
+  label: string,
+  profileLabel: string,
+  fallback: T,
+  loader: () => Promise<T>,
+): Promise<DashboardSectionResult<T>> {
+  const errors: string[] = [];
+  const data = await safeSection(label, errors, fallback, () =>
+    profileDashboardSection(profileLabel, loader),
+  );
+
+  return { data, errors };
+}
+
+const getCachedDashboardCritical = unstable_cache(
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardCriticalData> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
+    void userId;
+
+    return profileDashboardSection("dashboard.critical", async () => {
+      const supabase = await createAdminClient();
+      const access = dashboardAccessFromArgs(employeeId, role);
+      const period = currentPeriod();
+      const { data: kpis, errors } = await loadDashboardSection(
+        "KPI",
+        "dashboard.kpis",
+        emptyKpis(),
+        () => queryKpis(supabase, access.visibility),
+      );
+
+      return {
+        access,
+        period,
+        kpis,
+        errors,
+      };
+    });
+  },
+  ["dashboard-critical-v1"],
+  {
+    revalidate: DASHBOARD_CRITICAL_CACHE_SECONDS,
+    tags: [DASHBOARD_CRITICAL_CACHE_TAG],
+  },
+);
+
+export const getDashboardCritical = cache(async (): Promise<DashboardCriticalData> => {
+  const access = await getDashboardAccess();
+  return getCachedDashboardCritical(
+    access.userId,
+    access.employeeId ?? "",
+    access.role,
+  );
+});
+
+export async function prewarmDashboardCritical() {
+  await getDashboardCritical();
+}
+
+export const getDashboardRevenueChartSection = cache(
+  async (): Promise<DashboardSectionResult<RevenueChartData[]>> => {
+    const access = await getDashboardAccess();
+    const supabase = await createAdminClient();
+
+    return loadDashboardSection(
+      "Bieu do doanh thu",
+      "dashboard.revenueChart",
+      [],
+      () => queryRevenueChart(supabase, access.visibility),
+    );
+  },
+);
+
+export const getDashboardServiceBreakdownSection = cache(
+  async (): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+    const access = await getDashboardAccess();
+    const supabase = await createAdminClient();
+
+    return loadDashboardSection(
+      "Phan bo dich vu",
+      "dashboard.serviceBreakdown",
+      [],
+      () => queryServiceBreakdown(supabase, access.visibility),
+    );
+  },
+);
+
+export const getDashboardUpcomingEventsSection = cache(
+  async (): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+    const access = await getDashboardAccess();
+    const supabase = await createAdminClient();
+
+    return loadDashboardSection(
+      "Lich sap toi",
+      "dashboard.upcomingEvents",
+      [],
+      () => queryUpcomingEvents(supabase, access),
+    );
+  },
+);
+
+export const getDashboardPaymentRemindersSection = cache(
+  async (): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+    const access = await getDashboardAccess();
+    const supabase = await createAdminClient();
+
+    return loadDashboardSection(
+      "Nhac thu tien",
+      "dashboard.paymentReminders",
+      [],
+      () => queryPaymentReminders(supabase, access.visibility),
+    );
+  },
+);
+
+const getCachedDashboardBootstrap = unstable_cache(
+  async (
+    userId: string,
+    employeeId: string,
+    role: Role,
+  ): Promise<DashboardBootstrapData> => {
+    // userId is part of the unstable_cache key; keep it in the signature.
+    void userId;
+
+    const supabase = await createAdminClient();
+    const access: DashboardAccess = {
+      employeeId: employeeId || null,
+      role,
+      visibility: visibilityForRole(role),
+    };
   const period = currentPeriod();
   const errors: string[] = [];
 
@@ -747,24 +927,43 @@ export const getDashboardBootstrap = cache(async (): Promise<DashboardBootstrapD
     paymentReminders,
     errors,
   };
+  },
+  ["dashboard-bootstrap-v2"],
+  {
+    revalidate: DASHBOARD_CRITICAL_CACHE_SECONDS,
+    tags: [DASHBOARD_CRITICAL_CACHE_TAG],
+  },
+);
+
+export const getDashboardBootstrap = cache(async (): Promise<DashboardBootstrapData> => {
+  const access = await requireDashboardAccess();
+  return getCachedDashboardBootstrap(
+    access.userId,
+    access.employeeId ?? "",
+    access.role,
+  );
 });
 
+export async function prewarmDashboardBootstrap() {
+  await getDashboardBootstrap();
+}
+
 export async function getDashboardKPIs(): Promise<DashboardKPIs> {
-  return (await getDashboardBootstrap()).kpis;
+  return (await getDashboardCritical()).kpis;
 }
 
 export async function getRevenueChart(): Promise<RevenueChartData[]> {
-  return (await getDashboardBootstrap()).revenueChart;
+  return (await getDashboardRevenueChartSection()).data;
 }
 
 export async function getServiceBreakdown(): Promise<ServiceBreakdownData[]> {
-  return (await getDashboardBootstrap()).serviceBreakdown;
+  return (await getDashboardServiceBreakdownSection()).data;
 }
 
 export async function getUpcomingEvents(): Promise<UpcomingEventData[]> {
-  return (await getDashboardBootstrap()).upcomingEvents;
+  return (await getDashboardUpcomingEventsSection()).data;
 }
 
 export async function getPaymentReminders(): Promise<PaymentReminderData[]> {
-  return (await getDashboardBootstrap()).paymentReminders;
+  return (await getDashboardPaymentRemindersSection()).data;
 }

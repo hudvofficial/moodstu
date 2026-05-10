@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { prewarmDashboardCritical } from "@/lib/api/dashboard";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeAuthIdentifier } from "@/lib/validations/auth.schema";
 
@@ -214,6 +215,15 @@ export async function login(formData: FormData): Promise<LoginResult> {
   }
 
   timing.mark("cookies");
+
+  try {
+    await prewarmDashboardCritical();
+    timing.mark("dashboard-prewarm");
+  } catch (error) {
+    console.warn("[auth-login-profile] dashboard-prewarm failed", error);
+    timing.mark("dashboard-prewarm-failed");
+  }
+
   timing.done("success");
   return { success: true };
 }
