@@ -1,5 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  clearAuthProxyHeaders,
+  writeAuthProxyHeaders,
+} from "@/lib/auth-proxy-headers";
+
+const DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS = 700;
+
+function getAuthShellProfileSlowMs() {
+  const configured = Number(process.env.AUTH_CONTEXT_PROFILE_SLOW_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS;
+}
+
+function shouldLogAuthShellTiming(durationMs: number) {
+  if (process.env.AUTH_CONTEXT_PROFILE === "1") return true;
+  if (process.env.AUTH_CONTEXT_PROFILE === "0") return false;
+  if (process.env.AUTH_LOGIN_PROFILE === "1") return true;
+  return durationMs >= getAuthShellProfileSlowMs();
+}
+
+function logAuthShellTiming(label: string, durationMs: number, detail?: string) {
+  if (!shouldLogAuthShellTiming(durationMs)) return;
+  console.warn(
+    `[auth-shell-profile] ${label}=${durationMs}ms${detail ? ` ${detail}` : ""}`,
+  );
+}
 
 function noStore(response: NextResponse) {
   response.headers.set(
@@ -12,7 +39,20 @@ function noStore(response: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const requestHeaders = new Headers(request.headers);
+  clearAuthProxyHeaders(requestHeaders);
+
+  const nextResponse = () =>
+    NextResponse.next({ request: { headers: requestHeaders } });
+  const refreshResponseWithHeaders = () => {
+    const response = nextResponse();
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie);
+    });
+    supabaseResponse = response;
+  };
+
+  let supabaseResponse = nextResponse();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +66,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = nextResponse();
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -64,11 +104,22 @@ export async function updateSession(request: NextRequest) {
 
   let isAuthenticated = false;
 
+  const claimsStartedAt = performance.now();
   try {
     const { data, error } = await supabase.auth.getClaims();
     isAuthenticated = !error && !!data?.claims?.sub;
+    if (isAuthenticated && data?.claims) {
+      writeAuthProxyHeaders(requestHeaders, data.claims);
+      refreshResponseWithHeaders();
+    }
   } catch {
     isAuthenticated = false;
+  } finally {
+    logAuthShellTiming(
+      "middleware.claims",
+      Math.round(performance.now() - claimsStartedAt),
+      isAuthenticated ? "authenticated=true" : "authenticated=false",
+    );
   }
 
   const redirectWithCookies = (targetPathname: string) => {

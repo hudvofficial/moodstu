@@ -37,6 +37,11 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function isMissingRpcError(error) {
+  if (!error) return false;
+  return error.code === "PGRST202" || /schema cache|function/i.test(error.message || "");
+}
+
 async function cleanup(client, ids) {
   if (ids.taskId) await client.from("work_tasks").delete().eq("id", ids.taskId);
   if (ids.scheduleId) await client.from("schedules").delete().eq("id", ids.scheduleId);
@@ -291,6 +296,83 @@ try {
     .neq("contracts.status", "da_huy");
   if (plansError) throw new Error(`Payment plan reminder query failed: ${plansError.message}`);
   assert(plans?.length === 1 && Number(plans[0].amount || 0) === 700000, "Dashboard payment plan reminder missed seeded plan");
+
+  const todayDate = new Date();
+  const { data: criticalKpis, error: criticalKpisError } = await serviceClient
+    .rpc("dashboard_critical_kpis", {
+      p_month: todayDate.getMonth() + 1,
+      p_year: todayDate.getFullYear(),
+    })
+    .maybeSingle();
+
+  if (criticalKpisError && isMissingRpcError(criticalKpisError)) {
+    console.warn("Skipping dashboard_critical_kpis RPC probe; migration is not deployed.");
+  } else {
+    if (criticalKpisError) {
+      throw new Error(`Dashboard critical KPI RPC failed: ${criticalKpisError.message}`);
+    }
+
+    assert(
+      Number(criticalKpis?.current_revenue || 0) >= 800000,
+      "Dashboard critical KPI RPC missed seeded revenue",
+    );
+    assert(
+      Number(criticalKpis?.total_debt || 0) >= 1500000,
+      "Dashboard critical KPI RPC missed seeded debt",
+    );
+    assert(
+      Number(criticalKpis?.current_contracts || 0) >= 1,
+      "Dashboard critical KPI RPC missed seeded contract count",
+    );
+    assert(
+      Number(criticalKpis?.current_completed || 0) >= 1,
+      "Dashboard critical KPI RPC missed seeded completed count",
+    );
+  }
+
+  const { data: revenueChart, error: revenueChartError } = await serviceClient
+    .rpc("dashboard_revenue_chart", {
+      p_month: todayDate.getMonth() + 1,
+      p_year: todayDate.getFullYear(),
+      p_months: 6,
+    });
+
+  if (revenueChartError && isMissingRpcError(revenueChartError)) {
+    console.warn("Skipping dashboard_revenue_chart RPC probe; migration is not deployed.");
+  } else {
+    if (revenueChartError) {
+      throw new Error(`Dashboard revenue chart RPC failed: ${revenueChartError.message}`);
+    }
+
+    const currentMonthRevenue = (revenueChart || [])
+      .filter((row) => Number(row.month_index || 0) === todayDate.getMonth() + 1)
+      .reduce((sum, row) => sum + Number(row.revenue || 0), 0);
+    assert(
+      currentMonthRevenue >= 800000,
+      "Dashboard revenue chart RPC missed seeded current-month revenue",
+    );
+  }
+
+  const { data: serviceBreakdown, error: serviceBreakdownError } = await serviceClient
+    .rpc("dashboard_service_breakdown", {
+      p_month: todayDate.getMonth() + 1,
+      p_year: todayDate.getFullYear(),
+    });
+
+  if (serviceBreakdownError && isMissingRpcError(serviceBreakdownError)) {
+    console.warn("Skipping dashboard_service_breakdown RPC probe; migration is not deployed.");
+  } else {
+    if (serviceBreakdownError) {
+      throw new Error(`Dashboard service breakdown RPC failed: ${serviceBreakdownError.message}`);
+    }
+
+    const studioRow = (serviceBreakdown || []).find((row) => row.service_type === "studio");
+    assert(
+      Number(studioRow?.contract_count || 0) >= 1 &&
+        Number(studioRow?.revenue || 0) >= 2000000,
+      "Dashboard service breakdown RPC missed seeded studio contract",
+    );
+  }
 
   console.log("Dashboard seeded smoke passed.");
 } finally {

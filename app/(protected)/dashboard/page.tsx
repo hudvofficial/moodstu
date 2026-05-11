@@ -11,7 +11,6 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { ServicePieChart } from "@/components/dashboard/service-pie-chart";
 import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { DashboardRealtimeRefresh } from "@/components/dashboard/dashboard-realtime-refresh";
-import { DashboardWarmup } from "@/components/dashboard/dashboard-warmup";
 import { KPICard } from "@/components/ui/kpi-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import {
@@ -185,7 +184,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="main-container">
-      <DashboardWarmup />
       <DashboardRealtimeRefresh />
 
       <QuickAccessGrid role={critical.access.role} />

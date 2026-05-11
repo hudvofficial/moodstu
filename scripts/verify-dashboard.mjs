@@ -62,6 +62,7 @@ const events = read("components/dashboard/upcoming-events.tsx");
 const reminders = read("components/dashboard/payment-reminders.tsx");
 const dashboardRealtime = read("components/dashboard/dashboard-realtime-refresh.tsx");
 const dashboardCacheAction = read("app/actions/dashboard-cache.ts");
+const loginClient = read("components/auth/login-page-client.tsx");
 const quickAccess = read("components/dashboard/quick-access-grid.tsx");
 const navigation = read("lib/navigation.ts");
 const kpiCard = read("components/ui/kpi-card.tsx");
@@ -70,6 +71,9 @@ const authUtils = read("lib/auth_utils.ts");
 const protectedLayout = read("app/(protected)/layout.tsx");
 const middleware = read("lib/supabase/middleware.ts");
 const accountDisabledPage = read("app/account-disabled/page.tsx");
+const dashboardCriticalKpisMigration = read("supabase/migrations/20260510195000_dashboard_critical_kpis.sql");
+const dashboardDeferredSectionsMigration = read("supabase/migrations/20260510201000_dashboard_deferred_sections.sql");
+const authProxyHeaders = read("lib/auth-proxy-headers.ts");
 const packageJson = JSON.parse(read("package.json"));
 
 const dashboardSources = {
@@ -136,6 +140,12 @@ if (!dashboardRealtime.includes("invalidateDashboardCache")) {
 if (!dashboardCacheAction.includes("revalidateTag") || !dashboardCacheAction.includes('revalidatePath("/dashboard")')) {
   fail("dashboard cache action does not invalidate tag and path");
 }
+if (loginClient.includes("prewarmDashboardForNavigation") || loginClient.includes("DASHBOARD_PREWARM_BUDGET_MS")) {
+  fail("login success path still waits on dashboard prewarm");
+}
+if (loginClient.includes("Promise.race")) {
+  fail("login success path still races navigation against a dashboard warmup budget");
+}
 if (!api.includes("requireDashboardAccess")) {
   fail("dashboard data loader is missing explicit dashboard access guard");
 }
@@ -159,6 +169,42 @@ if (!api.includes("profileDashboardSection")) {
 }
 if (!api.includes("DASHBOARD_CRITICAL_CACHE_TAG") || !api.includes("tags: [DASHBOARD_CRITICAL_CACHE_TAG]")) {
   fail("dashboard critical cache is missing tag-based invalidation");
+}
+if (page.includes("DashboardWarmup")) {
+  fail("dashboard still mounts startup warmup prefetch work");
+}
+if (
+  !dashboardRealtime.includes('supabase.channel("dashboard-realtime")') ||
+  dashboardRealtime.includes("useRealtime(") ||
+  !dashboardCacheAction.includes("changedTables") ||
+  !dashboardCacheAction.includes("DASHBOARD_CRITICAL_TABLES")
+) {
+  fail("dashboard realtime/cache budget is missing single-channel refresh or scoped invalidation");
+}
+if (!api.includes('rpc("dashboard_critical_kpis"') || !api.includes("queryKpisFallback")) {
+  fail("dashboard critical KPI loader does not use the aggregate RPC with fallback");
+}
+if (
+  !dashboardCriticalKpisMigration.includes("CREATE OR REPLACE FUNCTION public.dashboard_critical_kpis") ||
+  !dashboardCriticalKpisMigration.includes("GRANT EXECUTE ON FUNCTION public.dashboard_critical_kpis")
+) {
+  fail("dashboard critical KPI RPC migration is missing or not permissioned");
+}
+if (
+  !api.includes('rpc("dashboard_revenue_chart"') ||
+  !api.includes('rpc("dashboard_service_breakdown"') ||
+  !api.includes("queryRevenueChartFallback") ||
+  !api.includes("queryServiceBreakdownFallback")
+) {
+  fail("dashboard deferred sections do not use aggregate RPCs with fallbacks");
+}
+if (
+  !dashboardDeferredSectionsMigration.includes("CREATE OR REPLACE FUNCTION public.dashboard_revenue_chart") ||
+  !dashboardDeferredSectionsMigration.includes("CREATE OR REPLACE FUNCTION public.dashboard_service_breakdown") ||
+  !dashboardDeferredSectionsMigration.includes("GRANT EXECUTE ON FUNCTION public.dashboard_revenue_chart") ||
+  !dashboardDeferredSectionsMigration.includes("GRANT EXECUTE ON FUNCTION public.dashboard_service_breakdown")
+) {
+  fail("dashboard deferred section RPC migration is missing or not permissioned");
 }
 if (!api.includes("queryWorkTasks") || !api.includes('source: "work_tasks"')) {
   fail("dashboard upcoming work does not include work_tasks");
@@ -198,6 +244,14 @@ if (!protectedLayout.includes("context.isEmployeeDisabled") || !protectedLayout.
 }
 if (!middleware.includes("/account-disabled")) {
   fail("account-disabled route is not public in middleware");
+}
+if (
+  !middleware.includes("writeAuthProxyHeaders") ||
+  !authUtils.includes("readAuthProxyClaims") ||
+  !authProxyHeaders.includes("x-mood-auth-source") ||
+  !authUtils.includes("AUTH_CONTEXT_PROFILE")
+) {
+  fail("auth shell hot path is missing proxy-claim reuse or profiling");
 }
 if (!accountDisabledPage.includes("Tài khoản đã bị vô hiệu hóa") || !accountDisabledPage.includes("logout")) {
   fail("account disabled page is missing release UX");

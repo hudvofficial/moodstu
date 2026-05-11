@@ -3,7 +3,13 @@ import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, subMonths } from "date-fns";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
-import { asNumber, asString, monthWindow, relationText } from "@/lib/finance-utils";
+import {
+  asNumber,
+  asString,
+  isMissingRpcError,
+  monthWindow,
+  relationText,
+} from "@/lib/finance-utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import { canAccess, type Role } from "@/types/roles";
 import type {
@@ -22,6 +28,25 @@ import type {
 
 type QueryError = { message?: string } | null;
 type QueryRow = Record<string, unknown>;
+type DashboardCriticalKpiRpcRow = {
+  current_revenue?: unknown;
+  previous_revenue?: unknown;
+  total_debt?: unknown;
+  current_contracts?: unknown;
+  previous_contracts?: unknown;
+  current_completed?: unknown;
+  previous_completed?: unknown;
+};
+type DashboardRevenueChartRpcRow = {
+  month_index?: unknown;
+  month_label?: unknown;
+  revenue?: unknown;
+};
+type DashboardServiceBreakdownRpcRow = {
+  service_type?: unknown;
+  contract_count?: unknown;
+  revenue?: unknown;
+};
 
 const DASHBOARD_CHART_MONTHS = 6;
 const UPCOMING_DAYS = 14;
@@ -244,7 +269,37 @@ async function sumPaymentsAndReceipts(
   return payments + receipts;
 }
 
-async function queryKpis(
+function mapDashboardKpisFromAggregate(
+  row: DashboardCriticalKpiRpcRow | null,
+  visibility: DashboardVisibility,
+): DashboardKPIs {
+  const kpis = emptyKpis();
+
+  if (visibility.canViewFinancials) {
+    const currentRevenue = asNumber(row?.current_revenue);
+    const previousRevenue = asNumber(row?.previous_revenue);
+
+    kpis.totalRevenue = currentRevenue;
+    kpis.revenueChange = percentChange(currentRevenue, previousRevenue);
+    kpis.totalDebt = asNumber(row?.total_debt);
+  }
+
+  if (visibility.canViewContracts) {
+    const currentContracts = asNumber(row?.current_contracts);
+    const previousContracts = asNumber(row?.previous_contracts);
+    const currentCompleted = asNumber(row?.current_completed);
+    const previousCompleted = asNumber(row?.previous_completed);
+
+    kpis.newContracts = currentContracts;
+    kpis.contractsChange = percentChange(currentContracts, previousContracts);
+    kpis.completedContracts = currentCompleted;
+    kpis.completedChange = percentChange(currentCompleted, previousCompleted);
+  }
+
+  return kpis;
+}
+
+async function queryKpisFallback(
   supabase: SupabaseClient,
   visibility: DashboardVisibility,
 ): Promise<DashboardKPIs> {
@@ -330,7 +385,35 @@ async function queryKpis(
   return kpis;
 }
 
-async function queryRevenueChart(
+async function queryKpis(
+  supabase: SupabaseClient,
+  visibility: DashboardVisibility,
+): Promise<DashboardKPIs> {
+  if (!visibility.canViewFinancials && !visibility.canViewContracts) {
+    return emptyKpis();
+  }
+
+  const now = currentPeriod();
+  const { data, error } = await supabase
+    .rpc("dashboard_critical_kpis", {
+      p_month: now.month,
+      p_year: now.year,
+    })
+    .single();
+
+  if (error && isMissingRpcError(error)) {
+    return queryKpisFallback(supabase, visibility);
+  }
+
+  assertQueryOk("Lỗi tải KPI dashboard", error);
+
+  return mapDashboardKpisFromAggregate(
+    (data || null) as DashboardCriticalKpiRpcRow | null,
+    visibility,
+  );
+}
+
+async function queryRevenueChartFallback(
   supabase: SupabaseClient,
   visibility: DashboardVisibility,
 ): Promise<RevenueChartData[]> {
@@ -387,7 +470,41 @@ async function queryRevenueChart(
   return Array.from(buckets.values());
 }
 
-async function queryServiceBreakdown(
+function mapDashboardRevenueChartFromAggregate(
+  rows: DashboardRevenueChartRpcRow[] | null,
+): RevenueChartData[] {
+  return (rows || []).map((row) => ({
+    month:
+      asString(row.month_label, "") ||
+      `T${asNumber(row.month_index) || ""}`.trim(),
+    revenue: asNumber(row.revenue),
+  }));
+}
+
+async function queryRevenueChart(
+  supabase: SupabaseClient,
+  visibility: DashboardVisibility,
+): Promise<RevenueChartData[]> {
+  if (!visibility.canViewFinancials) return [];
+
+  const now = currentPeriod();
+  const { data, error } = await supabase.rpc("dashboard_revenue_chart", {
+    p_month: now.month,
+    p_year: now.year,
+    p_months: DASHBOARD_CHART_MONTHS,
+  });
+
+  if (error && isMissingRpcError(error)) {
+    return queryRevenueChartFallback(supabase, visibility);
+  }
+
+  assertQueryOk("Loi tai bieu do doanh thu", error);
+  return mapDashboardRevenueChartFromAggregate(
+    (data || []) as DashboardRevenueChartRpcRow[],
+  );
+}
+
+async function queryServiceBreakdownFallback(
   supabase: SupabaseClient,
   visibility: DashboardVisibility,
 ): Promise<ServiceBreakdownData[]> {
@@ -427,6 +544,56 @@ async function queryServiceBreakdown(
       fill: SERVICE_COLORS[index % SERVICE_COLORS.length],
     }))
     .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+}
+
+function mapDashboardServiceBreakdownFromAggregate(
+  rows: DashboardServiceBreakdownRpcRow[] | null,
+  visibility: DashboardVisibility,
+): ServiceBreakdownData[] {
+  const total = (rows || []).reduce(
+    (sum, row) => sum + asNumber(row.contract_count),
+    0,
+  );
+  if (total === 0) return [];
+
+  return (rows || [])
+    .map((row, index) => {
+      const serviceType = asString(row.service_type, "khac") || "khac";
+      const count = asNumber(row.contract_count);
+
+      return {
+        name: serviceLabel(serviceType),
+        serviceType: serviceType as ServiceTypeEnum | "khac",
+        value: Math.round((count / total) * 1000) / 10,
+        count,
+        revenue: visibility.canViewFinancials ? asNumber(row.revenue) : 0,
+        fill: SERVICE_COLORS[index % SERVICE_COLORS.length],
+      };
+    })
+    .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+}
+
+async function queryServiceBreakdown(
+  supabase: SupabaseClient,
+  visibility: DashboardVisibility,
+): Promise<ServiceBreakdownData[]> {
+  if (!visibility.canViewContracts) return [];
+
+  const now = currentPeriod();
+  const { data, error } = await supabase.rpc("dashboard_service_breakdown", {
+    p_month: now.month,
+    p_year: now.year,
+  });
+
+  if (error && isMissingRpcError(error)) {
+    return queryServiceBreakdownFallback(supabase, visibility);
+  }
+
+  assertQueryOk("Loi tai phan bo dich vu", error);
+  return mapDashboardServiceBreakdownFromAggregate(
+    (data || []) as DashboardServiceBreakdownRpcRow[],
+    visibility,
+  );
 }
 
 async function queryContractEvents(

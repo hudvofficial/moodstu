@@ -1,6 +1,8 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { SupabaseClient, type User } from "@supabase/supabase-js";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { readAuthProxyClaims } from "@/lib/auth-proxy-headers";
 import {
   canManageSettingsRole,
   normalizeEmployeeRole,
@@ -45,6 +47,46 @@ const EMPLOYEE_CONTEXT_SELECT =
   "id, full_name, email, phone, avatar_url, department, position, role, gender, auth_user_id, status, deleted_at";
 
 const EMPLOYEE_CONTEXT_RETRY_DELAYS_MS = [150, 450, 900];
+const DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS = 700;
+
+function getAuthShellProfileSlowMs() {
+  const configured = Number(process.env.AUTH_CONTEXT_PROFILE_SLOW_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS;
+}
+
+function shouldLogAuthShellTiming(durationMs: number) {
+  if (process.env.AUTH_CONTEXT_PROFILE === "1") return true;
+  if (process.env.AUTH_CONTEXT_PROFILE === "0") return false;
+  if (process.env.AUTH_LOGIN_PROFILE === "1") return true;
+  return durationMs >= getAuthShellProfileSlowMs();
+}
+
+function logAuthShellTiming(label: string, durationMs: number, detail?: string) {
+  if (!shouldLogAuthShellTiming(durationMs)) return;
+  console.warn(
+    `[auth-shell-profile] ${label}=${durationMs}ms${detail ? ` ${detail}` : ""}`,
+  );
+}
+
+async function profileAuthShell<T>(
+  label: string,
+  action: () => Promise<T>,
+  detail?: string,
+): Promise<T> {
+  const startedAt = performance.now();
+
+  try {
+    return await action();
+  } finally {
+    logAuthShellTiming(
+      label,
+      Math.round(performance.now() - startedAt),
+      detail,
+    );
+  }
+}
 
 function isActiveEmployeeContext(employee: EmployeeContextRecord | null) {
   return !!employee && !employee.deleted_at && employee.status === "active";
@@ -97,16 +139,45 @@ async function getEmployeeByAuthUserId(
 
 const getVerifiedUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await profileAuthShell("auth.getUser", () => supabase.auth.getUser());
 
   return user ?? null;
 });
 
+async function getProxyClaimsUser(): Promise<AuthContextUser | null> {
+  const requestHeaders = await headers();
+  const proxyClaims = readAuthProxyClaims(requestHeaders);
+
+  if (!proxyClaims) return null;
+
+  logAuthShellTiming("auth.getClaims", 0, "source=proxy");
+
+  return {
+    id: proxyClaims.id,
+    email: proxyClaims.email,
+    app_metadata: proxyClaims.role
+      ? ({ role: proxyClaims.role } as User["app_metadata"])
+      : ({} as User["app_metadata"]),
+    user_metadata: {
+      ...(proxyClaims.role ? { role: proxyClaims.role } : {}),
+      ...(proxyClaims.fullName ? { full_name: proxyClaims.fullName } : {}),
+    } as User["user_metadata"],
+  };
+}
+
 const getClaimsUser = cache(async (): Promise<AuthContextUser | null> => {
+  const proxyUser = await getProxyClaimsUser();
+  if (proxyUser) return proxyUser;
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
+  const { data, error } = await profileAuthShell(
+    "auth.getClaims",
+    () => supabase.auth.getClaims(),
+    "source=supabase",
+  );
 
   if (error || !data?.claims?.sub) return null;
 
@@ -123,7 +194,10 @@ const getClaimsUser = cache(async (): Promise<AuthContextUser | null> => {
 const getEmployeeContextByAuthUserId = cache(
   async (userId: string): Promise<EmployeeContextRecord | null> => {
     const adminSupabase = await createAdminClient();
-    return getEmployeeByAuthUserId(adminSupabase, userId);
+    return profileAuthShell(
+      "auth.employeeContext",
+      () => getEmployeeByAuthUserId(adminSupabase, userId),
+    );
   },
 );
 
@@ -266,14 +340,15 @@ async function bootstrapEmployeeProfile(
 
 const getAuthenticatedUserContextCached = cache(
   async (bootstrapProfile: boolean): Promise<AuthenticatedUserContext | null> => {
+    return profileAuthShell("auth.context", async () => {
     const verifiedUser = bootstrapProfile ? await getVerifiedUser() : null;
     const user = verifiedUser ?? (bootstrapProfile ? null : await getClaimsUser());
     if (!user) return null;
 
-    const adminSupabase = await createAdminClient();
     let employee = await getEmployeeContextByAuthUserId(user.id);
 
     if (!employee && bootstrapProfile && verifiedUser) {
+      const adminSupabase = await createAdminClient();
       employee = await bootstrapEmployeeProfile(adminSupabase, verifiedUser);
     }
 
@@ -312,6 +387,7 @@ const getAuthenticatedUserContextCached = cache(
       canManageSettings: hasSettingsAdminAccess,
       canManageMembers: hasSettingsAdminAccess,
     };
+    });
   },
 );
 
