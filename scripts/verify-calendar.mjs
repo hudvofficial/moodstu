@@ -40,6 +40,7 @@ const calendarTasks = read("app/actions/calendar-task-actions.ts");
 const calendarHook = read("hooks/use-calendar-data.ts");
 const calendarAuth = read("lib/calendar-auth.ts");
 const calendarUtils = read("lib/utils/calendar-utils.ts");
+const calendarMonthEventsMigration = read("supabase/migrations/20260512090000_calendar_month_events_rpc.sql");
 const packageJson = JSON.parse(read("package.json"));
 
 if (!calendarAuth.includes("requireCalendarAccess")) {
@@ -62,6 +63,14 @@ for (const [label, source] of [
 }
 if (!calendarQueries.includes("fetchCalendarGoogleEvents")) {
   fail("Google Calendar events are not split into a separate action");
+}
+if (
+  !calendarQueries.includes('rpc("calendar_month_events"') ||
+  !calendarQueries.includes("fetchCalendarEventsFallback") ||
+  !calendarMonthEventsMigration.includes("CREATE OR REPLACE FUNCTION public.calendar_month_events") ||
+  !calendarMonthEventsMigration.includes("GRANT EXECUTE ON FUNCTION public.calendar_month_events")
+) {
+  fail("calendar month load is missing the aggregate RPC with fallback");
 }
 if (calendarQueries.includes("const [schedulesResult, tasksResult, googleEvents]")) {
   fail("internal calendar fetch still waits on Google events");

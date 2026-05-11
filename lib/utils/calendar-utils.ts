@@ -1,19 +1,14 @@
 import { type UnifiedCalendarEvent } from "@/types/calendar.types";
 
-/**
- * Lấy mã màu UI SSOT (Tailwind tokens) trả về class chuỗi dựa theo tính chất sự kiện.
- */
 export function getEventColorToken(
   source: UnifiedCalendarEvent["source"],
   workTypeOrStatus?: string | null,
 ): string {
   if (source === "google") {
-    // Khối sự kiện Google (Read-only từ bên ngoài)
     return "bg-amber-50 text-amber-900 border-amber-200";
   }
 
   if (source === "task") {
-    // Task nhỏ lẻ bên trong Hợp Đồng (Makeup, Photoshop, In ấn..)
     switch (workTypeOrStatus) {
       case "makeup":
         return "bg-pink-50 text-pink-900 border-pink-200";
@@ -31,20 +26,14 @@ export function getEventColorToken(
     }
   }
 
-  // Khối schedule nội bộ độc lập (Họp, Nghỉ phép..)
   return "bg-slate-50 text-slate-900 border-slate-200";
 }
 
-/**
- * Sinh khóa nhóm sự kiện (GroupKey) theo contract_id và ngày cấu thành.
- * Giúp UI Lưới Lịch Tháng có thể thu gọn nhiều tasks của cùng 1 HĐ trong cùng 1 ngày thành 1 thẻ.
- */
 export function generateCalendarGroupKey(
   contractId: string | null | undefined,
   dateIsoStr: string,
 ): string | null {
   if (!contractId) return null;
-  // ISO => YYYY-MM-DD
   const datePart = dateIsoStr.split("T")[0] || dateIsoStr;
   return `${contractId}_${datePart}`;
 }
@@ -98,7 +87,7 @@ export const GOOGLE_COLORS = [
   { id: "4", label: "Hồng hạc (Flamingo)", color: "bg-[#e67c73]" },
   { id: "5", label: "Trái chuối (Banana)", color: "bg-[#f6bf26]" },
   { id: "6", label: "Quýt (Tangerine)", color: "bg-[#f4511e]" },
-  { id: "7", label: "Con công (Peacock)", color: "bg-[#039be5]" },
+  { id: "7", label: "Công (Peacock)", color: "bg-[#039be5]" },
   { id: "8", label: "Than chì (Graphite)", color: "bg-[#616161]" },
   { id: "9", label: "Việt quất (Blueberry)", color: "bg-[#3f51b5]" },
   { id: "10", label: "Húng quế (Basil)", color: "bg-[#0b8043]" },

@@ -37,6 +37,11 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function isMissingRpcError(error) {
+  if (!error) return false;
+  return error.code === "PGRST202" || /schema cache|function/i.test(error.message || "");
+}
+
 async function cleanup(client, ids) {
   if (ids.scheduleId) await client.from("schedules").delete().eq("id", ids.scheduleId);
 }
@@ -96,6 +101,25 @@ try {
     (sameDaySchedules || []).some((row) => row.id === ids.scheduleId),
     "Same-day timestamp range did not find the smoke schedule",
   );
+
+  console.log("Checking calendar month RPC...");
+  const { data: monthEvents, error: monthEventsError } = await serviceClient
+    .rpc("calendar_month_events", {
+      p_month: 5,
+      p_year: 2026,
+    });
+
+  if (monthEventsError && isMissingRpcError(monthEventsError)) {
+    console.warn("Skipping calendar_month_events RPC probe; migration is not deployed.");
+  } else {
+    if (monthEventsError) {
+      throw new Error(`Calendar month RPC failed: ${monthEventsError.message}`);
+    }
+    assert(
+      (monthEvents || []).some((row) => row.event_source === "schedule" && row.id === ids.scheduleId),
+      "Calendar month RPC did not include the smoke schedule",
+    );
+  }
 
   console.log("Checking Google-linked schedule probe...");
   const { error: googleProbeError } = await serviceClient
