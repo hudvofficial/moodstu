@@ -41,7 +41,6 @@ const calendarHook = read("hooks/use-calendar-data.ts");
 const calendarAuth = read("lib/calendar-auth.ts");
 const calendarUtils = read("lib/utils/calendar-utils.ts");
 const calendarWrapper = read("components/calendar/calendar-wrapper.tsx");
-const calendarToolbar = read("components/calendar/calendar-toolbar.tsx");
 const calendarEventCard = read("components/calendar/calendar-event-card.tsx");
 const eventFormDrawer = read("components/calendar/drawers/event-form-drawer.tsx");
 const draggableEvent = read("components/calendar/views/draggable-event.tsx");
@@ -136,13 +135,6 @@ if (!calendarHook.includes('useRealtime("work_tasks"')) {
 }
 if (calendarHook.includes('prefixes: "calendar"')) {
   fail("calendar realtime still invalidates broad calendar prefix");
-}
-if (
-  !calendarHook.includes("selectedSources") ||
-  !calendarHook.includes("CALENDAR_SOURCE_OPTIONS") ||
-  !calendarToolbar.includes("availableSources")
-) {
-  fail("calendar source filters are missing");
 }
 if (calendarHook.includes("charAt(0)") && calendarHook.includes("replace(/_/g")) {
   fail("calendar status labels still appear to be generated from raw enum strings");

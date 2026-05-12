@@ -1,16 +1,6 @@
-"use client";
-
 import { useState } from "react";
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Plus,
-  RefreshCcw,
-  SlidersHorizontal,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
 import { CalendarMonthYearPicker } from "./calendar-month-year-picker";
 import SolarLunarConverter from "./solar-lunar-converter";
@@ -26,11 +16,8 @@ interface CalendarToolbarProps {
     setSelectedEmployees: (val: string[]) => void;
     selectedStatuses: string[];
     setSelectedStatuses: (val: string[]) => void;
-    selectedSources: string[];
-    setSelectedSources: (val: string[]) => void;
     availableEmployees: { label: string; value: string }[];
     availableStatuses: { label: string; value: string }[];
-    availableSources: { label: string; value: string }[];
   };
   onNewEvent: () => void;
   onNavigateDate?: (date: Date) => void;
@@ -44,102 +31,84 @@ const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
   { label: "Ngày", value: "day" },
 ];
 
-function shiftDate(date: Date, viewMode: CalendarViewMode, direction: -1 | 1) {
-  const next = new Date(date);
-  if (viewMode === "month") {
-    return new Date(next.getFullYear(), next.getMonth() + direction, 1);
-  }
-  next.setDate(next.getDate() + (viewMode === "week" ? 7 * direction : direction));
-  return next;
-}
-
-export function CalendarToolbar({
-  currentDate,
-  onDateChange,
-  viewMode,
-  onViewModeChange,
-  filters,
-  onNewEvent,
-  onNavigateDate,
-  onOpenLunarDay,
-  isUpdating = false,
-}: CalendarToolbarProps) {
+export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewModeChange, filters, onNewEvent, onNavigateDate, onOpenLunarDay, isUpdating = false }: CalendarToolbarProps) {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
 
-  const hasActiveFilter =
-    filters.selectedStatuses.length > 0 ||
-    filters.selectedEmployees.length > 0 ||
-    filters.selectedSources.length > 0;
+  const hasActiveFilter = filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
 
-  const handlePrev = () => onDateChange(shiftDate(currentDate, viewMode, -1));
-  const handleNext = () => onDateChange(shiftDate(currentDate, viewMode, 1));
-  const handleToday = () => onDateChange(new Date());
+  const handlePrev = () => {
+    if (viewMode === "month") {
+      onDateChange(new Date(year, currentDate.getMonth() - 1, 1));
+    } else if (viewMode === "week") {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() - 7);
+      onDateChange(d);
+    } else {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() - 1);
+      onDateChange(d);
+    }
+  };
 
-  const sourceFilter = (
-    <SelectPill
-      value={filters.selectedSources[0] || "all"}
-      onChange={(val) => filters.setSelectedSources(val && val !== "all" ? [val] : [])}
-      placeholder="Tất cả Nguồn"
-      options={[{ label: "Tất cả Nguồn", value: "all" }, ...filters.availableSources]}
-    />
-  );
+  const handleNext = () => {
+    if (viewMode === "month") {
+      onDateChange(new Date(year, currentDate.getMonth() + 1, 1));
+    } else if (viewMode === "week") {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() + 7);
+      onDateChange(d);
+    } else {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() + 1);
+      onDateChange(d);
+    }
+  };
 
-  const statusFilter = (
-    <SelectPill
-      value={filters.selectedStatuses[0] || "all"}
-      onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
-      placeholder="Tất cả Trạng thái"
-      options={[{ label: "Tất cả Trạng thái", value: "all" }, ...filters.availableStatuses]}
-    />
-  );
+  const handleToday = () => {
+    onDateChange(new Date());
+  };
 
-  const employeeFilter = (
-    <SelectPill
-      value={filters.selectedEmployees[0] || "all"}
-      onChange={(val) => filters.setSelectedEmployees(val && val !== "all" ? [val] : [])}
-      placeholder="Tất cả Nhân sự"
-      options={[{ label: "Tất cả Nhân sự", value: "all" }, ...filters.availableEmployees]}
-    />
-  );
+  const handleOpenMonthYearPicker = () => {
+    setIsMonthYearPickerOpen(true);
+  };
 
   return (
     <>
-      <div className="hidden items-center justify-between gap-3 px-4 py-3 lg:flex">
-        <div className="flex min-w-0 items-center gap-3">
+      {/* ── Desktop Toolbar (unchanged) ── */}
+      <div className="hidden lg:flex items-center justify-between gap-3 p-4">
+        <div className="flex items-center gap-3">
           <Button
             unstyled
             type="button"
-            onClick={() => setIsMonthYearPickerOpen(true)}
+            onClick={handleOpenMonthYearPicker}
             className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1 text-xl font-bold text-text-primary transition-colors hover:bg-bg-hover hover:text-primary"
             aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
           >
-            <CalendarIcon className="size-5 text-text-muted" />
+            <CalendarIcon className="w-5 h-5 text-text-muted" />
             Tháng {month}, {year}
           </Button>
-
-          <div className="ml-2 flex items-center overflow-hidden rounded-lg bg-bg-card shadow-sm">
-            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0" onClick={handlePrev} aria-label="Kỳ trước">
-              <ChevronLeft className="size-4" />
+          <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
+            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
+              <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" className="h-8 rounded-none px-3 font-medium" onClick={handleToday}>
+            <Button variant="ghost" className="h-8 px-3 rounded-none font-medium whitespace-nowrap" onClick={handleToday}>
               Hôm nay
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none p-0" onClick={handleNext} aria-label="Kỳ sau">
-              <ChevronRight className="size-4" />
+            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handleNext}>
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-
-          <div className="ml-2 flex items-center overflow-hidden rounded-lg bg-bg-card shadow-sm">
+          <div className="flex items-center rounded-lg shadow-sm bg-bg-card overflow-hidden ml-2">
             {VIEW_MODE_OPTIONS.map((opt) => (
               <Button
                 key={opt.value}
                 variant={viewMode === opt.value ? "primary" : "ghost"}
                 size="sm"
-                className="h-8 rounded-none px-3 text-xs font-medium"
+                className="h-8 px-3 rounded-none text-xs font-medium"
                 onClick={() => onViewModeChange(opt.value)}
               >
                 {opt.label}
@@ -147,113 +116,147 @@ export function CalendarToolbar({
             ))}
           </div>
         </div>
-
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex items-center gap-2">
           {isUpdating && (
-            <div className="hidden items-center gap-1.5 rounded-full bg-bg-hover px-2.5 py-1 text-xs font-medium text-text-muted xl:flex">
+            <div className="hidden xl:flex items-center gap-1.5 rounded-full bg-bg-hover px-2.5 py-1 text-xs font-medium text-text-muted">
               <Loader2 className="size-3.5 animate-spin text-primary" />
               Đang cập nhật
             </div>
           )}
-          {sourceFilter}
-          {statusFilter}
-          {employeeFilter}
+          <SelectPill
+            value={filters.selectedStatuses[0] || "all"}
+            onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
+            placeholder="Tất cả Trạng thái"
+            options={[
+              { label: "Tất cả Trạng thái", value: "all" },
+              ...filters.availableStatuses
+            ]}
+          />
+          <SelectPill
+            value={filters.selectedEmployees[0] || "all"}
+            onChange={(val) => filters.setSelectedEmployees(val && val !== "all" ? [val] : [])}
+            placeholder="Tất cả Nhân sự"
+            options={[
+              { label: "Tất cả Nhân sự", value: "all" },
+              ...filters.availableEmployees
+            ]}
+          />
           <Button
             variant="ghost"
             onClick={() => setIsConverterOpen(true)}
             className="gap-1.5 text-warning hover:bg-warning/10"
             title="Đổi Âm lịch / Dương lịch"
           >
-            <RefreshCcw className="size-4" />
+            <RefreshCcw className="w-4 h-4" />
             Âm/Dương
           </Button>
-          <Button onClick={onNewEvent} className="ml-2 gap-1.5 whitespace-nowrap font-medium">
-            <Plus className="size-4" />
-            Tạo lịch
+          <Button onClick={onNewEvent} className="ml-2 font-medium whitespace-nowrap">
+            Tạo lịch trình
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 px-3 py-2 lg:hidden">
-        <div className="flex items-center justify-between gap-2">
+      {/* ── Mobile Toolbar ── */}
+      <div className="flex lg:hidden flex-col gap-2 px-3 py-2">
+        {/* Row 1: Date nav + Filter icon + CTA icon */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-10 w-10 rounded-full p-0" onClick={handlePrev} aria-label="Kỳ trước">
-              <ChevronLeft className="size-5" />
+            <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
+              <ChevronLeft className="w-5 h-5" />
             </Button>
             <Button
               variant="ghost"
-              className="rounded-lg px-2 py-1 text-base font-bold"
-              onClick={() => setIsMonthYearPickerOpen(true)}
+              className="text-base font-bold px-2 py-1 rounded-lg"
+              onClick={handleOpenMonthYearPicker}
               aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
             >
               T{month}, {year}
             </Button>
-            <Button variant="ghost" size="sm" className="h-10 w-10 rounded-full p-0" onClick={handleNext} aria-label="Kỳ sau">
-              <ChevronRight className="size-5" />
+            <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handleNext}>
+              <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
-
           <div className="flex items-center gap-1.5">
             {isUpdating && (
-              <div className="flex size-10 items-center justify-center rounded-full border border-border/50 bg-bg-card text-primary shadow-sm">
-                <Loader2 className="size-5 animate-spin" />
+              <div className="flex w-10 h-10 items-center justify-center rounded-full bg-bg-card shadow-sm border border-border/50 text-primary">
+                <Loader2 size={20} strokeWidth={2.5} className="animate-spin" />
               </div>
             )}
             <Button
               variant="ghost"
-              onClick={() => setShowMobileFilters((value) => !value)}
-              className={`relative h-10 w-10 rounded-full border border-border/50 bg-bg-card p-0 shadow-sm ${
-                hasActiveFilter || showMobileFilters ? "border-primary/20 bg-primary/10 text-primary" : "text-text-main"
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className={`w-10 h-10 p-0 rounded-full bg-bg-card shadow-sm border border-border/50 relative ${
+                hasActiveFilter || showMobileFilters
+                  ? "bg-primary/10 text-primary border-primary/20"
+                  : "text-text-main"
               }`}
               aria-label="Bộ lọc"
             >
-              <SlidersHorizontal className="size-6" />
-              {hasActiveFilter && <span className="absolute right-0 top-0 size-2 rounded-full bg-primary" />}
+              <SlidersHorizontal size={26} strokeWidth={2.5} className="shrink-0" />
+              {hasActiveFilter && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
+              )}
             </Button>
             <Button
               variant="ghost"
               onClick={() => setIsConverterOpen(true)}
-              className="h-10 w-10 rounded-full border border-warning/20 bg-bg-card p-0 text-warning shadow-sm hover:bg-warning/10"
+              className="w-10 h-10 p-0 rounded-full bg-bg-card shadow-sm border border-warning/20 text-warning hover:bg-warning/10"
               aria-label="Đổi Âm/Dương"
             >
-              <RefreshCcw className="size-6" />
+              <RefreshCcw size={26} strokeWidth={2.5} className="shrink-0" />
             </Button>
           </div>
         </div>
 
+        {/* Row 2: View mode pills */}
         <div className="flex items-center gap-1 overflow-x-auto">
-          <Button variant="ghost" size="sm" onClick={handleToday} className="shrink-0 rounded-full bg-bg-card px-3 py-1.5 text-xs font-medium text-text-muted shadow-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToday}
+            className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-full bg-bg-card shadow-sm text-text-muted"
+          >
             Hôm nay
           </Button>
-          <Button variant="primary" size="sm" className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium shadow-sm">
-            Tháng
-          </Button>
+          {VIEW_MODE_OPTIONS.filter((opt) => opt.value === "month").map((opt) => (
+            <Button
+              key={opt.value}
+              variant={viewMode === opt.value ? "primary" : "ghost"}
+              size="sm"
+              onClick={() => onViewModeChange(opt.value)}
+              className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full ${
+                viewMode !== opt.value ? "bg-bg-card shadow-sm text-text-muted" : "shadow-sm"
+              }`}
+            >
+              {opt.label}
+            </Button>
+          ))}
         </div>
 
+        {/* Mobile filter dropdown (toggleable) */}
         {showMobileFilters && (
-          <div className="flex items-center gap-2 overflow-x-auto py-1">
-            <SelectPill
-              value={filters.selectedSources[0] || "all"}
-              onChange={(val) => filters.setSelectedSources(val && val !== "all" ? [val] : [])}
-              placeholder="Nguồn"
-              options={[{ label: "Tất cả", value: "all" }, ...filters.availableSources]}
-            />
+          <div className="flex items-center gap-2 py-1 animate-fade-in">
             <SelectPill
               value={filters.selectedStatuses[0] || "all"}
               onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
               placeholder="Trạng thái"
-              options={[{ label: "Tất cả", value: "all" }, ...filters.availableStatuses]}
+              options={[
+                { label: "Tất cả", value: "all" },
+                ...filters.availableStatuses
+              ]}
             />
             <SelectPill
               value={filters.selectedEmployees[0] || "all"}
               onChange={(val) => filters.setSelectedEmployees(val && val !== "all" ? [val] : [])}
               placeholder="Nhân sự"
-              options={[{ label: "Tất cả", value: "all" }, ...filters.availableEmployees]}
+              options={[
+                { label: "Tất cả", value: "all" },
+                ...filters.availableEmployees
+              ]}
             />
           </div>
         )}
       </div>
-
       <SolarLunarConverter
         isOpen={isConverterOpen}
         onClose={() => setIsConverterOpen(false)}
