@@ -57,7 +57,6 @@ export default function LoginPageClient() {
       toast.error(result.error);
     } else {
       setLoginState("navigating");
-      router.prefetch("/dashboard");
       router.replace("/dashboard");
     }
   };

@@ -54,7 +54,8 @@ const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
 const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
 export const DASHBOARD_CRITICAL_CACHE_TAG = "dashboard-critical";
-const DASHBOARD_CRITICAL_CACHE_SECONDS = 5;
+const DASHBOARD_CRITICAL_CACHE_SECONDS = 60;
+const DASHBOARD_LOCAL_UTC_OFFSET = "+07:00";
 const DEFAULT_DASHBOARD_PROFILE_SLOW_MS = 500;
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -131,6 +132,21 @@ function currentPeriod() {
 
 function toDateOnly(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function vietnamDateBoundaryToUtcIso(dateOnly: string) {
+  const date = new Date(`${dateOnly}T00:00:00${DASHBOARD_LOCAL_UTC_OFFSET}`);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid dashboard date boundary: ${dateOnly}`);
+  }
+  return date.toISOString();
+}
+
+function vietnamTimestamptzWindow(window: { start: string; end: string }) {
+  return {
+    start: vietnamDateBoundaryToUtcIso(window.start),
+    end: vietnamDateBoundaryToUtcIso(window.end),
+  };
 }
 
 function percentChange(current: number, previous: number): number | null {
@@ -307,6 +323,8 @@ async function queryKpisFallback(
   const current = monthWindow(now.month, now.year);
   const previousDate = subMonths(new Date(now.year, now.month - 1, 1), 1);
   const previous = monthWindow(previousDate.getMonth() + 1, previousDate.getFullYear());
+  const currentUpdatedAt = vietnamTimestamptzWindow(current);
+  const previousUpdatedAt = vietnamTimestamptzWindow(previous);
 
   const kpis = emptyKpis();
 
@@ -354,15 +372,15 @@ async function queryKpisFallback(
           .select("id", { count: "exact", head: true })
           .is("deleted_at", null)
           .eq("status", "hoan_thanh")
-          .gte("updated_at", current.start)
-          .lt("updated_at", current.end),
+          .gte("updated_at", currentUpdatedAt.start)
+          .lt("updated_at", currentUpdatedAt.end),
         supabase
           .from("contracts")
           .select("id", { count: "exact", head: true })
           .is("deleted_at", null)
           .eq("status", "hoan_thanh")
-          .gte("updated_at", previous.start)
-          .lt("updated_at", previous.end),
+          .gte("updated_at", previousUpdatedAt.start)
+          .lt("updated_at", previousUpdatedAt.end),
       ]);
 
     assertQueryOk("Lỗi tải hợp đồng mới", currentContracts.error);
@@ -534,7 +552,13 @@ async function queryServiceBreakdownFallback(
   const total = Array.from(grouped.values()).reduce((sum, item) => sum + item.count, 0);
   if (total === 0) return [];
 
-  return Array.from(grouped.entries())
+  const sorted = Array.from(grouped.entries()).sort(([leftType, left], [rightType, right]) =>
+    right.count - left.count ||
+    (visibility.canViewFinancials ? right.revenue - left.revenue : 0) ||
+    serviceLabel(leftType).localeCompare(serviceLabel(rightType), "vi"),
+  );
+
+  return sorted
     .map(([serviceType, item], index) => ({
       name: serviceLabel(serviceType),
       serviceType: serviceType as ServiceTypeEnum | "khac",
@@ -542,8 +566,7 @@ async function queryServiceBreakdownFallback(
       count: item.count,
       revenue: item.revenue,
       fill: SERVICE_COLORS[index % SERVICE_COLORS.length],
-    }))
-    .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+    }));
 }
 
 function mapDashboardServiceBreakdownFromAggregate(
@@ -556,8 +579,8 @@ function mapDashboardServiceBreakdownFromAggregate(
   );
   if (total === 0) return [];
 
-  return (rows || [])
-    .map((row, index) => {
+  const sorted = (rows || [])
+    .map((row) => {
       const serviceType = asString(row.service_type, "khac") || "khac";
       const count = asNumber(row.contract_count);
 
@@ -567,10 +590,18 @@ function mapDashboardServiceBreakdownFromAggregate(
         value: Math.round((count / total) * 1000) / 10,
         count,
         revenue: visibility.canViewFinancials ? asNumber(row.revenue) : 0,
-        fill: SERVICE_COLORS[index % SERVICE_COLORS.length],
       };
     })
-    .sort((a, b) => b.count - a.count || b.revenue - a.revenue);
+    .sort((a, b) =>
+      b.count - a.count ||
+      (visibility.canViewFinancials ? b.revenue - a.revenue : 0) ||
+      a.name.localeCompare(b.name, "vi"),
+    );
+
+  return sorted.map((row, index) => ({
+    ...row,
+    fill: SERVICE_COLORS[index % SERVICE_COLORS.length],
+  }));
 }
 
 async function queryServiceBreakdown(
@@ -583,6 +614,7 @@ async function queryServiceBreakdown(
   const { data, error } = await supabase.rpc("dashboard_service_breakdown", {
     p_month: now.month,
     p_year: now.year,
+    p_can_view_financials: visibility.canViewFinancials,
   });
 
   if (error && isMissingRpcError(error)) {

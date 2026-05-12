@@ -73,6 +73,12 @@ const middleware = read("lib/supabase/middleware.ts");
 const accountDisabledPage = read("app/account-disabled/page.tsx");
 const dashboardCriticalKpisMigration = read("supabase/migrations/20260510195000_dashboard_critical_kpis.sql");
 const dashboardDeferredSectionsMigration = read("supabase/migrations/20260510201000_dashboard_deferred_sections.sql");
+const dashboardCorrectnessHotfixMigration = read("supabase/migrations/20260512103000_dashboard_correctness_hotfix.sql");
+const dashboardMigrationSql = [
+  dashboardCriticalKpisMigration,
+  dashboardDeferredSectionsMigration,
+  dashboardCorrectnessHotfixMigration,
+].join("\n");
 const authProxyHeaders = read("lib/auth-proxy-headers.ts");
 const packageJson = JSON.parse(read("package.json"));
 
@@ -146,6 +152,9 @@ if (loginClient.includes("prewarmDashboardForNavigation") || loginClient.include
 if (loginClient.includes("Promise.race")) {
   fail("login success path still races navigation against a dashboard warmup budget");
 }
+if (loginClient.includes('router.prefetch("/dashboard")') || loginClient.includes("router.prefetch('/dashboard')")) {
+  fail("login success path still prefetches dashboard before navigation");
+}
 if (!api.includes("requireDashboardAccess")) {
   fail("dashboard data loader is missing explicit dashboard access guard");
 }
@@ -191,6 +200,12 @@ if (
   fail("dashboard critical KPI RPC migration is missing or not permissioned");
 }
 if (
+  !dashboardMigrationSql.includes("AT TIME ZONE 'Asia/Ho_Chi_Minh'") ||
+  !api.includes("vietnamTimestamptzWindow")
+) {
+  fail("dashboard completed-contract KPI is not timezone-safe for Vietnam business days");
+}
+if (
   !api.includes('rpc("dashboard_revenue_chart"') ||
   !api.includes('rpc("dashboard_service_breakdown"') ||
   !api.includes("queryRevenueChartFallback") ||
@@ -199,12 +214,19 @@ if (
   fail("dashboard deferred sections do not use aggregate RPCs with fallbacks");
 }
 if (
-  !dashboardDeferredSectionsMigration.includes("CREATE OR REPLACE FUNCTION public.dashboard_revenue_chart") ||
-  !dashboardDeferredSectionsMigration.includes("CREATE OR REPLACE FUNCTION public.dashboard_service_breakdown") ||
-  !dashboardDeferredSectionsMigration.includes("GRANT EXECUTE ON FUNCTION public.dashboard_revenue_chart") ||
-  !dashboardDeferredSectionsMigration.includes("GRANT EXECUTE ON FUNCTION public.dashboard_service_breakdown")
+  !dashboardMigrationSql.includes("CREATE OR REPLACE FUNCTION public.dashboard_revenue_chart") ||
+  !dashboardMigrationSql.includes("CREATE OR REPLACE FUNCTION public.dashboard_service_breakdown") ||
+  !dashboardMigrationSql.includes("GRANT EXECUTE ON FUNCTION public.dashboard_revenue_chart") ||
+  !dashboardMigrationSql.includes("GRANT EXECUTE ON FUNCTION public.dashboard_service_breakdown")
 ) {
   fail("dashboard deferred section RPC migration is missing or not permissioned");
+}
+if (
+  !dashboardCorrectnessHotfixMigration.includes("p_can_view_financials") ||
+  !dashboardCorrectnessHotfixMigration.includes("CASE") ||
+  !api.includes("p_can_view_financials: visibility.canViewFinancials")
+) {
+  fail("dashboard service breakdown RPC does not receive financial visibility for privacy-safe sorting");
 }
 if (!api.includes("queryWorkTasks") || !api.includes('source: "work_tasks"')) {
   fail("dashboard upcoming work does not include work_tasks");
@@ -246,12 +268,19 @@ if (!middleware.includes("/account-disabled")) {
   fail("account-disabled route is not public in middleware");
 }
 if (
-  !middleware.includes("writeAuthProxyHeaders") ||
-  !authUtils.includes("readAuthProxyClaims") ||
+  authUtils.includes("readAuthProxyClaims") ||
+  middleware.includes("writeAuthProxyHeaders") ||
+  authProxyHeaders.includes("readAuthProxyClaims") ||
+  authProxyHeaders.includes("writeAuthProxyHeaders")
+) {
+  fail("auth shell still trusts proxy headers for claims");
+}
+if (
+  !middleware.includes("clearAuthProxyHeaders") ||
   !authProxyHeaders.includes("x-mood-auth-source") ||
   !authUtils.includes("AUTH_CONTEXT_PROFILE")
 ) {
-  fail("auth shell hot path is missing proxy-claim reuse or profiling");
+  fail("auth shell is missing header stripping or profiling");
 }
 if (!accountDisabledPage.includes("Tài khoản đã bị vô hiệu hóa") || !accountDisabledPage.includes("logout")) {
   fail("account disabled page is missing release UX");

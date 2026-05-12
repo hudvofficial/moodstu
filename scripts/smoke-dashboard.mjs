@@ -49,8 +49,13 @@ async function cleanup(client, ids) {
   if (ids.eventId) await client.from("contract_events").delete().eq("id", ids.eventId);
   if (ids.receiptId) await client.from("receipts").delete().eq("id", ids.receiptId);
   if (ids.paymentId) await client.from("payments").delete().eq("id", ids.paymentId);
+  if (ids.boundaryContractId) await client.from("contracts").delete().eq("id", ids.boundaryContractId);
   if (ids.contractId) await client.from("contracts").delete().eq("id", ids.contractId);
   if (ids.customerId) await client.from("customers").delete().eq("id", ids.customerId);
+}
+
+function vietnamMonthStartBoundaryIso(year, month) {
+  return new Date(`${year}-${String(month).padStart(2, "0")}-01T00:30:00+07:00`).toISOString();
 }
 
 loadEnvFile(path.join(root, ".env.local"));
@@ -62,11 +67,30 @@ const serviceClient = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+const todayDate = new Date();
+const currentMonth = todayDate.getMonth() + 1;
+const currentYear = todayDate.getFullYear();
 const today = new Date().toISOString().slice(0, 10);
 const future = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
 const ids = {};
+let criticalKpisBefore = null;
 
 try {
+  const { data: beforeData, error: beforeError } = await serviceClient
+    .rpc("dashboard_critical_kpis", {
+      p_month: currentMonth,
+      p_year: currentYear,
+    })
+    .maybeSingle();
+
+  if (beforeError && isMissingRpcError(beforeError)) {
+    console.warn("Skipping dashboard_critical_kpis baseline; migration is not deployed.");
+  } else if (beforeError) {
+    throw new Error(`Dashboard critical KPI baseline failed: ${beforeError.message}`);
+  } else {
+    criticalKpisBefore = beforeData;
+  }
+
   console.log("Seeding dashboard smoke records...");
 
   const { data: employee, error: employeeError } = await serviceClient
@@ -120,6 +144,31 @@ try {
     throw new Error(`Cannot create smoke contract: ${contractError?.message || "missing row"}`);
   }
   ids.contractId = contract.id;
+
+  const { data: boundaryContract, error: boundaryContractError } = await serviceClient
+    .from("contracts")
+    .insert({
+      contract_code: `SMK-DASH-BND-${timestamp}`,
+      customer_id: ids.customerId,
+      contract_date: today,
+      work_date: future,
+      delivery_date: future,
+      service_type: "combo",
+      transaction_type: "hop_dong",
+      status: "hoan_thanh",
+      payment_status: "chua_thanh_toan",
+      total_amount: 1000,
+      paid_amount: 0,
+      remaining_amount: 1000,
+      updated_at: vietnamMonthStartBoundaryIso(currentYear, currentMonth),
+      notes: marker,
+    })
+    .select("id, contract_code")
+    .single();
+  if (boundaryContractError || !boundaryContract) {
+    throw new Error(`Cannot create boundary smoke contract: ${boundaryContractError?.message || "missing row"}`);
+  }
+  ids.boundaryContractId = boundaryContract.id;
 
   const { data: payment, error: paymentError } = await serviceClient
     .from("payments")
@@ -297,11 +346,10 @@ try {
   if (plansError) throw new Error(`Payment plan reminder query failed: ${plansError.message}`);
   assert(plans?.length === 1 && Number(plans[0].amount || 0) === 700000, "Dashboard payment plan reminder missed seeded plan");
 
-  const todayDate = new Date();
   const { data: criticalKpis, error: criticalKpisError } = await serviceClient
     .rpc("dashboard_critical_kpis", {
-      p_month: todayDate.getMonth() + 1,
-      p_year: todayDate.getFullYear(),
+      p_month: currentMonth,
+      p_year: currentYear,
     })
     .maybeSingle();
 
@@ -328,12 +376,19 @@ try {
       Number(criticalKpis?.current_completed || 0) >= 1,
       "Dashboard critical KPI RPC missed seeded completed count",
     );
+    if (criticalKpisBefore) {
+      assert(
+        Number(criticalKpis?.current_completed || 0) >=
+          Number(criticalKpisBefore.current_completed || 0) + 2,
+        "Dashboard critical KPI RPC missed seeded completed count including Vietnam timezone boundary",
+      );
+    }
   }
 
   const { data: revenueChart, error: revenueChartError } = await serviceClient
     .rpc("dashboard_revenue_chart", {
-      p_month: todayDate.getMonth() + 1,
-      p_year: todayDate.getFullYear(),
+      p_month: currentMonth,
+      p_year: currentYear,
       p_months: 6,
     });
 
@@ -345,7 +400,7 @@ try {
     }
 
     const currentMonthRevenue = (revenueChart || [])
-      .filter((row) => Number(row.month_index || 0) === todayDate.getMonth() + 1)
+      .filter((row) => Number(row.month_index || 0) === currentMonth)
       .reduce((sum, row) => sum + Number(row.revenue || 0), 0);
     assert(
       currentMonthRevenue >= 800000,
@@ -355,8 +410,9 @@ try {
 
   const { data: serviceBreakdown, error: serviceBreakdownError } = await serviceClient
     .rpc("dashboard_service_breakdown", {
-      p_month: todayDate.getMonth() + 1,
-      p_year: todayDate.getFullYear(),
+      p_month: currentMonth,
+      p_year: currentYear,
+      p_can_view_financials: true,
     });
 
   if (serviceBreakdownError && isMissingRpcError(serviceBreakdownError)) {
@@ -371,6 +427,26 @@ try {
       Number(studioRow?.contract_count || 0) >= 1 &&
         Number(studioRow?.revenue || 0) >= 2000000,
       "Dashboard service breakdown RPC missed seeded studio contract",
+    );
+  }
+
+  const { data: hiddenServiceBreakdown, error: hiddenServiceBreakdownError } = await serviceClient
+    .rpc("dashboard_service_breakdown", {
+      p_month: currentMonth,
+      p_year: currentYear,
+      p_can_view_financials: false,
+    });
+
+  if (hiddenServiceBreakdownError && isMissingRpcError(hiddenServiceBreakdownError)) {
+    console.warn("Skipping dashboard_service_breakdown privacy probe; migration is not deployed.");
+  } else {
+    if (hiddenServiceBreakdownError) {
+      throw new Error(`Dashboard service breakdown privacy RPC failed: ${hiddenServiceBreakdownError.message}`);
+    }
+
+    assert(
+      (hiddenServiceBreakdown || []).every((row) => Number(row.revenue || 0) === 0),
+      "Dashboard service breakdown leaked revenue to non-financial visibility",
     );
   }
 

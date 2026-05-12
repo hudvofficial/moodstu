@@ -1,9 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import {
-  clearAuthProxyHeaders,
-  writeAuthProxyHeaders,
-} from "@/lib/auth-proxy-headers";
+import { clearAuthProxyHeaders } from "@/lib/auth-proxy-headers";
 
 const DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS = 700;
 
@@ -44,13 +41,6 @@ export async function updateSession(request: NextRequest) {
 
   const nextResponse = () =>
     NextResponse.next({ request: { headers: requestHeaders } });
-  const refreshResponseWithHeaders = () => {
-    const response = nextResponse();
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      response.cookies.set(cookie);
-    });
-    supabaseResponse = response;
-  };
 
   let supabaseResponse = nextResponse();
 
@@ -108,10 +98,6 @@ export async function updateSession(request: NextRequest) {
   try {
     const { data, error } = await supabase.auth.getClaims();
     isAuthenticated = !error && !!data?.claims?.sub;
-    if (isAuthenticated && data?.claims) {
-      writeAuthProxyHeaders(requestHeaders, data.claims);
-      refreshResponseWithHeaders();
-    }
   } catch {
     isAuthenticated = false;
   } finally {

@@ -1,8 +1,6 @@
 import { cache } from "react";
-import { headers } from "next/headers";
 import { SupabaseClient, type User } from "@supabase/supabase-js";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { readAuthProxyClaims } from "@/lib/auth-proxy-headers";
 import {
   canManageSettingsRole,
   normalizeEmployeeRole,
@@ -147,31 +145,7 @@ const getVerifiedUser = cache(async (): Promise<User | null> => {
   return user ?? null;
 });
 
-async function getProxyClaimsUser(): Promise<AuthContextUser | null> {
-  const requestHeaders = await headers();
-  const proxyClaims = readAuthProxyClaims(requestHeaders);
-
-  if (!proxyClaims) return null;
-
-  logAuthShellTiming("auth.getClaims", 0, "source=proxy");
-
-  return {
-    id: proxyClaims.id,
-    email: proxyClaims.email,
-    app_metadata: proxyClaims.role
-      ? ({ role: proxyClaims.role } as User["app_metadata"])
-      : ({} as User["app_metadata"]),
-    user_metadata: {
-      ...(proxyClaims.role ? { role: proxyClaims.role } : {}),
-      ...(proxyClaims.fullName ? { full_name: proxyClaims.fullName } : {}),
-    } as User["user_metadata"],
-  };
-}
-
 const getClaimsUser = cache(async (): Promise<AuthContextUser | null> => {
-  const proxyUser = await getProxyClaimsUser();
-  if (proxyUser) return proxyUser;
-
   const supabase = await createClient();
   const { data, error } = await profileAuthShell(
     "auth.getClaims",
