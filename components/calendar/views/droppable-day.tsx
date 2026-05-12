@@ -3,7 +3,8 @@ import { useDroppable } from "@dnd-kit/core";
 import { format, isToday } from "date-fns";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { DraggableEvent } from "./draggable-event";
-import { getLunarDate, formatLunarShort, isLunarNewMonth } from "@/lib/lunar-calendar";
+import { formatLunarShort, getLunarDate, isLunarNewMonth } from "@/lib/lunar-calendar";
+import { Button } from "@/components/ui/button";
 
 interface DroppableDayProps {
   date: Date;
@@ -15,69 +16,70 @@ interface DroppableDayProps {
   onDateClick?: (date: Date) => void;
 }
 
-function DroppableDayInner({ 
-  date, 
-  dateIso, 
-  isCurrentMonth, 
-  events, 
+function DroppableDayInner({
+  date,
+  dateIso,
+  isCurrentMonth,
+  events,
   maxVisible = 3,
   onEventClick,
-  onDateClick
+  onDateClick,
 }: DroppableDayProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: dateIso
-  });
-
+  const { setNodeRef, isOver } = useDroppable({ id: dateIso });
   const today = isToday(date);
   const visibleEvents = events.slice(0, maxVisible);
-  const overflowCount = events.length - maxVisible;
-
-  // Lunar calendar
+  const overflowCount = Math.max(0, events.length - maxVisible);
   const lunar = getLunarDate(date.getDate(), date.getMonth() + 1, date.getFullYear());
-  const lunarText = formatLunarShort(lunar);
   const isNewLunarMonth = isLunarNewMonth(lunar);
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       onClick={() => onDateClick?.(date)}
-      className={`min-h-0 overflow-hidden border-r border-b border-border p-1.5 flex flex-col gap-1 transition-colors relative cursor-pointer hover:bg-bg-hover/50
-        ${!isCurrentMonth ? "bg-bg-input/60 opacity-60" : ""}
-        ${today ? "bg-primary/3" : ""}
-        ${isOver ? "bg-primary/5 outline-2 outline-primary -outline-offset-2 z-10 rounded-sm" : ""}
+      className={`relative flex min-h-0 cursor-pointer flex-col gap-1 overflow-hidden border-b border-r border-border p-1.5 transition-colors hover:bg-bg-hover/50
+        ${!isCurrentMonth ? "bg-bg-input/60 opacity-60" : "bg-bg-card"}
+        ${today ? "bg-primary/4" : ""}
+        ${isOver ? "z-10 rounded-sm bg-primary/8 outline outline-2 -outline-offset-2 outline-primary" : ""}
       `}
+      aria-label={`${format(date, "dd/MM/yyyy")}, ${events.length} sự kiện`}
     >
-      <div className="flex items-center justify-center gap-1 w-full shrink-0">
-        <span className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full
-          ${today ? "bg-primary text-white shadow-sm" : 
-            !isCurrentMonth ? "text-text-muted font-medium" : "text-text-main"}
-        `}
+      <div className="flex w-full shrink-0 items-center justify-between gap-1">
+        <span
+          className={`flex size-6 items-center justify-center rounded-full text-xs font-semibold ${
+            today
+              ? "bg-primary text-white shadow-sm"
+              : !isCurrentMonth
+                ? "text-text-muted"
+                : "text-text-primary"
+          }`}
           style={!today && isCurrentMonth && (date.getDay() === 0 || date.getDay() === 6) ? { color: "var(--color-text-weekend)" } : undefined}
         >
           {format(date, "d")}
         </span>
         <span
-          className={`text-micro leading-none ${isNewLunarMonth ? "font-bold" : "text-text-muted"}`}
+          className={`truncate text-micro leading-none ${isNewLunarMonth ? "font-bold" : "text-text-muted"}`}
           style={isNewLunarMonth ? { color: "var(--color-text-weekend)" } : undefined}
         >
-          {lunarText}
+          {formatLunarShort(lunar)}
         </span>
       </div>
-      
-      <div className="flex-1 min-h-0 flex flex-col gap-1 overflow-hidden pb-1">
+
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden pb-1">
         {visibleEvents.map((ev) => (
-           <DraggableEvent key={ev.id} event={ev} onClick={() => onEventClick?.(ev)} />
+          <DraggableEvent key={ev.id} event={ev} onClick={() => onEventClick?.(ev)} />
         ))}
         {overflowCount > 0 && (
-          <span 
-            className="text-xs font-medium text-primary hover:text-primary/80 cursor-pointer px-1 py-0.5 transition-colors"
+          <Button
+            unstyled
+            type="button"
+            className="truncate px-1 py-0.5 text-left text-xs font-medium text-primary transition-colors hover:text-primary/80"
             onClick={(e) => {
               e.stopPropagation();
               onDateClick?.(date);
             }}
           >
             +{overflowCount} thêm
-          </span>
+          </Button>
         )}
       </div>
     </div>

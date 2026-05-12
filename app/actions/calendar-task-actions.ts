@@ -73,11 +73,7 @@ export async function checkEmployeeAvailability(
     }).parse({ employeeId, dateIso });
 
     const access = await requireCalendarAccess(supabase, userId, "truy cập lịch");
-    await requireCalendarTargetEmployee(
-      supabase,
-      { ...access, isGlobalAdmin: true },
-      parsed.employeeId,
-    );
+    await requireCalendarTargetEmployee(supabase, access, parsed.employeeId);
 
     const dayStart = toDateKey(parsed.dateIso);
     const dayEnd = addOneDay(dayStart);
@@ -91,10 +87,9 @@ export async function checkEmployeeAvailability(
         .lt("event_date", dayEnd),
       supabase
         .from("work_tasks")
-        .select("id, work_type, deadline")
+        .select("id, work_type, deadline, start_date")
         .eq("assigned_to", parsed.employeeId)
-        .gte("deadline", dayStart)
-        .lt("deadline", dayEnd),
+        .or(`and(deadline.gte.${dayStart},deadline.lt.${dayEnd}),and(deadline.is.null,start_date.gte.${dayStart},start_date.lt.${dayEnd})`),
     ]);
 
     if (schedulesResult.error) {
@@ -113,7 +108,7 @@ export async function checkEmployeeAvailability(
       ...(tasksResult.data || []).map((task) => ({
         id: task.id,
         title: task.work_type || "Nhiệm vụ",
-        start: task.deadline || parsed.dateIso,
+        start: task.deadline || task.start_date || parsed.dateIso,
       })),
     ];
 
@@ -129,6 +124,7 @@ export async function updateCalendarTaskDetails(
   updates: {
     status?: string;
     deadline?: string;
+    start_date?: string;
     assigned_to?: string;
   },
 ): Promise<ActionResult<{ updated: boolean; autoPrintTriggered: boolean }>> {
@@ -137,6 +133,7 @@ export async function updateCalendarTaskDetails(
     const validatedUpdates = z.object({
       status: z.enum(TASK_STATUS_VALUES, { error: "Trạng thái không hợp lệ" }).optional(),
       deadline: isoDateSchema.optional(),
+      start_date: isoDateSchema.optional(),
       assigned_to: z.string().trim().min(1, "Người nhận việc không hợp lệ").optional(),
     }).parse(updates);
 
@@ -146,6 +143,7 @@ export async function updateCalendarTaskDetails(
     const updatePayload: Record<string, string> = {};
     if (validatedUpdates.status) updatePayload.status = validatedUpdates.status;
     if (validatedUpdates.deadline) updatePayload.deadline = toDateKey(validatedUpdates.deadline);
+    if (validatedUpdates.start_date) updatePayload.start_date = toDateKey(validatedUpdates.start_date);
     if (validatedUpdates.assigned_to) {
       await requireCalendarTargetEmployee(supabase, access, validatedUpdates.assigned_to);
       updatePayload.assigned_to = validatedUpdates.assigned_to;

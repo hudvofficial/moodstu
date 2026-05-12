@@ -10,7 +10,8 @@ export type CalendarAccessContext = {
 type EmployeeRow = {
   id: string;
   role: string | null;
-  status?: string | null;
+  status: string | null;
+  deleted_at: string | null;
 };
 
 function assertQueryOk(label: string, error: { message?: string } | null) {
@@ -19,27 +20,34 @@ function assertQueryOk(label: string, error: { message?: string } | null) {
   }
 }
 
+function isActiveEmployee(employee: Pick<EmployeeRow, "status" | "deleted_at"> | null) {
+  return !!employee && !employee.deleted_at && employee.status === "active";
+}
+
 export async function requireCalendarAccess(
   supabase: SupabaseClient,
   userId: string,
-  actionLabel = "truy cập lịch",
+  actionLabel = "truy cap lich",
 ): Promise<CalendarAccessContext> {
   const { data, error } = await supabase
     .from("employees")
-    .select("id, role, status")
+    .select("id, role, status, deleted_at")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  assertQueryOk("Lỗi tải hồ sơ nhân sự", error);
+  assertQueryOk("Loi tai ho so nhan su", error);
 
   const employee = data as EmployeeRow | null;
   if (!employee) {
-    throw new Error("Chưa thiết lập hồ sơ nhân sự.");
+    throw new Error("Chua thiet lap ho so nhan su.");
+  }
+  if (!isActiveEmployee(employee)) {
+    throw new Error("Tai khoan nhan su khong hoat dong.");
   }
 
   const role = normalizeRole(employee.role);
   if (!ROLE_PERMISSIONS[role]?.includes("calendar")) {
-    throw new Error(`Bạn không có quyền ${actionLabel}.`);
+    throw new Error(`Ban khong co quyen ${actionLabel}.`);
   }
 
   return {
@@ -55,18 +63,23 @@ export async function requireActiveCalendarEmployee(
 ) {
   const { data, error } = await supabase
     .from("employees")
-    .select("id, full_name, status")
+    .select("id, full_name, status, deleted_at")
     .eq("id", employeeId)
     .maybeSingle();
 
-  assertQueryOk("Lỗi kiểm tra nhân sự", error);
+  assertQueryOk("Loi kiem tra nhan su", error);
 
-  const employee = data as { id: string; full_name: string | null; status: string | null } | null;
+  const employee = data as {
+    id: string;
+    full_name: string | null;
+    status: string | null;
+    deleted_at: string | null;
+  } | null;
   if (!employee) {
-    throw new Error("Nhân sự không tồn tại.");
+    throw new Error("Nhan su khong ton tai.");
   }
-  if (employee.status !== "active") {
-    throw new Error("Nhân sự này không còn hoạt động.");
+  if (!isActiveEmployee(employee)) {
+    throw new Error("Nhan su nay khong con hoat dong.");
   }
 
   return employee;
@@ -78,7 +91,7 @@ export async function requireCalendarTargetEmployee(
   targetEmployeeId: string,
 ) {
   if (!access.isGlobalAdmin && targetEmployeeId !== access.employeeId) {
-    throw new Error("Không có quyền thao tác lịch cho nhân sự khác.");
+    throw new Error("Khong co quyen thao tac lich cho nhan su khac.");
   }
 
   return requireActiveCalendarEmployee(supabase, targetEmployeeId);
@@ -86,6 +99,7 @@ export async function requireCalendarTargetEmployee(
 
 export type CalendarScheduleRecord = {
   employee_id: string;
+  event_date: string;
   end_date: string | null;
   google_event_id: string | null;
 };
@@ -97,18 +111,18 @@ export async function requireCalendarScheduleEditable(
 ): Promise<CalendarScheduleRecord> {
   const { data, error } = await supabase
     .from("schedules")
-    .select("employee_id, end_date, google_event_id")
+    .select("employee_id, event_date, end_date, google_event_id")
     .eq("id", scheduleId)
     .maybeSingle();
 
-  assertQueryOk("Lỗi tải sự kiện", error);
+  assertQueryOk("Loi tai su kien", error);
 
   const schedule = data as CalendarScheduleRecord | null;
   if (!schedule) {
-    throw new Error("Không tìm thấy sự kiện.");
+    throw new Error("Khong tim thay su kien.");
   }
   if (!access.isGlobalAdmin && schedule.employee_id !== access.employeeId) {
-    throw new Error("Không có quyền thao tác lịch của người khác.");
+    throw new Error("Khong co quyen thao tac lich cua nguoi khac.");
   }
 
   return schedule;
@@ -119,6 +133,8 @@ export type CalendarTaskRecord = {
   contract_id?: string | null;
   work_type?: string | null;
   status?: string | null;
+  deadline?: string | null;
+  start_date?: string | null;
 };
 
 export async function requireCalendarTaskEditable(
@@ -128,18 +144,18 @@ export async function requireCalendarTaskEditable(
 ): Promise<CalendarTaskRecord> {
   const { data, error } = await supabase
     .from("work_tasks")
-    .select("assigned_to, contract_id, work_type, status")
+    .select("assigned_to, contract_id, work_type, status, deadline, start_date")
     .eq("id", taskId)
     .maybeSingle();
 
-  assertQueryOk("Lỗi tải nhiệm vụ", error);
+  assertQueryOk("Loi tai nhiem vu", error);
 
   const task = data as CalendarTaskRecord | null;
   if (!task) {
-    throw new Error("Không tìm thấy nhiệm vụ.");
+    throw new Error("Khong tim thay nhiem vu.");
   }
   if (!access.isGlobalAdmin && task.assigned_to !== access.employeeId) {
-    throw new Error("Không có quyền thao tác nhiệm vụ của người khác.");
+    throw new Error("Khong co quyen thao tac nhiem vu cua nguoi khac.");
   }
 
   return task;
@@ -151,23 +167,12 @@ export async function requireCalendarTaskAssignable(
   taskId: string,
   targetEmployeeId: string,
 ): Promise<CalendarTaskRecord> {
-  const { data, error } = await supabase
-    .from("work_tasks")
-    .select("assigned_to, contract_id, work_type, status")
-    .eq("id", taskId)
-    .maybeSingle();
-
-  assertQueryOk("Lỗi tải nhiệm vụ", error);
-
-  const task = data as CalendarTaskRecord | null;
-  if (!task) {
-    throw new Error("Không tìm thấy nhiệm vụ.");
-  }
+  const task = await requireCalendarTaskEditable(supabase, access, taskId);
 
   await requireCalendarTargetEmployee(supabase, access, targetEmployeeId);
 
   if (!access.isGlobalAdmin && task.assigned_to !== null && task.assigned_to !== access.employeeId) {
-    throw new Error("Không có quyền nhận nhiệm vụ của người khác.");
+    throw new Error("Khong co quyen nhan nhiem vu cua nguoi khac.");
   }
 
   return task;

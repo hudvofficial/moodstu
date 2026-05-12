@@ -17,7 +17,7 @@ export interface UnifiedCalendarEvent {
   colorToken: string; // Tailwind class
   backgroundColor?: string | null; // Google event hex color from API
   googleEventId: string | null;
-  originalDateField: string; // 'event_date' | 'start_time' | 'deadline'
+  originalDateField: string; // 'event_date' | 'start_date' | 'deadline'
   originalGoogleEvent?: { id: string; htmlLink?: string; colorId?: string } | null;
   workTypeLabel?: string;
   customerName?: string | null;

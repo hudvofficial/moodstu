@@ -195,10 +195,16 @@ export function EventFormDrawer({
         try {
           const taskUpdates: {
             deadline?: string;
+            start_date?: string;
             assigned_to?: string;
-          } = {
-            deadline: formData.event_date.split("T")[0],
-          };
+          } = {};
+          const nextTaskDate = formData.event_date.split("T")[0];
+
+          if (event.originalDateField === "start_date") {
+            taskUpdates.start_date = nextTaskDate;
+          } else {
+            taskUpdates.deadline = nextTaskDate;
+          }
 
           if (isGlobalAdmin && formData.employee_id !== event.employeeId) {
             taskUpdates.assigned_to = formData.employee_id;
@@ -568,7 +574,7 @@ export function EventFormDrawer({
 
                  <div className={`${source === "task" ? "space-y-2" : "form-grid-2col"} shrink-0`}>
                     <DatePicker 
-                      label={source === "task" ? "Ngày deadline" : "Ngày bắt đầu"}
+                      label={source === "task" ? (event?.originalDateField === "start_date" ? "Ngày bắt đầu" : "Ngày deadline") : "Ngày bắt đầu"}
                       compact
                       value={formData.event_date.split("T")[0]}
                       onChange={(d) => setFormData({ ...formData, event_date: source === "task" ? d : `${d}T${formData.event_date.split("T")[1] || "09:00"}` })}

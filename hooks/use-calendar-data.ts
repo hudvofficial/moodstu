@@ -11,6 +11,11 @@ import { CALENDAR_STATUS_ORDER, getCalendarStatusLabel } from "@/lib/utils/calen
 import type { CalendarViewMode } from "@/types/calendar.types";
 
 const CALENDAR_VIEW_MODES: CalendarViewMode[] = ["month", "week", "day"];
+const CALENDAR_SOURCE_OPTIONS = [
+  { label: "Lịch nội bộ", value: "schedule" },
+  { label: "Nhiệm vụ", value: "task" },
+  { label: "Google", value: "google" },
+];
 
 function parseInitialDate() {
   if (typeof window === "undefined") return new Date();
@@ -83,6 +88,7 @@ export function useCalendarData() {
   // Advanced Filter state
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
 
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
@@ -118,11 +124,11 @@ export function useCalendarData() {
   );
 
   useRealtime("schedules", {
-    prefixes: "calendar",
+    cacheKeys: [cacheKeys.calendar(month, year)],
     debounceMs: 750,
   });
   useRealtime("work_tasks", {
-    prefixes: "calendar",
+    cacheKeys: [cacheKeys.calendar(month, year)],
     debounceMs: 750,
   });
 
@@ -156,9 +162,12 @@ export function useCalendarData() {
         if (selectedStatuses.length > 0) {
           if (!event.status || !selectedStatuses.includes(event.status)) return false;
         }
+        if (selectedSources.length > 0 && !selectedSources.includes(event.source)) {
+          return false;
+        }
         return true;
       });
-  }, [rawEvents, selectedEmployees, selectedStatuses, employeeNameById]);
+  }, [rawEvents, selectedEmployees, selectedStatuses, selectedSources, employeeNameById]);
 
   // §1.2 — O(1) lookup per cell: Map<YYYY-MM-DD, Event[]>
   const eventsByDate = useMemo(() => {
@@ -245,8 +254,11 @@ export function useCalendarData() {
       setSelectedEmployees,
       selectedStatuses,
       setSelectedStatuses,
+      selectedSources,
+      setSelectedSources,
       availableEmployees,
       availableStatuses: computedStatuses,
+      availableSources: CALENDAR_SOURCE_OPTIONS,
       isGoogleConnected: isGoogleConnected ?? false
     }
   };

@@ -39,6 +39,38 @@ function addOneDayDateKey(dateKey: string) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function preserveDateValueShape(originalValue: string, nextDate: Date) {
+  if (isDateOnly(originalValue)) {
+    return nextDate.toISOString().slice(0, 10);
+  }
+  return nextDate.toISOString();
+}
+
+function shiftEndDateByStoredDuration(
+  startValue: string,
+  endValue: string | null,
+  nextStartValue: string,
+) {
+  if (!endValue) return null;
+
+  const startTime = new Date(startValue).getTime();
+  const endTime = new Date(endValue).getTime();
+  const nextStartTime = new Date(nextStartValue).getTime();
+
+  if (
+    Number.isNaN(startTime) ||
+    Number.isNaN(endTime) ||
+    Number.isNaN(nextStartTime)
+  ) {
+    return endValue;
+  }
+
+  return preserveDateValueShape(
+    endValue,
+    new Date(nextStartTime + (endTime - startTime)),
+  );
+}
+
 function buildGoogleEventDates(startValue: string, endValue?: string | null) {
   if (isDateOnly(startValue)) {
     const endDate = endValue && isDateOnly(endValue) ? endValue : startValue;
@@ -81,16 +113,12 @@ export async function updateDragDropDate(
     if (parsed.source === "schedule") {
       const oldRecord = await requireCalendarScheduleEditable(supabase, access, parsed.eventId);
       const updates: Record<string, string> = { event_date: parsed.newDateIso };
-
-      if (oldRecord.end_date && parsed.oldDateIso) {
-        const oldTime = new Date(parsed.oldDateIso).getTime();
-        const newTime = new Date(parsed.newDateIso).getTime();
-        const currentEndTime = new Date(oldRecord.end_date).getTime();
-
-        if (!Number.isNaN(oldTime) && !Number.isNaN(newTime) && !Number.isNaN(currentEndTime)) {
-          updates.end_date = new Date(currentEndTime + newTime - oldTime).toISOString();
-        }
-      }
+      const shiftedEndDate = shiftEndDateByStoredDuration(
+        oldRecord.event_date,
+        oldRecord.end_date,
+        parsed.newDateIso,
+      );
+      if (shiftedEndDate) updates.end_date = shiftedEndDate;
 
       const { error } = await supabase.from("schedules").update(updates).eq("id", parsed.eventId);
       if (error) throw new Error(`Thao tác ghi database thất bại: ${error.message}`);
@@ -112,9 +140,10 @@ export async function updateDragDropDate(
 
     const task = await requireCalendarTaskEditable(supabase, access, parsed.eventId);
     const nextDeadline = datePart(parsed.newDateIso);
+    const taskDateField = task.deadline ? "deadline" : "start_date";
     const { error } = await supabase
       .from("work_tasks")
-      .update({ deadline: nextDeadline })
+      .update({ [taskDateField]: nextDeadline })
       .eq("id", parsed.eventId);
 
     if (error) throw new Error(`Cập nhật nhiệm vụ thất bại: ${error.message}`);
@@ -324,6 +353,16 @@ export async function deleteCalendarEvent(
     const access = await requireCalendarAccess(supabase, userId, "thao tác dữ liệu lịch");
     const oldRecord = await requireCalendarScheduleEditable(supabase, access, validEventId);
 
+    if (oldRecord.google_event_id) {
+      try {
+        await deleteGoogleCalendarEvent(oldRecord.google_event_id);
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.warn("Google Sync delete blocked local delete:", detail);
+        throw new Error(`Khong xoa duoc su kien Google nen chua xoa lich noi bo: ${detail}`);
+      }
+    }
+
     const { error } = await supabase
       .from("schedules")
       .delete()
@@ -331,18 +370,7 @@ export async function deleteCalendarEvent(
 
     if (error) throw new Error(`Xóa sự kiện thất bại: ${error.message}`);
 
-    let warningMsg: string | undefined;
-
-    if (oldRecord.google_event_id) {
-      try {
-        await deleteGoogleCalendarEvent(oldRecord.google_event_id);
-      } catch (err) {
-        warningMsg = err instanceof Error ? err.message : String(err);
-        console.warn("Best effort Google Sync delete failed:", warningMsg);
-      }
-    }
-
     revalidateCalendar();
-    return { success: true, warning: warningMsg };
+    return { success: true };
   });
 }

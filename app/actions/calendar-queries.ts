@@ -78,6 +78,31 @@ type CalendarMonthEventRpcRow = {
   customer_name: string | null;
 };
 
+const DEFAULT_CALENDAR_PROFILE_SLOW_MS = 500;
+
+function shouldLogCalendarTiming(durationMs: number) {
+  if (process.env.CALENDAR_PROFILE === "1") return true;
+  if (process.env.CALENDAR_PROFILE === "0") return false;
+  const configured = Number(process.env.CALENDAR_PROFILE_SLOW_MS);
+  const slowMs = Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_CALENDAR_PROFILE_SLOW_MS;
+  return durationMs >= slowMs;
+}
+
+async function profileCalendarSection<T>(label: string, loader: () => PromiseLike<T>): Promise<T> {
+  const startedAt = performance.now();
+
+  try {
+    return await loader();
+  } finally {
+    const durationMs = Math.round(performance.now() - startedAt);
+    if (shouldLogCalendarTiming(durationMs)) {
+      console.warn(`[calendar-profile] ${label}=${durationMs}ms`);
+    }
+  }
+}
+
 function datePart(value: string | null | undefined) {
   return value?.split("T")[0] || null;
 }
@@ -97,10 +122,11 @@ function getCalendarWindow(month: number, year: number) {
   const startM = normalizedMonth <= 1 ? 12 : normalizedMonth - 1;
   const endY = normalizedMonth >= 12 ? normalizedYear + 1 : normalizedYear;
   const endM = normalizedMonth >= 12 ? 1 : normalizedMonth + 1;
+  const endExclusive = new Date(endY, endM - 1, 11);
 
   return {
     startDate: `${startY}-${String(startM).padStart(2, "0")}-20`,
-    endDate: `${endY}-${String(endM).padStart(2, "0")}-10`,
+    endExclusiveDate: `${endExclusive.getFullYear()}-${String(endExclusive.getMonth() + 1).padStart(2, "0")}-${String(endExclusive.getDate()).padStart(2, "0")}`,
   };
 }
 
@@ -159,6 +185,7 @@ function mapTaskEvent(
     ? `HĐ: ${contractRef.contract_code} (${customerName})`
     : null;
 
+  const originalDateField = task.deadline ? "deadline" : "start_date";
   const anchorDate = task.deadline || task.start_date || new Date().toISOString();
   const anchorDay = datePart(anchorDate) || datePart(new Date().toISOString())!;
   const startTime = timePart(task.start_time);
@@ -184,7 +211,7 @@ function mapTaskEvent(
     groupLabel,
     colorToken: getEventColorToken("task", task.work_type),
     googleEventId: null,
-    originalDateField: "deadline",
+    originalDateField,
   };
 }
 
@@ -243,7 +270,7 @@ async function fetchCalendarEventsFallback(
   month: number,
   year: number,
 ): Promise<UnifiedCalendarEvent[]> {
-  const { startDate, endDate } = getCalendarWindow(month, year);
+  const { startDate, endExclusiveDate } = getCalendarWindow(month, year);
   const result: UnifiedCalendarEvent[] = [];
 
   const [schedulesResult, tasksResult] = await Promise.all([
@@ -254,7 +281,7 @@ async function fetchCalendarEventsFallback(
         contract_id, status, google_event_id, color_id, location, notes
       `)
       .gte("event_date", startDate)
-      .lte("event_date", endDate),
+      .lt("event_date", endExclusiveDate),
     supabase
       .from("work_tasks")
       .select(`
@@ -262,7 +289,7 @@ async function fetchCalendarEventsFallback(
         start_date, start_time, end_time, deadline, status, event_id,
         contracts ( contract_code, customers ( full_name ) )
       `)
-      .or(`and(deadline.gte.${startDate},deadline.lte.${endDate}),and(deadline.is.null,start_date.gte.${startDate},start_date.lte.${endDate})`),
+      .or(`and(deadline.gte.${startDate},deadline.lt.${endExclusiveDate}),and(deadline.is.null,start_date.gte.${startDate},start_date.lt.${endExclusiveDate})`),
   ]);
 
   if (schedulesResult.error) {
@@ -292,10 +319,14 @@ async function fetchCalendarEventsRpc(
   month: number,
   year: number,
 ): Promise<UnifiedCalendarEvent[]> {
-  const { data, error } = await supabase.rpc("calendar_month_events", {
-    p_month: month,
-    p_year: year,
-  });
+  const { data, error } = await profileCalendarSection("calendar.events.rpc", () =>
+    Promise.resolve(
+      supabase.rpc("calendar_month_events", {
+        p_month: month,
+        p_year: year,
+      }),
+    ),
+  );
 
   if (error && isMissingRpcError(error)) {
     return fetchCalendarEventsFallback(supabase, access, month, year);
@@ -323,27 +354,35 @@ export async function fetchCalendarGoogleEvents(
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
   return withAuth(async (supabase, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu Google Calendar");
-    const { startDate, endDate } = getCalendarWindow(month, year);
+    const { startDate, endExclusiveDate } = getCalendarWindow(month, year);
 
-    const { data: linkedSchedules, error: linkedError } = await supabase
-      .from("schedules")
-      .select("google_event_id")
-      .not("google_event_id", "is", null)
-      .gte("event_date", startDate)
-      .lte("event_date", endDate);
+    const { data: linkedSchedules, error: linkedError } = await profileCalendarSection(
+      "calendar.google.linkedIds",
+      () => Promise.resolve(
+        supabase
+          .from("schedules")
+          .select("google_event_id")
+          .not("google_event_id", "is", null)
+          .gte("event_date", startDate)
+          .lt("event_date", endExclusiveDate),
+      ),
+    );
 
     if (linkedError) {
       throw new Error(`Lỗi tải liên kết Google Calendar: ${linkedError.message}`);
     }
 
     const syncedGoogleIds = new Set(
-      (linkedSchedules || [])
+      ((linkedSchedules || []) as { google_event_id: string | null }[])
         .map((schedule) => schedule.google_event_id)
         .filter((id): id is string => typeof id === "string" && id.length > 0),
     );
-    const googleEvents = await getGoogleCalendarEvents(
-      new Date(startDate).toISOString(),
-      new Date(endDate).toISOString(),
+    const googleEvents = await profileCalendarSection(
+      "calendar.google.events",
+      () => getGoogleCalendarEvents(
+        new Date(startDate).toISOString(),
+        new Date(endExclusiveDate).toISOString(),
+      ),
     );
     const result: UnifiedCalendarEvent[] = [];
 
@@ -390,6 +429,7 @@ export async function fetchCalendarFilterEmployees(): Promise<ActionResult<{ id:
       .from("employees")
       .select("id, full_name")
       .eq("status", "active")
+      .is("deleted_at", null)
       .order("full_name", { ascending: true });
 
     if (error) throw new Error("Lỗi tải danh sách bộ lọc nhân sự.");
