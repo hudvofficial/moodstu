@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, SlidersHorizontal, RefreshCcw } from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
-import { CalendarMonthYearPicker } from "./calendar-month-year-picker";
 import SolarLunarConverter from "./solar-lunar-converter";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
@@ -36,7 +35,6 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
-  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
 
   const hasActiveFilter = filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
 
@@ -72,25 +70,15 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
     onDateChange(new Date());
   };
 
-  const handleOpenMonthYearPicker = () => {
-    setIsMonthYearPickerOpen(true);
-  };
-
   return (
     <>
       {/* ── Desktop Toolbar (unchanged) ── */}
-      <div className="hidden lg:flex items-center justify-between gap-3 p-4">
+      <div className="hidden md:flex items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
-          <Button
-            unstyled
-            type="button"
-            onClick={handleOpenMonthYearPicker}
-            className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1 text-xl font-bold text-text-primary transition-colors hover:bg-bg-hover hover:text-primary"
-            aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
-          >
+          <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
             <CalendarIcon className="w-5 h-5 text-text-muted" />
             Tháng {month}, {year}
-          </Button>
+          </h2>
           <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
             <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
               <ChevronLeft className="w-4 h-4" />
@@ -157,19 +145,14 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
       </div>
 
       {/* ── Mobile Toolbar ── */}
-      <div className="flex lg:hidden flex-col gap-2 px-3 py-2">
+      <div className="flex md:hidden flex-col gap-2 px-3 py-2">
         {/* Row 1: Date nav + Filter icon + CTA icon */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <Button
-              variant="ghost"
-              className="text-base font-bold px-2 py-1 rounded-lg"
-              onClick={handleOpenMonthYearPicker}
-              aria-label={`Chọn tháng và năm, hiện tại tháng ${month}, ${year}`}
-            >
+            <Button variant="ghost" className="text-base font-bold px-2 py-1 rounded-lg" onClick={handleToday}>
               T{month}, {year}
             </Button>
             <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handleNext}>
@@ -263,15 +246,6 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
         onNavigateDate={onNavigateDate ?? onDateChange}
         onOpenDayDetail={onOpenLunarDay}
       />
-      {isMonthYearPickerOpen && (
-        <CalendarMonthYearPicker
-          open={isMonthYearPickerOpen}
-          currentDate={currentDate}
-          viewMode={viewMode}
-          onOpenChange={setIsMonthYearPickerOpen}
-          onSelectDate={onDateChange}
-        />
-      )}
     </>
   );
 }
