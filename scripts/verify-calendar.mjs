@@ -42,13 +42,21 @@ const calendarAuth = read("lib/calendar-auth.ts");
 const calendarUtils = read("lib/utils/calendar-utils.ts");
 const calendarWrapper = read("components/calendar/calendar-wrapper.tsx");
 const calendarEventCard = read("components/calendar/calendar-event-card.tsx");
-const eventFormDrawer = read("components/calendar/drawers/event-form-drawer.tsx");
+const eventFormDrawer = read(
+  "components/calendar/drawers/event-form-drawer.tsx",
+);
 const draggableEvent = read("components/calendar/views/draggable-event.tsx");
 const droppableDay = read("components/calendar/views/droppable-day.tsx");
 const dayView = read("components/calendar/views/day-view.tsx");
-const calendarMonthEventsMigration = read("supabase/migrations/20260512090000_calendar_month_events_rpc.sql");
-const calendarCorrectnessMigration = read("supabase/migrations/20260513090000_calendar_correctness_hotfix.sql");
-const calendarRpcOrderFixMigration = read("supabase/migrations/20260513093000_calendar_rpc_order_fix.sql");
+const calendarMonthEventsMigration = read(
+  "supabase/migrations/20260512090000_calendar_month_events_rpc.sql",
+);
+const calendarCorrectnessMigration = read(
+  "supabase/migrations/20260513090000_calendar_correctness_hotfix.sql",
+);
+const calendarRpcOrderFixMigration = read(
+  "supabase/migrations/20260513093000_calendar_rpc_order_fix.sql",
+);
 const calendarMigrationSql = [
   calendarMonthEventsMigration,
   calendarCorrectnessMigration,
@@ -65,7 +73,10 @@ if (!calendarAuth.includes("requireCalendarScheduleEditable")) {
 if (!calendarAuth.includes("requireCalendarTaskEditable")) {
   fail("shared task ownership helper is missing");
 }
-if (!calendarAuth.includes("deleted_at") || !calendarAuth.includes('status === "active"')) {
+if (
+  !calendarAuth.includes("deleted_at") ||
+  !calendarAuth.includes('status === "active"')
+) {
   fail("calendar access does not enforce active/non-deleted employees");
 }
 for (const [label, source] of [
@@ -83,15 +94,19 @@ if (!calendarQueries.includes("fetchCalendarGoogleEvents")) {
 if (
   !calendarQueries.includes('rpc("calendar_month_events"') ||
   !calendarQueries.includes("fetchCalendarEventsFallback") ||
-  !calendarMigrationSql.includes("CREATE OR REPLACE FUNCTION public.calendar_month_events") ||
-  !calendarMigrationSql.includes("GRANT EXECUTE ON FUNCTION public.calendar_month_events")
+  !calendarMigrationSql.includes(
+    "CREATE OR REPLACE FUNCTION public.calendar_month_events",
+  ) ||
+  !calendarMigrationSql.includes(
+    "GRANT EXECUTE ON FUNCTION public.calendar_month_events",
+  )
 ) {
   fail("calendar month load is missing the aggregate RPC with fallback");
 }
 if (
   !calendarQueries.includes("endExclusiveDate") ||
   !calendarRpcOrderFixMigration.includes("v_end_exclusive") ||
-  calendarQueries.includes(".lte(\"event_date\"") ||
+  calendarQueries.includes('.lte("event_date"') ||
   calendarRpcOrderFixMigration.includes("s.event_date <= v_end") ||
   !calendarRpcOrderFixMigration.includes("feed.event_date")
 ) {
@@ -106,22 +121,33 @@ if (
 }
 if (
   calendarTasks.includes("{ ...access, isGlobalAdmin: true }") ||
-  !calendarTasks.includes("requireCalendarTargetEmployee(supabase, access, parsed.employeeId)")
+  !calendarTasks.includes(
+    "requireCalendarTargetEmployee(supabase, access, parsed.employeeId)",
+  )
 ) {
   fail("calendar availability check can bypass target-employee authorization");
 }
 if (
-  !calendarQueries.includes('originalDateField = task.deadline ? "deadline" : "start_date"') ||
-  !calendarMutations.includes('taskDateField = task.deadline ? "deadline" : "start_date"') ||
+  !calendarQueries.includes(
+    'originalDateField = task.deadline ? "deadline" : "start_date"',
+  ) ||
+  !calendarMutations.includes(
+    'taskDateField = task.deadline ? "deadline" : "start_date"',
+  ) ||
   !calendarTasks.includes("start_date: isoDateSchema.optional()") ||
   !eventFormDrawer.includes('event.originalDateField === "start_date"')
 ) {
   fail("calendar task date source parity is missing");
 }
-if (!calendarMutations.includes("shiftEndDateByStoredDuration") || calendarMutations.includes("parsed.oldDateIso)")) {
+if (
+  !calendarMutations.includes("shiftEndDateByStoredDuration") ||
+  calendarMutations.includes("parsed.oldDateIso)")
+) {
   fail("schedule drag/drop does not preserve stored duration server-side");
 }
-if (calendarQueries.includes("const [schedulesResult, tasksResult, googleEvents]")) {
+if (
+  calendarQueries.includes("const [schedulesResult, tasksResult, googleEvents]")
+) {
   fail("internal calendar fetch still waits on Google events");
 }
 if (!calendarHook.includes("cacheKeys.calendarGoogle")) {
@@ -136,26 +162,44 @@ if (!calendarHook.includes('useRealtime("work_tasks"')) {
 if (calendarHook.includes('prefixes: "calendar"')) {
   fail("calendar realtime still invalidates broad calendar prefix");
 }
-if (calendarHook.includes("charAt(0)") && calendarHook.includes("replace(/_/g")) {
-  fail("calendar status labels still appear to be generated from raw enum strings");
+if (
+  calendarHook.includes("charAt(0)") &&
+  calendarHook.includes("replace(/_/g")
+) {
+  fail(
+    "calendar status labels still appear to be generated from raw enum strings",
+  );
 }
-for (const requiredLabel of ["Chưa làm", "Đang làm", "Hoàn thành", "Google Calendar"]) {
+for (const requiredLabel of [
+  "Chưa làm",
+  "Đang làm",
+  "Hoàn thành",
+  "Google Calendar",
+]) {
   if (!calendarUtils.includes(requiredLabel)) {
     fail(`calendar status label missing: ${requiredLabel}`);
   }
 }
-if (!calendarMutations.includes("superRefine") || !calendarMutations.includes("Ngày kết thúc phải")) {
+if (
+  !calendarMutations.includes("superRefine") ||
+  !calendarMutations.includes("Ngày kết thúc phải")
+) {
   fail("schedule date-order validation is missing");
 }
 if (!calendarTasks.includes("TASK_STATUS_VALUES")) {
   fail("calendar task status enum validation is missing");
 }
-const deleteActionIndex = calendarMutations.indexOf("export async function deleteCalendarEvent");
+const deleteActionIndex = calendarMutations.indexOf(
+  "export async function deleteCalendarEvent",
+);
 const googleDeleteIndex = calendarMutations.indexOf(
   "deleteGoogleCalendarEvent(oldRecord.google_event_id)",
   deleteActionIndex,
 );
-const localDeleteIndex = calendarMutations.indexOf('.from("schedules")', deleteActionIndex);
+const localDeleteIndex = calendarMutations.indexOf(
+  '.from("schedules")',
+  deleteActionIndex,
+);
 if (
   deleteActionIndex === -1 ||
   googleDeleteIndex === -1 ||
@@ -167,8 +211,6 @@ if (
 }
 if (
   !calendarWrapper.includes("CalendarSkeleton") ||
-  !calendarWrapper.includes("isInitialLoading") ||
-  !calendarWrapper.includes("isRefreshing") ||
   !dayView.includes("TimeSection")
 ) {
   fail("calendar loading/day UX coverage is missing");

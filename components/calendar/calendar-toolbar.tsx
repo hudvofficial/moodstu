@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, SlidersHorizontal, RefreshCcw } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  SlidersHorizontal,
+  RefreshCcw,
+} from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
 import SolarLunarConverter from "./solar-lunar-converter";
 import type { CalendarViewMode } from "@/types/calendar.types";
@@ -19,9 +25,6 @@ interface CalendarToolbarProps {
     availableStatuses: { label: string; value: string }[];
   };
   onNewEvent: () => void;
-  onNavigateDate?: (date: Date) => void;
-  onOpenLunarDay?: (date: Date) => void;
-  isUpdating?: boolean;
 }
 
 const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
@@ -30,13 +33,21 @@ const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
   { label: "Ngày", value: "day" },
 ];
 
-export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewModeChange, filters, onNewEvent, onNavigateDate, onOpenLunarDay, isUpdating = false }: CalendarToolbarProps) {
+export function CalendarToolbar({
+  currentDate,
+  onDateChange,
+  viewMode,
+  onViewModeChange,
+  filters,
+  onNewEvent,
+}: CalendarToolbarProps) {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
 
-  const hasActiveFilter = filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
+  const hasActiveFilter =
+    filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
 
   const handlePrev = () => {
     if (viewMode === "month") {
@@ -73,20 +84,36 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
   return (
     <>
       {/* ── Desktop Toolbar (unchanged) ── */}
-      <div className="hidden md:flex items-center justify-between gap-3 p-4">
+      <div className="hidden lg:flex items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
             <CalendarIcon className="w-5 h-5 text-text-muted" />
             Tháng {month}, {year}
           </h2>
           <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
-            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-none shrink-0"
+              style={{ padding: 0 }}
+              onClick={handlePrev}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" className="h-8 px-3 rounded-none font-medium whitespace-nowrap" onClick={handleToday}>
+            <Button
+              variant="ghost"
+              className="h-8 px-3 rounded-none font-medium whitespace-nowrap"
+              onClick={handleToday}
+            >
               Hôm nay
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-none shrink-0" style={{ padding: 0 }} onClick={handleNext}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-none shrink-0"
+              style={{ padding: 0 }}
+              onClick={handleNext}
+            >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -105,28 +132,26 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isUpdating && (
-            <div className="hidden xl:flex items-center gap-1.5 rounded-full bg-bg-hover px-2.5 py-1 text-xs font-medium text-text-muted">
-              <Loader2 className="size-3.5 animate-spin text-primary" />
-              Đang cập nhật
-            </div>
-          )}
           <SelectPill
             value={filters.selectedStatuses[0] || "all"}
-            onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
+            onChange={(val) =>
+              filters.setSelectedStatuses(val && val !== "all" ? [val] : [])
+            }
             placeholder="Tất cả Trạng thái"
             options={[
               { label: "Tất cả Trạng thái", value: "all" },
-              ...filters.availableStatuses
+              ...filters.availableStatuses,
             ]}
           />
           <SelectPill
             value={filters.selectedEmployees[0] || "all"}
-            onChange={(val) => filters.setSelectedEmployees(val && val !== "all" ? [val] : [])}
+            onChange={(val) =>
+              filters.setSelectedEmployees(val && val !== "all" ? [val] : [])
+            }
             placeholder="Tất cả Nhân sự"
             options={[
               { label: "Tất cả Nhân sự", value: "all" },
-              ...filters.availableEmployees
+              ...filters.availableEmployees,
             ]}
           />
           <Button
@@ -138,33 +163,47 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
             <RefreshCcw className="w-4 h-4" />
             Âm/Dương
           </Button>
-          <Button onClick={onNewEvent} className="ml-2 font-medium whitespace-nowrap">
+          <Button
+            onClick={onNewEvent}
+            className="ml-2 font-medium whitespace-nowrap"
+          >
             Tạo lịch trình
           </Button>
         </div>
       </div>
 
       {/* ── Mobile Toolbar ── */}
-      <div className="flex md:hidden flex-col gap-2 px-3 py-2">
+      <div className="flex lg:hidden flex-col gap-2 px-3 py-2">
         {/* Row 1: Date nav + Filter icon + CTA icon */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handlePrev}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-10 h-10 rounded-full shrink-0"
+              style={{ padding: 0 }}
+              onClick={handlePrev}
+            >
               <ChevronLeft className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" className="text-base font-bold px-2 py-1 rounded-lg" onClick={handleToday}>
+            <Button
+              variant="ghost"
+              className="text-base font-bold px-2 py-1 rounded-lg"
+              onClick={handleToday}
+            >
               T{month}, {year}
             </Button>
-            <Button variant="ghost" size="sm" className="w-10 h-10 rounded-full shrink-0" style={{ padding: 0 }} onClick={handleNext}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-10 h-10 rounded-full shrink-0"
+              style={{ padding: 0 }}
+              onClick={handleNext}
+            >
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
           <div className="flex items-center gap-1.5">
-            {isUpdating && (
-              <div className="flex w-10 h-10 items-center justify-center rounded-full bg-bg-card shadow-sm border border-border/50 text-primary">
-                <Loader2 size={20} strokeWidth={2.5} className="animate-spin" />
-              </div>
-            )}
             <Button
               variant="ghost"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -175,7 +214,11 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
               }`}
               aria-label="Bộ lọc"
             >
-              <SlidersHorizontal size={26} strokeWidth={2.5} className="shrink-0" />
+              <SlidersHorizontal
+                size={26}
+                strokeWidth={2.5}
+                className="shrink-0"
+              />
               {hasActiveFilter && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
               )}
@@ -201,14 +244,16 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           >
             Hôm nay
           </Button>
-          {VIEW_MODE_OPTIONS.filter((opt) => opt.value === "month").map((opt) => (
+          {VIEW_MODE_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
               variant={viewMode === opt.value ? "primary" : "ghost"}
               size="sm"
               onClick={() => onViewModeChange(opt.value)}
               className={`shrink-0 px-3 py-1.5 text-xs font-medium rounded-full ${
-                viewMode !== opt.value ? "bg-bg-card shadow-sm text-text-muted" : "shadow-sm"
+                viewMode !== opt.value
+                  ? "bg-bg-card shadow-sm text-text-muted"
+                  : "shadow-sm"
               }`}
             >
               {opt.label}
@@ -221,20 +266,24 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
           <div className="flex items-center gap-2 py-1 animate-fade-in">
             <SelectPill
               value={filters.selectedStatuses[0] || "all"}
-              onChange={(val) => filters.setSelectedStatuses(val && val !== "all" ? [val] : [])}
+              onChange={(val) =>
+                filters.setSelectedStatuses(val && val !== "all" ? [val] : [])
+              }
               placeholder="Trạng thái"
               options={[
                 { label: "Tất cả", value: "all" },
-                ...filters.availableStatuses
+                ...filters.availableStatuses,
               ]}
             />
             <SelectPill
               value={filters.selectedEmployees[0] || "all"}
-              onChange={(val) => filters.setSelectedEmployees(val && val !== "all" ? [val] : [])}
+              onChange={(val) =>
+                filters.setSelectedEmployees(val && val !== "all" ? [val] : [])
+              }
               placeholder="Nhân sự"
               options={[
                 { label: "Tất cả", value: "all" },
-                ...filters.availableEmployees
+                ...filters.availableEmployees,
               ]}
             />
           </div>
@@ -243,8 +292,6 @@ export function CalendarToolbar({ currentDate, onDateChange, viewMode, onViewMod
       <SolarLunarConverter
         isOpen={isConverterOpen}
         onClose={() => setIsConverterOpen(false)}
-        onNavigateDate={onNavigateDate ?? onDateChange}
-        onOpenDayDetail={onOpenLunarDay}
       />
     </>
   );
