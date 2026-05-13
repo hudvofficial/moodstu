@@ -173,7 +173,7 @@ export function CalendarToolbar({
       </div>
 
       {/* ── Mobile Toolbar ── */}
-      <div className="flex lg:hidden flex-col gap-2 px-3 py-2">
+      <div className="flex lg:hidden flex-col gap-2 px-2 py-2 sm:px-3">
         {/* Row 1: Date nav + Filter icon + CTA icon */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">

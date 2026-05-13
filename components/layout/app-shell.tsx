@@ -126,6 +126,8 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                 ? "" // FullpageFormShell handles its own padding
                 : isChatView
                   ? "p-0"
+                : isAppView
+                  ? "px-0 pt-0 pb-[calc(5rem+env(safe-area-inset-bottom))] md:px-6 md:py-6 lg:px-6 lg:pb-6"
                 : isFormPage
                   ? "px-2 py-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
                   : isNoPadding
