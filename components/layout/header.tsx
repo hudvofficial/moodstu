@@ -36,7 +36,11 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
   const searchParams = useSearchParams();
   const currentModule = getModuleFromPath(pathname);
   const scrollRef = useScrollContainer();
-  const { isVisible } = useScrollDirection({ threshold: 60, containerRef: scrollRef });
+  const { isVisible } = useScrollDirection({
+    threshold: 60,
+    containerRef: scrollRef,
+    resetKey: pathname,
+  });
 
   // Merge: props > context > defaults
   const ctx = useHeaderSlotsContext();
@@ -96,8 +100,8 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
   return (
     <header
       className={cn(
-        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden transition-[transform,margin] duration-300 ease-in-out",
-        isVisible ? "translate-y-0" : "-translate-y-full -mb-(--header-mobile-h) lg:translate-y-0 lg:mb-0",
+        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden transition-transform duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0",
         className
       )}
     >

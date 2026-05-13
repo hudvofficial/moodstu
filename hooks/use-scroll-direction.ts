@@ -5,8 +5,16 @@ import { useState, useEffect, useRef, type RefObject } from "react";
 interface UseScrollDirectionOptions {
   /** Minimum scroll delta before toggling (default: 60px) */
   threshold?: number;
+  /** Pixels of downward movement after the threshold before hiding. */
+  hideDelta?: number;
+  /** Pixels of upward movement before showing again. */
+  showDelta?: number;
   /** Optional ref to scroll container. Falls back to window when not provided. */
   containerRef?: RefObject<HTMLElement | null>;
+  /** Resets header visibility when route/layout context changes. */
+  resetKey?: string | number | boolean | null;
+  /** Force the header visible while preserving the same API. */
+  disabled?: boolean;
 }
 
 /**
@@ -18,36 +26,90 @@ interface UseScrollDirectionOptions {
  */
 export function useScrollDirection({
   threshold = 60,
+  hideDelta = 16,
+  showDelta = 8,
   containerRef,
+  resetKey,
+  disabled = false,
 }: UseScrollDirectionOptions = {}) {
   const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
+  const visibleRef = useRef(true);
+  const previousScrollY = useRef(0);
+  const lastToggleY = useRef(0);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
+    let resetFrame: number | null = null;
+
+    if (disabled) {
+      visibleRef.current = true;
+      previousScrollY.current = 0;
+      lastToggleY.current = 0;
+      resetFrame = requestAnimationFrame(() => setIsVisible(true));
+      return () => {
+        if (resetFrame !== null) cancelAnimationFrame(resetFrame);
+      };
+    }
+
     const container = containerRef?.current;
     const target: HTMLElement | Window = container || window;
+    const readScrollY = () => Math.max(0, container ? container.scrollTop : window.scrollY);
+
+    const resetY = readScrollY();
+    visibleRef.current = true;
+    previousScrollY.current = resetY;
+    lastToggleY.current = resetY;
+    resetFrame = requestAnimationFrame(() => setIsVisible(true));
+
+    const setVisible = (nextVisible: boolean, currentY: number) => {
+      if (visibleRef.current === nextVisible) return;
+      visibleRef.current = nextVisible;
+      lastToggleY.current = currentY;
+      setIsVisible(nextVisible);
+    };
 
     const handleScroll = () => {
-      if (ticking.current) return;
+      if (frameRef.current !== null) return;
 
-      ticking.current = true;
-      requestAnimationFrame(() => {
-        const currentY = container ? container.scrollTop : window.scrollY;
-        const diff = currentY - lastScrollY.current;
+      frameRef.current = requestAnimationFrame(() => {
+        const currentY = readScrollY();
+        const previousY = previousScrollY.current;
 
-        if (Math.abs(diff) > threshold) {
-          setIsVisible(diff < 0 || currentY < threshold);
-          lastScrollY.current = currentY;
+        if (currentY <= threshold) {
+          lastToggleY.current = currentY;
+          setVisible(true, currentY);
+        } else if (
+          currentY > previousY + 1 &&
+          visibleRef.current &&
+          currentY - lastToggleY.current >= hideDelta
+        ) {
+          setVisible(false, currentY);
+        } else if (
+          currentY < previousY - 1 &&
+          !visibleRef.current &&
+          lastToggleY.current - currentY >= showDelta
+        ) {
+          setVisible(true, currentY);
         }
 
-        ticking.current = false;
+        previousScrollY.current = currentY;
+        frameRef.current = null;
       });
     };
 
     target.addEventListener("scroll", handleScroll, { passive: true });
-    return () => target.removeEventListener("scroll", handleScroll);
-  }, [threshold, containerRef]);
+    return () => {
+      target.removeEventListener("scroll", handleScroll);
+      if (resetFrame !== null) {
+        cancelAnimationFrame(resetFrame);
+        resetFrame = null;
+      }
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
+  }, [threshold, hideDelta, showDelta, containerRef, resetKey, disabled]);
 
   return { isVisible };
 }

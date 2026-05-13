@@ -72,7 +72,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   }, [isMobile]);
 
   return (
-    <div className="flex h-screen bg-bg-base overflow-hidden">
+    <div className="app-shell-viewport flex bg-bg-base overflow-hidden">
       <NavigationWarmup role={role} />
       <NavigationProgress />
 
@@ -111,7 +111,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
         <HeaderSlotsProvider>
           <ScrollContainerProvider value={mainRef}>
             {!isFullpage && <Header />}

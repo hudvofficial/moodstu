@@ -167,7 +167,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 z-50 pb-safe",
+          "lg:hidden fixed bottom-0 left-0 right-0 h-[calc(5rem+env(safe-area-inset-bottom))] bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] z-50",
           className
         )}
       >

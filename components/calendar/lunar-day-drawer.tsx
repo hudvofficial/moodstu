@@ -120,7 +120,7 @@ export function LunarDayDrawer({ date, onClose, onCreateEvent, onGoToCalendar }:
           </section>
         </div>
 
-        <div className="mt-2 flex flex-col gap-2 border-t border-border bg-bg-base pt-4 pb-safe sm:flex-row">
+        <div className="mt-2 flex flex-col gap-2 border-t border-border bg-bg-base pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row">
           <Button
             type="button"
             variant="primary"

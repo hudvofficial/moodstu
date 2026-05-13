@@ -29,7 +29,7 @@ export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }
       onClose={onClose}
       title={`${dayName}, ${formattedDate} — ${eventCount} sự kiện`}
     >
-      <div className="flex flex-col gap-3 p-4 pb-safe">
+      <div className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {eventCount === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
             <div className="w-12 h-12 rounded-full bg-bg-input flex items-center justify-center">

@@ -51,7 +51,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "relative flex flex-col h-screen bg-bg-card shadow-(--shadow-sidebar) transition-all duration-300 ease-in-out z-20",
+        "relative flex h-full min-h-0 flex-col bg-bg-card shadow-(--shadow-sidebar) transition-all duration-300 ease-in-out z-20",
         isCollapsed ? "w-20" : "w-64",
         className
       )}
