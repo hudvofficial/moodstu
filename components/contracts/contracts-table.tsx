@@ -19,7 +19,7 @@ import {
   getServiceLabel,
   getStatusLabel,
 } from "@/types/contract-constants";
-import type { ContractChecklistSummary, ContractStatus } from "@/types/contract";
+import type { ContractChecklistSummary, ContractStatus, Contract } from "@/types/contract";
 import MissingInfoBadge from "@/components/contracts/missing-info-badge";
 import type { ContractChecklistForBadge } from "@/components/contracts/missing-info-badge";
 import ProgressBadge from "@/components/contracts/progress-badge";
@@ -47,9 +47,9 @@ function getStatusVariant(status: ContractStatus): "info" | "warning" | "success
 // ─── PROPS ────────────────────────────────────────
 
 interface ContractsTableProps {
-  contracts: Record<string, unknown>[];
+  contracts: Contract[];
   customerMap: Record<string, { id: string; full_name: string; phone?: string }>;
-  onView: (contract: Record<string, unknown>) => void;
+  onView: (contract: Contract) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onHover?: (id: string) => void;
@@ -64,21 +64,21 @@ type ProgressTask = {
 
 // ─── TYPE HELPERS (safe accessors for Record) ────
 
-function getStr(obj: Record<string, unknown>, key: string): string {
+function getStr(obj: any, key: string): string {
   return (obj[key] as string) || "";
 }
 
-function getNum(obj: Record<string, unknown>, key: string): number {
+function getNum(obj: any, key: string): number {
   return Number(obj[key]) || 0;
 }
 
-function getArr(obj: Record<string, unknown>, key: string): Record<string, unknown>[] {
+function getArr(obj: any, key: string): any[] {
   const val = obj[key];
   return Array.isArray(val) ? val : [];
 }
 
 function getChecklistSummary(
-  obj: Record<string, unknown>,
+  obj: any,
 ): ContractChecklistSummary | null {
   const value = obj.checklist_summary;
   if (!value || typeof value !== "object") return null;

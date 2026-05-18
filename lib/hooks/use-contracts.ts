@@ -11,6 +11,9 @@ import type {
   ContractFilters,
   ContractStats,
   Contract,
+  ContractEvent,
+  WorkTask,
+  ContractChecklist,
   ContractChecklistSummary,
   Payment,
   PaymentPlan,
@@ -48,7 +51,7 @@ const EMPTY_RESERVATIONS: DressReservationRow[] = [];
 const EMPTY_PRINT_ORDERS: PrintingOrder[] = [];
 
 type ContractListCache = {
-  contracts?: Record<string, unknown>[];
+  contracts?: Contract[];
 } & Record<string, unknown>;
 
 type ContractChecklistCacheItem = {
@@ -134,7 +137,7 @@ function updateChecklistSummary(
 export function useContracts(
   filters: ContractFilters,
   fallbackData?: {
-    contracts: Record<string, unknown>[];
+    contracts: Contract[];
     total: number;
     page: number;
     pageSize: number;
@@ -146,7 +149,7 @@ export function useContracts(
       const result = await getContractList(filters);
       if (!result.success) throw new Error(result.error);
       return result.data as {
-        contracts: Record<string, unknown>[];
+        contracts: Contract[];
         total: number;
         page: number;
         pageSize: number;
@@ -228,6 +231,7 @@ export function useContractDetail(
     },
     {
       revalidateOnFocus: false,
+      revalidateOnMount: fallbackData ? false : undefined,
       keepPreviousData: true,
       fallbackData,
     }
@@ -267,9 +271,9 @@ export function useContractDrawerExtra(id: string | null) {
       const result = await getContractDrawerExtra(id);
       if (!result.success) throw new Error(result.error);
       return result.data as unknown as {
-        events: Record<string, unknown>[];
-        checklists: Record<string, unknown>[];
-        workTasks: Record<string, unknown>[];
+        events: ContractEvent[];
+        checklists: ContractChecklist[];
+        workTasks: WorkTask[];
         paymentPlans: PaymentPlan[];
       };
     },

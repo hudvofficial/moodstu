@@ -37,6 +37,7 @@ interface SelectFormProps {
   error?: string;
   disabled?: boolean;
   className?: string;
+  testId?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export function SelectForm({
   error,
   disabled = false,
   className = "",
+  testId,
 }: SelectFormProps) {
   return (
     <div className={`w-full ${className}`}>
@@ -61,6 +63,7 @@ export function SelectForm({
       >
         {/* Trigger — styled as input-base */}
         <RadixSelect.Trigger
+          data-testid={testId}
           className={`
             input-base w-full flex items-center justify-between gap-2
             cursor-pointer text-left data-disabled:opacity-50 data-disabled:cursor-not-allowed

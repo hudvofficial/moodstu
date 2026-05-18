@@ -5,12 +5,14 @@ import {
   requireContractWriteAccess,
   withAuth,
 } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { fireAuditLog } from "@/lib/audit";
 import {
   deleteContractEventFromGoogle,
   syncContractEventToGoogle,
 } from "@/lib/contract-event-google-sync";
+import { createAdminClient } from "@/lib/supabase/server";
+import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import { isOnSetEvent } from "@/types/contract-constants";
 import type { EventType, ServiceType } from "@/types/contract";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -39,6 +41,28 @@ type EventTemplateRow = {
   default_days_offset: number | null;
   sort_order: number | null;
 };
+
+function scheduleEventGoogleSync(eventId: string) {
+  after(async () => {
+    try {
+      const supabase = await createAdminClient();
+      await syncContractEventToGoogle(supabase, eventId);
+    } catch (syncError) {
+      console.warn("Best effort contract event Google sync failed:", syncError);
+    }
+  });
+}
+
+function scheduleEventGoogleDelete(eventId: string) {
+  after(async () => {
+    try {
+      const supabase = await createAdminClient();
+      await deleteContractEventFromGoogle(supabase, eventId);
+    } catch (syncError) {
+      console.warn("Best effort contract event Google delete failed:", syncError);
+    }
+  });
+}
 
 function addDays(base: Date, offset: number): string {
   const date = new Date(base);
@@ -183,7 +207,8 @@ export async function generateContractEvents(
   return withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
-    revalidatePath(`/contracts/${contractId}`);
+    for (const eventId of result.eventIds) scheduleEventGoogleSync(eventId);
+    invalidateContractPaths(contractId, { detail: true, calendar: true, dashboard: true });
     return result;
   });
 }
@@ -221,13 +246,9 @@ export async function updateContractEvent(
       );
     }
 
-    try {
-      await syncContractEventToGoogle(supabase, data.id);
-    } catch (syncError) {
-      console.warn("Best effort contract event Google sync failed:", syncError);
-    }
+    scheduleEventGoogleSync(data.id);
 
-    revalidatePath(`/contracts`);
+    invalidateContractPaths(data.contract_id, { detail: true, calendar: true, dashboard: true });
     return data;
   });
 }
@@ -386,7 +407,7 @@ export async function addContractEvent(input: {
         status: "chua_lam",
         is_manual_date: true,
       })
-      .select("id, event_type, title, sort_order")
+      .select("id, contract_id, event_type, title, event_date, end_date, location, status, notes, sort_order, deadline, start_time, end_time, is_manual_date, phase, sync_to_google, google_event_id, google_sync_status, google_sync_error, google_synced_at, deleted_at, created_at, updated_at")
       .single();
 
     if (error) throw new Error(`Lỗi thêm sự kiện: ${error.message}`);
@@ -398,52 +419,49 @@ export async function addContractEvent(input: {
       description: `Thêm sự kiện: ${input.title} (${input.eventType})`,
     });
 
-    try {
-      await syncContractEventToGoogle(supabase, data.id);
-    } catch (syncError) {
-      console.warn("Best effort manual contract event Google sync failed:", syncError);
-    }
+    scheduleEventGoogleSync(data.id);
 
-    revalidatePath("/contracts");
+    invalidateContractPaths(input.contractId, { detail: true, calendar: true, dashboard: true });
     return data;
   });
 }
 
 // ─── DELETE CONTRACT EVENT (Hybrid Model) ────────
-// Chỉ cho xóa event do admin tạo (is_manual_date = true)
-// Cascade: xóa work_tasks liên quan
+// Admin/manager can remove a contract timeline milestone.
+// Cascade: remove related work_tasks so deleted milestones no longer affect cost/progress.
 export async function deleteContractEvent(eventId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
 
     if (!eventId) throw new Error("Thiếu event ID");
 
-    // Guard: only delete manual events
     const { data: evt, error: fetchErr } = await supabase
       .from("contract_events")
-      .select("id, title, is_manual_date, contract_id")
+      .select("id, title, contract_id")
       .eq("id", eventId)
+      .is("deleted_at", null)
       .single();
 
     if (fetchErr || !evt) throw new Error("Không tìm thấy sự kiện");
-    if (!evt.is_manual_date) {
-      throw new Error("Không thể xóa sự kiện từ template. Chỉ xóa được sự kiện do admin tạo.");
-    }
+    const now = new Date().toISOString();
 
-    try {
-      await deleteContractEventFromGoogle(supabase, eventId);
-    } catch (syncError) {
-      console.warn("Best effort contract event Google delete failed:", syncError);
-    }
+    const { error: taskError } = await supabase
+      .from("work_tasks")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("contract_id", evt.contract_id);
 
-    // Cascade: delete related work_tasks first
-    await supabase.from("work_tasks").delete().eq("event_id", eventId);
+    if (taskError) throw new Error(`Lỗi xóa phân công liên quan: ${taskError.message}`);
 
-    // Delete the event
     const { error } = await supabase
       .from("contract_events")
-      .delete()
-      .eq("id", eventId);
+      .update({
+        deleted_at: now,
+        updated_at: now,
+        status: "da_huy",
+      })
+      .eq("id", eventId)
+      .is("deleted_at", null);
 
     if (error) throw new Error(`Lỗi xóa sự kiện: ${error.message}`);
 
@@ -455,7 +473,8 @@ export async function deleteContractEvent(eventId: string) {
       severity: "WARNING",
     });
 
-    revalidatePath("/contracts");
+    scheduleEventGoogleDelete(eventId);
+    invalidateContractPaths(evt.contract_id, { detail: true, calendar: true, dashboard: true });
     return null;
   });
 }

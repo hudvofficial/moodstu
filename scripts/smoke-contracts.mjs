@@ -53,6 +53,8 @@ function isDenied(error, status) {
 
 async function cleanup(client, ids) {
   if (ids.paymentId) await client.from("payments").delete().eq("id", ids.paymentId);
+  if (ids.printingOrderId) await client.from("printing_orders").delete().eq("id", ids.printingOrderId);
+  if (ids.labId) await client.from("labs").delete().eq("id", ids.labId);
   if (ids.galleryImageBId) await client.from("gallery_images").delete().eq("id", ids.galleryImageBId);
   if (ids.galleryImageAId) await client.from("gallery_images").delete().eq("id", ids.galleryImageAId);
   if (ids.galleryBId) await client.from("galleries").delete().eq("id", ids.galleryBId);
@@ -123,6 +125,52 @@ try {
     throw new Error(`Cannot create smoke contract: ${contractError?.message || "missing row"}`);
   }
   ids.contractId = contract.id;
+
+  const { data: lab, error: labError } = await serviceClient
+    .from("labs")
+    .insert({
+      lab_name: `Contracts Smoke Lab ${timestamp}`,
+      phone: "0900000000",
+      status: "active",
+    })
+    .select("id, lab_name")
+    .single();
+  if (labError || !lab) {
+    throw new Error(`Cannot create smoke lab: ${labError?.message || "missing row"}`);
+  }
+  ids.labId = lab.id;
+
+  const { data: printingOrder, error: printingOrderError } = await serviceClient
+    .from("printing_orders")
+    .insert({
+      contract_id: ids.contractId,
+      lab_id: ids.labId,
+      order_code: `SMK-PRINT-${timestamp}`,
+      status: "cho_xu_ly",
+      payment_status: "unpaid",
+      order_date: today,
+      expected_date: "2026-05-24",
+      total_amount: 100000,
+      notes: marker,
+    })
+    .select("id")
+    .single();
+  if (printingOrderError || !printingOrder) {
+    throw new Error(`Cannot create smoke printing order: ${printingOrderError?.message || "missing row"}`);
+  }
+  ids.printingOrderId = printingOrder.id;
+
+  console.log("Checking contract detail RPC...");
+  const { data: detailRpc, error: detailRpcError } = await serviceClient.rpc(
+    "get_contract_detail_v2",
+    { p_contract_id: ids.contractId },
+  );
+  if (detailRpcError) {
+    throw new Error(`get_contract_detail_v2 failed: ${detailRpcError.message}`);
+  }
+  assert(detailRpc?.contract?.id === ids.contractId, "Contract detail RPC did not return the smoke contract");
+  const rpcLab = detailRpc?.print_orders?.[0]?.labs;
+  assert(rpcLab?.name === lab.lab_name, "Contract detail RPC did not return print_orders[].labs.name");
 
   console.log("Checking date-order guardrail...");
   const { data: invalidContract, error: invalidContractError } = await serviceClient

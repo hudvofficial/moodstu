@@ -1,8 +1,10 @@
 "use server";
 
 import { requireContractDestructiveAccess, withAuth } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { fireAuditLog } from "@/lib/audit";
+import { createAdminClient } from "@/lib/supabase/server";
+import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import {
   deleteContractGoogleEvents,
   getContractGoogleSyncTargets,
@@ -12,6 +14,32 @@ import {
 const ACTIVE_RESERVATION_STATUSES = ["reserved", "in_use", "rented"] as const;
 
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
+
+function scheduleContractGoogleCleanup(
+  contractId: string,
+  targets: Awaited<ReturnType<typeof getContractGoogleSyncTargets>>,
+  label: string,
+) {
+  after(async () => {
+    try {
+      const supabase = await createAdminClient();
+      await deleteContractGoogleEvents(supabase, contractId, targets);
+    } catch (syncError) {
+      console.warn(`Best effort contract ${label} Google cleanup failed:`, syncError);
+    }
+  });
+}
+
+function scheduleContractGoogleSync(contractId: string, label: string) {
+  after(async () => {
+    try {
+      const supabase = await createAdminClient();
+      await syncEligibleContractEventsToGoogle(supabase, contractId);
+    } catch (syncError) {
+      console.warn(`Best effort contract ${label} Google sync failed:`, syncError);
+    }
+  });
+}
 
 async function getContractDressIds(supabase: AdminSupabase, contractId: string) {
   const { data } = await supabase
@@ -89,17 +117,15 @@ export async function cancelContract(
     if (error) throw new Error(`Lỗi hủy HĐ: ${error.message}`);
 
     await cancelDressReservationsForContract(supabase, contractId);
-    await deleteContractGoogleEvents(supabase, contractId, googleTargets).catch((syncError) => {
-      console.warn("Best effort contract cancel Google cleanup failed:", syncError);
+    scheduleContractGoogleCleanup(contractId, googleTargets, "cancel");
+    invalidateContractPaths(contractId, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true },
+      dresses: true,
+      printing: true,
+      dashboard: true,
     });
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${contractId}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/dresses");
-    revalidatePath("/dresses/rentals");
-    revalidatePath("/printing");
 
     fireAuditLog({
       action: "UPDATE",
@@ -129,16 +155,15 @@ export async function deleteContract(contractId: string) {
     if (error) throw new Error(error.message);
 
     await cancelDressReservationsForContract(supabase, contractId);
-    await deleteContractGoogleEvents(supabase, contractId, googleTargets).catch((syncError) => {
-      console.warn("Best effort contract delete Google cleanup failed:", syncError);
+    scheduleContractGoogleCleanup(contractId, googleTargets, "delete");
+    invalidateContractPaths(contractId, {
+      list: true,
+      detail: false,
+      finance: { receipts: true, cashflow: true },
+      dresses: true,
+      printing: true,
+      dashboard: true,
     });
-    revalidatePath("/contracts");
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/dresses");
-    revalidatePath("/dresses/rentals");
-    revalidatePath("/printing");
 
     fireAuditLog({
       action: "DELETE",
@@ -243,18 +268,15 @@ export async function reactivateContract(contractId: string) {
       );
     }
 
-    await syncEligibleContractEventsToGoogle(supabase, contractId).catch((syncError) => {
-      console.warn("Best effort contract reactivation Google sync failed:", syncError);
+    scheduleContractGoogleSync(contractId, "reactivation");
+    invalidateContractPaths(contractId, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true },
+      dresses: true,
+      printing: true,
+      dashboard: true,
     });
-
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${contractId}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/dresses");
-    revalidatePath("/dresses/rentals");
-    revalidatePath("/printing");
 
     fireAuditLog({
       action: "UPDATE",

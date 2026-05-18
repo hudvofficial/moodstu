@@ -20,6 +20,8 @@ import type {
   PaymentPlan,
   DressReservationRow,
   PrintingOrder,
+  ContractEvent,
+  WorkTask,
   TaskStatus,
 } from "@/types/contract";
 import TopActionBar from "./top-action-bar";
@@ -139,8 +141,103 @@ export default function ContractDetailClient({
     return false;
   }, [id]);
 
+  const patchEventRealtimePayload = useCallback((payload: RealtimePayload) => {
+    if (payload.table !== "contract_events") return false;
+
+    const row = payload.eventType === "DELETE" ? payload.old : payload.new;
+    const eventId = typeof row.id === "string" ? row.id : "";
+    if (!eventId) return false;
+    if (
+      payload.eventType !== "DELETE" &&
+      typeof row.contract_id === "string" &&
+      row.contract_id !== id
+    ) {
+      return true;
+    }
+
+    void mutateContractDetail(
+      (current) => {
+        if (!current?.contract) return current;
+
+        const events = current.contract.contract_events || [];
+        const nextEvents =
+          payload.eventType === "DELETE" || row.deleted_at
+            ? events.filter((event) => event.id !== eventId)
+            : events.some((event) => event.id === eventId)
+              ? events.map((event) =>
+                  event.id === eventId
+                    ? { ...event, ...(row as Partial<ContractEvent>) }
+                    : event,
+                )
+              : [...events, row as unknown as ContractEvent];
+
+        return {
+          ...current,
+          contract: {
+            ...current.contract,
+            contract_events: nextEvents,
+          },
+        };
+      },
+      { revalidate: false },
+    );
+
+    return true;
+  }, [id, mutateContractDetail]);
+
+  const patchTaskRealtimePayload = useCallback((payload: RealtimePayload) => {
+    if (payload.table !== "work_tasks") return false;
+    if (payload.eventType === "INSERT") return false;
+
+    const row = payload.eventType === "DELETE" ? payload.old : payload.new;
+    const taskId = typeof row.id === "string" ? row.id : "";
+    if (!taskId) return false;
+    if (
+      payload.eventType !== "DELETE" &&
+      typeof row.contract_id === "string" &&
+      row.contract_id !== id
+    ) {
+      return true;
+    }
+
+    void mutateContractDetail(
+      (current) => {
+        if (!current?.contract) return current;
+
+        const tasks = current.contract.work_tasks || [];
+        const nextTasks =
+          payload.eventType === "DELETE"
+            ? tasks.filter((task) => task.id !== taskId)
+            : tasks.map((task) =>
+                task.id === taskId
+                  ? { ...task, ...(row as Partial<WorkTask>), employees: task.employees }
+                  : task,
+              );
+
+        return {
+          ...current,
+          contract: {
+            ...current.contract,
+            work_tasks: nextTasks,
+          },
+        };
+      },
+      { revalidate: false },
+    );
+
+    return true;
+  }, [id, mutateContractDetail]);
+
+  const patchContractRealtimePayload = useCallback((payload: RealtimePayload) => {
+    return (
+      patchChecklistRealtimePayload(payload) ||
+      patchEventRealtimePayload(payload) ||
+      patchTaskRealtimePayload(payload)
+    );
+  }, [patchChecklistRealtimePayload, patchEventRealtimePayload, patchTaskRealtimePayload]);
+
   const refreshContractCaches = useCallback((payload?: RealtimePayload) => {
-    if (payload && patchChecklistRealtimePayload(payload)) return;
+    if (payload && patchContractRealtimePayload(payload)) return;
 
     if (Date.now() < muteRealtimeUntilRef.current) return;
 
@@ -159,13 +256,13 @@ export default function ContractDetailClient({
       refreshCooldownUntilRef.current = Date.now() + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
       void revalidateContractDetailCaches(id);
     }, Math.max(refreshCooldownUntilRef.current - now, 0));
-  }, [id, patchChecklistRealtimePayload]);
+  }, [id, patchContractRealtimePayload]);
 
   const refreshContractCachesBatch = useCallback((payloads: RealtimePayload[]) => {
     let needsRefresh = false;
 
     for (const payload of payloads) {
-      if (!patchChecklistRealtimePayload(payload)) {
+      if (!patchContractRealtimePayload(payload)) {
         needsRefresh = true;
       }
     }
@@ -173,7 +270,7 @@ export default function ContractDetailClient({
     if (needsRefresh) {
       refreshContractCaches();
     }
-  }, [patchChecklistRealtimePayload, refreshContractCaches]);
+  }, [patchContractRealtimePayload, refreshContractCaches]);
 
   // SWR fallback — may be null on cold start (client-first mode)
   const contract = (liveContract as unknown as Contract | null) ?? initialContract;
@@ -266,6 +363,65 @@ export default function ContractDetailClient({
     },
     [muteRealtimeEcho, mutateContractDetail],
   );
+
+  const applyEventCreatedOptimistic = useCallback((event?: ContractEvent) => {
+    if (!event) {
+      void revalidateContractDetailCaches(id);
+      return;
+    }
+
+    muteRealtimeEcho();
+    void mutateContractDetail(
+      (current) => {
+        const base = current ?? renderedDetailRef.current;
+        if (!base.contract) return current;
+
+        const events = base.contract.contract_events || [];
+        const nextEvents = events.some((item) => item.id === event.id)
+          ? events.map((item) => (item.id === event.id ? { ...item, ...event } : item))
+          : [...events, event];
+
+        return {
+          ...base,
+          contract: {
+            ...base.contract,
+            contract_events: nextEvents,
+          },
+        };
+      },
+      { revalidate: false },
+    );
+    window.setTimeout(() => {
+      void revalidateContractDetailCaches(id);
+    }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
+  }, [id, muteRealtimeEcho, mutateContractDetail]);
+
+  const applyEventDeletedOptimistic = useCallback((eventId: string) => {
+    muteRealtimeEcho();
+    void mutateContractDetail(
+      (current) => {
+        const base = current ?? renderedDetailRef.current;
+        if (!base.contract) return current;
+
+        return {
+          ...base,
+          contract: {
+            ...base.contract,
+            contract_events: (base.contract.contract_events || []).filter(
+              (event) => event.id !== eventId,
+            ),
+            work_tasks: (base.contract.work_tasks || []).filter(
+              (task) => task.event_id !== eventId,
+            ),
+          },
+        };
+      },
+      { revalidate: false },
+    );
+    window.setTimeout(() => {
+      void revalidateContractDetailCaches(id);
+    }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
+  }, [id, muteRealtimeEcho, mutateContractDetail]);
 
   useEffect(() => {
     return () => {
@@ -470,6 +626,7 @@ export default function ContractDetailClient({
     activeEmployees,
     refreshContract: refreshContractCaches,
     onTaskStatusChange: applyTaskStatusOptimistic,
+    onEventDeleted: applyEventDeletedOptimistic,
     onPaymentClick: () => openPaymentForm(),
     onCollectPlan: (planId?: string) => openPaymentForm(planId),
     onAddEvent: () => setShowAddEventModal(true),
@@ -555,7 +712,7 @@ export default function ContractDetailClient({
           isOpen={showAddEventModal}
           contractId={contract.id}
           onClose={() => setShowAddEventModal(false)}
-          onSaved={refreshContractCaches}
+          onSaved={applyEventCreatedOptimistic}
         />
       )}
       {showNoteModal && (

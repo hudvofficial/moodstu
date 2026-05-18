@@ -42,7 +42,7 @@ import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
 
 import { SERVICE_TYPE_MAP } from "@/types/contract-constants";
-import type { ContractFilters, ContractStats } from "@/types/contract";
+import type { ContractFilters, ContractStats, Contract } from "@/types/contract";
 
 const ContractDrawer = dynamic(
   () =>
@@ -91,7 +91,7 @@ const MOBILE_SORT_OPTIONS = [
 // ─── INNER COMPONENT ─────────────────────────────────
 
 interface ContractsInitialData {
-  contracts: Record<string, unknown>[];
+  contracts: Contract[];
   total: number;
   page: number;
   pageSize: number;
@@ -103,7 +103,7 @@ interface ContractsListClientProps {
   initialStats?: ContractStats;
 }
 
-function toContractListItem(contractRecord: Record<string, unknown>): ContractListItem {
+function toContractListItem(contractRecord: Contract): ContractListItem {
   return {
     id: (contractRecord.id as string) || "",
     contract_code: (contractRecord.contract_code as string) || null,
@@ -124,9 +124,9 @@ function toContractListItem(contractRecord: Record<string, unknown>): ContractLi
     work_tasks:
       (contractRecord.work_tasks as ContractListItem["work_tasks"]) ?? undefined,
     payment_plans:
-      (contractRecord.payment_plans as ContractListItem["payment_plans"]) ?? undefined,
+      ((contractRecord as any).payment_plans as ContractListItem["payment_plans"]) ?? undefined,
     contract_notes:
-      (contractRecord.contract_notes as ContractListItem["contract_notes"]) ?? undefined,
+      ((contractRecord as any).contract_notes as ContractListItem["contract_notes"]) ?? undefined,
   };
 }
 
@@ -259,8 +259,8 @@ function ContractsListInner({
     if (!selectedContractId) return null;
 
     const currentRecord = contracts.find(
-      (contract) => (contract as Record<string, unknown>).id === selectedContractId,
-    ) as Record<string, unknown> | undefined;
+      (contract) => contract.id === selectedContractId,
+    );
 
     return currentRecord ? toContractListItem(currentRecord) : selectedContractFallback;
   }, [contracts, selectedContractFallback, selectedContractId]);
@@ -268,7 +268,7 @@ function ContractsListInner({
 
   // Handlers
   const handleView = useCallback(
-    (contractRecord: Record<string, unknown>) => {
+    (contractRecord: Contract) => {
       const id = (contractRecord.id as string) || "";
       if (id) {
         prefetchContract(id);
@@ -315,7 +315,7 @@ function ContractsListInner({
       { id: string; full_name: string; phone?: string }
     > = {};
     for (const c of contracts) {
-      const contract = c as Record<string, unknown>;
+      const contract = c;
       const customer = contract.customers as {
         id: string;
         full_name: string;
@@ -453,7 +453,7 @@ function ContractsListInner({
         {!isLoading && !error && (
           <>
             <ContractsTable
-              contracts={contracts as Record<string, unknown>[]}
+              contracts={contracts}
               customerMap={customerMap}
               onView={handleView}
               onEdit={handleEdit}

@@ -1,0 +1,67 @@
+import { defineConfig, devices } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+function loadEnvFile(filePath: string) {
+  if (!existsSync(filePath)) return;
+
+  for (const rawLine of readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] ??= value;
+  }
+}
+
+loadEnvFile(path.join(process.cwd(), ".env.local"));
+
+const defaultBaseURL = "http://127.0.0.1:3100";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || defaultBaseURL;
+const shouldStartWebServer =
+  process.env.PLAYWRIGHT_SKIP_WEB_SERVER !== "1" &&
+  !process.env.PLAYWRIGHT_BASE_URL;
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
+  fullyParallel: false,
+  reporter: [["list"], ["html", { open: "never" }]],
+  use: {
+    baseURL,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+    actionTimeout: 20_000,
+    navigationTimeout: 45_000,
+  },
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1366, height: 768 },
+      },
+    },
+  ],
+  webServer: shouldStartWebServer
+    ? {
+        command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+        url: defaultBaseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
+});

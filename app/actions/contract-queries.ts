@@ -10,7 +10,18 @@
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
-import type { ContractFilters, ContractStats, PaymentPlan } from "@/types/contract";
+import type {
+  ContractFilters,
+  ContractStats,
+  PaymentPlan,
+  Contract,
+  ContractEvent,
+  WorkTask,
+  ContractChecklist,
+  Payment,
+  DressReservationRow,
+  PrintingOrder,
+} from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
 
 // ─── Helpers ─────────────────────────────────
@@ -92,14 +103,14 @@ type PaymentPlanRow = PaymentPlan & {
 };
 
 type ContractDetailRpcPayload = {
-  contract?: Record<string, unknown> | null;
-  events?: unknown[] | null;
-  work_tasks?: unknown[] | null;
-  checklists?: unknown[] | null;
-  payments?: unknown[] | null;
-  reservations?: unknown[] | null;
-  print_orders?: unknown[] | null;
-  payment_plans?: unknown[] | null;
+  contract?: Contract | null;
+  events?: ContractEvent[] | null;
+  work_tasks?: WorkTask[] | null;
+  checklists?: ContractChecklist[] | null;
+  payments?: Payment[] | null;
+  reservations?: DressReservationRow[] | null;
+  print_orders?: PrintingOrder[] | null;
+  payment_plans?: PaymentPlan[] | null;
 };
 
 function normalizePlanStatus(status: string | null | undefined, paidAmount: number, amount: number) {
@@ -112,7 +123,7 @@ function normalizePlanStatus(status: string | null | undefined, paidAmount: numb
   return "partial";
 }
 
-function mapPaymentPlans(rows: unknown[] | null | undefined): PaymentPlan[] {
+function mapPaymentPlans(rows: Partial<PaymentPlanRow>[] | null | undefined): PaymentPlan[] {
   return ((rows || []) as PaymentPlanRow[])
     .map((plan) => {
       const allocations = plan.payment_plan_allocations || plan.allocations || [];
@@ -143,13 +154,13 @@ function mapPaymentPlans(rows: unknown[] | null | undefined): PaymentPlan[] {
 }
 
 type ContractListPayload = {
-  contracts: Record<string, unknown>[];
+  contracts: Contract[];
   total: number;
   page: number;
   pageSize: number;
 };
 
-function buildChecklistSummary(items: Record<string, unknown>[]) {
+function buildChecklistSummary(items: Partial<ContractChecklist>[]) {
   const total = items.length;
   const done = items.filter((item) => item.is_completed === true).length;
   return {
@@ -159,13 +170,13 @@ function buildChecklistSummary(items: Record<string, unknown>[]) {
   };
 }
 
-function attachChecklistSummaryFromArray(contract: Record<string, unknown>) {
+function attachChecklistSummaryFromArray(contract: Contract) {
   if (!Array.isArray(contract.contract_checklists)) return contract;
 
   return {
     ...contract,
     checklist_summary: buildChecklistSummary(
-      contract.contract_checklists as Record<string, unknown>[],
+      contract.contract_checklists as Partial<ContractChecklist>[],
     ),
   };
 }
@@ -193,15 +204,15 @@ async function getContractListFromRpc(
     return null;
   }
 
-  const payload = data as Record<string, unknown> | null;
+  const payload = data as { contracts: Contract[]; total: number; page: number; pageSize: number } | null;
   if (!payload || !Array.isArray(payload.contracts)) {
     return null;
   }
 
   return {
-    contracts: (payload.contracts as Record<string, unknown>[]).map(
+    contracts: (payload.contracts as Contract[]).map(
       attachChecklistSummaryFromArray,
-    ),
+    ) as Contract[],
     total: Number(payload.total) || 0,
     page: Number(payload.page) || page,
     pageSize: Number(payload.pageSize) || 20,
@@ -323,7 +334,7 @@ export async function getContractList(filters: ContractFilters) {
 
     const { data, count, error } = await query;
     if (error) throw error;
-    const contracts = (data || []) as Record<string, unknown>[];
+    const contracts = (data || []) as unknown as Contract[];
     const contractIds = contracts
       .map((contract) => contract.id)
       .filter((id): id is string => typeof id === "string");
@@ -343,8 +354,8 @@ export async function getContractList(filters: ContractFilters) {
       assertQueryOk("Loi tai tien do cong viec", tasksResult);
       assertQueryOk("Loi tai checklist hop dong", checklistsResult);
 
-      const tasksByContract = new Map<string, Record<string, unknown>[]>();
-      for (const task of (tasksResult.data || []) as Record<string, unknown>[]) {
+      const tasksByContract = new Map<string, WorkTask[]>();
+      for (const task of (tasksResult.data || []) as WorkTask[]) {
         const contractId = task.contract_id;
         if (typeof contractId !== "string") continue;
         const list = tasksByContract.get(contractId) || [];
@@ -352,8 +363,8 @@ export async function getContractList(filters: ContractFilters) {
         tasksByContract.set(contractId, list);
       }
 
-      const checklistsByContract = new Map<string, Record<string, unknown>[]>();
-      for (const item of (checklistsResult.data || []) as Record<string, unknown>[]) {
+      const checklistsByContract = new Map<string, ContractChecklist[]>();
+      for (const item of (checklistsResult.data || []) as ContractChecklist[]) {
         const contractId = item.contract_id;
         if (typeof contractId !== "string") continue;
         const list = checklistsByContract.get(contractId) || [];
@@ -386,7 +397,15 @@ export async function getContractStats() {
       .maybeSingle();
 
     if (!rpcError && rpcData) {
-      const row = rpcData as Record<string, unknown>;
+      const row = rpcData as {
+        total: number;
+        active: number;
+        pending: number;
+        completed: number;
+        revenue: number;
+        outstanding: number;
+        growth_total: number;
+      };
       return {
         total: Number(row.total) || 0,
         active: Number(row.active) || 0,
@@ -407,64 +426,42 @@ export async function getContractStats() {
       throw new Error(`Loi tai thong ke hop dong: ${rpcError.message}`);
     }
 
-    const { data, error } = await supabase
-      .from("contracts")
-      .select("status, total_amount, remaining_amount")
-      .is("deleted_at", null)
-      .neq("status", "da_huy");
+    console.warn("[getContractStats] RPC contract_stats failed, using fallback query.");
 
-    if (error) throw error;
-
-    const all = data || [];
-    let active = 0,
-      pending = 0,
-      completed = 0,
-      revenue = 0,
-      outstanding = 0;
-    type ContractRow = {
-      status: string;
-      total_amount: number;
-      remaining_amount: number;
-    };
-    all.forEach((c: ContractRow) => {
-      if (c.status === "dang_thuc_hien") active++;
-      else if (c.status === "cho_xu_ly") pending++;
-      else if (c.status === "hoan_thanh") completed++;
-      revenue += c.total_amount || 0;
-      outstanding += c.remaining_amount || 0;
-    });
+    // Safe Fallback without downloading thousands of records to JS
+    const [
+      { count: totalCount },
+      { count: activeCount },
+      { count: pendingCount },
+      { count: completedCount },
+    ] = await Promise.all([
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "da_huy"),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "dang_thuc_hien"),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "cho_xu_ly"),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "hoan_thanh"),
+    ]);
 
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const { count: thisMonthCount } = await supabase
-      .from("contracts")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null)
-      .neq("status", "da_huy")
-      .gte("created_at", thisMonthStart.toISOString());
-    const { count: lastMonthCount } = await supabase
-      .from("contracts")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null)
-      .neq("status", "da_huy")
-      .gte("created_at", lastMonthStart.toISOString())
-      .lte("created_at", lastMonthEnd.toISOString());
+    const [{ count: thisMonthCount }, { count: lastMonthCount }] = await Promise.all([
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "da_huy").gte("created_at", thisMonthStart.toISOString()),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "da_huy").gte("created_at", lastMonthStart.toISOString()).lte("created_at", lastMonthEnd.toISOString()),
+    ]);
 
-    const growth =
-      lastMonthCount && lastMonthCount > 0
-        ? Math.round(((thisMonthCount || 0) - lastMonthCount) / lastMonthCount * 100)
-        : 0;
+    const growth = lastMonthCount && lastMonthCount > 0
+      ? Math.round(((thisMonthCount || 0) - lastMonthCount) / lastMonthCount * 100)
+      : 0;
 
     const stats: ContractStats = {
-      total: all.length,
-      active,
-      pending,
-      completed,
-      revenue,
-      outstanding,
+      total: totalCount || 0,
+      active: activeCount || 0,
+      pending: pendingCount || 0,
+      completed: completedCount || 0,
+      revenue: 0,     // Fallback does not support SUM
+      outstanding: 0, // Fallback does not support SUM
       growth: { total: growth, active: 0, pending: 0, completed: 0 },
     };
     return stats;
@@ -501,7 +498,10 @@ export async function getContractDetail(id: string) {
       }
     }
 
-    console.warn("RPC get_contract_detail_v2 failed or returned invalid data, falling back to parallel queries:", rpcError);
+    console.warn("[contracts.getContractDetail] get_contract_detail_v2 unavailable; using 8-query fallback", {
+      contractId: id,
+      error: rpcError?.message || "RPC returned invalid data",
+    });
 
     // ⚡ Fallback: Single-pass operational detail queries fire simultaneously.
     const [
@@ -617,19 +617,15 @@ export async function getContractDetail(id: string) {
     assertQueryOk("Lỗi tải đơn in", printOrdersResult);
     assertQueryOk("Lỗi tải kế hoạch thanh toán", paymentPlansResult);
 
-    const contractData = data as typeof data & {
-      contract_events?: unknown[];
-      work_tasks?: unknown[];
-      contract_checklists?: unknown[];
-    };
+    const contractData = data as unknown as Contract;
 
     const activeItems = (contractData.contract_items || []).filter(
-      (i: { deleted_at?: string | null }) => !i.deleted_at
+      (i: any) => !i.deleted_at
     );
     contractData.contract_items = activeItems;
-    contractData.contract_events = eventsResult.data || [];
-    contractData.work_tasks = workTasksResult.data || [];
-    contractData.contract_checklists = checklistsResult.data || [];
+    contractData.contract_events = (eventsResult.data || []) as unknown as ContractEvent[];
+    contractData.work_tasks = (workTasksResult.data || []) as unknown as WorkTask[];
+    contractData.contract_checklists = (checklistsResult.data || []) as unknown as ContractChecklist[];
 
     return {
       contract: contractData,
@@ -734,10 +730,10 @@ export async function getContractForEdit(contractId: string) {
     );
 
     const activeItems = (contract.contract_items || []).filter(
-      (i: { deleted_at?: string | null }) => !i.deleted_at
+      (i: any) => !i.deleted_at
     );
     const items: ContractItemFormData[] = activeItems.map(
-      (item: Record<string, unknown>, index: number) => ({
+      (item: any, index: number) => ({
         _tempId: `existing-${index}`,
         id: item.id as string,
         service_id: (item.service_id as string) || null,

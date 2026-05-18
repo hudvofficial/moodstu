@@ -47,6 +47,7 @@ interface DatePickerProps {
   className?: string;
   triggerClassName?: string;
   compact?: boolean;
+  testId?: string;
 }
 
 export default function DatePicker({
@@ -58,6 +59,7 @@ export default function DatePicker({
   className = "",
   triggerClassName = "",
   compact = false,
+  testId,
 }: DatePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -377,6 +379,7 @@ export default function DatePicker({
         <button
           type="button"
           onClick={handleClear}
+          data-testid={testId ? `${testId}-clear` : undefined}
           className={`flex-1 border border-error/40 font-medium text-error transition-colors hover:bg-error/5 ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
         >
           Xóa chọn
@@ -384,6 +387,7 @@ export default function DatePicker({
         <button
           type="button"
           onClick={handleToday}
+          data-testid={testId ? `${testId}-today` : undefined}
           className={`flex-1 font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors border border-primary/15 ${compact ? "px-3 py-1.5 text-micro rounded-md" : "px-3 py-1.5 text-xs rounded-md"}`}
         >
           Hôm nay
@@ -406,6 +410,7 @@ export default function DatePicker({
           ref={triggerRef}
           type="button"
           onClick={toggleOpen}
+          data-testid={testId}
           data-state={isOpen ? "open" : "closed"}
           className={`input-base flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
         >

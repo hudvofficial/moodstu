@@ -5,8 +5,8 @@ import {
   withDressesBookingAccess,
   withDressesCatalogWriteAccess,
 } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
+import { invalidateDressPaths } from "@/lib/server-cache-invalidation";
 import {
   dressCreateSchema,
   dressUpdateSchema,
@@ -30,12 +30,7 @@ function isMissingRpc(error: RpcError) {
 }
 
 function revalidateDresses(contractId?: string | null) {
-  revalidatePath("/dresses");
-  revalidatePath("/dresses/rentals");
-  if (contractId) {
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${contractId}`);
-  }
+  invalidateDressPaths(contractId);
 }
 
 function extractDressStoragePath(imageUrl: string) {

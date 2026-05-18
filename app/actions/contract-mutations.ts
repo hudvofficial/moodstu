@@ -5,13 +5,16 @@ import {
   requireContractWriteAccess,
   withAuth,
 } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { fireAuditLog } from "@/lib/audit";
+import { profileAction } from "@/lib/action-profiler";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
 import { _generateChecklistsInternal } from "@/app/actions/checklist-actions";
 import { _generateContractEventsInternal } from "@/app/actions/contract-event-actions";
 import { syncContractEventsToGoogle } from "@/lib/contract-event-google-sync";
+import { createAdminClient } from "@/lib/supabase/server";
+import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import type { ContractStatus, ExportType, ServiceType } from "@/types/contract";
 
 type SaveContractResult = {
@@ -36,271 +39,26 @@ async function runPostSaveTask(
   }
 }
 
+function schedulePostSaveTask(label: string, task: () => Promise<unknown>) {
+  after(async () => {
+    try {
+      await task();
+    } catch (error) {
+      console.warn(`[contracts.postSave] background task failed: ${label}`, error);
+    }
+  });
+}
+
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
-type ReservationStatus = "reserved" | "in_use" | "rented";
-const ACTIVE_RESERVATION_STATUSES: ReservationStatus[] = ["reserved", "in_use", "rented"];
-
-type DressContractItemInput = {
-  type: string;
-  dress_id?: string | null;
-};
-
-function getReservationRange(input: {
-  contract_date?: string | null;
-  work_date?: string | null;
-  delivery_date?: string | null;
-}) {
-  const today = new Date().toISOString().slice(0, 10);
-  const startDate = input.work_date || input.contract_date || today;
-  const rawEndDate = input.delivery_date || input.work_date || input.contract_date || startDate;
-  return {
-    startDate,
-    endDate: rawEndDate < startDate ? startDate : rawEndDate,
-  };
-}
-
-function uniqueDressIds(items: DressContractItemInput[]) {
-  return Array.from(
-    new Set(
-      items
-        .filter((item) => item.type === "trang_phuc" && item.dress_id)
-        .map((item) => item.dress_id as string),
-    ),
-  );
-}
-
-async function validateDressAvailability(
-  supabase: AdminSupabase,
-  items: DressContractItemInput[],
-  range: { startDate: string; endDate: string },
-  currentContractId?: string | null,
-) {
-  const allDressIds = uniqueDressIds(items);
-  if (allDressIds.length === 0) return;
-
-  // Batch: 1 query for ALL dress IDs (instead of N queries)
-  const { data, error } = await supabase
-    .from("dress_reservations")
-    .select("id, contract_id, dress_id")
-    .in("dress_id", allDressIds)
-    .in("status", ACTIVE_RESERVATION_STATUSES)
-    .lte("start_date", range.endDate)
-    .gte("end_date", range.startDate);
-
-  if (error) throw new Error(`Loi kiem tra lich trang phuc: ${error.message}`);
-
-  // Check conflicts per dress in JS
-  for (const dressId of allDressIds) {
-    const conflict = (data || []).find(
-      (row) => row.dress_id === dressId && row.contract_id !== currentContractId,
-    );
-    if (conflict) {
-      throw new Error("Trang phuc da duoc dat trong khoang thoi gian nay");
-    }
-  }
-}
-
-async function refreshDressStatuses(supabase: AdminSupabase, dressIds: Iterable<string>) {
-  for (const dressId of Array.from(new Set(dressIds)).filter(Boolean)) {
-    const { data: activeReservations } = await supabase
-      .from("dress_reservations")
-      .select("status")
-      .eq("dress_id", dressId)
-      .in("status", ACTIVE_RESERVATION_STATUSES);
-
-    const nextStatus = (activeReservations || []).some((row) =>
-      row.status === "in_use" || row.status === "rented"
-    )
-      ? "rented"
-      : (activeReservations || []).length > 0
-        ? "reserved"
-        : "available";
-
-    await supabase
-      .from("dresses")
-      .update({ status: nextStatus, updated_at: new Date().toISOString() })
-      .eq("id", dressId);
-  }
-}
-
-async function syncDressReservationsForContract(
-  supabase: AdminSupabase,
-  contractId: string,
-) {
-  const { data: contract, error: contractError } = await supabase
-    .from("contracts")
-    .select("id, customer_id, contract_date, work_date, delivery_date, status")
-    .eq("id", contractId)
-    .is("deleted_at", null)
-    .single();
-
-  if (contractError || !contract) {
-    throw new Error(`Khong tim thay hop dong de dong bo trang phuc: ${contractError?.message || ""}`);
-  }
-
-  if (contract.status === "da_huy") return;
-
-  const range = getReservationRange(contract);
-  const { data: items, error: itemError } = await supabase
-    .from("contract_items")
-    .select("id, dress_id, export_type, notes")
-    .eq("contract_id", contractId)
-    .eq("type", "trang_phuc")
-    .is("deleted_at", null)
-    .not("dress_id", "is", null);
-
-  if (itemError) throw new Error(`Loi tai trang phuc trong hop dong: ${itemError.message}`);
-
-  const { data: reservations, error: reservationError } = await supabase
-    .from("dress_reservations")
-    .select("id, dress_id, contract_item_id, status")
-    .eq("contract_id", contractId);
-
-  if (reservationError) throw new Error(`Loi tai reservation trang phuc: ${reservationError.message}`);
-
-  const activeReservations = (reservations || []).filter(
-    (reservation) => !["returned", "cancelled"].includes(reservation.status || ""),
-  );
-  const usedReservationIds = new Set<string>();
-  const affectedDressIds = new Set<string>();
-  const now = new Date().toISOString();
-
-  for (const item of items || []) {
-    if (!item.dress_id) continue;
-    affectedDressIds.add(item.dress_id);
-
-    const existing =
-      activeReservations.find((reservation) => reservation.contract_item_id === item.id) ||
-      activeReservations.find(
-        (reservation) =>
-          reservation.dress_id === item.dress_id && !usedReservationIds.has(reservation.id),
-      );
-
-    if (existing) {
-      usedReservationIds.add(existing.id);
-      const { error } = await supabase
-        .from("dress_reservations")
-        .update({
-          contract_item_id: item.id,
-          customer_id: contract.customer_id,
-          start_date: range.startDate,
-          end_date: range.endDate,
-          export_type: (item.export_type as ExportType) || null,
-          updated_at: now,
-        })
-        .eq("id", existing.id);
-      if (error) throw new Error(`Loi cap nhat reservation trang phuc: ${error.message}`);
-      continue;
-    }
-
-    const { error } = await supabase.from("dress_reservations").insert({
-      dress_id: item.dress_id,
-      contract_id: contractId,
-      contract_item_id: item.id,
-      customer_id: contract.customer_id,
-      start_date: range.startDate,
-      end_date: range.endDate,
-      export_type: (item.export_type as ExportType) || null,
-      status: "reserved",
-      notes: item.notes || null,
-      created_at: now,
-      updated_at: now,
-    });
-    if (error) throw new Error(`Loi tao reservation trang phuc: ${error.message}`);
-  }
-
-  const removedReservations = activeReservations.filter(
-    (reservation) => !usedReservationIds.has(reservation.id),
-  );
-
-  if (removedReservations.length > 0) {
-    for (const reservation of removedReservations) {
-      affectedDressIds.add(reservation.dress_id);
-    }
-
-    const { error } = await supabase
-      .from("dress_reservations")
-      .update({ status: "cancelled", updated_at: now })
-      .in("id", removedReservations.map((reservation) => reservation.id));
-
-    if (error) throw new Error(`Loi huy reservation trang phuc cu: ${error.message}`);
-  }
-
-  await refreshDressStatuses(supabase, affectedDressIds);
-}
-
-async function upsertAddonHistoryItems(
-  supabase: AdminSupabase,
-  items: Array<{
-    item_name: string;
-    is_addon?: boolean | null;
-    addon_category?: string | null;
-    unit_price?: number | null;
-  }>,
-) {
-  // Collect addon items that need history tracking
-  const addonItems = items.filter(
-    (item) => item.is_addon && item.item_name.trim(),
-  );
-  if (addonItems.length === 0) return;
-
-  // Build lookup keys for batch SELECT
-  const lookupKeys = addonItems.map((item) => ({
-    name: item.item_name.trim(),
-    category: item.addon_category || "khac",
-    price: item.unit_price || 0,
-  }));
-
-  // Batch SELECT: get all existing records at once
-  const { data: existingRecords } = await supabase
-    .from("addon_history")
-    .select("id, addon_name, addon_category, usage_count")
-    .in("addon_name", lookupKeys.map((k) => k.name));
-
-  const existingMap = new Map(
-    (existingRecords || []).map((r) => [`${r.addon_name}::${r.addon_category}`, r]),
-  );
-
-  const now = new Date().toISOString();
-  const toInsert: Array<Record<string, unknown>> = [];
-  const updatePromises: Array<PromiseLike<{ error: { message?: string } | null }>> = [];
-
-  for (const key of lookupKeys) {
-    const existing = existingMap.get(`${key.name}::${key.category}`);
-    if (existing) {
-      updatePromises.push(
-        supabase
-          .from("addon_history")
-          .update({
-            last_price: key.price,
-            usage_count: (existing.usage_count || 0) + 1,
-            last_used_at: now,
-            updated_at: now,
-          })
-          .eq("id", existing.id),
-      );
-    } else {
-      toInsert.push({
-        addon_name: key.name,
-        addon_category: key.category,
-        last_price: key.price,
-        usage_count: 1,
-        last_used_at: now,
-      });
-    }
-  }
-
-  // Batch INSERT new + parallel UPDATE existing
-  const results = await Promise.all([
-    ...(toInsert.length > 0 ? [supabase.from("addon_history").insert(toInsert)] : []),
-    ...updatePromises,
-  ]);
-
-  const failed = results.find((result) => result.error);
-  if (failed?.error) {
-    throw new Error(failed.error.message || "Loi cap nhat lich su phat sinh");
-  }
-}
+import {
+  dressReservationFingerprint,
+  getExistingDressReservationFingerprint,
+  getReservationRange,
+  syncDressReservationsForContract,
+  uniqueDressIds,
+  validateDressAvailability,
+} from "@/lib/services/dress-sync-service";
+import { upsertAddonHistoryItems } from "@/lib/services/addon-sync-service";
 
 async function ensureContractAutomation(
   supabase: AdminSupabase,
@@ -311,14 +69,8 @@ async function ensureContractAutomation(
   // Events must complete first (tasks depend on events)
   const eventResult = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
 
-  // Checklists and external calendar sync can run in parallel.
-  // Staff work_tasks are created only when a user explicitly assigns someone.
-  await Promise.all([
-    _generateChecklistsInternal(supabase, contractId, serviceType),
-    syncContractEventsToGoogle(supabase, eventResult.eventIds || []).catch((syncError) => {
-      console.warn("Best effort contract events Google sync failed:", syncError);
-    }),
-  ]);
+  await _generateChecklistsInternal(supabase, contractId, serviceType);
+  return eventResult.eventIds || [];
 }
 
 export async function createContract(rawData: unknown) {
@@ -334,7 +86,7 @@ export async function createContract(rawData: unknown) {
   const data = parsed.data;
   const isEdit = Boolean(data.existingContractId);
 
-  return withAuth(async (supabase, userId) => {
+  return profileAction("contracts.createContract", () => withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     const contractPayload = {
@@ -404,6 +156,15 @@ export async function createContract(rawData: unknown) {
       data.existingContractId || null,
     );
 
+    const previousDressFingerprint =
+      isEdit && data.existingContractId
+        ? await getExistingDressReservationFingerprint(supabase, data.existingContractId)
+        : null;
+    const nextDressFingerprint = dressReservationFingerprint({
+      formData: data.formData,
+      items: data.items,
+    });
+
     const { data: rpcData, error } = await supabase.rpc("save_contract_atomic", {
       p_contract: contractPayload,
       p_customer: customerPayload,
@@ -463,39 +224,54 @@ export async function createContract(rawData: unknown) {
       }
     }
 
-    // The core contract is already committed by save_contract_atomic.
-    // Post-save work must never make the UI report "save failed" for a saved contract.
     const postSaveWarnings: string[] = [];
-    await Promise.all([
-      runPostSaveTask(
-        "Đồng bộ đặt trang phục",
-        () => syncDressReservationsForContract(supabase, contractId),
-        postSaveWarnings,
-      ),
-      runPostSaveTask(
-        "Tự động tạo lịch trình/checklist",
-        () => ensureContractAutomation(
-          supabase,
+    const shouldSyncDressReservations = isEdit
+      ? previousDressFingerprint !== nextDressFingerprint
+      : uniqueDressIds(data.items).length > 0;
+
+    if (shouldSyncDressReservations) {
+      schedulePostSaveTask("Dong bo dat trang phuc", async () => {
+        const adminSupabase = await createAdminClient();
+        await syncDressReservationsForContract(adminSupabase, contractId);
+      });
+    }
+
+    if (!isEdit) {
+      schedulePostSaveTask("Tao lich trinh/checklist & Google Sync", async () => {
+        const adminSupabase = await createAdminClient();
+        const eventIds = await ensureContractAutomation(
+          adminSupabase,
           contractId,
           data.formData.service_type,
           data.formData.work_date || null,
-        ),
-        postSaveWarnings,
-      ),
-      runPostSaveTask(
-        "Cập nhật lịch sử phát sinh",
-        () => upsertAddonHistoryItems(supabase, data.items),
-        postSaveWarnings,
-      ),
-    ]);
+        );
+        if (eventIds.length > 0) {
+          await syncContractEventsToGoogle(adminSupabase, eventIds);
+        }
+      });
+    }
 
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${contractId}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/dresses");
-    revalidatePath("/dresses/rentals");
+    if (data.items.some((item) => item.is_addon && item.item_name.trim())) {
+      const addonItems = data.items.map((item) => ({
+        item_name: item.item_name,
+        is_addon: item.is_addon,
+        addon_category: item.addon_category,
+        unit_price: item.unit_price,
+      }));
+      schedulePostSaveTask("Addon history", async () => {
+        const adminSupabase = await createAdminClient();
+        await upsertAddonHistoryItems(adminSupabase, addonItems);
+      });
+    }
+
+    invalidateContractPaths(contractId, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true },
+      dresses: shouldSyncDressReservations,
+      calendar: !isEdit,
+      dashboard: true,
+    });
 
     fireAuditLog({
       action: isEdit ? "UPDATE" : "CREATE",
@@ -518,7 +294,7 @@ export async function createContract(rawData: unknown) {
       contract_code: result.contract_code,
       warnings: postSaveWarnings,
     };
-  });
+  }));
 }
 
 const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
@@ -576,13 +352,13 @@ export async function updateContractStatus(
 
     if (error) throw error;
 
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${id}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/dresses");
-    revalidatePath("/dresses/rentals");
+    invalidateContractPaths(id, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true },
+      dresses: true,
+      dashboard: true,
+    });
 
     fireAuditLog({
       action: "UPDATE",

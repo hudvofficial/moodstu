@@ -1,8 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { withPrintingAccess } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
+import {
+  invalidateContractPaths,
+  invalidatePrintingPaths,
+} from "@/lib/server-cache-invalidation";
 import {
   createPrintingOrderSchema,
   printingStatusSchema,
@@ -75,10 +78,12 @@ export async function createPrintingOrder(
       source: "server_action",
     });
 
-    revalidatePath("/printing");
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${input.contractId}`);
-    revalidatePath("/finance");
+    invalidatePrintingPaths(input.contractId);
+    invalidateContractPaths(input.contractId, {
+      list: true,
+      detail: true,
+      finance: { receipts: false, cashflow: true },
+    });
 
     return { orderCode };
   });
@@ -126,10 +131,7 @@ export async function updatePrintingOrder(
       source: "server_action",
     });
 
-    revalidatePath("/printing");
-    if (contractId) {
-      revalidatePath(`/contracts/${contractId}`);
-    }
+    invalidatePrintingPaths(contractId);
     return null;
   });
 }
@@ -230,10 +232,7 @@ export async function deletePrintingOrder(
       source: "server_action",
     });
 
-    revalidatePath("/printing");
-    if (contractId) {
-      revalidatePath(`/contracts/${contractId}`);
-    }
+    invalidatePrintingPaths(contractId);
 
     return null;
   });

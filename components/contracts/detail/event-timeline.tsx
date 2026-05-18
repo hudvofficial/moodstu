@@ -4,13 +4,17 @@ import { useState } from "react";
 import {
   CalendarDays, Camera, Church, Pencil, Package,
   MapPin, AlertTriangle, ClipboardList, Plus,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   getEventTypeLabel, isOnSetEvent,
 } from "@/types/contract-constants";
+import { deleteContractEvent } from "@/app/actions/contract-event-actions";
 import EventTaskModal from "@/components/contracts/detail/event-task-modal";
 import type { ContractEvent, WorkTask, EventType, TaskStatus } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
@@ -29,6 +33,7 @@ interface Props {
   onRefresh?: () => void;
   onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
   onAddEvent?: () => void;
+  onEventDeleted?: (eventId: string) => void;
 }
 
 // ─── Lucide Icon Mapping (SSOT: replaces emoji) ──────
@@ -114,8 +119,11 @@ export default function EventTimeline({
   onRefresh,
   onTaskStatusChange,
   onAddEvent,
+  onEventDeleted,
 }: Props) {
   const [modalEvent, setModalEvent] = useState<ContractEvent | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ContractEvent | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   // Sort by sort_order (V1 business logic), fallback to date
   const sorted = [...events].sort((a, b) => {
@@ -130,6 +138,30 @@ export default function EventTimeline({
   const activeEventId = sorted.find(
     (e) => e.status !== "hoan_thanh" && e.status !== "da_huy"
   )?.id ?? null;
+
+  const deleteTargetTitle = deleteTarget
+    ? normalizeEventTitle(deleteTarget.title, deleteTarget.event_type as EventType)
+    : "sự kiện này";
+
+  const handleDeleteEvent = async () => {
+    const target = deleteTarget;
+    if (!target || deletingEventId) return;
+
+    setDeletingEventId(target.id);
+    try {
+      const result = await deleteContractEvent(target.id);
+      if (!result.success) throw new Error(result.error);
+      toast.success("Đã xóa sự kiện");
+      if (modalEvent?.id === target.id) setModalEvent(null);
+      setDeleteTarget(null);
+      if (onEventDeleted) onEventDeleted(target.id);
+      else onRefresh?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Lỗi xóa sự kiện");
+    } finally {
+      setDeletingEventId(null);
+    }
+  };
 
   if (sorted.length === 0) {
     return (
@@ -150,7 +182,7 @@ export default function EventTimeline({
             </div>
           </div>
           {onAddEvent && (
-            <Button unstyled onClick={onAddEvent} className="btn btn-outline">
+            <Button unstyled onClick={onAddEvent} className="btn btn-outline" data-testid="add-contract-event">
               <Plus size={14} />
               Thêm lịch
             </Button>
@@ -185,7 +217,7 @@ export default function EventTimeline({
           </div>
         </div>
         {onAddEvent && (
-          <Button unstyled onClick={onAddEvent} className="btn btn-outline">
+          <Button unstyled onClick={onAddEvent} className="btn btn-outline" data-testid="add-contract-event">
             <Plus size={14} />
             Thêm lịch
           </Button>
@@ -220,13 +252,31 @@ export default function EventTimeline({
           return (
             <div
               key={event.id}
+              data-testid="contract-event-card"
               className={`
-                min-w-0 border-l-[3px] rounded-md p-3 cursor-pointer
+                relative min-w-0 border-l-[3px] rounded-md p-3 pr-9 cursor-pointer
                 transition-all duration-200 hover:shadow-sm
+                ${deletingEventId === event.id ? "opacity-60 pointer-events-none" : ""}
                 ${getCardStyles(event, isActive)}
               `}
               onClick={() => setModalEvent(event)}
             >
+              <Button
+                unstyled
+                type="button"
+                aria-label={`Xóa sự kiện ${displayTitle}`}
+                title="Xóa sự kiện"
+                data-testid="contract-event-delete"
+                disabled={deletingEventId === event.id}
+                className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(event);
+                }}
+              >
+                <Trash2 size={14} />
+              </Button>
+
               {/* Status badge */}
               <div className="flex min-h-5 flex-wrap items-center gap-1.5 mb-2">
                 {event.status === "hoan_thanh" ? (
@@ -331,6 +381,17 @@ export default function EventTimeline({
           onTaskStatusChange={onTaskStatusChange}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteEvent()}
+        title="Xóa sự kiện"
+        message={`Xóa "${deleteTargetTitle}" khỏi lịch trình? Các phân công liên quan sẽ bị xóa theo.`}
+        confirmLabel={deletingEventId ? "Đang xóa..." : "Xóa"}
+        cancelLabel="Giữ lại"
+        variant="danger"
+      />
     </div>
   );
 }

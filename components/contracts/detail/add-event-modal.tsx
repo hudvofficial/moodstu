@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EVENT_TYPE_MAP, isOnSetEvent } from "@/types/contract-constants";
 import { addContractEvent } from "@/app/actions/contract-event-actions";
-import type { EventType } from "@/types/contract";
+import type { ContractEvent, EventType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // AddEventModal — Hybrid Model: Admin tạo event tùy chỉnh
@@ -28,7 +28,7 @@ interface Props {
   isOpen: boolean;
   contractId: string;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (event?: ContractEvent) => void;
 }
 
 export default function AddEventModal({
@@ -80,7 +80,7 @@ export default function AddEventModal({
 
       toast.success(`Đã thêm sự kiện "${title.trim()}"`);
       resetForm();
-      onSaved();
+      onSaved(result.data as ContractEvent);
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm sự kiện");
@@ -99,6 +99,7 @@ export default function AddEventModal({
         onClick={handleSubmit}
         disabled={submitting || !title.trim()}
         className="btn btn-primary"
+        data-testid="add-event-submit"
       >
         {submitting ? (
           <>
@@ -136,6 +137,7 @@ export default function AddEventModal({
             placeholder="VD: Engagement Party, After Party..."
             className="input-base"
             autoFocus
+            data-testid="add-event-title"
           />
         </div>
 
@@ -152,6 +154,7 @@ export default function AddEventModal({
             required
             value={date || undefined}
             onChange={(val) => setDate(val || "")}
+            testId="add-event-date"
             placeholder="Chọn ngày"
           />
         </div>

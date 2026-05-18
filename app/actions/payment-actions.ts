@@ -1,9 +1,9 @@
 "use server";
 
 import { requireContractDestructiveAccess, requirePaymentRecordAccess, withAuth } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
+import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import { createPaymentSchema } from "@/lib/validations/finance.schema";
 
 // ═══════════════════════════════════════════
@@ -103,12 +103,12 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
       description: `Thu tiền hợp đồng #${paymentInput.contractId.substring(0, 8)}: ${paymentInput.amount.toLocaleString("vi-VN")} VND`,
     });
 
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${paymentInput.contractId}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/reports");
+    invalidateContractPaths(paymentInput.contractId, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true, reports: true },
+      dashboard: true,
+    });
 
     return { paymentId: result.payment_id, receiptCode: result.receipt_code || null };
   });
@@ -163,12 +163,12 @@ export async function voidContractPayment(input: VoidPaymentInput) {
       description: `Huy phieu thu hop dong #${result.payment_id.substring(0, 8)}: ${Number(result.voided_amount || 0).toLocaleString("vi-VN")} VND`,
     });
 
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${result.contract_id}`);
-    revalidatePath("/finance");
-    revalidatePath("/finance/receipts");
-    revalidatePath("/finance/cashflow");
-    revalidatePath("/reports");
+    invalidateContractPaths(result.contract_id, {
+      list: true,
+      detail: true,
+      finance: { receipts: true, cashflow: true, reports: true },
+      dashboard: true,
+    });
 
     return result;
   });

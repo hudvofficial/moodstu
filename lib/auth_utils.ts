@@ -480,21 +480,17 @@ export async function requireSettingsAdminAccess(
  * Expected to be caught by the withAuth wrapper.
  */
 export async function requireCrmAccess(supabase: SupabaseClient, userId: string) {
-  const { data: employee, error } = await supabase
-    .from("employees")
-    .select("id, full_name, role, auth_user_id, status, deleted_at")
-    .eq("auth_user_id", userId)
-    .single();
+  const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
-  if (error || !employee || !isActiveEmployeeContext(employee as EmployeeContextRecord)) {
+  if (!employee) {
     throw new Error("Không tìm thấy thông tin nhân viên");
   }
 
-  if (!canAccess(employee.role as Role, "crm")) {
+  if (!canAccess(role, "crm")) {
     throw new Error("Bạn không có quyền truy cập CRM");
   }
 
-  return { employee, role: employee.role as Role };
+  return { employee, role };
 }
 
 /**
@@ -502,21 +498,17 @@ export async function requireCrmAccess(supabase: SupabaseClient, userId: string)
  * Moodie is user-facing, but skill access is still constrained by shell role.
  */
 export async function requireMoodieAccess(supabase: SupabaseClient, userId: string) {
-  const { data: employee, error } = await supabase
-    .from("employees")
-    .select("id, full_name, role, auth_user_id, status, deleted_at")
-    .eq("auth_user_id", userId)
-    .single();
+  const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
-  if (error || !employee || !isActiveEmployeeContext(employee as EmployeeContextRecord)) {
+  if (!employee) {
     throw new Error("Không tìm thấy thông tin nhân viên");
   }
 
-  if (!canAccess(employee.role as Role, "moodie")) {
+  if (!canAccess(role, "moodie")) {
     throw new Error("Bạn không có quyền truy cập Moodie");
   }
 
-  return { employee, role: employee.role as Role };
+  return { employee, role };
 }
 
 /**
@@ -525,39 +517,7 @@ export async function requireMoodieAccess(supabase: SupabaseClient, userId: stri
  * must still enforce app-level finance permission after authentication.
  */
 export async function requireFinanceAccess(supabase: SupabaseClient, userId: string) {
-  const { data: employee, error } = await supabase
-    .from("employees")
-    .select("id, full_name, role, auth_user_id, status, deleted_at")
-    .eq("auth_user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error("Không tìm thấy thông tin nhân viên");
-  }
-
-  if (employee && !isActiveEmployeeContext(employee as EmployeeContextRecord)) {
-    throw new Error("Tài khoản nhân viên đã bị vô hiệu hóa");
-  }
-
-  let roleSource = employee?.role ?? null;
-
-  if (!roleSource) {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.admin.getUserById(userId);
-
-    if (userError || !user) {
-      throw new Error("Không tìm thấy tài khoản đăng nhập");
-    }
-
-    roleSource =
-      (user.app_metadata?.role as string | undefined) ??
-      (user.user_metadata?.role as string | undefined) ??
-      null;
-  }
-
-  const role = normalizeRole(roleSource);
+  const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "finance")) {
     throw new Error("Bạn không có quyền truy cập Tài chính");

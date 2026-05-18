@@ -48,6 +48,7 @@ export function ConfirmDialog({
             onClick={onClose}
             variant="ghost"
             className="text-body-sm"
+            data-testid="confirm-dialog-cancel"
           >
             {cancelLabel}
           </Button>
@@ -59,6 +60,7 @@ export function ConfirmDialog({
             }}
             variant={confirmVariant}
             className="text-body-sm"
+            data-testid="confirm-dialog-confirm"
           >
             {confirmLabel}
           </Button>

@@ -1,5 +1,4 @@
 import ContractsListClient from "@/components/contracts/contracts-list-client";
-import { getContractList, getContractStats } from "@/app/actions/contract-queries";
 import type { ContractFilters } from "@/types/contract";
 
 export const metadata = { title: "Hợp đồng" };
@@ -30,25 +29,12 @@ export default async function ContractsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const filters = buildContractFilters(await searchParams);
-  const [listResult, statsResult] = await Promise.all([
-    getContractList(filters),
-    getContractStats(),
-  ]);
-
-  if (!listResult.success) {
-    throw new Error(listResult.error || "Không thể tải danh sách hợp đồng");
-  }
-
-  if (!statsResult.success) {
-    throw new Error(statsResult.error || "Không thể tải thống kê hợp đồng");
-  }
+  const params = await searchParams;
+  const filters = buildContractFilters(params);
 
   return (
     <ContractsListClient
-      initialData={listResult.data}
       initialFilters={filters}
-      initialStats={statsResult.data}
     />
   );
 }

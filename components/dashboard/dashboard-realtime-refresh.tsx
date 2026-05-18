@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { invalidateDashboardCache } from "@/app/actions/dashboard-cache";
 import { createClient } from "@/lib/supabase/client";
@@ -19,7 +18,6 @@ const DASHBOARD_REALTIME_TABLES = [
 const DASHBOARD_REALTIME_DEBOUNCE_MS = 800;
 
 export function DashboardRealtimeRefresh() {
-  const router = useRouter();
   const refreshTimerRef = useRef<number | null>(null);
   const pendingRefreshRef = useRef<Promise<void> | null>(null);
   const changedTablesRef = useRef<Set<string>>(new Set());
@@ -38,7 +36,13 @@ export function DashboardRealtimeRefresh() {
       })
       .finally(() => {
         pendingRefreshRef.current = null;
-        if (mountedRef.current) router.refresh();
+        if (mountedRef.current) {
+          window.dispatchEvent(
+            new CustomEvent("dashboard:cache-invalidated", {
+              detail: { changedTables },
+            }),
+          );
+        }
         if (
           mountedRef.current &&
           changedTablesRef.current.size > 0 &&
@@ -50,7 +54,7 @@ export function DashboardRealtimeRefresh() {
           }, DASHBOARD_REALTIME_DEBOUNCE_MS);
         }
       });
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     flushRefreshRef.current = flushRefresh;

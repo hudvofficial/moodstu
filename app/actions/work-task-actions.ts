@@ -5,8 +5,8 @@ import {
   requireContractWriteAccess,
   withAuth,
 } from "@/lib/auth_utils";
-import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
+import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import type { WorkType, TaskStatus, EventType, ServiceType } from "@/types/contract";
 
 type ContractEventForTasks = {
@@ -184,9 +184,7 @@ export async function generateWorkTasksForContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const result = await _generateWorkTasksInternal(supabase, contractId, userId);
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${contractId}`);
-    revalidatePath("/productivity");
+    invalidateContractPaths(contractId, { detail: true, productivity: true });
     return result;
   });
 }
@@ -211,17 +209,28 @@ export async function addTask(input: {
       end_time: input.endTime || null, cost: input.cost || 0,
       notes: input.notes || null, status: input.assignedTo ? "dang_lam" : "chua_lam",
       created_by: userId,
-    }).select("id").single();
+    })
+      .select("id, event_id, contract_id, work_type, assigned_to, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department)")
+      .single();
     if (error) throw new Error(`Lỗi thêm task: ${error.message}`);
 
     fireAuditLog({ action: "CREATE", tableName: "work_tasks", recordId: data?.id, description: `Thêm task: ${input.workType} (event ${input.eventId.substring(0, 8)})` });
 
-    // Auto-update event status
-    await checkAndCompleteEvent(supabase, input.eventId);
+    if (input.assignedTo) {
+      const { error: eventStatusError } = await supabase
+        .from("contract_events")
+        .update({ status: "dang_lam" })
+        .eq("id", input.eventId)
+        .neq("status", "da_huy");
 
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${input.contractId}`);
-    revalidatePath("/productivity");
+      if (eventStatusError) {
+        throw new Error(`Loi cap nhat event: ${eventStatusError.message}`);
+      }
+    } else {
+      await checkAndCompleteEvent(supabase, input.eventId);
+    }
+
+    invalidateContractPaths(input.contractId, { detail: true, productivity: true });
     return data;
   });
 }
@@ -242,9 +251,7 @@ export async function deleteTask(taskId: string, eventId: string) {
     fireAuditLog({ action: "DELETE", tableName: "work_tasks", recordId: taskId, description: `Xóa task #${taskId.substring(0, 8)}`, severity: "WARNING" });
 
     await checkAndCompleteEvent(supabase, task.event_id);
-    revalidatePath("/contracts");
-    revalidatePath(`/contracts/${task.contract_id}`);
-    revalidatePath("/productivity");
+    invalidateContractPaths(task.contract_id, { detail: true, productivity: true });
     return null;
   });
 }
@@ -268,9 +275,7 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
 
     fireAuditLog({ action: "UPDATE", tableName: "work_tasks", recordId: taskId, description: `Task status → ${newStatus}` });
     await checkAndCompleteEvent(supabase, task.event_id);
-    revalidatePath("/productivity");
-    // ⚡ No revalidatePath — client uses optimistic UI (applyTaskStatusOptimistic)
-    // + Realtime subscription handles multi-user sync
+    invalidateContractPaths(task.contract_id, { detail: true, productivity: true });
     return null;
   });
 }

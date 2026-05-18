@@ -193,7 +193,26 @@ export default function EventTaskModal({
       toast.error("Chọn nhân sự trước");
       return;
     }
+
+    const previousTasks = tasks;
+    const selectedEmployee = employees.find((emp) => emp.id === form.assigned_to);
+    const optimisticId = `optimistic-${event.id}-${Date.now()}`;
+    const optimisticTask: TaskRow = {
+      id: optimisticId,
+      work_type: form.work_type,
+      assigned_to: form.assigned_to,
+      status: "dang_lam",
+      cost: Number(form.cost) || 0,
+      start_time: isOnSet && form.start_time ? form.start_time : null,
+      end_time: isOnSet && form.end_time ? form.end_time : null,
+      employees: selectedEmployee
+        ? { id: selectedEmployee.id, full_name: selectedEmployee.full_name }
+        : null,
+    };
+
     setSubmitting(true);
+    setTasks((prev) => [...prev, optimisticTask]);
+
     try {
       const result = await addTask({
         contractId,
@@ -206,12 +225,26 @@ export default function EventTaskModal({
         endTime: isOnSet && form.end_time ? form.end_time : undefined,
       });
       if (!result.success) throw new Error(result.error);
+      const savedTask = (result.data || {}) as Partial<TaskRow>;
+      const savedId = typeof savedTask.id === "string" ? savedTask.id : optimisticId;
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === optimisticId
+            ? {
+                ...task,
+                ...savedTask,
+                id: savedId,
+                employees: savedTask.employees ?? task.employees,
+              }
+            : task,
+        ),
+      );
       toast.success("Đã thêm nhân sự!");
       setForm((prev) => ({ ...prev, assigned_to: "", cost: 0 }));
       setConflicts([]);
-      loadData(true);
       onSaved();
     } catch (err) {
+      setTasks(previousTasks);
       toast.error(err instanceof Error ? err.message : "Lỗi thêm task");
     } finally {
       setSubmitting(false);

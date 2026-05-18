@@ -255,6 +255,7 @@ export function TaskListPanel({
               label: `${emp.full_name}${emp.department ? ` (${emp.department})` : ""}`,
             }))}
             placeholder="-- Chọn --"
+            testId="task-assignee-select"
           />
         </div>
 
@@ -313,6 +314,7 @@ export function TaskListPanel({
           onClick={onAdd}
           disabled={submitting || !form.assigned_to}
           className="btn btn-primary w-full mt-3"
+          data-testid="add-task-submit"
         >
           {submitting ? (
             <>

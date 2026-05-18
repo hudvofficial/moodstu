@@ -65,6 +65,7 @@ interface LayoutProps {
   activeEmployees?: ActiveEmployee[];
   refreshContract: () => void;
   onTaskStatusChange: (taskId: string, eventId: string, status: TaskStatus) => void;
+  onEventDeleted: (eventId: string) => void;
   onPaymentClick: () => void;
   onCollectPlan?: (planId?: string) => void;
   onAddEvent: () => void;
@@ -82,6 +83,7 @@ export function DesktopLayout({
   activeEmployees,
   refreshContract,
   onTaskStatusChange,
+  onEventDeleted,
   onPaymentClick,
   onCollectPlan,
   onAddEvent,
@@ -133,6 +135,7 @@ export function DesktopLayout({
             onRefresh={refreshContract}
             onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
+            onEventDeleted={onEventDeleted}
           />
 
           {/* Thao tác nhanh */}
@@ -207,6 +210,7 @@ export function MobileLayout({
   activeEmployees,
   refreshContract,
   onTaskStatusChange,
+  onEventDeleted,
   onPaymentClick,
   onCollectPlan,
   onAddEvent,
@@ -278,6 +282,7 @@ export function MobileLayout({
             onRefresh={refreshContract}
             onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
+            onEventDeleted={onEventDeleted}
           />
         </div>
 

@@ -144,6 +144,7 @@ export interface ContractEvent {
   notes: string | null;
   sort_order: number;
   deadline: string | null;
+  deleted_at: string | null;
   start_time: string | null;
   end_time: string | null;
   is_manual_date: boolean;
