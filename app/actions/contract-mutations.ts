@@ -65,9 +65,10 @@ async function ensureContractAutomation(
   contractId: string,
   serviceType: ServiceType,
   workDate?: string | null,
+  weddingDate?: string | null,
 ) {
   // Events must complete first (tasks depend on events)
-  const eventResult = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
+  const eventResult = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate, weddingDate);
 
   await _generateChecklistsInternal(supabase, contractId, serviceType);
   return eventResult.eventIds || [];
@@ -198,6 +199,17 @@ export async function createContract(rawData: unknown) {
       }
     }
 
+    if (data.weddingDate) {
+      const { error: customerError } = await supabase
+        .from("customers")
+        .update({ wedding_date: data.weddingDate })
+        .eq("id", data.formData.customer_id);
+
+      if (customerError) {
+        throw new Error(`Lỗi lưu ngày cưới khách hàng: ${customerError.message}`);
+      }
+    }
+
     if (!isEdit && data.paymentInfo.amount > 0 && data.paymentInfo.notes) {
       const { data: latestPayment, error: paymentFetchError } = await supabase
         .from("payments")
@@ -244,6 +256,7 @@ export async function createContract(rawData: unknown) {
           contractId,
           data.formData.service_type,
           data.formData.work_date || null,
+          data.weddingDate || null,
         );
         if (eventIds.length > 0) {
           await syncContractEventsToGoogle(adminSupabase, eventIds);

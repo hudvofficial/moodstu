@@ -18,14 +18,14 @@ import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+
 import type { ContractFormMode } from "@/types/contract-form";
 import type { ItemType } from "@/types/contract";
 
 // ═══════════════════════════════════════════
 // ContractForm — Main form shell
 // Layout: FullpageFormShell (two-column on desktop)
-//   LEFT  → Title + S1 + S2 + S3 + S6
+//   LEFT  → Title + S1 + S2 + S3
 //   RIGHT → S4 + S5 + Actions (sticky panel)
 //   MOBILE → single column + fixed footer
 // ═══════════════════════════════════════════
@@ -161,7 +161,8 @@ export default function ContractForm({ mode, contractId }: Props) {
         <ContractInfoSection
           formData={form.formData}
           updateField={form.updateField}
-          showDeliveryDate={form.shouldShowDeliveryDate}
+          weddingDate={form.weddingDate}
+          onWeddingDateChange={form.setWeddingDate}
           badgeCode={badgeCode}
         />
 
@@ -190,18 +191,6 @@ export default function ContractForm({ mode, contractId }: Props) {
             <ContractPaymentSection financials={form.financials} />
           )}
         </div>
-
-        {/* Section 6: Notes */}
-        <section className="card-base p-6 space-y-4">
-          <h3 className="form-section-heading">6. Ghi chú</h3>
-          <Textarea unstyled
-            value={form.formData.notes}
-            onChange={(e) => form.updateField("notes", e.target.value)}
-            placeholder="Ghi chú nội bộ hoặc yêu cầu đặc biệt từ khách hàng..."
-            rows={4}
-            className="input-base resize-none"
-          />
-        </section>
       </FullpageFormShell>
 
       {/* ══ Mobile fixed footer — hidden on desktop (lg:hidden inside FormActions) ══ */}

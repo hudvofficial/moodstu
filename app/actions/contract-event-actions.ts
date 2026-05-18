@@ -106,10 +106,12 @@ function buildContractEvents(
   contractId: string,
   serviceType: ServiceType,
   workDate: string | null | undefined,
+  weddingDate: string | null | undefined,
   templates: EventTemplateRow[],
 ) {
   const baseDate = workDate ? new Date(workDate) : null;
-  const knownCeremonyDate = serviceType === "ngay_cuoi" && baseDate;
+  const effectiveWeddingDateStr = serviceType === "ngay_cuoi" ? workDate : weddingDate;
+  const ceremonyDate = effectiveWeddingDateStr ? new Date(effectiveWeddingDateStr) : null;
   let lastOnSetType: EventType | null = null;
 
   return templates.map((template, index) => {
@@ -121,11 +123,17 @@ function buildContractEvents(
 
     if (isOnSet) {
       lastOnSetType = eventType;
-      if (baseDate && (eventType !== "ngay_to_chuc" || knownCeremonyDate)) {
+      if (eventType === "ngay_to_chuc" && ceremonyDate) {
+        eventDate = addDays(ceremonyDate, offset);
+      } else if (eventType !== "ngay_to_chuc" && baseDate) {
         eventDate = addDays(baseDate, offset);
       }
-    } else if (baseDate && (lastOnSetType !== "ngay_to_chuc" || knownCeremonyDate)) {
-      deadline = addDays(baseDate, offset);
+    } else {
+      if (lastOnSetType === "ngay_to_chuc" && ceremonyDate) {
+        deadline = addDays(ceremonyDate, offset);
+      } else if (lastOnSetType !== "ngay_to_chuc" && baseDate) {
+        deadline = addDays(baseDate, offset);
+      }
     }
 
     return {
@@ -141,12 +149,12 @@ function buildContractEvents(
   });
 }
 
-/** Internal: skip auth — for use within already-authenticated server actions */
 export async function _generateContractEventsInternal(
   supabase: SupabaseClient,
   contractId: string,
   serviceType: ServiceType,
   workDate?: string | null,
+  weddingDate?: string | null,
 ) {
   const { count, error: countError } = await supabase
     .from("contract_events")
@@ -172,6 +180,7 @@ export async function _generateContractEventsInternal(
     contractId,
     serviceType,
     workDate,
+    weddingDate,
     (templates as EventTemplateRow[] | null)?.length
       ? (templates as EventTemplateRow[])
       : fallbackEventTemplates(serviceType),
@@ -203,10 +212,11 @@ export async function generateContractEvents(
   contractId: string,
   serviceType: ServiceType,
   workDate?: string | null,
+  weddingDate?: string | null,
 ) {
   return withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
-    const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate);
+    const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate, weddingDate);
     for (const eventId of result.eventIds) scheduleEventGoogleSync(eventId);
     invalidateContractPaths(contractId, { detail: true, calendar: true, dashboard: true });
     return result;

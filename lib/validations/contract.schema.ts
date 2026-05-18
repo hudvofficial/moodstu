@@ -164,6 +164,7 @@ export const contractSubmissionSchema = z.object({
   items: z.array(formLineItemSchema).min(1, "Phải có ít nhất 1 dịch vụ"),
   paymentInfo: formPaymentInfoSchema,
   financials: contractFinancialsSchema,
+  weddingDate: z.string().optional(),
   existingContractId: z.string().optional(),
   expectedUpdatedAt: z.string().optional(), // optimistic lock
 });

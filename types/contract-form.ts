@@ -142,9 +142,22 @@ export function showCoupleFields(serviceType: ServiceType): boolean {
   return WEDDING_SERVICE_TYPES.includes(serviceType);
 }
 
-/** Show delivery_date for these service types */
-export function showDeliveryDate(serviceType: ServiceType): boolean {
+export function showWeddingDate(serviceType: ServiceType): boolean {
   return WEDDING_SERVICE_TYPES.includes(serviceType);
+}
+
+export function workDateLabel(serviceType: ServiceType): string {
+  switch (serviceType) {
+    case "ngay_cuoi":
+      return "Ngày tổ chức lễ";
+    case "combo":
+      return "Ngày chụp prewedding";
+    case "media":
+    case "khac":
+      return "Ngày thực hiện";
+    default:
+      return "Ngày chụp";
+  }
 }
 
 // ─── SERVICE TYPE LABELS (SSOT) ─────────────────────────

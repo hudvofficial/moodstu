@@ -13,7 +13,7 @@ import {
 import { useContractCustomer } from "./useContractCustomer";
 import { useContractItems } from "./useContractItems";
 import { useContractFinancials } from "./useContractFinancials";
-import { showCoupleFields, showDeliveryDate } from "@/types/contract-form";
+import { showCoupleFields, showWeddingDate } from "@/types/contract-form";
 import type { ContractFormData, ContractFormMode } from "@/types/contract-form";
 import type { ServiceType } from "@/types/contract";
 
@@ -69,6 +69,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
   const [isLoading, setIsLoading] = useState(mode === "edit");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expectedUpdatedAt, setExpectedUpdatedAt] = useState<string>("");
+  const [weddingDate, setWeddingDate] = useState<string>("");
 
   // [V1 PORT] Preview contract code — fetch on mount (create mode)
   const [previewCode, setPreviewCode] = useState("");
@@ -104,15 +105,16 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       groom_weight: c.groom_weight?.toString() || prev.groom_weight,
       groom_shoe_size: c.groom_shoe_size?.toString() || prev.groom_shoe_size,
     }));
+    if (c.wedding_date) {
+      setWeddingDate(c.wedding_date);
+    } else {
+      setWeddingDate("");
+    }
   }, [customer.selectedCustomer]);
 
   // ── Conditional fields ──
   const shouldShowCoupleFields = useMemo(
     () => showCoupleFields(formData.service_type),
-    [formData.service_type]
-  );
-  const shouldShowDeliveryDate = useMemo(
-    () => showDeliveryDate(formData.service_type),
     [formData.service_type]
   );
   const shouldShowPaymentSection = mode === "create";
@@ -143,24 +145,34 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       newErrors.items = "Phải có ít nhất 1 dịch vụ";
     }
 
-    // W5 fix: Date order validation
     const contractDate = formData.contract_date;
     const workDate = formData.work_date;
-    const deliveryDate = formData.delivery_date;
 
     if (contractDate && workDate && workDate < contractDate) {
       newErrors.work_date = "Ngày làm phải sau ngày ký hợp đồng";
     }
-    if (workDate && deliveryDate && deliveryDate < workDate) {
-      newErrors.delivery_date = "Ngày giao phải sau ngày làm";
-    }
-    if (contractDate && deliveryDate && !workDate && deliveryDate < contractDate) {
-      newErrors.delivery_date = "Ngày giao phải sau ngày ký hợp đồng";
+    
+    if (showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && weddingDate && workDate && weddingDate < workDate) {
+      newErrors.weddingDate = "Ngày cưới phải sau ngày chụp prewedding";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, formData.delivery_date]);
+    const hasErrors = Object.keys(newErrors).length > 0;
+
+    if (hasErrors) {
+      // Toast cảnh báo tổng quát — luôn visible dù error nằm ngoài viewport
+      const errorMessages = Object.values(newErrors);
+      toast.error(errorMessages[0], { duration: 4000 });
+
+      // Auto-scroll đến error đầu tiên
+      requestAnimationFrame(() => {
+        const errorEl = document.querySelector(".error-text");
+        errorEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+
+    return !hasErrors;
+  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, weddingDate, formData.service_type]);
 
   // ── Submit (internal, reused by both submit + draft) ──
   const handleSubmitInternal = useCallback(async (statusOverride?: ContractFormData["status"]) => {
@@ -213,6 +225,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
           paid_amount: financials.paidAmount,
           remaining_amount: financials.remainingAmount,
         },
+        weddingDate: weddingDate || undefined,
         existingContractId: contractId,
         expectedUpdatedAt: expectedUpdatedAt || undefined,
       };
@@ -308,6 +321,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
           wedding_date: cust.wedding_date ?? null,
           address: cust.address ?? null,
         });
+        if (cust.wedding_date) setWeddingDate(cust.wedding_date);
       }
       items.prefillItems(editItems);
       financials.prefillFinancials(contract.discount_amount || 0, paidAmount);
@@ -345,8 +359,9 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     errors,
     // Conditional flags
     shouldShowCoupleFields,
-    shouldShowDeliveryDate,
     shouldShowPaymentSection,
+    weddingDate,
+    setWeddingDate,
     // Sub-hooks (spread for component access)
     customer,
     items,

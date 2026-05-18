@@ -200,18 +200,6 @@ export function ContractCustomerSection({
               </div>
             )}
           </div>
-
-          {!customer.showDropdown && (
-            <Button
-              unstyled
-              type="button"
-              onClick={customer.openCreateCustomer}
-              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-interactive hover:underline"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span className="max-lg:hidden">Tạo khách hàng mới</span>
-            </Button>
-          )}
         </div>
       </div>
 
@@ -219,7 +207,7 @@ export function ContractCustomerSection({
         <p className="error-text">{error}</p>
       )}
 
-      {showCoupleFields && (
+      {showCoupleFields && customer.selectedCustomer && (
         <CoupleDetailFields formData={formData} updateField={updateField} />
       )}
     </section>

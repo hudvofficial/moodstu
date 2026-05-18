@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ContractFormData } from "@/types/contract-form";
-import { SERVICE_TYPE_GROUPS, SERVICE_TYPE_LABELS } from "@/types/contract-form";
+import { SERVICE_TYPE_GROUPS, SERVICE_TYPE_LABELS, workDateLabel, showWeddingDate } from "@/types/contract-form";
 import type { ServiceType } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
 import { getActiveEmployees } from "@/app/actions/employee-queries";
@@ -37,11 +37,12 @@ const UNASSIGNED_EMPLOYEE_VALUE = "__unassigned__";
 interface Props {
   formData: ContractFormData;
   updateField: <K extends keyof ContractFormData>(field: K, value: ContractFormData[K]) => void;
-  showDeliveryDate: boolean;
+  weddingDate: string;
+  onWeddingDateChange: (date: string) => void;
   badgeCode?: string;
 }
 
-export function ContractInfoSection({ formData, updateField, showDeliveryDate, badgeCode }: Props) {
+export function ContractInfoSection({ formData, updateField, weddingDate, onWeddingDateChange, badgeCode }: Props) {
   const [employees, setEmployees] = useState<ActiveEmployee[]>([]);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
   const [employeeError, setEmployeeError] = useState("");
@@ -138,15 +139,15 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
         <DatePicker
           value={formData.work_date}
           onChange={(v) => updateField("work_date", v)}
-          label="Ngày chụp / làm việc"
+          label={workDateLabel(formData.service_type)}
           placeholder="Chọn ngày"
         />
 
-        {showDeliveryDate && (
+        {showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && (
           <DatePicker
-            value={formData.delivery_date}
-            onChange={(v) => updateField("delivery_date", v)}
-            label="Ngày giao sản phẩm"
+            value={weddingDate}
+            onChange={onWeddingDateChange}
+            label="Ngày cưới"
             placeholder="Chọn ngày"
           />
         )}
@@ -175,6 +176,17 @@ export function ContractInfoSection({ formData, updateField, showDeliveryDate, b
           value={formData.description}
           onChange={(e) => updateField("description", e.target.value)}
           placeholder="Mô tả gói dịch vụ, yêu cầu đặc biệt..."
+          rows={3}
+          className="input-base resize-none"
+        />
+      </Field>
+
+      {/* Notes — gộp từ S6, ghi chú nội bộ */}
+      <Field label="Ghi chú nội bộ">
+        <Textarea unstyled
+          value={formData.notes}
+          onChange={(e) => updateField("notes", e.target.value)}
+          placeholder="Ghi chú nội bộ, không hiện trên hợp đồng in..."
           rows={3}
           className="input-base resize-none"
         />
