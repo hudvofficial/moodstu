@@ -1,14 +1,17 @@
 "use client";
 /* eslint-disable */
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Star, Camera, Download, ThumbsUp, Sparkles, ChevronRight } from "lucide-react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Star, Camera, ThumbsUp, Sparkles, ChevronRight, Image as ImageIcon } from "lucide-react";
+import type { GalleryImage } from "@/types/gallery";
 import {
   getPublicGalleryImagesPaginated,
   toggleImageSelection,
   updateClientNote,
 } from "@/app/actions/gallery-actions";
 import { getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
+import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid";
 import ImageViewer from "./image-viewer";
 import SelectionSummary from "./selection-summary";
 
@@ -17,18 +20,6 @@ import SelectionSummary from "./selection-summary";
 // Landing → Stats + Tabs → Grid → Viewer
 // ═══════════════════════════════════════════
 
-interface GalleryImage {
-  id: string;
-  image_url: string;
-  thumbnail_url: string | null;
-  sort_order: number;
-  is_selected: boolean;
-  client_note: string | null;
-  file_name: string | null;
-  selected_at: string | null;
-  drive_file_id: string | null;
-  file_group: string | null;
-}
 
 interface Gallery {
   id: string;
@@ -49,7 +40,7 @@ interface PublicGalleryClientProps {
   mode?: "select" | "view";
 }
 
-const BATCH_SIZE = 50;
+
 
 export default function PublicGalleryClient({
   gallery,
@@ -62,8 +53,6 @@ export default function PublicGalleryClient({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
   const [currentPage, setCurrentPage] = useState(gallery.currentPage || 0);
   const [hasMoreImages, setHasMoreImages] = useState(Boolean(gallery.hasMoreImages));
@@ -95,10 +84,8 @@ export default function PublicGalleryClient({
     [images, activeGroup],
   );
 
-  const visibleImages = useMemo(
-    () => filteredImages.slice(0, visibleCount),
-    [filteredImages, visibleCount],
-  );
+  const groups = useMemo(() => groupByFileGroup(filteredImages), [filteredImages]);
+  const displayImages = useMemo(() => groups.map((g) => g.displayImage), [groups]);
 
   const loadMoreServerImages = useCallback(async () => {
     if (!hasMoreImages || loadingMoreImages || !accessToken) return;
@@ -126,36 +113,11 @@ export default function PublicGalleryClient({
     }
 
     setLoadingMoreImages(false);
-  }, [accessToken, currentPage, gallery.id, hasMoreImages, loadingMoreImages]);
+  }, [accessToken, accessUrl, currentPage, gallery.id, hasMoreImages, loadingMoreImages]);
 
-  // Reset visible count khi toggle filter
-  /* eslint-disable */
-  useEffect(() => { setVisibleCount(BATCH_SIZE); }, [activeGroup]);
-  /* eslint-enable */
-
-  // IntersectionObserver — load thêm khi cuộn
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const ob = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          if (visibleCount < filteredImages.length) {
-            setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filteredImages.length));
-          } else if (hasMoreImages && !loadingMoreImages) {
-            void loadMoreServerImages();
-          }
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    ob.observe(el);
-    return () => ob.disconnect();
-  }, [filteredImages.length, hasMoreImages, loadMoreServerImages, loadingMoreImages, visibleCount]);
-
-  // ─── Toggle heart ──────────────────────────
+  // ─── Toggle star (selection) ──────────────────
   const handleToggleStar = useCallback(
-    async (imageId: string) => {
+    async (imageId: string, _currentSelected?: boolean) => {
       if (isViewOnly) return;
       const img = images.find((i) => i.id === imageId);
       if (!img) return;
@@ -258,9 +220,10 @@ export default function PublicGalleryClient({
             tabIndex={0}
             onClick={() => setShowLanding(false)}
             onKeyDown={(e) => { if (e.key === 'Enter') setShowLanding(false); }}
-            className="group relative px-8 py-4 rounded-full font-semibold text-sm transition-all duration-300 cursor-pointer inline-flex items-center justify-center overflow-hidden bg-white text-black hover:scale-105 active:scale-95"
+            className="group relative px-8 py-4 rounded-full font-semibold text-sm transition-all duration-300 cursor-pointer inline-flex items-center justify-center overflow-hidden bg-white hover:scale-105 active:scale-95"
+            style={{ color: '#000000' }}
           >
-            <span className="relative z-10 flex items-center gap-2 text-black">
+            <span className="relative z-10 flex items-center gap-2" style={{ color: '#000000' }}>
               Xem Album
               <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
             </span>
@@ -283,32 +246,33 @@ export default function PublicGalleryClient({
   return (
     <div className="min-h-screen pb-20" style={{ background: "var(--color-bg-base)" }}>
       {/* ── Sticky Header + Stats ── */}
-      <div className="sticky top-0 z-30 backdrop-blur-md px-4 py-3 bg-bg-base/85 shadow-sm">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <div className="sticky top-0 z-30 backdrop-blur-xl px-4 py-4 bg-bg-base/80 border-b border-black/5 transition-all duration-300">
+        <div className="w-full max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Camera size={18} style={{ color: "var(--color-primary)" }} />
-            <h1 className="text-sm font-bold truncate" style={{ color: "var(--color-text-primary)", maxWidth: "200px" }}>
+            <Camera size={20} style={{ color: "var(--color-primary)" }} />
+            <h1 className="text-base font-semibold tracking-tight truncate" style={{ color: "var(--color-text-primary)", maxWidth: "300px" }}>
               {gallery.title || "Album ảnh"}
             </h1>
           </div>
-          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            <span>📷 {totalImageCount} ảnh</span>
+          <div className="flex items-center gap-4 text-sm font-medium" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="flex items-center gap-1.5 opacity-80"><ImageIcon size={14} /> {totalImageCount} ảnh</span>
             {!isViewOnly && selectedCount > 0 && (
               <div
                 role="button"
                 tabIndex={0}
                 onClick={() => setActiveGroup((prev) => prev === "selected" ? "all" : "selected")}
                 onKeyDown={(e) => { if (e.key === 'Enter') setActiveGroup((prev) => prev === "selected" ? "all" : "selected") }}
-                className="transition-all duration-200 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer hover:bg-black/5"
                 style={{
                   color: activeGroup === "selected" ? "var(--color-primary)" : "inherit",
-                  fontWeight: activeGroup === "selected" ? 600 : 400,
+                  fontWeight: activeGroup === "selected" ? 600 : 500,
+                  background: activeGroup === "selected" ? "var(--color-primary-light, rgba(0,0,0,0.05))" : "transparent"
                 }}
               >
-                ❤️ {selectedCount} đã chọn
+                <Star size={14} fill={activeGroup === "selected" ? "currentColor" : "none"} /> {selectedCount} đã chọn
               </div>
             )}
-            {totalLikes > 0 && <span>👍 {totalLikes} thích</span>}
+            {totalLikes > 0 && <span className="flex items-center gap-1.5 opacity-80"><ThumbsUp size={14} /> {totalLikes}</span>}
           </div>
         </div>
       </div>
@@ -316,88 +280,23 @@ export default function PublicGalleryClient({
 
 
       {/* ── Photo Grid ── */}
-      <div className="max-w-5xl mx-auto px-3 py-4">
-        <div className="columns-2 md:columns-4 gap-2 space-y-2">
-          {visibleImages.map((img) => (
-            <div key={img.id} className="relative group overflow-hidden cursor-pointer inline-block w-full break-inside-avoid mb-2"
-              style={{ borderRadius: "var(--radius-lg, 8px)" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.thumbnail_url || img.image_url} alt={img.file_name || "ảnh"} loading="lazy"
-                onClick={() => setViewerIndex(images.indexOf(img))}
-                className="w-full h-auto block transition-transform duration-500 group-hover:scale-105" />
-
-              {/* Download button — bottom left */}
-              {!isViewOnly && img.drive_file_id && (
-                <a href={`/api/drive-download/${img.drive_file_id}`} download
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-2 left-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40 backdrop-blur-sm">
-                  <Download size={14} style={{ color: "white" }} />
-                </a>
-              )}
-
-              {/* Heart button — bottom right */}
-              {!isViewOnly && (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); handleToggleStar(img.id); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleToggleStar(img.id) }}
-                  className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm ${img.is_selected ? "bg-warning/90" : "bg-black/40"}`}>
-                  <Star size={14} fill={img.is_selected ? "white" : "none"} style={{ color: "white" }} />
-                </div>
-              )}
-
-              {/* Selected glow */}
-              {img.is_selected && (
-                <div className="absolute inset-0 pointer-events-none ring-2 ring-inset ring-warning/60 rounded-lg" />
-              )}
-
-              {/* Like count badge — top-left, separate from selection */}
-              {(reactionCounts[img.id]?.hearts || 0) > 0 && (
-                <div className="absolute top-2 left-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-tiny font-semibold">
-                  <ThumbsUp size={10} />
-                  <span>{reactionCounts[img.id].hearts}</span>
-                </div>
-              )}
-
-              {/* Like button — top-right */}
-              {!isViewOnly && (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); handleToggleLike(img.id); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleToggleLike(img.id) }}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/40 backdrop-blur-sm cursor-pointer"
-                  title="Thích ảnh này"
-                >
-                  <ThumbsUp size={12} className="text-white" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* ── Infinite scroll sentinel ── */}
-        {visibleCount < filteredImages.length || hasMoreImages ? (
-          <div ref={sentinelRef} className="flex justify-center py-6">
-            <span className="text-xs animate-pulse" style={{ color: "var(--color-text-muted)" }}>
-              Đang tải thêm...
-            </span>
-          </div>
-        ) : filteredImages.length > BATCH_SIZE ? (
-          <div className="text-center py-4">
-            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              Đã hiện tất cả {activeGroup === "all" ? totalImageCount : filteredImages.length} ảnh
-            </span>
-          </div>
-        ) : null}
+      <div className="w-full max-w-[1600px] mx-auto pb-10">
+        <GalleryImageGrid
+          groups={groups}
+          onImageClick={(idx: number) => setViewerIndex(idx)}
+          reactionCounts={reactionCounts}
+          onToggleStar={isViewOnly ? undefined : (id: string, sel: boolean) => handleToggleStar(id, sel)}
+          onLoadMore={loadMoreServerImages}
+          loadingMore={loadingMoreImages}
+          hasMore={hasMoreImages}
+        />
       </div>
 
       {/* ── Lightbox viewer ── */}
       {viewerIndex !== null && (
-        <ImageViewer images={images} currentIndex={viewerIndex}
+        <ImageViewer images={displayImages} currentIndex={viewerIndex}
           onClose={() => setViewerIndex(null)} onIndexChange={setViewerIndex}
-          onToggleStar={handleToggleStar} onSaveNote={handleSaveNote} mode={mode} />
+          onToggleStar={(id: string) => handleToggleStar(id)} onSaveNote={handleSaveNote} mode={mode} />
       )}
 
       {/* ── Bottom bar ── */}

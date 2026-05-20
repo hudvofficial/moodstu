@@ -29,7 +29,7 @@ import {
 } from "@/lib/gallery-access";
 
 const IMAGE_COLS =
-  "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
+  "id, gallery_id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
 const RAW_EXTENSION_VALUES = ["arw", "cr2", "cr3", "nef", "raf", "dng", "rw2", "orf", "pef"];
 const PUBLIC_IMAGE_PAGE_SIZE = 100;
 const SHARE_LINK_CAPABILITIES: GalleryShareCapability[] = ["select", "view", "download"];
