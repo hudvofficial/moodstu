@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Copy, Download, Check, Link2, Eye, Shield, Loader2, Globe, Sparkles } from "lucide-react";
+import { Copy, Download, Check, Link2, Eye, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
 import {
   shareGallery,
@@ -185,6 +185,14 @@ export function ShareGalleryModalContent({
     }
   };
 
+  // ─── Auto-publish on mount when draft ──────
+  useEffect(() => {
+    if (localStatus === "draft" && safeGalleryId && !isPublishing) {
+      handlePublish();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     !isReady ? (
       <div className="p-4 bg-error/5 rounded-xl">
@@ -192,36 +200,10 @@ export function ShareGalleryModalContent({
         <p className="text-caption text-text-muted">Thiếu dữ liệu album. Vui lòng đóng popup và thử lại.</p>
       </div>
     ) : localStatus === "draft" ? (
-      <div className="flex flex-col items-center justify-center text-center py-6 gap-4">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-          <Globe size={32} className="text-primary" />
-        </div>
-        <div>
-          <h3 className="text-body font-bold text-text-primary mb-1">Album chưa được phát hành</h3>
-          <p className="text-caption text-text-muted max-w-[280px]">
-            Phát hành để tạo link chia sẻ cho khách hàng. Hình ảnh của bạn sẽ được hiển thị với giao diện chuyên nghiệp.
-          </p>
-        </div>
-        
-        {/* Mockup Preview Card */}
-        <div className="w-full max-w-[320px] rounded-xl overflow-hidden border border-border shadow-sm text-left my-2 bg-white dark:bg-black">
-          <div className="h-32 flex items-center justify-center border-b border-border" style={{ background: "var(--color-bg-secondary)" }}>
-            <Sparkles size={24} className="text-text-muted/50" />
-          </div>
-          <div className="p-3">
-            <p className="text-[11px] text-text-muted uppercase tracking-wider mb-1">moodwedding.com</p>
-            <p className="text-body-sm font-semibold text-text-primary truncate">{galleryTitle || "Album Ảnh"}</p>
-          </div>
-        </div>
-
-        <Button
-          onClick={handlePublish}
-          disabled={isPublishing}
-          className="w-full mt-2"
-        >
-          {isPublishing ? <Loader2 size={16} className="animate-spin mr-2" /> : <Globe size={16} className="mr-2" />}
-          Phát hành Album
-        </Button>
+      /* Compact loading — auto-publishing in background */
+      <div className="flex flex-col items-center justify-center py-10 gap-3">
+        <Loader2 size={28} className="animate-spin text-primary" />
+        <p className="text-caption text-text-muted">Đang tạo link chia sẻ...</p>
       </div>
     ) : (
     <div className="flex flex-col gap-5">

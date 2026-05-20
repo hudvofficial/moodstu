@@ -22,30 +22,31 @@ function resolveCssLength(value: string | null | undefined, fallback: number): n
   return parsed;
 }
 
-function resolveColumnCount(width: number, tileMin: number, gutter: number): number {
+function resolveColumnCount(width: number, tileMin: number, gutter: number, maxCols: number): number {
   const estimated = Math.floor((width + gutter) / (tileMin + gutter));
-  return Math.max(MIN_COLUMNS, Math.min(MAX_COLUMNS, estimated || MIN_COLUMNS));
+  return Math.max(MIN_COLUMNS, Math.min(maxCols, estimated || MIN_COLUMNS));
 }
 
 interface UseMasonryGridProps {
   groups: ImageGroup[];
   hasMoreServer?: boolean;
   onLoadMore?: () => void;
+  maxColumns?: number;
 }
 
-export function useMasonryGrid({ groups, hasMoreServer, onLoadMore }: UseMasonryGridProps) {
+export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns = MAX_COLUMNS }: UseMasonryGridProps) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [columnCount, setColumnCount] = useState(() => {
     if (typeof window !== "undefined") {
       const width = window.innerWidth;
-      return resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER);
+      return resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER, maxColumns);
     }
     return 5; // Default desktop assumption for SSR
   });
   const [columnWidth, setColumnWidth] = useState(() => {
     if (typeof window !== "undefined") {
       const width = window.innerWidth;
-      const cols = resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER);
+      const cols = resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER, maxColumns);
       return Math.max((width - DEFAULT_GUTTER * (cols - 1)) / cols, DEFAULT_TILE_MIN);
     }
     return DEFAULT_TILE_MIN;
@@ -63,7 +64,7 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore }: UseMasonry
       const rootStyle = getComputedStyle(document.documentElement);
       const tileMin = resolveCssLength(rootStyle.getPropertyValue("--gallery-admin-tile-min"), DEFAULT_TILE_MIN);
       const gutter = resolveCssLength(rootStyle.getPropertyValue("--gallery-admin-masonry-gap"), DEFAULT_GUTTER);
-      const nextColumnCount = resolveColumnCount(width, tileMin, gutter);
+      const nextColumnCount = resolveColumnCount(width, tileMin, gutter, maxColumns);
       const nextColumnWidth = Math.max((width - gutter * (nextColumnCount - 1)) / nextColumnCount, tileMin);
 
       setColumnCount((prev) => (prev === nextColumnCount ? prev : nextColumnCount));
@@ -144,9 +145,18 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore }: UseMasonry
     });
   }, []);
 
-  const handleImageError = useCallback((imageUrl: string, event: React.SyntheticEvent<HTMLImageElement>) => {
+  const handleImageError = useCallback((imageUrl: string, event: React.SyntheticEvent<HTMLImageElement>, fileGroup?: string) => {
     const element = event.currentTarget;
-    if (element.dataset.fallbackApplied === "true") return;
+    if (element.dataset.fallbackApplied === "true") {
+      // Fallback cũng lỗi → vẫn đánh dấu loaded để bỏ skeleton trắng
+      if (fileGroup) {
+        setLoadedGroups((prev) => {
+          if (prev[fileGroup]) return prev;
+          return { ...prev, [fileGroup]: true };
+        });
+      }
+      return;
+    }
 
     element.dataset.fallbackApplied = "true";
     element.src = imageUrl;

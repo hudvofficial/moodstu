@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Star, Camera, ThumbsUp, Sparkles, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Camera, Image as ImageIcon, Heart } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import {
   getPublicGalleryImagesPaginated,
@@ -49,7 +49,6 @@ export default function PublicGalleryClient({
   const [images, setImages] = useState<GalleryImage[]>(
     gallery.gallery_images || [],
   );
-  const [showLanding, setShowLanding] = useState(true);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
@@ -147,26 +146,7 @@ export default function PublicGalleryClient({
     [accessToken, accessUrl, images, isViewOnly],
   );
 
-  // Like reaction toggle (separate from selection)
-  const handleToggleLike = useCallback(
-    async (imageId: string) => {
-      if (isViewOnly) return;
-      const clientId = getClientId();
-      const result = await toggleReaction(imageId, gallery.id, "heart", clientId);
-      if (result.success) {
-        setReactionCounts((prev) => {
-          const updated = { ...prev };
-          if (!updated[imageId]) updated[imageId] = { hearts: 0, stars: 0 };
-          updated[imageId] = {
-            ...updated[imageId],
-            hearts: result.action === "added" ? updated[imageId].hearts + 1 : Math.max(0, updated[imageId].hearts - 1),
-          };
-          return updated;
-        });
-      }
-    },
-    [gallery.id, getClientId, isViewOnly],
-  );
+
 
   // ─── Save note ─────────────────────────────
   const handleSaveNote = useCallback(
@@ -182,99 +162,45 @@ export default function PublicGalleryClient({
   );
 
   // ═════════════════════════════════════════
-  // LANDING SCREEN
-  // ═════════════════════════════════════════
-  if (showLanding) {
-    const coverImage = images[0];
-    return (
-      <div className="min-h-screen flex flex-col justify-end relative overflow-hidden bg-black text-white">
-        {coverImage && (
-          <>
-            <div 
-              className="absolute inset-0" 
-              style={{
-                backgroundImage: `url(${coverImage.thumbnail_url?.replace(/sz=s\d+/, "sz=s1600") || coverImage.image_url})`,
-                backgroundSize: "cover", 
-                backgroundPosition: "center 30%",
-                animation: "kenburns 20s infinite alternate ease-in-out"
-              }} 
-            />
-            {/* Gradient Overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-          </>
-        )}
-        
-        <div className="relative z-10 px-6 pb-16 w-full max-w-5xl mx-auto flex flex-col items-center text-center">
-          <Sparkles size={24} className="mb-6 opacity-80" />
-          
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight text-balance" style={{ textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
-            {gallery.title || "Album ảnh"}
-          </h1>
-          
-          <p className="text-white/80 text-sm md:text-base font-medium mb-10 tracking-widest uppercase">
-            {totalImageCount} Ảnh • Mood Studio
-          </p>
-          
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => setShowLanding(false)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setShowLanding(false); }}
-            className="group relative px-8 py-4 rounded-full font-semibold text-sm transition-all duration-300 cursor-pointer inline-flex items-center justify-center overflow-hidden bg-white hover:scale-105 active:scale-95"
-            style={{ color: '#000000' }}
-          >
-            <span className="relative z-10 flex items-center gap-2" style={{ color: '#000000' }}>
-              Xem Album
-              <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-            </span>
-          </div>
-        </div>
-        
-        <style>{`
-          @keyframes kenburns {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  // ═════════════════════════════════════════
   // GALLERY VIEW
   // ═════════════════════════════════════════
   return (
     <div className="min-h-screen pb-20" style={{ background: "var(--color-bg-base)" }}>
-      {/* ── Sticky Header + Stats ── */}
-      <div className="sticky top-0 z-30 backdrop-blur-xl px-4 py-4 bg-bg-base/80 border-b border-black/5 transition-all duration-300">
-        <div className="w-full max-w-[1600px] mx-auto flex items-center justify-between">
+      {/* ── Sticky Header + Stats + Tabs ── */}
+      <div className="sticky top-0 z-30 bg-bg-base/95 backdrop-blur-md">
+        {/* Top Row: Title & Stats */}
+        <div className="w-full max-w-[1600px] mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <Camera size={20} style={{ color: "var(--color-primary)" }} />
-            <h1 className="text-base font-semibold tracking-tight truncate" style={{ color: "var(--color-text-primary)", maxWidth: "300px" }}>
+            <Camera size={18} className="text-primary opacity-70" />
+            <h1 className="text-base font-semibold tracking-tight truncate max-w-[200px] md:max-w-[400px] text-text-primary">
               {gallery.title || "Album ảnh"}
             </h1>
           </div>
-          <div className="flex items-center gap-4 text-sm font-medium" style={{ color: "var(--color-text-secondary)" }}>
-            <span className="flex items-center gap-1.5 opacity-80"><ImageIcon size={14} /> {totalImageCount} ảnh</span>
-            {!isViewOnly && selectedCount > 0 && (
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setActiveGroup((prev) => prev === "selected" ? "all" : "selected")}
-                onKeyDown={(e) => { if (e.key === 'Enter') setActiveGroup((prev) => prev === "selected" ? "all" : "selected") }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200 cursor-pointer hover:bg-black/5"
-                style={{
-                  color: activeGroup === "selected" ? "var(--color-primary)" : "inherit",
-                  fontWeight: activeGroup === "selected" ? 600 : 500,
-                  background: activeGroup === "selected" ? "var(--color-primary-light, rgba(0,0,0,0.05))" : "transparent"
-                }}
-              >
-                <Star size={14} fill={activeGroup === "selected" ? "currentColor" : "none"} /> {selectedCount} đã chọn
-              </div>
-            )}
-            {totalLikes > 0 && <span className="flex items-center gap-1.5 opacity-80"><ThumbsUp size={14} /> {totalLikes}</span>}
+          <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
+            <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
+            <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {selectedCount}</span>
           </div>
         </div>
+        
+        {/* Bottom Row: Tabs */}
+        {!isViewOnly && (
+          <div className="w-full max-w-[1600px] mx-auto px-4 flex items-center gap-6 text-sm font-medium">
+            <button
+              onClick={() => setActiveGroup("all")}
+              className={`py-3 relative transition-colors ${activeGroup === "all" ? "text-primary" : "text-text-muted hover:text-text-primary"}`}
+            >
+              TẤT CẢ
+              {activeGroup === "all" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />}
+            </button>
+            <button
+              onClick={() => setActiveGroup("selected")}
+              className={`py-3 relative transition-colors flex items-center gap-1.5 ${activeGroup === "selected" ? "text-[#ff3b30]" : "text-text-muted hover:text-text-primary"}`}
+            >
+              ĐÃ CHỌN
+              {activeGroup === "selected" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ff3b30] rounded-t-full" />}
+            </button>
+          </div>
+        )}
       </div>
 
 
@@ -289,6 +215,7 @@ export default function PublicGalleryClient({
           onLoadMore={loadMoreServerImages}
           loadingMore={loadingMoreImages}
           hasMore={hasMoreImages}
+          publicMode={true}
         />
       </div>
 

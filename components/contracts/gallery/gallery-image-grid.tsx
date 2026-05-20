@@ -15,6 +15,7 @@ interface GalleryImageGridProps {
   onLoadMore?: () => void;
   loadingMore?: boolean;
   hasMore?: boolean;
+  publicMode?: boolean;
 }
 
 const MIN_THUMBNAIL_SIZE = 400;
@@ -39,6 +40,7 @@ export default function GalleryImageGrid({
   onLoadMore,
   loadingMore,
   hasMore: hasMoreServer,
+  publicMode,
 }: GalleryImageGridProps) {
   const {
     masonryRef,
@@ -53,7 +55,7 @@ export default function GalleryImageGrid({
     handleImageLoad,
     handleImageError,
     DEFAULT_ASPECT_RATIO
-  } = useMasonryGrid({ groups, hasMoreServer, onLoadMore });
+  } = useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns: publicMode ? 5 : undefined });
 
   if (groups.length === 0) {
     return (
@@ -136,6 +138,11 @@ export default function GalleryImageGrid({
 
                       {/* eslint-disable-next-line @next/next/no-img-element -- Drive thumbnail URL is computed per tile width */}
                       <img
+                        ref={(node) => {
+                          if (node && node.complete && node.naturalWidth > 0 && !imageLoaded) {
+                            handleImageLoad(group.fileGroup, { currentTarget: node } as any);
+                          }
+                        }}
                         src={imageSrc}
                         alt={image.file_name || "Photo"}
                         className={`absolute inset-0 h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.025] ${imageLoaded ? "opacity-100" : "opacity-0"}`}
@@ -143,7 +150,7 @@ export default function GalleryImageGrid({
                         fetchPriority={eagerLoad ? "high" : "auto"}
                         decoding="async"
                         onLoad={(event) => handleImageLoad(group.fileGroup, event)}
-                        onError={(event) => handleImageError(image.image_url, event)}
+                        onError={(event) => handleImageError(image.image_url, event, group.fileGroup)}
                       />
 
                       {watermarkEnabled && (
@@ -176,22 +183,36 @@ export default function GalleryImageGrid({
                             event.stopPropagation();
                             onToggleStar(image.id, !!image.is_selected);
                           }}
-                          className={`absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${image.is_selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                          style={overlayChipStyle}
-                          title={image.is_selected ? "Bỏ đề xuất" : "Đề xuất cho khách"}
+                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${image.is_selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                          style={publicMode ? {} : overlayChipStyle}
+                          title={publicMode ? (image.is_selected ? "Bỏ chọn" : "Chọn ảnh") : (image.is_selected ? "Bỏ đề xuất" : "Đề xuất cho khách")}
                         >
-                          <Star size={16} className={image.is_selected ? "fill-success text-success" : "text-text-muted"} />
+                          {publicMode ? (
+                            <Heart
+                              size={20}
+                              fill={image.is_selected ? "#ff3b30" : "none"}
+                              stroke={image.is_selected ? "#ff3b30" : "white"}
+                              strokeWidth={2}
+                              style={{ transition: "fill 0.3s, stroke 0.3s", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
+                            />
+                          ) : (
+                            <Star size={16} className={image.is_selected ? "fill-success text-success" : "text-text-muted"} />
+                          )}
                         </Button>
                       ) : image.is_selected ? (
                         <div
-                          className="absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full"
-                          style={overlayChipStyle}
+                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full`}
+                          style={publicMode ? {} : overlayChipStyle}
                         >
-                          <Star size={16} className="fill-success text-success" />
+                          {publicMode ? (
+                            <Heart size={20} fill="#ff3b30" stroke="#ff3b30" strokeWidth={2} />
+                          ) : (
+                            <Star size={16} className="fill-success text-success" />
+                          )}
                         </div>
                       ) : null}
 
-                      {(showFileBadge || showHeartCount) && (
+                      {!publicMode && (showFileBadge || showHeartCount) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {showHeartCount && (
                             <div

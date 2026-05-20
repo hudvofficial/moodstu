@@ -73,6 +73,7 @@ export async function updateSession(request: NextRequest) {
     "/auth",
     "/offline",
     "/api/auth",
+    "/api/drive-download",
     "/gallery",
     "/manifest.json",
     "/sw.js",

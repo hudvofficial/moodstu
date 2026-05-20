@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Star, Download } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X, ChevronLeft, ChevronRight, Download, Heart } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider
@@ -38,16 +37,9 @@ export default function ImageViewer({
   onSaveNote,
   mode = "select",
 }: ImageViewerProps) {
-  const [noteValue, setNoteValue] = useState("");
   const current = images[currentIndex];
   const isViewOnly = mode === "view";
-
-  // Sync note when image changes
-  /* eslint-disable */
-  useEffect(() => {
-    setNoteValue(current?.client_note || "");
-  }, [currentIndex, current?.client_note]);
-  /* eslint-enable */
+  const [downloading, setDownloading] = useState(false);
 
   // Preload next/prev images for smooth navigation
   useEffect(() => {
@@ -117,12 +109,7 @@ export default function ImageViewer({
     setTouchStart(null);
   };
 
-  // ─── Save note on blur ─────────────────────
-  const handleNoteBlur = () => {
-    if (noteValue !== (current?.client_note || "")) {
-      onSaveNote(current.id, noteValue);
-    }
-  };
+
 
   if (!current) return null;
 
@@ -134,7 +121,7 @@ export default function ImageViewer({
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "rgba(0,0,0,0.95)" }}
+      style={{ background: "#000" }}
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 relative z-10">
@@ -158,29 +145,57 @@ export default function ImageViewer({
 
           {/* Download button */}
           {!isViewOnly && current.drive_file_id && (
-            <a
-              href={`/api/drive-download/${current.drive_file_id}`}
-              download
-              className="w-10 h-10 rounded-full flex items-center justify-center"
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={async () => {
+                if (downloading) return;
+                setDownloading(true);
+                try {
+                  const res = await fetch(`/api/drive-download/${current.drive_file_id}`);
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.error || "Không thể tải ảnh. Vui lòng thử lại.");
+                    return;
+                  }
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = current.file_name || `photo-${current.id}.jpg`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch {
+                  alert("Lỗi kết nối. Vui lòng thử lại.");
+                } finally {
+                  setDownloading(false);
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.click(); }}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${downloading ? "opacity-50" : ""}`}
               style={{ background: "rgba(255,255,255,0.1)" }}
             >
-              <Download size={18} style={{ color: "white" }} />
-            </a>
+              <Download size={18} className={downloading ? "animate-pulse" : ""} style={{ color: "white" }} />
+            </div>
           )}
 
-          {/* Star button */}
+          {/* Select button (Heart) */}
           {!isViewOnly && (
             <div
               role="button"
               tabIndex={0}
               onClick={() => onToggleStar(current.id)}
               onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(current.id) }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${current.is_selected ? "bg-warning/80" : "bg-white/10"}`}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95"
+              style={{ background: current.is_selected ? "rgba(255, 59, 48, 0.25)" : "rgba(255,255,255,0.1)" }}
             >
-              <Star
-                size={18}
-                fill={current.is_selected ? "white" : "none"}
-                style={{ color: "white" }}
+              <Heart
+                size={20}
+                fill={current.is_selected ? "#ff3b30" : "none"}
+                stroke={current.is_selected ? "#ff3b30" : "white"}
+                style={{ transition: "fill 0.3s, stroke 0.3s" }}
               />
             </div>
           )}
@@ -189,7 +204,7 @@ export default function ImageViewer({
 
       {/* Image area */}
       <div
-        className="flex-1 flex items-center justify-center relative overflow-hidden"
+        className="flex-1 flex items-center justify-center relative overflow-hidden px-2 py-2 md:px-12"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -224,10 +239,11 @@ export default function ImageViewer({
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={current.id}
           src={bigImageUrl}
           alt={current.file_name || "ảnh"}
           className="max-w-full max-h-full object-contain"
-          style={{ animation: "fadeIn 0.2s ease-out" }}
+          style={{ animation: "fadeIn 0.25s ease-out" }}
         />
 
         {/* Next arrow (desktop) */}
@@ -244,23 +260,8 @@ export default function ImageViewer({
         )}
       </div>
 
-      {/* Bottom bar — note + counter */}
+      {/* Bottom bar — counter */}
       <div className="px-4 py-3 relative z-10">
-        {/* Note input — hide in view-only */}
-        {!isViewOnly && (
-          <div className="max-w-lg mx-auto mb-2">
-            <Input
-              type="text"
-              placeholder="Ghi chú cho ảnh này..."
-              value={noteValue}
-              onChange={(e) => setNoteValue(e.target.value)}
-              onBlur={handleNoteBlur}
-              className="w-full px-3 py-2 text-sm rounded-lg outline-none bg-white/5 text-white ring-1 ring-inset ring-white/10 border-0 focus-visible:ring-1 focus-visible:ring-white/50"
-            />
-          </div>
-        )}
-
-        {/* Counter */}
         <div className="text-center">
           <span
             className="text-xs"
