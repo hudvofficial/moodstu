@@ -1488,3 +1488,62 @@ export async function getGalleryPreviewMetadata(slug: string) {
     return null;
   }
 }
+
+export async function setGalleryCoverImage(
+  galleryId: string,
+  imageId: string | null,
+  accessUrl?: string,
+  accessToken?: string,
+) {
+  try {
+    if (!galleryId || !isValidUUID(galleryId)) {
+      return { success: false as const, error: "ID gallery khong hop le." };
+    }
+    if (imageId && !isValidUUID(imageId)) {
+      return { success: false as const, error: "ID anh khong hop le." };
+    }
+
+    if (accessUrl && accessToken) {
+      const supabase = await createAdminClient();
+      const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
+      if (!gallery || gallery.id !== galleryId) {
+        return { success: false as const, error: "Gallery khong ton tai." };
+      }
+      
+      if (!assertGalleryProof(gallery, accessToken, "select")) {
+        return { success: false as const, error: "Phien truy cap khong hop le." };
+      }
+      
+      const { error } = await supabase
+        .from("galleries")
+        .update({ cover_image_id: imageId })
+        .eq("id", galleryId);
+
+      if (error) {
+        return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+      }
+      return { success: true as const, data: null };
+    }
+
+    const result = await withAuth(async (supabase, userId) => {
+      await requireContractAccess(supabase, userId);
+      const { error } = await supabase
+        .from("galleries")
+        .update({ cover_image_id: imageId })
+        .eq("id", galleryId);
+
+      if (error) {
+        throw new Error(`Loi cap nhat anh bia: ${error.message}`);
+      }
+      return null;
+    });
+
+    if (!result.success) {
+      return { success: false as const, error: result.error };
+    }
+    return { success: true as const, data: null };
+  } catch (err) {
+    console.error("[setGalleryCoverImage] Error:", err);
+    return { success: false as const, error: "Loi server." };
+  }
+}

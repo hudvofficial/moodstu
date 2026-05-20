@@ -260,7 +260,7 @@ export default function PublicGalleryClient({
             onKeyDown={(e) => { if (e.key === 'Enter') setShowLanding(false); }}
             className="group relative px-8 py-4 rounded-full font-semibold text-sm transition-all duration-300 cursor-pointer inline-flex items-center justify-center overflow-hidden bg-white text-black hover:scale-105 active:scale-95"
           >
-            <span className="relative z-10 flex items-center gap-2">
+            <span className="relative z-10 flex items-center gap-2 text-black">
               Xem Album
               <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
             </span>

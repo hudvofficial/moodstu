@@ -2,10 +2,12 @@
 
 import type { MouseEvent, TouchEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Star, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { downloadSingleFile } from "@/components/gallery/download-manager";
 import { Button } from "@/components/ui/button";
+import { setGalleryCoverImage } from "@/app/actions/gallery-actions";
+import { toast } from "sonner";
 
 // ═══════════════════════════════════════════
 // GalleryLightbox — Fullscreen image viewer
@@ -15,6 +17,9 @@ interface GalleryLightboxProps {
   images: GalleryImage[];
   initialIdx: number;
   onClose: () => void;
+  galleryId?: string | null;
+  coverImageId?: string | null;
+  onSetCoverSuccess?: (imageId: string) => void;
 }
 
 function withThumbSize(url: string, size: number): string {
@@ -56,9 +61,10 @@ async function downloadUrl(url: string, fileName: string): Promise<boolean> {
   }
 }
 
-export default function GalleryLightbox({ images, initialIdx, onClose }: GalleryLightboxProps) {
+export default function GalleryLightbox({ images, initialIdx, onClose, galleryId, coverImageId, onSetCoverSuccess }: GalleryLightboxProps) {
   const [currentIdx, setCurrentIdx] = useState(initialIdx);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [isSettingCover, setIsSettingCover] = useState(false);
 
   useEffect(() => {
     setCurrentIdx(initialIdx);
@@ -147,6 +153,27 @@ export default function GalleryLightbox({ images, initialIdx, onClose }: Gallery
     }
   };
 
+  const isCover = img.id === coverImageId;
+
+  const handleSetCover = async (e: MouseEvent) => {
+    e.stopPropagation();
+    if (!galleryId || isCover) return;
+    setIsSettingCover(true);
+    try {
+      const res = await setGalleryCoverImage(galleryId, img.id);
+      if (res.success) {
+        toast.success("Đã đặt làm ảnh bìa");
+        onSetCoverSuccess?.(img.id);
+      } else {
+        toast.error(res.error || "Không thể đặt ảnh bìa");
+      }
+    } catch {
+      toast.error("Lỗi khi đặt ảnh bìa");
+    } finally {
+      setIsSettingCover(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-(--z-modal) flex items-center justify-center"
@@ -180,6 +207,29 @@ export default function GalleryLightbox({ images, initialIdx, onClose }: Gallery
               <Star size={14} className="text-white" />
               Được đề xuất
             </span>
+          )}
+          {galleryId && (
+            <Button
+              unstyled
+              type="button"
+              onClick={handleSetCover}
+              disabled={isSettingCover || isCover}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-all"
+              style={{
+                borderRadius: "var(--radius-md)",
+                background: isCover ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
+                color: isCover ? "white" : "rgba(255,255,255,0.85)",
+                cursor: isCover ? "default" : "pointer",
+              }}
+              aria-label="Đặt ảnh bìa"
+            >
+              {isSettingCover ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <ImageIcon size={14} className={isCover ? "text-white" : ""} />
+              )}
+              {isCover ? "Ảnh bìa hiện tại" : "Đặt làm ảnh bìa"}
+            </Button>
           )}
           <Button
             unstyled

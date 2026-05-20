@@ -218,6 +218,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
           images={displayImages}
           initialIdx={lightboxIdx}
           onClose={() => setLightboxIdx(null)}
+          galleryId={activeGallery?.id}
+          coverImageId={activeGallery?.cover_image_id}
         />
       )}
     </div>
