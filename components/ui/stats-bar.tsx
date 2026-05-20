@@ -100,3 +100,4 @@ export function StatsBar({ items, className, showDividers = true }: StatsBarProp
     </div>
   );
 }
+

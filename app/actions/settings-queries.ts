@@ -15,7 +15,7 @@ import {
 } from "@/lib/system-settings";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
-  type GoogleCalendarAuth,
+  type GoogleOAuth,
   type NotificationPreferences,
   type SettingsPageData,
   type StudioInfo,
@@ -23,18 +23,19 @@ import {
 } from "@/types/settings";
 
 function sanitizeStudioInfoForClient(studioInfo: StudioInfo): StudioInfo {
-  const googleAuth = studioInfo.google_calendar_auth as
-    | (Partial<GoogleCalendarAuth> & Record<string, unknown>)
+  const googleAuth = studioInfo.google_oauth as
+    | (Partial<GoogleOAuth> & Record<string, unknown>)
     | null;
 
   return {
     ...studioInfo,
-    google_calendar_auth: googleAuth
+    google_oauth: googleAuth
       ? {
           access_token: "",
           refresh_token: "",
           expires_in:
             typeof googleAuth.expires_in === "number" ? googleAuth.expires_in : 0,
+          granted_scopes: typeof googleAuth.granted_scopes === "string" ? googleAuth.granted_scopes : undefined,
           updated_at:
             typeof googleAuth.updated_at === "string"
               ? googleAuth.updated_at
@@ -149,7 +150,7 @@ export async function getStudioInfo() {
     const data = await getOrCreateStudioInfo(supabase);
     return {
       ...(data as StudioInfo),
-      google_calendar_auth: null,
+      google_oauth: null,
     } satisfies StudioInfo;
   });
 }

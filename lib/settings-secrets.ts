@@ -80,7 +80,7 @@ export function safeCompareSecret(left: string, right: string) {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export function encryptGoogleCalendarAuth<T extends Record<string, unknown>>(
+export function encryptGoogleOAuth<T extends Record<string, unknown>>(
   authData: T,
 ): T {
   const encrypted: Record<string, unknown> = { ...authData };
@@ -95,7 +95,7 @@ export function encryptGoogleCalendarAuth<T extends Record<string, unknown>>(
   return encrypted as T;
 }
 
-export function decryptGoogleCalendarAuth(
+export function decryptGoogleOAuth(
   authData: unknown,
 ): Record<string, unknown> | null {
   if (!authData || typeof authData !== "object" || Array.isArray(authData)) {
@@ -114,7 +114,7 @@ export function decryptGoogleCalendarAuth(
   return decrypted;
 }
 
-export function redactGoogleCalendarAuth(authData: unknown) {
+export function redactGoogleOAuth(authData: unknown) {
   const auth =
     authData && typeof authData === "object" && !Array.isArray(authData)
       ? (authData as Record<string, unknown>)
@@ -129,3 +129,11 @@ export function redactGoogleCalendarAuth(authData: unknown) {
       typeof auth?.refresh_token === "string" && !!auth.refresh_token,
   };
 }
+
+// ─── Deprecated aliases (remove after full migration) ───
+/** @deprecated Use encryptGoogleOAuth */
+export const encryptGoogleCalendarAuth = encryptGoogleOAuth;
+/** @deprecated Use decryptGoogleOAuth */
+export const decryptGoogleCalendarAuth = decryptGoogleOAuth;
+/** @deprecated Use redactGoogleOAuth */
+export const redactGoogleCalendarAuth = redactGoogleOAuth;

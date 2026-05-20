@@ -444,11 +444,11 @@ export async function checkGoogleCalendarStatus(): Promise<ActionResult<boolean>
 
     const { data, error } = await supabase
       .from("studio_info")
-      .select("google_calendar_auth")
+      .select("google_oauth")
       .limit(1)
       .maybeSingle();
 
     if (error) return false;
-    return Boolean(data?.google_calendar_auth);
+    return Boolean(data?.google_oauth);
   });
 }

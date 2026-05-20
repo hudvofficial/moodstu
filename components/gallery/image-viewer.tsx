@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Heart, Download } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Star, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 // ═══════════════════════════════════════════
@@ -24,7 +24,7 @@ interface ImageViewerProps {
   currentIndex: number;
   onClose: () => void;
   onIndexChange: (index: number) => void;
-  onToggleHeart: (imageId: string) => void;
+  onToggleStar: (imageId: string) => void;
   onSaveNote: (imageId: string, note: string) => void;
   mode?: "select" | "view";
 }
@@ -34,7 +34,7 @@ export default function ImageViewer({
   currentIndex,
   onClose,
   onIndexChange,
-  onToggleHeart,
+  onToggleStar,
   onSaveNote,
   mode = "select",
 }: ImageViewerProps) {
@@ -168,16 +168,16 @@ export default function ImageViewer({
             </a>
           )}
 
-          {/* Heart button */}
+          {/* Star button */}
           {!isViewOnly && (
             <div
               role="button"
               tabIndex={0}
-              onClick={() => onToggleHeart(current.id)}
-              onKeyDown={(e) => { if (e.key === "Enter") onToggleHeart(current.id) }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${current.is_selected ? "bg-red-500/80" : "bg-white/10"}`}
+              onClick={() => onToggleStar(current.id)}
+              onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(current.id) }}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${current.is_selected ? "bg-warning/80" : "bg-white/10"}`}
             >
-              <Heart
+              <Star
                 size={18}
                 fill={current.is_selected ? "white" : "none"}
                 style={{ color: "white" }}

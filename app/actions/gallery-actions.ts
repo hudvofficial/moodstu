@@ -12,6 +12,13 @@ import {
 } from "@/lib/google-drive";
 import {
   type Gallery,
+  type GalleryFilterJob,
+  type GalleryFilterJobType,
+  type GalleryPublicPreview,
+  type GallerySelectionBatch,
+  type GallerySummary,
+  type GalleryShareCapability,
+  type GalleryShareLink,
   generateAccessUrl,
   isValidUUID,
   MAX_NOTE_LENGTH,
@@ -23,10 +30,13 @@ import {
 
 const IMAGE_COLS =
   "id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
-const RAW_EXTENSIONS = /\.(arw|cr2|cr3|nef|raf|dng|rw2|orf|pef)$/i;
+const RAW_EXTENSION_VALUES = ["arw", "cr2", "cr3", "nef", "raf", "dng", "rw2", "orf", "pef"];
+const PUBLIC_IMAGE_PAGE_SIZE = 100;
+const SHARE_LINK_CAPABILITIES: GalleryShareCapability[] = ["select", "view", "download"];
 
 type PublicGalleryRow = {
   id: string;
+  contract_id?: string | null;
   title: string | null;
   status: string | null;
   selection_deadline: string | null;
@@ -34,7 +44,23 @@ type PublicGalleryRow = {
   password: string | null;
   password_hash?: string | null;
   access_version?: number | null;
+  cover_image_id?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  og_image_url?: string | null;
+  share_version?: number | null;
+  selection_limit?: number | null;
+  allow_comments?: boolean | null;
+  allow_download?: boolean | null;
+  download_unlocked_at?: string | null;
+  download_unlocked_by?: string | null;
+  capability?: GalleryShareCapability;
+  share_link_id?: string | null;
+  share_slug?: string | null;
+  share_link_access_version?: number | null;
 };
+
+type GalleryShareLinkRow = GalleryShareLink;
 
 function galleryHasPassword(gallery: PublicGalleryRow) {
   return Boolean(gallery.password_hash || gallery.password);
@@ -45,45 +71,82 @@ function isSelectionClosed(deadline: string | null | undefined) {
   return deadline < new Date().toISOString().slice(0, 10);
 }
 
-function buildGalleryAccessToken(gallery: PublicGalleryRow) {
-  if (!gallery.access_url) {
+function getGalleryPublicSlug(gallery: PublicGalleryRow) {
+  return gallery.share_slug || gallery.access_url || null;
+}
+
+function getGalleryCapability(gallery: PublicGalleryRow) {
+  return gallery.capability || "select";
+}
+
+function getGalleryAccessVersion(gallery: PublicGalleryRow) {
+  return (gallery.access_version || 1) + (gallery.share_link_access_version || 0);
+}
+
+function buildGalleryAccessToken(
+  gallery: PublicGalleryRow,
+  capability: GalleryShareCapability = getGalleryCapability(gallery),
+) {
+  const slug = getGalleryPublicSlug(gallery);
+
+  if (!slug) {
     throw new Error("Gallery chua co link chia se.");
   }
 
   return signGalleryAccessProof({
     galleryId: gallery.id,
-    accessUrl: gallery.access_url,
-    accessVersion: gallery.access_version,
+    accessUrl: slug,
+    accessVersion: getGalleryAccessVersion(gallery),
+    capability,
   });
 }
 
-async function fetchSharedGalleryByAccessUrl(
+function isMissingTableError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || "";
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    message.includes("gallery_share_links") ||
+    message.includes("could not find the table")
+  );
+}
+
+function normalizeShareLinkRow(row: GalleryShareLinkRow | null | undefined) {
+  if (!row) return null;
+  if (row.status !== "active") return null;
+  if (row.expires_at && row.expires_at <= new Date().toISOString()) return null;
+  return row;
+}
+
+async function fetchActiveShareLinkBySlug(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  accessUrl: string,
+  slug: string,
 ) {
   const { data, error } = await supabase
-    .from("galleries")
-    .select("id, title, status, selection_deadline, access_url, password, password_hash, access_version")
-    .eq("access_url", accessUrl)
-    .eq("status", "shared")
+    .from("gallery_share_links")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "active")
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Loi tai gallery: ${error.message}`);
+    if (isMissingTableError(error)) return null;
+    throw new Error(`Loi tai link gallery: ${error.message}`);
   }
 
-  return (data || null) as PublicGalleryRow | null;
+  return normalizeShareLinkRow(data as GalleryShareLinkRow | null);
 }
 
-async function fetchSharedGalleryById(
+async function fetchSharedGalleryBaseById(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   galleryId: string,
 ) {
   const { data, error } = await supabase
     .from("galleries")
-    .select("id, title, status, selection_deadline, access_url, password, password_hash, access_version")
+    .select("*")
     .eq("id", galleryId)
     .eq("status", "shared")
     .maybeSingle();
@@ -95,12 +158,84 @@ async function fetchSharedGalleryById(
   return (data || null) as PublicGalleryRow | null;
 }
 
-function assertGalleryProof(gallery: PublicGalleryRow, accessToken: string) {
-  if (!gallery.access_url) return false;
+function attachShareLinkToGallery(
+  gallery: PublicGalleryRow,
+  link: GalleryShareLinkRow | null,
+) {
+  if (!link) {
+    return {
+      ...gallery,
+      capability: "select" as GalleryShareCapability,
+      share_link_id: null,
+      share_slug: null,
+      share_link_access_version: null,
+    };
+  }
+
+  return {
+    ...gallery,
+    capability: link.capability,
+    share_link_id: link.id,
+    share_slug: link.slug,
+    share_link_access_version: link.access_version,
+  };
+}
+
+async function fetchSharedGalleryByAccessUrl(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  accessUrl: string,
+) {
+  const slug = accessUrl.trim();
+  const link = await fetchActiveShareLinkBySlug(supabase, slug);
+  if (link) {
+    const gallery = await fetchSharedGalleryBaseById(supabase, link.gallery_id);
+    return gallery ? attachShareLinkToGallery(gallery, link) : null;
+  }
+
+  const { data, error } = await supabase
+    .from("galleries")
+    .select("*")
+    .eq("access_url", slug)
+    .eq("status", "shared")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Loi tai gallery: ${error.message}`);
+  }
+
+  return data ? attachShareLinkToGallery(data as PublicGalleryRow, null) : null;
+}
+
+async function fetchSharedGalleryById(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  accessUrl?: string,
+) {
+  if (accessUrl?.trim()) {
+    const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
+    if (!gallery || gallery.id !== galleryId) return null;
+    return gallery;
+  }
+
+  const gallery = await fetchSharedGalleryBaseById(supabase, galleryId);
+  return gallery ? attachShareLinkToGallery(gallery, null) : null;
+}
+
+function assertGalleryProof(
+  gallery: PublicGalleryRow,
+  accessToken: string,
+  requiredCapability?: GalleryShareCapability,
+) {
+  const slug = getGalleryPublicSlug(gallery);
+  if (!slug) return false;
+
   return verifyGalleryAccessProof(accessToken, {
     galleryId: gallery.id,
-    accessUrl: gallery.access_url,
-    accessVersion: gallery.access_version,
+    accessUrl: slug,
+    accessVersion: getGalleryAccessVersion(gallery),
+    capability: requiredCapability || getGalleryCapability(gallery),
   });
 }
 
@@ -120,7 +255,7 @@ async function requirePublicGalleryImageAccess(
     throw new Error("Gallery khong ton tai hoac chua duoc chia se.");
   }
 
-  if (!assertGalleryProof(gallery, accessToken)) {
+  if (!assertGalleryProof(gallery, accessToken, "select")) {
     throw new Error("Phien truy cap gallery khong hop le hoac da het han.");
   }
 
@@ -181,8 +316,146 @@ async function updateGalleryImageNote(
   }
 }
 
-function filterRawFiles(images: Array<{ file_name?: string | null }>) {
-  return images.filter((img) => !RAW_EXTENSIONS.test(img.file_name || ""));
+function normalizePage(page: number) {
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 0;
+}
+
+function normalizePageSize(pageSize: number) {
+  if (!Number.isFinite(pageSize)) return PUBLIC_IMAGE_PAGE_SIZE;
+  return Math.min(Math.max(Math.floor(pageSize), 1), 200);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyPublicImageFilter(query: any) {
+  return RAW_EXTENSION_VALUES.reduce(
+    (currentQuery, extension) =>
+      currentQuery.not("file_name", "ilike", `%.${extension}`),
+    query,
+  );
+}
+
+async function fetchGalleryImageCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  options?: { selectedOnly?: boolean; publicVisibleOnly?: boolean },
+) {
+  let query = supabase
+    .from("gallery_images")
+    .select("id", { count: "exact", head: true })
+    .eq("gallery_id", galleryId);
+
+  if (options?.selectedOnly) {
+    query = query.eq("is_selected", true);
+  }
+
+  if (options?.publicVisibleOnly) {
+    query = applyPublicImageFilter(query);
+  }
+
+  const { count, error } = await query;
+  if (error) {
+    throw new Error(`Khong the dem anh gallery: ${error.message}`);
+  }
+
+  return count ?? 0;
+}
+
+async function fetchGalleryCoverImage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  publicVisibleOnly = false,
+  coverImageId?: string | null,
+) {
+  if (coverImageId) {
+    const { data: cover, error: coverError } = await supabase
+      .from("gallery_images")
+      .select("thumbnail_url, image_url")
+      .eq("gallery_id", galleryId)
+      .eq("id", coverImageId)
+      .maybeSingle();
+
+    if (coverError) {
+      throw new Error(`Khong the tai cover gallery: ${coverError.message}`);
+    }
+
+    if (cover) {
+      return cover.thumbnail_url || cover.image_url || null;
+    }
+  }
+
+  let query = supabase
+    .from("gallery_images")
+    .select("thumbnail_url, image_url")
+    .eq("gallery_id", galleryId);
+
+  if (publicVisibleOnly) {
+    query = applyPublicImageFilter(query);
+  }
+
+  const { data, error } = await query
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Khong the tai cover gallery: ${error.message}`);
+  }
+
+  return data?.thumbnail_url || data?.image_url || null;
+}
+
+async function fetchGallerySummaryMetrics(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+) {
+  const [imageCount, selectedCount, coverImageUrl] = await Promise.all([
+    fetchGalleryImageCount(supabase, galleryId),
+    fetchGalleryImageCount(supabase, galleryId, { selectedOnly: true }),
+    fetchGalleryCoverImage(supabase, galleryId),
+  ]);
+
+  return { imageCount, selectedCount, coverImageUrl };
+}
+
+async function fetchPublicGalleryImagesPage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  page: number,
+  pageSize = PUBLIC_IMAGE_PAGE_SIZE,
+) {
+  const safePage = normalizePage(page);
+  const safePageSize = normalizePageSize(pageSize);
+  const from = safePage * safePageSize;
+  const to = from + safePageSize - 1;
+
+  let query = supabase
+    .from("gallery_images")
+    .select(IMAGE_COLS, { count: "exact" })
+    .eq("gallery_id", galleryId);
+
+  query = applyPublicImageFilter(query);
+
+  const { data, error, count } = await query
+    .order("sort_order", { ascending: true })
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Khong the tai anh gallery: ${error.message}`);
+  }
+
+  const images = data || [];
+  const totalCount = count ?? 0;
+
+  return {
+    images,
+    totalCount,
+    hasMore: from + images.length < totalCount,
+    page: safePage,
+  };
 }
 
 async function fetchAllGalleryImages(
@@ -219,6 +492,83 @@ async function fetchAllGalleryImages(
   }
 
   return all;
+}
+
+function generateShareLinkSlug(capability: GalleryShareCapability) {
+  return `${capability}-${generateAccessUrl()}`;
+}
+
+async function insertShareLinkWithRetry(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  capability: GalleryShareCapability,
+  userId: string,
+) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { data, error } = await supabase
+      .from("gallery_share_links")
+      .insert({
+        gallery_id: galleryId,
+        slug: generateShareLinkSlug(capability),
+        capability,
+        status: "active",
+        created_by: userId,
+      })
+      .select("*")
+      .single();
+
+    if (!error && data) return data as GalleryShareLink;
+
+    if (error?.code !== "23505") {
+      throw new Error(`Khong the tao link ${capability}: ${error?.message || "Unknown"}`);
+    }
+  }
+
+  throw new Error(`Khong the tao link ${capability}: trung slug qua nhieu lan.`);
+}
+
+async function ensureGalleryShareLink(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  capability: GalleryShareCapability,
+  userId: string,
+) {
+  const { data: existing, error } = await supabase
+    .from("gallery_share_links")
+    .select("*")
+    .eq("gallery_id", galleryId)
+    .eq("capability", capability)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Khong the tai link ${capability}: ${error.message}`);
+  }
+
+  if (existing) {
+    if (existing.status === "active") return existing as GalleryShareLink;
+
+    const { data: reactivated, error: updateError } = await supabase
+      .from("gallery_share_links")
+      .update({
+        slug: generateShareLinkSlug(capability),
+        status: "active",
+        access_version: (existing.access_version || 1) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (updateError || !reactivated) {
+      throw new Error(`Khong the kich hoat link ${capability}: ${updateError?.message || "Unknown"}`);
+    }
+
+    return reactivated as GalleryShareLink;
+  }
+
+  return insertShareLinkWithRetry(supabase, galleryId, capability, userId);
 }
 
 export async function createGallery(
@@ -279,6 +629,74 @@ export async function createGallery(
 
     revalidatePath(`/contracts/${contractId}`);
     return { galleryId: gallery.id, accessUrl, totalImages: driveFiles.length };
+  });
+}
+
+export async function ensureGalleryShareLinks(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID gallery khong hop le.");
+    }
+
+    const { data: gallery, error } = await supabase
+      .from("galleries")
+      .select("id, contract_id")
+      .eq("id", galleryId)
+      .maybeSingle();
+
+    if (error || !gallery) {
+      throw new Error(`Gallery khong ton tai: ${error?.message || "Unknown"}`);
+    }
+
+    const links = await Promise.all(
+      SHARE_LINK_CAPABILITIES.map((capability) =>
+        ensureGalleryShareLink(supabase, galleryId, capability, userId),
+      ),
+    );
+
+    return links.sort(
+      (a, b) =>
+        SHARE_LINK_CAPABILITIES.indexOf(a.capability) -
+        SHARE_LINK_CAPABILITIES.indexOf(b.capability),
+    ) as GalleryShareLink[];
+  });
+}
+
+export async function getGallerySummariesByContract(contractId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { data: galleries, error } = await supabase
+      .from("galleries")
+      .select("*")
+      .eq("contract_id", contractId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw new Error(`Loi lay galleries: ${error.message}`);
+    }
+
+    if (!galleries || galleries.length === 0) {
+      return [] as GallerySummary[];
+    }
+
+    const summaries = await Promise.all(
+      galleries.map(async (gallery) => {
+        const metrics = await fetchGallerySummaryMetrics(supabase, gallery.id);
+
+        return {
+          ...gallery,
+          imageCount: metrics.imageCount,
+          selectedCount: metrics.selectedCount,
+          coverImageUrl: metrics.coverImageUrl,
+          hasPassword: Boolean(gallery.password_hash || gallery.password),
+        };
+      }),
+    );
+
+    return summaries as GallerySummary[];
   });
 }
 
@@ -411,11 +829,18 @@ export async function shareGallery(galleryId: string) {
       throw new Error(`Loi chia se gallery: ${error?.message || "Unknown"}`);
     }
 
+    const shareLinks = await Promise.all(
+      SHARE_LINK_CAPABILITIES.map((capability) =>
+        ensureGalleryShareLink(supabase, data.id, capability, userId),
+      ),
+    );
+
     revalidatePath(`/contracts/${data.contract_id}`);
     return {
       accessUrl: data.access_url,
       galleryId: data.id,
       hasPassword: !!(data.password_hash || data.password),
+      shareLinks,
     };
   });
 }
@@ -502,6 +927,48 @@ export async function setGalleryPassword(
   });
 }
 
+export async function getPublicGalleryPreview(accessUrl: string) {
+  try {
+    const supabase = await createAdminClient();
+    const data = await fetchSharedGalleryByAccessUrl(supabase, accessUrl);
+
+    if (!data) {
+      return {
+        success: false as const,
+        error: "Album chua san sang hoac khong ton tai.",
+      };
+    }
+
+    const [imageCount, coverImageUrl] = await Promise.all([
+      fetchGalleryImageCount(supabase, data.id, { publicVisibleOnly: true }),
+      data.og_image_url
+        ? Promise.resolve(data.og_image_url)
+        : fetchGalleryCoverImage(supabase, data.id, true, data.cover_image_id),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        id: data.id,
+        title: data.og_title || data.title,
+        status: data.status,
+        selection_deadline: data.selection_deadline,
+        access_url: getGalleryPublicSlug(data),
+        imageCount,
+        coverImageUrl,
+        hasPassword: galleryHasPassword(data),
+        capability: getGalleryCapability(data),
+        shareSlug: data.share_slug || data.access_url,
+        ogTitle: data.og_title,
+        ogDescription: data.og_description,
+      } satisfies GalleryPublicPreview,
+    };
+  } catch (err) {
+    console.error("[getPublicGalleryPreview] Error:", err);
+    return { success: false as const, error: "Loi server." };
+  }
+}
+
 export async function getPublicGallery(accessUrl: string) {
   try {
     const supabase = await createAdminClient();
@@ -519,27 +986,32 @@ export async function getPublicGallery(accessUrl: string) {
         success: true as const,
         data: {
           id: data.id,
-          title: data.title,
+          title: data.og_title || data.title,
           status: data.status,
           selection_deadline: data.selection_deadline,
-          access_url: data.access_url,
+          access_url: getGalleryPublicSlug(data),
+          capability: getGalleryCapability(data),
           needsPassword: true as const,
         },
       };
     }
 
-    const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
+    const page = await fetchPublicGalleryImagesPage(supabase, data.id, 0);
 
     return {
       success: true as const,
       data: {
         id: data.id,
-        title: data.title,
+        title: data.og_title || data.title,
         status: data.status,
         selection_deadline: data.selection_deadline,
-        access_url: data.access_url,
+        access_url: getGalleryPublicSlug(data),
+        capability: getGalleryCapability(data),
         accessToken: buildGalleryAccessToken(data),
-        gallery_images: images,
+        gallery_images: page.images,
+        imageCount: page.totalCount,
+        hasMoreImages: page.hasMore,
+        currentPage: page.page,
         needsPassword: false as const,
       } as Gallery & { needsPassword: false },
     };
@@ -552,6 +1024,7 @@ export async function getPublicGallery(accessUrl: string) {
 export async function verifyGalleryPassword(
   galleryId: string,
   password: string,
+  accessUrl?: string,
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
@@ -563,7 +1036,7 @@ export async function verifyGalleryPassword(
     }
 
     const supabase = await createAdminClient();
-    const data = await fetchSharedGalleryById(supabase, galleryId);
+    const data = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!data) {
       return { success: false as const, error: "Gallery khong ton tai." };
@@ -596,17 +1069,21 @@ export async function verifyGalleryPassword(
       return { success: false as const, error: "Mat khau khong dung." };
     }
 
-    const images = filterRawFiles(await fetchAllGalleryImages(supabase, data.id));
+    const page = await fetchPublicGalleryImagesPage(supabase, data.id, 0);
     return {
       success: true as const,
       data: {
         id: data.id,
-        title: data.title,
+        title: data.og_title || data.title,
         status: data.status,
         selection_deadline: data.selection_deadline,
-        access_url: data.access_url,
+        access_url: getGalleryPublicSlug(data),
+        capability: getGalleryCapability(data),
         accessToken: buildGalleryAccessToken(data),
-        gallery_images: images,
+        gallery_images: page.images,
+        imageCount: page.totalCount,
+        hasMoreImages: page.hasMore,
+        currentPage: page.page,
         needsPassword: false,
       } as Gallery,
     };
@@ -619,6 +1096,7 @@ export async function verifyGalleryPassword(
 export async function getPublicGalleryWithAccess(
   galleryId: string,
   accessToken: string,
+  accessUrl?: string,
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
@@ -626,7 +1104,7 @@ export async function getPublicGalleryWithAccess(
     }
 
     const supabase = await createAdminClient();
-    const gallery = await fetchSharedGalleryById(supabase, galleryId);
+    const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!gallery) {
       return { success: false as const, error: "Gallery khong ton tai." };
@@ -639,17 +1117,21 @@ export async function getPublicGalleryWithAccess(
       };
     }
 
-    const images = filterRawFiles(await fetchAllGalleryImages(supabase, gallery.id));
+    const page = await fetchPublicGalleryImagesPage(supabase, gallery.id, 0);
     return {
       success: true as const,
       data: {
         id: gallery.id,
-        title: gallery.title,
+        title: gallery.og_title || gallery.title,
         status: gallery.status,
         selection_deadline: gallery.selection_deadline,
-        access_url: gallery.access_url,
+        access_url: getGalleryPublicSlug(gallery),
+        capability: getGalleryCapability(gallery),
         accessToken: buildGalleryAccessToken(gallery),
-        gallery_images: images,
+        gallery_images: page.images,
+        imageCount: page.totalCount,
+        hasMoreImages: page.hasMore,
+        currentPage: page.page,
         needsPassword: false,
       } as Gallery,
     };
@@ -657,6 +1139,180 @@ export async function getPublicGalleryWithAccess(
     console.error("[getPublicGalleryWithAccess] Error:", err);
     return { success: false as const, error: "Loi server." };
   }
+}
+
+export async function getPublicGalleryImagesPaginated(
+  galleryId: string,
+  accessToken: string,
+  page: number,
+  pageSize = PUBLIC_IMAGE_PAGE_SIZE,
+  accessUrl?: string,
+) {
+  try {
+    if (!galleryId || !isValidUUID(galleryId)) {
+      return { success: false as const, error: "ID khong hop le." };
+    }
+
+    const supabase = await createAdminClient();
+    const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
+
+    if (!gallery) {
+      return { success: false as const, error: "Gallery khong ton tai." };
+    }
+
+    if (!assertGalleryProof(gallery, accessToken)) {
+      return {
+        success: false as const,
+        error: "Phien truy cap gallery da het han.",
+      };
+    }
+
+    const imagePage = await fetchPublicGalleryImagesPage(
+      supabase,
+      gallery.id,
+      page,
+      pageSize,
+    );
+
+    return {
+      success: true as const,
+      data: imagePage,
+    };
+  } catch (err) {
+    console.error("[getPublicGalleryImagesPaginated] Error:", err);
+    return { success: false as const, error: "Loi server." };
+  }
+}
+
+export async function createSelectionBatchFromCurrentSelection(
+  galleryId: string,
+  createdByClient?: string,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID gallery khong hop le.");
+    }
+
+    const { data: gallery, error: galleryError } = await supabase
+      .from("galleries")
+      .select("id, contract_id")
+      .eq("id", galleryId)
+      .maybeSingle();
+
+    if (galleryError || !gallery) {
+      throw new Error(`Gallery khong ton tai: ${galleryError?.message || "Unknown"}`);
+    }
+
+    const { data: selectedImages, error: imagesError } = await supabase
+      .from("gallery_images")
+      .select("id, file_name, drive_file_id, sort_order, client_note")
+      .eq("gallery_id", galleryId)
+      .eq("is_selected", true)
+      .order("sort_order", { ascending: true });
+
+    if (imagesError) {
+      throw new Error(`Khong the tai anh da chon: ${imagesError.message}`);
+    }
+
+    if (!selectedImages || selectedImages.length === 0) {
+      throw new Error("Chua co anh nao duoc chon.");
+    }
+
+    const { data: batch, error: batchError } = await supabase
+      .from("gallery_selection_batches")
+      .insert({
+        gallery_id: galleryId,
+        contract_id: gallery.contract_id,
+        status: "studio_locked",
+        selected_count: selectedImages.length,
+        created_by_client: createdByClient?.trim() || null,
+        locked_by: userId,
+        locked_at: new Date().toISOString(),
+      })
+      .select("*")
+      .single();
+
+    if (batchError || !batch) {
+      throw new Error(`Khong the tao batch anh da chon: ${batchError?.message || "Unknown"}`);
+    }
+
+    const items = selectedImages.map((image) => ({
+      batch_id: batch.id,
+      image_id: image.id,
+      file_name: image.file_name,
+      drive_file_id: image.drive_file_id,
+      sort_order: image.sort_order,
+      client_note: image.client_note,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("gallery_selection_batch_items")
+      .insert(items);
+
+    if (itemsError) {
+      await supabase.from("gallery_selection_batches").delete().eq("id", batch.id);
+      throw new Error(`Khong the luu danh sach anh da chon: ${itemsError.message}`);
+    }
+
+    return batch as GallerySelectionBatch;
+  });
+}
+
+export async function createGalleryFilterJob(
+  galleryId: string,
+  jobType: GalleryFilterJobType,
+  batchId?: string | null,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID gallery khong hop le.");
+    }
+
+    if (jobType !== "drive_copy_jpg" && jobType !== "local_manifest") {
+      throw new Error("Loai job khong hop le.");
+    }
+
+    let totalCount = 0;
+    if (batchId) {
+      if (!isValidUUID(batchId)) {
+        throw new Error("ID batch khong hop le.");
+      }
+
+      const { count, error: countError } = await supabase
+        .from("gallery_selection_batch_items")
+        .select("id", { count: "exact", head: true })
+        .eq("batch_id", batchId);
+
+      if (countError) {
+        throw new Error(`Khong the dem anh trong batch: ${countError.message}`);
+      }
+
+      totalCount = count || 0;
+    }
+
+    const { data: job, error } = await supabase
+      .from("gallery_filter_jobs")
+      .insert({
+        gallery_id: galleryId,
+        batch_id: batchId || null,
+        job_type: jobType,
+        status: "queued",
+        total_count: totalCount,
+        created_by: userId,
+      })
+      .select("*")
+      .single();
+
+    if (error || !job) {
+      throw new Error(`Khong the tao job loc anh: ${error?.message || "Unknown"}`);
+    }
+
+    return job as GalleryFilterJob;
+  });
 }
 
 export async function toggleImageSelection(
@@ -766,4 +1422,69 @@ export async function reorderImages(orderedIds: string[]) {
   }
 
   return { success: true as const, data: null };
+}
+
+export async function getGalleryShareDetails(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const { data: gallery, error } = await supabase
+      .from("galleries")
+      .select("id, status, title, password, password_hash, access_url")
+      .eq("id", galleryId)
+      .single();
+
+    if (error || !gallery) {
+      throw new Error("Khong tim thay gallery.");
+    }
+
+    const { data: links } = await supabase
+      .from("gallery_share_links")
+      .select("*")
+      .eq("gallery_id", galleryId)
+      .eq("status", "active");
+
+    return {
+      status: gallery.status,
+      title: gallery.title,
+      accessUrl: gallery.access_url,
+      hasPassword: !!(gallery.password_hash || gallery.password),
+      shareLinks: links || [],
+    };
+  });
+}
+
+export async function getGalleryPreviewMetadata(slug: string) {
+  try {
+    const supabase = await createAdminClient();
+    
+    // Thu tu uu tien: Share Link Slug -> Access URL
+    let gallery = null;
+    const link = await fetchActiveShareLinkBySlug(supabase, slug);
+    if (link) {
+      gallery = await fetchSharedGalleryBaseById(supabase, link.gallery_id);
+    } else {
+      const { data } = await supabase
+        .from("galleries")
+        .select("*")
+        .eq("access_url", slug)
+        .eq("status", "shared")
+        .maybeSingle();
+      gallery = data;
+    }
+
+    if (!gallery) return null;
+
+    const coverImageUrl = await fetchGalleryCoverImage(supabase, gallery.id, true, gallery.cover_image_id);
+
+    return {
+      title: gallery.og_title || gallery.title || "Album Ảnh",
+      description: gallery.og_description || "Xem và chọn ảnh yêu thích của bạn từ Mood Studio.",
+      coverImageUrl,
+      status: gallery.status,
+    };
+  } catch (error) {
+    console.error("[getGalleryPreviewMetadata] Error:", error);
+    return null;
+  }
 }

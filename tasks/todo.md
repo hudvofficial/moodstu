@@ -1,8 +1,7 @@
-# Debt UI Alignment Checklist
+# UI Optimization for Gallery Toolbar
 
-- [x] Wrap Stats and Actions into unified container in `debts-client.tsx`
-- [x] Refactor `DebtStatsBar` to use SSOT `<StatsBar>` component
-- [x] Extract aging analysis into `DebtAgingCard` and remove custom hex styling
-- [x] Extract and standardize `DebtFilters` (separating from debts-client) - Skipped as not in API yet
-- [x] Cleanup `GhostScanWidget` button styles
-- [x] Fix huge amount text size in `debt-mobile-list.tsx`
+- [x] Modify `components/ui/stats-bar.tsx` to match the Shotpik pill design (background colors, specific icons, dividers).
+- [x] Update `components/contracts/gallery/gallery-filter-modal.tsx` to accept a default active tab prop (`defaultTab`).
+- [x] Update `components/contracts/gallery/gallery-toolbar-actions.tsx` to change `ViewModeToggle` and redesign `GalleryMoreMenu` into a "Tác vụ" button with a comprehensive dropdown menu.
+- [x] Update `components/contracts/gallery/gallery-toolbar.tsx` to remove the big "Lọc ảnh đã chọn" button from the main toolbar and instead pass the handlers to `GalleryMoreMenu`.
+- [x] Apply mobile responsive styles to match Shotpik's floating bottom bar logic if applicable, or just clean up the layout.

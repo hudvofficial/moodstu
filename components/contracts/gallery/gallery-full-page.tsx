@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { reorderImages } from "@/app/actions/gallery-actions";
+import { copySelectedJpgToDrive } from "@/app/actions/gallery-drive-actions";
+import { toast } from "sonner";
 import GalleryImageGrid from "./gallery-image-grid";
 import GalleryImageList from "./gallery-image-list";
 import GalleryLightbox from "./gallery-lightbox";
 import GalleryToolbar from "./gallery-toolbar";
+import GalleryFilterModal from "./gallery-filter-modal";
+import { GalleryListModal } from "./gallery-list-modal";
 import { useModal } from "@/lib/context/modal-context";
 import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
@@ -26,10 +30,10 @@ interface GalleryFullPageProps {
 export default function GalleryFullPage({ contractId, galleryId, folderType }: GalleryFullPageProps) {
   const {
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
-    activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
+    commentCountsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
     activeGallery, images, groupedImages, filteredGroups, displayImages,
     rawCount, jpgCount, selectedCount, hasPassword, totalHearts,
-    allDownloadFiles, selectedDownloadFiles,
+    allDownloadFiles, selectedDownloadFiles, totalImageCount,
     hasMoreImages, loadingMore, loadMoreImages,
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
@@ -50,6 +54,9 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
   }, [setHeaderSlots, contractId]);
 
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const [filterTab, setFilterTab] = useState<"drive" | "local" | "export">("local");
   const { openModal } = useModal();
 
   // Share modal handler
@@ -62,6 +69,34 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
       hasPassword,
     });
   };
+
+  const handleCopySelectedJpg = async () => {
+    if (!activeGalleryId) return;
+    const toastId = toast.loading("Đang tạo thư mục và copy ảnh...");
+    try {
+      // Temporary solution: Use contractId if contractCode is not immediately available.
+      // Wait, copySelectedJpgToDrive requires contractCode. Let's just pass contractId for now,
+      // and we can fetch contract_code inside copySelectedJpgToDrive using contractId!
+      const res = await copySelectedJpgToDrive(activeGalleryId, contractId);
+      if ("error" in res) {
+        toast.error(res.error, { id: toastId });
+      } else if (!res.data.success || "error" in res.data) {
+        toast.error((res.data as any).error || "Lỗi không xác định", { id: toastId });
+      } else {
+        const successCount = res.data.successCount ?? 0;
+        const failedCount = res.data.failedCount ?? 0;
+        toast.success(`Đã copy ${successCount} ảnh thành công! ${failedCount > 0 ? `(Lỗi ${failedCount} ảnh)` : ""}`, { id: toastId });
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Đã xảy ra lỗi", { id: toastId });
+    }
+  };
+
+  const selectedJpgNames = useMemo(() => {
+    return images
+      .filter((img) => img.is_selected && img.file_name && /\.(jpe?g)$/i.test(img.file_name))
+      .map((img) => img.file_name as string);
+  }, [images]);
 
   // Reorder handler for drag & drop
   const handleReorder = useCallback((fromIdx: number, toIdx: number) => {
@@ -100,9 +135,12 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         fileFilter={fileFilter}
         activeFilter={activeFilter}
         activeGalleryId={activeGalleryId}
+        galleryStatus={activeGallery?.status || "draft"}
+        galleryAccessUrl={activeGallery?.access_url}
         rawCount={rawCount}
         jpgCount={jpgCount}
         selectedCount={selectedCount}
+        totalImageCount={totalImageCount}
         totalHearts={totalHearts}
         commentCount={commentCount}
         viewMode={viewMode}
@@ -125,6 +163,29 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         onSetShowAlbumInput={setShowAlbumInput}
         onSetNewAlbumName={setNewAlbumName}
         onCreateAlbum={handleCreateAlbum}
+        onOpenFilterModal={(tab) => {
+          if (tab) setFilterTab(tab);
+          setIsFilterModalOpen(true);
+        }}
+        onOpenListModal={() => setIsListModalOpen(true)}
+      />
+
+      <GalleryFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        selectedJpgNames={selectedJpgNames}
+        onCopyDrive={handleCopySelectedJpg}
+        contractCode={contractId} // fallback to ID
+        defaultTab={filterTab}
+      />
+
+      <GalleryListModal
+        isOpen={isListModalOpen}
+        onClose={() => setIsListModalOpen(false)}
+        images={images}
+        contractCode={contractId}
+        reactionCounts={reactionCounts}
+        commentCountsPerImage={commentCountsPerImage}
       />
 
       {/* ── Image Grid or List ── */}

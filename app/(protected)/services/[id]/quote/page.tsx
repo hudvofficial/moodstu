@@ -28,7 +28,7 @@ const STUDIO_FALLBACK: StudioInfo = {
   social_links: null,
   working_hours: null,
   timezone: null,
-  google_calendar_auth: null,
+  google_oauth: null,
   created_at: null,
   updated_at: null,
 };

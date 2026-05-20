@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit";
 import { requireSettingsAdminAccess } from "@/lib/auth_utils";
 import {
-  encryptGoogleCalendarAuth,
-  decryptGoogleCalendarAuth,
-  redactGoogleCalendarAuth,
+  encryptGoogleOAuth,
+  decryptGoogleOAuth,
+  redactGoogleOAuth,
   safeCompareSecret,
 } from "@/lib/settings-secrets";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -33,9 +33,16 @@ async function clearStateCookie() {
 
 async function validateState(requestState: string | null) {
   const cookieStore = await cookies();
-  const storedState = cookieStore.get(GOOGLE_OAUTH_STATE_COOKIE)?.value || "";
-  if (!requestState || !storedState) return false;
-  return safeCompareSecret(requestState, storedState);
+  const storedStateString = cookieStore.get(GOOGLE_OAUTH_STATE_COOKIE)?.value || "";
+  if (!requestState || !storedStateString) return false;
+  
+  try {
+    const requestStateObj = JSON.parse(Buffer.from(requestState, "base64url").toString("utf8"));
+    const storedStateObj = JSON.parse(Buffer.from(storedStateString, "base64url").toString("utf8"));
+    return safeCompareSecret(requestStateObj.nonce || "", storedStateObj.nonce || "");
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(request: Request) {
@@ -111,13 +118,13 @@ export async function GET(request: Request) {
 
     const { data: studioInfo, error: studioError } = await adminClient
       .from("studio_info")
-      .select("id, google_calendar_auth")
+      .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
     if (studioError) throw studioError;
 
-    const existingAuth = decryptGoogleCalendarAuth(studioInfo?.google_calendar_auth);
+    const existingAuth = decryptGoogleOAuth(studioInfo?.google_oauth);
     const mergedAuth = {
       ...(existingAuth || {}),
       ...tokens,
@@ -125,14 +132,18 @@ export async function GET(request: Request) {
         typeof tokens.refresh_token === "string"
           ? tokens.refresh_token
           : existingAuth?.refresh_token,
+      granted_scopes:
+        typeof tokens.scope === "string"
+          ? tokens.scope
+          : existingAuth?.granted_scopes,
       updated_at: new Date().toISOString(),
     };
-    const encryptedAuth = encryptGoogleCalendarAuth(mergedAuth);
+    const encryptedAuth = encryptGoogleOAuth(mergedAuth);
 
     if (studioInfo) {
       const { error: updateError } = await adminClient
         .from("studio_info")
-        .update({ google_calendar_auth: encryptedAuth })
+        .update({ google_oauth: encryptedAuth })
         .eq("id", studioInfo.id);
 
       if (updateError) throw updateError;
@@ -141,19 +152,19 @@ export async function GET(request: Request) {
         action: "UPDATE",
         tableName: "studio_info",
         recordId: studioInfo.id,
-        description: "Ket noi Google Calendar",
+        description: "Ket noi Google (Calendar + Drive)",
         oldData: {
-          google_calendar_auth: redactGoogleCalendarAuth(
-            studioInfo.google_calendar_auth,
+          google_oauth: redactGoogleOAuth(
+            studioInfo.google_oauth,
           ),
         },
-        newData: { google_calendar_auth: redactGoogleCalendarAuth(encryptedAuth) },
+        newData: { google_oauth: redactGoogleOAuth(encryptedAuth) },
         source: "server_action",
       });
     } else {
       const { data: created, error: insertError } = await adminClient
         .from("studio_info")
-        .insert([{ name: "Mood Studio", google_calendar_auth: encryptedAuth }])
+        .insert([{ name: "Mood Studio", google_oauth: encryptedAuth }])
         .select("id")
         .single();
 
@@ -163,8 +174,8 @@ export async function GET(request: Request) {
         action: "CREATE",
         tableName: "studio_info",
         recordId: created.id,
-        description: "Ket noi Google Calendar",
-        newData: { google_calendar_auth: redactGoogleCalendarAuth(encryptedAuth) },
+        description: "Ket noi Google (Calendar + Drive)",
+        newData: { google_oauth: redactGoogleOAuth(encryptedAuth) },
         source: "server_action",
       });
     }

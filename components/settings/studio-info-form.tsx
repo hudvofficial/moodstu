@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Save, Loader2 } from "lucide-react";
 import {
-  disconnectGoogleCalendar,
+  disconnectGoogleOAuth,
   uploadStudioLogo,
   updateMoodieAiSettings,
   updateStudioInfo,
@@ -203,7 +203,7 @@ export default function StudioInfoForm({
               ? (() => {
                   const publicStudioInfo = {
                     ...result.data,
-                    google_calendar_auth: null,
+                    google_oauth: null,
                   };
                   setSavedStudioInfo(result.data);
                   void mutate(cacheKeys.studioInfo(), publicStudioInfo, { revalidate: false });
@@ -346,10 +346,11 @@ export default function StudioInfoForm({
 
         <div className="detail-sidebar">
           <GoogleCalendarCard
-            isConnected={!!savedStudioInfo.google_calendar_auth}
-            onDisconnect={disconnectGoogleCalendar}
+            isConnected={!!savedStudioInfo.google_oauth}
+            grantedScopes={savedStudioInfo.google_oauth?.granted_scopes}
+            onDisconnect={disconnectGoogleOAuth}
             onDisconnected={() => {
-              setSavedStudioInfo((current) => ({ ...current, google_calendar_auth: null }));
+              setSavedStudioInfo((current) => ({ ...current, google_oauth: null }));
               void mutate(cacheKeys.studioInfo());
             }}
           />
@@ -360,10 +361,11 @@ export default function StudioInfoForm({
 
       <div className="lg:hidden flex flex-col gap-4">
         <GoogleCalendarCard
-          isConnected={!!savedStudioInfo.google_calendar_auth}
-          onDisconnect={disconnectGoogleCalendar}
+          isConnected={!!savedStudioInfo.google_oauth}
+          grantedScopes={savedStudioInfo.google_oauth?.granted_scopes}
+          onDisconnect={disconnectGoogleOAuth}
           onDisconnected={() => {
-            setSavedStudioInfo((current) => ({ ...current, google_calendar_auth: null }));
+            setSavedStudioInfo((current) => ({ ...current, google_oauth: null }));
             void mutate(cacheKeys.studioInfo());
           }}
         />

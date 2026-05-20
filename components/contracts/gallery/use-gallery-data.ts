@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { getGalleriesByContract, toggleImageSelection } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, toggleImageSelection } from "@/app/actions/gallery-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { getReactionCounts, getGalleryCommentCount, getCommentCountsPerImage, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getAlbumsByGallery, createAlbum, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import type { Gallery, GalleryImage } from "@/types/gallery";
+import type { GalleryImage, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
 
@@ -15,7 +15,7 @@ import { type SortOption } from "./gallery-sort-dropdown";
 // ═══════════════════════════════════════════
 
 export function useGalleryData(contractId: string, galleryId: string | null, folderType: string | null) {
-  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const [galleries, setGalleries] = useState<GallerySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGalleryId, setActiveGalleryId] = useState<string | null>(galleryId);
   const [fileFilter, setFileFilter] = useState<FileFilter>("all");
@@ -70,7 +70,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // ─── Load galleries ───────────────────────
   const loadData = useCallback(async () => {
     setLoading(true);
-    const res = await getGalleriesByContract(contractId);
+    const res = await getGallerySummariesByContract(contractId);
     if (res.success && res.data) {
       setGalleries(res.data);
       if (!activeGalleryId && res.data.length > 0) {
@@ -105,12 +105,14 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // ─── Lazy-load images when gallery changes ───
   useEffect(() => {
     if (!activeGalleryId) return;
+    let cancelled = false;
     setPaginatedImages([]);
     setCurrentPage(0);
     setHasMoreImages(false);
     setTotalImageCount(0);
     setLoadingMore(true);
     void getGalleryImagesPaginated(activeGalleryId, 0).then((res) => {
+      if (cancelled) return;
       if (res.success && res.data) {
         setPaginatedImages(res.data.images);
         setTotalImageCount(res.data.totalCount);
@@ -119,6 +121,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       }
       setLoadingMore(false);
     });
+    return () => { cancelled = true; };
   }, [activeGalleryId]);
 
   const loadMoreImages = useCallback(async () => {
@@ -128,14 +131,14 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     const res = await getGalleryImagesPaginated(activeGalleryId, nextPage);
     if (res.success && res.data) {
       setPaginatedImages((prev) => [...prev, ...res.data.images]);
+      setTotalImageCount(res.data.totalCount);
       setHasMoreImages(res.data.hasMore);
       setCurrentPage(nextPage);
     }
     setLoadingMore(false);
   }, [activeGalleryId, loadingMore, hasMoreImages, currentPage]);
 
-  // Use paginated images (override gallery embedded images)
-  const images = useMemo(() => paginatedImages.length > 0 ? paginatedImages : (activeGallery?.gallery_images || []), [paginatedImages, activeGallery]);
+  const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
 
   // ─── Filter + Sort ────────────────────────
@@ -190,20 +193,45 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // ─── Counts ───────────────────────────────
   const rawCount = groupedImages.filter((g) => g.hasRaw).length;
   const jpgCount = groupedImages.filter((g) => g.hasJpg).length;
-  const selectedCount = images.filter((i) => i.is_selected).length;
-  const hasPassword = !!(activeGallery?.password_hash || activeGallery?.password);
+  const selectedCount = activeGallery?.selectedCount ?? images.filter((i) => i.is_selected).length;
+  const hasPassword = activeGallery?.hasPassword ?? !!(activeGallery?.password_hash || activeGallery?.password);
+  const effectiveTotalImageCount = totalImageCount || activeGallery?.imageCount || images.length;
   const totalHearts = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
 
   // ─── Star toggle (Admin đề xuất ảnh) ──────
   const handleToggleStar = useCallback(async (imageId: string, currentSelected: boolean) => {
-    setGalleries((prev) => prev.map((g) => ({
-      ...g,
-      gallery_images: g.gallery_images?.map((img) =>
-        img.id === imageId ? { ...img, is_selected: !currentSelected } : img
-      ),
-    })));
-    await toggleImageSelection(imageId, !currentSelected);
-  }, []);
+    const nextSelected = !currentSelected;
+    const countDelta = nextSelected ? 1 : -1;
+
+    setPaginatedImages((prev) => prev.map((img) =>
+      img.id === imageId
+        ? {
+          ...img,
+          is_selected: nextSelected,
+          selected_at: nextSelected ? new Date().toISOString() : null,
+        }
+        : img,
+    ));
+    setGalleries((prev) => prev.map((g) => g.id === activeGalleryId
+      ? { ...g, selectedCount: Math.max(0, g.selectedCount + countDelta) }
+      : g));
+
+    const res = await toggleImageSelection(imageId, nextSelected);
+    if (!res.success) {
+      setPaginatedImages((prev) => prev.map((img) =>
+        img.id === imageId
+          ? {
+            ...img,
+            is_selected: currentSelected,
+            selected_at: currentSelected ? new Date().toISOString() : null,
+          }
+          : img,
+      ));
+      setGalleries((prev) => prev.map((g) => g.id === activeGalleryId
+        ? { ...g, selectedCount: Math.max(0, g.selectedCount - countDelta) }
+        : g));
+    }
+  }, [activeGalleryId]);
 
   // ─── Display/download helpers ─────────────
   const displayImages = filteredGroups.map((g) => g.displayImage);
@@ -222,7 +250,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     // Derived
     activeGallery, images, groupedImages, filteredGroups, displayImages,
     rawCount, jpgCount, selectedCount, hasPassword, totalHearts,
-    allDownloadFiles, selectedDownloadFiles, totalImageCount,
+    allDownloadFiles, selectedDownloadFiles, totalImageCount: effectiveTotalImageCount,
     // Pagination
     hasMoreImages, loadingMore, loadMoreImages,
     // Setters

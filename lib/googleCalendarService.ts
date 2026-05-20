@@ -6,11 +6,12 @@
 
 import { createAdminClient } from "@/lib/supabase/server";
 import {
-  decryptGoogleCalendarAuth,
-  encryptGoogleCalendarAuth,
+  decryptGoogleOAuth,
+  encryptGoogleOAuth,
 } from "@/lib/settings-secrets";
+import { getValidGoogleToken } from "@/lib/google-auth";
 
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+
 const GOOGLE_CALENDAR_API =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const GOOGLE_CALENDAR_EVENT_API =
@@ -18,29 +19,6 @@ const GOOGLE_CALENDAR_EVENT_API =
 const GOOGLE_PRIMARY_CALENDAR_LIST_API =
   "https://www.googleapis.com/calendar/v3/users/me/calendarList/primary";
 const GOOGLE_DEFAULT_CALENDAR_COLOR = "#039be5";
-
-async function refreshAccessToken(
-  refreshToken: string,
-  clientId: string,
-  clientSecret: string,
-) {
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to refresh google token");
-  }
-
-  return response.json();
-}
 
 // Google Calendar Standard Colors Mapping
 export const GOOGLE_COLORS: Record<string, string> = {
@@ -73,52 +51,6 @@ export type GoogleCalendarEventPayload = {
 
 // ─── INTERNAL HELPERS ─────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ensureValidToken(supabase: any, studioInfo: any) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let authData = decryptGoogleCalendarAuth(studioInfo.google_calendar_auth) as any;
-  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error("Missing Google Credentials");
-  }
-
-  if (!authData?.access_token) {
-    throw new Error("Missing Google Access Token");
-  }
-
-  const updatedAt = new Date(authData.updated_at).getTime();
-  const expiresInMs = (authData.expires_in || 3600) * 1000;
-  const now = Date.now();
-
-  // Refresh if expiring in less than 5 minutes
-  if (now - updatedAt > expiresInMs - 5 * 60 * 1000) {
-    if (!authData.refresh_token) {
-      throw new Error("Missing Refresh Token");
-    }
-
-    const newTokens = await refreshAccessToken(
-      authData.refresh_token,
-      CLIENT_ID,
-      CLIENT_SECRET,
-    );
-    authData = {
-      ...authData,
-      ...newTokens,
-      refresh_token: newTokens.refresh_token || authData.refresh_token,
-      updated_at: new Date().toISOString(),
-    };
-
-    await supabase
-      .from("studio_info")
-      .update({ google_calendar_auth: encryptGoogleCalendarAuth(authData) })
-      .eq("id", studioInfo.id);
-  }
-
-  return authData;
-}
-
 async function getPrimaryCalendarDefaultColor(accessToken: string) {
   try {
     const res = await fetch(GOOGLE_PRIMARY_CALENDAR_LIST_API, {
@@ -148,13 +80,13 @@ export async function getGoogleCalendarEvents(
 
     const { data: studioInfo } = await supabase
       .from("studio_info")
-      .select("id, google_calendar_auth")
+      .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
-    if (!studioInfo?.google_calendar_auth) return [];
+    if (!studioInfo?.google_oauth) return [];
 
-    const authData = await ensureValidToken(supabase, studioInfo);
+    const authData = await getValidGoogleToken(supabase, studioInfo);
 
     // Fetch Events
     const calendarUrl = new URL(GOOGLE_CALENDAR_API);
@@ -217,13 +149,13 @@ export async function createGoogleCalendarEvent(eventData: {
     const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
-      .select("id, google_calendar_auth")
+      .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
-    if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
+    if (!studioInfo?.google_oauth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 
-    const authData = await ensureValidToken(supabase, studioInfo);
+    const authData = await getValidGoogleToken(supabase, studioInfo);
 
     const res = await fetch(GOOGLE_CALENDAR_EVENT_API, {
       method: "POST",
@@ -259,13 +191,13 @@ export async function updateGoogleCalendarEvent(
     const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
-      .select("id, google_calendar_auth")
+      .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
-    if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
+    if (!studioInfo?.google_oauth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 
-    const authData = await ensureValidToken(supabase, studioInfo);
+    const authData = await getValidGoogleToken(supabase, studioInfo);
 
     const res = await fetch(`${GOOGLE_CALENDAR_EVENT_API}/${eventId}`, {
       method: "PATCH",
@@ -298,13 +230,13 @@ export async function deleteGoogleCalendarEvent(eventId: string) {
     const supabase = await createAdminClient();
     const { data: studioInfo } = await supabase
       .from("studio_info")
-      .select("id, google_calendar_auth")
+      .select("id, google_oauth")
       .limit(1)
       .maybeSingle();
 
-    if (!studioInfo?.google_calendar_auth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
+    if (!studioInfo?.google_oauth) throw new Error("Google Calendar chưa được kết nối. Vui lòng cài đặt trong Settings.");
 
-    const authData = await ensureValidToken(supabase, studioInfo);
+    const authData = await getValidGoogleToken(supabase, studioInfo);
 
     const res = await fetch(`${GOOGLE_CALENDAR_EVENT_API}/${eventId}`, {
       method: "DELETE",

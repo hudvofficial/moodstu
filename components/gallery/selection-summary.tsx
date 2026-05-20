@@ -2,7 +2,7 @@
 /* eslint-disable react/forbid-elements */
 
 import { useState } from "react";
-import { Heart, Download, Loader2 } from "lucide-react";
+import { Star, Download, Loader2 } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // SelectionSummary — Fixed bottom bar + batch download
@@ -66,7 +66,7 @@ export default function SelectionSummary({
     >
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Heart size={16} className="text-error fill-error" />
+          <Star size={16} className="text-warning fill-warning" />
           <span className="text-sm font-semibold text-text-primary">
             Đã chọn {selectedCount} ảnh
           </span>

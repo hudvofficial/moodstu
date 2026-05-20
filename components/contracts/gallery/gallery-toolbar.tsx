@@ -5,19 +5,17 @@ import {
   Camera,
   Eye,
   EyeOff,
+  Globe,
   Heart,
   MessageCircle,
-  Share2,
   Star,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
-import DownloadManager from "@/components/gallery/download-manager";
 import GallerySortDropdown, { type SortOption } from "./gallery-sort-dropdown";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
 import { type FileFilter, type StatsFilter, FOLDER_LABELS, type ImageGroup } from "./gallery-helpers";
-import type { Gallery, GalleryImage } from "@/types/gallery";
+import type { GalleryImage, GallerySummary } from "@/types/gallery";
 
 import { MobilePrimaryStatCard, MobileSecondaryStatChip } from "./gallery-toolbar-stats";
 import { GalleryFilterTabs, GalleryDesktopFilterGroup, DesktopFilterDivider } from "./gallery-toolbar-filters";
@@ -26,8 +24,6 @@ import {
   ViewModeToggle,
   GalleryMoreMenu,
   AlbumCreateInput,
-  desktopActionClassName,
-  mobileIconActionClassName,
 } from "./gallery-toolbar-actions";
 
 // ═══════════════════════════════════════════
@@ -38,17 +34,44 @@ import {
 //   gallery-toolbar-actions.tsx (ActionButton, ViewModeToggle, MoreMenu, AlbumInput)
 // ═══════════════════════════════════════════
 
-const compactDownloadClassName = "h-9 min-w-[7.5rem] flex-1 justify-center px-3 text-caption font-semibold whitespace-nowrap sm:flex-none";
 const ALL_ALBUMS_TAB = "__all_albums__";
+
+// ─── Gallery Status Badge ───────────────────
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  draft: { label: "Bản nháp", className: "bg-bg-hover text-text-muted" },
+  shared: { label: "Đã chia sẻ", className: "bg-success/10 text-success" },
+  locked: { label: "Đã khoá", className: "bg-warning/10 text-warning" },
+  delivered: { label: "Đã bàn giao", className: "bg-info/10 text-info" },
+};
+
+function GalleryStatusBadge({ status, accessUrl }: { status: string; accessUrl?: string | null }) {
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-tiny font-semibold ${config.className}`}>
+        <Globe size={11} />
+        {config.label}
+      </span>
+      {status === "shared" && accessUrl && (
+        <span className="hidden text-tiny text-text-muted lg:inline truncate max-w-40" title={accessUrl}>
+          /{accessUrl}
+        </span>
+      )}
+    </div>
+  );
+}
 
 interface GalleryToolbarProps {
   breadcrumbItems?: Array<{ label: string; href?: string }>;
-  galleries: Gallery[];
+  galleries: GallerySummary[];
   images: GalleryImage[];
+  totalImageCount: number;
   groupedImages: ImageGroup[];
   fileFilter: FileFilter;
   activeFilter: StatsFilter;
   activeGalleryId: string | null;
+  galleryStatus: string;
+  galleryAccessUrl?: string | null;
   rawCount: number;
   jpgCount: number;
   selectedCount: number;
@@ -74,16 +97,21 @@ interface GalleryToolbarProps {
   onSetShowAlbumInput: (show: boolean) => void;
   onSetNewAlbumName: (name: string) => void;
   onCreateAlbum: () => void;
+  onOpenFilterModal?: (tab: "drive" | "local" | "export") => void;
+  onOpenListModal?: () => void;
 }
 
 export default function GalleryToolbar({
   breadcrumbItems,
   galleries,
   images,
+  totalImageCount,
   groupedImages,
   fileFilter,
   activeFilter,
   activeGalleryId,
+  galleryStatus,
+  galleryAccessUrl,
   rawCount,
   jpgCount,
   selectedCount,
@@ -109,12 +137,17 @@ export default function GalleryToolbar({
   onSetShowAlbumInput,
   onSetNewAlbumName,
   onCreateAlbum,
+  onOpenFilterModal,
+  onOpenListModal,
 }: GalleryToolbarProps) {
+  const activeGallery = useMemo(() => galleries.find(g => g.id === activeGalleryId), [galleries, activeGalleryId]);
+  const isGocGallery = activeGallery?.folder_type === "goc";
+
   const statsItems = useMemo<StatItem[]>(() => ([
     {
       icon: Camera,
       label: "ảnh",
-      value: String(images.length),
+      value: String(totalImageCount || images.length),
       tone: "primary",
       onClick: () => onSetActiveFilter("all"),
     },
@@ -142,13 +175,13 @@ export default function GalleryToolbar({
       active: activeFilter === "commented",
       onClick: () => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented"),
     },
-  ]), [activeFilter, commentCount, images.length, onSetActiveFilter, selectedCount, totalHearts]);
+  ]), [activeFilter, commentCount, images.length, onSetActiveFilter, selectedCount, totalHearts, totalImageCount]);
 
   const galleryTabs = useMemo(
     () => galleries.map((gallery) => ({
       label: FOLDER_LABELS[gallery.folder_type || ""] || gallery.title || "Album",
       value: gallery.id,
-      count: gallery.gallery_images?.length || 0,
+      count: gallery.imageCount || 0,
     })),
     [galleries]
   );
@@ -174,7 +207,7 @@ export default function GalleryToolbar({
     [albums]
   );
 
-  const hasDesktopFilters = galleries.length > 1 || rawCount > 0 || albums.length > 0 || Boolean(activeGalleryId);
+  const hasDesktopFilters = galleries.length > 1 || rawCount > 0 || albums.length > 0;
   const mobileSecondaryStats = useMemo(
     () => statsItems.filter((item, index) => index > 1 && (Number(item.value) > 0 || item.active)),
     [statsItems]
@@ -183,12 +216,13 @@ export default function GalleryToolbar({
   return (
     <div className="sticky top-0 z-20 border-b border-border/60 bg-bg-base/95 backdrop-blur-md">
       <div className="space-y-2.5 px-3 py-3 md:px-6 md:py-4">
-        <div className="min-w-0">
-          {breadcrumbItems && (
-            <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0">
+            {breadcrumbItems && (
               <Breadcrumb items={breadcrumbItems} className="text-caption md:text-body-sm" />
-            </div>
-          )}
+            )}
+          </div>
+          <GalleryStatusBadge status={galleryStatus} accessUrl={galleryAccessUrl} />
         </div>
 
         <div className="rounded-xl bg-bg-card px-3 py-3 shadow-xs sm:px-4">
@@ -207,25 +241,16 @@ export default function GalleryToolbar({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <GallerySortDropdown value={sortBy} onChange={onSort} />
-              <Button unstyled onClick={onOpenShare} className={mobileIconActionClassName} title="Chia sẻ album">
-                <Share2 size={16} />
-              </Button>
-              {selectedDownloadFiles.length > 0 && (
-                <DownloadManager
-                  files={selectedDownloadFiles}
-                  label={`Tải ${selectedDownloadFiles.length}`}
-                  variant="button"
-                  className={compactDownloadClassName}
-                />
-              )}
               <GalleryMoreMenu
-                allDownloadFiles={allDownloadFiles}
-                viewMode={viewMode}
-                onViewMode={onViewMode}
-                watermarkOn={watermarkOn}
-                onWatermarkToggle={onWatermarkToggle}
+                downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
+                downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
+                onOpenShare={onOpenShare}
+                onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
+                onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
+                onOpenList={onOpenListModal}
+                disableFilter={!(isGocGallery && selectedCount > 0)}
               />
             </div>
           </div>
@@ -233,30 +258,21 @@ export default function GalleryToolbar({
           <div className="hidden lg:flex lg:items-center lg:justify-between lg:gap-3">
             <StatsBar items={statsItems} className="min-w-0 flex-1" />
 
-            <div className="shrink-0 items-center justify-end gap-2 overflow-x-auto scrollbar-hide lg:flex">
+            <div className="shrink-0 flex items-center justify-end gap-2 overflow-visible lg:flex">
               <GallerySortDropdown value={sortBy} onChange={onSort} />
               <ViewModeToggle viewMode={viewMode} onChange={onViewMode} />
               <ActionButton onClick={onWatermarkToggle} title={watermarkOn ? "Tắt watermark" : "Bật watermark"}>
                 {watermarkOn ? <EyeOff size={15} /> : <Eye size={15} />}
                 <span>WM</span>
               </ActionButton>
-              <ActionButton onClick={onOpenShare} title="Chia sẻ album">
-                <Share2 size={15} />
-                <span className="hidden lg:inline">Chia sẻ</span>
-              </ActionButton>
-              {selectedDownloadFiles.length > 0 && (
-                <DownloadManager
-                  files={selectedDownloadFiles}
-                  label={`Tải ${selectedDownloadFiles.length} đã chọn`}
-                  variant="button"
-                  className={desktopActionClassName}
-                />
-              )}
-              <DownloadManager
-                files={allDownloadFiles}
-                label="Tải tất cả"
-                variant="button"
-                className={desktopActionClassName}
+              <GalleryMoreMenu
+                downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
+                downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
+                onOpenShare={onOpenShare}
+                onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
+                onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
+                onOpenList={onOpenListModal}
+                disableFilter={!(isGocGallery && selectedCount > 0)}
               />
             </div>
           </div>
@@ -299,16 +315,7 @@ export default function GalleryToolbar({
             />
           )}
 
-          {albums.length === 0 && activeGalleryId && (
-            <AlbumCreateInput
-              show={showAlbumInput}
-              name={newAlbumName}
-              onSetShow={onSetShowAlbumInput}
-              onSetName={onSetNewAlbumName}
-              onCreate={onCreateAlbum}
-              placeholder="Tên album đầu tiên..."
-            />
-          )}
+
         </div>
 
         {hasDesktopFilters && (
@@ -353,15 +360,6 @@ export default function GalleryToolbar({
                   onCreate={onCreateAlbum}
                 />
               </div>
-            ) : activeGalleryId ? (
-              <AlbumCreateInput
-                show={showAlbumInput}
-                name={newAlbumName}
-                onSetShow={onSetShowAlbumInput}
-                onSetName={onSetNewAlbumName}
-                onCreate={onCreateAlbum}
-                placeholder="Tên album đầu tiên..."
-              />
             ) : null}
           </div>
         )}

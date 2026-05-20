@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   FolderOpen, RefreshCw, ExternalLink, Loader2, ImageIcon, Plus, Calendar, Share2,
 } from "lucide-react";
-import { getGalleriesByContract, syncDriveFolder, shareGallery } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, syncDriveFolder, shareGallery, getGalleryShareDetails } from "@/app/actions/gallery-actions";
 import { getRetouchProgress, getDeliveryDate } from "@/app/actions/gallery-drive-actions";
 import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
@@ -51,7 +51,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   const loadData = useCallback(async () => {
     setLoading(true);
     const [galRes, progRes, dateRes] = await Promise.all([
-      getGalleriesByContract(contractId),
+      getGallerySummariesByContract(contractId),
       getRetouchProgress(contractId),
       getDeliveryDate(contractId),
     ]);
@@ -64,8 +64,8 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
         drive_folder_url: g.drive_folder_url,
         status: g.status,
         shared_at: g.shared_at,
-        imageCount: g.gallery_images?.length || 0,
-        selectedCount: g.gallery_images?.filter((img) => img.is_selected).length || 0,
+        imageCount: g.imageCount,
+        selectedCount: g.selectedCount,
       })));
     }
     if (progRes.success && progRes.data) setProgress(progRes.data);
@@ -91,15 +91,17 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   // ─── Share gallery ────────────────────────
   const handleShare = async (galleryId: string, title: string | null) => {
     setSharing(galleryId);
-    const res = await shareGallery(galleryId);
+    const res = await getGalleryShareDetails(galleryId);
     if (res.success && res.data) {
       openModal("SHARE_GALLERY", {
         accessUrl: res.data.accessUrl,
-        galleryId: res.data.galleryId,
-        galleryTitle: title || "Album",
-        hasPassword: res.data.hasPassword || false,
+        galleryId,
+        galleryTitle: res.data.title || title || "Album",
+        hasPassword: res.data.hasPassword,
+        shareLinks: res.data.shareLinks,
+        status: res.data.status,
+        onPublishSuccess: loadData,
       });
-      await loadData();
     } else if (!res.success) {
       toast(res.error, "error");
     }

@@ -43,9 +43,14 @@ export async function GET() {
     );
   }
 
-  const state = randomBytes(24).toString("base64url");
+  const stateObj = {
+    nonce: randomBytes(24).toString("base64url"),
+    requested_scopes: "calendar,drive",
+  };
+  const stateString = Buffer.from(JSON.stringify(stateObj)).toString("base64url");
+  
   const cookieStore = await cookies();
-  cookieStore.set(GOOGLE_OAUTH_STATE_COOKIE, state, {
+  cookieStore.set(GOOGLE_OAUTH_STATE_COOKIE, stateString, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -57,10 +62,14 @@ export async function GET() {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "https://www.googleapis.com/auth/calendar");
+  url.searchParams.set(
+    "scope",
+    "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive",
+  );
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
-  url.searchParams.set("state", state);
+  url.searchParams.set("include_granted_scopes", "true");
+  url.searchParams.set("state", stateString);
 
   return NextResponse.redirect(url);
 }

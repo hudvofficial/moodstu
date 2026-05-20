@@ -5,7 +5,7 @@ const BATCH_SIZE = 50;
 const MAX_COLUMNS = 7;
 const MIN_COLUMNS = 2;
 const DEFAULT_ASPECT_RATIO = 3 / 4;
-const DEFAULT_TILE_MIN = 240;
+const DEFAULT_TILE_MIN = 192;
 const DEFAULT_GUTTER = 12;
 
 function resolveCssLength(value: string | null | undefined, fallback: number): number {
@@ -35,8 +35,21 @@ interface UseMasonryGridProps {
 
 export function useMasonryGrid({ groups, hasMoreServer, onLoadMore }: UseMasonryGridProps) {
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
-  const [columnCount, setColumnCount] = useState(2);
-  const [columnWidth, setColumnWidth] = useState(DEFAULT_TILE_MIN);
+  const [columnCount, setColumnCount] = useState(() => {
+    if (typeof window !== "undefined") {
+      const width = window.innerWidth;
+      return resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER);
+    }
+    return 5; // Default desktop assumption for SSR
+  });
+  const [columnWidth, setColumnWidth] = useState(() => {
+    if (typeof window !== "undefined") {
+      const width = window.innerWidth;
+      const cols = resolveColumnCount(width, DEFAULT_TILE_MIN, DEFAULT_GUTTER);
+      return Math.max((width - DEFAULT_GUTTER * (cols - 1)) / cols, DEFAULT_TILE_MIN);
+    }
+    return DEFAULT_TILE_MIN;
+  });
   const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
   const [loadedGroups, setLoadedGroups] = useState<Record<string, boolean>>({});
   const masonryRef = useRef<HTMLDivElement>(null);

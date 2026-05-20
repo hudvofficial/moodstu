@@ -39,7 +39,7 @@ export default function PasswordGate({
 
     if (!saved) return;
 
-    getPublicGalleryWithAccess(galleryId, saved).then((res) => {
+    getPublicGalleryWithAccess(galleryId, saved, accessUrl).then((res) => {
       if (res.success) {
         if (res.data.accessToken) {
           sessionStorage.setItem(storageKey, res.data.accessToken);
@@ -61,7 +61,7 @@ export default function PasswordGate({
 
     setLoading(true);
     setError("");
-    const res = await verifyGalleryPassword(galleryId, password.trim());
+    const res = await verifyGalleryPassword(galleryId, password.trim(), accessUrl);
     setLoading(false);
 
     if (res.success) {

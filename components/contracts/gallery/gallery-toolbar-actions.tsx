@@ -2,17 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Eye,
-  EyeOff,
   LayoutGrid,
   List,
-  MoreHorizontal,
+  MoreVertical,
   Plus,
   X,
+  Folder,
+  Globe,
+  Share2,
+  ScanFace,
+  Cloud,
+  HardDrive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DownloadManager from "@/components/gallery/download-manager";
+import { cn } from "@/lib/utils";
 
 // ═══════════════════════════════════════════
 // Gallery Actions — Extracted from gallery-toolbar
@@ -48,11 +53,11 @@ export function ViewModeToggle({
   onChange: (mode: "grid" | "list") => void;
 }) {
   return (
-    <div className="flex items-center rounded-lg border border-border bg-bg-card p-1">
+    <div className="flex items-center rounded-full border border-border bg-bg-base p-[2px]">
       <Button
         unstyled
         onClick={() => onChange("grid")}
-        className={`flex h-7 items-center gap-1 rounded-md px-2 transition-colors ${viewMode === "grid" ? "bg-primary text-white" : "text-text-muted hover:bg-bg-hover"}`}
+        className={`flex h-7 w-9 items-center justify-center rounded-full transition-colors ${viewMode === "grid" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
         title="Dạng lưới"
       >
         <LayoutGrid size={14} />
@@ -60,7 +65,7 @@ export function ViewModeToggle({
       <Button
         unstyled
         onClick={() => onChange("list")}
-        className={`flex h-7 items-center gap-1 rounded-md px-2 transition-colors ${viewMode === "list" ? "bg-primary text-white" : "text-text-muted hover:bg-bg-hover"}`}
+        className={`flex h-7 w-9 items-center justify-center rounded-full transition-colors ${viewMode === "list" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
         title="Dạng danh sách"
       >
         <List size={14} />
@@ -70,17 +75,21 @@ export function ViewModeToggle({
 }
 
 export function GalleryMoreMenu({
-  allDownloadFiles,
-  viewMode,
-  onViewMode,
-  watermarkOn,
-  onWatermarkToggle,
+  downloadFiles,
+  downloadLabel = "Tải xuống",
+  onOpenShare,
+  onOpenFilterDrive,
+  onOpenFilterLocal,
+  onOpenList,
+  disableFilter = false,
 }: {
-  allDownloadFiles: { driveFileId: string; fileName: string }[];
-  viewMode: "grid" | "list";
-  onViewMode: (mode: "grid" | "list") => void;
-  watermarkOn: boolean;
-  onWatermarkToggle: () => void;
+  downloadFiles: { driveFileId: string; fileName: string }[];
+  downloadLabel?: string;
+  onOpenShare?: () => void;
+  onOpenFilterDrive?: () => void;
+  onOpenFilterLocal?: () => void;
+  onOpenList?: () => void;
+  disableFilter?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -93,36 +102,74 @@ export function GalleryMoreMenu({
         setOpen(false);
       }
     };
-
     document.addEventListener("pointerdown", handlePointerDown, true);
     return () => document.removeEventListener("pointerdown", handlePointerDown, true);
   }, [open]);
 
   return (
-    <div ref={ref} className="relative ml-auto">
-      <Button unstyled onClick={() => setOpen((prev) => !prev)} className={mobileIconActionClassName} title="Tác vụ khác">
-        <MoreHorizontal size={16} />
+    <div ref={ref} className="relative ml-auto lg:ml-0">
+      <Button 
+        unstyled 
+        onClick={() => setOpen((prev) => !prev)} 
+        className={cn(desktopActionClassName, "gap-1.5 flex items-center lg:bg-transparent lg:border-0 lg:shadow-none bg-bg-card border border-border shadow-xs", open && "bg-bg-hover")}
+      >
+        <MoreVertical size={15} className="text-text-muted" />
+        <span className="hidden lg:inline text-text-main">Tác vụ</span>
       </Button>
 
       {open && (
-        <div className="card-base absolute right-0 top-full z-30 mt-2 w-52 space-y-2 p-2">
-          <ViewModeToggle viewMode={viewMode} onChange={onViewMode} />
-          <Button
-            unstyled
-            onClick={() => {
-              onWatermarkToggle();
-              setOpen(false);
-            }}
-            className="btn-ghost flex h-9 w-full items-center justify-start px-3 text-caption font-semibold"
-          >
-            {watermarkOn ? <EyeOff size={15} /> : <Eye size={15} />}
-            <span>{watermarkOn ? "Tắt watermark" : "Bật watermark"}</span>
+        <div className="card-base absolute right-0 top-full z-30 mt-2 w-56 p-1 shadow-lg border border-border rounded-xl flex flex-col">
+          <Button unstyled onClick={() => { if (onOpenShare) onOpenShare(); setOpen(false); }} className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors">
+            <Share2 size={14} className="text-text-muted" />
+            <span>Chia sẻ album</span>
           </Button>
+
+          <Button 
+            unstyled 
+            disabled={disableFilter || !onOpenFilterDrive}
+            onClick={() => { if (onOpenFilterDrive && !disableFilter) { onOpenFilterDrive(); setOpen(false); } }} 
+            className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Cloud size={14} className="text-text-muted" />
+            <span>Lọc file trên drive</span>
+          </Button>
+
+          <Button 
+            unstyled 
+            disabled={disableFilter || !onOpenFilterLocal}
+            onClick={() => { if (onOpenFilterLocal && !disableFilter) { onOpenFilterLocal(); setOpen(false); } }} 
+            className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <HardDrive size={14} className="text-text-muted" />
+            <span>Lọc file trên máy tính</span>
+          </Button>
+
+          <Button 
+            unstyled 
+            disabled
+            onClick={() => {}} 
+            className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ScanFace size={14} className="text-text-muted" />
+            <span>Nhận diện khuôn mặt</span>
+          </Button>
+
+          <Button unstyled onClick={() => setOpen(false)} className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors">
+            <Globe size={14} className="text-text-muted" />
+            <span>Tạo website</span>
+          </Button>
+          <Button unstyled onClick={() => { if (onOpenList) onOpenList(); setOpen(false); }} className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors">
+            <List size={14} className="text-text-muted" />
+            <span>Xem danh sách</span>
+          </Button>
+          
+          <div className="my-1 h-px w-full bg-border shrink-0" />
+          
           <DownloadManager
-            files={allDownloadFiles}
-            label="Tải tất cả"
+            files={downloadFiles}
+            label={downloadLabel}
             variant="button"
-            className="h-9 w-full justify-start px-3 text-caption font-semibold"
+            className="h-9 w-full justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover bg-transparent border-0 shadow-none shrink-0 transition-colors"
           />
         </div>
       )}

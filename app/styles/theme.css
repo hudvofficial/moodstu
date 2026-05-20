@@ -25,7 +25,7 @@
   --gallery-admin-meta-gap: 0.5rem;
   --gallery-admin-masonry-gap: 1rem;
   --gallery-admin-tile-radius: var(--radius-xl);
-  --gallery-admin-tile-min: 15rem;
+  --gallery-admin-tile-min: 12rem;
   --gallery-admin-stats-radius: 1rem;
   --gallery-admin-menu-width: 13rem;
   --gallery-admin-overlay-gradient-start: rgba(23, 18, 14, 0.36);

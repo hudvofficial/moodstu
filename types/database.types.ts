@@ -1913,54 +1913,100 @@ export type Database = {
       }
       galleries: {
         Row: {
+          access_version: number
           access_url: string | null
+          allow_comments: boolean
+          allow_download: boolean
           contract_id: string
+          cover_image_id: string | null
           created_at: string | null
           created_by: string | null
+          download_unlocked_at: string | null
+          download_unlocked_by: string | null
           drive_folder_id: string | null
           drive_folder_url: string | null
           folder_type: string | null
           id: string
+          og_description: string | null
+          og_image_url: string | null
+          og_title: string | null
           password: string | null
+          password_hash: string | null
+          password_updated_at: string | null
           selection_deadline: string | null
+          selection_limit: number | null
+          share_version: number
           shared_at: string | null
           status: string | null
           title: string | null
           updated_at: string | null
         }
         Insert: {
+          access_version?: number
           access_url?: string | null
+          allow_comments?: boolean
+          allow_download?: boolean
           contract_id: string
+          cover_image_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          download_unlocked_at?: string | null
+          download_unlocked_by?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           folder_type?: string | null
           id?: string
+          og_description?: string | null
+          og_image_url?: string | null
+          og_title?: string | null
           password?: string | null
+          password_hash?: string | null
+          password_updated_at?: string | null
           selection_deadline?: string | null
+          selection_limit?: number | null
+          share_version?: number
           shared_at?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null
         }
         Update: {
+          access_version?: number
           access_url?: string | null
+          allow_comments?: boolean
+          allow_download?: boolean
           contract_id?: string
+          cover_image_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          download_unlocked_at?: string | null
+          download_unlocked_by?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           folder_type?: string | null
           id?: string
+          og_description?: string | null
+          og_image_url?: string | null
+          og_title?: string | null
           password?: string | null
+          password_hash?: string | null
+          password_updated_at?: string | null
           selection_deadline?: string | null
+          selection_limit?: number | null
+          share_version?: number
           shared_at?: string | null
           status?: string | null
           title?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "galleries_cover_image_id_fkey"
+            columns: ["cover_image_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_images"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "galleries_contract_id_fkey"
             columns: ["contract_id"]
@@ -2161,6 +2207,224 @@ export type Database = {
             columns: ["image_id"]
             isOneToOne: false
             referencedRelation: "gallery_images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_share_links: {
+        Row: {
+          access_version: number
+          capability: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          gallery_id: string
+          id: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_version?: number
+          capability: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          gallery_id: string
+          id?: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          access_version?: number
+          capability?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          gallery_id?: string
+          id?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_share_links_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_selection_batches: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by_client: string | null
+          gallery_id: string
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          selected_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by_client?: string | null
+          gallery_id: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          selected_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by_client?: string | null
+          gallery_id?: string
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          selected_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_selection_batches_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_selection_batches_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_selection_batch_items: {
+        Row: {
+          batch_id: string
+          client_note: string | null
+          created_at: string
+          drive_file_id: string | null
+          file_name: string | null
+          id: string
+          image_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          batch_id: string
+          client_note?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          file_name?: string | null
+          id?: string
+          image_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          batch_id?: string
+          client_note?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          file_name?: string | null
+          id?: string
+          image_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_selection_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_selection_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_selection_batch_items_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_filter_jobs: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          failed_count: number
+          gallery_id: string
+          id: string
+          job_type: string
+          manifest_url: string | null
+          processed_count: number
+          status: string
+          success_count: number
+          target_url: string | null
+          total_count: number
+          updated_at: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          failed_count?: number
+          gallery_id: string
+          id?: string
+          job_type: string
+          manifest_url?: string | null
+          processed_count?: number
+          status?: string
+          success_count?: number
+          target_url?: string | null
+          total_count?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          failed_count?: number
+          gallery_id?: string
+          id?: string
+          job_type?: string
+          manifest_url?: string | null
+          processed_count?: number
+          status?: string
+          success_count?: number
+          target_url?: string | null
+          total_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_filter_jobs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_selection_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_filter_jobs_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "galleries"
             referencedColumns: ["id"]
           },
         ]
@@ -3714,7 +3978,7 @@ export type Database = {
           address: string | null
           bank_info: Json | null
           created_at: string | null
-          google_calendar_auth: Json | null
+          google_oauth: Json | null
           hotline: string | null
           id: string
           logo_url: string | null
@@ -3729,7 +3993,7 @@ export type Database = {
           address?: string | null
           bank_info?: Json | null
           created_at?: string | null
-          google_calendar_auth?: Json | null
+          google_oauth?: Json | null
           hotline?: string | null
           id?: string
           logo_url?: string | null
@@ -3744,7 +4008,7 @@ export type Database = {
           address?: string | null
           bank_info?: Json | null
           created_at?: string | null
-          google_calendar_auth?: Json | null
+          google_oauth?: Json | null
           hotline?: string | null
           id?: string
           logo_url?: string | null

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Copy, Download, Check, Link2, Eye, Shield, Loader2 } from "lucide-react";
+import { Copy, Download, Check, Link2, Eye, Shield, Loader2, Globe, Sparkles } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
-import { setGalleryPassword } from "@/app/actions/gallery-actions";
+import {
+  shareGallery,
+  setGalleryPassword,
+} from "@/app/actions/gallery-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { GalleryShareLink } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
 // ShareGalleryModalContent — 2 links + 2 QR codes
@@ -17,6 +21,9 @@ interface ShareGalleryModalContentProps {
   galleryId?: string;
   galleryTitle?: string;
   hasPassword?: boolean;
+  shareLinks?: GalleryShareLink[];
+  status?: string;
+  onPublishSuccess?: () => void;
 }
 
 export function ShareGalleryModalContent({
@@ -24,16 +31,23 @@ export function ShareGalleryModalContent({
   galleryId,
   galleryTitle,
   hasPassword = false,
+  shareLinks: initialShareLinks = [],
+  status = "draft",
+  onPublishSuccess,
 }: ShareGalleryModalContentProps) {
-  const safeAccessUrl = accessUrl || "";
   const safeGalleryId = galleryId || "";
-  const isReady = Boolean(safeAccessUrl && safeGalleryId);
+  const isReady = Boolean(accessUrl && galleryId);
 
+  const [localStatus, setLocalStatus] = useState(status);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [shareLinks, setShareLinks] = useState<GalleryShareLink[]>(initialShareLinks);
+  const [localAccessUrl, setLocalAccessUrl] = useState(accessUrl || "");
   const [copiedSelect, setCopiedSelect] = useState(false);
   const [copiedView, setCopiedView] = useState(false);
   const [pwdEnabled, setPwdEnabled] = useState(hasPassword);
   const [pwdValue, setPwdValue] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
+  
   const qrSelectRef = useRef<HTMLDivElement>(null);
   const qrViewRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,14 +55,22 @@ export function ShareGalleryModalContent({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const qrViewInstance = useRef<any>(null);
 
+  const selectSlug = shareLinks.find((link) => link.capability === "select")?.slug || localAccessUrl;
+  const viewSlug = shareLinks.find((link) => link.capability === "view")?.slug || "";
+  
   const baseUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/gallery/${safeAccessUrl}`
-    : `/gallery/${safeAccessUrl}`;
-  const viewOnlyUrl = `${baseUrl}?mode=view`;
+    ? `${window.location.origin}/gallery/${selectSlug}`
+    : `/gallery/${selectSlug}`;
+  
+  const viewOnlyUrl = viewSlug
+    ? (typeof window !== "undefined"
+      ? `${window.location.origin}/gallery/${viewSlug}`
+      : `/gallery/${viewSlug}`)
+    : `${baseUrl}?mode=view`;
 
   // ─── QR Code Generation ───────────────────
   const generateQR = useCallback(async () => {
-    if (!isReady) return;
+    if (!isReady || localStatus === "draft") return;
     const QRCodeStyling = (await import("qr-code-styling")).default;
 
     const qrOptions = (url: string) => ({
@@ -76,12 +98,31 @@ export function ShareGalleryModalContent({
       qrViewInstance.current = new QRCodeStyling(qrOptions(viewOnlyUrl));
       qrViewInstance.current.append(qrViewRef.current);
     }
-  }, [baseUrl, isReady, viewOnlyUrl]);
+  }, [baseUrl, isReady, viewOnlyUrl, localStatus]);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || localStatus === "draft") return;
     void generateQR();
-  }, [generateQR, isReady]);
+  }, [generateQR, isReady, localStatus]);
+
+  // ─── Publish handlers ─────────────────────
+  const handlePublish = async () => {
+    if (!safeGalleryId) return;
+    setIsPublishing(true);
+    const res = await shareGallery(safeGalleryId);
+    if (res.success) {
+      if (res.data) {
+        setShareLinks(res.data.shareLinks);
+        setLocalAccessUrl(res.data.accessUrl || "");
+      }
+      setLocalStatus("shared");
+      toast("Đã phát hành Album thành công!", "success");
+      onPublishSuccess?.();
+    } else {
+      toast(res.error || "Không thể phát hành Album.", "error");
+    }
+    setIsPublishing(false);
+  };
 
   // ─── Copy helpers ─────────────────────────
   const handleCopy = async (url: string, type: "select" | "view") => {
@@ -149,6 +190,38 @@ export function ShareGalleryModalContent({
       <div className="p-4 bg-error/5 rounded-xl">
         <p className="text-body-sm font-semibold text-text-primary mb-1">Không thể tạo link chia sẻ</p>
         <p className="text-caption text-text-muted">Thiếu dữ liệu album. Vui lòng đóng popup và thử lại.</p>
+      </div>
+    ) : localStatus === "draft" ? (
+      <div className="flex flex-col items-center justify-center text-center py-6 gap-4">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+          <Globe size={32} className="text-primary" />
+        </div>
+        <div>
+          <h3 className="text-body font-bold text-text-primary mb-1">Album chưa được phát hành</h3>
+          <p className="text-caption text-text-muted max-w-[280px]">
+            Phát hành để tạo link chia sẻ cho khách hàng. Hình ảnh của bạn sẽ được hiển thị với giao diện chuyên nghiệp.
+          </p>
+        </div>
+        
+        {/* Mockup Preview Card */}
+        <div className="w-full max-w-[320px] rounded-xl overflow-hidden border border-border shadow-sm text-left my-2 bg-white dark:bg-black">
+          <div className="h-32 flex items-center justify-center border-b border-border" style={{ background: "var(--color-bg-secondary)" }}>
+            <Sparkles size={24} className="text-text-muted/50" />
+          </div>
+          <div className="p-3">
+            <p className="text-[11px] text-text-muted uppercase tracking-wider mb-1">moodwedding.com</p>
+            <p className="text-body-sm font-semibold text-text-primary truncate">{galleryTitle || "Album Ảnh"}</p>
+          </div>
+        </div>
+
+        <Button
+          onClick={handlePublish}
+          disabled={isPublishing}
+          className="w-full mt-2"
+        >
+          {isPublishing ? <Loader2 size={16} className="animate-spin mr-2" /> : <Globe size={16} className="mr-2" />}
+          Phát hành Album
+        </Button>
       </div>
     ) : (
     <div className="flex flex-col gap-5">

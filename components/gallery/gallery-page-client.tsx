@@ -17,7 +17,11 @@ interface GalleryData {
   selection_deadline: string | null;
   access_url?: string | null;
   accessToken?: string;
+  capability?: "select" | "view" | "download";
   needsPassword: boolean;
+  imageCount?: number;
+  hasMoreImages?: boolean;
+  currentPage?: number;
   gallery_images?: Gallery["gallery_images"];
 }
 

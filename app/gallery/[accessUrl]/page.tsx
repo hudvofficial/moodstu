@@ -1,4 +1,7 @@
-import { getPublicGallery } from "@/app/actions/gallery-actions";
+import {
+  getPublicGallery,
+  getPublicGalleryPreview,
+} from "@/app/actions/gallery-actions";
 import type { Metadata } from "next";
 import GalleryPageClient from "@/components/gallery/gallery-page-client";
 
@@ -12,36 +15,51 @@ interface PageProps {
   searchParams: Promise<{ mode?: string }>;
 }
 
+function getAbsoluteMetadataImage(url: string | null | undefined) {
+  if (!url) return undefined;
+
+  try {
+    return new URL(url).toString();
+  } catch {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    if (!baseUrl) return undefined;
+    return new URL(url, baseUrl).toString();
+  }
+}
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { accessUrl } = await params;
-  const res = await getPublicGallery(accessUrl);
+  const res = await getPublicGalleryPreview(accessUrl);
 
   if (!res.success) {
     return { title: "Album không tồn tại", robots: { index: false, follow: false } };
   }
 
   const title = res.data.title || "Album ảnh";
-  const imageCount = !res.data.needsPassword && "gallery_images" in res.data
-    ? (res.data.gallery_images?.length || 0)
-    : 0;
-  const description = imageCount > 0
+  const imageCount = res.data.imageCount;
+  const description = res.data.ogDescription || (imageCount > 0
     ? `Xem ${imageCount} ảnh trong album "${res.data.title || "Album"}"`
-    : `Album ảnh - ${res.data.title || "Mood Studio"}`;
-  const coverImage = !res.data.needsPassword && "gallery_images" in res.data
-    ? res.data.gallery_images?.[0]?.thumbnail_url
-    : undefined;
+    : `Album ảnh - ${res.data.title || "Mood Studio"}`);
+    
+  const ogImageUrl = getAbsoluteMetadataImage(`/api/og/gallery/${accessUrl}`);
 
   return {
     title,
     description,
     robots: { index: false, follow: false },
     openGraph: {
-      title: res.data.title || "Album ảnh",
+      title: res.data.ogTitle || title,
       description,
       type: "website",
-      ...(coverImage ? { images: [{ url: coverImage }] } : {}),
+      ...(ogImageUrl ? { images: [{ url: ogImageUrl }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: res.data.ogTitle || title,
+      description,
+      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
   };
 }
@@ -49,7 +67,6 @@ export async function generateMetadata({
 export default async function GalleryPage({ params, searchParams }: PageProps) {
   const { accessUrl } = await params;
   const { mode: modeParam } = await searchParams;
-  const mode = modeParam === "view" ? "view" as const : "select" as const;
   const res = await getPublicGallery(accessUrl);
 
   if (!res.success || !res.data) {
@@ -76,6 +93,11 @@ export default async function GalleryPage({ params, searchParams }: PageProps) {
       </div>
     );
   }
+
+  const capability = "capability" in res.data ? res.data.capability : undefined;
+  const mode = capability === "view" || capability === "download" || modeParam === "view"
+    ? "view" as const
+    : "select" as const;
 
   return <GalleryPageClient initialData={res.data} mode={mode} />;
 }

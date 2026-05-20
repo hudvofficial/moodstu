@@ -5,7 +5,7 @@ import { withAdmin } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import { verifyMoodieGeminiModel } from "@/lib/moodie/gemini-models";
 import { isCuratedMoodieGeminiModelSetting } from "@/lib/moodie/model-options";
-import { encryptSecret, redactGoogleCalendarAuth } from "@/lib/settings-secrets";
+import { encryptSecret, redactGoogleOAuth } from "@/lib/settings-secrets";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
   getMoodieGeminiStoredApiKey,
@@ -233,14 +233,14 @@ export async function updateMoodieAiSettings(rawData: Record<string, unknown>) {
   });
 }
 
-export async function disconnectGoogleCalendar() {
+export async function disconnectGoogleOAuth() {
   return withAdmin(async (adminClient) => {
     const studio = await getOrCreateStudioInfo(adminClient);
 
     const { error } = await adminClient
       .from("studio_info")
       .update({
-        google_calendar_auth: null,
+        google_oauth: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", studio.id);
@@ -251,9 +251,9 @@ export async function disconnectGoogleCalendar() {
       action: "UPDATE",
       tableName: "studio_info",
       recordId: studio.id,
-      description: "Ngắt kết nối Google Calendar",
-      oldData: { google_calendar_auth: redactGoogleCalendarAuth(studio.google_calendar_auth) },
-      newData: { google_calendar_auth: null },
+      description: "Ngắt kết nối Google (Calendar + Drive)",
+      oldData: { google_oauth: redactGoogleOAuth(studio.google_oauth) },
+      newData: { google_oauth: null },
       source: "server_action",
     });
 

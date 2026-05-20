@@ -18,9 +18,10 @@ export interface WorkingHours {
   saturday_sunday?: string;
 }
 
-export interface GoogleCalendarAuth {
+export interface GoogleOAuth {
   access_token: string;
   refresh_token: string;
+  granted_scopes?: string;
   expires_in: number;
   updated_at: string;
 }
@@ -36,7 +37,7 @@ export interface StudioInfo {
   social_links: SocialLinks | null;
   working_hours: WorkingHours | null;
   timezone: string | null;
-  google_calendar_auth: GoogleCalendarAuth | null;
+  google_oauth: GoogleOAuth | null;
   created_at: string | null;
   updated_at: string | null;
 }

@@ -2,12 +2,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const GALLERY_ACCESS_TTL_MS = 12 * 60 * 60 * 1000;
 const GALLERY_ACCESS_SCOPE = "public-gallery";
+const DEFAULT_GALLERY_CAPABILITY = "select";
+
+export type GalleryAccessCapability = "select" | "view" | "download";
 
 type GalleryAccessPayload = {
   scope: typeof GALLERY_ACCESS_SCOPE;
   galleryId: string;
   accessUrl: string;
   accessVersion: number;
+  capability?: GalleryAccessCapability;
   exp: number;
 };
 
@@ -15,6 +19,7 @@ type GalleryAccessInput = {
   galleryId: string;
   accessUrl: string;
   accessVersion: number | null | undefined;
+  capability?: GalleryAccessCapability | null;
 };
 
 function getGalleryAccessSecret() {
@@ -35,6 +40,10 @@ function normalizeAccessVersion(value: number | string | null | undefined) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function normalizeCapability(value: GalleryAccessCapability | string | null | undefined) {
+  return value === "view" || value === "download" ? value : DEFAULT_GALLERY_CAPABILITY;
+}
+
 function signBody(body: string) {
   return createHmac("sha256", getGalleryAccessSecret())
     .update(body)
@@ -47,6 +56,7 @@ export function signGalleryAccessProof(input: GalleryAccessInput) {
     galleryId: input.galleryId,
     accessUrl: input.accessUrl,
     accessVersion: normalizeAccessVersion(input.accessVersion),
+    capability: normalizeCapability(input.capability),
     exp: Date.now() + GALLERY_ACCESS_TTL_MS,
   };
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
@@ -86,6 +96,7 @@ export function verifyGalleryAccessProof(
     payload.galleryId === expected.galleryId &&
     payload.accessUrl === expected.accessUrl &&
     payload.accessVersion === normalizeAccessVersion(expected.accessVersion) &&
+    normalizeCapability(payload.capability) === normalizeCapability(expected.capability) &&
     payload.exp > Date.now()
   );
 }

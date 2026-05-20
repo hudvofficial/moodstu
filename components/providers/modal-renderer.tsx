@@ -77,6 +77,7 @@ export function GlobalModal() {
             galleryId={data?.galleryId}
             galleryTitle={data?.galleryTitle}
             hasPassword={data?.hasPassword}
+            shareLinks={data?.shareLinks}
           />
         );
 
