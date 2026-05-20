@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   FolderOpen, RefreshCw, ExternalLink, Loader2, ImageIcon, Plus, Calendar, Share2,
 } from "lucide-react";
-import { getGallerySummariesByContract, syncDriveFolder, shareGallery, getGalleryShareDetails } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, syncDriveFolder } from "@/app/actions/gallery-actions";
 import { getRetouchProgress, getDeliveryDate } from "@/app/actions/gallery-drive-actions";
 import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
 import { Button } from "@/components/ui/button";
+import type { GalleryShareDetails } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
 // DriveGalleryBlock V2 — Compact card, no inline grid
@@ -19,12 +20,14 @@ import { Button } from "@/components/ui/button";
 interface GalleryRow {
   id: string;
   title: string | null;
+  access_url: string | null;
   folder_type: string | null;
   drive_folder_url: string | null;
   status: string;
   shared_at: string | null;
   imageCount: number;
   selectedCount: number;
+  hasPassword: boolean;
 }
 
 interface DriveGalleryBlockProps {
@@ -43,7 +46,6 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const { openModal } = useModal();
-  const [sharing, setSharing] = useState<string | null>(null);
   const [progress, setProgress] = useState({ selectedCount: 0, editedCount: 0, progress: 0 });
   const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
 
@@ -60,12 +62,14 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
       setGalleries(galRes.data.map((g) => ({
         id: g.id,
         title: g.title,
+        access_url: g.access_url,
         folder_type: g.folder_type,
         drive_folder_url: g.drive_folder_url,
         status: g.status,
         shared_at: g.shared_at,
         imageCount: g.imageCount,
         selectedCount: g.selectedCount,
+        hasPassword: g.hasPassword,
       })));
     }
     if (progRes.success && progRes.data) setProgress(progRes.data);
@@ -89,23 +93,29 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   };
 
   // ─── Share gallery ────────────────────────
-  const handleShare = async (galleryId: string, title: string | null) => {
-    setSharing(galleryId);
-    const res = await getGalleryShareDetails(galleryId);
-    if (res.success && res.data) {
-      openModal("SHARE_GALLERY", {
-        accessUrl: res.data.accessUrl,
-        galleryId,
-        galleryTitle: res.data.title || title || "Album",
-        hasPassword: res.data.hasPassword,
-        shareLinks: res.data.shareLinks,
-        status: res.data.status,
-        onPublishSuccess: loadData,
-      });
-    } else if (!res.success) {
-      toast(res.error, "error");
-    }
-    setSharing(null);
+  const handleSharePrepared = useCallback((details: GalleryShareDetails) => {
+    setGalleries((current) => current.map((gallery) =>
+      gallery.id === details.galleryId
+        ? {
+          ...gallery,
+          access_url: details.accessUrl,
+          status: details.status,
+          hasPassword: details.hasPassword,
+          shared_at: gallery.shared_at || new Date().toISOString(),
+        }
+        : gallery,
+    ));
+  }, []);
+
+  const handleShare = (gallery: GalleryRow) => {
+    openModal("SHARE_GALLERY", {
+      accessUrl: gallery.access_url || undefined,
+      galleryId: gallery.id,
+      galleryTitle: gallery.title || "Album",
+      hasPassword: gallery.hasPassword,
+      status: gallery.status,
+      onSharePrepared: handleSharePrepared,
+    });
   };
 
   const totalImages = galleries.reduce((sum, g) => sum + g.imageCount, 0);
@@ -171,13 +181,12 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                 <div className="flex items-center gap-1">
                   {/* Share indicator + button */}
                   <Button unstyled
-                    onClick={(e) => { e.stopPropagation(); void handleShare(g.id, g.title); }}
-                    disabled={sharing === g.id}
+                    onClick={(e) => { e.stopPropagation(); handleShare(g); }}
                     className="btn-icon relative"
                     style={{ width: 28, height: 28 }}
                     title={g.status === "shared" ? "Đã chia sẻ — bấm để xem link" : "Chia sẻ album"}
                   >
-                    <Share2 size={14} className={sharing === g.id ? "animate-pulse" : ""} />
+                    <Share2 size={14} />
                     {g.status === "shared" && (
                       <span
                         className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"

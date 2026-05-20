@@ -111,6 +111,15 @@ export interface GalleryShareLink {
   updated_at: string;
 }
 
+export interface GalleryShareDetails {
+  galleryId: string;
+  status: string;
+  title: string | null;
+  accessUrl: string | null;
+  hasPassword: boolean;
+  shareLinks: GalleryShareLink[];
+}
+
 export interface GallerySelectionBatch {
   id: string;
   gallery_id: string;

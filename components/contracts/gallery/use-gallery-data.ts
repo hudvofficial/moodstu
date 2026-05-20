@@ -5,7 +5,7 @@ import { getGallerySummariesByContract, toggleImageSelection } from "@/app/actio
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { getReactionCounts, getGalleryCommentCount, getCommentCountsPerImage, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getAlbumsByGallery, createAlbum, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import type { GalleryImage, GallerySummary } from "@/types/gallery";
+import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
 
@@ -233,6 +233,20 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     }
   }, [activeGalleryId]);
 
+  const patchGalleryShareDetails = useCallback((details: GalleryShareDetails) => {
+    setGalleries((prev) => prev.map((gallery) =>
+      gallery.id === details.galleryId
+        ? {
+          ...gallery,
+          access_url: details.accessUrl,
+          status: details.status,
+          hasPassword: details.hasPassword,
+          shared_at: gallery.shared_at || new Date().toISOString(),
+        }
+        : gallery,
+    ));
+  }, []);
+
   // ─── Display/download helpers ─────────────
   const displayImages = filteredGroups.map((g) => g.displayImage);
   const allDownloadFiles = useMemo(() =>
@@ -258,5 +272,6 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     setNewAlbumName, setShowAlbumInput,
     // Handlers
     handleSort, handleViewMode, handleWatermarkToggle, handleCreateAlbum, handleToggleStar,
+    patchGalleryShareDetails,
   };
 }

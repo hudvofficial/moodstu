@@ -38,6 +38,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
     handleSort, handleViewMode, handleWatermarkToggle, handleCreateAlbum, handleToggleStar,
+    patchGalleryShareDetails,
   } = useGalleryData(contractId, galleryId, folderType);
 
   // ── Set header slots for gallery ──
@@ -67,6 +68,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
       galleryId: activeGallery.id,
       galleryTitle: activeGallery.title || "Album",
       hasPassword,
+      status: activeGallery.status,
+      onSharePrepared: patchGalleryShareDetails,
     });
   };
 
@@ -81,14 +84,15 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
       if ("error" in res) {
         toast.error(res.error, { id: toastId });
       } else if (!res.data.success || "error" in res.data) {
-        toast.error((res.data as any).error || "Lỗi không xác định", { id: toastId });
+        const errorData = res.data as { error?: string };
+        toast.error(errorData.error || "Lỗi không xác định", { id: toastId });
       } else {
         const successCount = res.data.successCount ?? 0;
         const failedCount = res.data.failedCount ?? 0;
         toast.success(`Đã copy ${successCount} ảnh thành công! ${failedCount > 0 ? `(Lỗi ${failedCount} ảnh)` : ""}`, { id: toastId });
       }
-    } catch (e: any) {
-      toast.error(e.message || "Đã xảy ra lỗi", { id: toastId });
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi", { id: toastId });
     }
   };
 

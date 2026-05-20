@@ -78,6 +78,9 @@ export function GlobalModal() {
             galleryTitle={data?.galleryTitle}
             hasPassword={data?.hasPassword}
             shareLinks={data?.shareLinks}
+            status={data?.status}
+            onPublishSuccess={data?.onPublishSuccess}
+            onSharePrepared={data?.onSharePrepared}
           />
         );
 
@@ -96,7 +99,7 @@ export function GlobalModal() {
       case "DRIVE_LINK":
         return { title: "Gán Link Google Drive", description: "Kết nối folder ảnh từ Drive" };
       case "SHARE_GALLERY":
-        return { title: "Chia sẻ Album", description: "Gửi link cho khách hàng xem và chọn ảnh" };
+        return { title: "Chia sẻ", description: "" };
       default:
         return { title: "Thông báo", description: "Hệ thống" };
     }

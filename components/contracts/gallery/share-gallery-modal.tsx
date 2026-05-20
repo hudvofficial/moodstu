@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Copy, Download, Check, Link2, Eye, Shield, Loader2 } from "lucide-react";
+import { Copy, Download, Check, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
 import {
-  shareGallery,
+  prepareGalleryShare,
   setGalleryPassword,
 } from "@/app/actions/gallery-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { GalleryShareLink } from "@/types/gallery";
+import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
 // ShareGalleryModalContent — 2 links + 2 QR codes
@@ -24,6 +24,7 @@ interface ShareGalleryModalContentProps {
   shareLinks?: GalleryShareLink[];
   status?: string;
   onPublishSuccess?: () => void;
+  onSharePrepared?: (details: GalleryShareDetails) => void;
 }
 
 export function ShareGalleryModalContent({
@@ -34,12 +35,15 @@ export function ShareGalleryModalContent({
   shareLinks: initialShareLinks = [],
   status = "draft",
   onPublishSuccess,
+  onSharePrepared,
 }: ShareGalleryModalContentProps) {
   const safeGalleryId = galleryId || "";
-  const isReady = Boolean(accessUrl && galleryId);
+  const hasMinimumData = Boolean(galleryId);
 
   const [localStatus, setLocalStatus] = useState(status);
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(
+    status !== "shared" || initialShareLinks.length === 0 || !accessUrl,
+  );
   const [shareLinks, setShareLinks] = useState<GalleryShareLink[]>(initialShareLinks);
   const [localAccessUrl, setLocalAccessUrl] = useState(accessUrl || "");
   const [copiedSelect, setCopiedSelect] = useState(false);
@@ -47,6 +51,7 @@ export function ShareGalleryModalContent({
   const [pwdEnabled, setPwdEnabled] = useState(hasPassword);
   const [pwdValue, setPwdValue] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
+  const [prepareError, setPrepareError] = useState<string | null>(null);
   
   const qrSelectRef = useRef<HTMLDivElement>(null);
   const qrViewRef = useRef<HTMLDivElement>(null);
@@ -57,6 +62,7 @@ export function ShareGalleryModalContent({
 
   const selectSlug = shareLinks.find((link) => link.capability === "select")?.slug || localAccessUrl;
   const viewSlug = shareLinks.find((link) => link.capability === "view")?.slug || "";
+  const canShowShareLinks = Boolean(localAccessUrl && safeGalleryId && localStatus === "shared");
   
   const baseUrl = typeof window !== "undefined"
     ? `${window.location.origin}/gallery/${selectSlug}`
@@ -70,12 +76,12 @@ export function ShareGalleryModalContent({
 
   // ─── QR Code Generation ───────────────────
   const generateQR = useCallback(async () => {
-    if (!isReady || localStatus === "draft") return;
+    if (!canShowShareLinks) return;
     const QRCodeStyling = (await import("qr-code-styling")).default;
 
     const qrOptions = (url: string) => ({
-      width: 160,
-      height: 160,
+      width: 128,
+      height: 128,
       data: url,
       dotsOptions: {
         color: "var(--color-text-primary)",
@@ -98,31 +104,52 @@ export function ShareGalleryModalContent({
       qrViewInstance.current = new QRCodeStyling(qrOptions(viewOnlyUrl));
       qrViewInstance.current.append(qrViewRef.current);
     }
-  }, [baseUrl, isReady, viewOnlyUrl, localStatus]);
+  }, [baseUrl, canShowShareLinks, viewOnlyUrl]);
 
   useEffect(() => {
-    if (!isReady || localStatus === "draft") return;
+    if (!canShowShareLinks) return;
     void generateQR();
-  }, [generateQR, isReady, localStatus]);
+  }, [generateQR, canShowShareLinks]);
+
+  const applyPreparedShare = useCallback((details: GalleryShareDetails) => {
+    setShareLinks(details.shareLinks);
+    setLocalAccessUrl(details.accessUrl || "");
+    setLocalStatus(details.status);
+    onSharePrepared?.(details);
+  }, [onSharePrepared]);
 
   // ─── Publish handlers ─────────────────────
-  const handlePublish = async () => {
+  const handlePrepareShare = useCallback(async () => {
     if (!safeGalleryId) return;
-    setIsPublishing(true);
-    const res = await shareGallery(safeGalleryId);
+    const shouldAnnouncePublish = localStatus !== "shared";
+    setPrepareError(null);
+    setIsPreparing(true);
+    const res = await prepareGalleryShare(safeGalleryId);
     if (res.success) {
       if (res.data) {
-        setShareLinks(res.data.shareLinks);
-        setLocalAccessUrl(res.data.accessUrl || "");
+        applyPreparedShare(res.data);
       }
-      setLocalStatus("shared");
-      toast("Đã phát hành Album thành công!", "success");
+      if (shouldAnnouncePublish) {
+        toast("Đã phát hành Album thành công!", "success");
+      }
       onPublishSuccess?.();
     } else {
+      setPrepareError(res.error || "Không thể phát hành Album.");
       toast(res.error || "Không thể phát hành Album.", "error");
     }
-    setIsPublishing(false);
-  };
+    setIsPreparing(false);
+  }, [applyPreparedShare, localStatus, onPublishSuccess, safeGalleryId]);
+
+  useEffect(() => {
+    if (!safeGalleryId) return;
+    if (localStatus === "shared" && localAccessUrl && shareLinks.length > 0) {
+      setIsPreparing(false);
+      return;
+    }
+    void handlePrepareShare();
+    // Run once per modal open. Local state is updated by handlePrepareShare.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeGalleryId]);
 
   // ─── Copy helpers ─────────────────────────
   const handleCopy = async (url: string, type: "select" | "view") => {
@@ -185,54 +212,110 @@ export function ShareGalleryModalContent({
     }
   };
 
-  // ─── Auto-publish on mount when draft ──────
-  useEffect(() => {
-    if (localStatus === "draft" && safeGalleryId && !isPublishing) {
-      handlePublish();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    !isReady ? (
+    !hasMinimumData ? (
       <div className="p-4 bg-error/5 rounded-xl">
         <p className="text-body-sm font-semibold text-text-primary mb-1">Không thể tạo link chia sẻ</p>
         <p className="text-caption text-text-muted">Thiếu dữ liệu album. Vui lòng đóng popup và thử lại.</p>
       </div>
-    ) : localStatus === "draft" ? (
+    ) : prepareError ? (
+      <div className="p-4 bg-error/5 rounded-xl">
+        <p className="text-body-sm font-semibold text-text-primary mb-1">Không thể tạo link chia sẻ</p>
+        <p className="text-caption text-text-muted">{prepareError}</p>
+      </div>
+    ) : isPreparing || !canShowShareLinks ? (
       /* Compact loading — auto-publishing in background */
       <div className="flex flex-col items-center justify-center py-10 gap-3">
         <Loader2 size={28} className="animate-spin text-primary" />
         <p className="text-caption text-text-muted">Đang tạo link chia sẻ...</p>
       </div>
     ) : (
-    <div className="flex flex-col gap-5">
-      {/* ── Link Chọn Ảnh ── */}
-      <LinkSection
-        icon={<Link2 size={16} className="text-primary" />}
-        title="Link cho khách chọn ảnh"
-        description="Khách hàng có thể xem và chọn ảnh yêu thích"
-        url={baseUrl}
-        copied={copiedSelect}
-        onCopy={() => handleCopy(baseUrl, "select")}
-        qrRef={qrSelectRef}
-        onDownloadQR={() => handleDownloadQR(qrSelectInstance, "select")}
-      />
+    <div className="flex flex-col gap-6">
+      {/* ── Links ── */}
+      <div className="flex flex-col gap-4">
+        {/* Link Chọn Ảnh */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-body-sm text-text-primary">Đường dẫn chia sẻ cho khách hàng chọn ảnh</p>
+          <div className="flex items-center gap-2">
+            <div
+              className="flex-1 px-3 py-2 rounded-lg text-caption text-text-secondary truncate"
+              style={{ background: "var(--color-bg-input)" }}
+            >
+              {baseUrl}
+            </div>
+            <Button unstyled
+              onClick={() => handleCopy(baseUrl, "select")}
+              className="btn-ghost shrink-0 flex items-center gap-1.5 text-success"
+              style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
+            >
+              {copiedSelect ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copiedSelect ? "Đã chép" : "Sao chép"}</span>
+            </Button>
+          </div>
+        </div>
 
-      {/* ── Divider ── */}
-      <div className="h-px bg-border/30" />
+        {/* Link Chỉ Xem */}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-body-sm text-text-primary">Đường dẫn chia sẻ cho người xem (chỉ xem)</p>
+          <div className="flex items-center gap-2">
+            <div
+              className="flex-1 px-3 py-2 rounded-lg text-caption text-text-secondary truncate"
+              style={{ background: "var(--color-bg-input)" }}
+            >
+              {viewOnlyUrl}
+            </div>
+            <Button unstyled
+              onClick={() => handleCopy(viewOnlyUrl, "view")}
+              className="btn-ghost shrink-0 flex items-center gap-1.5 text-success"
+              style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
+            >
+              {copiedView ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copiedView ? "Đã chép" : "Sao chép"}</span>
+            </Button>
+          </div>
+        </div>
+      </div>
 
-      {/* ── Link Chỉ Xem ── */}
-      <LinkSection
-        icon={<Eye size={16} className="text-text-secondary" />}
-        title="Link chỉ xem"
-        description="Khách chỉ được xem ảnh, không chọn hay tải"
-        url={viewOnlyUrl}
-        copied={copiedView}
-        onCopy={() => handleCopy(viewOnlyUrl, "view")}
-        qrRef={qrViewRef}
-        onDownloadQR={() => handleDownloadQR(qrViewInstance, "view")}
-      />
+      {/* ── QR Codes (Side by side) ── */}
+      <div className="flex items-center justify-center gap-10">
+        <div className="flex flex-col items-center gap-3">
+          <div
+            ref={qrSelectRef}
+            className="w-32 h-32 rounded-lg flex items-center justify-center"
+            style={{ background: "var(--color-bg-base)" }}
+          />
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-caption font-medium text-text-primary">Mã QR khách chọn ảnh</p>
+            <Button unstyled
+              onClick={() => handleDownloadQR(qrSelectInstance, "select")}
+              className="btn-ghost flex items-center gap-1.5 text-success"
+              style={{ padding: "4px 8px", fontSize: "var(--font-size-caption)" }}
+            >
+              <Download size={14} />
+              <span>Tải về [.PNG]</span>
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-3">
+          <div
+            ref={qrViewRef}
+            className="w-32 h-32 rounded-lg flex items-center justify-center"
+            style={{ background: "var(--color-bg-base)" }}
+          />
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-caption font-medium text-text-primary">Mã QR khách xem album</p>
+            <Button unstyled
+              onClick={() => handleDownloadQR(qrViewInstance, "view")}
+              className="btn-ghost flex items-center gap-1.5 text-success"
+              style={{ padding: "4px 8px", fontSize: "var(--font-size-caption)" }}
+            >
+              <Download size={14} />
+              <span>Tải về [.PNG]</span>
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* ── Divider ── */}
       <div className="h-px bg-border/30" />
@@ -290,76 +373,5 @@ export function ShareGalleryModalContent({
       </div>
     </div>
     )
-  );
-}
-
-// ─── Sub-component: LinkSection ─────────────
-interface LinkSectionProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  url: string;
-  copied: boolean;
-  onCopy: () => void;
-  qrRef: React.RefObject<HTMLDivElement | null>;
-  onDownloadQR: () => void;
-}
-
-function LinkSection({
-  icon,
-  title,
-  description,
-  url,
-  copied,
-  onCopy,
-  qrRef,
-  onDownloadQR,
-}: LinkSectionProps) {
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        {icon}
-        <div>
-          <p className="text-body-sm font-semibold text-text-primary">{title}</p>
-          <p className="text-caption text-text-muted">{description}</p>
-        </div>
-      </div>
-
-      {/* URL + Copy */}
-      <div className="flex items-center gap-2">
-        <div
-          className="flex-1 px-3 py-2 rounded-lg text-caption text-text-secondary truncate"
-          style={{ background: "var(--color-bg-input)" }}
-        >
-          {url}
-        </div>
-        <Button unstyled
-          onClick={onCopy}
-          className="btn-ghost shrink-0 flex items-center gap-1.5"
-          style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
-        >
-          {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-          <span>{copied ? "Đã chép" : "Sao chép"}</span>
-        </Button>
-      </div>
-
-      {/* QR + Download */}
-      <div className="flex items-center gap-3">
-        <div
-          ref={qrRef}
-          className="w-40 h-40 rounded-lg flex items-center justify-center"
-          style={{ background: "var(--color-bg-base)" }}
-        />
-        <Button unstyled
-          onClick={onDownloadQR}
-          className="btn-ghost flex items-center gap-1.5"
-          style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
-        >
-          <Download size={14} />
-          <span>Tải QR</span>
-        </Button>
-      </div>
-    </div>
   );
 }

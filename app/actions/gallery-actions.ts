@@ -18,6 +18,7 @@ import {
   type GallerySelectionBatch,
   type GallerySummary,
   type GalleryShareCapability,
+  type GalleryShareDetails,
   type GalleryShareLink,
   generateAccessUrl,
   isValidUUID,
@@ -33,6 +34,42 @@ const IMAGE_COLS =
 const RAW_EXTENSION_VALUES = ["arw", "cr2", "cr3", "nef", "raf", "dng", "rw2", "orf", "pef"];
 const PUBLIC_IMAGE_PAGE_SIZE = 100;
 const SHARE_LINK_CAPABILITIES: GalleryShareCapability[] = ["select", "view", "download"];
+const DEFAULT_GALLERY_SHARE_SLOW_MS = 700;
+let prepareGalleryShareRpcAvailable: boolean | null = null;
+
+function getGalleryShareSlowMs() {
+  const configured = Number(process.env.GALLERY_SHARE_PROFILE_SLOW_MS);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_GALLERY_SHARE_SLOW_MS;
+}
+
+function shouldLogGalleryShareTiming(durationMs: number) {
+  if (process.env.GALLERY_SHARE_PROFILE === "1") return true;
+  if (process.env.GALLERY_SHARE_PROFILE === "0") return false;
+  return durationMs >= getGalleryShareSlowMs();
+}
+
+function createGalleryShareProfiler(label: string) {
+  const start = performance.now();
+  let previous = start;
+  const marks: string[] = [];
+
+  return {
+    mark(stage: string) {
+      const now = performance.now();
+      marks.push(`${stage}=${Math.round(now - previous)}ms`);
+      previous = now;
+    },
+    done(detail?: string) {
+      const durationMs = Math.round(performance.now() - start);
+      if (!shouldLogGalleryShareTiming(durationMs)) return;
+      console.warn(
+        `[gallery-share-profile] ${label} total=${durationMs}ms ${marks.join(" ")}${detail ? ` ${detail}` : ""}`,
+      );
+    },
+  };
+}
 
 type PublicGalleryRow = {
   id: string;
@@ -117,6 +154,75 @@ function normalizeShareLinkRow(row: GalleryShareLinkRow | null | undefined) {
   if (row.status !== "active") return null;
   if (row.expires_at && row.expires_at <= new Date().toISOString()) return null;
   return row;
+}
+
+function sortGalleryShareLinks(links: GalleryShareLink[]) {
+  return [...links].sort(
+    (a, b) =>
+      SHARE_LINK_CAPABILITIES.indexOf(a.capability) -
+      SHARE_LINK_CAPABILITIES.indexOf(b.capability),
+  );
+}
+
+function hasAllActiveShareCapabilities(links: GalleryShareLink[]) {
+  const activeCapabilities = new Set(
+    links
+      .filter((link) => normalizeShareLinkRow(link))
+      .map((link) => link.capability),
+  );
+  return SHARE_LINK_CAPABILITIES.every((capability) =>
+    activeCapabilities.has(capability),
+  );
+}
+
+function isMissingRpcError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || "";
+  return (
+    error.code === "42883" ||
+    error.code === "PGRST202" ||
+    message.includes("prepare_gallery_share") ||
+    message.includes("could not find the function")
+  );
+}
+
+function normalizePreparedShareDetails(raw: unknown): GalleryShareDetails | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as {
+    galleryId?: unknown;
+    gallery_id?: unknown;
+    status?: unknown;
+    title?: unknown;
+    accessUrl?: unknown;
+    access_url?: unknown;
+    hasPassword?: unknown;
+    has_password?: unknown;
+    shareLinks?: unknown;
+    share_links?: unknown;
+  };
+
+  const galleryId = String(row.galleryId || row.gallery_id || "");
+  if (!galleryId) return null;
+
+  const shareLinksRaw = Array.isArray(row.shareLinks)
+    ? row.shareLinks
+    : Array.isArray(row.share_links)
+      ? row.share_links
+      : [];
+
+  return {
+    galleryId,
+    status: typeof row.status === "string" ? row.status : "shared",
+    title: typeof row.title === "string" ? row.title : null,
+    accessUrl:
+      typeof row.accessUrl === "string"
+        ? row.accessUrl
+        : typeof row.access_url === "string"
+          ? row.access_url
+          : null,
+    hasPassword: Boolean(row.hasPassword || row.has_password),
+    shareLinks: sortGalleryShareLinks(shareLinksRaw as GalleryShareLink[]),
+  };
 }
 
 async function fetchActiveShareLinkBySlug(
@@ -520,6 +626,18 @@ async function insertShareLinkWithRetry(
 
     if (!error && data) return data as GalleryShareLink;
 
+    if (error?.code === "23505") {
+      const { data: existing, error: existingError } = await supabase
+        .from("gallery_share_links")
+        .select("*")
+        .eq("gallery_id", galleryId)
+        .eq("capability", capability)
+        .maybeSingle();
+
+      if (!existingError && existing) return existing as GalleryShareLink;
+      continue;
+    }
+
     if (error?.code !== "23505") {
       throw new Error(`Khong the tao link ${capability}: ${error?.message || "Unknown"}`);
     }
@@ -569,6 +687,140 @@ async function ensureGalleryShareLink(
   }
 
   return insertShareLinkWithRetry(supabase, galleryId, capability, userId);
+}
+
+async function fetchGalleryShareLinks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+) {
+  const { data, error } = await supabase
+    .from("gallery_share_links")
+    .select("*")
+    .eq("gallery_id", galleryId);
+
+  if (error) {
+    throw new Error(`Khong the tai link gallery: ${error.message}`);
+  }
+
+  return sortGalleryShareLinks((data || []) as GalleryShareLink[]);
+}
+
+async function ensureAllGalleryShareLinks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  userId: string,
+) {
+  const existingLinks = await fetchGalleryShareLinks(supabase, galleryId);
+  if (hasAllActiveShareCapabilities(existingLinks)) {
+    return sortGalleryShareLinks(
+      existingLinks.filter((link) => normalizeShareLinkRow(link)),
+    );
+  }
+
+  const ensuredLinks = await Promise.all(
+    SHARE_LINK_CAPABILITIES.map((capability) =>
+      ensureGalleryShareLink(supabase, galleryId, capability, userId),
+    ),
+  );
+
+  return sortGalleryShareLinks(ensuredLinks);
+}
+
+async function prepareGalleryShareViaRpc(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  userId: string,
+) {
+  if (prepareGalleryShareRpcAvailable === false) return null;
+
+  const { data, error } = await supabase.rpc("prepare_gallery_share", {
+    p_gallery_id: galleryId,
+    p_user_id: userId,
+  });
+
+  if (error) {
+    if (isMissingRpcError(error)) {
+      prepareGalleryShareRpcAvailable = false;
+      return null;
+    }
+    throw new Error(`Khong the chuan bi link chia se: ${error.message}`);
+  }
+
+  prepareGalleryShareRpcAvailable = true;
+  return normalizePreparedShareDetails(data);
+}
+
+async function prepareGalleryShareFallback(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  userId: string,
+  profiler?: ReturnType<typeof createGalleryShareProfiler>,
+) {
+  const { data: gallery, error: galleryError } = await supabase
+    .from("galleries")
+    .select("id, status, title, access_url, contract_id, password, password_hash, shared_at")
+    .eq("id", galleryId)
+    .single();
+
+  profiler?.mark("gallery");
+
+  if (galleryError || !gallery) {
+    throw new Error(`Gallery khong ton tai: ${galleryError?.message || "Unknown"}`);
+  }
+
+  let preparedGallery = gallery;
+  if (gallery.status !== "shared") {
+    const { data: updated, error: updateError } = await supabase
+      .from("galleries")
+      .update({
+        status: "shared",
+        shared_at: gallery.shared_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", galleryId)
+      .select("id, status, title, access_url, contract_id, password, password_hash, shared_at")
+      .single();
+
+    profiler?.mark("publish");
+
+    if (updateError || !updated) {
+      throw new Error(`Loi chia se gallery: ${updateError?.message || "Unknown"}`);
+    }
+
+    preparedGallery = updated;
+  } else {
+    profiler?.mark("publish-skip");
+  }
+
+  const shareLinks = await ensureAllGalleryShareLinks(supabase, galleryId, userId);
+  profiler?.mark("links");
+
+  return {
+    galleryId: preparedGallery.id,
+    status: preparedGallery.status,
+    title: preparedGallery.title,
+    accessUrl: preparedGallery.access_url,
+    hasPassword: !!(preparedGallery.password_hash || preparedGallery.password),
+    shareLinks,
+  } satisfies GalleryShareDetails;
+}
+
+async function prepareGallerySharePayload(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  galleryId: string,
+  userId: string,
+  profiler?: ReturnType<typeof createGalleryShareProfiler>,
+) {
+  const rpcPayload = await prepareGalleryShareViaRpc(supabase, galleryId, userId);
+  profiler?.mark(rpcPayload ? "rpc" : "rpc-miss");
+  if (rpcPayload) return rpcPayload;
+
+  return prepareGalleryShareFallback(supabase, galleryId, userId, profiler);
 }
 
 export async function createGallery(
@@ -650,17 +902,7 @@ export async function ensureGalleryShareLinks(galleryId: string) {
       throw new Error(`Gallery khong ton tai: ${error?.message || "Unknown"}`);
     }
 
-    const links = await Promise.all(
-      SHARE_LINK_CAPABILITIES.map((capability) =>
-        ensureGalleryShareLink(supabase, galleryId, capability, userId),
-      ),
-    );
-
-    return links.sort(
-      (a, b) =>
-        SHARE_LINK_CAPABILITIES.indexOf(a.capability) -
-        SHARE_LINK_CAPABILITIES.indexOf(b.capability),
-    ) as GalleryShareLink[];
+    return ensureAllGalleryShareLinks(supabase, galleryId, userId);
   });
 }
 
@@ -810,37 +1052,66 @@ export async function syncDriveFolder(galleryId: string) {
   });
 }
 
-export async function shareGallery(galleryId: string) {
+export async function prepareGalleryShare(galleryId: string) {
   return withAuth(async (supabase, userId) => {
+    const profiler = createGalleryShareProfiler("prepareGalleryShare");
     await requireContractAccess(supabase, userId);
+    profiler.mark("auth");
 
-    const { data, error } = await supabase
-      .from("galleries")
-      .update({
-        status: "shared",
-        shared_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", galleryId)
-      .select("id, access_url, contract_id, password, password_hash")
-      .single();
-
-    if (error || !data) {
-      throw new Error(`Loi chia se gallery: ${error?.message || "Unknown"}`);
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID gallery khong hop le.");
     }
 
-    const shareLinks = await Promise.all(
-      SHARE_LINK_CAPABILITIES.map((capability) =>
-        ensureGalleryShareLink(supabase, data.id, capability, userId),
-      ),
+    const payload = await prepareGallerySharePayload(
+      supabase,
+      galleryId,
+      userId,
+      profiler,
     );
 
-    revalidatePath(`/contracts/${data.contract_id}`);
+    profiler.done(`galleryId=${galleryId}`);
+    return payload;
+  });
+}
+
+export async function shareGallery(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    const profiler = createGalleryShareProfiler("shareGallery");
+    await requireContractAccess(supabase, userId);
+    profiler.mark("auth");
+
+    if (!galleryId || !isValidUUID(galleryId)) {
+      throw new Error("ID gallery khong hop le.");
+    }
+
+    const payload = await prepareGallerySharePayload(
+      supabase,
+      galleryId,
+      userId,
+      profiler,
+    );
+
+    const { data: gallery, error } = await supabase
+      .from("galleries")
+      .select("contract_id")
+      .eq("id", galleryId)
+      .single();
+
+    profiler.mark("contract");
+
+    if (error || !gallery) {
+      throw new Error(`Gallery khong ton tai: ${error?.message || "Unknown"}`);
+    }
+
+    revalidatePath(`/contracts/${gallery.contract_id}`);
+    profiler.mark("revalidate");
+    profiler.done(`galleryId=${galleryId}`);
+
     return {
-      accessUrl: data.access_url,
-      galleryId: data.id,
-      hasPassword: !!(data.password_hash || data.password),
-      shareLinks,
+      accessUrl: payload.accessUrl,
+      galleryId: payload.galleryId,
+      hasPassword: payload.hasPassword,
+      shareLinks: payload.shareLinks,
     };
   });
 }
@@ -1426,7 +1697,9 @@ export async function reorderImages(orderedIds: string[]) {
 
 export async function getGalleryShareDetails(galleryId: string) {
   return withAuth(async (supabase, userId) => {
+    const profiler = createGalleryShareProfiler("getGalleryShareDetails");
     await requireContractAccess(supabase, userId);
+    profiler.mark("auth");
 
     const { data: gallery, error } = await supabase
       .from("galleries")
@@ -1434,23 +1707,26 @@ export async function getGalleryShareDetails(galleryId: string) {
       .eq("id", galleryId)
       .single();
 
+    profiler.mark("gallery");
+
     if (error || !gallery) {
       throw new Error("Khong tim thay gallery.");
     }
 
-    const { data: links } = await supabase
-      .from("gallery_share_links")
-      .select("*")
-      .eq("gallery_id", galleryId)
-      .eq("status", "active");
+    const links = (await fetchGalleryShareLinks(supabase, galleryId))
+      .filter((link) => normalizeShareLinkRow(link));
+
+    profiler.mark("links");
+    profiler.done(`galleryId=${galleryId}`);
 
     return {
+      galleryId: gallery.id,
       status: gallery.status,
       title: gallery.title,
       accessUrl: gallery.access_url,
       hasPassword: !!(gallery.password_hash || gallery.password),
-      shareLinks: links || [],
-    };
+      shareLinks: links,
+    } satisfies GalleryShareDetails;
   });
 }
 
