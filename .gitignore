@@ -59,6 +59,7 @@ public/swe-worker-*.js.map
 supabase_update_*.sql
 
 # temporary data
+/tmp/
 tmp_*.json
 .brain/handover.md
 .brain/session.json
