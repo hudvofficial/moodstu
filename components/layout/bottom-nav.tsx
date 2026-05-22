@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MODULES } from "@/lib/navigation";
 import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
-import { Home, MoreHorizontal, X } from "lucide-react";
+import { Home, MoreHorizontal, X, Loader2 } from "lucide-react";
 import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
 import { haptic } from "@/lib/haptic";
 
@@ -169,7 +169,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 h-[calc(3.0625rem+env(safe-area-inset-bottom))] bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] z-50",
+          "lg:hidden fixed bottom-0 left-0 right-0 h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] z-50",
           className
         )}
       >
@@ -187,11 +187,16 @@ export function BottomNav({ role, className }: BottomNavProps) {
               onFocus={() => warmRoute(item.href)}
               onClick={(e) => handleNavClick(e, item.href, isActive)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1",
+                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 rounded-lg",
+                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                 isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
               )}
             >
-              <Icon className={cn("w-6 h-6", (isActive || isPending) && "stroke-[2.5px]")} />
+              {isPending ? (
+                <Loader2 className="w-6 h-6 animate-spin stroke-[2.5px]" />
+              ) : (
+                <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
+              )}
               <span className={cn(
                 "text-tiny",
                 isActive || isPending ? "font-semibold" : "font-medium"
@@ -211,9 +216,10 @@ export function BottomNav({ role, className }: BottomNavProps) {
             setShowMore(!showMore);
           }}
           onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
-          onKeyDown={(e) => { if (e.key === "Enter") setShowMore(!showMore); }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer",
+            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer rounded-lg",
+            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
             showMore || moreActive
               ? "text-primary"
               : "text-text-muted hover:text-text-secondary"

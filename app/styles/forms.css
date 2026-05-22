@@ -114,7 +114,8 @@
 
 .search-input {
   width: 100%;
-  height: 40px;
+  min-height: 44px; /* Apple HIG touch target minimum */
+  height: 44px;
   padding-top: 0;
   padding-bottom: 0;
   padding-right: var(--spacing-base);
@@ -140,13 +141,14 @@
    4. ICON BUTTON + KBD
    ══════════════════════════════════════ */
 
-/* Icon button — header/toolbar (40x40 square, subtle bg) */
+/* Icon button — header/toolbar (44x44 square, subtle bg) */
 .icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   border: none;
   background: var(--color-bg-input);

@@ -23,6 +23,14 @@
   }
 }
 
+/* Landscape orientation on mobile: reduce header height for more content space */
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1023px) {
+  .app-shell-viewport {
+    --header-mobile-h: 3rem; /* Reduce from 3.5rem (56px) to 3rem (48px) */
+    --bottom-nav-h: 2.5rem; /* Reduce from 3.0625rem (49px) to 2.5rem (40px) */
+  }
+}
+
 .main-container {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
@@ -84,6 +92,7 @@
 .icon-box {
   width: 40px;
   height: 40px;
+  min-width: 40px;
   border-radius: var(--radius-md);
   display: grid;
   place-items: center;
@@ -96,13 +105,7 @@
   transform: scale(1.1);
 }
 
-/* Mobile compact icon (moved from utilities.css Phase 02) */
-@media (max-width: 1023px) {
-  .icon-box {
-    width: 32px;
-    height: 32px;
-  }
-}
+/* Keep icon-box at 40px on all screen sizes for consistent touch targets */
 
 .link-base {
   color: var(--color-primary);

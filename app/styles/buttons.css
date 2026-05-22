@@ -52,9 +52,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  width: 40px;
-  height: 40px;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 9999px;
   color: var(--color-text-secondary);
   background-color: transparent;
@@ -83,7 +83,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  padding: 10px var(--spacing-base);
+  padding: 12px var(--spacing-base);
+  min-height: 44px; /* Apple HIG touch target minimum */
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: var(--font-size-body-sm);
@@ -162,9 +163,9 @@
 
 .btn.btn-icon,
 .btn-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   padding: 0;
   border-radius: 9999px;
   display: inline-flex;

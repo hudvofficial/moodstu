@@ -122,26 +122,42 @@ export function Header({
     if (pullDistance === 0 && !isVisible) {
       return 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Spring snap-back
     }
-    return 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease'; // Smooth hide/show + shadow fade
+    return 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth hide/show (shadow handled by CSS var)
   };
 
   // Shadow opacity based on visibility
   const shadowOpacity = isVisible && pullDistance === 0 ? 1 : 0;
 
+  // Update CSS variable for shadow animation
+  React.useEffect(() => {
+    if (isMobile) {
+      document.documentElement.style.setProperty('--header-shadow-opacity', String(shadowOpacity));
+    }
+  }, [shadowOpacity, isMobile]);
+
   return (
     <header
       className={cn(
         "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:will-change-transform max-lg:shadow-none",
+        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:shadow-none",
         "lg:transition-transform lg:duration-300 lg:ease-in-out",
         !isVisible && "max-lg:-translate-y-full",
         className
       )}
+      style={{
+        ...(isMobile ? {
+          // Mobile-only: pull-to-refresh transform and dynamic shadow via CSS variable
+          transform: getTransform(),
+          transition: getTransition(),
+          boxShadow: `0 2px 8px -2px rgba(0, 0, 0, calc(0.06 * var(--header-shadow-opacity, 1)))`,
+          willChange: pullDistance > 0 ? 'transform' : 'auto', // Optimize pull-to-refresh
+        } : {}),
+      }}
       style={isMobile ? {
-        // Mobile-only: pull-to-refresh transform and dynamic shadow
+        // Mobile-only: pull-to-refresh transform and dynamic shadow via CSS variable
         transform: getTransform(),
         transition: getTransition(),
-        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, ${0.06 * shadowOpacity})`,
+        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, calc(0.06 * var(--header-shadow-opacity, 1)))`,
       } : undefined}
     >
       {/* ═══════ MOBILE: Search Overlay ═══════ */}
@@ -195,7 +211,7 @@ export function Header({
             )}
           </div>
 
-          <div className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-160px)] lg:static lg:translate-x-0 lg:max-w-none lg:flex-1 lg:ml-2 flex flex-col min-w-0">
+          <div className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-120px)] sm:max-w-[calc(100%-160px)] lg:static lg:translate-x-0 lg:max-w-none lg:flex-1 lg:ml-2 flex flex-col min-w-0">
             <h1 className="text-h3 truncate">
               {titleOverride ? (
                 <>

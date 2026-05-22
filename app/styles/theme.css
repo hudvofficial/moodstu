@@ -14,7 +14,9 @@
 :root {
   --header-mobile-h: 3.5rem; /* 56px = h-14 */
   --header-desktop-h: 4rem; /* 64px = h-16 */
+  --bottom-nav-h: 3.0625rem; /* 49px base height */
   --z-header: 40;
+  --header-shadow-opacity: 1; /* Dynamic shadow opacity */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --focus-ring-outline: rgba(139, 94, 60, 0.72);
