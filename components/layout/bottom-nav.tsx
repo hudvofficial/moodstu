@@ -8,6 +8,7 @@ import { MODULES } from "@/lib/navigation";
 import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
 import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
+import { haptic } from "@/lib/haptic";
 
 interface BottomNavProps {
   role: Role;
@@ -88,6 +89,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
   /** iOS-style: tap active tab → scroll to top, tap inactive → navigate */
   const handleNavClick = React.useCallback(
     (e: React.MouseEvent, href: string, isActive: boolean) => {
+      haptic("light");
       if (isActive) {
         e.preventDefault();
         scrollMainToTop();
@@ -204,7 +206,10 @@ export function BottomNav({ role, className }: BottomNavProps) {
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setShowMore(!showMore)}
+          onClick={() => {
+            haptic("light");
+            setShowMore(!showMore);
+          }}
           onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
           onKeyDown={(e) => { if (e.key === "Enter") setShowMore(!showMore); }}
           className={cn(

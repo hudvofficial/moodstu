@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { haptic } from "@/lib/haptic";
 
 export interface SwipeAction {
   id: string;
@@ -49,11 +50,13 @@ export function SwipeableCard({
 
   const openLeft = () => {
     setX(leftMax);
+    haptic("light");
     onSwipeOpen?.();
   };
 
   const openRight = () => {
     setX(-rightMax);
+    haptic("light");
     onSwipeOpen?.();
   };
 
@@ -114,6 +117,7 @@ export function SwipeableCard({
               role="button"
               tabIndex={0}
               onClick={() => {
+                haptic("medium");
                 action.onClick();
                 closeSwipe();
               }}
@@ -139,6 +143,7 @@ export function SwipeableCard({
               role="button"
               tabIndex={0}
               onClick={() => {
+                haptic("medium");
                 action.onClick();
                 closeSwipe();
               }}

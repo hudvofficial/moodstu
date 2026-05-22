@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, type CSSProperties } from "react";
+import { haptic } from "@/lib/haptic";
 
 const DISMISS_THRESHOLD = 100;    // px
 const VELOCITY_THRESHOLD = 0.5;  // px/ms
@@ -59,6 +60,7 @@ export function useSwipeDismiss(onDismiss: () => void): UseSwipeDismissResult {
     const velocity = elapsed > 0 ? swipeY / elapsed : 0;
 
     if (swipeY >= DISMISS_THRESHOLD || velocity >= VELOCITY_THRESHOLD) {
+      haptic("light");
       onDismiss();
     } else {
       // Snap back

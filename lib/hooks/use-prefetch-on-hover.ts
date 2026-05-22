@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useIsSlowNetwork } from "@/hooks/use-network-quality";
 import { mutate } from "swr";
 import type { Arguments } from "swr";
 import { getContractList } from "@/app/actions/contract-queries";
@@ -115,11 +116,15 @@ export function usePrefetchOnHover() {
   const pathname = usePathname();
   const router = useRouter();
   const prefetchedRef = useRef<Set<string>>(new Set());
+  const isSlowNetwork = useIsSlowNetwork();
 
   return useCallback(
     (href: string) => {
       const route = href.split("?")[0];
       if (!route || pathname === route || pathname.startsWith(`${route}/`)) return;
+
+      // Skip prefetch on slow networks to save bandwidth
+      if (isSlowNetwork) return;
 
       router.prefetch(route);
       if (prefetchedRef.current.has(route)) return;
@@ -132,6 +137,6 @@ export function usePrefetchOnHover() {
         prefetchedRef.current.delete(route);
       });
     },
-    [pathname, router],
+    [pathname, router, isSlowNetwork],
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, Suspense, useEffect, useRef } from "react";
+import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
@@ -94,6 +95,12 @@ function DressesListInner({
   useRealtime("dresses", { onChange: refreshDressCaches });
   useRealtime("dress_reservations", { onChange: refreshDressCaches });
   useRealtime("dress_rentals", { onChange: refreshDressCaches });
+
+  // Pull-to-refresh
+  usePullToRefreshCallback(async () => {
+    await revalidateByPrefixes([cacheKeys.dresses(), cacheKeys.dressRentals()]);
+    await mutateStats();
+  }, [mutateStats]);
 
   useEffect(() => {
     return () => {

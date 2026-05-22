@@ -13,6 +13,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import dynamic from "next/dynamic";
 import { Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -170,6 +171,12 @@ function ContractsListInner({
     initialDataForCurrentFilters,
   );
   const { stats, isLoading: statsLoading } = useContractStats(initialStats);
+
+  // Pull-to-refresh callback
+  usePullToRefreshCallback(async () => {
+    await revalidateContractListCaches();
+  }, []);
+
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
   const patchChecklistRealtimePayload = useCallback((payload: RealtimePayload) => {
     if (payload.table === "contract_checklists") {

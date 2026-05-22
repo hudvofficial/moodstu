@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
+import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterX, UserPlus, Users } from "lucide-react";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
@@ -148,6 +149,11 @@ export default function CustomerListPage({
       void revalidateByPrefixes(cacheKeys.customers());
     });
   }, [startTransition]);
+
+  // Pull-to-refresh
+  usePullToRefreshCallback(async () => {
+    await revalidateByPrefixes(cacheKeys.customers());
+  }, []);
 
   const widgetsContent = (
     <>

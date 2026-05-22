@@ -2,6 +2,7 @@
 
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 import { forwardRef } from "react";
+import { haptic } from "@/lib/haptic";
 
 /* ═══════════════════════════════════════════
    Switch — SSOT Toggle Component
@@ -24,7 +25,10 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
       <SwitchPrimitive.Root
         ref={ref}
         checked={checked}
-        onCheckedChange={onCheckedChange}
+        onCheckedChange={(value) => {
+          haptic("light");
+          onCheckedChange(value);
+        }}
         disabled={disabled}
         id={id}
         data-focus-ring="custom"

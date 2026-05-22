@@ -12,6 +12,7 @@ import { Role } from "@/types/roles";
 import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
+import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
 import { NavigationWarmup } from "./navigation-warmup";
 import { NavigationProgress } from "./navigation-progress";
 
@@ -120,7 +121,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
               ref={mainRef}
               id="main-scroll"
               className={cn(
-              "flex-1 scroll-smooth flex flex-col min-h-0",
+              "flex-1 scroll-smooth flex flex-col min-h-0 relative",
               isAppView || isChatView ? "overflow-hidden" : "overflow-y-auto",
               isFullpage
                 ? "" // FullpageFormShell handles its own padding
@@ -135,7 +136,12 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                     : "px-2 py-4 md:px-6 md:py-6 lg:px-6 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
+              <PullToRefreshProvider
+                scrollRef={mainRef}
+                disabled={isAppView || isChatView || isFormPage || isFullpage}
+              >
                 {children}
+              </PullToRefreshProvider>
             </main>
 
             {!(isFullpage || isFormPage || isChatView) && <BottomNav role={role} />}

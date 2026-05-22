@@ -211,6 +211,7 @@ const withPWA = withPWAInit({
     skipWaiting: true,
     clientsClaim: true,
     disableDevLogs: true,
+    importScripts: ["/push-sw.js"],
     runtimeCaching: [
       // 🔴 RULE 1: Supabase Auth — NEVER CACHE (V1 audit finding)
       {
