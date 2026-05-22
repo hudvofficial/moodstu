@@ -59,8 +59,8 @@ export default function GalleryImageList({
           <span>Tên file</span>
           <span>Loại</span>
           <span>Ngày tạo</span>
-          <span>★</span>
           <span className="text-center">♥</span>
+          <span className="text-center">★</span>
         </div>
 
         {groups.map((group, index) => {
@@ -137,9 +137,9 @@ export default function GalleryImageList({
                   loading="lazy"
                   decoding="async"
                 />
-                {image.is_selected && (
+                {image.is_starred && (
                   <div className="absolute left-1 top-1">
-                    <Star size={12} className="fill-success text-success" />
+                    <Star size={12} className="fill-warning text-warning" />
                   </div>
                 )}
                 {watermarkEnabled && (
@@ -179,33 +179,30 @@ export default function GalleryImageList({
               <span className="text-caption text-text-muted">{dateLabel}</span>
 
               <div className="flex items-center justify-center">
+                {image.is_selected && (
+                  <Heart size={14} className="fill-error text-error" />
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-1">
                 {onToggleStar && (
                   <Button
                     unstyled
                     onClick={(event) => {
                       event.stopPropagation();
-                      onToggleStar(image.id, !!image.is_selected);
+                      onToggleStar(image.id, !!image.is_starred);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         event.stopPropagation();
-                        onToggleStar(image.id, !!image.is_selected);
+                        onToggleStar(image.id, !!image.is_starred);
                       }
                     }}
                     className="flex items-center justify-center"
-                    title={image.is_selected ? "Bỏ đề xuất" : "Đề xuất"}
+                    title={image.is_starred ? "Bỏ đề xuất" : "Đánh dấu đề xuất"}
                   >
-                    <Star size={14} className={image.is_selected ? "fill-success text-success" : "text-text-muted"} />
+                    <Star size={14} className={image.is_starred ? "fill-warning text-warning" : "text-text-muted"} />
                   </Button>
-                )}
-              </div>
-
-              <div className="flex items-center justify-center gap-1">
-                {hearts > 0 && (
-                  <>
-                    <Heart size={13} className="fill-error text-error" />
-                    <span className="text-micro font-semibold text-error">{hearts}</span>
-                  </>
                 )}
               </div>
             </div>

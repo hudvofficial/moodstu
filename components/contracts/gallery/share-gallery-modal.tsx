@@ -18,6 +18,7 @@ import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";
 
 interface ShareGalleryModalContentProps {
   accessUrl?: string;
+  customSlug?: string | null;
   galleryId?: string;
   galleryTitle?: string;
   hasPassword?: boolean;
@@ -29,6 +30,7 @@ interface ShareGalleryModalContentProps {
 
 export function ShareGalleryModalContent({
   accessUrl,
+  customSlug,
   galleryId,
   galleryTitle,
   hasPassword = false,
@@ -60,7 +62,7 @@ export function ShareGalleryModalContent({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const qrViewInstance = useRef<any>(null);
 
-  const selectSlug = shareLinks.find((link) => link.capability === "select")?.slug || localAccessUrl;
+  const selectSlug = customSlug || shareLinks.find((link) => link.capability === "select")?.slug || localAccessUrl;
   const viewSlug = shareLinks.find((link) => link.capability === "view")?.slug || "";
   const canShowShareLinks = Boolean(localAccessUrl && safeGalleryId && localStatus === "shared");
   
@@ -68,11 +70,13 @@ export function ShareGalleryModalContent({
     ? `${window.location.origin}/gallery/${selectSlug}`
     : `/gallery/${selectSlug}`;
   
-  const viewOnlyUrl = viewSlug
-    ? (typeof window !== "undefined"
-      ? `${window.location.origin}/gallery/${viewSlug}`
-      : `/gallery/${viewSlug}`)
-    : `${baseUrl}?mode=view`;
+  const viewOnlyUrl = customSlug 
+    ? (typeof window !== "undefined" ? `${window.location.origin}/gallery/${customSlug}?mode=view` : `/gallery/${customSlug}?mode=view`)
+    : viewSlug
+      ? (typeof window !== "undefined"
+        ? `${window.location.origin}/gallery/${viewSlug}`
+        : `/gallery/${viewSlug}`)
+      : `${baseUrl}?mode=view`;
 
   // ─── QR Code Generation ───────────────────
   const generateQR = useCallback(async () => {
@@ -107,9 +111,13 @@ export function ShareGalleryModalContent({
   }, [baseUrl, canShowShareLinks, viewOnlyUrl]);
 
   useEffect(() => {
-    if (!canShowShareLinks) return;
-    void generateQR();
-  }, [generateQR, canShowShareLinks]);
+    if (!canShowShareLinks || isPreparing) return;
+    // Slight delay to ensure DOM is ready after isPreparing becomes false
+    const timer = setTimeout(() => {
+      void generateQR();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [generateQR, canShowShareLinks, isPreparing]);
 
   const applyPreparedShare = useCallback((details: GalleryShareDetails) => {
     setShareLinks(details.shareLinks);

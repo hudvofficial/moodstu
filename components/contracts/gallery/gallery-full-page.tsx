@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import { reorderImages } from "@/app/actions/gallery-actions";
-import { copySelectedJpgToDrive } from "@/app/actions/gallery-drive-actions";
+import { reorderImages, updateGallerySettings } from "@/app/actions/gallery-actions";
+import type { GallerySettingsPayload } from "@/app/actions/gallery-actions";
 import { toast } from "sonner";
 import GalleryImageGrid from "./gallery-image-grid";
 import GalleryImageList from "./gallery-image-list";
@@ -11,6 +11,7 @@ import GalleryLightbox from "./gallery-lightbox";
 import GalleryToolbar from "./gallery-toolbar";
 import GalleryFilterModal from "./gallery-filter-modal";
 import { GalleryListModal } from "./gallery-list-modal";
+import { GallerySettingsModal } from "./gallery-settings-modal";
 import { useModal } from "@/lib/context/modal-context";
 import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
@@ -32,7 +33,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
     commentCountsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
     activeGallery, images, groupedImages, filteredGroups, displayImages,
-    rawCount, jpgCount, selectedCount, hasPassword, totalHearts,
+    rawCount, jpgCount, selectedCount, starredCount, hasPassword, totalHearts,
     allDownloadFiles, selectedDownloadFiles, totalImageCount,
     hasMoreImages, loadingMore, loadMoreImages,
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
@@ -58,6 +59,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<"drive" | "local" | "export">("local");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { openModal } = useModal();
 
   // Share modal handler
@@ -65,6 +67,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     if (!activeGallery?.access_url) return;
     openModal("SHARE_GALLERY", {
       accessUrl: activeGallery.access_url,
+      customSlug: activeGallery.custom_slug,
       galleryId: activeGallery.id,
       galleryTitle: activeGallery.title || "Album",
       hasPassword,
@@ -73,28 +76,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     });
   };
 
-  const handleCopySelectedJpg = async () => {
-    if (!activeGalleryId) return;
-    const toastId = toast.loading("Đang tạo thư mục và copy ảnh...");
-    try {
-      // Temporary solution: Use contractId if contractCode is not immediately available.
-      // Wait, copySelectedJpgToDrive requires contractCode. Let's just pass contractId for now,
-      // and we can fetch contract_code inside copySelectedJpgToDrive using contractId!
-      const res = await copySelectedJpgToDrive(activeGalleryId, contractId);
-      if ("error" in res) {
-        toast.error(res.error, { id: toastId });
-      } else if (!res.data.success || "error" in res.data) {
-        const errorData = res.data as { error?: string };
-        toast.error(errorData.error || "Lỗi không xác định", { id: toastId });
-      } else {
-        const successCount = res.data.successCount ?? 0;
-        const failedCount = res.data.failedCount ?? 0;
-        toast.success(`Đã copy ${successCount} ảnh thành công! ${failedCount > 0 ? `(Lỗi ${failedCount} ảnh)` : ""}`, { id: toastId });
-      }
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Đã xảy ra lỗi", { id: toastId });
-    }
-  };
+  // Drive copy is now handled entirely inside GalleryFilterModal to support chunking
 
   const selectedJpgNames = useMemo(() => {
     return images
@@ -144,6 +126,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         rawCount={rawCount}
         jpgCount={jpgCount}
         selectedCount={selectedCount}
+        starredCount={starredCount}
         totalImageCount={totalImageCount}
         totalHearts={totalHearts}
         commentCount={commentCount}
@@ -164,6 +147,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         onViewMode={handleViewMode}
         onWatermarkToggle={handleWatermarkToggle}
         onOpenShare={handleOpenShare}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         onSetShowAlbumInput={setShowAlbumInput}
         onSetNewAlbumName={setNewAlbumName}
         onCreateAlbum={handleCreateAlbum}
@@ -178,8 +162,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
         selectedJpgNames={selectedJpgNames}
-        onCopyDrive={handleCopySelectedJpg}
-        contractCode={contractId} // fallback to ID
+        contractId={contractId}
+        galleryId={activeGalleryId}
         defaultTab={filterTab}
       />
 
@@ -191,6 +175,23 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         reactionCounts={reactionCounts}
         commentCountsPerImage={commentCountsPerImage}
       />
+
+      {/* ── Settings Modal ── */}
+      {activeGallery && (
+        <GallerySettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          gallery={activeGallery}
+          onSave={async (settings) => {
+            const result = await updateGallerySettings(activeGallery.id, settings as GallerySettingsPayload);
+            if (!result.success) {
+              throw new Error(result.error || "Lỗi cập nhật cài đặt");
+            }
+            toast.success("Đã lưu cài đặt album");
+          }}
+        />
+      )}
+
 
       {/* ── Image Grid or List ── */}
       {viewMode === "list" ? (

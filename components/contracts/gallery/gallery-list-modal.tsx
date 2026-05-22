@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, Download, Star, Heart, MessageCircle, List as ListIcon, Check } from "lucide-react";
 import { GalleryImage } from "@/types/gallery";
 import { toast } from "sonner";
@@ -119,19 +120,19 @@ export function GalleryListModal({
           <p className="text-body-sm font-medium text-text-primary">Cách trình bày danh sách:</p>
           <div className="grid grid-cols-2 gap-y-3 sm:grid-cols-4">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={useComma} onChange={(e) => setUseComma(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
+              <Checkbox checked={useComma} onChange={(e) => setUseComma(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
               <span className="text-body-sm text-text-main">Dấu phẩy</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={useSpace} onChange={(e) => setUseSpace(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
+              <Checkbox checked={useSpace} onChange={(e) => setUseSpace(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
               <span className="text-body-sm text-text-main">Khoảng cách</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={useNewline} onChange={(e) => setUseNewline(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
+              <Checkbox checked={useNewline} onChange={(e) => setUseNewline(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
               <span className="text-body-sm text-text-main">Xuống dòng</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={showExtension} onChange={(e) => setShowExtension(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
+              <Checkbox checked={showExtension} onChange={(e) => setShowExtension(e.target.checked)} className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" />
               <span className="text-body-sm text-text-main">Đuôi file</span>
             </label>
           </div>

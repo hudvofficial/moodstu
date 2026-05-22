@@ -120,6 +120,9 @@ export function CalendarWrapper({
   useEffect(() => {
     // eslint-disable-next-line
     setMounted(true);
+    
+    // Trigger background sync when calendar is opened
+    fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
   }, []);
 
   const isSmallScreen = isMobile || isTablet;
@@ -220,7 +223,10 @@ export function CalendarWrapper({
         currentUserId={currentUserId}
         userRole={userRole as Role}
         isGoogleConnected={filters.isGoogleConnected}
-        onSuccess={() => mutate()}
+        onSuccess={() => {
+          mutate();
+          fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
+        }}
       />
 
       <FAB onClick={() => openCreateForm(currentDate)} label="Tạo lịch trình" />

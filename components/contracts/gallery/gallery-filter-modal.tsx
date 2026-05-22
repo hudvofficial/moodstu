@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Folder, Download, CloudDownload, HardDrive, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, CheckCircle2, AlertCircle } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Radio } from "@/components/ui/radio";
+import { Input } from "@/components/ui/input";
 import { isFileSystemAccessSupported, scanDirectoryForFiles, copyFileBetweenHandles, copyRawAndJpgByBasenames, FileSystemDirectoryHandle } from "@/lib/utils/local-file-system";
 import { generateExportPack } from "@/lib/utils/export-pack-generator";
+import { toast } from "sonner";
+import { GalleryFilterDriveTab } from "./tabs/gallery-filter-drive-tab";
 
 interface GalleryFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedJpgNames: string[];
-  onCopyDrive: () => void;
-  contractCode?: string;
+  contractId: string;
+  galleryId: string | null;
   defaultTab?: "drive" | "local" | "export";
 }
 
@@ -21,8 +26,8 @@ export default function GalleryFilterModal({
   isOpen,
   onClose,
   selectedJpgNames,
-  onCopyDrive,
-  contractCode = "Unknown",
+  contractId,
+  galleryId,
   defaultTab = "local",
 }: GalleryFilterModalProps) {
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
@@ -139,7 +144,7 @@ export default function GalleryFilterModal({
     <UnifiedModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Lọc & Copy Ảnh Đã Chọn"
+      title={activeTab === "drive" ? "Lọc ảnh vào Google Drive" : activeTab === "export" ? "Xuất gói lọc ảnh" : "Lọc & Copy Ảnh Đã Chọn"}
       description={`Có tổng cộng ${totalSelected} file JPG được chọn. Chọn phương thức lọc dưới đây.`}
     >
       <div className="space-y-4">
@@ -209,11 +214,10 @@ export default function GalleryFilterModal({
                   {/* Tùy chọn mở rộng */}
                   <div className="pt-2 opacity-50 transition-opacity data-[active=true]:opacity-100" data-active={!!sourceHandle}>
                     <label className="flex items-start gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <Checkbox 
                         checked={includeRaw} 
-                        onChange={(e) => setIncludeRaw(e.target.checked)} 
-                        className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+                        onChange={(e: any) => setIncludeRaw(e.target.checked)} 
+                        className="mt-0.5" 
                         disabled={isCopying}
                       />
                       <div>
@@ -267,22 +271,12 @@ export default function GalleryFilterModal({
 
           {/* DRIVE TAB */}
           {activeTab === "drive" && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="rounded-xl bg-info/10 p-4 border border-info/20">
-                <p className="text-body-sm text-info font-medium mb-1">Copy trên Google Drive</p>
-                <p className="text-caption text-info/80">Hệ thống sẽ tạo thư mục <strong>Selected - {contractCode}</strong> nằm cùng chỗ với thư mục gốc trên Google Drive, và copy các ảnh đã chọn sang đó.</p>
-              </div>
-              <Button 
-                className="w-full h-11" 
-                onClick={() => {
-                  onCopyDrive();
-                  onClose();
-                }}
-              >
-                <CloudDownload className="w-4 h-4 mr-2" />
-                Copy trên Google Drive
-              </Button>
-            </div>
+            <GalleryFilterDriveTab
+              totalSelected={totalSelected}
+              galleryId={galleryId}
+              contractId={contractId}
+              contractName={contractId}
+            />
           )}
 
           {/* EXPORT PACK TAB */}
@@ -303,11 +297,10 @@ export default function GalleryFilterModal({
 
                 <div className="pt-2 mb-4 border-t border-border/50">
                   <label className="flex items-start gap-2 cursor-pointer mt-3">
-                    <input 
-                      type="checkbox" 
+                    <Checkbox 
                       checked={includeRaw} 
-                      onChange={(e) => setIncludeRaw(e.target.checked)} 
-                      className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+                      onChange={(e: any) => setIncludeRaw(e.target.checked)} 
+                      className="mt-0.5" 
                     />
                     <div>
                       <span className="text-body-sm font-medium text-text-primary block">
@@ -324,11 +317,11 @@ export default function GalleryFilterModal({
                   variant="outline" 
                   className="w-full"
                   onClick={async () => {
-                    const blob = await generateExportPack(selectedJpgNames, contractCode, includeRaw);
+                    const blob = await generateExportPack(selectedJpgNames, contractId, includeRaw);
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = `ExportPack-${contractCode}.zip`;
+                    a.download = `ExportPack-${contractId.substring(0,8)}.zip`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);

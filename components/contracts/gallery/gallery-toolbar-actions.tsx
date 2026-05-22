@@ -12,7 +12,8 @@ import {
   Share2,
   ScanFace,
   Cloud,
-  HardDrive
+  HardDrive,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,14 +79,16 @@ export function GalleryMoreMenu({
   downloadFiles,
   downloadLabel = "Tải xuống",
   onOpenShare,
+  onOpenSettings,
   onOpenFilterDrive,
   onOpenFilterLocal,
   onOpenList,
   disableFilter = false,
 }: {
-  downloadFiles: { driveFileId: string; fileName: string }[];
+  downloadFiles: { imageId: string; fileName: string }[];
   downloadLabel?: string;
   onOpenShare?: () => void;
+  onOpenSettings?: () => void;
   onOpenFilterDrive?: () => void;
   onOpenFilterLocal?: () => void;
   onOpenList?: () => void;
@@ -122,6 +125,11 @@ export function GalleryMoreMenu({
           <Button unstyled onClick={() => { if (onOpenShare) onOpenShare(); setOpen(false); }} className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors">
             <Share2 size={14} className="text-text-muted" />
             <span>Chia sẻ album</span>
+          </Button>
+
+          <Button unstyled onClick={() => { if (onOpenSettings) onOpenSettings(); setOpen(false); }} className="flex h-9 w-full items-center justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover transition-colors">
+            <Settings size={14} className="text-text-muted" />
+            <span>Tùy chỉnh</span>
           </Button>
 
           <Button 

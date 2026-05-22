@@ -311,9 +311,9 @@ export async function createContract(rawData: unknown) {
 }
 
 const VALID_TRANSITIONS: Record<ContractStatus, ContractStatus[]> = {
-  cho_xu_ly: ["dang_thuc_hien", "da_huy"],
+  cho_xu_ly: ["dang_thuc_hien", "hoan_thanh", "da_huy"],
   dang_thuc_hien: ["hoan_thanh", "da_huy"],
-  hoan_thanh: [],
+  hoan_thanh: ["dang_thuc_hien"],
   da_huy: ["cho_xu_ly"],
 };
 
@@ -350,6 +350,12 @@ export async function updateContractStatus(
             allowed.length > 0 ? allowed.join(", ") : "khong co"
           }`,
         );
+      }
+
+      if (newStatus === "hoan_thanh") {
+        // Ghi chú: Đã gỡ bỏ logic chặn "còn nợ" và "còn task chưa xong".
+        // Thực tế studio có thể hoàn thành dịch vụ (trạng thái Hợp đồng)
+        // độc lập với trạng thái tài chính (còn nợ) hoặc task.
       }
     }
 

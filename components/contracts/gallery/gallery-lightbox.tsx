@@ -2,7 +2,7 @@
 
 import type { MouseEvent, TouchEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Star, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Heart, Star, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { downloadSingleFile } from "@/components/gallery/download-manager";
 import { Button } from "@/components/ui/button";
@@ -123,8 +123,8 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
     e.stopPropagation();
 
     if (img.drive_file_id) {
-      const ok = await downloadSingleFile(img.drive_file_id, downloadFileName);
-      if (!ok) window.open(`/api/drive-download/${img.drive_file_id}`, "_blank", "noopener,noreferrer");
+      const ok = await downloadSingleFile("admin", img.id, downloadFileName);
+      if (!ok) window.open(`/api/gallery-download/admin/${img.id}`, "_blank", "noopener,noreferrer");
       return;
     }
 
@@ -199,13 +199,24 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
             {currentIdx + 1}/{images.length}
           </span>
           <div className="flex-1" />
+          {img.is_starred && (
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
+              style={{ borderRadius: "var(--radius-md)" }}
+              title="Ảnh đề xuất"
+            >
+              <Star size={14} className="fill-warning text-warning" />
+              Đề xuất
+            </span>
+          )}
           {img.is_selected && (
             <span
               className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
               style={{ borderRadius: "var(--radius-md)" }}
+              title="Khách chọn"
             >
-              <Star size={14} className="text-white" />
-              Được đề xuất
+              <Heart size={14} className="fill-error text-error" />
+              Khách chọn
             </span>
           )}
           {galleryId && (

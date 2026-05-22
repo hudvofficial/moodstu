@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DownloadFile {
-  driveFileId: string;
+  imageId: string;
   fileName: string;
 }
 
@@ -15,6 +15,7 @@ interface DownloadManagerProps {
   label?: string;
   variant?: "icon" | "button" | "full";
   className?: string;
+  accessToken?: string;
 }
 
 interface DownloadState {
@@ -35,9 +36,9 @@ const INITIAL_STATE: DownloadState = {
   cancelled: false,
 };
 
-async function downloadSingleFile(fileId: string, fileName: string): Promise<boolean> {
+async function downloadSingleFile(accessToken: string, imageId: string, fileName: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/drive-download/${fileId}`);
+    const res = await fetch(`/api/gallery-download/${accessToken}/${imageId}`);
     if (!res.ok) return false;
 
     const blob = await res.blob();
@@ -60,6 +61,7 @@ export default function DownloadManager({
   label,
   variant = "button",
   className,
+  accessToken = "admin",
 }: DownloadManagerProps) {
   const [state, setState] = useState<DownloadState>(INITIAL_STATE);
   const cancelRef = useRef(false);
@@ -88,7 +90,7 @@ export default function DownloadManager({
       const file = files[index];
       setState((prev) => ({ ...prev, currentFile: file.fileName, completed: index }));
 
-      const ok = await downloadSingleFile(file.driveFileId, file.fileName);
+      const ok = await downloadSingleFile(accessToken, file.imageId, file.fileName);
       if (!ok) failed.push(file.fileName);
 
       if (index < files.length - 1) {
@@ -104,7 +106,7 @@ export default function DownloadManager({
       failed,
       cancelled: false,
     });
-  }, [files]);
+  }, [files, accessToken]);
 
   const handleCancel = () => {
     cancelRef.current = true;

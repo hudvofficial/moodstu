@@ -38,7 +38,6 @@ function getCatStyle(category: string) {
 export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   const [items, setItems] = useState(initialItems);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setItems(initialItems);
@@ -72,8 +71,6 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   }, []);
 
   const handleToggle = useCallback(async (item: ChecklistItem) => {
-    if (pendingIds.has(item.id)) return;
-
     const nextCompleted = !item.is_completed;
     const applyState = (isCompleted: boolean) => {
       setItems((current) =>
@@ -83,28 +80,18 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
       );
     };
 
-    setPendingIds((current) => new Set(current).add(item.id));
-
-    try {
-      await runOptimisticMutation({
-        apply: () => applyState(nextCompleted),
-        rollback: () => applyState(item.is_completed),
-        action: () => toggleChecklist(item.id, nextCompleted),
-        onSuccess: (result) => {
-          updateContractListChecklistCache(result.data.contract_id, item.id, nextCompleted);
-        },
-        onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
-        },
-      });
-    } finally {
-      setPendingIds((current) => {
-        const next = new Set(current);
-        next.delete(item.id);
-        return next;
-      });
-    }
-  }, [pendingIds]);
+    await runOptimisticMutation({
+      apply: () => applyState(nextCompleted),
+      rollback: () => applyState(item.is_completed),
+      action: () => toggleChecklist(item.id, nextCompleted),
+      onSuccess: (result) => {
+        updateContractListChecklistCache(result.data.contract_id, item.id, nextCompleted);
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
+      },
+    });
+  }, []);
 
   if (total === 0) {
     return (
@@ -170,17 +157,13 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
               {isExpanded && (
                 <div className="ml-4 mt-1 flex flex-col gap-0.5">
                   {catItems.map((item) => {
-                    const isPending = pendingIds.has(item.id);
                     return (
                       <Button
                         unstyled
                         key={item.id}
                         type="button"
                         onClick={() => handleToggle(item)}
-                        disabled={isPending}
-                        className={`w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-[0.98] ${
-                          isPending ? "opacity-50 cursor-wait" : "hover:bg-hover/20"
-                        }`}
+                        className="w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-[0.98] hover:bg-hover/20"
                       >
                         <div className="shrink-0 transition-transform duration-200 group-active:scale-90">
                           {item.is_completed ? (

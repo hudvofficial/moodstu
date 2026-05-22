@@ -1,20 +1,29 @@
-import { memo } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { format, isToday } from "date-fns";
-import { UnifiedCalendarEvent } from "@/types/calendar.types";
+import { type UnifiedCalendarEvent } from "@/types/calendar.types";
 import { DraggableEvent } from "./draggable-event";
+import { type GridSlot } from "@/lib/utils/calendar-utils";
 import {
   getLunarDate,
   formatLunarShort,
   isLunarNewMonth,
 } from "@/lib/lunar-calendar";
 
+const COMPACT_EVENT_ROW_HEIGHT = 22;
+const COMPACT_EVENT_ROW_GAP = 2;
+const DEFAULT_EVENT_ROW_HEIGHT = 26;
+const DEFAULT_EVENT_ROW_GAP = 4;
+const MORE_LINK_HEIGHT = 18;
+
 interface DroppableDayProps {
   date: Date;
   dateIso: string;
   isCurrentMonth: boolean;
-  events: UnifiedCalendarEvent[];
+  slots: GridSlot[];
   maxVisible?: number;
+  compactEvents?: boolean;
+  renderEvents?: boolean;
   onEventClick?: (ev: UnifiedCalendarEvent) => void;
   onDateClick?: (date: Date) => void;
 }
@@ -23,8 +32,10 @@ function DroppableDayInner({
   date,
   dateIso,
   isCurrentMonth,
-  events,
-  maxVisible = 3,
+  slots,
+  maxVisible,
+  compactEvents = false,
+  renderEvents = true,
   onEventClick,
   onDateClick,
 }: DroppableDayProps) {
@@ -33,8 +44,45 @@ function DroppableDayInner({
   });
 
   const today = isToday(date);
-  const visibleEvents = events.slice(0, maxVisible);
-  const overflowCount = events.length - maxVisible;
+  const eventAreaRef = useRef<HTMLDivElement | null>(null);
+  const [eventAreaHeight, setEventAreaHeight] = useState(0);
+  const rowHeight = compactEvents ? COMPACT_EVENT_ROW_HEIGHT : DEFAULT_EVENT_ROW_HEIGHT;
+  const rowGap = compactEvents ? COMPACT_EVENT_ROW_GAP : DEFAULT_EVENT_ROW_GAP;
+  const rowPitch = rowHeight + rowGap;
+
+  useEffect(() => {
+    const node = eventAreaRef.current;
+    if (!node) return;
+
+    const updateHeight = () => setEventAreaHeight(node.getBoundingClientRect().height);
+    updateHeight();
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setEventAreaHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const visibleLimit = useMemo(() => {
+    const explicitLimit = maxVisible ?? Number.POSITIVE_INFINITY;
+    if (!eventAreaHeight) return Math.min(explicitLimit, 3);
+
+    const rowsWithoutOverflow = Math.floor((eventAreaHeight + rowGap) / rowPitch);
+    const cappedRows = Math.max(0, Math.min(explicitLimit, rowsWithoutOverflow));
+    if (slots.length <= cappedRows) return cappedRows;
+
+    const rowsWithMoreLink = Math.floor((eventAreaHeight - MORE_LINK_HEIGHT + rowGap) / rowPitch);
+    return Math.max(0, Math.min(explicitLimit, rowsWithMoreLink));
+  }, [eventAreaHeight, maxVisible, rowGap, rowPitch, slots.length]);
+
+  const visibleSlots = slots.slice(0, visibleLimit);
+  const overflowCount = slots.slice(visibleLimit).filter((slot) => slot.event !== null).length;
+  const overflowTop = visibleLimit * rowPitch + (compactEvents ? 1 : 2);
 
   // Lunar calendar
   const lunar = getLunarDate(
@@ -49,13 +97,13 @@ function DroppableDayInner({
     <div
       ref={setNodeRef}
       onClick={() => onDateClick?.(date)}
-      className={`min-h-0 overflow-hidden border-r border-b border-border p-1.5 flex flex-col gap-1 transition-colors relative cursor-pointer hover:bg-bg-hover/50
+      className={`min-h-0 border-r border-b border-border py-1.5 px-0 flex flex-col gap-1 transition-colors relative cursor-pointer hover:bg-bg-hover/50
         ${!isCurrentMonth ? "bg-bg-input/60 opacity-60" : ""}
         ${today ? "bg-primary/3" : ""}
         ${isOver ? "bg-primary/5 outline-2 outline-primary -outline-offset-2 z-10 rounded-sm" : ""}
       `}
     >
-      <div className="flex items-center justify-center gap-1 w-full shrink-0">
+      <div className="flex h-6 items-center justify-center gap-1 w-full shrink-0 px-1.5">
         <span
           className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full
           ${
@@ -86,17 +134,41 @@ function DroppableDayInner({
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-1 overflow-hidden pb-1">
-        {visibleEvents.map((ev) => (
-          <DraggableEvent
-            key={ev.id}
-            event={ev}
-            onClick={() => onEventClick?.(ev)}
-          />
-        ))}
+      {renderEvents && <div ref={eventAreaRef} className="relative flex-1 min-h-0 pb-1">
+        {visibleSlots.map((slot, idx) => {
+          if (!slot.event) {
+            return null;
+          }
+
+          if (slot.isAbsolute) {
+            return (
+              <div
+                key={`${slot.event.id}-${idx}`}
+                className="absolute left-0 z-10 w-full"
+                style={{ top: idx * rowPitch, height: rowHeight }}
+              >
+                <div 
+                  className={compactEvents ? "flex h-[22px]" : "flex h-[26px]"} 
+                  style={{ width: `calc(${slot.spanDays!} * 100% + ${slot.spanDays! - 1}px)` }}
+                >
+                  <DraggableEvent
+                    event={slot.event}
+                    continuesPrior={slot.continuesPrior}
+                    continuesNext={slot.continuesNext}
+                    compact={compactEvents}
+                    onClick={() => onEventClick?.(slot.event!)}
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })}
         {overflowCount > 0 && (
           <span
-            className="text-xs font-medium text-primary hover:text-primary/80 cursor-pointer px-1 py-0.5 transition-colors"
+            className="absolute left-1 text-xs font-medium text-primary hover:text-primary/80 cursor-pointer px-1 py-0.5 transition-colors"
+            style={{ top: overflowTop }}
             onClick={(e) => {
               e.stopPropagation();
               onDateClick?.(date);
@@ -105,7 +177,7 @@ function DroppableDayInner({
             +{overflowCount} thêm
           </span>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

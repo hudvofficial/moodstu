@@ -31,7 +31,7 @@ export async function getContractChecklists(contractId: string) {
 /** Toggle a checklist item (optimistic-friendly) */
 export async function toggleChecklist(id: string, is_completed: boolean) {
   return withAuth(async (supabase, userId) => {
-    await requireContractWriteAccess(supabase, userId);
+    await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
       .from("contract_checklists")
@@ -43,7 +43,6 @@ export async function toggleChecklist(id: string, is_completed: boolean) {
     if (error) throw new Error(`Lỗi cập nhật checklist: ${error.message}`);
     if (!data) throw new Error("Không tìm thấy checklist item");
 
-    revalidatePath(`/contracts/${data.contract_id}`);
     return data;
   });
 }

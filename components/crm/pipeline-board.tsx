@@ -25,6 +25,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { CrmLead } from "@/types/crm";
 import { PIPELINE_STAGES, LEAD_STATUS_MAP, POTENTIAL_MAP } from "@/types/crm";
 import { Badge } from "@/components/ui/badge";
+import { RiskFlagsBadge } from "./risk-flags-badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { GripVertical, Phone, Ticket } from "lucide-react";
@@ -362,9 +363,12 @@ function PipelineCard({
       }`}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <p className="min-w-0 truncate text-sm font-semibold text-text-primary">
-          {lead.contact_name}
-        </p>
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="min-w-0 truncate text-sm font-semibold text-text-primary">
+            {lead.contact_name}
+          </p>
+          <RiskFlagsBadge lead={lead} />
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           {potentialInfo && (
             <Badge

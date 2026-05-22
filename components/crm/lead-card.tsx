@@ -6,6 +6,7 @@ import { LEAD_STATUS_MAP, POTENTIAL_MAP, SOURCE_MAP } from "@/types/crm";
 import { formatCurrency, formatPhone, formatDate } from "@/lib/utils";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RiskFlagsBadge } from "./risk-flags-badge";
 import StatusSelect from "@/components/ui/status-select";
 import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
 import { toast } from "sonner";
@@ -98,13 +99,14 @@ export default function LeadCard({ lead, onClick, onStatusChange }: Props) {
           <p className="text-sm font-semibold text-text-main truncate">
             {lead.contact_name}
           </p>
-          {potentialInfo && (
-            <div className="mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {potentialInfo && (
               <Badge variant={getPotentialVariant(lead.potential!)} solid className="text-xs px-1.5 py-0">
                 {potentialInfo.label}
               </Badge>
-            </div>
-          )}
+            )}
+            <RiskFlagsBadge lead={lead} />
+          </div>
         </div>
         <Badge variant={getStatusVariant(lead.status)} dot>
           {statusInfo.label}

@@ -27,6 +27,11 @@ Sentry.init({
     // Next.js hydration warnings
     "Hydration failed",
     "There was an error while hydrating",
+    // In-app browser injected scripts (Zalo, Facebook, etc.)
+    "zaloJSV2",
+    "ZaloJSInterface",
+    "fb_xd_fragment",
+    "__gCrWeb",
   ],
 
   // Before sending an error, add context

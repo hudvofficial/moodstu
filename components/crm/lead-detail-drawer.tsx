@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import LeadCareLog from "./lead-care-log";
 import LeadFormModal from "./lead-form-modal";
+import CallPrepCard from "./call-prep-card";
 import { getLeadById } from "@/app/actions/lead-actions";
 import {
   markLeadAsLost,
@@ -417,6 +418,11 @@ export default function LeadDetailDrawer({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Call Prep Summary */}
+            <div className="pt-2">
+              <CallPrepCard lead={lead} />
             </div>
 
             {/* Notes — SSOT: label-base */}

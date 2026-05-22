@@ -19,12 +19,14 @@ interface SelectionSummaryProps {
   selectedCount: number;
   totalCount: number;
   selectedImages?: SelectedImage[];
+  accessToken?: string;
 }
 
 export default function SelectionSummary({
   selectedCount,
   totalCount,
   selectedImages = [],
+  accessToken = "admin",
 }: SelectionSummaryProps) {
   const [downloading, setDownloading] = useState(false);
 
@@ -32,32 +34,31 @@ export default function SelectionSummary({
 
   const downloadableImages = selectedImages.filter((i) => i.drive_file_id);
 
-  // Sequential download — từng file qua proxy endpoint
-  const handleBatchDownload = async () => {
+  // Download logic — native download
+  const handleBatchDownload = () => {
     if (downloadableImages.length === 0) return;
-    setDownloading(true);
 
-    for (const img of downloadableImages) {
-      try {
-        const res = await fetch(`/api/drive-download/${img.drive_file_id}`);
-        if (!res.ok) continue;
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = img.file_name || `photo-${img.id}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        // Small delay between downloads
-        await new Promise((r) => setTimeout(r, 300));
-      } catch {
-        // Skip failed downloads
-      }
+    if (downloadableImages.length > 30) {
+      alert(`Chỉ có thể tải tối đa 30 ảnh một lần để đảm bảo chất lượng mạng. Bạn đang chọn ${downloadableImages.length} ảnh. Vui lòng bỏ bớt ảnh và tải làm nhiều lần.`);
+      return;
     }
 
-    setDownloading(false);
+    setDownloading(true);
+
+    if (downloadableImages.length > 1) {
+      // Batch ZIP download
+      const ids = downloadableImages.map((i) => i.id).join(",");
+      window.location.href = `/api/gallery-download-batch/${accessToken}?ids=${ids}`;
+    } else {
+      // Single file download
+      const img = downloadableImages[0];
+      window.location.href = `/api/gallery-download/${accessToken}/${img.id}`;
+    }
+
+    // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
+    setTimeout(() => {
+      setDownloading(false);
+    }, 1500);
   };
 
   return (

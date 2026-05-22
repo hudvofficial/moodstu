@@ -7,7 +7,7 @@ import type { GalleryImage } from "@/types/gallery";
 // ─── Types ─────────────────────────────────
 
 export type FileFilter = "all" | "jpg" | "raw";
-export type StatsFilter = "all" | "starred" | "hearted" | "commented";
+export type StatsFilter = "all" | "starred" | "hearted" | "commented" | "selected";
 
 export interface ImageGroup {
   fileGroup: string;

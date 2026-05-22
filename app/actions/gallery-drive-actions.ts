@@ -218,8 +218,8 @@ export async function getDeliveryDate(contractId: string) {
   });
 }
 
-// ─── copySelectedJpgToDrive ────────────────────
-export async function copySelectedJpgToDrive(galleryId: string, contractId: string) {
+// ─── initDriveCopyJob ────────────────────
+export async function initDriveCopyJob(galleryId: string, contractId: string, destFolderName: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
@@ -242,7 +242,7 @@ export async function copySelectedJpgToDrive(galleryId: string, contractId: stri
     }
 
     const { getValidGoogleToken, hasGoogleScope } = await import("@/lib/google-auth");
-    const { createDriveFolder, copyDriveFile } = await import("@/lib/google-drive-oauth");
+    const { findOrCreateDriveFolder } = await import("@/lib/google-drive-oauth");
 
     const authData = await getValidGoogleToken(supabase, studioInfo);
     if (!hasGoogleScope(authData.granted_scopes, "https://www.googleapis.com/auth/drive")) {
@@ -279,22 +279,24 @@ export async function copySelectedJpgToDrive(galleryId: string, contractId: stri
       return { error: "Không tìm thấy file định dạng JPG/JPEG trong các ảnh đã chọn" };
     }
 
-    // Tạo Folder mới trong cùng parent của folder gốc (ở đây dùng gallery.drive_folder_id làm parent tạm hoặc tạo chung)
-    // Tốt nhất là fetch file info của drive_folder_id để lấy parent, nhưng cho đơn giản thì tạo bên trong thư mục Ảnh Gốc hoặc ở root
-    // Trong specs: "Tạo destination folder: Selected - {contractCode}". 
-    // Chúng ta sẽ tạo bên trong folder Ảnh gốc (drive_folder_id) cho dễ tìm.
-    const destFolderName = `Selected - ${contractCode}`;
+    const finalFolderName = destFolderName.trim() || `Selected - ${contractCode}`;
+    
+    // Tạo folder BÊN TRONG folder gốc (folder gốc đã được share quyền Editor)
+    // + tự động dùng lại folder nếu đã tồn tại (tránh trùng tên)
     let destFolderId: string;
     try {
-      destFolderId = await createDriveFolder(authData.access_token, gallery.drive_folder_id, destFolderName);
-    } catch (error: any) {
-      return { error: `Lỗi tạo thư mục: ${error.message}` };
+      destFolderId = await findOrCreateDriveFolder(authData.access_token, finalFolderName, gallery.drive_folder_id);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      
+      // Hiển thị cảnh báo rõ ràng nếu chưa có quyền chỉnh sửa
+      if (msg.includes("PERMISSION_DENIED")) {
+        return { error: "Tài khoản Google chưa có quyền chỉnh sửa trên thư mục Drive này. Vui lòng mở Google Drive → Chuột phải thư mục → Chia sẻ → Cấp quyền \"Người chỉnh sửa\" (Editor) cho tài khoản studio." };
+      }
+      
+      return { error: `Lỗi tạo thư mục: ${msg}` };
     }
 
-    let successCount = 0;
-    let failedCount = 0;
-
-    // Ghi job vào DB (tùy chọn theo spec)
     const { data: job } = await supabase
       .from("gallery_filter_jobs")
       .insert({
@@ -310,50 +312,86 @@ export async function copySelectedJpgToDrive(galleryId: string, contractId: stri
       .select("id")
       .single();
 
-    // Copy từng file
-    for (const img of jpgImages) {
-      if (!img.drive_file_id) {
-        failedCount++;
-        continue;
-      }
-      try {
-        await copyDriveFile(authData.access_token, img.drive_file_id, destFolderId);
+    return { 
+      success: true, 
+      jobId: job?.id,
+      destFolderId,
+      destUrl: `https://drive.google.com/drive/folders/${destFolderId}`,
+      accessToken: authData.access_token,
+      filesToCopy: jpgImages.map(img => ({ id: img.id, drive_file_id: img.drive_file_id, name: img.file_name }))
+    };
+  });
+}
+
+// ─── processDriveCopyChunk ────────────────────
+// Nhận accessToken trực tiếp (không query DB mỗi chunk)
+export async function processDriveCopyChunk(
+  jobId: string | undefined,
+  destFolderId: string,
+  filesChunk: Array<{ id: string, drive_file_id: string | null, name: string | null }>,
+  accessToken: string,
+) {
+  return withAuth(async (supabase) => {
+    const { createDriveShortcut } = await import("@/lib/google-drive-oauth");
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    const results = await Promise.allSettled(
+      filesChunk.map(async (img) => {
+        if (!img.drive_file_id) throw new Error("No drive_file_id");
+        return createDriveShortcut(accessToken, img.drive_file_id, img.name || "Shortcut", destFolderId);
+      })
+    );
+
+    let quotaExceededError: string | null = null;
+
+    for (const res of results) {
+      if (res.status === "fulfilled") {
         successCount++;
-      } catch (error) {
-        console.error(`Failed to copy ${img.file_name}`, error);
+      } else {
+        const errorMsg = res.reason instanceof Error ? res.reason.message : String(res.reason);
+        console.error("[processDriveCopyChunk] Failed to copy file:", errorMsg);
+        
+        if (errorMsg.includes("QUOTA_EXCEEDED")) {
+          quotaExceededError = errorMsg;
+        }
+        
         failedCount++;
       }
+    }
+    
+    // Trả về lỗi fatal ngay lập tức nếu hết dung lượng Drive
+    if (quotaExceededError) {
+      return { success: false, error: quotaExceededError };
+    }
+
+    if (jobId) {
+      const { data: job } = await supabase
+        .from("gallery_filter_jobs")
+        .select("success_count, failed_count, total_count")
+        .eq("id", jobId)
+        .single();
       
-      // Update progress
       if (job) {
+        const newSuccess = (job.success_count || 0) + successCount;
+        const newFailed = (job.failed_count || 0) + failedCount;
+        const newProcessed = newSuccess + newFailed;
+        
         await supabase
           .from("gallery_filter_jobs")
           .update({
-            processed_count: successCount + failedCount,
-            success_count: successCount,
-            failed_count: failedCount,
+            processed_count: newProcessed,
+            success_count: newSuccess,
+            failed_count: newFailed,
+            status: newProcessed >= (job.total_count || 0) ? (newSuccess > 0 ? "completed" : "failed") : "processing",
             updated_at: new Date().toISOString()
           })
-          .eq("id", job.id);
+          .eq("id", jobId);
       }
     }
 
-    if (job) {
-      await supabase
-        .from("gallery_filter_jobs")
-        .update({
-          status: failedCount > 0 ? (successCount > 0 ? "partial_success" : "failed") : "completed",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", job.id);
-    }
-
-    return { 
-      success: true, 
-      destUrl: `https://drive.google.com/drive/folders/${destFolderId}`,
-      successCount,
-      failedCount
-    };
+    return { success: true, successCount, failedCount };
   });
 }
 

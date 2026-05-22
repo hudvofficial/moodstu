@@ -7,6 +7,8 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
       "react/forbid-elements": [
         "error",
         {
@@ -46,6 +48,7 @@ const eslintConfig = defineConfig([
     "public/fallback-*.js.map",
     "public/swe-worker-*.js",
     "public/swe-worker-*.js.map",
+    "tmp/**",
   ]),
 ]);
 

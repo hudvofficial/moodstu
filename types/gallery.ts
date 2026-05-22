@@ -9,6 +9,8 @@ export interface GalleryImage {
   thumbnail_url: string | null;
   sort_order: number;
   is_selected: boolean;
+  is_starred?: boolean;
+  starred_at?: string | null;
   client_note: string | null;
   drive_file_id: string | null;
   file_name: string | null;
@@ -58,11 +60,17 @@ export interface Gallery {
   cover_image_id?: string | null;
   og_title?: string | null;
   og_description?: string | null;
+  selection_limit?: number | null;
+  custom_slug?: string | null;
+  client_name?: string | null;
+  tags?: string[] | null;
+  allow_comments?: boolean | null;
+  enable_watermark?: boolean | null;
+  show_namecard?: boolean | null;
+  allow_download?: boolean | null;
+  gallery_images?: GalleryImage[];
   og_image_url?: string | null;
   share_version?: number | null;
-  selection_limit?: number | null;
-  allow_comments?: boolean | null;
-  allow_download?: boolean | null;
   download_unlocked_at?: string | null;
   download_unlocked_by?: string | null;
   created_by: string | null;
@@ -73,7 +81,6 @@ export interface Gallery {
   coverImageUrl?: string | null;
   hasMoreImages?: boolean;
   currentPage?: number;
-  gallery_images?: GalleryImage[];
 }
 
 export interface GallerySummary extends Omit<Gallery, "gallery_images"> {
@@ -88,7 +95,19 @@ export interface GalleryPublicPreview {
   title: string | null;
   status: string | null;
   selection_deadline: string | null;
+  selection_limit: number | null;
   access_url: string | null;
+  
+  // Custom Settings
+  custom_slug?: string | null;
+  client_name?: string | null;
+  tags?: string[] | null;
+  allow_comments?: boolean | null;
+  enable_watermark?: boolean | null;
+  show_namecard?: boolean | null;
+  allow_download?: boolean | null;
+
+  gallery_images?: GalleryImage[] | null;
   imageCount: number;
   coverImageUrl: string | null;
   hasPassword: boolean;
@@ -137,6 +156,8 @@ export interface GallerySelectionBatchItem {
   id: string;
   batch_id: string;
   image_id: string;
+  is_selected?: boolean | null;
+  selected_at?: string | null;
   file_name: string | null;
   drive_file_id: string | null;
   sort_order: number | null;

@@ -8,11 +8,6 @@ import {
   requireCalendarTargetEmployee,
   requireCalendarTaskEditable,
 } from "@/lib/calendar-auth";
-import {
-  createGoogleCalendarEvent,
-  updateGoogleCalendarEvent,
-  deleteGoogleCalendarEvent,
-} from "@/lib/googleCalendarService";
 import { z } from "zod";
 
 type ActionResult<T = null> =
@@ -124,14 +119,16 @@ export async function updateDragDropDate(
       if (error) throw new Error(`Thao tác ghi database thất bại: ${error.message}`);
 
       if (oldRecord.google_event_id) {
-        try {
-          await updateGoogleCalendarEvent(oldRecord.google_event_id, {
-            start: { dateTime: new Date(updates.event_date).toISOString() },
-            end: updates.end_date ? { dateTime: new Date(updates.end_date).toISOString() } : undefined,
-          });
-        } catch (err) {
-          console.warn("Best effort Google Sync drag-drop failed:", err);
-        }
+        const googleDates = buildGoogleEventDates(updates.event_date, updates.end_date);
+        await supabase.from("google_sync_queue").insert({
+          schedule_id: parsed.eventId,
+          google_event_id: oldRecord.google_event_id,
+          action: "UPDATE",
+          payload: {
+            start: googleDates.start,
+            end: googleDates.end,
+          }
+        });
       }
 
       revalidateCalendar();
@@ -224,38 +221,18 @@ export async function createCalendarEvent(
     let warningMsg: string | undefined;
 
     if (parsed.sync_to_google) {
-      try {
-        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-        const googleEvent = await createGoogleCalendarEvent({
+      const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
+      await supabase.from("google_sync_queue").insert({
+        schedule_id: data.id,
+        action: "CREATE",
+        payload: {
           summary: parsed.title,
           location: parsed.location || undefined,
           description: parsed.notes || undefined,
           start: googleDates.start,
           end: googleDates.end,
-        });
-        const googleEventId = typeof googleEvent?.id === "string" ? googleEvent.id : null;
-
-        if (!googleEventId) {
-          throw new Error("Google Calendar không trả về ID sự kiện.");
         }
-
-        const { error: linkError } = await supabase
-          .from("schedules")
-          .update({ google_event_id: googleEventId })
-          .eq("id", data.id);
-
-        if (linkError) {
-          try {
-            await deleteGoogleCalendarEvent(googleEventId);
-          } catch (rollbackErr) {
-            console.warn("Best effort Google rollback after link failure failed:", rollbackErr);
-          }
-          throw new Error("Tạo lịch nội bộ thành công nhưng không lưu được liên kết Google.");
-        }
-      } catch (err) {
-        warningMsg = err instanceof Error ? err.message : String(err);
-        console.warn("Best effort Google Sync create failed:", warningMsg);
-      }
+      });
     }
 
     revalidateCalendar();
@@ -292,52 +269,32 @@ export async function updateCalendarEvent(
     let warningMsg: string | undefined;
 
     if (oldRecord.google_event_id) {
-      try {
-        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-        await updateGoogleCalendarEvent(oldRecord.google_event_id, {
+      const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
+      await supabase.from("google_sync_queue").insert({
+        schedule_id: parsed.eventId,
+        google_event_id: oldRecord.google_event_id,
+        action: "UPDATE",
+        payload: {
           summary: parsed.title,
           location: parsed.location || undefined,
           description: parsed.notes || undefined,
           start: googleDates.start,
           end: googleDates.end,
-        });
-      } catch (err) {
-        warningMsg = err instanceof Error ? err.message : String(err);
-        console.warn("Best effort Google Sync update failed:", warningMsg);
-      }
+        }
+      });
     } else if (parsed.sync_to_google) {
-      try {
-        const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-        const googleEvent = await createGoogleCalendarEvent({
+      const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
+      await supabase.from("google_sync_queue").insert({
+        schedule_id: parsed.eventId,
+        action: "CREATE",
+        payload: {
           summary: parsed.title,
           location: parsed.location || undefined,
           description: parsed.notes || undefined,
           start: googleDates.start,
           end: googleDates.end,
-        });
-        const googleEventId = typeof googleEvent?.id === "string" ? googleEvent.id : null;
-
-        if (!googleEventId) {
-          throw new Error("Google Calendar không trả về ID sự kiện.");
         }
-
-        const { error: linkError } = await supabase
-          .from("schedules")
-          .update({ google_event_id: googleEventId })
-          .eq("id", parsed.eventId);
-
-        if (linkError) {
-          try {
-            await deleteGoogleCalendarEvent(googleEventId);
-          } catch (rollbackErr) {
-            console.warn("Best effort Google rollback after link failure failed:", rollbackErr);
-          }
-          throw new Error("Cập nhật lịch nội bộ thành công nhưng không lưu được liên kết Google.");
-        }
-      } catch (err) {
-        warningMsg = err instanceof Error ? err.message : String(err);
-        console.warn("Best effort Google Sync create on update failed:", warningMsg);
-      }
+      });
     }
 
     revalidateCalendar();
@@ -354,13 +311,12 @@ export async function deleteCalendarEvent(
     const oldRecord = await requireCalendarScheduleEditable(supabase, access, validEventId);
 
     if (oldRecord.google_event_id) {
-      try {
-        await deleteGoogleCalendarEvent(oldRecord.google_event_id);
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.warn("Google Sync delete blocked local delete:", detail);
-        throw new Error(`Khong xoa duoc su kien Google nen chua xoa lich noi bo: ${detail}`);
-      }
+      await supabase.from("google_sync_queue").insert({
+        schedule_id: validEventId,
+        google_event_id: oldRecord.google_event_id,
+        action: "DELETE",
+        payload: {}
+      });
     }
 
     const { error } = await supabase

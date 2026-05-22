@@ -225,8 +225,8 @@ function mapRpcCalendarEvent(
       {
         id: row.id,
         event_type: row.event_type,
-        event_date: row.event_date,
-        end_date: row.end_date,
+        event_date: row.event_date.replace(" ", "T"),
+        end_date: row.end_date ? row.end_date.replace(" ", "T") : null,
         employee_id: row.employee_id,
         contract_id: row.contract_id,
         status: row.status,
@@ -247,10 +247,10 @@ function mapRpcCalendarEvent(
       contract_id: row.contract_id,
       work_type: row.work_type,
       assigned_to: row.assigned_to,
-      start_date: row.start_date,
+      start_date: row.start_date ? row.start_date.replace(" ", "T") : null,
       start_time: row.start_time,
       end_time: row.end_time,
-      deadline: row.deadline,
+      deadline: row.deadline ? row.deadline.replace(" ", "T") : null,
       status: row.status,
       event_id: row.event_id,
       contracts: row.contract_code
@@ -273,41 +273,22 @@ async function fetchCalendarEventsFallback(
   const { startDate, endExclusiveDate } = getCalendarWindow(month, year);
   const result: UnifiedCalendarEvent[] = [];
 
-  const [schedulesResult, tasksResult] = await Promise.all([
-    supabase
-      .from("schedules")
-      .select(`
-        id, event_type, event_date, end_date, employee_id,
-        contract_id, status, google_event_id, color_id, location, notes
-      `)
-      .gte("event_date", startDate)
-      .lt("event_date", endExclusiveDate),
-    supabase
-      .from("work_tasks")
-      .select(`
-        id, contract_id, work_type, assigned_to,
-        start_date, start_time, end_time, deadline, status, event_id,
-        contracts ( contract_code, customers ( full_name ) )
-      `)
-      .or(`and(deadline.gte.${startDate},deadline.lt.${endExclusiveDate}),and(deadline.is.null,start_date.gte.${startDate},start_date.lt.${endExclusiveDate})`),
-  ]);
+  const schedulesResult = await supabase
+    .from("schedules")
+    .select(`
+      id, event_type, event_date, end_date, employee_id,
+      contract_id, status, google_event_id, color_id, location, notes
+    `)
+    .gte("event_date", startDate)
+    .lt("event_date", endExclusiveDate);
 
   if (schedulesResult.error) {
     console.error("[fetchCalendarEvents] Schedules Error:", schedulesResult.error);
     throw new Error("Lỗi tải sự kiện cá nhân");
   }
 
-  if (tasksResult.error) {
-    console.error("[fetchCalendarEvents] Tasks Error:", tasksResult.error);
-    throw new Error("Lỗi tải danh sách nhiệm vụ");
-  }
-
   for (const schedule of (schedulesResult.data || []) as CalendarScheduleRow[]) {
     result.push(mapScheduleEvent(schedule, access));
-  }
-
-  for (const task of (tasksResult.data || []) as CalendarTaskRow[]) {
-    result.push(mapTaskEvent(task, access));
   }
 
   return result;

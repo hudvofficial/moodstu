@@ -11,6 +11,7 @@ import type {
   ContractFilters,
   ContractStats,
   Contract,
+  ContractStatus,
   ContractEvent,
   WorkTask,
   ContractChecklist,
@@ -327,6 +328,55 @@ export async function revalidateContractListCaches() {
     }, undefined, { revalidate: true }),
     mutate(contractKeys.stats()),
   ]);
+}
+
+export function updateContractStatusCache(
+  contractId: string,
+  newStatus: ContractStatus,
+) {
+  // Update contract list cache
+  void mutate(
+    (key: unknown) => Array.isArray(key) && key[0] === "contracts",
+    (currentData: unknown) => {
+      if (!currentData || typeof currentData !== "object") return currentData;
+
+      const current = currentData as ContractListCache;
+      if (!Array.isArray(current.contracts)) return currentData;
+
+      let didChange = false;
+      const contracts = current.contracts.map((contract) => {
+        if (contract.id !== contractId) return contract;
+        if (contract.status === newStatus) return contract;
+
+        didChange = true;
+        return { ...contract, status: newStatus };
+      });
+
+      return didChange ? { ...current, contracts } : currentData;
+    },
+    { revalidate: false },
+  );
+
+  // Update contract detail cache
+  void mutate(
+    contractKeys.detail(contractId),
+    (currentData: unknown) => {
+      if (!currentData || typeof currentData !== "object") return currentData;
+
+      const current = currentData as Partial<ContractDetailData>;
+      if (!current.contract) return currentData;
+      if (current.contract.status === newStatus) return currentData;
+
+      return {
+        ...current,
+        contract: {
+          ...current.contract,
+          status: newStatus,
+        },
+      };
+    },
+    { revalidate: false },
+  );
 }
 
 export function updateContractListChecklistCache(

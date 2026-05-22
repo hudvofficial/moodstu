@@ -5,6 +5,7 @@ import type { CrmLead } from "@/types/crm";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { CrmRecordCard } from "@/components/crm/crm-record-card";
+import { RiskFlagsBadge } from "./risk-flags-badge";
 import {
   LEAD_STATUS_MAP,
   POTENTIAL_MAP,
@@ -68,20 +69,23 @@ export default function LeadCompactCard({ lead, onClick }: Props) {
         </div>
       }
       headerRight={
-        <>
-          {lead.potential ? (
-            <Badge
-              variant={getPotentialVariant(lead.potential)}
-              solid
-              className="px-1.5 py-0 text-tiny"
-            >
-              {potentialInfo?.label}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1.5">
+            {lead.potential ? (
+              <Badge
+                variant={getPotentialVariant(lead.potential)}
+                solid
+                className="px-1.5 py-0 text-tiny"
+              >
+                {potentialInfo?.label}
+              </Badge>
+            ) : null}
+            <Badge variant={getStatusVariant(lead.status)} dot>
+              {statusInfo.label}
             </Badge>
-          ) : null}
-          <Badge variant={getStatusVariant(lead.status)} dot>
-            {statusInfo.label}
-          </Badge>
-        </>
+          </div>
+          <RiskFlagsBadge lead={lead} />
+        </div>
       }
       bottom={
         <div className="flex items-center justify-between gap-3">

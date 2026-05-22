@@ -75,6 +75,7 @@ interface GalleryToolbarProps {
   rawCount: number;
   jpgCount: number;
   selectedCount: number;
+  starredCount: number;
   totalHearts: number;
   commentCount: number;
   viewMode: "grid" | "list";
@@ -84,8 +85,8 @@ interface GalleryToolbarProps {
   activeAlbumId: string | null;
   showAlbumInput: boolean;
   newAlbumName: string;
-  selectedDownloadFiles: { driveFileId: string; fileName: string }[];
-  allDownloadFiles: { driveFileId: string; fileName: string }[];
+  selectedDownloadFiles: { imageId: string; fileName: string }[];
+  allDownloadFiles: { imageId: string; fileName: string }[];
   onSetActiveGalleryId: (id: string) => void;
   onSetFileFilter: (filter: FileFilter) => void;
   onSetActiveFilter: (filter: StatsFilter) => void;
@@ -94,6 +95,7 @@ interface GalleryToolbarProps {
   onViewMode: (mode: "grid" | "list") => void;
   onWatermarkToggle: () => void;
   onOpenShare: () => void;
+  onOpenSettings?: () => void;
   onSetShowAlbumInput: (show: boolean) => void;
   onSetNewAlbumName: (name: string) => void;
   onCreateAlbum: () => void;
@@ -115,6 +117,7 @@ export default function GalleryToolbar({
   rawCount,
   jpgCount,
   selectedCount,
+  starredCount,
   totalHearts,
   commentCount,
   viewMode,
@@ -134,6 +137,7 @@ export default function GalleryToolbar({
   onViewMode,
   onWatermarkToggle,
   onOpenShare,
+  onOpenSettings,
   onSetShowAlbumInput,
   onSetNewAlbumName,
   onCreateAlbum,
@@ -154,18 +158,18 @@ export default function GalleryToolbar({
     {
       icon: Star,
       label: "đề xuất",
-      value: String(selectedCount),
-      tone: "success",
+      value: String(starredCount),
+      tone: "warning",
       active: activeFilter === "starred",
       onClick: () => onSetActiveFilter(activeFilter === "starred" ? "all" : "starred"),
     },
     {
       icon: Heart,
-      label: "thích",
-      value: String(totalHearts),
+      label: "khách chọn",
+      value: String(selectedCount),
       tone: "error",
-      active: activeFilter === "hearted",
-      onClick: () => onSetActiveFilter(activeFilter === "hearted" ? "all" : "hearted"),
+      active: activeFilter === "selected",
+      onClick: () => onSetActiveFilter(activeFilter === "selected" ? "all" : "selected"),
     },
     {
       icon: MessageCircle,
@@ -175,7 +179,7 @@ export default function GalleryToolbar({
       active: activeFilter === "commented",
       onClick: () => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented"),
     },
-  ]), [activeFilter, commentCount, images.length, onSetActiveFilter, selectedCount, totalHearts, totalImageCount]);
+  ]), [activeFilter, commentCount, onSetActiveFilter, selectedCount, starredCount, totalImageCount, images.length]);
 
   const galleryTabs = useMemo(
     () => galleries.map((gallery) => ({
@@ -214,7 +218,7 @@ export default function GalleryToolbar({
   );
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border/60 bg-bg-base/95 backdrop-blur-md">
+    <div className="sticky top-0 z-40 border-b border-border/60 bg-bg-base/95 backdrop-blur-md">
       <div className="space-y-2.5 px-3 py-3 md:px-6 md:py-4">
         <div className="flex items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">
@@ -247,6 +251,7 @@ export default function GalleryToolbar({
                 downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
                 downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
                 onOpenShare={onOpenShare}
+                onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
                 onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
                 onOpenList={onOpenListModal}
@@ -269,6 +274,7 @@ export default function GalleryToolbar({
                 downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
                 downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
                 onOpenShare={onOpenShare}
+                onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
                 onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
                 onOpenList={onOpenListModal}

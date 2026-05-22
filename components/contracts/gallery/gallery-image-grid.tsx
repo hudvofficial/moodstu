@@ -104,7 +104,7 @@ export default function GalleryImageGrid({
                 };
                 const showFileBadge = hasBoth || group.hasRaw;
                 const fileBadgeLabel = hasBoth ? "RAW+JPG" : "RAW";
-                const showHeartCount = (reactionCounts?.[image.id]?.hearts || 0) > 0;
+                const isAdmin = !publicMode;
 
                 return (
                   <div
@@ -181,11 +181,11 @@ export default function GalleryImageGrid({
                           unstyled
                           onClick={(event) => {
                             event.stopPropagation();
-                            onToggleStar(image.id, !!image.is_selected);
+                            onToggleStar(image.id, isAdmin ? !!image.is_starred : !!image.is_selected);
                           }}
-                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${image.is_selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${(isAdmin ? image.is_starred : image.is_selected) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                           style={publicMode ? {} : overlayChipStyle}
-                          title={publicMode ? (image.is_selected ? "Bỏ chọn" : "Chọn ảnh") : (image.is_selected ? "Bỏ đề xuất" : "Đề xuất cho khách")}
+                          title={publicMode ? (image.is_selected ? "Bỏ chọn" : "Chọn ảnh") : (image.is_starred ? "Bỏ đề xuất" : "Đánh dấu đề xuất")}
                         >
                           {publicMode ? (
                             <Heart
@@ -196,10 +196,10 @@ export default function GalleryImageGrid({
                               style={{ transition: "fill 0.3s, stroke 0.3s", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
                             />
                           ) : (
-                            <Star size={16} className={image.is_selected ? "fill-success text-success" : "text-text-muted"} />
+                            <Star size={16} className={image.is_starred ? "fill-warning text-warning" : "text-text-muted"} />
                           )}
                         </Button>
-                      ) : image.is_selected ? (
+                      ) : (isAdmin ? image.is_starred : image.is_selected) ? (
                         <div
                           className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full`}
                           style={publicMode ? {} : overlayChipStyle}
@@ -207,22 +207,17 @@ export default function GalleryImageGrid({
                           {publicMode ? (
                             <Heart size={20} fill="#ff3b30" stroke="#ff3b30" strokeWidth={2} />
                           ) : (
-                            <Star size={16} className="fill-success text-success" />
+                            <Star size={16} className="fill-warning text-warning" />
                           )}
                         </div>
                       ) : null}
 
-                      {!publicMode && (showFileBadge || showHeartCount) && (
+                      {!publicMode && (showFileBadge || image.is_selected) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-                          {showHeartCount && (
-                            <div
-                              className="flex items-center gap-1 rounded-full px-2 py-1 text-tiny font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                              style={overlayChipStyle}
-                              title={`${reactionCounts?.[image.id]?.hearts || 0} lượt thích từ khách`}
-                            >
-                              <Heart size={11} className="fill-error text-error" />
-                              <span>{reactionCounts?.[image.id]?.hearts || 0}</span>
-                            </div>
+                          {image.is_selected && (
+                            <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="Khách chọn">
+                              <Heart size={12} className="fill-error text-error" />
+                            </span>
                           )}
                           {showFileBadge && (
                             <span className="rounded-full px-2 py-1 text-tiny font-semibold tracking-[0.04em]" style={overlayChipStyle}>

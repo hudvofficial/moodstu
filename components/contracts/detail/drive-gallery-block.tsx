@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FolderOpen, RefreshCw, ExternalLink, Loader2, ImageIcon, Plus, Calendar, Share2,
+  Pencil, Trash2, Check, X,
 } from "lucide-react";
-import { getGallerySummariesByContract, syncDriveFolder } from "@/app/actions/gallery-actions";
-import { getRetouchProgress, getDeliveryDate } from "@/app/actions/gallery-drive-actions";
+import { getGallerySummariesByContract, syncDriveFolder, deleteGallery } from "@/app/actions/gallery-actions";
+import { getRetouchProgress, getDeliveryDate, updateDriveFolderUrl } from "@/app/actions/gallery-drive-actions";
 import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { GalleryShareDetails } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
@@ -48,6 +50,9 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   const { openModal } = useModal();
   const [progress, setProgress] = useState({ selectedCount: 0, editedCount: 0, progress: 0 });
   const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editUrl, setEditUrl] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // ─── Load data ────────────────────────────
   const loadData = useCallback(async () => {
@@ -90,6 +95,54 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
       toast(res.error, "error");
     }
     setSyncing(null);
+  };
+
+  // ─── Edit link ─────────────────────────────
+  const handleStartEdit = (gallery: GalleryRow) => {
+    setEditingId(gallery.id);
+    setEditUrl(gallery.drive_folder_url || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditUrl("");
+  };
+
+  const handleSaveEdit = async (galleryId: string) => {
+    if (!editUrl.trim()) {
+      toast("Vui lòng nhập link Drive", "error");
+      return;
+    }
+    setSaving(true);
+    const res = await updateDriveFolderUrl(galleryId, editUrl.trim());
+    if (res.success) {
+      toast("Đã cập nhật link Drive", "success");
+      setEditingId(null);
+      setEditUrl("");
+      await loadData();
+    } else {
+      toast(res.error, "error");
+    }
+    setSaving(false);
+  };
+
+  // ─── Delete gallery ────────────────────────
+  const handleDelete = async (gallery: GalleryRow) => {
+    const info = FOLDER_LABELS[gallery.folder_type || ""] || { label: gallery.title || "Album" };
+    const confirmed = window.confirm(`Xoá gallery "${info.label}"? Tất cả ảnh trong gallery sẽ bị xoá.`);
+    if (!confirmed) return;
+
+    // Optimistic: xoá khỏi UI ngay
+    const prev = galleries;
+    setGalleries((current) => current.filter((g) => g.id !== gallery.id));
+    toast("Đã xoá gallery", "success");
+
+    const res = await deleteGallery(gallery.id);
+    if (!res.success) {
+      // Rollback
+      setGalleries(prev);
+      toast(res.error, "error");
+    }
   };
 
   // ─── Share gallery ────────────────────────
@@ -168,7 +221,38 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           {galleries.map((g) => {
             const info = FOLDER_LABELS[g.folder_type || ""] || { icon: "📁", label: g.title || "Album" };
             const isSyncing = syncing === g.id;
+            const isEditing = editingId === g.id;
 
+            // ── Inline edit mode ──
+            if (isEditing) {
+              return (
+                <div key={g.id} className="flex flex-col gap-2 py-2 px-3 rounded-lg" style={{ background: "var(--color-bg-secondary)" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-body-sm">{info.icon}</span>
+                    <span className="text-body-sm font-medium text-text-primary">{info.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="url"
+                      className="flex-1"
+                      placeholder="Dán link Google Drive folder..."
+                      value={editUrl}
+                      onChange={(e: any) => setEditUrl(e.target.value)}
+                      onKeyDown={(e: any) => e.key === "Enter" && void handleSaveEdit(g.id)}
+                      autoFocus
+                    />
+                    <Button unstyled onClick={() => void handleSaveEdit(g.id)} disabled={saving} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-success)" }} title="Lưu">
+                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    </Button>
+                    <Button unstyled onClick={handleCancelEdit} disabled={saving} className="btn-icon" style={{ width: 28, height: 28 }} title="Huỷ">
+                      <X size={14} />
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Normal view ──
             return (
               <div key={g.id} className="flex items-center gap-2 py-2 px-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ background: "var(--color-bg-secondary)" }} onClick={() => router.push(`/contracts/${contractId}/gallery?galleryId=${g.id}`)}>
                 <span className="text-body-sm">{info.icon}</span>
@@ -202,6 +286,12 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                       <ExternalLink size={14} />
                     </a>
                   )}
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); handleStartEdit(g); }} className="btn-icon" style={{ width: 28, height: 28 }} title="Sửa link Drive">
+                    <Pencil size={14} />
+                  </Button>
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleDelete(g); }} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-error)" }} title="Xoá gallery">
+                    <Trash2 size={14} />
+                  </Button>
                 </div>
               </div>
             );

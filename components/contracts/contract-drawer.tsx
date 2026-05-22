@@ -89,10 +89,14 @@ export function ContractDrawer({
   const contractCode = contract?.contract_code || "...";
 
   const status = contract?.status || "cho_xu_ly";
+  
   const titleBadge = (
-    <Badge variant={getStatusVariant(status)}>
-      {getStatusLabel(status)}
-    </Badge>
+    <ContractStatusBadge 
+      contractId={contractId} 
+      currentStatus={status} 
+      remainingAmount={contract?.remaining_amount || 0}
+      unfinishedTasksCount={(workTasks as DrawerWorkTask[] || contract?.work_tasks || []).filter(t => t.status !== "hoan_thanh" && t.status !== "da_huy").length}
+    />
   );
 
   const headerRight = contractId ? (
@@ -142,5 +146,98 @@ export function ContractDrawer({
         }}
       />
     </Drawer>
+  );
+}
+
+// ─── STATUS UPDATER ──────────────────────────────
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { updateContractStatus } from "@/app/actions/contract-mutations";
+import { SelectStatus } from "@/components/ui/select/SelectStatus";
+import { updateContractStatusCache } from "@/lib/hooks/use-contracts";
+
+function ContractStatusBadge({ 
+  contractId, 
+  currentStatus,
+  remainingAmount = 0,
+  unfinishedTasksCount = 0
+}: { 
+  contractId: string | null; 
+  currentStatus: string;
+  remainingAmount?: number;
+  unfinishedTasksCount?: number;
+}) {
+  const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
+
+  useEffect(() => {
+    setOptimisticStatus(currentStatus);
+  }, [currentStatus]);
+
+  if (!contractId) {
+    return (
+      <Badge variant={getStatusVariant(currentStatus as ContractStatus)}>
+        {getStatusLabel(currentStatus as ContractStatus)}
+      </Badge>
+    );
+  }
+
+  const options = Object.entries(CONTRACT_STATUS_MAP).map(([val, info]) => {
+    let color = "#cbd5e1"; // default neutral
+    if (info.variant === "success") color = "#22c55e";
+    if (info.variant === "warning") color = "#f59e0b";
+    if (info.variant === "info") color = "#3b82f6";
+    if (info.variant === "error") color = "#ef4444";
+    return {
+      value: val,
+      label: info.label,
+      color,
+    };
+  });
+
+  return (
+    <SelectStatus
+      current={optimisticStatus}
+      options={options}
+      variant="compact"
+      onUpdate={async (newStatus) => {
+        const debt = Number(remainingAmount) || 0;
+        const tasks = Number(unfinishedTasksCount) || 0;
+
+        if (newStatus === "hoan_thanh" && (debt > 0 || tasks > 0)) {
+          let msg = `CẢNH BÁO: Hợp đồng này`;
+          if (debt > 0) msg += ` đang còn nợ ${debt.toLocaleString("vi-VN")}đ`;
+          if (debt > 0 && tasks > 0) msg += ` và`;
+          if (tasks > 0) msg += ` còn ${tasks} công việc chưa xong`;
+          msg += `.\n\nBạn có chắc chắn muốn chuyển sang trạng thái Hoàn thành không?`;
+          
+          // Fix: Radix UI dropdown closes and restores focus, which can instantly dismiss window.confirm.
+          // Delaying the confirm by 50ms ensures Radix finishes its focus management first.
+          const isConfirmed = await new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(window.confirm(msg));
+            }, 50);
+          });
+
+          if (!isConfirmed) {
+            setOptimisticStatus(currentStatus);
+            throw new Error("USER_CANCELLED");
+          }
+        }
+
+        try {
+          setOptimisticStatus(newStatus as ContractStatus);
+          await updateContractStatus(contractId, newStatus as ContractStatus);
+          updateContractStatusCache(contractId, newStatus as ContractStatus);
+          toast.success("Đã cập nhật trạng thái hợp đồng");
+        } catch (error: any) {
+          setOptimisticStatus(currentStatus);
+          if (error.message !== "USER_CANCELLED") {
+            toast.error(error.message || "Lỗi khi cập nhật trạng thái");
+          }
+          throw error; // Re-throw to reset SelectStatus
+        }
+      }}
+    />
   );
 }

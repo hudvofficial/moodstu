@@ -256,7 +256,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [mode, previewCode, formData, customer.selectedCustomer, items.items, financials, contractId, expectedUpdatedAt, router, validate]);
+  }, [mode, previewCode, formData, customer.selectedCustomer, items.items, financials, contractId, expectedUpdatedAt, router, validate, weddingDate]);
 
   // ── Save Draft ──
   const handleSaveDraft = useCallback(async () => {

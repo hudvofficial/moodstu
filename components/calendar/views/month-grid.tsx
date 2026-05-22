@@ -8,7 +8,6 @@ import {
   endOfWeek,
   eachDayOfInterval,
   format,
-  isSameMonth,
 } from "date-fns";
 import {
   DndContext,
@@ -23,8 +22,8 @@ import {
 import { toast } from "sonner";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { updateDragDropDate } from "@/app/actions/calendar-mutations";
-import { DroppableDay } from "./droppable-day";
 import { DraggableEvent } from "./draggable-event";
+import { MonthWeekRow } from "./month-week-row";
 
 interface MonthGridProps {
   currentDate: Date;
@@ -44,6 +43,7 @@ export function MonthGrid({
   const [activeEvent, setActiveEvent] = useState<UnifiedCalendarEvent | null>(
     null,
   );
+  const [activeRect, setActiveRect] = useState<{ width: number; height: number } | null>(null);
 
   // Tạo mảng ngày 7 cột (Bao gồm đầu/cuối của tháng trước/sau nếu cần filler)
   const daysInGrid = useMemo(() => {
@@ -54,6 +54,14 @@ export function MonthGrid({
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: startDate, end: endDate });
   }, [currentDate]);
+
+  const weeksInGrid = useMemo(() => {
+    const weeks: Date[][] = [];
+    for (let i = 0; i < daysInGrid.length; i += 7) {
+      weeks.push(daysInGrid.slice(i, i + 7));
+    }
+    return weeks;
+  }, [daysInGrid]);
 
   // Yêu cầu kéo giãn 5px mới tính là drag
   const sensors = useSensors(
@@ -67,12 +75,21 @@ export function MonthGrid({
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const ev = events.find((e) => e.id === active.id);
-    if (ev) setActiveEvent(ev);
+    if (ev) {
+      setActiveEvent(ev);
+      if (active.rect.current.initial) {
+        setActiveRect({
+          width: active.rect.current.initial.width,
+          height: active.rect.current.initial.height,
+        });
+      }
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveEvent(null);
+    setActiveRect(null);
     if (!over) return;
 
     // active.id = eventId, over.id = dateIso (YYYY-MM-DD local)
@@ -147,35 +164,18 @@ export function MonthGrid({
         {/* Absolute Container để chống phình To Height do tính chất min-content của Flexbox */}
         <div className="flex-1 relative min-h-0">
           <div
-            className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${
-              daysInGrid.length === 28
-                ? "grid-rows-[repeat(4,25%)]"
-                : daysInGrid.length === 42
-                  ? "grid-rows-[repeat(6,16.666667%)]"
-                  : "grid-rows-[repeat(5,20%)]"
-            }`}
+            className="absolute inset-0 flex flex-col overflow-y-auto overflow-x-hidden"
           >
-            {daysInGrid.map((date) => {
-              const dateIso = format(date, "yyyy-MM-dd");
-              const isCurrentMonth = isSameMonth(date, currentDate);
-              // So khớp với format YYYY-MM-DD bảo toàn Time
-              const eventsForDay = events.filter((e) => {
-                const startIsoDate = e.start.split("T")[0];
-                return startIsoDate === dateIso;
-              });
-
-              return (
-                <DroppableDay
-                  key={dateIso}
-                  date={date}
-                  dateIso={dateIso}
-                  isCurrentMonth={isCurrentMonth}
-                  events={eventsForDay}
-                  onEventClick={onEventClick}
-                  onDateClick={onDateClick}
-                />
-              );
-            })}
+            {weeksInGrid.map((week) => (
+              <MonthWeekRow
+                key={format(week[0], "yyyy-MM-dd")}
+                days={week}
+                currentDate={currentDate}
+                events={events}
+                onEventClick={onEventClick}
+                onDateClick={onDateClick}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -183,8 +183,11 @@ export function MonthGrid({
       {/* Drag Overlay for smooth visual preview */}
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
         {activeEvent ? (
-          <div className="opacity-90 pointer-events-none w-48">
-            <DraggableEvent event={activeEvent} isOverlay />
+          <div 
+            className="opacity-90 pointer-events-none"
+            style={{ width: activeRect?.width || 192, height: activeRect?.height || 26 }}
+          >
+            <DraggableEvent event={activeEvent} isOverlay compact />
           </div>
         ) : null}
       </DragOverlay>

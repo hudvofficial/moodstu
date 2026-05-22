@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeAuthIdentifier } from "@/lib/validations/auth.schema";
 
@@ -234,4 +234,25 @@ export async function getUser() {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+}
+
+export async function signInWithGoogleAction() {
+  const supabase = await createClient();
+  const headersList = await headers();
+  const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return { error: sanitizeAuthError(error.message) };
+  }
+
+  if (data.url) {
+    redirect(data.url);
+  }
 }

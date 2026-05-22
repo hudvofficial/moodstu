@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { getGallerySummariesByContract, toggleImageSelection } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, toggleImageSelection, toggleImageStar } from "@/app/actions/gallery-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
-import { getReactionCounts, getGalleryCommentCount, getCommentCountsPerImage, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
-import { getAlbumsByGallery, createAlbum, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
+import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
+import { getGalleryMetadataAll } from "@/app/actions/gallery-composite-actions";
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
@@ -91,10 +92,16 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // ─── Load reactions when gallery changes ──
   useEffect(() => {
     if (!activeGalleryId) return;
-    void getReactionCounts(activeGalleryId).then(setReactionCounts);
-    void getGalleryCommentCount(activeGalleryId).then(setCommentCount);
-    void getCommentCountsPerImage(activeGalleryId).then(setCommentCountsPerImage);
-    void getAlbumsByGallery(activeGalleryId).then(setAlbums);
+    
+    void getGalleryMetadataAll(activeGalleryId).then((res) => {
+      if (res.success && res.data) {
+        setReactionCounts(res.data.reactionCounts);
+        setCommentCount(res.data.totalCommentCount);
+        setCommentCountsPerImage(res.data.commentCountsPerImage);
+        setAlbums(res.data.albums);
+      }
+    });
+
     setActiveAlbumId(null);
     setActiveFilter("all");
   }, [activeGalleryId]);
@@ -155,6 +162,8 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     }
 
     if (activeFilter === "starred") {
+      filtered = filtered.filter((g) => g.displayImage.is_starred);
+    } else if (activeFilter === "selected") {
       filtered = filtered.filter((g) => g.displayImage.is_selected);
     } else if (activeFilter === "hearted") {
       filtered = filtered.filter((g) => (reactionCounts[g.displayImage.id]?.hearts || 0) > 0);
@@ -194,44 +203,38 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const rawCount = groupedImages.filter((g) => g.hasRaw).length;
   const jpgCount = groupedImages.filter((g) => g.hasJpg).length;
   const selectedCount = activeGallery?.selectedCount ?? images.filter((i) => i.is_selected).length;
+  const starredCount = images.filter((i) => i.is_starred).length;
   const hasPassword = activeGallery?.hasPassword ?? !!(activeGallery?.password_hash || activeGallery?.password);
   const effectiveTotalImageCount = totalImageCount || activeGallery?.imageCount || images.length;
   const totalHearts = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
 
   // ─── Star toggle (Admin đề xuất ảnh) ──────
-  const handleToggleStar = useCallback(async (imageId: string, currentSelected: boolean) => {
-    const nextSelected = !currentSelected;
-    const countDelta = nextSelected ? 1 : -1;
+  const handleToggleStar = useCallback(async (imageId: string, currentStarred: boolean) => {
+    const nextStarred = !currentStarred;
 
     setPaginatedImages((prev) => prev.map((img) =>
       img.id === imageId
         ? {
           ...img,
-          is_selected: nextSelected,
-          selected_at: nextSelected ? new Date().toISOString() : null,
+          is_starred: nextStarred,
+          starred_at: nextStarred ? new Date().toISOString() : null,
         }
         : img,
     ));
-    setGalleries((prev) => prev.map((g) => g.id === activeGalleryId
-      ? { ...g, selectedCount: Math.max(0, g.selectedCount + countDelta) }
-      : g));
 
-    const res = await toggleImageSelection(imageId, nextSelected);
+    const res = await toggleImageStar(imageId, nextStarred);
     if (!res.success) {
       setPaginatedImages((prev) => prev.map((img) =>
         img.id === imageId
           ? {
             ...img,
-            is_selected: currentSelected,
-            selected_at: currentSelected ? new Date().toISOString() : null,
+            is_starred: currentStarred,
+            starred_at: currentStarred ? new Date().toISOString() : null,
           }
           : img,
       ));
-      setGalleries((prev) => prev.map((g) => g.id === activeGalleryId
-        ? { ...g, selectedCount: Math.max(0, g.selectedCount - countDelta) }
-        : g));
     }
-  }, [activeGalleryId]);
+  }, []);
 
   const patchGalleryShareDetails = useCallback((details: GalleryShareDetails) => {
     setGalleries((prev) => prev.map((gallery) =>
@@ -250,10 +253,10 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // ─── Display/download helpers ─────────────
   const displayImages = filteredGroups.map((g) => g.displayImage);
   const allDownloadFiles = useMemo(() =>
-    images.filter((i) => i.drive_file_id).map((i) => ({ driveFileId: i.drive_file_id!, fileName: i.file_name || "photo" })),
+    images.filter((i) => i.drive_file_id).map((i) => ({ imageId: i.id, fileName: i.file_name || "photo" })),
   [images]);
   const selectedDownloadFiles = useMemo(() =>
-    images.filter((i) => i.is_selected && i.drive_file_id).map((i) => ({ driveFileId: i.drive_file_id!, fileName: i.file_name || "photo" })),
+    images.filter((i) => i.is_selected && i.drive_file_id).map((i) => ({ imageId: i.id, fileName: i.file_name || "photo" })),
   [images]);
 
   return {
@@ -263,7 +266,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     showAlbumInput, watermarkOn,
     // Derived
     activeGallery, images, groupedImages, filteredGroups, displayImages,
-    rawCount, jpgCount, selectedCount, hasPassword, totalHearts,
+    rawCount, jpgCount, selectedCount, starredCount, hasPassword, totalHearts,
     allDownloadFiles, selectedDownloadFiles, totalImageCount: effectiveTotalImageCount,
     // Pagination
     hasMoreImages, loadingMore, loadMoreImages,

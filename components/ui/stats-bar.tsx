@@ -1,8 +1,9 @@
 /* eslint-disable react/forbid-elements -- SSOT UI component (stats bar) uses native buttons internally */
+import React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type StatTone = "primary" | "success" | "error" | "info" | "neutral" | "accent";
+type StatTone = "primary" | "success" | "error" | "info" | "neutral" | "accent" | "warning";
 
 export interface StatItem {
   icon: LucideIcon;
@@ -29,6 +30,7 @@ const TONE_STYLES: Record<StatTone, { iconBg: string; iconColor: string; activeT
   info: { iconBg: "bg-info/10", iconColor: "text-info", activeText: "text-info" },
   neutral: { iconBg: "bg-bg-hover", iconColor: "text-text-secondary", activeText: "text-text-primary" },
   accent: { iconBg: "bg-accent/15", iconColor: "text-accent", activeText: "text-accent" },
+  warning: { iconBg: "bg-warning/10", iconColor: "text-warning", activeText: "text-warning" },
 };
 
 function toSentenceLabel(label: string) {
@@ -39,19 +41,22 @@ function toSentenceLabel(label: string) {
 export function StatsBar({ items, className, showDividers = true }: StatsBarProps) {
   return (
     <div className={cn("min-w-0 flex-1 overflow-hidden", className)}>
-      <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide lg:gap-5">
+      <div className={cn(
+        "flex items-center overflow-x-auto scrollbar-hide",
+        showDividers ? "gap-2 lg:gap-3" : "gap-4 lg:gap-5"
+      )}>
         {items.map((item, index) => {
           const tone = TONE_STYLES[item.tone || "primary"];
           const iconBg = item.iconBg || tone.iconBg;
           const iconColor = item.iconColor || tone.iconColor;
           const wrapperClassName = cn(
-            "group/stat flex items-center gap-3 shrink-0 rounded-[var(--radius-lg)] px-2 py-1.5 transition-all",
+            "group/stat flex items-center gap-2.5 shrink-0 rounded-[var(--radius-lg)] px-2.5 py-1.5 transition-all",
             item.active && "bg-bg-card shadow-sm ring-1 ring-border/70",
             item.onClick && !item.active && "cursor-pointer hover:bg-bg-hover/70 hover:ring-1 hover:ring-border/50",
           );
+          
           const content = (
             <>
-              {showDividers && index > 0 && <div className="mr-1 h-6 w-px bg-text-muted/20" />}
               <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg lg:h-9 lg:w-9", iconBg)}>
                 <item.icon className={cn("h-4 w-4 lg:h-[18px] lg:w-[18px]", iconColor)} />
               </div>
@@ -82,18 +87,21 @@ export function StatsBar({ items, className, showDividers = true }: StatsBarProp
             </>
           );
 
-          if (item.onClick) {
-            return (
-              <button key={item.label} type="button" onClick={item.onClick} className={wrapperClassName}>
-                {content}
-              </button>
-            );
-          }
-
-          return (
-            <div key={item.label} className={wrapperClassName}>
+          const wrapper = item.onClick ? (
+            <button type="button" onClick={item.onClick} className={wrapperClassName}>
+              {content}
+            </button>
+          ) : (
+            <div className={wrapperClassName}>
               {content}
             </div>
+          );
+
+          return (
+            <React.Fragment key={item.label}>
+              {showDividers && index > 0 && <div className="h-6 w-px shrink-0 bg-border/60" />}
+              {wrapper}
+            </React.Fragment>
           );
         })}
       </div>

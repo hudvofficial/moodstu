@@ -24,6 +24,8 @@ import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { updateDragDropDate } from "@/app/actions/calendar-mutations";
 import { DroppableDay } from "./droppable-day";
 import { DraggableEvent } from "./draggable-event";
+import { parseISO, subDays, format as formatFns } from "date-fns";
+import { buildGridSlots } from "@/lib/utils/calendar-utils";
 
 interface WeekGridProps {
   currentDate: Date;
@@ -35,6 +37,7 @@ interface WeekGridProps {
 
 export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDateClick }: WeekGridProps) {
   const [activeEvent, setActiveEvent] = useState<UnifiedCalendarEvent | null>(null);
+  const [activeRect, setActiveRect] = useState<{ width: number; height: number } | null>(null);
 
   const daysInWeek = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -42,18 +45,37 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
+  const allEvents = useMemo(() => {
+    return Array.from(new Map(Array.from(eventsByDate.values()).flat().map(e => [e.id, e])).values());
+  }, [eventsByDate]);
+
+  const gridSlots = useMemo(() => {
+    if (daysInWeek.length === 0) return {};
+    return buildGridSlots(allEvents, daysInWeek[0], daysInWeek[daysInWeek.length - 1]);
+  }, [allEvents, daysInWeek]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   const handleDragStart = (event: DragStartEvent) => {
-    const ev = Array.from(eventsByDate.values()).flat().find(e => e.id === event.active.id);
-    if (ev) setActiveEvent(ev);
+    const { active } = event;
+    const ev = Array.from(eventsByDate.values()).flat().find(e => e.id === active.id);
+    if (ev) {
+      setActiveEvent(ev);
+      if (active.rect.current.initial) {
+        setActiveRect({
+          width: active.rect.current.initial.width,
+          height: active.rect.current.initial.height,
+        });
+      }
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveEvent(null);
+    setActiveRect(null);
     if (!over) return;
     
     const eventId = String(active.id);
@@ -128,7 +150,7 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
         <div className="flex-1 grid grid-cols-7">
           {daysInWeek.map((date) => {
             const dateIso = format(date, "yyyy-MM-dd");
-            const eventsForDay = eventsByDate.get(dateIso) || [];
+            const slotsForDay = gridSlots[dateIso] || [];
             
             return (
               <DroppableDay
@@ -136,7 +158,7 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
                 date={date}
                 dateIso={dateIso}
                 isCurrentMonth={true}
-                events={eventsForDay}
+                slots={slotsForDay}
                 maxVisible={5}
                 onEventClick={onEventClick}
                 onDateClick={onDateClick}
@@ -148,7 +170,10 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
       
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
         {activeEvent ? (
-          <div className="opacity-90 pointer-events-none w-48">
+          <div 
+            className="opacity-90 pointer-events-none"
+            style={{ width: activeRect?.width || 192, height: activeRect?.height || 26 }}
+          >
             <DraggableEvent event={activeEvent} isOverlay />
           </div>
         ) : null}

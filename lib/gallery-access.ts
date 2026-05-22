@@ -100,3 +100,11 @@ export function verifyGalleryAccessProof(
     payload.exp > Date.now()
   );
 }
+
+export function getGalleryCapability(gallery: { capability?: string | null }) {
+  return (gallery.capability || "select") as "select" | "view" | "download";
+}
+
+export function getGalleryAccessVersion(gallery: { access_version?: number | null; share_link_access_version?: number | null }) {
+  return (gallery.access_version || 1) + (gallery.share_link_access_version || 0);
+}

@@ -27,10 +27,12 @@ import {
 import {
   signGalleryAccessProof,
   verifyGalleryAccessProof,
+  getGalleryCapability,
+  getGalleryAccessVersion,
 } from "@/lib/gallery-access";
 
 const IMAGE_COLS =
-  "id, gallery_id, image_url, thumbnail_url, sort_order, is_selected, client_note, drive_file_id, file_name, file_group, selected_at, created_at";
+  "id, gallery_id, image_url, thumbnail_url, sort_order, is_selected, is_starred, client_note, drive_file_id, file_name, file_group, selected_at, starred_at, created_at";
 const RAW_EXTENSION_VALUES = ["arw", "cr2", "cr3", "nef", "raf", "dng", "rw2", "orf", "pef"];
 const PUBLIC_IMAGE_PAGE_SIZE = 100;
 const SHARE_LINK_CAPABILITIES: GalleryShareCapability[] = ["select", "view", "download"];
@@ -112,13 +114,7 @@ function getGalleryPublicSlug(gallery: PublicGalleryRow) {
   return gallery.share_slug || gallery.access_url || null;
 }
 
-function getGalleryCapability(gallery: PublicGalleryRow) {
-  return gallery.capability || "select";
-}
 
-function getGalleryAccessVersion(gallery: PublicGalleryRow) {
-  return (gallery.access_version || 1) + (gallery.share_link_access_version || 0);
-}
 
 function buildGalleryAccessToken(
   gallery: PublicGalleryRow,
@@ -287,18 +283,33 @@ function attachShareLinkToGallery(
   };
 }
 
-async function fetchSharedGalleryByAccessUrl(
+export async function fetchSharedGalleryByAccessUrl(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   accessUrl: string,
 ) {
   const slug = accessUrl.trim();
+
+  // Priority 0: Lookup by custom_slug (user-defined vanity URL)
+  const { data: customSlugGallery, error: customSlugError } = await supabase
+    .from("galleries")
+    .select("*")
+    .eq("custom_slug", slug)
+    .eq("status", "shared")
+    .maybeSingle();
+
+  if (!customSlugError && customSlugGallery) {
+    return attachShareLinkToGallery(customSlugGallery as PublicGalleryRow, null);
+  }
+
+  // Priority 1: Lookup by share_link slug (e.g. select-ZchAVTPqoVBm)
   const link = await fetchActiveShareLinkBySlug(supabase, slug);
   if (link) {
     const gallery = await fetchSharedGalleryBaseById(supabase, link.gallery_id);
     return gallery ? attachShareLinkToGallery(gallery, link) : null;
   }
 
+  // Priority 2: Lookup by legacy access_url
   const { data, error } = await supabase
     .from("galleries")
     .select("*")
@@ -405,7 +416,7 @@ async function updateGalleryImageSelection(
   }
 }
 
-async function updateGalleryImageNote(
+export async function updateGalleryImageNote(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   imageId: string,
@@ -419,6 +430,31 @@ async function updateGalleryImageNote(
 
   if (error) {
     throw new Error(`Loi cap nhat: ${error.message}`);
+  }
+}
+
+export async function toggleImageStar(imageId: string, starred: boolean) {
+  try {
+    const supabase = await createAdminClient();
+
+    const { error } = await supabase
+      .from("gallery_images")
+      .update({
+        is_starred: starred,
+        starred_at: starred ? new Date().toISOString() : null,
+      })
+      .eq("id", imageId);
+
+    if (error) {
+      console.error("toggleImageStar update error:", error);
+      return { success: false, error: "Khong the cap nhat trang thai anh." };
+    }
+
+    revalidatePath("/admin/contracts/[id]", "page");
+    return { success: true };
+  } catch (error) {
+    console.error("toggleImageStar exception:", error);
+    return { success: false, error: "Da co loi xay ra." };
   }
 }
 
@@ -827,6 +863,16 @@ export async function createGallery(
   contractId: string,
   title: string,
   driveUrl: string,
+  settings?: {
+    custom_slug?: string | null;
+    client_name?: string | null;
+    tags?: string[] | null;
+    allow_comments?: boolean;
+    enable_watermark?: boolean;
+    show_namecard?: boolean;
+    allow_download?: boolean;
+    selection_limit?: number | null;
+  }
 ) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -841,6 +887,15 @@ export async function createGallery(
       throw new Error("Folder nay chua co anh nao.");
     }
 
+    const finalSlug = settings?.custom_slug?.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-") || null;
+    if (finalSlug) {
+      const { count } = await supabase
+        .from("galleries")
+        .select("*", { count: "exact", head: true })
+        .eq("custom_slug", finalSlug);
+      if (count && count > 0) throw new Error("Tên miền này đã được sử dụng. Vui lòng chọn tên khác.");
+    }
+
     const accessUrl = generateAccessUrl();
     const { data: gallery, error: galleryError } = await supabase
       .from("galleries")
@@ -852,6 +907,14 @@ export async function createGallery(
         drive_folder_url: driveUrl,
         status: "draft",
         created_by: userId,
+        custom_slug: finalSlug,
+        client_name: settings?.client_name || null,
+        tags: settings?.tags || null,
+        allow_comments: settings?.allow_comments ?? true,
+        enable_watermark: settings?.enable_watermark ?? false,
+        show_namecard: settings?.show_namecard ?? true,
+        allow_download: settings?.allow_download ?? true,
+        selection_limit: settings?.selection_limit || null,
       })
       .select("id")
       .single();
@@ -923,16 +986,29 @@ export async function getGallerySummariesByContract(contractId: string) {
     if (!galleries || galleries.length === 0) {
       return [] as GallerySummary[];
     }
+    const galleryIds = galleries.map((g) => g.id);
+
+    // Optimize N+1 Query: Lấy tất cả ảnh của contract này trong 1 query (cực nhỏ vì chỉ lấy 3 field)
+    const { data: images } = await supabase
+      .from("gallery_images")
+      .select("id, gallery_id, is_selected")
+      .in("gallery_id", galleryIds);
 
     const summaries = await Promise.all(
       galleries.map(async (gallery) => {
-        const metrics = await fetchGallerySummaryMetrics(supabase, gallery.id);
+        // Gom và đếm trên memory Server Node.js (cực nhanh và không tốn roundtrip DB)
+        const gImages = (images || []).filter((img) => img.gallery_id === gallery.id);
+        const imageCount = gImages.length;
+        const selectedCount = gImages.filter((img) => img.is_selected).length;
+
+        // Chỉ query lấy ảnh bìa
+        const coverImageUrl = await fetchGalleryCoverImage(supabase, gallery.id);
 
         return {
           ...gallery,
-          imageCount: metrics.imageCount,
-          selectedCount: metrics.selectedCount,
-          coverImageUrl: metrics.coverImageUrl,
+          imageCount,
+          selectedCount,
+          coverImageUrl,
           hasPassword: Boolean(gallery.password_hash || gallery.password),
         };
       }),
@@ -1224,6 +1300,7 @@ export async function getPublicGalleryPreview(accessUrl: string) {
         title: data.og_title || data.title,
         status: data.status,
         selection_deadline: data.selection_deadline,
+        selection_limit: data.selection_limit ?? null,
         access_url: getGalleryPublicSlug(data),
         imageCount,
         coverImageUrl,
@@ -1822,4 +1899,70 @@ export async function setGalleryCoverImage(
     console.error("[setGalleryCoverImage] Error:", err);
     return { success: false as const, error: "Loi server." };
   }
+}
+
+// ─── Gallery Settings (Custom Slug & Toggles) ──────────────────
+
+export interface GallerySettingsPayload {
+  title?: string | null;
+  custom_slug?: string | null;
+  client_name?: string | null;
+  tags?: string[] | null;
+  allow_comments?: boolean | null;
+  enable_watermark?: boolean | null;
+  show_namecard?: boolean | null;
+  allow_download?: boolean | null;
+  selection_limit?: number | null;
+  password?: string | null;
+}
+
+export async function updateGallerySettings(
+  galleryId: string,
+  settings: GallerySettingsPayload,
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    // Sanitize custom_slug: lowercase, trim, replace spaces
+    const slug = settings.custom_slug
+      ? settings.custom_slug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "")
+      : null;
+
+    // Build DB update payload (only non-undefined fields)
+    const updatePayload: Record<string, unknown> = {};
+    if (settings.title !== undefined) updatePayload.title = settings.title;
+    if (settings.custom_slug !== undefined) updatePayload.custom_slug = slug || null;
+    if (settings.client_name !== undefined) updatePayload.client_name = settings.client_name;
+    if (settings.tags !== undefined) updatePayload.tags = settings.tags;
+    if (settings.allow_comments !== undefined) updatePayload.allow_comments = settings.allow_comments;
+    if (settings.enable_watermark !== undefined) updatePayload.enable_watermark = settings.enable_watermark;
+    if (settings.show_namecard !== undefined) updatePayload.show_namecard = settings.show_namecard;
+    if (settings.allow_download !== undefined) updatePayload.allow_download = settings.allow_download;
+    if (settings.selection_limit !== undefined) updatePayload.selection_limit = settings.selection_limit;
+
+    // Handle password separately (hash it if provided)
+    if (settings.password) {
+      // Store password as-is for now (hashing can be done by existing setGalleryPassword flow)
+      updatePayload.password = settings.password;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return { success: true as const };
+    }
+
+    const { error } = await supabase
+      .from("galleries")
+      .update(updatePayload)
+      .eq("id", galleryId);
+
+    if (error) {
+      // Check for unique constraint violation on custom_slug
+      if (error.code === "23505") {
+        throw new Error("Tên miền album này đã được sử dụng. Vui lòng chọn tên khác.");
+      }
+      throw new Error(`Loi cap nhat cai dat: ${error.message}`);
+    }
+
+    return { success: true as const };
+  });
 }

@@ -74,6 +74,7 @@ export function GlobalModal() {
         return (
           <ShareGalleryModalContent
             accessUrl={data?.accessUrl}
+            customSlug={data?.customSlug}
             galleryId={data?.galleryId}
             galleryTitle={data?.galleryTitle}
             hasPassword={data?.hasPassword}

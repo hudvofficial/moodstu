@@ -2,7 +2,7 @@
 /* eslint-disable */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Camera, Image as ImageIcon, Heart } from "lucide-react";
+import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import {
   getPublicGalleryImagesPaginated,
@@ -60,6 +60,18 @@ export default function PublicGalleryClient({
   const isViewOnly = mode === "view";
   const accessUrl = gallery.access_url || "";
   const accessToken = gallery.accessToken || "";
+
+  // Decode capability from token
+  let clientCapability = gallery.capability || "select";
+  if (accessToken && accessToken !== "admin") {
+    try {
+      const [bodyPart] = accessToken.split(".");
+      const payload = JSON.parse(atob(bodyPart.replace(/-/g, "+").replace(/_/g, "/")));
+      clientCapability = payload.capability || "select";
+    } catch {}
+  }
+
+  const showAlbumDownload = accessToken && clientCapability !== "view";
 
   // Client identifier for anonymous reactions
   const getClientId = useCallback(() => {
@@ -179,6 +191,15 @@ export default function PublicGalleryClient({
           <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
             <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
             <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {selectedCount}</span>
+            {showAlbumDownload && (
+              <a
+                href={`/api/gallery-download-batch/${accessToken}`}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-text-inverse hover:opacity-90 transition-opacity"
+              >
+                <Download size={12} />
+                <span>Tải album (ZIP)</span>
+              </a>
+            )}
           </div>
         </div>
         
@@ -221,15 +242,26 @@ export default function PublicGalleryClient({
 
       {/* ── Lightbox viewer ── */}
       {viewerIndex !== null && (
-        <ImageViewer images={displayImages} currentIndex={viewerIndex}
-          onClose={() => setViewerIndex(null)} onIndexChange={setViewerIndex}
-          onToggleStar={(id: string) => handleToggleStar(id)} onSaveNote={handleSaveNote} mode={mode} />
+        <ImageViewer
+          images={displayImages}
+          currentIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onIndexChange={setViewerIndex}
+          onToggleStar={(id: string) => handleToggleStar(id)}
+          onSaveNote={handleSaveNote}
+          mode={mode}
+          accessToken={accessToken}
+        />
       )}
 
       {/* ── Bottom bar ── */}
       {!isViewOnly && (
-        <SelectionSummary selectedCount={selectedCount} totalCount={totalImageCount}
-          selectedImages={images.filter((i) => i.is_selected)} />
+        <SelectionSummary
+          selectedCount={selectedCount}
+          totalCount={totalImageCount}
+          selectedImages={images.filter((i) => i.is_selected)}
+          accessToken={accessToken}
+        />
       )}
     </div>
   );

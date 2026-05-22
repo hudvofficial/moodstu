@@ -48,6 +48,12 @@ export const MOBILE_STAT_STYLES: Record<MobileStatTone, { iconBg: string; iconCo
     activeBg: "border-accent/25 bg-accent/5 shadow-accent/10",
     activeText: "text-accent",
   },
+  warning: {
+    iconBg: "bg-warning/10",
+    iconColor: "text-warning",
+    activeBg: "border-warning/25 bg-warning/5 shadow-warning/10",
+    activeText: "text-warning",
+  },
 };
 
 export function MobilePrimaryStatCard({ item }: { item: StatItem }) {

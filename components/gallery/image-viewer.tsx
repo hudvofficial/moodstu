@@ -26,6 +26,7 @@ interface ImageViewerProps {
   onToggleStar: (imageId: string) => void;
   onSaveNote: (imageId: string, note: string) => void;
   mode?: "select" | "view";
+  accessToken?: string;
 }
 
 export default function ImageViewer({
@@ -36,10 +37,22 @@ export default function ImageViewer({
   onToggleStar,
   onSaveNote,
   mode = "select",
+  accessToken = "admin",
 }: ImageViewerProps) {
   const current = images[currentIndex];
-  const isViewOnly = mode === "view";
   const [downloading, setDownloading] = useState(false);
+
+  // Decode capability from token if not admin
+  let clientCapability = "select";
+  if (accessToken && accessToken !== "admin") {
+    try {
+      const [bodyPart] = accessToken.split(".");
+      const payload = JSON.parse(atob(bodyPart.replace(/-/g, "+").replace(/_/g, "/")));
+      clientCapability = payload.capability || "select";
+    } catch {}
+  }
+
+  const showDownloadButton = current?.drive_file_id && (accessToken === "admin" || clientCapability !== "view");
 
   // Preload next/prev images for smooth navigation
   useEffect(() => {
@@ -144,34 +157,21 @@ export default function ImageViewer({
           </span>
 
           {/* Download button */}
-          {!isViewOnly && current.drive_file_id && (
+          {showDownloadButton && (
             <div
               role="button"
               tabIndex={0}
-              onClick={async () => {
+              onClick={() => {
                 if (downloading) return;
                 setDownloading(true);
-                try {
-                  const res = await fetch(`/api/drive-download/${current.drive_file_id}`);
-                  if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    alert(data.error || "Không thể tải ảnh. Vui lòng thử lại.");
-                    return;
-                  }
-                  const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = current.file_name || `photo-${current.id}.jpg`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                } catch {
-                  alert("Lỗi kết nối. Vui lòng thử lại.");
-                } finally {
+                
+                // Native Download by changing location.href
+                window.location.href = `/api/gallery-download/${accessToken}/${current.id}`;
+                
+                // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
+                setTimeout(() => {
                   setDownloading(false);
-                }
+                }, 1500);
               }}
               onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.click(); }}
               className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${downloading ? "opacity-50" : ""}`}
@@ -182,7 +182,7 @@ export default function ImageViewer({
           )}
 
           {/* Select button (Heart) */}
-          {!isViewOnly && (
+          {mode === "select" && (
             <div
               role="button"
               tabIndex={0}

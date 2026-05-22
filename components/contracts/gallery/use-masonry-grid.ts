@@ -86,7 +86,7 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
 
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [maxColumns]);
 
   const handleIntersect = useCallback((entries: IntersectionObserverEntry[]) => {
     if (!entries[0]?.isIntersecting) return;

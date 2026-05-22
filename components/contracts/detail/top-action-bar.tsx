@@ -72,8 +72,14 @@ export default function TopActionBar({
               Hợp đồng {contractCode}
             </h2>
             {statusInfo && (
-              <Badge variant={statusInfo.variant}>
-                {paymentLabel || statusInfo.label}
+              <ContractStatusBadge 
+                contractId={contractId} 
+                currentStatus={status} 
+              />
+            )}
+            {paymentLabel && (
+              <Badge variant="neutral">
+                {paymentLabel}
               </Badge>
             )}
           </div>
@@ -125,5 +131,54 @@ export default function TopActionBar({
         </div>
       </header>
     </>
+  );
+}
+
+// ─── STATUS UPDATER ──────────────────────────────
+
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { updateContractStatus } from "@/app/actions/contract-mutations";
+import { SelectStatus } from "@/components/ui/select/SelectStatus";
+import { updateContractStatusCache } from "@/lib/hooks/use-contracts";
+
+function ContractStatusBadge({ contractId, currentStatus }: { contractId: string; currentStatus: ContractStatus }) {
+  const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
+
+  useEffect(() => {
+    setOptimisticStatus(currentStatus);
+  }, [currentStatus]);
+
+  const options = Object.entries(CONTRACT_STATUS_MAP).map(([val, info]) => {
+    let color = "#cbd5e1"; // default neutral
+    if (info.variant === "success") color = "#22c55e";
+    if (info.variant === "warning") color = "#f59e0b";
+    if (info.variant === "info") color = "#3b82f6";
+    if (info.variant === "error") color = "#ef4444";
+    return {
+      value: val,
+      label: info.label,
+      color,
+    };
+  });
+
+  return (
+    <SelectStatus
+      current={optimisticStatus}
+      options={options}
+      variant="compact"
+      onUpdate={async (newStatus) => {
+        try {
+          setOptimisticStatus(newStatus as ContractStatus);
+          await updateContractStatus(contractId, newStatus as ContractStatus);
+          updateContractStatusCache(contractId, newStatus as ContractStatus);
+          toast.success("Đã cập nhật trạng thái hợp đồng");
+        } catch (error: any) {
+          setOptimisticStatus(currentStatus);
+          toast.error(error.message || "Lỗi khi cập nhật trạng thái");
+          throw error;
+        }
+      }}
+    />
   );
 }
