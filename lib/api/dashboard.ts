@@ -53,8 +53,15 @@ const UPCOMING_DAYS = 14;
 const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
 const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
+// Granular cache tags for selective invalidation
 export const DASHBOARD_CRITICAL_CACHE_TAG = "dashboard-critical";
+export const DASHBOARD_REVENUE_CACHE_TAG = "dashboard-revenue";
+export const DASHBOARD_SERVICES_CACHE_TAG = "dashboard-services";
+export const DASHBOARD_EVENTS_CACHE_TAG = "dashboard-events";
+export const DASHBOARD_PAYMENTS_CACHE_TAG = "dashboard-payments";
+
 const DASHBOARD_CRITICAL_CACHE_SECONDS = 30; // Reduced from 60s for fresher data
+const DASHBOARD_SECTION_CACHE_SECONDS = 300; // 5 minutes for less critical sections
 const DASHBOARD_LOCAL_UTC_OFFSET = "+07:00";
 const DEFAULT_DASHBOARD_PROFILE_SLOW_MS = 500;
 
@@ -1024,24 +1031,49 @@ export async function prewarmDashboardCritical() {
 }
 
 /**
- * Revalidate dashboard cache after critical mutations
- * Call this from contract/payment/receipt mutation actions
+ * Granular revalidation - only invalidate affected sections
+ * Call this from mutation actions for instant dashboard updates
  */
 export async function revalidateDashboardAfterMutation(table: string) {
   "use server";
 
   const { revalidateTag } = await import("next/cache");
 
-  // Tables that affect dashboard KPIs
-  const criticalTables = ["contracts", "payments", "receipts", "payment_plans"];
+  // Granular tag mapping - only revalidate what's actually affected
+  const tagMap: Record<string, string[]> = {
+    contracts: [
+      DASHBOARD_CRITICAL_CACHE_TAG,
+      DASHBOARD_SERVICES_CACHE_TAG,
+      DASHBOARD_EVENTS_CACHE_TAG,
+    ],
+    payments: [
+      DASHBOARD_CRITICAL_CACHE_TAG,
+      DASHBOARD_REVENUE_CACHE_TAG,
+      DASHBOARD_PAYMENTS_CACHE_TAG,
+    ],
+    receipts: [
+      DASHBOARD_CRITICAL_CACHE_TAG,
+      DASHBOARD_REVENUE_CACHE_TAG,
+    ],
+    payment_plans: [
+      DASHBOARD_CRITICAL_CACHE_TAG,
+      DASHBOARD_PAYMENTS_CACHE_TAG,
+    ],
+    contract_events: [
+      DASHBOARD_EVENTS_CACHE_TAG,
+    ],
+    schedules: [
+      DASHBOARD_EVENTS_CACHE_TAG,
+    ],
+  };
 
-  if (criticalTables.includes(table)) {
-    revalidateTag(DASHBOARD_CRITICAL_CACHE_TAG);
-  }
+  const tags = tagMap[table] || [];
+  tags.forEach((tag) => revalidateTag(tag));
 }
 
-export const getDashboardRevenueChartSection = cache(
-  async (): Promise<DashboardSectionResult<RevenueChartData[]>> => {
+const getCachedRevenueChart = unstable_cache(
+  async (userId: string): Promise<DashboardSectionResult<RevenueChartData[]>> => {
+    void userId; // Part of cache key
     const access = await getDashboardAccess();
     const supabase = await createAdminClient();
 
@@ -1052,10 +1084,23 @@ export const getDashboardRevenueChartSection = cache(
       () => queryRevenueChart(supabase, access.visibility),
     );
   },
+  ["dashboard-revenue-v1"],
+  {
+    revalidate: DASHBOARD_SECTION_CACHE_SECONDS,
+    tags: [DASHBOARD_REVENUE_CACHE_TAG],
+  },
 );
 
-export const getDashboardServiceBreakdownSection = cache(
-  async (): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+export const getDashboardRevenueChartSection = cache(
+  async (): Promise<DashboardSectionResult<RevenueChartData[]>> => {
+    const access = await getDashboardAccess();
+    return getCachedRevenueChart(access.userId);
+  },
+);
+
+const getCachedServiceBreakdown = unstable_cache(
+  async (userId: string): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+    void userId;
     const access = await getDashboardAccess();
     const supabase = await createAdminClient();
 
@@ -1066,10 +1111,23 @@ export const getDashboardServiceBreakdownSection = cache(
       () => queryServiceBreakdown(supabase, access.visibility),
     );
   },
+  ["dashboard-services-v1"],
+  {
+    revalidate: DASHBOARD_SECTION_CACHE_SECONDS,
+    tags: [DASHBOARD_SERVICES_CACHE_TAG],
+  },
 );
 
-export const getDashboardUpcomingEventsSection = cache(
-  async (): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+export const getDashboardServiceBreakdownSection = cache(
+  async (): Promise<DashboardSectionResult<ServiceBreakdownData[]>> => {
+    const access = await getDashboardAccess();
+    return getCachedServiceBreakdown(access.userId);
+  },
+);
+
+const getCachedUpcomingEvents = unstable_cache(
+  async (userId: string): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+    void userId;
     const access = await getDashboardAccess();
     const supabase = await createAdminClient();
 

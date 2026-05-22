@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+// Removed Suspense - using parallel Promise.all() instead for better performance
 import {
   AlertTriangle,
   CheckCircle,
@@ -120,67 +120,18 @@ function DashboardKpiGrid({
   );
 }
 
-async function RevenueChartSection({ visibility }: { visibility: DashboardVisibility }) {
-  const result = await getDashboardRevenueChartSection();
-
-  return (
-    <>
-      <SectionErrorNotice errors={result.errors} />
-      <RevenueChart
-        data={result.data}
-        canView={visibility.canViewFinancials}
-        periodLabel="6 tháng gần nhất"
-      />
-    </>
-  );
-}
-
-async function ServiceBreakdownSection({ visibility }: { visibility: DashboardVisibility }) {
-  const result = await getDashboardServiceBreakdownSection();
-
-  return (
-    <>
-      <SectionErrorNotice errors={result.errors} />
-      <ServicePieChart
-        data={result.data}
-        canView={visibility.canViewContracts}
-        showRevenue={visibility.canViewFinancials}
-      />
-    </>
-  );
-}
-
-async function UpcomingEventsSection({ visibility }: { visibility: DashboardVisibility }) {
-  const result = await getDashboardUpcomingEventsSection();
-
-  return (
-    <>
-      <SectionErrorNotice errors={result.errors} />
-      <UpcomingEventsList
-        events={result.data}
-        canView={visibility.canViewCalendar || visibility.canViewContracts}
-      />
-    </>
-  );
-}
-
-async function PaymentRemindersSection({ visibility }: { visibility: DashboardVisibility }) {
-  const result = await getDashboardPaymentRemindersSection();
-
-  return (
-    <>
-      <SectionErrorNotice errors={result.errors} />
-      <PaymentReminders
-        reminders={result.data}
-        canView={visibility.canViewFinancials}
-      />
-    </>
-  );
-}
-
 export default async function DashboardPage() {
+  // Fetch critical data first
   const critical = await getDashboardCritical();
   const { visibility } = critical.access;
+
+  // Parallel fetch all sections (eliminates waterfall!)
+  const [revenueResult, serviceResult, eventsResult, paymentsResult] = await Promise.all([
+    getDashboardRevenueChartSection(),
+    getDashboardServiceBreakdownSection(),
+    getDashboardUpcomingEventsSection(),
+    getDashboardPaymentRemindersSection(),
+  ]);
 
   return (
     <div className="main-container">
@@ -190,26 +141,45 @@ export default async function DashboardPage() {
       <DashboardErrorBanner errors={critical.errors} />
       <DashboardKpiGrid kpis={critical.kpis} visibility={visibility} />
 
+      {/* Revenue Chart */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <Suspense fallback={<SkeletonCard className="h-80" />}>
-            <RevenueChartSection visibility={visibility} />
-          </Suspense>
+          <SectionErrorNotice errors={revenueResult.errors} />
+          <RevenueChart
+            data={revenueResult.data}
+            canView={visibility.canViewFinancials}
+            periodLabel="6 tháng gần nhất"
+          />
         </div>
+
+        {/* Service Breakdown */}
         <div className="lg:col-span-2">
-          <Suspense fallback={<SkeletonCard className="h-80" />}>
-            <ServiceBreakdownSection visibility={visibility} />
-          </Suspense>
+          <SectionErrorNotice errors={serviceResult.errors} />
+          <ServicePieChart
+            data={serviceResult.data}
+            canView={visibility.canViewContracts}
+            showRevenue={visibility.canViewFinancials}
+          />
         </div>
       </div>
 
+      {/* Events & Payments */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Suspense fallback={<SkeletonCard className="h-64" />}>
-          <UpcomingEventsSection visibility={visibility} />
-        </Suspense>
-        <Suspense fallback={<SkeletonCard className="h-64" />}>
-          <PaymentRemindersSection visibility={visibility} />
-        </Suspense>
+        <div>
+          <SectionErrorNotice errors={eventsResult.errors} />
+          <UpcomingEventsList
+            events={eventsResult.data}
+            canView={visibility.canViewCalendar || visibility.canViewContracts}
+          />
+        </div>
+
+        <div>
+          <SectionErrorNotice errors={paymentsResult.errors} />
+          <PaymentReminders
+            reminders={paymentsResult.data}
+            canView={visibility.canViewFinancials}
+          />
+        </div>
       </div>
     </div>
   );
