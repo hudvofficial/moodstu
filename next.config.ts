@@ -238,7 +238,7 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🟡 RULE 4a: Dashboard RPCs — StaleWhileRevalidate (instant + fresh)
+      // 🟡 RULE 4a: Dashboard RPCs — NetworkFirst with 3s timeout (instant fallback)
       {
         urlPattern: ({ url }: { url: URL }) => {
           if (!url.pathname.includes('/rest/v1/rpc/')) return false;
@@ -249,7 +249,7 @@ const withPWA = withPWAInit({
           ];
           return dashboardRpcs.some(rpc => url.href.includes(rpc));
         },
-        handler: "StaleWhileRevalidate",
+        handler: "NetworkFirst",
         options: {
           cacheName: "dashboard-api",
           expiration: { maxEntries: 20, maxAgeSeconds: 300 }, // 5 minutes
