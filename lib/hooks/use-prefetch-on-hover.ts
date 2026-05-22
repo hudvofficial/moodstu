@@ -110,15 +110,9 @@ function getPrefetchConfig(href: string): PrefetchConfig | null {
   }
 
   if (route === "/dashboard") {
-    // Import dynamically to avoid circular dependency
-    const { prewarmDashboardCritical } = await import("@/lib/api/dashboard");
-    return {
-      key: ["dashboard-prewarm"],
-      fetcher: async () => {
-        await prewarmDashboardCritical();
-        return { prewarmed: true };
-      },
-    };
+    // Dashboard prefetch handled by useDashboardPrefetch hook
+    // Skip SWR prefetch here to avoid circular dependency
+    return null;
   }
 
   return null;
