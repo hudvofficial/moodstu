@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   startOfMonth,
   endOfMonth,
@@ -17,6 +17,14 @@ import {
   formatLunarShort,
   isLunarNewMonth,
 } from "@/lib/lunar-calendar";
+import { buildGridSlots } from "@/lib/utils/calendar-utils";
+
+const MAX_VISIBLE_EVENTS = 5;
+const DAY_HEADER_HEIGHT = 30;
+const EVENT_ROW_HEIGHT = 12;
+const EVENT_ROW_GAP = 2;
+const MORE_LINK_HEIGHT = 12;
+const CELL_BOTTOM_PADDING = 2;
 
 interface MobileMonthGridProps {
   currentDate: Date;
@@ -29,6 +37,9 @@ export function MobileMonthGrid({
   events,
   onDateSelect,
 }: MobileMonthGridProps) {
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [bodyHeight, setBodyHeight] = useState(0);
+
   const daysInGrid = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -36,6 +47,53 @@ export function MobileMonthGrid({
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: startDate, end: endDate });
   }, [currentDate]);
+
+  useEffect(() => {
+    const node = bodyRef.current;
+    if (!node) return;
+
+    const updateHeight = () => setBodyHeight(node.getBoundingClientRect().height);
+    updateHeight();
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setBodyHeight(entry.contentRect.height);
+      }
+    });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const eventsByDate = useMemo(() => {
+    if (daysInGrid.length === 0) return {};
+
+    return buildGridSlots(
+      events,
+      daysInGrid[0],
+      daysInGrid[daysInGrid.length - 1],
+    );
+  }, [daysInGrid, events]);
+
+  const rowCount = Math.max(1, daysInGrid.length / 7);
+  const cellHeight = bodyHeight > 0 ? bodyHeight / rowCount : 110;
+  const eventAreaHeight = Math.max(
+    0,
+    cellHeight - DAY_HEADER_HEIGHT - CELL_BOTTOM_PADDING,
+  );
+  const eventPitch = EVENT_ROW_HEIGHT + EVENT_ROW_GAP;
+  const maxEventsWithoutMore = Math.min(
+    MAX_VISIBLE_EVENTS,
+    Math.max(0, Math.floor((eventAreaHeight + EVENT_ROW_GAP) / eventPitch)),
+  );
+  const maxEventsWithMore = Math.min(
+    MAX_VISIBLE_EVENTS,
+    Math.max(
+      0,
+      Math.floor((eventAreaHeight - MORE_LINK_HEIGHT + EVENT_ROW_GAP) / eventPitch),
+    ),
+  );
 
   const today = new Date();
 
@@ -59,6 +117,7 @@ export function MobileMonthGrid({
       {/* Body */}
       <div className="flex-1 relative min-h-0 h-full w-full">
         <div
+          ref={bodyRef}
           className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${
             daysInGrid.length === 28
               ? "grid-rows-[repeat(4,25%)]"
@@ -81,9 +140,15 @@ export function MobileMonthGrid({
             const lunarText = formatLunarShort(lunar);
             const isNewLunarMonth = isLunarNewMonth(lunar);
 
-            const eventsForDay = events.filter(
-              (e) => e.start.split("T")[0] === dateIso,
-            );
+            const eventsForDay = (eventsByDate[dateIso] ?? [])
+              .filter((slot) => slot.event)
+              .map((slot) => slot.event!);
+            const visibleLimit =
+              eventsForDay.length <= maxEventsWithoutMore
+                ? eventsForDay.length
+                : maxEventsWithMore;
+            const visibleEvents = eventsForDay.slice(0, visibleLimit);
+            const hiddenCount = eventsForDay.length - visibleEvents.length;
 
             return (
               <div
@@ -133,7 +198,7 @@ export function MobileMonthGrid({
 
                 {/* Event Cards (V1 Style Parity) */}
                 <div className="flex-1 min-h-0 overflow-hidden px-0.5 flex flex-col gap-0.5 w-full">
-                  {eventsForDay.slice(0, 2).map((e) => {
+                  {visibleEvents.map((e, index) => {
                     const isGoogleColored =
                       e.source === "google" && e.backgroundColor;
                     const googleStyle = isGoogleColored
@@ -146,26 +211,26 @@ export function MobileMonthGrid({
 
                     return (
                       <div
-                        key={e.id}
+                        key={`${e.id}-${index}`}
                         style={googleStyle}
-                        className={`text-micro font-medium px-1 py-0.5 rounded truncate border-l-2 shadow-sm leading-tight shrink-0
+                        className={`flex h-3 min-h-3 shrink-0 items-center gap-0.5 overflow-hidden rounded-sm border-l-2 px-0.5 text-micro font-medium leading-none shadow-sm
                           ${!isGoogleColored ? e.colorToken : ""}
                         `}
                       >
                         {e.source === "google" && (
-                          <span className="text-micro bg-white/20 text-white px-0.5 rounded mr-0.5 font-bold leading-none">
+                          <span className="shrink-0 rounded-sm bg-white/20 px-0.5 text-micro font-bold leading-none text-white">
                             G
                           </span>
                         )}
-                        <span className="truncate">{e.title}</span>
+                        <span className="min-w-0 flex-1 truncate">{e.title}</span>
                       </div>
                     );
                   })}
                 </div>
 
-                {eventsForDay.length > 2 && (
-                  <div className="text-micro text-text-secondary font-medium w-full text-center pb-0.5 shrink-0">
-                    +{eventsForDay.length - 2}
+                {hiddenCount > 0 && (
+                  <div className="h-3 shrink-0 pb-0.5 text-center text-micro font-medium leading-none text-text-secondary w-full">
+                    +{hiddenCount}
                   </div>
                 )}
               </div>

@@ -8,6 +8,7 @@ interface DraggableEventProps {
   continuesPrior?: boolean;
   continuesNext?: boolean;
   compact?: boolean;
+  dense?: boolean;
   onClick?: () => void;
 }
 
@@ -17,6 +18,7 @@ export function DraggableEvent({
   continuesPrior,
   continuesNext,
   compact = false,
+  dense = false,
   onClick,
 }: DraggableEventProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -60,14 +62,19 @@ export function DraggableEvent({
   }
 
   const layoutClasses = compact
-    ? "flex items-center px-2 py-0.5 h-[22px] min-h-[22px] max-h-[22px]"
+    ? dense
+      ? "flex items-center px-1 py-0 h-[15px] min-h-[15px] max-h-[15px]"
+      : "flex items-center px-2 py-0.5 h-[22px] min-h-[22px] max-h-[22px]"
     : "flex flex-col px-2 py-1 h-[26px] min-h-[26px] max-h-[26px]";
+  const textSizeClasses = dense ? "text-micro leading-none" : "text-xs";
+  const titlePaddingClasses = isGoogleEvent && !continuesNext ? (dense ? "pr-2.5" : "pr-4") : "";
 
   return (
     <div
       ref={setNodeRef}
       style={{ ...style, ...googleStyle }}
-      className={`relative group min-w-0 flex-1 text-xs cursor-pointer select-none shrink-0 transition-all hover:brightness-95 overflow-hidden
+      className={`relative group min-w-0 flex-1 cursor-pointer select-none shrink-0 transition-all hover:brightness-95 overflow-hidden
+        ${textSizeClasses}
         ${layoutClasses}
         ${borderClasses}
         ${radiusClasses}
@@ -96,7 +103,7 @@ export function DraggableEvent({
             <GripVertical className="w-3 h-3" />
           </div>
         )}
-        <span className={`truncate flex-1 min-w-0 ${isGoogleEvent && !continuesNext ? "pr-4" : ""}`} title={event.title}>
+        <span className={`truncate flex-1 min-w-0 ${titlePaddingClasses}`} title={event.title}>
           {event.title}
         </span>
       </div>
@@ -111,7 +118,7 @@ export function DraggableEvent({
       {/* Visual Indicator of Original Bounds */}
       {isGoogleEvent && !continuesNext && (
         <span
-          className={`absolute right-0.5 text-micro font-bold leading-none bg-white/20 text-white px-1 py-0.5 rounded ${compact ? "top-1/2 -translate-y-1/2" : "top-[3px]"}`}
+          className={`absolute right-0.5 font-bold leading-none bg-white/20 text-white ${dense ? "top-1/2 -translate-y-1/2 rounded-sm px-0.5 py-0 text-micro" : `text-micro px-1 py-0.5 rounded ${compact ? "top-1/2 -translate-y-1/2" : "top-[3px]"}`}`}
           title="Google Sync"
         >
           G

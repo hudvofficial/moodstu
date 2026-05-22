@@ -6,11 +6,17 @@ import { Button } from "@/components/ui/button";
 import { DroppableDay } from "./droppable-day";
 import { DraggableEvent } from "./draggable-event";
 
-const DAY_HEADER_OFFSET = 34;
-const EVENT_LAYER_BOTTOM = 2;
-const EVENT_ROW_HEIGHT = 22;
-const EVENT_ROW_GAP = 2;
-const MORE_LINK_HEIGHT = 18;
+const DESKTOP_DAY_HEADER_OFFSET = 34;
+const MOBILE_DAY_HEADER_OFFSET = 26;
+const DESKTOP_EVENT_LAYER_BOTTOM = 2;
+const MOBILE_EVENT_LAYER_BOTTOM = 1;
+const DESKTOP_EVENT_ROW_HEIGHT = 22;
+const MOBILE_EVENT_ROW_HEIGHT = 15;
+const DESKTOP_EVENT_ROW_GAP = 2;
+const MOBILE_EVENT_ROW_GAP = 1;
+const DESKTOP_MORE_LINK_HEIGHT = 18;
+const MOBILE_MORE_LINK_HEIGHT = 14;
+const DENSE_ROW_WIDTH = 768;
 const WEEK_COLUMNS = 7;
 
 interface MonthWeekRowProps {
@@ -29,20 +35,29 @@ export function MonthWeekRow({
   onDateClick,
 }: MonthWeekRowProps) {
   const rowRef = useRef<HTMLDivElement | null>(null);
-  const [rowHeight, setRowHeight] = useState(0);
-  const rowPitch = EVENT_ROW_HEIGHT + EVENT_ROW_GAP;
+  const [rowSize, setRowSize] = useState({ width: 0, height: 0 });
+  const isDense = rowSize.width > 0 && rowSize.width < DENSE_ROW_WIDTH;
+  const dayHeaderOffset = isDense ? MOBILE_DAY_HEADER_OFFSET : DESKTOP_DAY_HEADER_OFFSET;
+  const eventLayerBottom = isDense ? MOBILE_EVENT_LAYER_BOTTOM : DESKTOP_EVENT_LAYER_BOTTOM;
+  const eventRowHeight = isDense ? MOBILE_EVENT_ROW_HEIGHT : DESKTOP_EVENT_ROW_HEIGHT;
+  const eventRowGap = isDense ? MOBILE_EVENT_ROW_GAP : DESKTOP_EVENT_ROW_GAP;
+  const moreLinkHeight = isDense ? MOBILE_MORE_LINK_HEIGHT : DESKTOP_MORE_LINK_HEIGHT;
+  const rowPitch = eventRowHeight + eventRowGap;
 
   useEffect(() => {
     const node = rowRef.current;
     if (!node) return;
 
-    const updateHeight = () => setRowHeight(node.getBoundingClientRect().height);
-    updateHeight();
+    const updateSize = () => {
+      const rect = node.getBoundingClientRect();
+      setRowSize({ width: rect.width, height: rect.height });
+    };
+    updateSize();
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
-        setRowHeight(entry.contentRect.height);
+        setRowSize({ width: entry.contentRect.width, height: entry.contentRect.height });
       }
     });
 
@@ -56,16 +71,16 @@ export function MonthWeekRow({
   }, [days, events]);
 
   const visibleLaneLimit = useMemo(() => {
-    const eventAreaHeight = Math.max(0, rowHeight - DAY_HEADER_OFFSET - EVENT_LAYER_BOTTOM);
+    const eventAreaHeight = Math.max(0, rowSize.height - dayHeaderOffset - eventLayerBottom);
     if (!eventAreaHeight) return 3;
 
-    const rowsWithoutOverflow = Math.floor((eventAreaHeight + EVENT_ROW_GAP) / rowPitch);
+    const rowsWithoutOverflow = Math.floor((eventAreaHeight + eventRowGap) / rowPitch);
     const hasOverflow = segments.some((segment) => segment.lane >= rowsWithoutOverflow);
     if (!hasOverflow) return Math.max(0, rowsWithoutOverflow);
 
-    const rowsWithMoreLink = Math.floor((eventAreaHeight - MORE_LINK_HEIGHT) / rowPitch);
+    const rowsWithMoreLink = Math.floor((eventAreaHeight - moreLinkHeight) / rowPitch);
     return Math.max(0, rowsWithMoreLink);
-  }, [rowHeight, rowPitch, segments]);
+  }, [dayHeaderOffset, eventLayerBottom, eventRowGap, moreLinkHeight, rowPitch, rowSize.height, segments]);
 
   const hiddenCounts = useMemo(() => {
     const counts = Array(WEEK_COLUMNS).fill(0) as number[];
@@ -100,8 +115,8 @@ export function MonthWeekRow({
       })}
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-1 z-20 grid grid-cols-7"
-        style={{ top: DAY_HEADER_OFFSET }}
+        className="pointer-events-none absolute inset-x-0 z-20 grid grid-cols-7"
+        style={{ top: dayHeaderOffset, bottom: eventLayerBottom }}
       >
         {segments
           .filter((segment) => segment.lane < visibleLaneLimit)
@@ -112,7 +127,7 @@ export function MonthWeekRow({
               style={{
                 gridColumn: `${segment.startCol + 1} / span ${segment.spanDays}`,
                 gridRow: 1,
-                height: EVENT_ROW_HEIGHT,
+                height: eventRowHeight,
                 transform: `translateY(${segment.lane * rowPitch}px)`,
               }}
             >
@@ -121,6 +136,7 @@ export function MonthWeekRow({
                 continuesPrior={segment.continuesPrior}
                 continuesNext={segment.continuesNext}
                 compact
+                dense={isDense}
                 onClick={() => onEventClick?.(segment.event)}
               />
             </div>
@@ -134,12 +150,12 @@ export function MonthWeekRow({
               key={`more-${col}`}
               unstyled
               type="button"
-              className="pointer-events-auto block overflow-hidden px-1 text-left text-xs font-medium text-primary hover:text-primary/80"
+              className={`pointer-events-auto block overflow-hidden px-1 text-left font-medium text-primary hover:text-primary/80 ${isDense ? "text-micro" : "text-xs"}`}
               style={{
                 gridColumn: `${col + 1} / span 1`,
                 gridRow: 1,
-                height: MORE_LINK_HEIGHT,
-                lineHeight: `${MORE_LINK_HEIGHT}px`,
+                height: moreLinkHeight,
+                lineHeight: `${moreLinkHeight}px`,
                 transform: `translateY(${visibleLaneLimit * rowPitch}px)`,
               }}
               onClick={(event) => {
