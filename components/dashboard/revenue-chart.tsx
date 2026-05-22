@@ -26,7 +26,7 @@ export function RevenueChart({
   const max = Math.max(1, ...data.map((item) => item.revenue));
 
   return (
-    <div className="card-base h-full p-5 entrance entrance-3">
+    <div className="card-base h-full p-5 entrance entrance-3 chart-container">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-primary/10">

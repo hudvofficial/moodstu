@@ -107,6 +107,17 @@
 
 /* Keep icon-box at 40px on all screen sizes for consistent touch targets */
 
+/* ══════════════════════════════════════
+   4. PERFORMANCE OPTIMIZATIONS
+   ══════════════════════════════════════ */
+
+/* CSS Containment for charts - prevents layout thrashing */
+.chart-container {
+  contain: layout style paint;
+  content-visibility: auto;
+  will-change: contents;
+}
+
 .link-base {
   color: var(--color-primary);
   font-weight: 600;

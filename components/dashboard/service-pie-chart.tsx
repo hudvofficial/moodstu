@@ -34,7 +34,7 @@ export function ServicePieChart({ data, canView, showRevenue }: ServicePieChartP
     : "conic-gradient(var(--color-border) 0% 100%)";
 
   return (
-    <div className="card-base h-full p-5 entrance entrance-4">
+    <div className="card-base h-full p-5 entrance entrance-4 chart-container">
       <div className="mb-5 flex items-center gap-2">
         <div className="icon-box bg-accent/10">
           <PieChartIcon className="h-4 w-4 text-accent" />

@@ -54,7 +54,7 @@ const COLLECTION_DAYS = 30;
 const LIST_LIMIT = 6;
 const UPCOMING_SOURCE_LIMIT = LIST_LIMIT * 4;
 export const DASHBOARD_CRITICAL_CACHE_TAG = "dashboard-critical";
-const DASHBOARD_CRITICAL_CACHE_SECONDS = 60;
+const DASHBOARD_CRITICAL_CACHE_SECONDS = 30; // Reduced from 60s for fresher data
 const DASHBOARD_LOCAL_UTC_OFFSET = "+07:00";
 const DEFAULT_DASHBOARD_PROFILE_SLOW_MS = 500;
 
@@ -1021,6 +1021,23 @@ export const getDashboardCritical = cache(async (): Promise<DashboardCriticalDat
 
 export async function prewarmDashboardCritical() {
   await getDashboardCritical();
+}
+
+/**
+ * Revalidate dashboard cache after critical mutations
+ * Call this from contract/payment/receipt mutation actions
+ */
+export async function revalidateDashboardAfterMutation(table: string) {
+  "use server";
+
+  const { revalidateTag } = await import("next/cache");
+
+  // Tables that affect dashboard KPIs
+  const criticalTables = ["contracts", "payments", "receipts", "payment_plans"];
+
+  if (criticalTables.includes(table)) {
+    revalidateTag(DASHBOARD_CRITICAL_CACHE_TAG);
+  }
 }
 
 export const getDashboardRevenueChartSection = cache(
