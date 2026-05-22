@@ -1,6 +1,7 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { PieChart as PieChartIcon } from "lucide-react";
 import type { ServiceDistributionItem } from "@/types/finance-dashboard";
 import { formatVnd } from "@/components/finance/finance-format";
@@ -86,7 +87,7 @@ export function ServiceDonutChart({
       ) : (
         <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(120px,160px)]">
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={chartData} dataKey="value" nameKey="displayName" innerRadius="52%" outerRadius="78%" paddingAngle={2}>
                   {chartData.map((item, index) => (
@@ -95,7 +96,7 @@ export function ServiceDonutChart({
                 </Pie>
                 <Tooltip content={<ServiceDonutTooltip />} />
               </PieChart>
-            </ResponsiveContainer>
+            </SafeResponsiveContainer>
           </div>
 
           <div className="space-y-2">

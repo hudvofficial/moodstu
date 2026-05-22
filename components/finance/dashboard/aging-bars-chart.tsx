@@ -1,6 +1,7 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { formatVnd } from "@/components/finance/finance-format";
 import type { ReceivableAgingResult } from "@/types/finance-intelligence";
 import { useMemo } from "react";
@@ -42,7 +43,7 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
       </div>
 
       <div className="chart-focus-reset flex-1 w-full min-h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
             <XAxis type="number" tickFormatter={(val) => `${val / 1000000}M`} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
@@ -54,7 +55,7 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
             />
             <Bar dataKey="value" fill="var(--color-primary)" radius={[0, 4, 4, 0]} barSize={20} />
           </BarChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
     </div>
   );

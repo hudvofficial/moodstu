@@ -1,6 +1,7 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { formatVnd } from "@/components/finance/finance-format";
 import type { ExpenseBreakdownItem } from "@/types/finance-intelligence";
 
@@ -37,7 +38,7 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
         <h3 className="text-h3">Cơ Cấu Chi Phí</h3>
       </div>
       <div className="chart-focus-reset relative flex-1 w-full min-h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
@@ -59,7 +60,7 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />
           </PieChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-4">
         {data.slice(0, 4).map((item, index) => (

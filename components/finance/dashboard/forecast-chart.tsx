@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { formatVnd } from "@/components/finance/finance-format";
 import type { CashflowForecastResult } from "@/types/finance-intelligence";
 
@@ -44,7 +45,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
       </div>
 
       <div className="chart-focus-reset flex-1 w-full min-h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <SafeResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
@@ -71,7 +72,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
             />
             <Area type="monotone" dataKey="balance" name="Số dư dự kiến" stroke="var(--color-primary)" strokeWidth={2} fillOpacity={1} fill="url(#colorBalance)" />
           </AreaChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
     </div>
   );

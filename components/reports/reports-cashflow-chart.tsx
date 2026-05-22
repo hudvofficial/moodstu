@@ -1,6 +1,7 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { ArrowDownLeft, ArrowUpRight, ReceiptText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatVnd } from "@/components/finance/finance-format";
@@ -138,7 +139,7 @@ export function ReportsCashflowChart({
         </div>
       ) : (
         <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={8}>
               <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <ReferenceLine y={0} stroke="var(--color-border)" />
@@ -148,7 +149,7 @@ export function ReportsCashflowChart({
               <Bar dataKey="inflow" fill="var(--color-success)" radius={[6, 6, 0, 0]} maxBarSize={24} />
               <Bar dataKey="outflow" fill="var(--color-error)" radius={[6, 6, 0, 0]} maxBarSize={24} />
             </BarChart>
-          </ResponsiveContainer>
+          </SafeResponsiveContainer>
         </div>
       )}
     </div>

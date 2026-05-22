@@ -1,6 +1,7 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { TrendingUp } from "lucide-react";
 import type { RevenueByMonthItem } from "@/types/finance-dashboard";
 import { formatVnd } from "@/components/finance/finance-format";
@@ -33,7 +34,7 @@ export function RevenueBarChart({ data, selectedMonth }: RevenueBarChartProps) {
         </div>
       ) : (
         <div className="chart-focus-reset h-64">
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
               <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <XAxis dataKey="month" stroke="var(--color-text-muted)" tickLine={false} axisLine={false} />
@@ -54,7 +55,7 @@ export function RevenueBarChart({ data, selectedMonth }: RevenueBarChartProps) {
               />
               <Bar dataKey="revenue" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </SafeResponsiveContainer>
         </div>
       )}
     </div>
