@@ -153,12 +153,6 @@ export function Header({
           willChange: pullDistance > 0 ? 'transform' : 'auto', // Optimize pull-to-refresh
         } : {}),
       }}
-      style={isMobile ? {
-        // Mobile-only: pull-to-refresh transform and dynamic shadow via CSS variable
-        transform: getTransform(),
-        transition: getTransition(),
-        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, calc(0.06 * var(--header-shadow-opacity, 1)))`,
-      } : undefined}
     >
       {/* ═══════ MOBILE: Search Overlay ═══════ */}
       {isSearchVisible ? (

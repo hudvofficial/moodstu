@@ -56,8 +56,12 @@ export function RevenueChart({
 
                 <div className="relative flex h-32 w-full items-end">
                   <div
-                    className="w-full rounded-t-lg bg-primary opacity-45 transition-all duration-300"
-                    style={{ height: `${height}%` }}
+                    className="w-full rounded-t-lg bg-primary opacity-45 transition-[opacity] duration-200 hover:opacity-60"
+                    style={{
+                      height: `${height}%`,
+                      animation: 'dashboard-bar-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards',
+                      animationDelay: `${data.indexOf(item) * 50}ms`,
+                    }}
                   />
                 </div>
 
