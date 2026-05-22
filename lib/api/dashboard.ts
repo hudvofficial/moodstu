@@ -1138,10 +1138,23 @@ const getCachedUpcomingEvents = unstable_cache(
       () => queryUpcomingEvents(supabase, access),
     );
   },
+  ["dashboard-events-v1"],
+  {
+    revalidate: DASHBOARD_SECTION_CACHE_SECONDS,
+    tags: [DASHBOARD_EVENTS_CACHE_TAG],
+  },
 );
 
-export const getDashboardPaymentRemindersSection = cache(
-  async (): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+export const getDashboardUpcomingEventsSection = cache(
+  async (): Promise<DashboardSectionResult<UpcomingEventData[]>> => {
+    const access = await getDashboardAccess();
+    return getCachedUpcomingEvents(access.userId);
+  },
+);
+
+const getCachedPaymentReminders = unstable_cache(
+  async (userId: string): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+    void userId;
     const access = await getDashboardAccess();
     const supabase = await createAdminClient();
 
@@ -1151,6 +1164,18 @@ export const getDashboardPaymentRemindersSection = cache(
       [],
       () => queryPaymentReminders(supabase, access.visibility),
     );
+  },
+  ["dashboard-payments-v1"],
+  {
+    revalidate: DASHBOARD_SECTION_CACHE_SECONDS,
+    tags: [DASHBOARD_PAYMENTS_CACHE_TAG],
+  },
+);
+
+export const getDashboardPaymentRemindersSection = cache(
+  async (): Promise<DashboardSectionResult<PaymentReminderData[]>> => {
+    const access = await getDashboardAccess();
+    return getCachedPaymentReminders(access.userId);
   },
 );
 
