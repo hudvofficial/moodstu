@@ -238,7 +238,25 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🔴 RULE 4: Supabase REST API — live business data, never cache
+      // 🟡 RULE 4a: Dashboard RPCs — StaleWhileRevalidate (instant + fresh)
+      {
+        urlPattern: ({ url }: { url: URL }) => {
+          if (!url.pathname.includes('/rest/v1/rpc/')) return false;
+          const dashboardRpcs = [
+            'get_dashboard_kpi',
+            'get_dashboard_revenue_chart',
+            'get_dashboard_service_breakdown',
+          ];
+          return dashboardRpcs.some(rpc => url.href.includes(rpc));
+        },
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "dashboard-api",
+          expiration: { maxEntries: 20, maxAgeSeconds: 300 }, // 5 minutes
+          networkTimeoutSeconds: 3, // Fallback to cache after 3s
+        },
+      },
+      // 🔴 RULE 4b: Other Supabase REST API — live business data, never cache
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
         handler: "NetworkOnly",

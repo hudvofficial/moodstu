@@ -72,6 +72,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
+    "@tanstack/react-virtual": "^3.13.25",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

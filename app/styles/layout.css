@@ -115,7 +115,13 @@
 .chart-container {
   contain: layout style paint;
   content-visibility: auto;
-  will-change: contents;
+}
+
+/* Performance hints for interactive elements */
+.performance-optimized {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
+  backface-visibility: hidden;
 }
 
 .link-base {
