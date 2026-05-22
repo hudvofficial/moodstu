@@ -1068,7 +1068,7 @@ export async function revalidateDashboardAfterMutation(table: string) {
   };
 
   const tags = tagMap[table] || [];
-  tags.forEach((tag) => revalidateTag(tag));
+  tags.forEach((tag) => revalidateTag(tag, { expire: 0 }));
 }
 
 const getCachedRevenueChart = unstable_cache(
