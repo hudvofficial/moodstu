@@ -16,6 +16,7 @@ import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import {
   fetchInventoryList,
   fetchInventoryDetail,
+  fetchTransactionHistory,
   getInventoryStats,
 } from "@/app/actions/inventory-queries";
 import type {
@@ -23,8 +24,10 @@ import type {
   InventoryFilters,
   InventoryItem,
   InventoryStats,
+  InventoryTransaction,
+  TransactionFilters,
 } from "@/types/inventory";
-import { INVENTORY_PAGE_SIZE } from "@/types/inventory-constants";
+import { INVENTORY_PAGE_SIZE, TRANSACTION_PAGE_SIZE } from "@/types/inventory-constants";
 
 const prefetchedInventoryDetails = new Set<string>();
 
@@ -71,6 +74,33 @@ export function useInventoryStats(fallbackData?: InventoryStats) {
   return {
     stats: data ?? null,
     isLoading,
+    error,
+  };
+}
+
+// ─── TRANSACTION HISTORY (paginated + filtered) ─────────────
+
+export function useTransactionHistory(
+  filters: TransactionFilters,
+  fallbackData?: { data: InventoryTransaction[]; count: number },
+) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    [cacheKeys.inventoryTransactions(), filters],
+    () => fetchTransactionHistory(filters),
+    {
+      keepPreviousData: true,
+      fallbackData,
+      revalidateOnMount: fallbackData ? false : undefined,
+    }
+  );
+
+  return {
+    transactions: data?.data ?? [],
+    total: data?.count ?? 0,
+    page: filters.page || 1,
+    pageSize: TRANSACTION_PAGE_SIZE,
+    isLoading,
+    isValidating,
     error,
   };
 }

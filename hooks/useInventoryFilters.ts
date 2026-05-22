@@ -7,28 +7,50 @@
  *
  * Clone: useContractFilters.ts
  * Pattern: nuqs (via useListFilters) → instant URL sync, no lag
+ *
+ * V2: Added tab support (history | items) + transaction filters
  * ═══════════════════════════════════════════════════════════
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useListFilters } from "./useListFilters";
+import type { TransactionFilters } from "@/types/inventory";
 
 // ── Default values ────────────────────────────────────────────
 const INVENTORY_FILTER_DEFAULTS = {
-  status:   "all",    // "all" | "active" | "low_stock" | "out_of_stock" | "discontinued"
+  // Tab state
+  tab:      "history", // "history" | "items" — default to transaction history
+  // Inventory item filters
+  status:   "all",     // "all" | "active" | "low_stock" | "out_of_stock" | "discontinued"
   q:        "",
   search:   "",
-  category: "all",    // "all" | category values from constants
-  sort:     "newest", // "newest" | "name_asc" | "stock_asc" | "stock_desc"
+  category: "all",     // "all" | category values from constants
+  sort:     "newest",  // "newest" | "name_asc" | "stock_asc" | "stock_desc"
   page:     "1",
+  // Transaction filters
+  txType:     "all",   // "all" | "stock_in" | "stock_out"
+  sourceType: "all",   // "all" | source_type values
+  dateFrom:   "",      // ISO date string
+  dateTo:     "",      // ISO date string
+  txPage:     "1",
 } as const;
+
+export type InventoryTab = "history" | "items";
 
 // ── Hook ──────────────────────────────────────────────────────
 export function useInventoryFilters() {
   const { params, setParam, setParams, resetParams, hasActiveFilters } =
     useListFilters(INVENTORY_FILTER_DEFAULTS);
 
-  // ── Computed (typed) filters ─────────────────────────────────
+  // ── Tab ───────────────────────────────────────────────────────
+  const tab = (params.tab === "items" ? "items" : "history") as InventoryTab;
+
+  const setTab = useCallback(
+    (newTab: InventoryTab) => setParams({ tab: newTab, page: "1", txPage: "1" }),
+    [setParams]
+  );
+
+  // ── Inventory item filters (typed) ────────────────────────────
   const filters = {
     status:   params.status,
     search:   params.q || params.search,
@@ -37,7 +59,15 @@ export function useInventoryFilters() {
     page:     Number(params.page) || 1,
   };
 
-  // ── Setters ───────────────────────────────────────────────────
+  // ── Transaction filters (typed) ───────────────────────────────
+  const txFilters = useMemo<TransactionFilters>(() => ({
+    type: params.txType === "all" ? undefined : params.txType as "stock_in" | "stock_out",
+    start_date: params.dateFrom || undefined,
+    end_date: params.dateTo || undefined,
+    page: Number(params.txPage) || 1,
+  }), [params.txType, params.dateFrom, params.dateTo, params.txPage]);
+
+  // ── Setters (inventory items) ─────────────────────────────────
   const setStatus = useCallback(
     (status: string) => setParams({ status, page: "1" }),
     [setParams]
@@ -63,13 +93,39 @@ export function useInventoryFilters() {
     [setParam]
   );
 
+  // ── Setters (transactions) ────────────────────────────────────
+  const setTxType = useCallback(
+    (type: string) => setParams({ txType: type, txPage: "1" }),
+    [setParams]
+  );
+
+  const setDateRange = useCallback(
+    (from: string, to: string) => setParams({ dateFrom: from, dateTo: to, txPage: "1" }),
+    [setParams]
+  );
+
+  const setTxPage = useCallback(
+    (page: number) => setParam("txPage", String(page)),
+    [setParam]
+  );
+
   return {
+    // Tab
+    tab,
+    setTab,
+    // Inventory filters
     filters,
     setStatus,
     setSearch,
     setCategory,
     setSort,
     setPage,
+    // Transaction filters
+    txFilters,
+    setTxType,
+    setDateRange,
+    setTxPage,
+    // Shared
     resetParams,
     hasActiveFilters,
   };

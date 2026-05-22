@@ -56,6 +56,6 @@ export function WebVitalsReporter() {
     });
   });
 
-  return null;
+  return <span className="sr-only" aria-hidden="true" />;
 }
 

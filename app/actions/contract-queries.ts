@@ -426,9 +426,37 @@ export async function getContractStats() {
       throw new Error(`Loi tai thong ke hop dong: ${rpcError.message}`);
     }
 
-    console.warn("[getContractStats] RPC contract_stats failed, using fallback query.");
+    // Try simple fallback RPC (single scan, no revenue/outstanding)
+    const { data: simpleData, error: simpleError } = await supabase
+      .rpc("contract_stats_simple")
+      .maybeSingle();
 
-    // Safe Fallback without downloading thousands of records to JS
+    if (!simpleError && simpleData) {
+      const row = simpleData as {
+        total: number;
+        active: number;
+        pending: number;
+        completed: number;
+        this_month: number;
+        last_month: number;
+      };
+      const growth = row.last_month > 0
+        ? Math.round((row.this_month - row.last_month) / row.last_month * 100)
+        : 0;
+      return {
+        total: Number(row.total) || 0,
+        active: Number(row.active) || 0,
+        pending: Number(row.pending) || 0,
+        completed: Number(row.completed) || 0,
+        revenue: 0,
+        outstanding: 0,
+        growth: { total: growth, active: 0, pending: 0, completed: 0 },
+      } satisfies ContractStats;
+    }
+
+    console.warn("[getContractStats] All RPCs failed, using 6-query fallback.");
+
+    // Last resort: 6 separate COUNT queries (parallelized)
     const [
       { count: totalCount },
       { count: activeCount },
@@ -460,8 +488,8 @@ export async function getContractStats() {
       active: activeCount || 0,
       pending: pendingCount || 0,
       completed: completedCount || 0,
-      revenue: 0,     // Fallback does not support SUM
-      outstanding: 0, // Fallback does not support SUM
+      revenue: 0,
+      outstanding: 0,
       growth: { total: growth, active: 0, pending: 0, completed: 0 },
     };
     return stats;

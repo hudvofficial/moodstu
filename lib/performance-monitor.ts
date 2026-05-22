@@ -28,8 +28,8 @@ export function trackDashboardLoad(metrics: Partial<DashboardPerformanceMetrics>
   }
 
   // Send to analytics in production
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", "dashboard_load", {
+  if (typeof window !== "undefined" && (window as any).gtag) {
+    (window as any).gtag("event", "dashboard_load", {
       ...metrics,
       score: calculatePerformanceScore(metrics),
     });

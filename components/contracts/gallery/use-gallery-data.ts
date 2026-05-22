@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { getGallerySummariesByContract, toggleImageSelection, toggleImageStar } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, toggleImageStar } from "@/app/actions/gallery-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import { getGalleryMetadataAll } from "@/app/actions/gallery-composite-actions";
+import { getGalleryDataV2, getGalleryMetadataAll } from "@/app/actions/gallery-composite-actions";
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
@@ -89,45 +89,72 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void loadData(); }, [contractId]);
 
-  // ─── Load reactions when gallery changes ──
-  useEffect(() => {
-    if (!activeGalleryId) return;
-    
-    void getGalleryMetadataAll(activeGalleryId).then((res) => {
-      if (res.success && res.data) {
-        setReactionCounts(res.data.reactionCounts);
-        setCommentCount(res.data.totalCommentCount);
-        setCommentCountsPerImage(res.data.commentCountsPerImage);
-        setAlbums(res.data.albums);
-      }
-    });
-
-    setActiveAlbumId(null);
-    setActiveFilter("all");
-  }, [activeGalleryId]);
-
   // ─── Active gallery ───────────────────────
   const activeGallery = galleries.find((g) => g.id === activeGalleryId);
 
-  // ─── Lazy-load images when gallery changes ───
+  // ─── Load ALL gallery data when gallery changes (V2: single RPC) ───
   useEffect(() => {
     if (!activeGalleryId) return;
     let cancelled = false;
+
+    // Reset state
     setPaginatedImages([]);
     setCurrentPage(0);
     setHasMoreImages(false);
     setTotalImageCount(0);
     setLoadingMore(true);
-    void getGalleryImagesPaginated(activeGalleryId, 0).then((res) => {
+    setActiveAlbumId(null);
+    setActiveFilter("all");
+
+    const loadGalleryData = async () => {
+      // Try V2 RPC first (single call for everything)
+      const v2Result = await getGalleryDataV2(activeGalleryId);
+
       if (cancelled) return;
-      if (res.success && res.data) {
-        setPaginatedImages(res.data.images);
-        setTotalImageCount(res.data.totalCount);
-        setHasMoreImages(res.data.hasMore);
+
+      if (v2Result.success && v2Result.data) {
+        // V2 RPC succeeded - use combined data
+        const data = v2Result.data;
+        setPaginatedImages(data.images);
+        setTotalImageCount(data.totalCount);
+        setHasMoreImages(data.hasMore);
+        setReactionCounts(data.reactionCounts);
+        setCommentCount(data.totalCommentCount);
+        setCommentCountsPerImage(data.commentCountsPerImage);
+        setAlbums(data.albums);
+        setCurrentPage(0);
+        setLoadingMore(false);
+        return;
+      }
+
+      // V2 RPC failed - fallback to legacy parallel calls
+      console.warn("[useGalleryData] V2 RPC unavailable, using legacy fallback");
+
+      const [imagesRes, metadataRes] = await Promise.all([
+        getGalleryImagesPaginated(activeGalleryId, 0),
+        getGalleryMetadataAll(activeGalleryId),
+      ]);
+
+      if (cancelled) return;
+
+      if (imagesRes.success && imagesRes.data) {
+        setPaginatedImages(imagesRes.data.images);
+        setTotalImageCount(imagesRes.data.totalCount);
+        setHasMoreImages(imagesRes.data.hasMore);
         setCurrentPage(0);
       }
+
+      if (metadataRes.success && metadataRes.data) {
+        setReactionCounts(metadataRes.data.reactionCounts);
+        setCommentCount(metadataRes.data.totalCommentCount);
+        setCommentCountsPerImage(metadataRes.data.commentCountsPerImage);
+        setAlbums(metadataRes.data.albums);
+      }
+
       setLoadingMore(false);
-    });
+    };
+
+    void loadGalleryData();
     return () => { cancelled = true; };
   }, [activeGalleryId]);
 

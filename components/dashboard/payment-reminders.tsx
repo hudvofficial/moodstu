@@ -88,10 +88,7 @@ export function PaymentReminders({ reminders, canView }: PaymentRemindersProps) 
                     )}
                   </div>
                   <p className="truncate text-caption">
-                    {item.contractCode}
-                    {" · "}
-                    {visibleMilestones.map(formatMilestone).join(", ")}
-                    {hiddenCount > 0 ? ` +${hiddenCount}` : ""}
+                    {`${item.contractCode} · ${visibleMilestones.map(formatMilestone).join(", ")}${hiddenCount > 0 ? ` +${hiddenCount}` : ""}`}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">

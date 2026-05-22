@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImageGroup } from "./gallery-helpers";
 
-const BATCH_SIZE = 50;
+const INITIAL_BATCH_SIZE = 60;
+const SCROLL_BATCH_SIZE = 40;
 const MAX_COLUMNS = 7;
 const MIN_COLUMNS = 2;
 const DEFAULT_ASPECT_RATIO = 3 / 4;
@@ -35,7 +36,7 @@ interface UseMasonryGridProps {
 }
 
 export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns = MAX_COLUMNS }: UseMasonryGridProps) {
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
   const [columnCount, setColumnCount] = useState(() => {
     if (typeof window !== "undefined") {
       const width = window.innerWidth;
@@ -92,7 +93,7 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
     if (!entries[0]?.isIntersecting) return;
 
     setVisibleCount((prev) => {
-      const next = Math.min(prev + BATCH_SIZE, groups.length);
+      const next = Math.min(prev + SCROLL_BATCH_SIZE, groups.length);
       if (next >= groups.length && hasMoreServer && onLoadMore) {
         onLoadMore();
       }

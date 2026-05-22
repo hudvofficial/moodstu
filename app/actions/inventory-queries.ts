@@ -193,7 +193,11 @@ export async function fetchTransactionHistory(
 
         let query = supabase
           .from("inventory_transactions")
-          .select("*, inventory_items!inner(name, item_code)", { count: "exact" })
+          .select(`
+            *,
+            inventory_items!inner(name, item_code),
+            contracts(contract_code, customer_id, customers(full_name, phone))
+          `, { count: "exact" })
           .order("created_at", { ascending: false })
           .range(from, to);
 
@@ -208,11 +212,19 @@ export async function fetchTransactionHistory(
         const { data, count, error } = await query;
         if (error) throw new Error(`Không thể tải lịch sử kho: ${error.message}`);
 
-        const mapped = (data || []).map((txn) => ({
-          ...txn,
-          item_name: (txn.inventory_items as Record<string, string>)?.name,
-          item_code: (txn.inventory_items as Record<string, string>)?.item_code,
-        })) as InventoryTransaction[];
+        const mapped = (data || []).map((txn) => {
+          const contract = txn.contracts as { contract_code?: string; customers?: { full_name?: string; phone?: string } } | null;
+          const contractCustomer = contract?.customers;
+          return {
+            ...txn,
+            item_name: (txn.inventory_items as Record<string, string>)?.name,
+            item_code: (txn.inventory_items as Record<string, string>)?.item_code,
+            contract_code: contract?.contract_code || null,
+            // Ưu tiên: customer từ transaction (bán lẻ) > customer từ contract (xuất HĐ)
+            customer_name: txn.customer_name || contractCustomer?.full_name || null,
+            customer_phone: txn.customer_phone || contractCustomer?.phone || null,
+          };
+        }) as InventoryTransaction[];
 
         return { data: mapped, count: count || 0 };
       }),
@@ -349,5 +361,41 @@ export async function fetchInventoryPickerItems(
       };
     }),
     "fetchInventoryPickerItems",
+  );
+}
+
+/**
+ * Fetch all fulfillments (original + addons) for a given transaction order.
+ * Groups by parent_transaction_id.
+ */
+export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTransaction[]> {
+  return profileAction("inventory.fetchOrderFulfillments", async () =>
+    unwrapActionResult(
+      await withInventoryAccess(async (supabase) => {
+        const { data, error } = await supabase
+          .from("inventory_transactions")
+          .select(`
+            *,
+            inventory_items (
+              name,
+              item_code
+            )
+          `)
+          .or(`id.eq.${txnId},parent_transaction_id.eq.${txnId}`)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching order fulfillments:", error);
+          throw new Error(`Không thể lấy lịch sử đợt in: ${error.message}`);
+        }
+
+        return (data || []).map((txn: any) => ({
+          ...txn,
+          item_name: txn.inventory_items?.name,
+          item_code: txn.inventory_items?.item_code,
+        })) as InventoryTransaction[];
+      }),
+      "fetchOrderFulfillments"
+    )
   );
 }

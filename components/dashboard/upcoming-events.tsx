@@ -105,14 +105,9 @@ export function UpcomingEventsList({ events, canView }: UpcomingEventsListProps)
                     )}
                   </div>
                   <p className="truncate text-caption">
-                    {event.contractCode || event.sourceLabel}
-                    {eventCount > 1 && (
-                      <>
-                        {" · "}
-                        {visibleDates.map((item) => formatDate(item.eventDate)).join(", ")}
-                        {hiddenDateCount > 0 ? ` +${hiddenDateCount}` : ""}
-                      </>
-                    )}
+                    {eventCount > 1
+                      ? `${event.contractCode || event.sourceLabel} · ${visibleDates.map((item) => formatDate(item.eventDate)).join(", ")}${hiddenDateCount > 0 ? ` +${hiddenDateCount}` : ""}`
+                      : (event.contractCode || event.sourceLabel)}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">

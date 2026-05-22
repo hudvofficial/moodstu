@@ -64,6 +64,7 @@
     "recharts": "^3.8.0",
     "sonner": "^2.0.7",
     "swr": "^2.4.1",
+    "@tanstack/react-virtual": "^3.13.25",
     "tailwind-merge": "^3.5.0",
     "use-debounce": "^10.1.1",
     "web-push": "^3.6.7",
@@ -72,7 +73,6 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
-    "@tanstack/react-virtual": "^3.13.25",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

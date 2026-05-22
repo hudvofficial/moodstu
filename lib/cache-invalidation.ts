@@ -103,6 +103,7 @@ export async function revalidateContractDetailCaches(contractId: string) {
 export async function revalidateInventoryCaches(itemId?: string) {
   await Promise.all([
     revalidateByPrefixes(cacheKeys.inventory()),
+    revalidateByPrefixes(cacheKeys.inventoryTransactions()),
     revalidateMultiple([
       cacheKeys.inventoryStats(),
       cacheKeys.inventorySaleOptions(),

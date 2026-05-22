@@ -1,6 +1,8 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
 const DASHBOARD_CRITICAL_CACHE_TAG = "dashboard-critical";
+export const CONTRACT_LIST_CACHE_TAG = "contract-list";
+export const CONTRACT_STATS_CACHE_TAG = "contract-stats";
 
 type FinanceScope = {
   receipts?: boolean;
@@ -64,7 +66,11 @@ export function invalidateContractPaths(
     reports = false,
   } = scope;
 
-  if (list) revalidatePath("/contracts");
+  if (list) {
+    revalidatePath("/contracts");
+    revalidateTag(CONTRACT_LIST_CACHE_TAG, { expire: 0 });
+    revalidateTag(CONTRACT_STATS_CACHE_TAG, { expire: 0 });
+  }
   if (detail) revalidatePath(`/contracts/${contractId}`);
   if (finance) {
     invalidateFinancePaths(
@@ -81,4 +87,11 @@ export function invalidateContractPaths(
   if (calendar) invalidateCalendarPaths({ productivity });
   else if (productivity) revalidatePath("/productivity");
   if (dashboard) invalidateDashboardCritical();
+}
+
+/** Invalidate all contract-related caches (list + stats) */
+export function invalidateContractListCache() {
+  revalidatePath("/contracts");
+  revalidateTag(CONTRACT_LIST_CACHE_TAG, { expire: 0 });
+  revalidateTag(CONTRACT_STATS_CACHE_TAG, { expire: 0 });
 }

@@ -38,7 +38,7 @@ export function KPICard({
               trendUp ? "text-success" : "text-error",
             )}
           >
-            {trendUp ? "↑" : "↓"} {trend}
+            {`${trendUp ? "↑" : "↓"} ${trend}`}
           </span>
         ) : null}
       </div>

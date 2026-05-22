@@ -521,3 +521,85 @@ export async function createInventoryContractAddonSale(rawData: unknown) {
     };
   });
 }
+
+/**
+ * Add a fulfillment transaction (phát sinh) to an existing transaction order.
+ */
+export async function addFulfillmentTransaction(input: {
+  parentTxnId: string;
+  quantity: number;
+  unitCost: number;
+}) {
+  return withInventoryAccess(async (supabase) => {
+    // 1. Lấy thông tin đợt gốc
+    const { data: parentTxn, error: fetchError } = await supabase
+      .from("inventory_transactions")
+      .select("*")
+      .eq("id", input.parentTxnId)
+      .single();
+
+    if (fetchError || !parentTxn) {
+      throw new Error("Không tìm thấy đợt gốc để bổ sung.");
+    }
+
+    // 2. Lấy user hiện tại
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error("Chưa đăng nhập.");
+
+    const totalCost = input.quantity * input.unitCost;
+
+    // 3. Thực thi transaction RPC để trừ tồn kho và ghi log (hoặc tự làm qua 2 queries)
+    // Tạm thời sẽ dùng 2 bảng để giữ đơn giản (ở production thật có thể phải gọi RPC)
+    // - Check số dư
+    const { data: item, error: itemError } = await supabase
+      .from("inventory_items")
+      .select("current_stock")
+      .eq("id", parentTxn.item_id)
+      .single();
+
+    if (itemError || !item) throw new Error("Không tìm thấy vật tư.");
+    if (item.current_stock < input.quantity) {
+      throw new Error(`Tồn kho không đủ. Tồn hiện tại: ${item.current_stock}`);
+    }
+
+    // - Update tồn
+    const { error: updateError } = await supabase
+      .from("inventory_items")
+      .update({ current_stock: item.current_stock - input.quantity })
+      .eq("id", parentTxn.item_id);
+
+    if (updateError) throw new Error("Lỗi khi trừ tồn kho.");
+
+    // - Insert transaction
+    const newTxn = {
+      item_id: parentTxn.item_id,
+      transaction_type: parentTxn.transaction_type, // Giữ nguyên type của cha (ví dụ 'stock_out')
+      quantity: input.quantity,
+      unit_cost: input.unitCost,
+      total_cost: totalCost,
+      contract_id: parentTxn.contract_id,
+      supplier: parentTxn.supplier,
+      customer_name: parentTxn.customer_name,
+      customer_phone: parentTxn.customer_phone,
+      customer_address: parentTxn.customer_address,
+      performed_by: parentTxn.performed_by,
+      created_by: user.id,
+      notes: "In bổ sung phát sinh",
+      parent_transaction_id: input.parentTxnId,
+    };
+
+    const { data: insertedTxn, error: insertError } = await supabase
+      .from("inventory_transactions")
+      .insert(newTxn)
+      .select()
+      .single();
+
+    if (insertError) throw new Error(`Lỗi khi tạo đợt phát sinh: ${insertError.message}`);
+
+    // Revalidate
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${parentTxn.item_id}`);
+
+    return { success: true, transaction: insertedTxn };
+  });
+}

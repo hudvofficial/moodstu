@@ -101,6 +101,7 @@ export interface InventoryTransaction {
   performed_by: string | null;
   created_by: string | null;
   notes: string | null;
+  parent_transaction_id?: string | null;
   created_at: string;
   // Joined fields
   item_name?: string;
