@@ -8,6 +8,7 @@ interface PullToRefreshContextValue {
   registerRefresh: (callback: () => Promise<void>) => void;
   unregisterRefresh: () => void;
   isRefreshing: boolean;
+  pullDistance: number;
 }
 
 const PullToRefreshContext = createContext<PullToRefreshContextValue | null>(null);
@@ -42,12 +43,17 @@ export function PullToRefreshProvider({ children, scrollRef, disabled }: PullToR
   }, []);
 
   return (
-    <PullToRefreshContext.Provider value={{ registerRefresh, unregisterRefresh, isRefreshing }}>
+    <PullToRefreshContext.Provider value={{ registerRefresh, unregisterRefresh, isRefreshing, pullDistance }}>
       <PullIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
       <div
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-          transition: isRefreshing ? "transform 0.2s ease-out" : pullDistance === 0 ? "transform 0.2s ease-out" : "none",
+          transition: isRefreshing
+            ? "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+            : pullDistance === 0
+              ? "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)" // Spring physics snap-back
+              : "none",
+          willChange: pullDistance > 0 ? "transform" : "auto",
         }}
       >
         {children}
@@ -80,4 +86,9 @@ export function usePullToRefreshCallback(callback: () => Promise<void>, deps: un
 export function useIsPullRefreshing() {
   const context = useContext(PullToRefreshContext);
   return context?.isRefreshing ?? false;
+}
+
+export function usePullDistance() {
+  const context = useContext(PullToRefreshContext);
+  return context?.pullDistance ?? 0;
 }

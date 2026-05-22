@@ -65,13 +65,19 @@ export function usePullToRefresh({
 
     if (deltaY > 0) {
       e.preventDefault();
-      const resistance = 0.5;
+      // iOS-style progressive resistance curve
+      const resistance = deltaY < 60 ? 0.55 : deltaY < 100 ? 0.45 : 0.35;
       const distance = Math.min(deltaY * resistance, MAX_PULL);
       setPullDistance(distance);
 
+      // Haptic feedback at threshold
       if (distance >= PULL_THRESHOLD && !triggeredHapticRef.current) {
         haptic("medium");
         triggeredHapticRef.current = true;
+      }
+      // Light haptic when starting pull
+      else if (distance >= 10 && distance < 15 && !triggeredHapticRef.current) {
+        haptic("light");
       }
     }
   }, [isRefreshing, scrollRef]);

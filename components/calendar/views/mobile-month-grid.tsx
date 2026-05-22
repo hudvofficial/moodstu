@@ -98,7 +98,7 @@ export function MobileMonthGrid({
   const today = new Date();
 
   return (
-    <div className="flex w-full h-full flex-col overflow-hidden">
+    <div className="flex-1 w-full flex flex-col overflow-hidden min-h-0">
       {/* Header Days */}
       <div className="grid grid-cols-7 bg-bg-input shrink-0 border-b border-border">
         {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day, i) => (
@@ -115,7 +115,7 @@ export function MobileMonthGrid({
       </div>
 
       {/* Body */}
-      <div className="flex-1 relative min-h-0 h-full w-full">
+      <div className="flex-1 relative min-h-0 w-full">
         <div
           ref={bodyRef}
           className={`absolute inset-0 overflow-hidden grid grid-cols-7 ${

@@ -15,42 +15,33 @@ import ThemeToggle from "@/components/theme/ThemeToggle";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { useHeaderSlotsContext } from "@/contexts/header-slots-context";
 import { usePullDistance } from "@/contexts/pull-to-refresh-context";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // ──── Props ────
 interface HeaderProps {
   className?: string;
+  /** Override left section (default: Logo link) */
   leftSlot?: React.ReactNode;
+  /** Override center title (default: module label from navigation.ts) */
   titleOverride?: string;
+  /** Override center subtitle (default: module description) */
   subtitleOverride?: string;
+  /** Override right section (default: Search + ThemeToggle + Bell) */
   rightSlot?: React.ReactNode;
+  /** Hide search bar entirely (useful for detail pages) */
   hideSearch?: boolean;
 }
 
-export function Header({
-  className,
-  leftSlot: leftSlotProp,
-  titleOverride: titleOverrideProp,
-  subtitleOverride: subtitleOverrideProp,
-  rightSlot: rightSlotProp,
-  hideSearch: hideSearchProp
-}: HeaderProps) {
+export function Header({ className, leftSlot: leftSlotProp, titleOverride: titleOverrideProp, subtitleOverride: subtitleOverrideProp, rightSlot: rightSlotProp, hideSearch: hideSearchProp }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentModule = getModuleFromPath(pathname);
   const scrollRef = useScrollContainer();
-  const isMobile = useIsMobile();
-
-  // Scroll hide/show with iOS-optimized thresholds
   const { isVisible } = useScrollDirection({
-    threshold: 80,      // Higher threshold - less sensitive
-    hideDelta: 32,      // Larger hide delta - smoother
-    showDelta: 12,      // Larger show delta - more forgiving
+    threshold: 60,
     containerRef: scrollRef,
     resetKey: pathname,
   });
-
   const pullDistance = usePullDistance();
 
   // Merge: props > context > defaults
@@ -60,26 +51,30 @@ export function Header({
   const subtitleOverride = subtitleOverrideProp ?? ctx.subtitleOverride;
   const rightSlot = rightSlotProp ?? ctx.rightSlot;
   const hideSearch = hideSearchProp ?? ctx.hideSearch;
-
   const [isSearchVisible, setIsSearchVisible] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState(searchParams.get('q') || "");
   const searchRef = React.useRef<HTMLInputElement>(null);
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Dynamic placeholder from navigation.ts SSOT
   const searchPlaceholder = `Tìm trong ${currentModule.shortLabel || currentModule.label}...`;
 
+  // Focus mobile search input when overlay opens
   React.useEffect(() => {
     if (isSearchVisible && searchRef.current) searchRef.current.focus();
   }, [isSearchVisible]);
 
+  // Sync local state when URL params change externally (e.g. back/forward)
   React.useEffect(() => {
     setSearchTerm(searchParams.get('q') || "");
   }, [searchParams]);
 
+  // Cleanup debounce on unmount
   React.useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, []);
 
+  // Debounced URL update — local state instant, URL after 300ms
   const handleSearchChange = React.useCallback((value: string) => {
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -94,6 +89,7 @@ export function Header({
     }, 300);
   }, [pathname, router, searchParams]);
 
+  // Clear search — instant clear local + URL
   const handleClearSearch = React.useCallback(() => {
     setSearchTerm("");
     setIsSearchVisible(false);
@@ -103,46 +99,17 @@ export function Header({
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }, [pathname, router, searchParams]);
 
-  // Calculate transform: pull-to-refresh takes priority, then hide/show
-  const getTransform = () => {
-    if (pullDistance > 0) {
-      return `translateY(${pullDistance}px)`;
-    }
-    if (!isVisible) {
-      return 'translateY(-100%)';
-    }
-    return 'translateY(0)';
-  };
-
-  // Calculate transition: different for pull vs hide/show
-  const getTransition = () => {
-    if (pullDistance > 0) {
-      return 'none'; // No transition while pulling
-    }
-    if (pullDistance === 0 && !isVisible) {
-      return 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Spring snap-back
-    }
-    return 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease'; // Smooth hide/show + shadow fade
-  };
-
-  // Shadow opacity based on visibility
-  const shadowOpacity = isVisible && pullDistance === 0 ? 1 : 0;
-
   return (
     <header
       className={cn(
-        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:will-change-transform max-lg:shadow-none",
-        "lg:transition-transform lg:duration-300 lg:ease-in-out",
-        !isVisible && "max-lg:-translate-y-full",
+        "fixed lg:sticky top-0 left-0 right-0 lg:left-auto lg:right-auto z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden transition-transform duration-300 ease-in-out pt-[env(safe-area-inset-top)]",
+        isVisible ? "translate-y-0" : "-translate-y-full lg:translate-y-0",
         className
       )}
-      style={isMobile ? {
-        // Mobile-only: pull-to-refresh transform and dynamic shadow
-        transform: getTransform(),
-        transition: getTransition(),
-        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, ${0.06 * shadowOpacity})`,
-      } : undefined}
+      style={{
+        transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
+        transition: pullDistance === 0 ? "transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)" : "none",
+      }}
     >
       {/* ═══════ MOBILE: Search Overlay ═══════ */}
       {isSearchVisible ? (
@@ -171,6 +138,7 @@ export function Header({
         </div>
       ) : (
         <div className="flex items-center justify-between h-(--header-mobile-h) px-4 lg:h-(--header-desktop-h) lg:px-8">
+          {/* ── Left: Custom slot or default Logo (mobile only) ── */}
           <div className="flex items-center gap-2.5 min-w-0">
             {leftSlot || (
               <Link
@@ -195,6 +163,7 @@ export function Header({
             )}
           </div>
 
+          {/* ── Center: Title + Subtitle (overridable — mobile only, desktop keeps module label) ── */}
           <div className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-160px)] lg:static lg:translate-x-0 lg:max-w-none lg:flex-1 lg:ml-2 flex flex-col min-w-0">
             <h1 className="text-h3 truncate">
               {titleOverride ? (
@@ -211,7 +180,10 @@ export function Header({
             )}
           </div>
 
+          {/* ── Right: Actions (rightSlot replaces MOBILE section only, desktop always keeps defaults) ── */}
           <div className="flex items-center gap-1 lg:gap-4 shrink-0">
+
+            {/* Mobile: custom slot or default search icon */}
             {rightSlot ? (
               <div className="lg:hidden flex items-center gap-1">{rightSlot}</div>
             ) : (
@@ -229,6 +201,7 @@ export function Header({
               )
             )}
 
+            {/* Desktop search input (always, unless hideSearch) */}
             {!hideSearch && (
               <div className="relative hidden lg:block">
                 <div className="relative w-64">
@@ -242,6 +215,7 @@ export function Header({
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className={`search-input pr-14 ${searchTerm ? "pl-4" : "pl-9"}`}
                   />
+                  {/* ⌘K badge */}
                   <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none flex items-center gap-0.5">
                     <span className="kbd-badge">⌘</span>
                     <span className="kbd-badge">K</span>
@@ -250,10 +224,12 @@ export function Header({
               </div>
             )}
 
+            {/* Theme toggle — desktop only */}
             <div className="hidden lg:block">
               <ThemeToggle />
             </div>
 
+            {/* Notification bell — hidden on mobile when rightSlot is set */}
             <div className={cn(rightSlot && "max-lg:hidden")}>
               <NotificationBell />
             </div>

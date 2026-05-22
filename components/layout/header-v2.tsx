@@ -15,7 +15,6 @@ import ThemeToggle from "@/components/theme/ThemeToggle";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { useHeaderSlotsContext } from "@/contexts/header-slots-context";
 import { usePullDistance } from "@/contexts/pull-to-refresh-context";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // ──── Props ────
 interface HeaderProps {
@@ -40,7 +39,6 @@ export function Header({
   const searchParams = useSearchParams();
   const currentModule = getModuleFromPath(pathname);
   const scrollRef = useScrollContainer();
-  const isMobile = useIsMobile();
 
   // Scroll hide/show with iOS-optimized thresholds
   const { isVisible } = useScrollDirection({
@@ -131,18 +129,15 @@ export function Header({
   return (
     <header
       className={cn(
-        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:will-change-transform max-lg:shadow-none",
-        "lg:transition-transform lg:duration-300 lg:ease-in-out",
-        !isVisible && "max-lg:-translate-y-full",
+        "fixed lg:sticky top-0 inset-x-0 z-(--z-header) bg-bg-card print:hidden will-change-transform pt-[env(safe-area-inset-top)]",
+        // Remove translate classes - handled by inline style
         className
       )}
-      style={isMobile ? {
-        // Mobile-only: pull-to-refresh transform and dynamic shadow
+      style={{
         transform: getTransform(),
         transition: getTransition(),
         boxShadow: `0 2px 8px -2px rgba(0, 0, 0, ${0.06 * shadowOpacity})`,
-      } : undefined}
+      }}
     >
       {/* ═══════ MOBILE: Search Overlay ═══════ */}
       {isSearchVisible ? (
