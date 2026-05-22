@@ -46,6 +46,7 @@ export function PullToRefreshProvider({ children, scrollRef, disabled }: PullToR
     <PullToRefreshContext.Provider value={{ registerRefresh, unregisterRefresh, isRefreshing, pullDistance }}>
       <PullIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
       <div
+        className="flex-1 flex flex-col min-h-0 w-full relative"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
           transition: isRefreshing

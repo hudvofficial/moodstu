@@ -128,12 +128,12 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                 : isChatView
                   ? "p-0"
                 : isAppView
-                  ? "px-0 pt-[3.5rem] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:px-6 md:py-6 lg:px-6 lg:pb-6"
+                  ? "px-0 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:px-6 md:py-6 lg:px-6 lg:pb-6"
                 : isFormPage
-                  ? "px-2 pt-[3.5rem] lg:pt-0 pb-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
+                  ? "px-2 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
                   : isNoPadding
-                    ? "pt-[3.5rem] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6" // Keep only bottom padding for BottomNav spacing
-                    : "px-2 pt-[3.5rem] lg:pt-0 pb-4 md:px-6 md:py-6 lg:px-6 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6",
+                    ? "max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6" // Keep only bottom padding for BottomNav spacing
+                    : "px-2 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-4 md:px-6 md:py-6 lg:px-6 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
               <PullToRefreshProvider
