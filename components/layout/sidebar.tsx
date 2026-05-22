@@ -51,10 +51,13 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "relative flex h-full min-h-0 flex-col bg-bg-card shadow-(--shadow-sidebar) transition-all duration-300 ease-in-out z-20",
+        "relative flex h-full min-h-0 flex-col bg-bg-card shadow-(--shadow-sidebar) transition-[width] duration-300 ease-in-out z-20",
         isCollapsed ? "w-20" : "w-64",
         className
       )}
+      style={{
+        willChange: isCollapsed !== undefined ? 'width' : 'auto',
+      }}
     >
       {/* Logo Section — Click → Dashboard */}
       <Link
@@ -116,11 +119,14 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
                       onPointerEnter={() => prefetchOnHover(item.href)}
                       aria-current={isActive ? "page" : undefined}
                       className={cn(
-                        "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200 active:scale-[0.98]",
+                        "group relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-[background-color,color,transform,box-shadow] duration-200 active:scale-[0.98]",
                         isActive
                           ? "bg-primary/10 text-primary font-bold"
                           : "text-text-secondary hover:bg-bg-hover hover:text-primary hover:shadow-sm"
                       )}
+                      style={{
+                        willChange: 'transform',
+                      }}
                     >
                       <Icon className={cn("w-5 h-5 shrink-0", isActive ? "text-primary" : "text-text-muted group-hover:text-primary transition-colors")} />
                       {!isCollapsed && (
@@ -130,7 +136,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
                       )}
                       {/* Tooltip for collapsed state */}
                       {isCollapsed && (
-                        <div className="absolute left-14 invisible group-hover:visible bg-dark text-white text-tiny px-2 py-1 rounded-sm whitespace-nowrap z-50 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute left-14 invisible group-hover:visible bg-dark text-white text-tiny px-2 py-1 rounded-sm whitespace-nowrap z-50 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity delay-500">
                           {item.shortLabel || item.label}
                         </div>
                       )}
