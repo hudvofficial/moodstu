@@ -130,7 +130,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
 
           {/* Popup */}
           <div
-            className="absolute bottom-20 right-2 bg-bg-card rounded-xl shadow-float p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="absolute nav-popup-offset right-2 bg-bg-card rounded-xl shadow-float p-2 w-48 animate-in fade-in slide-in-from-bottom-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {moreItems.map((item) => {
@@ -169,7 +169,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav flex items-start justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav flex items-start justify-around px-2 pt-2 nav-safe-padding",
           className
         )}
       >

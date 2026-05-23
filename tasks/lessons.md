@@ -157,3 +157,6 @@ Ghi láº¡i bÃ i há»c sau má»—i láº§n máº¯c lá»—i Ä‘á»ƒ khÃ´ng láº·p láº¡i.
 96. **KHÃ”NG CÃ“ CLASS `text-h4`**: Há»‡ thá»‘ng typography chá»‰ Ä‘á»‹nh nghÄ©a Ä‘áº¿n `text-h3`. Cho cÃ¡c title bÃªn trong drawer/card, hÃ£y dÃ¹ng `section-heading` (14px/600).
 97. **TEST BEFORE DONE (AWF GATE -1)**: Tuy?t ğ?i không ğı?c g? 'Done' n?u chıa ch?y /test, npm run build, ho?c eslint ğ? xác nh?n không c?n l?i cú pháp (nhı unused imports). Code xong ph?i t? ch?y 
 px eslint FILE ğ? qua Visual & Syntax Gate trı?c khi bàn giao.
+
+### C?n th?n Foreign Key Constraint v?i created_by`n- **L?i:** \insert or update on table violates foreign key constraint customers_created_by_fkey\`n- **Nguyên nhân:** Gán \created_by\ b?ng \employee.id\ (ID c?a b?ng \employees\) thay v? \userId\ (ID chu?n c?a \uth.users\ l?y t? \withAuth\).
+- **Gi?i pháp:** Ğ?i v?i các trı?ng h? th?ng nhı \created_by\, \updated_by\ luôn s? d?ng \userId\.

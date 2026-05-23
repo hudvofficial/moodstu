@@ -1,10 +1,22 @@
-# Kế Hoạch Tối Ưu UI/UX Gallery (Phase 09+)
+# Kế hoạch sửa lỗi tạo khách hàng mới & Tối ưu hoá toàn hệ thống
 
-- `[x]` Thêm Server Action `setGalleryCoverImage` vào `app/actions/gallery-actions.ts`.
-- `[x]` Cập nhật `components/gallery/public-gallery-client.tsx` để sửa lỗi hiển thị màu chữ của nút "Xem Album".
-- `[x]` Tích hợp nút "Đặt làm ảnh bìa" vào `components/contracts/gallery/gallery-lightbox.tsx` (Admin Lightbox).
-- `[ ]` Đồng bộ hóa việc đổi ảnh bìa theo thời gian thực (real-time update) lên Landing Page.
-- `[ ]` Tích hợp nút "Đặt làm ảnh bìa" có thiết kế đẹp mắt vào `components/gallery/image-viewer.tsx` (Client Lightbox).
-- `[ ]` Tối ưu hóa UI các nút chức năng (Like, Tải xuống) trên Lightbox cho đồng bộ và tinh tế hơn.
-- `[ ]` Kiểm tra tổng thể grid để sửa các lỗi hiển thị khác nếu có.
-- `[ ]` Chạy `npm run build` để kiểm tra độ tương thích và không có lỗi TypeScript.
+## Vấn đề gốc rễ
+- Lỗi `insert or update on table "customers" violates foreign key constraint "customers_created_by_fkey"` xảy ra khi tạo khách hàng mới.
+- Nguyên nhân: Trong file `customer-actions.ts`, biến `created_by` đang gán nhầm thành `employee.id` (ID nội bộ của bảng `employees`) thay vì phải là `userId` (ID của bảng `auth.users`).
+
+## Kết quả Audit diện rộng toàn dự án
+Để đảm bảo xử lý triệt để, em đã audit toàn bộ các file trong thư mục `app/actions/` để tìm kiếm sự phân công sai lệch tương tự:
+1. **Các modules bị ảnh hưởng:**
+   - `app/actions/customer-actions.ts` (1 lỗi tại hàm `createCustomer`)
+   - `app/actions/lead-actions.ts` (1 lỗi tại hàm `createLead`)
+2. **Các modules KHÔNG bị ảnh hưởng (đang dùng đúng `userId`):**
+   - Hầu hết toàn bộ các module khác (finance, inventory, printing, expense, receipt, debt, work-task, v.v...) đều dùng chuẩn `created_by: userId` và `updated_by: userId`.
+   - Hàm `writeAuditLog` tại `lib/audit.ts` cũng đã tách bạch rất chuẩn `performed_by` (auth.users.id) và `employee_id`.
+
+## Kế hoạch thực hiện (Đã cập nhật)
+- `[x]` **Sửa lỗi chính:** Thay thế `employee.id` bằng `userId` tại hàm `createCustomer` (file `customer-actions.ts`).
+- `[x]` **Tối ưu phòng ngừa:** Thay thế `employee.id` bằng `userId` tại hàm `createLead` (file `lead-actions.ts`).
+- `[x]` Kiểm tra lại các file này xem còn truyền biến nào sai lệch tham chiếu không (ví dụ: `assigned_to` đã dùng đúng `employee.id`).
+- `[x]` Tiến hành build lại và kiểm tra code để đảm bảo code sạch.
+
+Xin phép anh duyệt plan hoàn chỉnh này để em bắt đầu code!

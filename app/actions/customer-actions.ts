@@ -158,7 +158,7 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
       source: tData.source || null,
       notes: tData.notes?.trim() || null,
       tags: tData.tags || [],
-      created_by: employee.id,
+      created_by: userId,
     };
 
     const { data: customer, error } = await supabase.from("customers").insert(insertData).select("id").single();
