@@ -140,7 +140,7 @@ export default function CustomerDetailClient({ customerId, initialData }: Props)
       <div className="main-container gap-4 pb-12">
         <CrmToolbarSurface>
           <div className="flex items-center min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2">
+            <Button variant="ghost" onClick={() => router.back()} className="icon-btn h-9 w-9 mr-2">
               <ChevronLeft size={20} />
             </Button>
             <h1 className="text-h3 truncate text-text-primary">
@@ -195,7 +195,7 @@ export default function CustomerDetailClient({ customerId, initialData }: Props)
                 <h2 className="text-h3 text-text-primary mb-1">{customer?.full_name}</h2>
                 <div className="flex items-center justify-center gap-2 mb-4">
                   {customer?.customer_code && <Badge variant="neutral">#{customer.customer_code}</Badge>}
-                  {customer?.source && <Badge variant="secondary">{SOURCE_MAP[customer.source]?.label || customer.source}</Badge>}
+                  {customer?.source && <Badge variant="neutral">{SOURCE_MAP[customer.source]?.label || customer.source}</Badge>}
                 </div>
 
                 <div className="w-full grid grid-cols-2 gap-3 mt-2">

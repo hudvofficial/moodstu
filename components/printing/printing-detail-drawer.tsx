@@ -544,7 +544,7 @@ export default function PrintingDetailDrawer({
                       label="Liên kết vật tư (tùy chọn)"
                       value={item.item_id || ""}
                       onChange={(value) => {
-                        updateItem(item.tempId, "item_id", value || undefined);
+                        updateItem(item.tempId, "item_id", value || "");
                         // Auto-fill name from selected item
                         if (value) {
                           const selected = inventoryItems.find((i) => i.id === value);
@@ -557,7 +557,7 @@ export default function PrintingDetailDrawer({
                         { value: "", label: "-- Không liên kết --" },
                         ...inventoryItems.map((i) => ({
                           value: i.id,
-                          label: `${i.itemCode} - ${i.name}`,
+                          label: `${i.item_code} - ${i.name}`,
                         })),
                       ]}
                       placeholder="Chọn vật tư để liên kết"

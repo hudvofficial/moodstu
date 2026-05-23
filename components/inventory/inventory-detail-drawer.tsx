@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteInventoryItem } from "@/app/actions/inventory-mutations";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -315,7 +316,7 @@ export function InventoryDetailDrawer({
                   <h4 className="section-heading">Lịch sử giao dịch</h4>
                   {isLoading ? <Loader2 className="size-4 animate-spin text-text-muted" /> : null}
                 </div>
-                <TransactionPreview transactions={transactions} totalCount={transactions.length} itemId={source?.id} onViewAll={onClose} />
+                <TransactionPreview transactions={transactions} />
               </section>
             </div>
 
