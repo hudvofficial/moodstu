@@ -1,5 +1,4 @@
 import { fetchLabsList } from "@/app/actions/lab-queries";
-import { getLabDebts } from "@/app/actions/printing-reference-queries";
 import LabListPage from "@/components/printing/labs/lab-list-page";
 
 export const metadata = {
@@ -9,24 +8,14 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PrintingLabsPage() {
-  const [labsResult, debtsResult] = await Promise.all([
-    fetchLabsList(),
-    getLabDebts(),
-  ]);
+  const labsResult = await fetchLabsList();
 
   if (!labsResult.success) {
     throw new Error(labsResult.error);
   }
 
-  if (!debtsResult.success) {
-    throw new Error(debtsResult.error);
-  }
-
   return (
-    <LabListPage
-      initialLabs={labsResult.data}
-      initialDebts={debtsResult.data}
-    />
+    <LabListPage initialLabs={labsResult.data} />
   );
 }
 

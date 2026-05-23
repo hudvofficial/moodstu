@@ -268,7 +268,7 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
 
     const { data: categories } = await supabase
       .from("transaction_categories")
-      .select("id, name")
+      .select("id, name, category_code, is_default")
       .eq("type", "chi");
 
     const pattern = `%[Auto-Fixed]%Tháng ${month}/${year}%`;
@@ -292,7 +292,7 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
         continue;
       }
 
-      const category = categories?.find((cat) => cat.name === cost.cost_type) || categories?.[0];
+      const category = categories?.find((cat) => cat.name === cost.cost_type || cat.category_code === cost.cost_type) || categories?.find((cat) => cat.is_default) || categories?.[0];
 
       newExpenses.push({
         expense_date: targetDate, // Or today if you want, but targetDate makes more sense for fixed costs

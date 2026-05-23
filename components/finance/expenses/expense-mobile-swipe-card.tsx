@@ -85,22 +85,12 @@ export function ExpenseMobileSwipeCard({
     >
       <article
         onClick={() => onView(item.id)}
-        className={`card-base p-4 space-y-3 cursor-pointer active:bg-bg-hover transition-colors ${isBusy ? "opacity-50 pointer-events-none" : ""
+        className={`card-base p-4 flex flex-col gap-2.5 cursor-pointer active:bg-bg-hover transition-colors ${isBusy ? "opacity-50 pointer-events-none" : ""
           }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="text-body-sm font-bold mb-1.5 truncate">
-              {item.category_name || "Chưa phân loại"}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="badge badge-error shrink-0">
-                Phiếu Chi
-              </span>
-              <span className="text-caption text-text-muted truncate">
-                {formatFinanceDate(item.expense_date)}
-              </span>
-            </div>
+          <div className="text-body-sm font-bold min-w-0 flex-1 truncate text-text-primary">
+            {item.category_name || "Chưa phân loại"}
           </div>
           <span className={`badge badge-${financeStatusVariant(item.approved_by ? "approved" : "pending")} shrink-0`}>
             {financeStatusLabel(item.approved_by ? "approved" : "pending")}
@@ -108,9 +98,11 @@ export function ExpenseMobileSwipeCard({
         </div>
 
         <div className="flex items-end justify-between gap-3">
-          <div className="text-body-sm text-text-secondary min-w-0 flex-1">
-            <div className="truncate">{item.recipient || "Không rõ người nhận"}</div>
-            <div className="truncate">{financeMethodLabel(item.payment_method)}</div>
+          <div className="text-caption text-text-secondary min-w-0 flex-1">
+            <div className="truncate mb-1">{formatFinanceDate(item.expense_date)}</div>
+            <div className="truncate text-text-muted">
+              {item.recipient || "Không rõ"} &bull; {financeMethodLabel(item.payment_method)}
+            </div>
           </div>
           <div className="text-amount tabular-nums text-right text-error shrink-0">
             {formatVnd(item.amount)}
@@ -118,7 +110,7 @@ export function ExpenseMobileSwipeCard({
         </div>
 
         {item.description && (
-          <div className="text-caption text-text-muted truncate max-w-[280px] pt-1">
+          <div className="text-caption text-text-muted truncate max-w-full">
             {item.description}
           </div>
         )}

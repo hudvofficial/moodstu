@@ -35,7 +35,6 @@ function PrintingGroupDrawerInner({
       isOpen={isOpen}
       onClose={onClose}
       title="Chi tiết Nhóm Đơn In"
-      width="650px"
       titleBadge={
         <Badge variant="primary" className="font-semibold text-xs">
           {group.orderCount} đơn

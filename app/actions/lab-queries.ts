@@ -118,7 +118,7 @@ export async function fetchLabsList(): Promise<ActionResult<Lab[]>> {
 
 export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>> {
   return withPrintingAccess(async (supabase) => {
-    const [labResult, servicesResult, paymentsResult, debtResult] =
+    const [labResult, servicesResult, paymentsResult] =
       await Promise.all([
         supabase
           .from("labs")
@@ -136,7 +136,6 @@ export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>>
           .select("id, lab_id, amount, payment_method, note, created_at, created_by")
           .eq("lab_id", id)
           .order("created_at", { ascending: false }),
-        getLabDebts(),
       ]);
 
     if (labResult.error || !labResult.data) {
@@ -152,19 +151,12 @@ export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>>
         `Khong the tai lich su thanh toan: ${paymentsResult.error.message}`,
       );
     }
-    if (!debtResult.success) {
-      throw new Error(`Khong the tai cong no: ${debtResult.error}`);
-    }
-
-    const specificLabDebt = debtResult.data.items.find(item => item.labId === id);
 
     const [lab] = mapLabRows({
       labs: [labResult.data as BaseLabRow],
       services: (servicesResult.data ?? []) as LabService[],
       payments: (paymentsResult.data ?? []) as LabPayment[],
-      unpaidOrders: specificLabDebt 
-        ? [{ lab_id: id, total_amount: specificLabDebt.totalDebt, count: specificLabDebt.unpaidOrders } as any] 
-        : [],
+      unpaidOrders: [],
     });
 
     return {

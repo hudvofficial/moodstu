@@ -33,7 +33,7 @@ export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete, onEdit
         <TBody>
           {items.length === 0 ? (
             <TR>
-              <TD colSpan={7} className="py-7 text-center text-text-muted">
+              <TD colSpan={7} className="py-8 text-center text-text-muted">
                 Chưa có phiếu chi trong kỳ này.
               </TD>
             </TR>

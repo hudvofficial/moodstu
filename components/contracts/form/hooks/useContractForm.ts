@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createContract } from "@/app/actions/contract-mutations";
 import { getNextContractCode, getContractForEdit } from "@/app/actions/contract-queries";
+import { getCustomerById } from "@/app/actions/customer-actions";
 import {
   invalidateContractAfterWrite,
   invalidateDressAfterWrite,
@@ -62,6 +63,8 @@ interface UseContractFormProps {
 
 export function useContractForm({ mode, contractId }: UseContractFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillCustomerId = searchParams?.get("customer_id");
 
   // ── Core state ──
   const [formData, setFormData] = useState<ContractFormData>(DEFAULT_FORM_DATA);
@@ -111,6 +114,37 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       setWeddingDate("");
     }
   }, [customer.selectedCustomer]);
+
+  // ── Prefill from URL (Create Mode) ──
+  useEffect(() => {
+    if (mode === "create" && prefillCustomerId && !customer.selectedCustomer) {
+      getCustomerById(prefillCustomerId)
+        .then((res) => {
+          if (res.success && res.data.customer) {
+            const cust = res.data.customer as any;
+            customer.prefillCustomer({
+              id: cust.id,
+              full_name: cust.full_name,
+              phone: cust.phone,
+              bride_name: cust.bride_name,
+              groom_name: cust.groom_name,
+              bride_phone: cust.bride_phone ?? null,
+              bride_height: cust.bride_height ?? null,
+              bride_weight: cust.bride_weight ?? null,
+              bride_shoe_size: cust.bride_shoe_size ?? null,
+              groom_phone: cust.groom_phone ?? null,
+              groom_height: cust.groom_height ?? null,
+              groom_weight: cust.groom_weight ?? null,
+              groom_shoe_size: cust.groom_shoe_size ?? null,
+              wedding_date: cust.wedding_date ?? null,
+              address: cust.address ?? null,
+            });
+          }
+        })
+        .catch((err) => console.error("Lỗi tự động điền khách hàng:", err));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, prefillCustomerId]);
 
   // ── Conditional fields ──
   const shouldShowCoupleFields = useMemo(

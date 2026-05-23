@@ -31,6 +31,7 @@ interface ExpensesClientProps {
   initialMonth: number;
   initialYear: number;
   initialData?: ExpensePage;
+  initialStats?: ExpenseStats;
   categories?: FinanceCategory[];
 }
 
@@ -40,7 +41,7 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   return result.data;
 }
 
-export function ExpensesClient({ initialMonth, initialYear, initialData, categories }: ExpensesClientProps) {
+export function ExpensesClient({ initialMonth, initialYear, initialData, initialStats, categories }: ExpensesClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
   const [approval, setApproval] = useState<ApprovalFilter>("all");
@@ -78,6 +79,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
   const { data: stats } = useSWR<ExpenseStats>(
     statsKey,
     () => requireData(fetchExpenseStats(month, year)),
+    initialStats ? { fallbackData: initialStats } : undefined,
   );
   const { data: categoryData } = useSWR(
     cacheKeys.financeCategories("chi"),
@@ -160,12 +162,12 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, categor
 
       {/* ── Stats + Action (unified container) ── */}
       <section className="entrance entrance-0">
-        <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+        <div className="card-base p-4 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <ExpenseStatsBar stats={stats || null} />
           </div>
           <div className="hidden lg:flex shrink-0">
-            <Button type="button" onClick={openNewModal} variant="primary" className="gap-2 shadow-sm">
+            <Button type="button" onClick={openNewModal} variant="primary" className="gap-2">
               <Plus className="w-4 h-4" />
               Thêm phiếu chi
             </Button>

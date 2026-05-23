@@ -327,12 +327,16 @@ export async function recordLabPayment(
       source: "server_action",
     });
 
-    // Revalidate Next.js server-side cache
-    // Note: SWR client cache must be invalidated on client-side via onSuccess callback
-    revalidatePath("/printing/labs");
-    revalidatePath("/printing");
-    revalidatePath("/finance");
+    // CRITICAL FIX: Comprehensive cache invalidation for lab payments
+    // Revalidate ALL pages that display lab debt data
+    revalidatePath("/printing/labs"); // Lab management page
+    revalidatePath("/printing"); // Printing orders list
+    revalidatePath("/finance/lab-debts"); // Lab debts summary page - CRITICAL!
+    revalidatePath("/finance"); // Finance root
     revalidatePath("/"); // Dashboard root
+
+    // Note: SWR client-side cache is invalidated via modal onSuccess callback
+    // See lab-payment-modal.tsx line 263-269 for client-side invalidation
 
     return null;
   });

@@ -44,10 +44,10 @@ AS $$
       WHERE status NOT IN ('da_huy', 'huy_don')
     ), 0)::numeric AS total_cost,
 
-    -- Unpaid cost (unpaid or partial payment, exclude cancelled)
+    -- Unpaid cost (unpaid or partial payment, exclude cancelled and legacy completed)
     COALESCE(SUM(total_amount) FILTER (
       WHERE payment_status IN ('unpaid', 'partial')
-        AND status NOT IN ('da_huy', 'huy_don')
+        AND status NOT IN ('da_huy', 'huy_don', 'hoan_thanh', 'da_nhan')
     ), 0)::numeric AS unpaid_cost
 
   FROM public.printing_orders

@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { ChevronDown, ChevronUp, Receipt, RefreshCw, Download, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DatePicker from "@/components/ui/date-picker";
 import { fetchLabPaymentHistory } from "@/app/actions/lab-queries";
 import { formatCurrency, CURRENCY_SYMBOL, cn } from "@/lib/utils";
 import type { LabPaymentHistoryItem } from "@/types/printing";
@@ -219,22 +220,24 @@ export function LabPaymentHistorySection({
             </div>
 
             {/* Date From */}
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              placeholder="Từ ngày"
-              className="w-full sm:w-36"
-            />
+            <div className="w-full sm:w-36 shrink-0">
+              <DatePicker
+                value={dateFrom}
+                onChange={setDateFrom}
+                placeholder="Từ ngày"
+                compact
+              />
+            </div>
 
             {/* Date To */}
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              placeholder="Đến ngày"
-              className="w-full sm:w-36"
-            />
+            <div className="w-full sm:w-36 shrink-0">
+              <DatePicker
+                value={dateTo}
+                onChange={setDateTo}
+                placeholder="Đến ngày"
+                compact
+              />
+            </div>
           </div>
 
           {/* Actions */}

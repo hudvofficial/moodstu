@@ -144,10 +144,17 @@ export function toDBPaymentStatus(
 
 /**
  * Convert DB payment status (English) to UI payment status (Vietnamese)
+ * Legacy orders (status da_nhan/hoan_thanh) are considered paid regardless of DB payment_status
  */
 export function toUIPaymentStatus(
-  dbStatus: string | null | undefined
+  dbStatus: string | null | undefined,
+  orderStatus?: string | null
 ): PrintingPaymentStatus {
+  // Fallback for legacy completed orders
+  if (orderStatus === "hoan_thanh" || orderStatus === "da_nhan") {
+    return "da_thanh_toan";
+  }
+
   switch (dbStatus) {
     case "unpaid":
       return "chua_thanh_toan";

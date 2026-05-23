@@ -417,7 +417,6 @@ export default function PrintingDetailDrawer({
         isOpen={isOpen}
         onClose={onClose}
         title={order ? `Chi tiết lệnh in` : "Tạo đơn in mới"}
-        width="650px"
         titleBadge={
           order ? (
             <Badge variant={PRINTING_STATUS_VARIANTS[order.status]}>

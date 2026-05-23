@@ -95,7 +95,7 @@ function mapPrintingOrderRow(row: RawPrintingOrderRow): PrintingOrderRow {
     labId: row.lab_id,
     labName: lab?.name ? String(lab.name) : null,
     status: normalizePrintingOrderStatus(row.status),
-    paymentStatus: toUIPaymentStatus(row.payment_status),  // Use DB→UI mapping
+    paymentStatus: toUIPaymentStatus(row.payment_status, row.status),  // Use DB→UI mapping with legacy fallback
     totalAmount: Number(row.total_amount ?? 0),
     orderDate: row.order_date,
     expectedDate: row.expected_date,
@@ -166,7 +166,13 @@ export async function fetchPrintingOrders(
     }
 
     if (filters.paymentStatus && filters.paymentStatus !== "all") {
-      query = query.eq("payment_status", filters.paymentStatus);
+      if (filters.paymentStatus === "da_thanh_toan") {
+        query = query.or("payment_status.eq.paid,status.in.(hoan_thanh,da_nhan)");
+      } else {
+        query = query.in("payment_status", ["unpaid", "partial"])
+                     .neq("status", "hoan_thanh")
+                     .neq("status", "da_nhan");
+      }
     }
 
     if (filters.search?.trim()) {
