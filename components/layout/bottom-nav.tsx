@@ -169,7 +169,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] bg-bg-card/90 backdrop-blur-lg shadow-bottom-nav flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] z-50",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav flex items-start justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           className
         )}
       >
@@ -187,7 +187,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
               onFocus={() => warmRoute(item.href)}
               onClick={(e) => handleNavClick(e, item.href, isActive)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 rounded-lg",
+                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 rounded-lg",
                 "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                 isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
               )}
@@ -218,7 +218,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
           onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer rounded-lg",
+            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 cursor-pointer rounded-lg",
             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
             showMore || moreActive
               ? "text-primary"
