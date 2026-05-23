@@ -47,7 +47,7 @@ export interface ConflictItem {
   event_title: string;
 }
 
-interface TaskForm {
+export interface TaskForm {
   work_type: WorkType;
   assigned_to: string;
   vendor_id?: string;

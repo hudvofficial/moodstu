@@ -24,7 +24,7 @@ import type { WorkType, TaskStatus, EventType, WorkTask } from "@/types/contract
 import type { ActiveEmployee } from "@/types/employee";
 import type { Vendor } from "@/types/vendor";
 import { TaskListPanel } from "./task-list-panel";
-import type { TaskRow, Employee, ConflictItem } from "./task-list-panel";
+import type { TaskRow, Employee, ConflictItem, TaskForm } from "./task-list-panel";
 
 // EventTaskModal - V2 port of V1 EventTaskModal
 // V2: TaskListPanel extracted to task-list-panel.tsx
@@ -74,7 +74,7 @@ export default function EventTaskModal({
   const [deletingTaskIds, setDeletingTaskIds] = useState<Set<string>>(() => new Set());
 
   // New task form
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<TaskForm>({
     work_type: (isOnSet ? "chup_anh" : "hau_ky_anh") as WorkType,
     assigned_to: "",
     vendor_id: "",
