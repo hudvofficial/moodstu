@@ -13,6 +13,7 @@ import type {
 import {
   normalizePrintingOrderStatus,
   normalizePrintingPaymentStatus,
+  toUIPaymentStatus,
   PRINTING_PAGE_SIZE,
 } from "@/types/printing-constants";
 
@@ -94,7 +95,7 @@ function mapPrintingOrderRow(row: RawPrintingOrderRow): PrintingOrderRow {
     labId: row.lab_id,
     labName: lab?.name ? String(lab.name) : null,
     status: normalizePrintingOrderStatus(row.status),
-    paymentStatus: normalizePrintingPaymentStatus(row.payment_status),
+    paymentStatus: toUIPaymentStatus(row.payment_status),  // Use DB→UI mapping
     totalAmount: Number(row.total_amount ?? 0),
     orderDate: row.order_date,
     expectedDate: row.expected_date,
@@ -170,7 +171,22 @@ export async function fetchPrintingOrders(
 
     if (filters.search?.trim()) {
       const escaped = escapeLikePattern(filters.search.trim());
-      query = query.ilike("order_code", `%${escaped}%`);
+      
+      // Query contracts matching the search term
+      const { data: matchedContracts } = await supabase
+        .from("contracts")
+        .select("id, customers!inner(full_name)")
+        .is("deleted_at", null)
+        .or(`contract_code.ilike.%${escaped}%,customers.full_name.ilike.%${escaped}%`)
+        .limit(100);
+        
+      const contractIds = matchedContracts?.map(c => c.id) || [];
+      
+      if (contractIds.length > 0) {
+        query = query.or(`order_code.ilike.%${escaped}%,contract_id.in.(${contractIds.join(',')})`);
+      } else {
+        query = query.ilike("order_code", `%${escaped}%`);
+      }
     }
 
     if (filters.fromDate) {
@@ -216,9 +232,14 @@ export async function getPrintingOrderStats(): Promise<
     return {
       total: Number(row.total ?? 0),
       choXuLy: Number(row.cho_xu_ly ?? 0),
+      datCoc: Number(row.dat_coc ?? 0),
       dangIn: Number(row.dang_in ?? 0),
       daIn: Number(row.da_in ?? 0),
+      daGiao: Number(row.da_giao ?? 0),
+      hoanThanh: Number(row.hoan_thanh ?? 0),
+      huyDon: Number(row.huy_don ?? 0),
       daNhan: Number(row.da_nhan ?? 0),
+      daHuy: Number(row.da_huy ?? 0),
       totalCost: Number(row.total_cost ?? 0),
       unpaidCost: Number(row.unpaid_cost ?? 0),
     };
@@ -266,5 +287,65 @@ export async function getPrintingOrderDetail(
         customer_name: String(customer?.full_name ?? mapped.customerName),
       },
     };
+  });
+}
+
+// ─── PHASE 2: PAYMENT QUERIES ────────────────────────────
+
+/**
+ * Get payment summary for an order
+ */
+export async function getOrderPaymentSummary(orderId: string) {
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase
+      .from("order_payment_summary")
+      .select("*")
+      .eq("order_id", orderId)
+      .single();
+
+    if (error) {
+      throw new Error(`Không thể lấy thông tin thanh toán: ${error.message}`);
+    }
+
+    return {
+      orderId: data.order_id,
+      totalAmount: data.total_amount || 0,
+      depositPaid: data.deposit_paid || 0,
+      finalPaid: data.final_paid || 0,
+      refundAmount: data.refund_amount || 0,
+      adjustmentAmount: data.adjustment_amount || 0,
+      totalPaid: data.total_paid || 0,
+      remaining: data.remaining || 0,
+    };
+  });
+}
+
+/**
+ * Get payment history for an order
+ */
+export async function getOrderPaymentHistory(orderId: string) {
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase
+      .from("order_payments")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("payment_date", { ascending: false });
+
+    if (error) {
+      throw new Error(`Không thể lấy lịch sử thanh toán: ${error.message}`);
+    }
+
+    return data.map((payment) => ({
+      id: payment.id,
+      orderId: payment.order_id,
+      paymentId: payment.payment_id,
+      receiptId: payment.receipt_id,
+      paymentType: payment.payment_type as "deposit" | "final" | "refund" | "adjustment",
+      amount: payment.amount,
+      paymentDate: payment.payment_date,
+      paymentMethod: payment.payment_method as "cash" | "transfer" | "card" | "other",
+      notes: payment.notes || null,
+      createdAt: payment.created_at,
+    }));
   });
 }

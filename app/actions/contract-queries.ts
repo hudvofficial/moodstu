@@ -508,11 +508,17 @@ export async function getContractDetail(id: string) {
 
     if (!rpcError && rpcData) {
       const data = rpcData as ContractDetailRpcPayload;
+      const { data: workTasks } = await supabase
+        .from("work_tasks")
+        .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
+        .eq("contract_id", id)
+        .order("deadline", { ascending: true });
+
       if (data.contract) {
         const contractData = {
           ...data.contract,
           contract_events: data.events || [],
-          work_tasks: data.work_tasks || [],
+          work_tasks: workTasks || data.work_tasks || [],
           contract_checklists: data.checklists || [],
         };
 
@@ -585,9 +591,10 @@ export async function getContractDetail(id: string) {
       supabase
         .from("work_tasks")
         .select(
-          `id, event_id, contract_id, work_type, assigned_to, status, deadline,
+          `id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline,
            start_date, start_time, end_time, completion_date, cost, notes,
-           employees:assigned_to(id, full_name, avatar_url, department)`
+           employees:assigned_to(id, full_name, avatar_url, department),
+           vendors:vendor_id(id, full_name, phone)`
         )
         .eq("contract_id", id)
         .order("deadline", { ascending: true }),
@@ -665,9 +672,10 @@ export async function getContractDetail(id: string) {
   }));
 }
 
-// ─── getContractDrawerExtra ──────────────
+import { unstable_noStore as noStore } from "next/cache";
 
 export async function getContractDrawerExtra(id: string) {
+  noStore();
   return profileAction("contracts.getContractDrawerExtra", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
@@ -697,7 +705,7 @@ export async function getContractDrawerExtra(id: string) {
       supabase
         .from("work_tasks")
         .select(
-          "id, event_id, work_type, assigned_to, status, deadline, start_date, completion_date, cost, notes, employees:assigned_to(id, full_name)"
+          "id, event_id, work_type, assigned_to, vendor_id, status, deadline, start_date, completion_date, cost, notes, employees:assigned_to(id, full_name), vendors:vendor_id(id, full_name, phone)"
         )
         .eq("contract_id", id)
         .order("deadline", { ascending: true }),

@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import useSWR from "swr";
-import { FilterX, Plus, Printer } from "lucide-react";
+import { FilterX, Plus, Printer, List, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
@@ -34,6 +34,7 @@ import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
 import PrintingTable from "@/components/printing/printing-table";
 import PrintingGroupDrawer from "@/components/printing/printing-group-drawer";
+import PrintingCard from "@/components/printing/printing-card";
 import { groupOrdersByContract, type ContractGroup } from "@/lib/utils/printing-group-utils";
 
 const PrintingDetailDrawer = dynamic(
@@ -60,6 +61,14 @@ function PrintingListInner({
   const [editingOrder, setEditingOrder] = useState<PrintingOrderRow | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedContractGroup, setSelectedContractGroup] = useState<ContractGroup | null>(null);
+  
+  const handleEdit = useCallback((selectedOrder: PrintingOrderRow) => {
+    setEditingOrder(selectedOrder);
+    setShowForm(true);
+  }, []);
+  
+  const [userGroupPreference, setUserGroupPreference] = useState(true);
+  
   const {
     filters,
     setStatus,
@@ -123,11 +132,12 @@ function PrintingListInner({
     Math.ceil(ordersPage.total / Math.max(ordersPage.pageSize, 1)),
   );
 
-  // ── Contract Grouping (client-side) ────────
   const contractGroups = useMemo(
     () => groupOrdersByContract(ordersPage.orders),
     [ordersPage.orders],
   );
+
+  const isGroupedView = hasActiveFilters ? false : userGroupPreference;
 
   const handleSaved = async () => {
     await Promise.all([mutateOrders(), mutateStats(), mutateLabs()]);
@@ -217,6 +227,9 @@ function PrintingListInner({
           onStatusChange={setStatus}
           onLabChange={setLabId}
           onPaymentStatusChange={setPaymentStatus}
+          isGrouped={isGroupedView}
+          onGroupChange={setUserGroupPreference}
+          groupDisabled={hasActiveFilters}
         />
 
         {isLoading ? (
@@ -247,19 +260,29 @@ function PrintingListInner({
             />
           )
         ) : isMobile ? (
-          <PrintingMobileGrouped
-            groups={contractGroups}
-            onViewGroup={setSelectedContractGroup}
-          />
+          isGroupedView ? (
+            <PrintingMobileGrouped
+              groups={contractGroups}
+              onViewGroup={setSelectedContractGroup}
+            />
+          ) : (
+            <div className="flex flex-col gap-3 pt-1">
+              {ordersPage.orders.map((order) => (
+                <PrintingCard
+                  key={order.id}
+                  order={order}
+                  onEdit={handleEdit}
+                  onStatusChange={handleStatusChange}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <PrintingTable
             orders={ordersPage.orders}
-            groups={contractGroups}
+            groups={isGroupedView ? contractGroups : undefined}
             onViewGroup={setSelectedContractGroup}
-            onEdit={(selectedOrder) => {
-              setEditingOrder(selectedOrder);
-              setShowForm(true);
-            }}
+            onEdit={handleEdit}
             onStatusChange={handleStatusChange}
           />
         )}
@@ -297,10 +320,7 @@ function PrintingListInner({
         isOpen={!!selectedContractGroup}
         onClose={() => setSelectedContractGroup(null)}
         group={selectedContractGroup}
-        onEdit={(selectedOrder) => {
-          setEditingOrder(selectedOrder);
-          setShowForm(true);
-        }}
+        onEdit={handleEdit}
         onStatusChange={handleStatusChange}
       />
     </>

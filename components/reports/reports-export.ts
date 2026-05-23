@@ -37,23 +37,26 @@ async function collectAllPages<T>(
   fetchPage: (page: number) => Promise<PaginatedResult<T>>,
   maxRows = EXPORT_MAX_ROWS,
 ) {
-  const rows: T[] = [];
-  let page = 1;
-
-  while (true) {
-    const current = await fetchPage(page);
-    if (current.total > maxRows || rows.length + current.items.length > maxRows) {
-      throw new Error(`Bao cao vuot qua gioi han xuat ${maxRows} dong. Hay thu hep khoang ngay.`);
-    }
-
-    rows.push(...current.items);
-
-    if (rows.length >= current.total || current.items.length < current.pageSize) {
-      return rows;
-    }
-
-    page += 1;
+  const firstPage = await fetchPage(1);
+  if (firstPage.total > maxRows) {
+    throw new Error(`Bao cao vuot qua gioi han xuat ${maxRows} dong. Hay thu hep khoang ngay.`);
   }
+
+  const rows = [...firstPage.items];
+
+  if (rows.length >= firstPage.total || firstPage.items.length < firstPage.pageSize) {
+    return rows;
+  }
+
+  const totalPages = Math.ceil(firstPage.total / firstPage.pageSize);
+  const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+
+  const results = await Promise.all(remainingPages.map((p) => fetchPage(p)));
+  for (const result of results) {
+    rows.push(...result.items);
+  }
+
+  return rows;
 }
 
 function createFileSlug(label: string) {

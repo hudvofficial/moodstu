@@ -16,16 +16,15 @@ import type { Customer, CustomerStats } from "@/types/crm";
 import { CrmDashboardLayout } from "./crm-dashboard-layout";
 import CustomerStatsBar from "./customer-stats-bar";
 import CustomerFilters from "./customer-filters";
-import CustomerCompactCard from "./customer-compact-card";
-import CustomerCard from "./customer-card";
-import CustomerDetailDrawer from "./customer-detail-drawer";
+import { CustomersTable } from "./customers-table";
+import { CustomerDrawer } from "./customer-drawer";
 import CustomerFormModal from "./customer-form-modal";
 import { WidgetCTA } from "./widgets/widget-cta";
 import { WidgetUpcoming } from "./widgets/widget-upcoming";
 import { CrmSubnav } from "./crm-subnav";
 import { CrmToolbarSurface } from "./crm-toolbar-surface";
 
-interface CustomerListPageProps {
+interface CustomerListClientProps {
   initialData: {
     customers: Customer[];
     total: number;
@@ -36,10 +35,10 @@ interface CustomerListPageProps {
   stats: CustomerStats;
 }
 
-export default function CustomerListPage({
+export default function CustomerListClient({
   initialData,
   stats,
-}: CustomerListPageProps) {
+}: CustomerListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -48,6 +47,7 @@ export default function CustomerListPage({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
 
   const search = searchParams.get("search") || undefined;
   const source = searchParams.get("source") || undefined;
@@ -107,8 +107,9 @@ export default function CustomerListPage({
   const currentPage = data.page;
   const totalPages = data.totalPages || 1;
   const pageSize = data.pageSize || 10;
-  const selectedCustomer =
-    data.customers.find((customer) => customer.id === selectedCustomerId) || null;
+
+  const selectedCustomer = data.customers.find(c => c.id === selectedCustomerId) || null;
+  const editingCustomer = data.customers.find(c => c.id === editingCustomerId) || null;
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -124,11 +125,17 @@ export default function CustomerListPage({
   );
 
   const handleOpenCreate = () => {
+    setEditingCustomerId(null);
     setIsModalOpen(true);
   };
 
   const handleRowClick = (customer: Customer) => {
     setSelectedCustomerId(customer.id);
+  };
+
+  const handleEdit = (id: string) => {
+    setEditingCustomerId(id);
+    setIsModalOpen(true);
   };
 
   const hasFilters = Boolean(
@@ -143,8 +150,7 @@ export default function CustomerListPage({
     });
   };
 
-  const handleDataChanged = useCallback((customerId?: string) => {
-    if (customerId) setSelectedCustomerId(customerId);
+  const handleDataChanged = useCallback(() => {
     startTransition(() => {
       void revalidateByPrefixes(cacheKeys.customers());
     });
@@ -219,27 +225,11 @@ export default function CustomerListPage({
                   isPending ? "pointer-events-none opacity-50" : "opacity-100"
                 }`}
               >
-                {isMobile ? (
-                  <div className="space-y-2">
-                    {data.customers.map((customer) => (
-                      <CustomerCard
-                        key={customer.id}
-                        customer={customer}
-                        onClick={handleRowClick}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {data.customers.map((customer) => (
-                      <CustomerCompactCard
-                        key={customer.id}
-                        customer={customer}
-                        onClick={handleRowClick}
-                      />
-                    ))}
-                  </div>
-                )}
+                <CustomersTable
+                  customers={data.customers}
+                  onView={handleRowClick}
+                  onEdit={handleEdit}
+                />
               </div>
               <div className="mt-4 pointer-events-auto">
                 <Pagination
@@ -260,20 +250,19 @@ export default function CustomerListPage({
 
       <CustomerFormModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingCustomerId(null);
+        }}
         onSaved={handleDataChanged}
+        customer={editingCustomer}
       />
 
-      <CustomerDetailDrawer
-        customerId={selectedCustomerId}
-        open={!!selectedCustomerId}
-        onOpenChange={(open) => !open && setSelectedCustomerId(null)}
-        onChanged={handleDataChanged}
-        initialData={
-          selectedCustomer
-            ? { customer: selectedCustomer, contracts: [], lifetimeValue: 0 }
-            : undefined
-        }
+      <CustomerDrawer
+        customer={selectedCustomer}
+        isOpen={!!selectedCustomerId}
+        onClose={() => setSelectedCustomerId(null)}
+        onEdit={handleEdit}
       />
     </>
   );

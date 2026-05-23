@@ -1,51 +1,49 @@
-# 💡 BRIEF: Chi tiết Phiếu Thu (Receipt Detail & Print View)
+# 💡 BRIEF: Quản Lý Lịch Trình Đa Ngày & Thợ Ngoài (Vendor Management)
 
-**Ngày tạo:** 2026-04-14
-**Nguồn tham khảo:** Bản gốc V1 (`C:\Users\Admin\Desktop\Ai\0Moodstudio\webapp\app\(protected)\finance\receipts\[id]\page.tsx`)
+**Ngày tạo:** 23/05/2026
+**Dự án:** Mood Studio
+**Brainstorm cùng:** Admin
 
 ---
 
-## 1. VẤN ĐỀ & MỤC TIÊU
-- Kế toán và bộ phận tài chính cần một trang chi tiết để xem lại chính xác thông tin của một phiếu thu (phiếu cọc, phiếu thanh toán...).
-- Cần màn hình này để **In (Print)** ra giấy A5 hoặc xuất PDF gửi cho khách hàng (thay vì biên lai viết tay).
+## 1. VẤN ĐỀ CẦN GIẢI QUYẾT
+1. **Lịch trình đa ngày:** Hiện tại hệ thống (DB và logic tự động) chỉ hỗ trợ 1 mốc "Ngày cưới", khiến các hợp đồng chụp 2-3 ngày không thể giao việc chính xác theo từng ngày. Phải tạo thủ công rất mất thời gian.
+2. **Quản lý thợ ngoài (Freelancer):** Hệ thống đang ép tạo thợ ngoài thành 1 nhân viên nội bộ (`role = ctv`) để có thể giao việc. Việc này gây rác dữ liệu nhân sự, trộn lẫn luồng tính lương (Payroll) và công nợ (Payables).
 
-## 2. ĐỐI TƯỢNG SỬ DỤNG
-- **Kế toán / Quản lý:** Kiểm tra lại nguồn tiền, đối soát giao dịch.
-- **Khách hàng (Gián tiếp):** Nhận bản in A5/PDF của màn hình này làm bằng chứng thanh toán.
+## 2. GIẢI PHÁP ĐỀ XUẤT (HƯỚNG 2 CHUYÊN SÂU)
 
-## 3. PHÂN TÍCH V1 -> ĐIỂM CHUYỂN GIAO (V2)
+### A. Nâng cấp Lịch Trình (Flexible Timeline)
+- **Hợp đồng (Contract):** Giữ nguyên bảng `contracts` làm "vỏ" (Container).
+- **Sự kiện (Events):** Form tạo hợp đồng cho phép **thêm nhiều ngày chụp**. Hàm `generateContractEvents` sẽ tự động đẻ ra nhiều sự kiện "Ngày cưới 1", "Ngày cưới 2" tương ứng trên Timeline.
 
-### Kế thừa từ V1 (Cần giữ lại):
-- **Layout Giấy tờ (Document Card):** Giao diện mô phỏng "Mẫu số 01-tt" (TT số 200/2014/TT-BTC) chuẩn kế toán Việt Nam.
-- **Tính năng Print-friendly:** Ẩn các nút bấm, breadcrumbs khi in bằng `@media print { @page { size: A5 landscape } }`.
-- **Thông tin liên kết:** Pull tên khách hàng, mã hợp đồng từ table `contracts`.
-- **Đọc số tiền bằng chữ:** Sử dụng hàm `readMoney()` để dịch số ra chữ (ví dụ: "Năm triệu đồng chẵn").
-- **Khu vực chữ ký ảo:** Chữ ký đóng dấu ("Đã thu"), chữ ký khách hàng.
-- **Studio Branding:** Lấy logo và thông tin từ bảng `studio_info`.
+### B. Tách Module Thợ Ngoài (Vendor Management)
+- **Database:** Tạo bảng `vendors` mới (Tên, SĐT, Dịch vụ cung cấp).
+- **Giao việc (`work_tasks`):** Bổ sung thêm trường `vendor_id` song song với `assigned_to` (nhân viên nội bộ). Một task chỉ được có 1 trong 2.
+- **UI Giao việc (Quick-Add):** Tại ô chọn người, chia 2 tab: "Nội bộ" và "Thợ ngoài". Cho phép gõ tên thợ ngoài mới và lưu ngay lập tức (Quick-Add) mà không cần vào trang Quản lý nhân sự.
 
-### Cải tiến cho V2 (Technical & Design Optimization):
-- **Tối ưu Server Performance (Parallel Data Fetching):** Thay vì fetch tuần tự (lấy `studio_info` xong mới lấy `receipts`), V2 sẽ dùng `Promise.all` để lấy đồng thời cả hai, giảm 50% thời gian load TTFB.
-- **Next.js Native Error Handling:** Thay vì render một UI lỗi (404) custom lồng bên trong page như V1, V2 sẽ gọi hàm `notFound()` chuẩn của Next.js App Router hoặc `error.tsx` để tối ưu SEO và cấu trúc.
-- **SSOT Components:** Thay vì hardcode định dạng tiền và thẻ badge, V2 sẽ tái sử dụng triệt để `formatVnd`, `financeStatusVariant` từ `finance-format.tsx` đúng chuẩn Gold Standard.
-- **Print CSS bằng Tailwind Utilities:** Gỡ bỏ thẻ `<style>` lồng trong JSX của V1, chuyển toàn bộ rules in ấn thành các class `print:*` (vd: `print:shadow-none`, `print:p-0`) của Tailwind để giữ file TSX cực kỳ clean.
-- **SSR Client Bóc Tách:** Bóc tách phần nút bấm In (`PrintActions`) thành Client Component riêng biệt, trong khi core layout giữ hoàn toàn ở Server Component.
+## 3. ẢNH HƯỞNG HỆ THỐNG (IMPACT ANALYSIS)
 
-## 4. TÍNH NĂNG (SCOPE)
+### 💰 Tài chính & Kế toán
+- **Tính Lợi Nhuận (Profit):** Không đổi. Chi phí thợ ngoài (`cost` trong `work_tasks`) vẫn được trừ trực tiếp vào doanh thu hợp đồng để ra biên lợi nhuận chính xác.
+- **Tính Lương (Payroll):** `salary-actions.ts` sẽ chỉ tính lương theo show cho những task có `assigned_to` (nhân viên nội bộ). Khắc phục triệt để lỗi thợ ngoài bị lọt vào bảng lương.
+- **Công Nợ (Payables):** Tách ra một mục "Công nợ thợ ngoài" riêng. Kế toán sẽ tổng hợp công nợ theo từng `vendor_id` và tạo Phiếu Chi (Expense) để thanh toán.
+
+### 📈 Năng suất (Productivity)
+- **Nhân sự nội bộ:** Báo cáo KPI, năng suất (số show, khối lượng công việc) vẫn giữ nguyên.
+- **Thợ ngoài:** Không tính vào KPI nội bộ. Thay vào đó, có một báo cáo riêng là "Tần suất sử dụng thợ ngoài" (Vendor Usage Report) để biết đang thuê ai nhiều nhất, chi phí bao nhiêu.
+
+## 4. TÍNH NĂNG
 
 ### 🚀 MVP (Bắt buộc có):
-- [ ] Giao diện "Mẫu biên lai" có đầy đủ thông tin: Người nộp, Nội dung, Số tiền (Số + Chữ), Hình thức.
-- [ ] Logic fetch data từ `receipts` + Tàu ngầm join `contracts` & `studio_info`.
-- [ ] Giao diện chia 3 cột chữ ký ở cuối trang.
-- [ ] Component `<PrintActions />` xử lý gọi lệnh `window.print()`.
-- [ ] Tích hợp CSS `@media print` chuẩn form A5 ngang (Landscape).
+- [ ] Cho phép thêm nhiều mốc "Ngày sự kiện" lúc tạo/sửa hợp đồng.
+- [ ] Tạo bảng `vendors` và cập nhật bảng `work_tasks` thêm `vendor_id`.
+- [ ] Cập nhật UI Giao Việc (EventTaskModal) để có tab "Thợ ngoài" + tính năng Quick-Add.
+- [ ] Cập nhật UI Báo cáo Năng suất: Ẩn thợ ngoài khỏi bảng KPI nội bộ.
+- [ ] Xây dựng màn hình "Công nợ thợ ngoài" cơ bản cho kế toán.
 
-### 🎁 Phase 2 / Nice-to-have:
-- [ ] Nút "Gửi Zalo" (Share hình ảnh biên lai trực tiếp).
-- [ ] Nhúng QR Code thanh toán nếu phiếu này chưa được thanh toán đủ (Status = Pending).
+### 🎁 Phase 2 (Làm sau):
+- [ ] Gửi SMS/Email tự động báo lịch cho thợ ngoài (không cần tài khoản login).
+- [ ] Đánh giá (Rating) chất lượng thợ ngoài sau mỗi show.
 
-## 5. ƯỚC TÍNH SƠ BỘ
-- **Độ phức tạp:** 🟢 Đơn giản (Chỉ là Read-only Document Component, không có Form/Mutation logic phức tạp).
-- **Rủi ro:** Cần căn chỉnh kĩ `@media print` vì giao diện In thường dễ bị vỡ trang hoặc mất nền trên các trình duyệt khác nhau.
-
-## 6. BƯỚC TIẾP THEO
-→ User duyệt Brief và gõ `/plan` để AI thiết kế kiến trúc Component cho V2.
+## 5. BƯỚC TIẾP THEO
+→ Hệ thống đã sẵn sàng. Vui lòng chạy lệnh `/plan` để lên thiết kế chi tiết (Database Schema, API, Frontend Changes).

@@ -200,10 +200,16 @@ export default function DatePicker({
 
   const toggleOpen = useCallback(() => {
     setIsOpen((prev) => {
-      if (!prev) setViewMode("day");
+      if (!prev) {
+        setViewMode("day");
+        // SYNC FIX: When opening, reset viewDate to selected date OR today
+        // This prevents showing wrong month from stale/invalid dates
+        const targetDate = parseDateValue(value) ?? new Date();
+        setViewDate(targetDate);
+      }
       return !prev;
     });
-  }, []);
+  }, [value]);
 
   const nextMonth = useCallback(() => setViewDate((d) => addMonths(d, 1)), []);
   const prevMonth = useCallback(() => setViewDate((d) => subMonths(d, 1)), []);

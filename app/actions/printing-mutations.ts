@@ -17,11 +17,18 @@ type ActionResult<T = null> =
   | { success: false; error: string };
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  cho_xu_ly: ["dang_in", "da_huy"],
-  dang_in: ["da_in", "da_huy"],
-  da_in: ["da_nhan", "da_huy"],
-  da_nhan: [],
-  da_huy: [],
+  // Workflow statuses (Phase 2)
+  cho_xu_ly: ["dat_coc", "dang_in", "huy_don"],         // Can deposit OR skip to printing OR cancel
+  dat_coc: ["dang_in", "huy_don"],                      // Can start production OR cancel
+  dang_in: ["da_in", "huy_don"],                        // Can complete OR cancel
+  da_in: ["da_giao", "huy_don"],                        // Can deliver OR cancel
+  da_giao: ["hoan_thanh", "huy_don"],                   // Can finalize OR cancel
+  hoan_thanh: [],                                        // Terminal state
+  huy_don: [],                                           // Terminal state (cancelled)
+
+  // Legacy statuses (keep for backward compatibility)
+  da_nhan: [],                                           // Terminal state
+  da_huy: [],                                            // Terminal state (old cancelled)
 };
 
 function calculateTotalAmount(

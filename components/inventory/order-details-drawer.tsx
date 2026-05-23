@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, Check, Edit2, Trash2, Loader2 } from "lucide-react";
+import { useState, useTransition, useMemo } from "react";
+import { Plus, Check, Edit2, Trash2, Loader2, Printer, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { ComboboxSearch } from "@/components/ui/combobox-search";
+import type { ComboboxOption } from "@/components/ui/combobox-search";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { InventoryTransaction } from "@/types/inventory";
 import { CURRENCY_SYMBOL } from "@/lib/utils";
 import { useOrderFulfillments } from "@/lib/hooks/use-order-fulfillments";
 import { addFulfillmentTransaction } from "@/app/actions/inventory-mutations";
 import { toast } from "sonner";
+import { fetchInventoryForSale, type InventorySaleOption } from "@/app/actions/inventory-queries";
+import { useEffect } from "react";
 
 interface OrderDetailsDrawerProps {
   txn: InventoryTransaction | null;
@@ -32,12 +36,55 @@ export function OrderDetailsDrawer({
   const [quantity, setQuantity] = useState<number>(50);
   const [unitCost, setUnitCost] = useState<number>(txn?.unit_cost || 0);
 
+  const [itemId, setItemId] = useState<string>(txn?.item_id || "");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "card">("cash");
+  const [items, setItems] = useState<InventorySaleOption[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [showAllFulfillments, setShowAllFulfillments] = useState(true);
+
   const { fulfillments, isLoading, mutate } = useOrderFulfillments(txn?.id);
+
+  useEffect(() => {
+    if (showAddForm && items.length === 0) {
+      setIsLoadingItems(true);
+      fetchInventoryForSale().then((data) => {
+        setItems(data);
+        setIsLoadingItems(false);
+      }).catch(() => {
+        setIsLoadingItems(false);
+        toast.error("Không thể tải danh sách vật tư");
+      });
+    }
+  }, [showAddForm, items.length]);
+
+  // Convert items to ComboboxOptions
+  const itemOptions: ComboboxOption[] = useMemo(() =>
+    items.map(item => ({
+      value: item.id,
+      label: `${item.item_code} - ${item.name}`,
+      meta: `Tồn: ${item.current_stock}`,
+    })),
+    [items]
+  );
 
   if (!txn) return null;
 
-  const totalQuantity = fulfillments.reduce((sum, f) => sum + f.quantity, 0);
-  const totalAmount = fulfillments.reduce((sum, f) => sum + (f.quantity * f.unit_cost), 0);
+  // Calculate totals - use txn values as fallback if fulfillments not loaded yet
+  const totalQuantity = fulfillments.length > 0
+    ? fulfillments.reduce((sum, f) => sum + f.quantity, 0)
+    : txn.quantity || 0;
+
+  const totalAmount = fulfillments.length > 0
+    ? fulfillments.reduce((sum, f) => sum + (f.quantity * (f.sale_unit_price || f.unit_cost)), 0)
+    : (txn.quantity || 0) * (txn.sale_unit_price || txn.unit_cost || 0);
+
+  // Số đợt: nếu có fulfillments thì count, nếu không có nhưng có data thì ít nhất 1
+  const dotCount = fulfillments.length > 0 ? fulfillments.length : (totalQuantity > 0 ? 1 : 0);
+
+  // Filter notes: bỏ những notes chỉ chứa địa chỉ (đã move lên header)
+  const actualNotes = txn.notes && !txn.notes.toLowerCase().includes("địa chỉ khách lẻ")
+    ? txn.notes
+    : null;
 
   const handleAddFulfillment = () => {
     if (!txn) return;
@@ -50,8 +97,10 @@ export function OrderDetailsDrawer({
       try {
         await addFulfillmentTransaction({
           parentTxnId: txn.id,
+          itemId: itemId || txn.item_id,
           quantity,
-          unitCost
+          unitCost,
+          paymentMethod,
         });
         toast.success("Bổ sung phát sinh thành công");
         setShowAddForm(false);
@@ -60,6 +109,27 @@ export function OrderDetailsDrawer({
         toast.error(err.message || "Đã có lỗi xảy ra");
       }
     });
+  };
+
+  const handlePrintReceipt = (item: InventoryTransaction | null) => {
+    if (!item) return;
+    let routeId = "";
+    if (item.receipt_id) {
+      // Regular receipt from receipts table
+      routeId = item.receipt_id;
+    } else if (item.source_type === 'contract_addon_sale' && item.source_id) {
+      // Payment receipt from contract addon sale
+      routeId = `payment:${item.source_id}`;
+    } else if (item.source_id && item.source_id !== item.parent_transaction_id && item.source_id !== item.id) {
+      // Other payment receipt
+      routeId = `payment:${item.source_id}`;
+    }
+
+    if (routeId) {
+      window.open(`/finance/receipts/${routeId}/print`, "_blank");
+    } else {
+      toast.error("Không tìm thấy dữ liệu phiếu thu / thanh toán.");
+    }
   };
 
   const titleBadge = (
@@ -76,45 +146,81 @@ export function OrderDetailsDrawer({
       titleBadge={titleBadge}
       size="md"
     >
-      <div className="flex flex-col gap-8 h-full pb-8">
-        
-        {/* --- Customer Reference --- */}
-        <section className="bg-bg-base/40 rounded-xl p-5">
-          <div className="grid grid-cols-2 gap-y-5 gap-x-4">
-            <div>
-              <p className="text-micro uppercase tracking-wider text-text-muted mb-1.5 font-medium">Khách hàng / Đối tác</p>
-              <p className="text-body-sm text-text-primary font-semibold">
-                {txn.customer_name || txn.supplier || "Khách lẻ"}
-              </p>
-            </div>
-            <div>
-              <p className="text-micro uppercase tracking-wider text-text-muted mb-1.5 font-medium">Loại chứng từ</p>
-              <p className="text-body-sm text-text-primary font-semibold capitalize">
-                {txn.transaction_type.replace(/_/g, " ")}
-              </p>
-            </div>
-            <div>
-              <p className="text-micro uppercase tracking-wider text-text-muted mb-1.5 font-medium">Người tạo</p>
-              <p className="text-body-sm text-text-primary font-semibold truncate">
-                {txn.performer_name || txn.created_by || "Hệ thống"}
-              </p>
-            </div>
-            <div>
-              <p className="text-micro uppercase tracking-wider text-text-muted mb-1.5 font-medium">Ghi chú</p>
-              <p className="text-body-sm text-text-primary font-medium truncate opacity-80">
-                {txn.notes || "-"}
-              </p>
-            </div>
-          </div>
-        </section>
+      <div className="flex flex-col min-h-full">
+        <div className="flex-1 space-y-5">
 
-        {/* --- Fulfillment History --- */}
-        <section className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-body-sm uppercase tracking-wider font-semibold text-text-secondary">Lịch sử xuất / in ấn</h3>
+          {/* --- Header Info Card --- */}
+          <div className="p-4 bg-bg-hover rounded-xl shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1">
+                <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">
+                  {txn.contract_code ? `HĐ ${txn.contract_code}` : "Bán lẻ"}
+                </p>
+                <p className="text-h3 text-primary">{txn.customer_name || txn.supplier || "Khách lẻ"}</p>
+                {txn.customer_address && (
+                  <p className="text-sm text-text-secondary mt-2 flex items-start gap-1.5">
+                    <span className="opacity-60">📍</span>
+                    <span>{txn.customer_address}</span>
+                  </p>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs text-text-muted">#{txn.id.slice(0, 8)}</p>
+              </div>
+            </div>
+            {txn.performer_name && (
+              <div className="pt-3 border-t border-border/30">
+                <p className="text-xs text-text-muted">
+                  Tạo bởi <span className="font-medium text-text-secondary">{txn.performer_name}</span>
+                </p>
+              </div>
+            )}
           </div>
-          
-          
+
+          {/* --- Stats Grid --- */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tổng số lượng</p>
+              <p className="text-h3 text-text-main tabular-nums">{totalQuantity}</p>
+            </div>
+            <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Số đợt</p>
+              <div className="flex items-center gap-2">
+                <p className="text-h3 text-info">{dotCount}</p>
+                <Badge variant="info" className="text-tiny">đợt</Badge>
+              </div>
+            </div>
+            <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tổng tiền</p>
+              <p className="text-h3 text-success tabular-nums">{fmt(totalAmount)}</p>
+            </div>
+          </div>
+
+          {/* --- Ghi chú (chỉ notes thật, không bao gồm địa chỉ) --- */}
+          {actualNotes && (
+            <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+              <p className="text-xs uppercase tracking-wide text-text-muted mb-2">Ghi chú</p>
+              <p className="text-sm text-text-secondary">{actualNotes}</p>
+            </div>
+          )}
+
+          {/* --- Fulfillment History --- */}
+          <section className="flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mt-4 border-t border-border pt-5 mb-5">
+              <h4 className="section-heading">Lịch sử xuất / in ấn</h4>
+              {fulfillments.length > 3 && (
+                <Button
+                  unstyled
+                  onClick={() => setShowAllFulfillments(!showAllFulfillments)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-interactive transition-colors"
+                >
+                  <span>{showAllFulfillments ? 'Thu gọn' : `Xem tất cả (${fulfillments.length})`}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAllFulfillments ? 'rotate-180' : ''}`} />
+                </Button>
+              )}
+            </div>
+
+
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {isLoading ? (
               <div className="py-8 flex justify-center items-center">
@@ -124,8 +230,8 @@ export function OrderDetailsDrawer({
             <div className="relative pl-6 space-y-6">
               {/* Vertical line */}
               <div className="absolute top-4 bottom-8 left-[7px] w-[2px] bg-border-light rounded-full" />
-              
-              {fulfillments.map((f, idx) => (
+
+              {(showAllFulfillments ? fulfillments : fulfillments.slice(0, 3)).map((f, idx) => (
                 <div key={f.id} className="relative group">
                   {/* Timeline dot */}
                   <div className="absolute -left-[29px] top-5 size-[10px] rounded-full ring-4 ring-bg-card bg-border group-hover:bg-interactive transition-colors z-10" />
@@ -141,15 +247,32 @@ export function OrderDetailsDrawer({
                           {formatDate(f.created_at)}
                         </span>
                       </div>
-                      <Badge variant={"success"} className="font-medium px-2.5 py-0.5">
-                        Đã xuất
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {(f.receipt_id || f.source_type === 'contract_addon_sale' || f.unit_cost > 0) && (
+                          <Button 
+                            unstyled 
+                            onClick={() => handlePrintReceipt(f)}
+                            className="text-text-muted hover:text-interactive p-1.5 bg-bg-base/50 rounded-md border border-border hover:border-interactive/30 transition-colors"
+                            title="In phiếu thu phát sinh"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <Badge variant={"success"} className="font-medium px-2.5 py-0.5">
+                          Đã xuất
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-4 text-body-sm text-text-primary">
                       <div className="col-span-2">
                         <span className="text-micro uppercase tracking-wider text-text-muted block mb-1">Sản phẩm</span>
-                        <span className="truncate block font-medium">{f.item_name || txn.item_name || "Vật tư"}</span>
+                        <span className="truncate block font-medium">
+                          {f.item_name || txn.item_name || "Vật tư"} 
+                          {f.item_id !== txn.item_id && f.item_id && (
+                             <Badge variant="neutral" className="ml-2 text-[10px] py-0">Đổi mã</Badge>
+                          )}
+                        </span>
                       </div>
                       <div className="text-right">
                         <span className="text-micro uppercase tracking-wider text-text-muted block mb-1">Số lượng</span>
@@ -190,25 +313,52 @@ export function OrderDetailsDrawer({
                 ) : (
                   <div className="bg-bg-card rounded-xl border border-interactive/20 p-5 shadow-md shadow-interactive/5 animate-in slide-in-from-top-2">
                     <h4 className="text-body-sm font-semibold text-text-primary mb-4">Thêm đợt phát sinh mới</h4>
-                    <div className="grid grid-cols-2 gap-4 mb-5">
-                      <div>
-                        <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Số lượng</label>
-                        <input 
-                          type="number" 
-                          value={quantity}
-                          onChange={(e) => setQuantity(Number(e.target.value))}
-                          className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all" 
-                        />
+                    
+                    <div className="space-y-4 mb-5">
+                      <ComboboxSearch
+                        label="Chọn mã vật tư"
+                        options={itemOptions}
+                        onChange={(value) => setItemId(value)}
+                        placeholder="Tìm theo mã hoặc tên vật tư..."
+                        isLoading={isLoadingItems}
+                        className="w-full"
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Số lượng</label>
+                          <input 
+                            type="number" 
+                            value={quantity}
+                            onChange={(e) => setQuantity(Number(e.target.value))}
+                            className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Đơn giá (VND)</label>
+                          <input 
+                            type="number" 
+                            value={unitCost}
+                            onChange={(e) => setUnitCost(Number(e.target.value))}
+                            className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all" 
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Đơn giá (VND)</label>
-                        <input 
-                          type="number" 
-                          value={unitCost}
-                          onChange={(e) => setUnitCost(Number(e.target.value))}
-                          className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all" 
-                        />
-                      </div>
+
+                      {unitCost > 0 && (
+                        <div>
+                          <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Phương thức thanh toán</label>
+                          <select
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value as any)}
+                            className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all"
+                          >
+                            <option value="cash">Tiền mặt</option>
+                            <option value="transfer">Chuyển khoản</option>
+                            <option value="card">Quẹt thẻ</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2 justify-end">
                       <Button disabled={isPending} unstyled onClick={() => setShowAddForm(false)} className="h-9 px-4 text-sm font-medium text-text-secondary hover:bg-bg-base rounded-lg transition-colors">
@@ -227,33 +377,14 @@ export function OrderDetailsDrawer({
           </div>
         </section>
 
-        {/* --- Summary / Hóa đơn --- */}
-        <section className="bg-bg-card rounded-xl p-5 border border-border/50 shadow-xs shrink-0">
-          <div className="flex flex-col gap-2.5">
-            <div className="flex justify-between items-center text-body-sm">
-              <span className="text-text-secondary font-medium">Tổng số lượng</span>
-              <span className="text-text-primary font-semibold">{totalQuantity}</span>
-            </div>
-            <div className="w-full border-t border-dashed border-border/60 my-1" />
-            
-            <div className="flex flex-col gap-1.5">
-              {fulfillments.map((f, idx) => (
-                <div key={f.id} className="flex justify-between items-center text-caption">
-                  <span className="text-text-muted">Tiền in đợt {idx + 1}</span>
-                  <span className="text-text-secondary font-medium">{fmt(f.quantity * f.unit_cost)}</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="w-full border-t border-border/40 mt-1 mb-2" />
-            
-            <div className="flex justify-between items-center">
-              <span className="text-body-sm uppercase tracking-wider font-bold text-text-primary">Tổng Tiền</span>
-              <span className="text-[22px] tracking-tight font-bold text-text-primary">{fmt(totalAmount)}</span>
-            </div>
-          </div>
-        </section>
+        </div>
 
+        {/* --- Sticky Footer --- */}
+        <div className="sticky -bottom-6 lg:-bottom-6 -mx-5 lg:-mx-6 -mb-6 mt-6 px-5 lg:px-6 py-4 bg-bg-base/95 backdrop-blur-md border-t border-border flex items-center justify-end gap-3 z-10 shrink-0">
+          <Button onClick={onClose} variant="ghost">
+            Đóng
+          </Button>
+        </div>
       </div>
     </Drawer>
   );

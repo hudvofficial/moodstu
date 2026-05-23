@@ -5,6 +5,7 @@ import type {
 } from "@/types/printing-constants";
 
 export interface PrintingItem {
+  item_id?: string;  // Optional link to inventory_items table for reservation
   name: string;
   quantity: number;
   unitPrice: number;
@@ -39,6 +40,15 @@ export interface PrintingOrderRow {
   items: PrintingItem[];
   updatedAt: string | null;
   createdAt: string | null;
+  // Phase 1: Enhanced payment & inventory tracking
+  depositAmount?: number;
+  finalAmount?: number;
+  paidAmount?: number;
+  remainingAmount?: number;
+  inventoryStatus?: 'none' | 'reserved' | 'stocked_out' | 'cancelled';
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  deliveredAt?: string | null;
 }
 
 export interface PrintingOrderDetail extends PrintingOrderRow {
@@ -64,9 +74,14 @@ export interface PrintingOrdersPage {
 export interface PrintingStats {
   total: number;
   choXuLy: number;
+  datCoc: number;      // Phase 2: After deposit
   dangIn: number;
   daIn: number;
-  daNhan: number;
+  daGiao: number;      // Phase 2: After delivery
+  hoanThanh: number;   // Phase 2: Completed
+  huyDon: number;      // Phase 2: Cancelled
+  daNhan: number;      // Legacy
+  daHuy: number;       // Legacy
   totalCost: number;
   unpaidCost: number;
 }
@@ -134,4 +149,154 @@ export interface LabDebtData {
   totalLabs: number;
   totalOrders: number;
   items: LabDebtEntry[];
+}
+
+// ─── PHASE 1: Order Payments & Inventory Reservations ───
+
+export type OrderPaymentType = 'deposit' | 'final' | 'refund' | 'adjustment';
+export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'other';
+export type ReservationStatus = 'active' | 'fulfilled' | 'cancelled' | 'expired';
+
+export interface OrderPayment {
+  id: string;
+  order_id: string;
+  payment_id: string | null;
+  receipt_id: string | null;
+  payment_type: OrderPaymentType;
+  amount: number;
+  payment_date: string;
+  payment_method: PaymentMethod;
+  notes: string | null;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface InventoryReservation {
+  id: string;
+  item_id: string;
+  order_id: string;
+  reserved_quantity: number;
+  reserved_at: string;
+  expires_at: string | null;
+  status: ReservationStatus;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields (optional)
+  item_name?: string;
+  item_code?: string;
+  unit?: string;
+}
+
+export interface OrderPaymentSummary {
+  order_id: string;
+  total_amount: number;
+  deposit_paid: number;
+  final_paid: number;
+  refund_amount: number;
+  adjustment_amount: number;
+  total_paid: number;
+  remaining: number;
+}
+
+export interface InventoryAvailableStock {
+  id: string;
+  studio_id: string;
+  item_code: string;
+  name: string;
+  current_stock: number;
+  unit: string | null;
+  reserved_quantity: number;
+  available_stock: number;
+  min_stock: number | null;
+  stock_status: 'in_stock' | 'low_stock' | 'out_of_stock';
+}
+
+// ─── PHASE 1: Action Inputs ───
+
+export interface RecordDepositPaymentInput {
+  orderId: string;
+  depositAmount: number;
+  paymentMethod: PaymentMethod;
+  paymentDate?: string;
+  notes?: string;
+}
+
+export interface StartProductionInput {
+  orderId: string;
+  expiresInDays?: number; // Default 7 days
+}
+
+export interface CompleteProductionInput {
+  orderId: string;
+  manualStockOut?: boolean;
+  adjustedItems?: Array<{
+    item_id: string;
+    quantity: number;
+  }>;
+}
+
+export interface CancelOrderInput {
+  orderId: string;
+  reason: string;
+  refundAmount?: number;
+  refundMethod?: PaymentMethod;
+}
+
+// ─── LAB PAYMENT FLOW ───
+
+// Lab unpaid order with allocation tracking
+export interface LabUnpaidOrder {
+  id: string;
+  orderCode: string;
+  contractCode: string;
+  customerName: string;
+  totalAmount: number;
+  allocatedAmount: number;     // Already paid amount to lab
+  remainingAmount: number;      // Still owed to lab
+  orderDate: string;
+  status: PrintingOrderStatus;
+}
+
+// Individual allocation within a payment
+export interface LabPaymentAllocation {
+  orderId: string;
+  orderCode: string;
+  amount: number;
+}
+
+// Lab payment history item with allocations
+export interface LabPaymentHistoryItem {
+  id: string;
+  paymentDate: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  note: string | null;
+  allocations: LabPaymentAllocation[];
+  createdBy: string | null;
+  createdAt: string;
+}
+
+// Paginated result for payment history
+export interface LabPaymentHistoryPage {
+  items: LabPaymentHistoryItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// Input type for recording lab payment
+export interface RecordLabPaymentInput {
+  lab_id: string;
+  amount: number;
+  payment_method: PaymentMethod;
+  payment_date?: string;
+  note?: string;
+  allocations: Array<{
+    printing_order_id: string;
+    amount: number;
+  }>;
 }

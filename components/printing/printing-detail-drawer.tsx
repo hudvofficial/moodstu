@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Trash2, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -24,12 +24,26 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/lib/toast-utils";
 import { Badge } from "@/components/ui/badge";
+import { PRINTING_STATUS_LABELS, PRINTING_STATUS_VARIANTS } from "@/types/printing-constants";
+import { DepositPaymentModal } from "@/components/printing/deposit-payment-modal";
+import { FinalPaymentModal } from "@/components/printing/final-payment-modal";
+import { CancelOrderModal } from "@/components/printing/cancel-order-modal";
+import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
+import { PaymentHistorySection } from "@/components/printing/payment-history-section";
+import {
+  recordDepositPayment,
+  startProduction,
+  completeProduction,
+} from "@/app/actions/printing-workflow-mutations";
+import { getOrderPaymentSummary } from "@/app/actions/printing-queries";
+import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type {
   ContractOption,
   LabOption,
   PrintingItem,
   PrintingOrderRow,
 } from "@/types/printing";
+import type { InventoryItem } from "@/types/inventory";
 import type { PrintingOrderStatus } from "@/types/printing-constants";
 
 type ActionResult<T> =
@@ -48,21 +62,23 @@ interface Props {
 interface NextStepAction {
   label: string;
   nextStatus: PrintingOrderStatus;
+  action?: 'deposit' | 'start_production' | 'complete_production' | 'mark_delivered' | 'final_payment' | 'default';
 }
 
 function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
-  const isReadyForLabReceive = (status as string) === "da_in";
-  if (isReadyForLabReceive) {
-    return { label: "Da nhan tu lab", nextStatus: "da_nhan" };
-  }
-
   switch (status) {
     case "cho_xu_ly":
-      return { label: "Bắt đầu in", nextStatus: "dang_in" };
+      return { label: "Thu đặt cọc", nextStatus: "dat_coc" as PrintingOrderStatus, action: "deposit" };
+    case "dat_coc":
+      return { label: "Bắt đầu in", nextStatus: "dang_in", action: "start_production" };
     case "dang_in":
-      return { label: "Hoàn thành in", nextStatus: "da_in" };
+      return { label: "Hoàn thành in", nextStatus: "da_in", action: "complete_production" };
     case "da_in":
-      return { label: "Đã giao khách", nextStatus: "da_nhan" };
+      return { label: "Đã giao khách", nextStatus: "da_giao" as PrintingOrderStatus, action: "mark_delivered" };
+    case "da_giao":
+      return { label: "Thu tất toán", nextStatus: "hoan_thanh" as PrintingOrderStatus, action: "final_payment" };
+    case "da_nhan": // Legacy status
+      return null;
     default:
       return null;
   }
@@ -122,6 +138,12 @@ export default function PrintingDetailDrawer({
   const [form, setForm] = useState<FormState>(() => getInitialForm(order));
   const [loading, setLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showFinalPaymentModal, setShowFinalPaymentModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showLabPaymentModal, setShowLabPaymentModal] = useState(false);
+  const [paymentSummary, setPaymentSummary] = useState<{ remaining: number } | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
 
@@ -130,6 +152,31 @@ export default function PrintingDetailDrawer({
     setForm(getInitialForm(order));
     setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
     setConfirmDeleteOpen(false);
+    setShowDepositModal(false);
+    setShowFinalPaymentModal(false);
+    setShowCancelModal(false);
+
+    // Fetch payment summary for order
+    if (order) {
+      getOrderPaymentSummary(order.id)
+        .then((result) => {
+          if (result.success) {
+            setPaymentSummary({ remaining: result.data.remaining });
+          }
+        })
+        .catch(() => {
+          // Silently fail, not critical
+        });
+    }
+
+    // Fetch inventory items for linking
+    fetchInventoryPickerItems({ activeOnly: true, limit: 100 })
+      .then((result) => {
+        setInventoryItems(result.items);
+      })
+      .catch(() => {
+        // Silently fail, not critical
+      });
   }, [isOpen, order]);
 
   const selectableLabs = labs;
@@ -202,6 +249,7 @@ export default function PrintingDetailDrawer({
   const handleSubmit = async () => {
     const validItems = form.items
       .map((item) => ({
+        item_id: item.item_id || undefined,  // Include item_id if set (for inventory linking)
         name: item.name.trim(),
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
@@ -274,17 +322,65 @@ export default function PrintingDetailDrawer({
   const nextStepAction = order ? getNextStepAction(order.status) : null;
 
   const handleNextStep = async () => {
-    if (!order || !nextStepAction || !onStatusChange) return;
-    setLoading(true);
-    try {
-      await onStatusChange(order, nextStepAction.nextStatus);
-    } catch (error) {
-      toast(
-        error instanceof Error ? error.message : "Lỗi cập nhật trạng thái",
-        "error",
-      );
-    } finally {
-      setLoading(false);
+    if (!order || !nextStepAction) return;
+
+    // Handle different actions based on the action type
+    switch (nextStepAction.action) {
+      case "deposit":
+        // Open deposit modal
+        setShowDepositModal(true);
+        break;
+
+      case "start_production":
+        // Reserve inventory
+        setLoading(true);
+        try {
+          await startProduction({ orderId: order.id });
+          toast("Đã bắt đầu in và reserve vật tư", "success");
+          await onSaved();
+        } catch (error: any) {
+          toast(error.message || "Lỗi bắt đầu in", "error");
+        } finally {
+          setLoading(false);
+        }
+        break;
+
+      case "complete_production":
+        // Stock out inventory
+        setLoading(true);
+        try {
+          await completeProduction({ orderId: order.id });
+          toast("Hoàn thành in, đã xuất kho", "success");
+          await onSaved();
+        } catch (error: any) {
+          toast(error.message || "Lỗi hoàn thành in", "error");
+        } finally {
+          setLoading(false);
+        }
+        break;
+
+      case "final_payment":
+        // Open final payment modal
+        setShowFinalPaymentModal(true);
+        break;
+
+      case "mark_delivered":
+      case "default":
+        // Use onStatusChange callback for other status changes
+        if (onStatusChange) {
+          setLoading(true);
+          try {
+            await onStatusChange(order, nextStepAction.nextStatus);
+          } catch (error) {
+            toast(
+              error instanceof Error ? error.message : "Lỗi cập nhật trạng thái",
+              "error",
+            );
+          } finally {
+            setLoading(false);
+          }
+        }
+        break;
     }
   };
 
@@ -324,15 +420,8 @@ export default function PrintingDetailDrawer({
         width="650px"
         titleBadge={
           order ? (
-            <Badge variant={
-              order.status === "dang_in" ? "warning" :
-              order.status === "da_in" ? "info" :
-              order.status === "da_nhan" ? "success" : "neutral"
-            }>
-              {order.status === "cho_xu_ly" ? "Chờ xử lý" :
-               order.status === "dang_in" ? "Đang in" :
-               order.status === "da_in" ? "Đã in" :
-               order.status === "da_nhan" ? "Đã nhận" : order.status}
+            <Badge variant={PRINTING_STATUS_VARIANTS[order.status]}>
+              {PRINTING_STATUS_LABELS[order.status]}
             </Badge>
           ) : undefined
         }
@@ -450,7 +539,31 @@ export default function PrintingDetailDrawer({
                     )}
                   </div>
 
-                  <div className="border-t border-border/50 pt-3">
+                  <div className="border-t border-border/50 pt-3 space-y-3">
+                    {/* Optional inventory item link */}
+                    <SelectForm
+                      label="Liên kết vật tư (tùy chọn)"
+                      value={item.item_id || ""}
+                      onChange={(value) => {
+                        updateItem(item.tempId, "item_id", value || undefined);
+                        // Auto-fill name from selected item
+                        if (value) {
+                          const selected = inventoryItems.find((i) => i.id === value);
+                          if (selected && !item.name) {
+                            updateItem(item.tempId, "name", selected.name);
+                          }
+                        }
+                      }}
+                      options={[
+                        { value: "", label: "-- Không liên kết --" },
+                        ...inventoryItems.map((i) => ({
+                          value: i.id,
+                          label: `${i.itemCode} - ${i.name}`,
+                        })),
+                      ]}
+                      placeholder="Chọn vật tư để liên kết"
+                    />
+
                     <div>
                       <label className="label-base">Tên sản phẩm</label>
                       <Input
@@ -505,17 +618,47 @@ export default function PrintingDetailDrawer({
                 className="w-full resize-none"
               />
             </div>
+
+            {/* Payment History Section - Only show for existing orders */}
+            {order && (
+              <div className="border-t border-border pt-5">
+                <PaymentHistorySection orderId={order.id} />
+              </div>
+            )}
           </div>
 
           <div className="sticky -bottom-6 lg:-bottom-6 -mx-5 lg:-mx-6 -mb-6 mt-6 px-5 lg:px-6 py-4 bg-bg-base/95 backdrop-blur-md border-t border-border flex flex-wrap items-center justify-between gap-3 z-10 shrink-0">
             {order ? (
-              <Button
-                onClick={() => setConfirmDeleteOpen(true)}
-                variant="danger"
-                disabled={loading}
-              >
-                Xóa
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  variant="danger"
+                  disabled={loading}
+                >
+                  Xóa
+                </Button>
+                {order.status !== "hoan_thanh" && order.status !== "huy_don" && (
+                  <Button
+                    onClick={() => setShowCancelModal(true)}
+                    variant="outline"
+                    disabled={loading}
+                    className="text-warning border-warning hover:bg-warning/10"
+                  >
+                    Hủy đơn
+                  </Button>
+                )}
+                {order.labId && (
+                  <Button
+                    onClick={() => setShowLabPaymentModal(true)}
+                    variant="outline"
+                    disabled={loading}
+                    className="gap-2"
+                  >
+                    <WalletCards className="w-4 h-4" />
+                    Thanh toán lab
+                  </Button>
+                )}
+              </div>
             ) : (
               <div />
             )}
@@ -553,6 +696,55 @@ export default function PrintingDetailDrawer({
         message={`Bạn chắc chắn muốn xóa "${order?.orderCode || ""}"?`}
         confirmLabel="Xóa"
       />
+
+      {order && (
+        <>
+          <DepositPaymentModal
+            isOpen={showDepositModal}
+            onClose={() => setShowDepositModal(false)}
+            order={order}
+            onSuccess={async () => {
+              await onSaved();
+              setShowDepositModal(false);
+            }}
+          />
+
+          <FinalPaymentModal
+            isOpen={showFinalPaymentModal}
+            onClose={() => setShowFinalPaymentModal(false)}
+            order={order}
+            remainingAmount={paymentSummary?.remaining || 0}
+            onSuccess={async () => {
+              await onSaved();
+              setShowFinalPaymentModal(false);
+            }}
+          />
+
+          <CancelOrderModal
+            isOpen={showCancelModal}
+            onClose={() => setShowCancelModal(false)}
+            order={order}
+            onSuccess={async () => {
+              await onSaved();
+              setShowCancelModal(false);
+              onClose(); // Close the drawer after cancelling
+            }}
+          />
+
+          {order.labId && (
+            <LabPaymentModal
+              isOpen={showLabPaymentModal}
+              onClose={() => setShowLabPaymentModal(false)}
+              labId={order.labId}
+              labName={order.labName || undefined}
+              onSuccess={async () => {
+                await onSaved();
+                setShowLabPaymentModal(false);
+              }}
+            />
+          )}
+        </>
+      )}
     </>
   );
 }

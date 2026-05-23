@@ -324,7 +324,7 @@ export async function revalidateContractListCaches() {
   await Promise.all([
     mutate((key: unknown) => {
       if (!Array.isArray(key)) return false;
-      return key[0] === "contracts";
+      return key[0] === "contracts" || key[0] === "contract-drawer-extra";
     }, undefined, { revalidate: true }),
     mutate(contractKeys.stats()),
   ]);

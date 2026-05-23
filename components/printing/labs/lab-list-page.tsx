@@ -43,6 +43,16 @@ const LabFormModal = dynamic(
   { ssr: false },
 );
 
+const LabPaymentModal = dynamic(
+  () => import("@/components/printing/labs/lab-payment-modal").then(mod => ({ default: mod.LabPaymentModal })),
+  { ssr: false },
+);
+
+const LabDetailDrawer = dynamic(
+  () => import("@/components/printing/labs/lab-detail-drawer").then(mod => ({ default: mod.LabDetailDrawer })),
+  { ssr: false },
+);
+
 type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
@@ -83,9 +93,11 @@ interface LabCardProps {
   onEdit: (lab: Lab) => void;
   onToggleStatus: (lab: Lab) => void;
   onDelete: (lab: Lab) => void;
+  onPayDebt?: (lab: Lab) => void;
+  onViewDetail?: (lab: Lab) => void;
 }
 
-function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete }: LabCardProps) {
+function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onViewDetail }: LabCardProps) {
   const isActive = lab.status === "active";
   const statusActionLabel = isActive ? "Tạm dừng" : "Kích hoạt";
   const StatusIcon = isActive ? PauseCircle : PlayCircle;
@@ -206,15 +218,37 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete }: LabCardProps) 
         </p>
       </div>
 
-      <Button
-        unstyled
-        type="button"
-        className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-border bg-bg-hover/40 px-4 py-3 text-left transition-colors hover:bg-bg-hover"
-        onClick={() => onEdit(lab)}
-      >
-        <span className="text-overline text-text-secondary">Quản lý dịch vụ</span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
-      </Button>
+      {/* Footer Actions */}
+      <div className="flex border-t border-border">
+        {debt > 0 && onPayDebt && (
+          <Button
+            unstyled
+            type="button"
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 bg-primary/10 px-4 py-3 transition-colors hover:bg-primary/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPayDebt(lab);
+            }}
+          >
+            <WalletCards className="h-4 w-4 text-primary" />
+            <span className="text-overline font-semibold text-primary">Thanh toán nợ</span>
+          </Button>
+        )}
+        <Button
+          unstyled
+          type="button"
+          className={cn(
+            "flex min-h-12 items-center justify-between gap-3 bg-bg-hover/40 px-4 py-3 text-left transition-colors hover:bg-bg-hover",
+            debt > 0 && onPayDebt ? "flex-1 border-l border-border" : "w-full"
+          )}
+          onClick={() => onViewDetail ? onViewDetail(lab) : onEdit(lab)}
+        >
+          <span className="text-overline text-text-secondary">
+            {onViewDetail ? "Xem chi tiết" : "Quản lý dịch vụ"}
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+        </Button>
+      </div>
     </article>
   );
 }
@@ -225,6 +259,14 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<Lab | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("debt_desc");
+
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedLabForPayment, setSelectedLabForPayment] = useState<Lab | null>(null);
+
+  // Detail drawer state
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedLabForDetail, setSelectedLabForDetail] = useState<Lab | null>(null);
 
   const {
     data: labsResult,
@@ -331,6 +373,22 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
 
   const handleSaved = async () => {
     await Promise.all([mutateLabs(), mutateDebts()]);
+  };
+
+  const handlePayDebt = (lab: Lab) => {
+    setSelectedLabForPayment(lab);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    await Promise.all([mutateLabs(), mutateDebts()]);
+    setPaymentModalOpen(false);
+    setSelectedLabForPayment(null);
+  };
+
+  const handleViewDetail = (lab: Lab) => {
+    setSelectedLabForDetail(lab);
+    setDetailDrawerOpen(true);
   };
 
   const handleToggleStatus = async (lab: Lab) => {
@@ -494,6 +552,8 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
                 onEdit={openEdit}
                 onToggleStatus={handleToggleStatus}
                 onDelete={setDeleteTarget}
+                onPayDebt={handlePayDebt}
+                onViewDetail={handleViewDetail}
               />
             ))}
           </div>
@@ -508,6 +568,27 @@ function LabListInner({ initialLabs, initialDebts }: Props) {
         }}
         lab={editingLab}
         onSaved={handleSaved}
+      />
+
+      <LabPaymentModal
+        isOpen={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setSelectedLabForPayment(null);
+        }}
+        labId={selectedLabForPayment?.id}
+        labName={selectedLabForPayment?.lab_name}
+        onSuccess={handlePaymentSuccess}
+      />
+
+      <LabDetailDrawer
+        isOpen={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedLabForDetail(null);
+        }}
+        lab={selectedLabForDetail}
+        debt={selectedLabForDetail ? getLabDebt(selectedLabForDetail, debtMap) : 0}
       />
 
       <ConfirmDialog

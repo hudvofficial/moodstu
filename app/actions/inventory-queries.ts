@@ -379,6 +379,9 @@ export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTr
             inventory_items (
               name,
               item_code
+            ),
+            performer:users!performed_by (
+              full_name
             )
           `)
           .or(`id.eq.${txnId},parent_transaction_id.eq.${txnId}`)
@@ -393,6 +396,7 @@ export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTr
           ...txn,
           item_name: txn.inventory_items?.name,
           item_code: txn.inventory_items?.item_code,
+          performer_name: txn.performer?.full_name || null,
         })) as InventoryTransaction[];
       }),
       "fetchOrderFulfillments"

@@ -2,6 +2,8 @@
 
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { Switch } from "@/components/ui/switch";
+import { Layers } from "lucide-react";
 import type { LabOption, PrintingStats } from "@/types/printing";
 
 interface Props {
@@ -13,12 +15,18 @@ interface Props {
   onStatusChange: (status: string) => void;
   onLabChange: (labId: string) => void;
   onPaymentStatusChange: (paymentStatus: string) => void;
+  // Group toggle
+  isGrouped?: boolean;
+  onGroupChange?: (grouped: boolean) => void;
+  groupDisabled?: boolean;
 }
 
+// Payment options using DB values (English)
 const PAYMENT_OPTIONS = [
   { value: "all", label: "Thanh toán" },
-  { value: "chua_thanh_toan", label: "Chưa thanh toán" },
-  { value: "da_thanh_toan", label: "Đã thanh toán" },
+  { value: "unpaid", label: "Chưa thanh toán" },
+  { value: "partial", label: "Trả 1 phần" },
+  { value: "paid", label: "Đã thanh toán" },
 ];
 
 export default function PrintingFilters({
@@ -30,13 +38,19 @@ export default function PrintingFilters({
   onStatusChange,
   onLabChange,
   onPaymentStatusChange,
+  isGrouped = false,
+  onGroupChange,
+  groupDisabled = false,
 }: Props) {
   const statusTabs = [
     { label: "Tất cả", value: "all", count: stats.total },
     { label: "Chờ xử lý", value: "cho_xu_ly", count: stats.choXuLy },
+    { label: "Đã đặt cọc", value: "dat_coc", count: stats.datCoc },
     { label: "Đang in", value: "dang_in", count: stats.dangIn },
     { label: "Đã in", value: "da_in", count: stats.daIn },
-    { label: "Đã nhận", value: "da_nhan", count: stats.daNhan },
+    { label: "Đã giao", value: "da_giao", count: stats.daGiao },
+    { label: "Hoàn thành", value: "hoan_thanh", count: stats.hoanThanh },
+    { label: "Hủy đơn", value: "huy_don", count: stats.huyDon },
   ];
 
   const labOptions = [
@@ -72,6 +86,23 @@ export default function PrintingFilters({
           placeholder="Thanh toán"
           options={PAYMENT_OPTIONS}
         />
+        {onGroupChange && (
+          <>
+            <div className="h-5 border-l border-border shrink-0" />
+            <div
+              className="flex items-center gap-2 shrink-0"
+              title="Gom nhóm theo hợp đồng"
+            >
+              <Layers className="w-4 h-4 text-text-muted shrink-0" />
+              <Switch
+                checked={isGrouped}
+                onCheckedChange={onGroupChange}
+                disabled={groupDisabled}
+                aria-label="Gom nhóm hợp đồng"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* DESKTOP: Tabs + Dropdowns (no inline search — uses header search) */}
@@ -82,7 +113,7 @@ export default function PrintingFilters({
           onChange={onStatusChange}
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <SelectPill
             value={labId}
             onChange={onLabChange}
@@ -97,6 +128,23 @@ export default function PrintingFilters({
             placeholder="Thanh toán"
             options={PAYMENT_OPTIONS}
           />
+          {onGroupChange && (
+            <>
+              <div className="h-5 border-l border-border" />
+              <div
+                className="flex items-center gap-2 group"
+                title="Gom nhóm theo hợp đồng"
+              >
+                <Layers className="w-4 h-4 text-text-muted" />
+                <Switch
+                  checked={isGrouped}
+                  onCheckedChange={onGroupChange}
+                  disabled={groupDisabled}
+                  aria-label="Gom nhóm hợp đồng"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

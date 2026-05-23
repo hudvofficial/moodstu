@@ -13,6 +13,7 @@ import {
   useContractDetail,
   useActiveEmployees,
 } from "@/lib/hooks/use-contracts";
+import { mutate } from "swr";
 import ContractDetailLoading from "@/app/(protected)/contracts/[id]/loading";
 import type {
   Contract,
@@ -225,6 +226,8 @@ export default function ContractDetailClient({
       { revalidate: false },
     );
 
+    void mutate(["contract-drawer-extra", id], undefined, { revalidate: true });
+
     return true;
   }, [id, mutateContractDetail]);
 
@@ -243,9 +246,15 @@ export default function ContractDetailClient({
 
     const now = Date.now();
 
+    const doRefresh = () => {
+      void revalidateContractDetailCaches(id).then(() => {
+        void mutateContractDetail();
+      });
+    };
+
     if (now >= refreshCooldownUntilRef.current) {
       refreshCooldownUntilRef.current = now + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
-      void revalidateContractDetailCaches(id);
+      doRefresh();
       return;
     }
 
@@ -254,9 +263,9 @@ export default function ContractDetailClient({
     refreshSettleTimerRef.current = setTimeout(() => {
       refreshSettleTimerRef.current = null;
       refreshCooldownUntilRef.current = Date.now() + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
-      void revalidateContractDetailCaches(id);
+      doRefresh();
     }, Math.max(refreshCooldownUntilRef.current - now, 0));
-  }, [id, patchContractRealtimePayload]);
+  }, [id, patchContractRealtimePayload, mutateContractDetail]);
 
   const refreshContractCachesBatch = useCallback((payloads: RealtimePayload[]) => {
     let needsRefresh = false;

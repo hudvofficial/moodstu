@@ -21,6 +21,7 @@ interface AdjustmentData {
 
 type WorkProgressRow = {
   assigned_to: string | null;
+  vendor_id?: string | null;
   cost: number | null;
   contracts: Array<{ contract_code?: string | null }> | null;
 };
@@ -242,7 +243,7 @@ export async function validatePayrollWarningsAction(month: number, year: number)
 
       const { data: workProgress, error: wpErr } = await supabase
         .from("work_tasks")
-        .select("assigned_to, cost, contracts(contract_code)")
+        .select("assigned_to, vendor_id, cost, contracts(contract_code)")
         .eq("status", "Hoàn thành")
         .gte("deadline", startOfMonth)
         .lte("deadline", endOfMonth);
@@ -254,6 +255,8 @@ export async function validatePayrollWarningsAction(month: number, year: number)
 
       workProgress?.forEach((task: WorkProgressRow) => {
         const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
+        if (task.vendor_id) return; // Vendor tasks do not affect employee payroll
+
         if (!task.assigned_to) {
           unassignedTasks.push(contractRef);
         }
@@ -336,7 +339,7 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
 
       const { data: workProgress, error: wpErr } = await supabase
         .from("work_tasks")
-        .select("assigned_to, cost, contracts(contract_code)")
+        .select("assigned_to, vendor_id, cost, contracts(contract_code)")
         .eq("status", "Hoàn thành")
         .gte("deadline", startOfMonth)
         .lte("deadline", endOfMonth);
@@ -351,6 +354,8 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
 
       workProgress?.forEach((task: WorkProgressRow) => {
         const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
+        if (task.vendor_id) return; // Vendor tasks do not affect employee payroll
+
         if (!task.assigned_to) {
           unassignedTasks.add(contractRef);
           hasWarnings = true;

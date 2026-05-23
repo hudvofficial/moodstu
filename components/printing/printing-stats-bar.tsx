@@ -2,10 +2,8 @@
 
 import {
   CircleDollarSign,
-  Printer,
-  Clock3,
-  PackageCheck,
-  ScanLine,
+  AlertCircle,
+  CheckCircle2,
   Truck,
 } from "lucide-react";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
@@ -14,45 +12,13 @@ import type { PrintingStats } from "@/types/printing";
 
 interface Props {
   stats: PrintingStats;
-  /** Mobile compact: only show 2 key metrics */
+  /** Mobile compact: only show critical metrics */
   compact?: boolean;
 }
 
 export default function PrintingStatsBar({ stats, compact }: Props) {
-  const allItems: StatItem[] = [
-    {
-      icon: Printer,
-      label: "Tổng đơn",
-      value: String(stats.total),
-    },
-    {
-      icon: Clock3,
-      label: "Chờ xử lý",
-      value: String(stats.choXuLy),
-      iconBg: "bg-warning/10",
-      iconColor: "text-warning",
-    },
-    {
-      icon: ScanLine,
-      label: "Đang in",
-      value: String(stats.dangIn),
-      iconBg: "bg-info/10",
-      iconColor: "text-info",
-    },
-    {
-      icon: PackageCheck,
-      label: "Đã in",
-      value: String(stats.daIn),
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
-    },
-    {
-      icon: Truck,
-      label: "Đã nhận",
-      value: String(stats.daNhan),
-      iconBg: "bg-success/10",
-      iconColor: "text-success",
-    },
+  // V2: Key business metrics only (no duplicate with tabs)
+  const keyMetrics: StatItem[] = [
     {
       icon: CircleDollarSign,
       label: "Công nợ",
@@ -60,12 +26,33 @@ export default function PrintingStatsBar({ stats, compact }: Props) {
       iconBg: "bg-error/10",
       iconColor: "text-error",
     },
+    {
+      icon: AlertCircle,
+      label: "Cần xử lý",
+      value: String(stats.choXuLy + stats.datCoc), // Urgent: chờ xử lý + đã đặt cọc
+      iconBg: "bg-warning/10",
+      iconColor: "text-warning",
+    },
+    {
+      icon: CheckCircle2,
+      label: "Hoàn thành",
+      value: String(stats.hoanThanh),
+      iconBg: "bg-success/10",
+      iconColor: "text-success",
+    },
+    {
+      icon: Truck,
+      label: "Sẵn sàng giao",
+      value: String(stats.daIn + stats.daGiao), // Ready: đã in + đã giao
+      iconBg: "bg-info/10",
+      iconColor: "text-info",
+    },
   ];
 
-  // Mobile compact: only show total + unpaid debt (2 key metrics)
+  // Mobile compact: only show debt + urgent (2 most critical)
   const items = compact
-    ? allItems.filter((i) => i.label === "Tổng đơn" || i.label === "Công nợ")
-    : allItems;
+    ? keyMetrics.filter((i) => i.label === "Công nợ" || i.label === "Cần xử lý")
+    : keyMetrics;
 
   return <StatsBar items={items} />;
 }

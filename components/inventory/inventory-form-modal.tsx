@@ -78,6 +78,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
   );
   const [salePrice, setSalePrice] = useState(editItem?.sale_price || 0);
   const [supplier, setSupplier] = useState(editItem?.supplier || "");
+  const [imageUrl, setImageUrl] = useState(editItem?.image_url || "");
   const [notes, setNotes] = useState(editItem?.notes || "");
   const [error, setError] = useState("");
 
@@ -108,6 +109,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         purchase_price: purchasePrice,
         sale_price: salePrice,
         supplier: supplier.trim() || undefined,
+        image_url: imageUrl.trim() || undefined,
         notes: notes.trim() || undefined,
       };
 
@@ -238,6 +240,21 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
               placeholder="VD: Công ty ABC"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="label-base">Ảnh vật tư (URL)</label>
+          <Input
+            value={imageUrl}
+            onChange={(event) => setImageUrl(event.target.value)}
+            placeholder="https://example.com/image.jpg"
+            type="url"
+          />
+          {imageUrl && (
+            <p className="text-xs text-text-muted mt-1.5">
+              💡 Preview sẽ hiển thị trong chi tiết vật tư
+            </p>
+          )}
         </div>
 
         <div>

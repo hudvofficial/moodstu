@@ -4,7 +4,8 @@
       "Bash(npx tsc *)",
       "Bash(npx web-push *)",
       "Bash(npm install *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(supabase db *)"
     ]
   }
 }

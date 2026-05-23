@@ -117,30 +117,43 @@ export async function getContractsProfitBatch(contractIds: string[]) {
   return withAuth(async (supabase) => {
     if (contractIds.length === 0) return [];
 
-    const [contractsRes, tasksRes, printsRes, expensesRes] = await Promise.all([
-      supabase
-        .from("contracts")
-        .select("id, contract_code, total_amount, paid_amount")
-        .in("id", contractIds),
-      supabase
-        .from("work_tasks")
-        .select("id, contract_id, cost")
-        .in("contract_id", contractIds),
-      supabase
-        .from("printing_orders")
-        .select("id, contract_id, total_amount")
-        .in("contract_id", contractIds),
-      supabase
-        .from("expenses")
-        .select("id, contract_id, amount, description")
-        .in("contract_id", contractIds)
-        .is("deleted_at", null),
-    ]);
+    const CHUNK_SIZE = 50;
+    const contractIdChunks = [];
+    for (let i = 0; i < contractIds.length; i += CHUNK_SIZE) {
+      contractIdChunks.push(contractIds.slice(i, i + CHUNK_SIZE));
+    }
 
-    const contracts = contractsRes.data || [];
-    const tasks = tasksRes.data || [];
-    const prints = printsRes.data || [];
-    const expenses = expensesRes.data || [];
+    const contracts: any[] = [];
+    const tasks: any[] = [];
+    const prints: any[] = [];
+    const expenses: any[] = [];
+
+    for (const chunk of contractIdChunks) {
+      const [contractsRes, tasksRes, printsRes, expensesRes] = await Promise.all([
+        supabase
+          .from("contracts")
+          .select("id, contract_code, total_amount, paid_amount")
+          .in("id", chunk),
+        supabase
+          .from("work_tasks")
+          .select("id, contract_id, cost")
+          .in("contract_id", chunk),
+        supabase
+          .from("printing_orders")
+          .select("id, contract_id, total_amount")
+          .in("contract_id", chunk),
+        supabase
+          .from("expenses")
+          .select("id, contract_id, amount, description")
+          .in("contract_id", chunk)
+          .is("deleted_at", null),
+      ]);
+
+      contracts.push(...(contractsRes.data || []));
+      tasks.push(...(tasksRes.data || []));
+      prints.push(...(printsRes.data || []));
+      expenses.push(...(expensesRes.data || []));
+    }
 
     return contracts.map((c) => {
       const totalAmount = Number(c.total_amount) || 0;

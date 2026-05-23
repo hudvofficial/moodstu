@@ -327,9 +327,13 @@ export async function recordLabPayment(
       source: "server_action",
     });
 
+    // Revalidate Next.js server-side cache
+    // Note: SWR client cache must be invalidated on client-side via onSuccess callback
     revalidatePath("/printing/labs");
     revalidatePath("/printing");
     revalidatePath("/finance");
+    revalidatePath("/"); // Dashboard root
+
     return null;
   });
 }

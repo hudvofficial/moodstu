@@ -53,8 +53,9 @@ function PrintingTableInner({
     <TableWrapper containerClassName="hidden lg:block">
       <THead>
         <TR className="hover:bg-transparent h-auto">
-          <TH>Đơn in / Hợp đồng</TH>
-          <TH>SL Đơn / Lab</TH>
+          <TH>Đơn in</TH>
+          <TH>Hợp đồng</TH>
+          <TH>Lab</TH>
           <TH>Tổng tiền</TH>
           <TH className="w-48">Tiến độ in ấn</TH>
           <TH>Thanh toán (Lab)</TH>
@@ -69,7 +70,7 @@ function PrintingTableInner({
               <ContractGroupRow
                 key={group.contractCode}
                 group={group}
-                onClick={() => onViewGroup?.(group)}
+                onClick={onViewGroup}
               />
             ))
           : orders.map((order) => (
@@ -77,7 +78,7 @@ function PrintingTableInner({
                 key={order.id}
                 order={order}
                 showContract
-                onEdit={() => onEdit(order)}
+                onEdit={onEdit}
                 onStatusChange={onStatusChange}
               />
             ))}
@@ -90,7 +91,7 @@ function PrintingTableInner({
 
 interface ContractGroupProps {
   group: ContractGroup;
-  onClick?: () => void;
+  onClick?: (group: ContractGroup) => void;
 }
 
 const ContractGroupRow = memo(function ContractGroupRow({
@@ -99,10 +100,10 @@ const ContractGroupRow = memo(function ContractGroupRow({
 }: ContractGroupProps) {
   return (
     <TR
-      onClick={onClick}
+      onClick={() => onClick?.(group)}
       className="bg-bg-main hover:bg-bg-subtle cursor-pointer group transition-colors"
     >
-      <TD>
+      <TD colSpan={2}>
         <div className="flex flex-col gap-1">
           <span className="font-semibold text-text-main group-hover:text-primary transition-colors">
             {group.contractCode}
@@ -172,7 +173,7 @@ const ContractGroupRow = memo(function ContractGroupRow({
 interface OrderRowProps {
   order: PrintingOrderRow;
   showContract: boolean;
-  onEdit: () => void;
+  onEdit: (order: PrintingOrderRow) => void;
   onStatusChange: (order: PrintingOrderRow, newStatus: string) => Promise<void>;
 }
 
@@ -246,7 +247,7 @@ const OrderRow = memo(function OrderRow({
         </span>
       </TD>
       <TD className="text-right">
-        <Button size="sm" variant="outline" onClick={onEdit}>
+        <Button size="sm" variant="outline" onClick={() => onEdit(order)}>
           Sửa
         </Button>
       </TD>

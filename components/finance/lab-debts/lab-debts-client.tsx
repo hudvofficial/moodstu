@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { FlaskConical } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FlaskConical, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { fetchLabDebts } from "@/app/actions/finance-operations-queries";
 import { formatVnd } from "@/components/finance/finance-format";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import type { ActionResult, LabDebtItem } from "@/types/finance-operations";
 
@@ -21,13 +23,29 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 }
 
 export function LabDebtsClient({ initialData }: LabDebtsClientProps) {
-  const { data, error, isLoading } = useSWR(cacheKeys.labDebts(), () => requireData(fetchLabDebts()), { fallbackData: initialData });
+  const { data, error, isLoading, mutate } = useSWR(cacheKeys.labDebts(), () => requireData(fetchLabDebts()), { fallbackData: initialData });
+
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedLab, setSelectedLab] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được công nợ lab.");
   }, [error]);
 
   const items = data || initialData;
+
+  // Handlers
+  const openPaymentModal = (labId: string, labName: string) => {
+    setSelectedLab({ id: labId, name: labName });
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    await mutate(); // Refresh debt data
+    setPaymentModalOpen(false);
+    setSelectedLab(null);
+  };
 
   return (
     <>
@@ -55,12 +73,13 @@ export function LabDebtsClient({ initialData }: LabDebtsClientProps) {
                 <TH className="text-right">Tổng đơn</TH>
                 <TH className="text-right">Đã trả</TH>
                 <TH className="text-right">Còn nợ</TH>
+                <TH className="text-right">Thao tác</TH>
               </TR>
             </THead>
             <TBody>
               {items.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-7 text-center text-text-muted">
+                  <TD colSpan={6} className="py-7 text-center text-text-muted">
                     Không có công nợ lab.
                   </TD>
                 </TR>
@@ -72,6 +91,21 @@ export function LabDebtsClient({ initialData }: LabDebtsClientProps) {
                     <TD className="text-right tabular-nums">{formatVnd(item.total_orders)}</TD>
                     <TD className="text-right tabular-nums">{formatVnd(item.total_paid)}</TD>
                     <TD className="text-right tabular-nums font-bold text-error">{formatVnd(item.remaining)}</TD>
+                    <TD className="text-right">
+                      {item.remaining > 0 ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => openPaymentModal(item.lab_id, item.lab_name)}
+                          className="gap-2"
+                        >
+                          <WalletCards className="w-4 h-4" />
+                          Thanh toán
+                        </Button>
+                      ) : (
+                        <span className="text-success text-sm">✓ Đã thanh toán</span>
+                      )}
+                    </TD>
                   </TR>
                 ))
               )}
@@ -79,6 +113,20 @@ export function LabDebtsClient({ initialData }: LabDebtsClientProps) {
           </TableWrapper>
         )}
       </section>
+
+      {/* Lab Payment Modal */}
+      {selectedLab && (
+        <LabPaymentModal
+          isOpen={paymentModalOpen}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedLab(null);
+          }}
+          labId={selectedLab.id}
+          labName={selectedLab.name}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </>
   );
 }

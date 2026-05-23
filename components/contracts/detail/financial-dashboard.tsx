@@ -10,6 +10,8 @@ interface Props {
   subtotal?: number;
   discountAmount?: number;
   estimatedProfit?: number | null;
+  hrCost?: number;
+  printingCost?: number;
 }
 
 export default function FinancialDashboard({
@@ -20,6 +22,8 @@ export default function FinancialDashboard({
   subtotal,
   discountAmount = 0,
   estimatedProfit = null,
+  hrCost,
+  printingCost,
 }: Props) {
   const progress =
     totalAmount > 0
@@ -54,7 +58,24 @@ export default function FinancialDashboard({
         </div>
 
         {estimatedProfit != null && (
-          <div className="rounded-md bg-bg-hover/50 p-3">
+          <div className="rounded-md bg-bg-hover/50 p-3 space-y-2">
+            {hrCost && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-text-secondary">Chi phí nhân sự</span>
+                <span className="text-body-sm font-medium text-text-primary">
+                  −{formatCurrency(hrCost)} {CURRENCY_SYMBOL}
+                </span>
+              </div>
+            )}
+            {printingCost && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-text-secondary">Chi phí in ấn</span>
+                <span className="text-body-sm font-medium text-text-primary">
+                  −{formatCurrency(printingCost)} {CURRENCY_SYMBOL}
+                </span>
+              </div>
+            )}
+            {(hrCost || printingCost) && <div className="border-t border-border border-dashed" />}
             <div className="flex items-center justify-between gap-3">
               <span className="text-body-sm font-semibold text-text-secondary">
                 Lợi nhuận ròng
@@ -141,7 +162,24 @@ export default function FinancialDashboard({
         </div>
 
         {estimatedProfit != null && (
-          <div className="rounded-md bg-bg-hover/50 p-3">
+          <div className="rounded-md bg-bg-hover/50 p-3 space-y-2">
+            {hrCost && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-text-secondary">Chi phí nhân sự</span>
+                <span className="text-body-sm font-medium text-text-primary">
+                  −{formatCurrency(hrCost)} {CURRENCY_SYMBOL}
+                </span>
+              </div>
+            )}
+            {printingCost && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-sm text-text-secondary">Chi phí in ấn</span>
+                <span className="text-body-sm font-medium text-text-primary">
+                  −{formatCurrency(printingCost)} {CURRENCY_SYMBOL}
+                </span>
+              </div>
+            )}
+            {(hrCost || printingCost) && <div className="border-t border-border border-dashed" />}
             <div className="flex items-center justify-between gap-3">
               <span className="text-body-sm font-semibold text-text-secondary">
                 Lợi nhuận ròng

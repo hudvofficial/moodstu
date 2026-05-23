@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
+import { SwipeableCard } from "@/components/ui/swipeable-card";
+import type { SwipeAction } from "@/components/ui/swipeable-card";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import {
   INVENTORY_STATUS_MAP,
@@ -148,49 +150,73 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
 
 // ─── MOBILE CARD LIST ────────────────────────────────
 
-function MobileCardList({ items, onRowClick, onHover }: InventoryTableProps) {
+function MobileCardList({ items, onRowClick, onHover, onStockIn, onStockOut }: InventoryTableProps) {
   return (
     <div className="lg:hidden flex flex-col gap-3 pt-1">
       {items.map((item, i) => {
         const status = getStatusDisplay(item);
+        const canMoveStock = item.status === "active";
+
+        // Swipe actions
+        const leftActions: SwipeAction[] = canMoveStock && onStockOut ? [{
+          id: "stock-out",
+          label: "Xuất",
+          icon: <ArrowUpFromLine className="w-4 h-4" />,
+          className: "bg-warning text-white",
+          onClick: () => onStockOut(item),
+        }] : [];
+
+        const rightActions: SwipeAction[] = canMoveStock && onStockIn ? [{
+          id: "stock-in",
+          label: "Nhập",
+          icon: <ArrowDownToLine className="w-4 h-4" />,
+          className: "bg-success text-white",
+          onClick: () => onStockIn(item),
+        }] : [];
+
         return (
-          <Button unstyled
+          <SwipeableCard
             key={item.id}
-            onClick={() => onRowClick(item)}
-            onPointerEnter={() => onHover?.(item.id)}
-            onFocus={() => onHover?.(item.id)}
-            className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)}`}
+            leftActions={leftActions}
+            rightActions={rightActions}
           >
-            {/* Row 1: Mã vật tư + Status badge */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-muted font-mono">
-                {item.item_code}
-              </span>
-              <Badge variant={status.variant} className="text-tiny">
-                {status.label}
-              </Badge>
-            </div>
+            <Button unstyled
+              onClick={() => onRowClick(item)}
+              onPointerEnter={() => onHover?.(item.id)}
+              onFocus={() => onHover?.(item.id)}
+              className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)} w-full`}
+            >
+              {/* Row 1: Mã vật tư + Status badge */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-text-muted font-mono">
+                  {item.item_code}
+                </span>
+                <Badge variant={status.variant} className="text-tiny">
+                  {status.label}
+                </Badge>
+              </div>
 
-            {/* Row 2: Tên vật tư */}
-            <h3 className="text-sm font-bold text-text-main mb-1.5 truncate">
-              {item.name}
-            </h3>
+              {/* Row 2: Tên vật tư */}
+              <h3 className="text-sm font-bold text-text-main mb-1.5 truncate">
+                {item.name}
+              </h3>
 
-            {/* Row 3: Category + Stock */}
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="info" className="text-tiny">
-                {getCategoryLabel(item.category)}
-              </Badge>
-              <span className="text-xs text-text-secondary">
-                Tồn: <strong>{item.current_stock}</strong> {getUnitLabel(item.unit)}
-              </span>
-            </div>
+              {/* Row 3: Category + Stock */}
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="info" className="text-tiny">
+                  {getCategoryLabel(item.category)}
+                </Badge>
+                <span className="text-xs text-text-secondary">
+                  Tồn: <strong>{item.current_stock}</strong> {getUnitLabel(item.unit)}
+                </span>
+              </div>
 
-            {/* Row 4: Đơn giá */}
-            <p className="text-sm font-semibold text-text-main">
-              {fmt(item.average_unit_price || 0)}
-            </p>
-          </Button>
+              {/* Row 4: Đơn giá */}
+              <p className="text-sm font-semibold text-text-main">
+                {fmt(item.average_unit_price || 0)}
+              </p>
+            </Button>
+          </SwipeableCard>
         );
       })}
     </div>

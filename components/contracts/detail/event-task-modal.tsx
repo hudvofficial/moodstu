@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Clock, MapPin, CalendarCheck } from "lucide-react";
+import { Clock, MapPin, CalendarCheck, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,15 @@ import {
   addTask,
   deleteTask,
   toggleTaskStatus,
+  copyTasksFromPreviousEvent,
 } from "@/app/actions/work-task-actions";
 import { getActiveEmployees } from "@/app/actions/employee-queries";
+import { getActiveVendors, quickAddVendor } from "@/app/actions/vendor-actions";
 import { checkEmployeeTimeOverlap } from "@/app/actions/task-overlap-actions";
 import { updateContractEvent } from "@/app/actions/contract-event-actions";
 import type { WorkType, TaskStatus, EventType, WorkTask } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
+import type { Vendor } from "@/types/vendor";
 import { TaskListPanel } from "./task-list-panel";
 import type { TaskRow, Employee, ConflictItem } from "./task-list-panel";
 
@@ -64,6 +67,7 @@ export default function EventTaskModal({
 
   // Data
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -73,7 +77,9 @@ export default function EventTaskModal({
   const [form, setForm] = useState({
     work_type: (isOnSet ? "chup_anh" : "hau_ky_anh") as WorkType,
     assigned_to: "",
+    vendor_id: "",
     cost: 0,
+    start_date: event.event_date || "",
     start_time: event.start_time?.slice(0, 5) || "",
     end_time: event.end_time?.slice(0, 5) || "",
   });
@@ -106,11 +112,12 @@ export default function EventTaskModal({
 
     setLoading(true);
     try {
-      const [taskResult, empResult] = await Promise.all([
+      const [taskResult, empResult, vendorResult] = await Promise.all([
         getTasksByEvent(event.id),
         prefetchedEmployees?.length
           ? Promise.resolve({ success: true as const, data: prefetchedEmployees })
           : getActiveEmployees(),
+        getActiveVendors(),
       ]);
       if (!taskResult.success) {
         throw new Error(taskResult.error || "Loi tai danh sach task");
@@ -119,10 +126,13 @@ export default function EventTaskModal({
         throw new Error(empResult.error || "Loi tai danh sach nhan su");
       }
       if (taskResult.data) {
-        setTasks(taskResult.data as TaskRow[]);
+        setTasks(taskResult.data as unknown as TaskRow[]);
       }
       if (empResult.data) {
         setEmployees(empResult.data as Employee[]);
+      }
+      if (vendorResult?.success && vendorResult.data) {
+        setVendors(vendorResult.data as Vendor[]);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Loi tai du lieu");
@@ -169,18 +179,29 @@ export default function EventTaskModal({
 
   const handleEmployeeChange = useCallback(
     (empId: string) => {
-      setForm((prev) => ({ ...prev, assigned_to: empId }));
+      setForm((prev) => ({ ...prev, assigned_to: empId, vendor_id: "" }));
       doConflictCheck(empId, formRef.current.start_time, formRef.current.end_time);
     },
     [doConflictCheck]
   );
 
+  const handleVendorChange = useCallback(
+    (venId: string) => {
+      setForm((prev) => ({ ...prev, vendor_id: venId, assigned_to: "" }));
+      setConflicts([]); // Vendors might not need conflict check in the same way, or skip for now
+    },
+    []
+  );
+
   const handleTimeChange = useCallback(
-    (field: "start_time" | "end_time", val: string) => {
+    (field: "start_date" | "start_time" | "end_time", val: string) => {
       setForm((prev) => {
-        const updated = { ...prev, [field]: val };
-        doConflictCheck(updated.assigned_to, updated.start_time, updated.end_time);
-        return updated;
+        const next = { ...prev, [field]: val };
+        // conflict check mostly relies on time, but we should pass date too ideally. For now, keep signature.
+        if (next.assigned_to && field !== "start_date") {
+          doConflictCheck(next.assigned_to, next.start_time, next.end_time);
+        }
+        return next;
       });
     },
     [doConflictCheck]
@@ -189,24 +210,30 @@ export default function EventTaskModal({
   // Add task.
   const handleAdd = async () => {
     if (submitting) return;
-    if (!form.assigned_to) {
+    if (!form.assigned_to && !form.vendor_id) {
       toast.error("Chọn nhân sự trước");
       return;
     }
 
     const previousTasks = tasks;
     const selectedEmployee = employees.find((emp) => emp.id === form.assigned_to);
+    const selectedVendor = vendors.find((v) => v.id === form.vendor_id);
     const optimisticId = `optimistic-${event.id}-${Date.now()}`;
     const optimisticTask: TaskRow = {
       id: optimisticId,
       work_type: form.work_type,
       assigned_to: form.assigned_to,
+      vendor_id: form.vendor_id,
       status: "dang_lam",
       cost: Number(form.cost) || 0,
+      start_date: form.start_date || null,
       start_time: isOnSet && form.start_time ? form.start_time : null,
       end_time: isOnSet && form.end_time ? form.end_time : null,
       employees: selectedEmployee
         ? { id: selectedEmployee.id, full_name: selectedEmployee.full_name }
+        : null,
+      vendors: selectedVendor
+        ? { id: selectedVendor.id, full_name: selectedVendor.full_name, phone: selectedVendor.phone }
         : null,
     };
 
@@ -219,8 +246,10 @@ export default function EventTaskModal({
         eventId: event.id,
         workType: form.work_type,
         assignedTo: form.assigned_to || undefined,
+        vendorId: form.vendor_id || undefined,
         cost: form.cost,
         deadline: (isOnSet ? event.event_date : event.deadline) ?? undefined,
+        startDate: form.start_date || undefined,
         startTime: isOnSet && form.start_time ? form.start_time : undefined,
         endTime: isOnSet && form.end_time ? form.end_time : undefined,
       });
@@ -235,12 +264,13 @@ export default function EventTaskModal({
                 ...savedTask,
                 id: savedId,
                 employees: savedTask.employees ?? task.employees,
+                vendors: savedTask.vendors ?? task.vendors,
               }
             : task,
         ),
       );
       toast.success("Đã thêm nhân sự!");
-      setForm((prev) => ({ ...prev, assigned_to: "", cost: 0 }));
+      setForm((prev) => ({ ...prev, assigned_to: "", vendor_id: "", cost: 0 }));
       setConflicts([]);
       onSaved();
     } catch (err) {
@@ -295,6 +325,17 @@ export default function EventTaskModal({
         toast.error(error instanceof Error ? error.message : "Lỗi cập nhật task");
       },
     });
+  };
+
+  // Add Vendor inline
+  const handleAddVendor = async (name: string, phone: string, service_type: string) => {
+    const result = await quickAddVendor({ full_name: name, phone, service_type });
+    if (result.success && result.data) {
+      setVendors((prev) => [...prev, result.data as Vendor]);
+      setForm((prev) => ({ ...prev, vendor_id: (result.data as Vendor).id, assigned_to: "" }));
+      return result.data;
+    }
+    throw new Error(result.error || "Lỗi thêm thợ ngoài");
   };
 
   // Total cost.
@@ -381,6 +422,7 @@ export default function EventTaskModal({
           form={form}
           setForm={setForm}
           employees={employees}
+          vendors={vendors}
           conflicts={conflicts}
           submitting={submitting}
           deletingTaskIds={deletingTaskIds}
@@ -388,6 +430,8 @@ export default function EventTaskModal({
           onDelete={handleDelete}
           onAdd={handleAdd}
           onEmployeeChange={handleEmployeeChange}
+          onVendorChange={handleVendorChange}
+          onAddVendor={handleAddVendor}
           onTimeChange={handleTimeChange}
         />
       </div>

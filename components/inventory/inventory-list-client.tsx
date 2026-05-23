@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 /**
  * 📦 InventoryListClient — Main client component for inventory list page
@@ -13,11 +14,11 @@ import { useState } from "react";
  */
 
 import { Suspense, useMemo, useCallback } from "react";
-import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2, History, Package } from "lucide-react";
+import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2, History, Package, ChevronDown, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 
-import { useInventoryFilters, type InventoryTab } from "@/hooks/useInventoryFilters";
+import { useInventoryFilters } from "@/hooks/useInventoryFilters";
 import {
   useInventory,
   useInventoryStats,
@@ -25,6 +26,7 @@ import {
   prefetchInventory,
   revalidateInventory,
 } from "@/lib/hooks/use-inventory";
+import { deleteInventoryTransaction } from "@/app/actions/inventory-mutations";
 import { InventoryStatsBar } from "@/components/inventory/inventory-stats-bar";
 import { InventoryFilters as InventoryFiltersBar } from "@/components/inventory/inventory-filters";
 import { TransactionFilters, computeDateRange } from "@/components/inventory/transaction-filters";
@@ -41,10 +43,10 @@ import { StockInModal } from "@/components/inventory/stock-in-modal";
 import { StockOutModal } from "@/components/inventory/stock-out-modal";
 import { InventoryDetailDrawer } from "@/components/inventory/inventory-detail-drawer";
 import { OrderDetailsDrawer } from "@/components/inventory/order-details-drawer";
-import { FAB } from "@/components/ui/fab";
+import { ExpandableFAB } from "@/components/ui/expandable-fab";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { INVENTORY_PAGE_SIZE, TRANSACTION_PAGE_SIZE } from "@/types/inventory-constants";
 
 interface InventoryListClientProps {
   initialList?: { data: InventoryItem[]; count: number };
@@ -170,6 +172,9 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [drawerItem, setDrawerItem] = useState<InventoryItem | null>(null);
   const [drawerTxn, setDrawerTxn] = useState<InventoryTransaction | null>(null);
+  const [showMobileStats, setShowMobileStats] = useState(false);
+  const [txnToDelete, setTxnToDelete] = useState<InventoryTransaction | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // Pagination based on active tab
   const totalPages = tab === "history"
@@ -209,50 +214,135 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
     setShowStockOut(true);
   }, []);
 
+  // ── Transaction Action Handlers ──
+  const handlePrint = useCallback((txn: InventoryTransaction) => {
+    let routeId = "";
+    if (txn.receipt_id) {
+      // Regular receipt from receipts table
+      routeId = txn.receipt_id;
+    } else if (txn.source_type === 'contract_addon_sale' && txn.source_id) {
+      // Payment receipt from contract addon sale
+      routeId = `payment:${txn.source_id}`;
+    } else if (txn.source_id && txn.source_id !== txn.parent_transaction_id && txn.source_id !== txn.id) {
+      // Other payment receipt
+      routeId = `payment:${txn.source_id}`;
+    }
+
+    if (routeId) {
+      window.open(`/finance/receipts/${routeId}/print`, "_blank");
+    } else {
+      toast.error("Không tìm thấy dữ liệu phiếu thu / thanh toán.");
+    }
+  }, []);
+
+  const handleEditTxn = useCallback((txn: InventoryTransaction) => {
+    // Open drawer to view/edit fulfillments
+    setDrawerTxn(txn);
+  }, []);
+
+  const handleDeleteTxn = useCallback((txn: InventoryTransaction) => {
+    setTxnToDelete(txn);
+  }, []);
+
+  const confirmDeleteTxn = useCallback(() => {
+    if (!txnToDelete) return;
+
+    startTransition(async () => {
+      try {
+        await deleteInventoryTransaction(txnToDelete.id);
+        toast.success("Đã xóa giao dịch");
+        void revalidateInventory();
+      } catch (err: any) {
+        toast.error(err.message || "Không thể xóa giao dịch");
+      }
+    });
+  }, [txnToDelete]);
+
   return (
     <>
     <div className="main-container gap-3!">
       {/* ── Header: Tabs + Stats + Actions ── */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 py-3 px-4 lg:px-5 bg-bg-card rounded-xl shadow-xs">
-        {/* Left: Tab Selector */}
-        <div className="flex items-center gap-1 p-1 bg-bg-muted rounded-lg w-fit shrink-0">
-          <TabButton
-            active={tab === "history"}
-            onClick={() => setTab("history")}
-            icon={<History className="w-4 h-4" />}
-            label="Lịch sử"
-          />
-          <TabButton
-            active={tab === "items"}
-            onClick={() => setTab("items")}
-            icon={<Package className="w-4 h-4" />}
-            label="Vật tư"
-          />
+      <div className="flex flex-col gap-3 py-3 px-4 lg:px-5 bg-bg-card rounded-xl shadow-xs">
+        {/* Top row: Tabs + Actions */}
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Tab Selector */}
+          <div className="flex items-center gap-1 p-1 bg-bg-muted rounded-lg w-fit shrink-0">
+            <TabButton
+              active={tab === "history"}
+              onClick={() => setTab("history")}
+              icon={<History className="w-4 h-4" />}
+              label="Lịch sử"
+            />
+            <TabButton
+              active={tab === "items"}
+              onClick={() => setTab("items")}
+              icon={<Package className="w-4 h-4" />}
+              label="Vật tư"
+            />
+          </div>
+
+          {/* Right: Actions */}
+          <div className="hidden lg:flex gap-2 shrink-0">
+            <Button unstyled onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+              <Plus className="w-5 h-5" />
+              <span>Khai báo</span>
+            </Button>
+            <Button unstyled onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
+              <ArrowDownToLine className="w-5 h-5" />
+              <span>Nhập</span>
+            </Button>
+            <Button unstyled onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
+              <ArrowUpFromLine className="w-5 h-5" />
+              <span>Xuất</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Center: Stats (hidden on mobile) */}
-        <div className="hidden lg:block flex-1">
+        {/* Stats Row (Desktop: always visible, Mobile: collapsible) */}
+        <div className="lg:hidden">
+          <Button
+            unstyled
+            onClick={() => setShowMobileStats(!showMobileStats)}
+            className="flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors w-full justify-between py-2"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span>Thống kê tổng quan</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 transition-transform ${showMobileStats ? "rotate-180" : ""}`} />
+          </Button>
+          {showMobileStats && (
+            <div className="mt-3 animate-in slide-in-from-top-2">
+              <InventoryStatsBar stats={stats} />
+            </div>
+          )}
+        </div>
+        <div className="hidden lg:block">
           <InventoryStatsBar stats={stats} />
-        </div>
-
-        {/* Right: Actions */}
-        <div className="hidden lg:flex gap-2 shrink-0">
-          <Button unstyled onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
-            <Plus className="w-5 h-5" />
-            <span>Khai báo</span>
-          </Button>
-          <Button unstyled onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
-            <ArrowDownToLine className="w-5 h-5" />
-            <span>Nhập</span>
-          </Button>
-          <Button unstyled onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
-            <ArrowUpFromLine className="w-5 h-5" />
-            <span>Xuất</span>
-          </Button>
         </div>
       </div>
 
-      <FAB onClick={handleCreate} label="Khai báo" />
+      <ExpandableFAB
+        mainAction={{
+          icon: Plus,
+          label: "Khai báo",
+          onClick: handleCreate,
+        }}
+        subActions={[
+          {
+            icon: ArrowDownToLine,
+            label: "Nhập kho",
+            onClick: handleStockIn,
+            variant: "success",
+          },
+          {
+            icon: ArrowUpFromLine,
+            label: "Xuất kho",
+            onClick: handleStockOut,
+            variant: "warning",
+          },
+        ]}
+      />
 
       {/* ── Filters (conditional based on tab) ── */}
       {tab === "history" ? (
@@ -301,6 +391,9 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
               transactions={transactions}
               onRowClick={handleTxRowClick}
               onHover={handleHover}
+              onPrint={handlePrint}
+              onEdit={handleEditTxn}
+              onDelete={handleDeleteTxn}
             />
           ) : (
             <InventoryTable
@@ -348,6 +441,15 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
       txn={drawerTxn}
       isOpen={!!drawerTxn}
       onClose={() => setDrawerTxn(null)}
+    />
+    <ConfirmDialog
+      isOpen={!!txnToDelete}
+      onClose={() => setTxnToDelete(null)}
+      onConfirm={confirmDeleteTxn}
+      title="Xóa giao dịch kho?"
+      message={`Bạn có chắc muốn xóa giao dịch ${txnToDelete?.item_name || "này"}? Hành động này không thể hoàn tác.`}
+      confirmLabel="Xóa"
+      variant="danger"
     />
     </>
   );

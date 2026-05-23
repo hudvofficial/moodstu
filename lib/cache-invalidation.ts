@@ -95,8 +95,8 @@ export async function revalidateContractCaches(contractId?: string) {
 
 export async function revalidateContractDetailCaches(contractId: string) {
   await Promise.all([
-    mutate(["contract", contractId]),
-    mutate(["contract-drawer-extra", contractId]),
+    mutate(["contract", contractId], undefined, { revalidate: true }),
+    mutate(["contract-drawer-extra", contractId], undefined, { revalidate: true }),
   ]);
 }
 

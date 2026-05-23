@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { User, Phone, Mail, MapPin, Heart } from "lucide-react";
 import type { Customer } from "@/types/contract";
 
@@ -62,24 +63,24 @@ export default function CustomerInfoBlock({
         </h3>
       </div>
 
-      {/* Customer Profile */}
-      <div className="flex items-start gap-3 mb-4">
+      {/* Customer Profile Link */}
+      <Link href={`/crm/customers/${customer.id}`} className="group flex items-start gap-3 mb-4 p-2 -mx-2 rounded-lg hover:bg-bg-hover transition-colors">
         {/* Avatar */}
         <div
-          className="w-10 h-10 rounded-md bg-primary/10 text-primary
+          className="w-10 h-10 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors
                      flex items-center justify-center text-body-sm font-bold shrink-0"
         >
           {initial}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-body-sm font-bold text-text-primary truncate">
+          <p className="text-body-sm font-bold text-text-primary group-hover:text-primary transition-colors truncate">
             {customer.full_name}
           </p>
           {customer.customer_code && (
-            <p className="text-caption">#{customer.customer_code}</p>
+            <p className="text-caption text-text-muted">#{customer.customer_code}</p>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Info Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

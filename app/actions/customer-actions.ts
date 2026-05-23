@@ -76,10 +76,10 @@ export async function getCustomers(params: {
     const ltvMap: Record<string, number> = {};
 
     if (customerIds.length > 0) {
-      const { data: contracts, error: contractsError } = await supabase.from("contracts").select("customer_id, total_value").in("customer_id", customerIds).is("deleted_at", null);
+      const { data: contracts, error: contractsError } = await supabase.from("contracts").select("customer_id, total_amount").in("customer_id", customerIds).is("deleted_at", null);
       if (contractsError) throw contractsError;
-      (contracts || []).forEach((c: { customer_id: string; total_value: number }) => {
-        ltvMap[c.customer_id] = (ltvMap[c.customer_id] || 0) + (c.total_value || 0);
+      (contracts || []).forEach((c: { customer_id: string; total_amount: number }) => {
+        ltvMap[c.customer_id] = (ltvMap[c.customer_id] || 0) + (c.total_amount || 0);
       });
     }
 
@@ -101,9 +101,9 @@ export async function getCustomerById(id: string): Promise<ActionResult<{ custom
     const { data: customer, error } = await supabase.from("customers").select("*").eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
 
-    const { data: contracts, error: contractsError } = await supabase.from("contracts").select("id, contract_code, total_value, status, created_at").eq("customer_id", id).is("deleted_at", null).order("created_at", { ascending: false });
+    const { data: contracts, error: contractsError } = await supabase.from("contracts").select("id, contract_code, total_amount, status, created_at").eq("customer_id", id).is("deleted_at", null).order("created_at", { ascending: false });
     if (contractsError) throw contractsError;
-    const lifetimeValue = (contracts || []).reduce((sum: number, c: { total_value?: number }) => sum + (c.total_value || 0), 0);
+    const lifetimeValue = (contracts || []).reduce((sum: number, c: { total_amount?: number }) => sum + (c.total_amount || 0), 0);
 
     return { customer, contracts: contracts || [], lifetimeValue };
   });
@@ -113,7 +113,7 @@ export async function getCustomerById(id: string): Promise<ActionResult<{ custom
 
 export async function createCustomer(data: unknown): Promise<ActionResult<{ customer_id: string; duplicate?: boolean; customer_name?: string }>> {
   return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+    const { employee } = await requireCrmAccess(supabase, userId);
     const parsed = ZodCustomerCreate.safeParse(data);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
     
@@ -150,7 +150,7 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
       source: tData.source || null,
       notes: tData.notes?.trim() || null,
       tags: tData.tags || [],
-      created_by: userId,
+      created_by: employee.id,
     };
 
     const { data: customer, error } = await supabase.from("customers").insert(insertData).select("id").single();

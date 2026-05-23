@@ -9,7 +9,7 @@
  * THỜI GIAN | NGUỒN + KHÁCH/NCC | VẬT TƯ | SỐ LƯỢNG | THÀNH TIỀN
  */
 
-import { ChevronRight, History, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { ChevronRight, History, ArrowDownToLine, ArrowUpFromLine, Printer, Edit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -34,9 +34,17 @@ interface TransactionHistoryTableProps {
   transactions: InventoryTransaction[];
   onRowClick: (txn: InventoryTransaction) => void;
   onHover?: (itemId: string) => void;
+  onPrint?: (txn: InventoryTransaction) => void;
+  onEdit?: (txn: InventoryTransaction) => void;
+  onDelete?: (txn: InventoryTransaction) => void;
 }
 
-function DesktopTable({ transactions, onRowClick, onHover }: TransactionHistoryTableProps) {
+function DesktopTable({ transactions, onRowClick, onHover, onPrint, onEdit, onDelete }: TransactionHistoryTableProps) {
+  // Sync styling with receipt-row-actions
+  const strokeWg = 1.75;
+  const iconStyle = { width: 20, height: 20 };
+  const btnStyle = { padding: 0 };
+
   return (
     <div className="hidden lg:block">
       <TableWrapper>
@@ -47,13 +55,19 @@ function DesktopTable({ transactions, onRowClick, onHover }: TransactionHistoryT
             <TH>Vật tư</TH>
             <TH className="text-right w-[100px]">Số lượng</TH>
             <TH className="text-right w-[140px]">Thành tiền</TH>
-            <TH className="w-[50px]"></TH>
+            <TH className="text-right w-[120px]">Thao tác</TH>
           </tr>
         </THead>
         <TBody>
           {transactions.map((txn) => {
             const sourceDisplay = getSourceDisplay(txn.source_type);
             const isStockIn = txn.transaction_type === "stock_in";
+
+            // Ưu tiên sale_total (giá bán) cho bán lẻ/HĐ, fallback total_cost (giá vốn)
+            const displayAmount = txn.sale_total || txn.total_cost;
+
+            // Check if printable (có receipt hoặc là bán hàng)
+            const canPrint = Boolean(txn.receipt_id || txn.source_type === 'contract_addon_sale' || txn.source_type === 'retail_sale');
 
             return (
               <TR
@@ -123,13 +137,60 @@ function DesktopTable({ transactions, onRowClick, onHover }: TransactionHistoryT
 
                 {/* Thành tiền */}
                 <TD className="text-right">
-                  <span className="font-semibold text-text-main">{fmt(txn.total_cost)}</span>
+                  <span className="font-semibold text-text-main">{fmt(displayAmount)}</span>
                 </TD>
 
-                {/* Arrow */}
+                {/* Actions - synced with receipt-row-actions styling */}
                 <TD className="text-right">
-                  <div className="h-8 w-8 inline-flex items-center justify-center rounded-md shadow-xs bg-bg-card text-text-secondary group-hover:bg-primary group-hover:text-white group-hover:shadow-sm transition-all">
-                    <ChevronRight className="w-4 h-4" />
+                  <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {canPrint && onPrint && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPrint(txn);
+                        }}
+                        className="btn-icon text-text-secondary"
+                        style={btnStyle}
+                        title="In phiếu"
+                      >
+                        <Printer style={iconStyle} strokeWidth={strokeWg} />
+                      </Button>
+                    )}
+                    {onEdit && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(txn);
+                        }}
+                        className="btn-icon text-text-secondary"
+                        style={btnStyle}
+                        title="Sửa"
+                      >
+                        <Edit2 style={iconStyle} strokeWidth={strokeWg} />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(txn);
+                        }}
+                        className="btn-icon text-error hover:text-error hover:bg-error/10"
+                        style={btnStyle}
+                        title="Xóa"
+                      >
+                        <Trash2 style={iconStyle} strokeWidth={strokeWg} />
+                      </Button>
+                    )}
+                    <div className="h-7 w-7 inline-flex items-center justify-center rounded-md text-text-secondary">
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
                   </div>
                 </TD>
               </TR>
@@ -147,6 +208,7 @@ function MobileCardList({ transactions, onRowClick, onHover }: TransactionHistor
       {transactions.map((txn, i) => {
         const sourceDisplay = getSourceDisplay(txn.source_type);
         const isStockIn = txn.transaction_type === "stock_in";
+        const displayAmount = txn.sale_total || txn.total_cost;
 
         return (
           <Button
@@ -199,7 +261,7 @@ function MobileCardList({ transactions, onRowClick, onHover }: TransactionHistor
               <span className={`text-lg font-bold ${isStockIn ? "text-success" : "text-warning"}`}>
                 {isStockIn ? "+" : "-"}{txn.quantity}
               </span>
-              <span className="font-bold text-text-main">{fmt(txn.total_cost)}</span>
+              <span className="font-bold text-text-main">{fmt(displayAmount)}</span>
             </div>
           </Button>
         );

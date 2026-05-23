@@ -190,57 +190,137 @@ export function InventoryDetailDrawer({
         size="lg"
       >
         {!source ? null : (
-          <div className="space-y-4">
-            <section className="card-base p-4">
-              <div className="flex items-start gap-4">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                  {getInitials(source.name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-h3 truncate">{source.name}</h3>
-                    <span className="font-mono text-sm text-text-muted">
-                      {source.item_code}
-                    </span>
+          <div className="flex flex-col min-h-full">
+            <div className="flex-1 space-y-5">
+              {/* Image Preview (if exists) */}
+              {source.image_url && (
+                <div className="rounded-xl overflow-hidden shadow-sm">
+                  <div className="relative aspect-video bg-bg-muted">
+                    <Image
+                      src={source.image_url}
+                      alt={source.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      priority
+                    />
                   </div>
-                  <p className="text-caption mt-1">
-                    {categoryLabel}
-                    {unitLabel ? ` · ${unitLabel}` : ""}
+                </div>
+              )}
+
+              {/* Header Info Card */}
+              <div className="p-4 bg-bg-hover rounded-xl shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Mã vật tư</p>
+                  <p className="text-h3 text-primary font-mono">{source.item_code}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Phân loại</p>
+                  <p className="font-medium text-text-main">{categoryLabel}</p>
+                </div>
+              </div>
+
+              {/* Item Name & Status */}
+              <div className="p-4 bg-bg-hover rounded-xl shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
+                    {source.image_url ? (
+                      <div className="relative size-12 rounded-full overflow-hidden">
+                        <Image
+                          src={source.image_url}
+                          alt={source.name}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      </div>
+                    ) : (
+                      getInitials(source.name)
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-h3 truncate mb-2">{source.name}</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="accent">{categoryLabel}</Badge>
+                      {status ? (
+                        <Badge variant={asBadgeVariant(status.variant)} dot>
+                          {status.label}
+                        </Badge>
+                      ) : null}
+                      {unitLabel && <Badge variant="neutral">{unitLabel}</Badge>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tồn kho</p>
+                  <p className="text-h3 text-success tabular-nums">
+                    {source.current_stock} <span className="text-sm font-normal text-text-muted">{unitLabel}</span>
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <Badge variant="accent">{categoryLabel}</Badge>
-                    {status ? (
-                      <Badge variant={asBadgeVariant(status.variant)} dot>
-                        {status.label}
-                      </Badge>
-                    ) : null}
-                  </div>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Giá trị tồn</p>
+                  <p className="text-h3 text-warning tabular-nums">{fmt(stockValue)}</p>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tổng nhập</p>
+                  <p className="text-h3 text-info tabular-nums">{totalIn}</p>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tổng xuất</p>
+                  <p className="text-h3 text-error tabular-nums">{totalOut}</p>
                 </div>
               </div>
-            </section>
 
-            <section className="grid grid-cols-2 gap-3">
-              <div className="accent-card accent-card-green">
-                <div className="text-caption text-text-muted">Tồn kho</div>
-                <div className="font-bold tabular-nums">
-                  {source.current_stock} {unitLabel}
+              {/* Additional Info */}
+              <div className="form-grid-2col">
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Tồn tối thiểu</p>
+                  <p className="font-semibold text-text-main">{source.min_stock || 0}</p>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Nhà cung cấp</p>
+                  <p className="font-semibold text-text-main truncate">{source.supplier || "-"}</p>
                 </div>
               </div>
-              <div className="accent-card accent-card-gold">
-                <div className="text-caption text-text-muted">Giá trị tồn</div>
-                <div className="font-bold tabular-nums">{fmt(stockValue)}</div>
-              </div>
-              <div className="accent-card accent-card-green">
-                <div className="text-caption text-text-muted">Tổng nhập</div>
-                <div className="font-bold tabular-nums">{totalIn}</div>
-              </div>
-              <div className="accent-card accent-card-gold">
-                <div className="text-caption text-text-muted">Tổng xuất</div>
-                <div className="font-bold tabular-nums">{totalOut}</div>
-              </div>
-            </section>
 
-            <section className="flex gap-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Giá nhập</p>
+                  <p className="font-semibold text-text-main tabular-nums">{fmt(source.purchase_price)}</p>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Giá TB</p>
+                  <p className="font-semibold text-text-main tabular-nums">{fmt(source.average_unit_price)}</p>
+                </div>
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Giá bán</p>
+                  <p className="font-semibold text-text-main tabular-nums">{fmt(source.sale_price)}</p>
+                </div>
+              </div>
+
+              {source.notes && (
+                <div className="rounded-xl bg-bg-hover p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-text-muted mb-2">Ghi chú</p>
+                  <p className="text-sm text-text-secondary">{source.notes}</p>
+                </div>
+              )}
+
+              {/* Transaction History */}
+              <section className="rounded-xl bg-bg-card border border-border/40 overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/30">
+                  <h4 className="section-heading">Lịch sử giao dịch</h4>
+                  {isLoading ? <Loader2 className="size-4 animate-spin text-text-muted" /> : null}
+                </div>
+                <TransactionPreview transactions={transactions} totalCount={transactions.length} itemId={source?.id} onViewAll={onClose} />
+              </section>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="sticky -bottom-6 lg:-bottom-6 -mx-5 lg:-mx-6 -mb-6 mt-6 px-5 lg:px-6 py-4 bg-bg-base/95 backdrop-blur-md border-t border-border flex items-center justify-between gap-3 z-10 shrink-0">
               <Button
                 type="button"
                 variant="primary"
@@ -261,42 +341,7 @@ export function InventoryDetailDrawer({
                 <ArrowUpFromLine className="size-4" />
                 Xuất kho
               </Button>
-            </section>
-
-            <section className="card-base p-4">
-              <InfoRows
-                title="Thông tin vật tư"
-                rows={[
-                  ["Phân loại", categoryLabel],
-                  ["Đơn vị", unitLabel || "-"],
-                  ["Tồn tối thiểu", String(source.min_stock || "-")],
-                  ["Nhà cung cấp", source.supplier || "-"],
-                ]}
-              />
-              <div className="my-4 h-px bg-border/30" />
-              <InfoRows
-                title="Giá"
-                rows={[
-                  ["Giá nhập", fmt(source.purchase_price)],
-                  ["Giá TB", fmt(source.average_unit_price)],
-                  ["Giá bán", fmt(source.sale_price)],
-                ]}
-              />
-              {source.notes ? (
-                <>
-                  <div className="my-4 h-px bg-border/30" />
-                  <p className="text-sm text-text-secondary">{source.notes}</p>
-                </>
-              ) : null}
-            </section>
-
-            <section className="card-base overflow-hidden">
-              <div className="flex items-center justify-between px-4 pt-4">
-                <h3 className="section-heading">Lịch sử giao dịch</h3>
-                {isLoading ? <Loader2 className="size-4 animate-spin text-text-muted" /> : null}
-              </div>
-              <TransactionPreview transactions={transactions} />
-            </section>
+            </div>
           </div>
         )}
       </Drawer>
@@ -331,22 +376,6 @@ export function InventoryDetailDrawer({
           item={source}
         />
       ) : null}
-    </>
-  );
-}
-
-function InfoRows({ title, rows }: { title: string; rows: Array<[string, string]> }) {
-  return (
-    <>
-      <h3 className="text-overline mb-3">{title}</h3>
-      <div className="space-y-2.5">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between gap-3">
-            <span className="text-caption">{label}</span>
-            <span className="text-sm font-medium text-text">{value}</span>
-          </div>
-        ))}
-      </div>
     </>
   );
 }

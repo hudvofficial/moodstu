@@ -10,7 +10,7 @@ import DatePicker from "@/components/ui/date-picker";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, X, Plus } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // ContractInfoSection — Top fields of the contract form
@@ -98,6 +98,16 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
     [employees, formData.assigned_to],
   );
 
+  const workDates = useMemo(() => {
+    const dates = formData.work_date ? formData.work_date.split(',').map(d => d.trim()).filter(Boolean) : [];
+    return dates.length > 0 ? dates : [""];
+  }, [formData.work_date]);
+
+  const weddingDatesArr = useMemo(() => {
+    const dates = weddingDate ? weddingDate.split(',').map(d => d.trim()).filter(Boolean) : [];
+    return dates.length > 0 ? dates : [""];
+  }, [weddingDate]);
+
   return (
     <section className="card-base border-l-4 border-accent p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -136,20 +146,82 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
           placeholder="Chọn ngày"
         />
 
-        <DatePicker
-          value={formData.work_date}
-          onChange={(v) => updateField("work_date", v)}
-          label={workDateLabel(formData.service_type)}
-          placeholder="Chọn ngày"
-        />
+        <div className="space-y-1">
+          <label className="label-base">{workDateLabel(formData.service_type)}</label>
+          {workDates.map((date, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              <div className="flex-1">
+                <DatePicker
+                  value={date}
+                  onChange={(v) => {
+                    const newDates = [...workDates];
+                    newDates[idx] = v;
+                    updateField("work_date", newDates.filter(Boolean).join(','));
+                  }}
+                  placeholder="Chọn ngày"
+                />
+              </div>
+              {idx > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newDates = workDates.filter((_, i) => i !== idx);
+                    updateField("work_date", newDates.filter(Boolean).join(','));
+                  }}
+                  className="p-1 text-text-muted hover:text-error transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => updateField("work_date", [...workDates, ""].filter(Boolean).join(','))}
+            className="flex items-center gap-1 text-xs font-medium text-interactive hover:text-interactive-hover mt-1"
+          >
+            <Plus size={12} /> Thêm ngày
+          </button>
+        </div>
 
         {showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && (
-          <DatePicker
-            value={weddingDate}
-            onChange={onWeddingDateChange}
-            label="Ngày cưới"
-            placeholder="Chọn ngày"
-          />
+          <div className="space-y-1">
+            <label className="label-base">Ngày cưới</label>
+            {weddingDatesArr.map((date, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <div className="flex-1">
+                  <DatePicker
+                    value={date}
+                    onChange={(v) => {
+                      const newDates = [...weddingDatesArr];
+                      newDates[idx] = v;
+                      onWeddingDateChange(newDates.filter(Boolean).join(','));
+                    }}
+                    placeholder="Chọn ngày"
+                  />
+                </div>
+                {idx > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newDates = weddingDatesArr.filter((_, i) => i !== idx);
+                      onWeddingDateChange(newDates.filter(Boolean).join(','));
+                    }}
+                    className="p-1 text-text-muted hover:text-error transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => onWeddingDateChange([...weddingDatesArr, ""].filter(Boolean).join(','))}
+              className="flex items-center gap-1 text-xs font-medium text-interactive hover:text-interactive-hover mt-1"
+            >
+              <Plus size={12} /> Thêm ngày
+            </button>
+          </div>
         )}
 
         <SimpleSelect

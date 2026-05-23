@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 
 interface WorkTask {
   id: string;
+  event_id?: string | null;
   work_type: string;
   assigned_to: string | null;
   status: string;
@@ -28,10 +29,13 @@ interface WorkTask {
   cost: number;
   notes: string | null;
   employees?: { id: string; full_name: string } | null;
+  vendors?: { id: string; full_name: string } | null;
+  vendor_id?: string | null;
 }
 
 interface DrawerAssignmentsProps {
   tasks: WorkTask[];
+  events?: { id: string; title?: string }[];
 }
 
 // ─── STATUS BADGE STYLES ─────────────────────────
@@ -60,7 +64,7 @@ function getWorkLabel(workType: string): string {
 
 const MAX_ASSIGNED = 4;
 
-export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
+export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (!tasks || tasks.length === 0) {
@@ -76,8 +80,10 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
     );
   }
 
-  const assigned = tasks.filter((t) => t.employees?.full_name);
-  const unassigned = tasks.filter((t) => !t.employees?.full_name);
+  console.log("DrawerTasks:", tasks);
+
+  const assigned = tasks.filter((t) => t.employees?.full_name || t.vendors?.full_name);
+  const unassigned = tasks.filter((t) => !t.employees?.full_name && !t.vendors?.full_name);
   const visibleAssigned = expanded ? assigned : assigned.slice(0, MAX_ASSIGNED);
   const hiddenAssignedCount = Math.max(0, assigned.length - MAX_ASSIGNED);
   const progressPercent = (assigned.length / tasks.length) * 100;
@@ -111,7 +117,10 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
           <p className="text-tiny text-text-muted mt-0.5 line-clamp-2">
             {unassigned
               .slice(0, 5)
-              .map((t) => getWorkLabel(t.work_type))
+              .map((t) => {
+                const evTitle = events?.find((e) => e.id === t.event_id)?.title;
+                return evTitle ? `${getWorkLabel(t.work_type)} (${evTitle})` : getWorkLabel(t.work_type);
+              })
               .join(" · ")}
             {unassigned.length > 5 && ` · +${unassigned.length - 5}`}
           </p>
@@ -127,9 +136,17 @@ export function DrawerAssignments({ tasks }: DrawerAssignmentsProps) {
               className="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-hover/50 transition-colors"
             >
               <UserCircle className="w-4 h-4 text-text-muted shrink-0" />
-              <span className="text-body-sm font-medium text-text-main truncate flex-1">
-                {task.employees!.full_name}
-              </span>
+              <div className="flex-1 flex flex-col min-w-0">
+                <span className="text-body-sm font-medium text-text-main truncate">
+                  {task.employees?.full_name || task.vendors?.full_name}
+                  {task.vendors && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Freelancer</span>}
+                </span>
+                {events && task.event_id && (
+                  <span className="text-[10px] text-text-muted truncate leading-tight">
+                    {events.find((e) => e.id === task.event_id)?.title || "Sự kiện"}
+                  </span>
+                )}
+              </div>
               <span className="text-tiny text-text-muted shrink-0">
                 {getWorkLabel(task.work_type)}
               </span>

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { LAB_STATUSES } from "@/types/printing-constants";
-import { paymentMethodSchema } from "@/lib/validations/contract.schema";
+
+// Lab payment uses printing system payment methods (English, 4 options)
+const labPaymentMethodSchema = z.enum(["cash", "transfer", "card", "other"]);
 
 const optionalText = z
   .string()
@@ -45,7 +47,7 @@ export const updateLabServiceSchema = z.object({
 export const labPaymentSchema = z.object({
   lab_id: z.string().uuid("Lab khong hop le"),
   amount: z.number().positive("So tien thanh toan phai lon hon 0"),
-  payment_method: paymentMethodSchema.default("chuyen_khoan"),
+  payment_method: labPaymentMethodSchema.default("transfer"),
   note: optionalText,
   allocations: z
     .array(

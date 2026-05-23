@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Customer } from "@/types/crm";
-import CustomerListPage from "@/components/crm/customer-list-page";
+import CustomerListClient from "@/components/crm/customer-list-client";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 
 export const metadata = {
@@ -35,7 +35,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 
   return (
     <Suspense>
-      <CustomerListPage 
+      <CustomerListClient 
         initialData={initialData} 
         stats={stats} 
       />

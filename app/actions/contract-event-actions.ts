@@ -25,6 +25,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 
 // ─── TYPES ───────────────────────────────────────
 type EventUpdateFields = Partial<{
+  title: string;
   event_date: string | null;
   start_time: string | null;
   end_time: string | null;
@@ -109,44 +110,96 @@ function buildContractEvents(
   weddingDate: string | null | undefined,
   templates: EventTemplateRow[],
 ) {
-  const baseDate = workDate ? new Date(workDate) : null;
-  const effectiveWeddingDateStr = serviceType === "ngay_cuoi" ? workDate : weddingDate;
-  const ceremonyDate = effectiveWeddingDateStr ? new Date(effectiveWeddingDateStr) : null;
-  let lastOnSetType: EventType | null = null;
+  // Parse dates handling comma-separated strings
+  const workDates = workDate ? workDate.split(',').map(d => d.trim()).filter(Boolean) : [];
+  const weddingDates = weddingDate ? weddingDate.split(',').map(d => d.trim()).filter(Boolean) : [];
+  
+  const effectiveWeddingDates = serviceType === "ngay_cuoi" ? workDates : weddingDates;
+  
+  const baseDatesList = workDates.length > 0 ? workDates : [];
+  const ceremonyDatesList = effectiveWeddingDates.length > 0 ? effectiveWeddingDates : [];
 
-  return templates.map((template, index) => {
+  // For deadline calculations, use the LAST shooting date
+  const lastBaseDateStr = baseDatesList.length > 0 ? baseDatesList[baseDatesList.length - 1] : null;
+  const lastCeremonyDateStr = ceremonyDatesList.length > 0 ? ceremonyDatesList[ceremonyDatesList.length - 1] : null;
+
+  const baseDate = lastBaseDateStr ? new Date(lastBaseDateStr) : null;
+  const ceremonyDate = lastCeremonyDateStr ? new Date(lastCeremonyDateStr) : null;
+
+  let lastOnSetType: EventType | null = null;
+  const events: any[] = [];
+  let sortOrderCounter = 1;
+
+  for (const template of templates) {
     const eventType = template.event_type;
     const offset = template.default_days_offset ?? 0;
     const isOnSet = isOnSetEvent(eventType);
-    let eventDate: string | null = null;
-    let deadline: string | null = null;
 
     if (isOnSet) {
       lastOnSetType = eventType;
-      if (eventType === "ngay_to_chuc" && ceremonyDate) {
-        eventDate = addDays(ceremonyDate, offset);
-      } else if (eventType !== "ngay_to_chuc" && baseDate) {
-        eventDate = addDays(baseDate, offset);
+      // Spawn multiple if it's ceremony or shoot
+      if (eventType === "ngay_to_chuc" && ceremonyDatesList.length > 0) {
+        ceremonyDatesList.forEach((dateStr, idx) => {
+          events.push({
+            contract_id: contractId,
+            event_type: eventType,
+            title: `${template.event_name || eventType}${ceremonyDatesList.length > 1 ? ` ${idx + 1}` : ''}`,
+            event_date: addDays(new Date(dateStr), offset),
+            deadline: null,
+            status: "chua_lam",
+            sort_order: sortOrderCounter++,
+            is_manual_date: false,
+          });
+        });
+      } else if (eventType !== "ngay_to_chuc" && baseDatesList.length > 0) {
+        baseDatesList.forEach((dateStr, idx) => {
+          events.push({
+            contract_id: contractId,
+            event_type: eventType,
+            title: `${template.event_name || eventType}${baseDatesList.length > 1 ? ` ${idx + 1}` : ''}`,
+            event_date: addDays(new Date(dateStr), offset),
+            deadline: null,
+            status: "chua_lam",
+            sort_order: sortOrderCounter++,
+            is_manual_date: false,
+          });
+        });
+      } else {
+         // Fallback if no dates
+         events.push({
+            contract_id: contractId,
+            event_type: eventType,
+            title: template.event_name || eventType,
+            event_date: null,
+            deadline: null,
+            status: "chua_lam",
+            sort_order: sortOrderCounter++,
+            is_manual_date: false,
+          });
       }
     } else {
+      // Non-onset (hau_ky, giao_san_pham) - calculate deadline based on the LAST shooting date
+      let deadline: string | null = null;
       if (lastOnSetType === "ngay_to_chuc" && ceremonyDate) {
         deadline = addDays(ceremonyDate, offset);
       } else if (lastOnSetType !== "ngay_to_chuc" && baseDate) {
         deadline = addDays(baseDate, offset);
       }
-    }
 
-    return {
-      contract_id: contractId,
-      event_type: eventType,
-      title: template.event_name || eventType,
-      event_date: eventDate,
-      deadline,
-      status: "chua_lam",
-      sort_order: template.sort_order ?? index + 1,
-      is_manual_date: false,
-    };
-  });
+      events.push({
+        contract_id: contractId,
+        event_type: eventType,
+        title: template.event_name || eventType,
+        event_date: null,
+        deadline,
+        status: "chua_lam",
+        sort_order: sortOrderCounter++,
+        is_manual_date: false,
+      });
+    }
+  }
+
+  return events;
 }
 
 export async function _generateContractEventsInternal(

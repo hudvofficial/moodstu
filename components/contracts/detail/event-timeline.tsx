@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CalendarDays, Camera, Church, Pencil, Package,
   MapPin, AlertTriangle, ClipboardList, Plus,
@@ -14,7 +14,10 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   getEventTypeLabel, isOnSetEvent,
 } from "@/types/contract-constants";
-import { deleteContractEvent } from "@/app/actions/contract-event-actions";
+import { deleteContractEvent, updateContractEvent } from "@/app/actions/contract-event-actions";
+import { Input } from "@/components/ui/input";
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import DatePicker from "@/components/ui/date-picker";
 import EventTaskModal from "@/components/contracts/detail/event-task-modal";
 import type { ContractEvent, WorkTask, EventType, TaskStatus } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
@@ -124,6 +127,21 @@ export default function EventTimeline({
   const [modalEvent, setModalEvent] = useState<ContractEvent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ContractEvent | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ContractEvent | null>(null);
+  const [editForm, setEditForm] = useState<{ title: string; event_date: string; location: string }>({
+    title: "", event_date: "", location: ""
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Sync modalEvent with incoming events prop (so Date Picker reflects SWR refetch)
+  useEffect(() => {
+    if (modalEvent) {
+      const updated = events.find((e) => e.id === modalEvent.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(modalEvent)) {
+        setModalEvent(updated);
+      }
+    }
+  }, [events, modalEvent]);
 
   // Sort by sort_order (V1 business logic), fallback to date
   const sorted = [...events].sort((a, b) => {
@@ -160,6 +178,25 @@ export default function EventTimeline({
       toast.error(err instanceof Error ? err.message : "Lỗi xóa sự kiện");
     } finally {
       setDeletingEventId(null);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingEvent || !editForm.title.trim()) return;
+    setIsSavingEdit(true);
+    try {
+      const result = await updateContractEvent(editingEvent.id, {
+        title: editForm.title.trim(),
+        event_date: editForm.event_date || null,
+        location: editForm.location || null,
+      });
+      toast.success("Đã cập nhật sự kiện");
+      setEditingEvent(null);
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi cập nhật sự kiện");
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -261,21 +298,41 @@ export default function EventTimeline({
               `}
               onClick={() => setModalEvent(event)}
             >
-              <Button
-                unstyled
-                type="button"
-                aria-label={`Xóa sự kiện ${displayTitle}`}
-                title="Xóa sự kiện"
-                data-testid="contract-event-delete"
-                disabled={deletingEventId === event.id}
-                className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteTarget(event);
-                }}
-              >
-                <Trash2 size={14} />
-              </Button>
+              <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+                <Button
+                  unstyled
+                  type="button"
+                  aria-label="Sửa sự kiện"
+                  title="Sửa sự kiện"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingEvent(event);
+                    setEditForm({
+                      title: event.title || "",
+                      event_date: event.event_date || event.deadline || "",
+                      location: event.location || ""
+                    });
+                  }}
+                >
+                  <Pencil size={14} />
+                </Button>
+                <Button
+                  unstyled
+                  type="button"
+                  aria-label={`Xóa sự kiện ${displayTitle}`}
+                  title="Xóa sự kiện"
+                  data-testid="contract-event-delete"
+                  disabled={deletingEventId === event.id}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(event);
+                  }}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
 
               {/* Status badge */}
               <div className="flex min-h-5 flex-wrap items-center gap-1.5 mb-2">
@@ -380,6 +437,60 @@ export default function EventTimeline({
           onSaved={() => onRefresh?.()}
           onTaskStatusChange={onTaskStatusChange}
         />
+      )}
+
+      {/* EditEventModal */}
+      {editingEvent && (
+        <UnifiedModal
+          isOpen={!!editingEvent}
+          onClose={() => setEditingEvent(null)}
+          title="Sửa Sự kiện"
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button unstyled onClick={() => setEditingEvent(null)} className="btn btn-outline" disabled={isSavingEdit}>
+                Hủy
+              </Button>
+              <Button unstyled onClick={handleSaveEdit} className="btn btn-primary" disabled={isSavingEdit || !editForm.title.trim()}>
+                {isSavingEdit ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-text-primary">Tên sự kiện <span className="text-error">*</span></label>
+              <Input
+                unstyled
+                value={editForm.title}
+                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                className="input-base w-full"
+                placeholder="VD: Setup chiều 23"
+              />
+            </div>
+            {isOnSetEvent(editingEvent.event_type as EventType) && (
+              <div className="space-y-1.5 flex flex-col justify-end">
+                <label className="text-sm font-medium text-text-primary">Ngày thực hiện</label>
+                <DatePicker
+                  value={editForm.event_date || undefined}
+                  onChange={(dateStr) => setEditForm(prev => ({ ...prev, event_date: dateStr || "" }))}
+                  placeholder="Chọn ngày"
+                  triggerClassName="h-9 w-full"
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-text-primary">Địa điểm</label>
+              <Input
+                unstyled
+                value={editForm.location}
+                onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                className="input-base w-full"
+                placeholder="Nhập địa điểm..."
+              />
+            </div>
+          </div>
+        </UnifiedModal>
       )}
 
       <ConfirmDialog

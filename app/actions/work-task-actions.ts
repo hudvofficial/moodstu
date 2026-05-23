@@ -91,7 +91,7 @@ export async function getTasksByEvent(eventId: string) {
 
     const { data, error } = await supabase
       .from("work_tasks")
-      .select("id, event_id, contract_id, work_type, assigned_to, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department)")
+      .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
       .eq("event_id", eventId)
       .order("created_at", { ascending: true });
     if (error) throw new Error(`Lỗi tải tasks: ${error.message}`);
@@ -191,7 +191,7 @@ export async function generateWorkTasksForContract(contractId: string) {
 
 export async function addTask(input: {
   eventId: string; contractId: string; workType: WorkType;
-  assignedTo?: string; deadline?: string; startDate?: string;
+  assignedTo?: string; vendorId?: string; deadline?: string; startDate?: string;
   startTime?: string; endTime?: string; cost?: number; notes?: string;
 }) {
   return withAuth(async (supabase, userId) => {
@@ -202,21 +202,50 @@ export async function addTask(input: {
     if (!input.contractId) throw new Error("Thieu contract ID");
     await assertEventBelongsToContract(supabase, input.eventId, input.contractId);
 
-    const { data, error } = await supabase.from("work_tasks").insert({
-      event_id: input.eventId, contract_id: input.contractId, work_type: input.workType,
-      assigned_to: input.assignedTo || null, deadline: input.deadline || null,
-      start_date: input.startDate || null, start_time: input.startTime || null,
-      end_time: input.endTime || null, cost: input.cost || 0,
-      notes: input.notes || null, status: input.assignedTo ? "dang_lam" : "chua_lam",
-      created_by: userId,
-    })
-      .select("id, event_id, contract_id, work_type, assigned_to, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department)")
+    const { data: existingUnassigned, error: checkErr } = await supabase
+      .from("work_tasks")
+      .select("id")
+      .eq("event_id", input.eventId)
+      .eq("work_type", input.workType)
+      .is("assigned_to", null)
+      .is("vendor_id", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (checkErr) throw new Error(`Lỗi kiểm tra task: ${checkErr.message}`);
+
+    let data, error;
+    if (existingUnassigned) {
+      const res = await supabase.from("work_tasks").update({
+        assigned_to: input.assignedTo || null, vendor_id: input.vendorId || null, deadline: input.deadline || null,
+        start_date: input.startDate || null, start_time: input.startTime || null,
+        end_time: input.endTime || null, cost: input.cost || 0,
+        notes: input.notes || null, status: (input.assignedTo || input.vendorId) ? "dang_lam" : "chua_lam",
+      })
+      .eq("id", existingUnassigned.id)
+      .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
       .single();
+      data = res.data;
+      error = res.error;
+    } else {
+      const res = await supabase.from("work_tasks").insert({
+        event_id: input.eventId, contract_id: input.contractId, work_type: input.workType,
+        assigned_to: input.assignedTo || null, vendor_id: input.vendorId || null, deadline: input.deadline || null,
+        start_date: input.startDate || null, start_time: input.startTime || null,
+        end_time: input.endTime || null, cost: input.cost || 0,
+        notes: input.notes || null, status: (input.assignedTo || input.vendorId) ? "dang_lam" : "chua_lam",
+        created_by: userId,
+      })
+      .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
+      .single();
+      data = res.data;
+      error = res.error;
+    }
     if (error) throw new Error(`Lỗi thêm task: ${error.message}`);
 
     fireAuditLog({ action: "CREATE", tableName: "work_tasks", recordId: data?.id, description: `Thêm task: ${input.workType} (event ${input.eventId.substring(0, 8)})` });
 
-    if (input.assignedTo) {
+    if (input.assignedTo || input.vendorId) {
       const { error: eventStatusError } = await supabase
         .from("contract_events")
         .update({ status: "dang_lam" })
@@ -277,6 +306,88 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
     await checkAndCompleteEvent(supabase, task.event_id);
     invalidateContractPaths(task.contract_id, { detail: true, productivity: true });
     return null;
+  });
+}
+
+export async function copyTasksFromPreviousEvent(currentEventId: string, contractId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractWriteAccess(supabase, userId);
+
+    // 1. Get current event to know its sort_order
+    const { data: currentEvent, error: currentError } = await supabase
+      .from("contract_events")
+      .select("sort_order, event_date")
+      .eq("id", currentEventId)
+      .single();
+
+    if (currentError || !currentEvent) throw new Error("Không tìm thấy sự kiện hiện tại");
+
+    // 2. Find the previous event that has tasks
+    const { data: previousEvents, error: prevError } = await supabase
+      .from("contract_events")
+      .select("id, title")
+      .eq("contract_id", contractId)
+      .lt("sort_order", currentEvent.sort_order)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: false })
+      .limit(3);
+
+    if (prevError) throw new Error("Lỗi tìm sự kiện trước đó");
+    if (!previousEvents || previousEvents.length === 0) {
+      throw new Error("Không có sự kiện nào trước đó để copy");
+    }
+
+    let sourceEventId = null;
+    let sourceTasks = [];
+
+    // Check recent previous events for tasks
+    for (const prev of previousEvents) {
+      const { data: tasks } = await supabase
+        .from("work_tasks")
+        .select("*")
+        .eq("event_id", prev.id);
+      
+      if (tasks && tasks.length > 0) {
+        sourceEventId = prev.id;
+        sourceTasks = tasks;
+        break;
+      }
+    }
+
+    if (!sourceEventId || sourceTasks.length === 0) {
+      throw new Error("Các sự kiện trước đó chưa có ai được phân công");
+    }
+
+    // 3. Check if current event already has tasks. If so, only copy non-existing roles? 
+    // Just copy all for simplicity, or we can let user handle duplicates.
+    // Let's do a simple bulk insert.
+    const newTasks = sourceTasks.map(t => ({
+      contract_id: contractId,
+      event_id: currentEventId,
+      work_type: t.work_type,
+      assigned_to: t.assigned_to,
+      vendor_id: t.vendor_id,
+      status: "chua_lam",
+      cost: 0, // Reset cost to 0 as requested by user
+      start_date: currentEvent.event_date,
+      start_time: t.start_time,
+      end_time: t.end_time,
+      created_by: userId,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("work_tasks")
+      .insert(newTasks);
+
+    if (insertError) throw new Error(`Lỗi copy ekip: ${insertError.message}`);
+
+    fireAuditLog({ action: "CREATE", tableName: "work_tasks", recordId: contractId, description: `Đã copy ${newTasks.length} nhân sự từ sự kiện trước sang sự kiện ${currentEventId.substring(0,8)}` });
+    
+    // Update event status
+    await checkAndCompleteEvent(supabase, currentEventId);
+    invalidateContractPaths(contractId, { detail: true, productivity: true });
+    
+    return { copied: newTasks.length };
   });
 }
 

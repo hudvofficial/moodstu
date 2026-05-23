@@ -165,6 +165,7 @@ export interface WorkTask {
   event_id: string | null;
   work_type: WorkType;
   assigned_to: string | null;
+  vendor_id?: string | null;
   status: TaskStatus;
   deadline: string | null;
   start_date: string | null;
@@ -178,6 +179,7 @@ export interface WorkTask {
   updated_at: string;
   // Joined
   employees?: { id: string; full_name: string } | null;
+  vendors?: { id: string; full_name: string; phone: string | null } | null;
 }
 
 /** Contract checklist from `contract_checklists` table */

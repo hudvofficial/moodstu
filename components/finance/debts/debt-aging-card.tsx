@@ -105,20 +105,19 @@ function AgingBucketCard({
 
   return (
     <div className="card-base p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-bg-hover text-text-secondary">
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="text-body-sm font-semibold leading-snug text-text-primary">{item.label}</p>
-            <p className="text-body-sm leading-snug text-text-muted">{share}% tổng dư nợ</p>
-          </div>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="icon-box bg-bg-hover">
+          <Icon className="h-4 w-4 text-text-secondary" />
         </div>
         <Badge variant={item.variant}>{share}%</Badge>
       </div>
 
-      <div className="mt-5 space-y-2">
+      <div className="mb-4 space-y-1">
+        <p className="text-body-sm font-semibold text-text-primary">{item.label}</p>
+        <p className="text-caption text-text-muted">{share}% tổng dư nợ</p>
+      </div>
+
+      <div className="space-y-1">
         <p className="text-caption text-text-muted">Giá trị</p>
         <p className="finance-figure text-h3 text-text-primary">{formatVnd(item.value)}</p>
       </div>

@@ -90,8 +90,10 @@ export function DesktopLayout({
   onQuickAction,
   onMuteRealtime,
 }: LayoutProps) {
-  const taskCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
-  const estimatedProfit = taskCost > 0 ? contract.total_amount - taskCost : null;
+  const hrCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
+  const printingCost = (printOrders || []).reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
+  const totalCost = hrCost + printingCost;
+  const estimatedProfit = totalCost > 0 ? contract.total_amount - totalCost : null;
 
   return (
     <div className="max-lg:hidden">
@@ -169,6 +171,8 @@ export function DesktopLayout({
               subtotal={contract.total_amount + (contract.discount_amount || 0)}
               discountAmount={contract.discount_amount}
               estimatedProfit={estimatedProfit}
+              hrCost={hrCost > 0 ? hrCost : undefined}
+              printingCost={printingCost > 0 ? printingCost : undefined}
             />
 
             <PaymentPlanCard
@@ -223,8 +227,10 @@ export function MobileLayout({
   setActiveTab,
   tabSentinelRef,
 }: MobileLayoutProps) {
-  const taskCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
-  const estimatedProfit = taskCost > 0 ? contract.total_amount - taskCost : null;
+  const hrCost = (contract.work_tasks || []).reduce((sum, task) => sum + (Number(task.cost) || 0), 0);
+  const printingCost = (printOrders || []).reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0);
+  const totalCost = hrCost + printingCost;
+  const estimatedProfit = totalCost > 0 ? contract.total_amount - totalCost : null;
 
   return (
     <div className="lg:hidden">
@@ -245,6 +251,8 @@ export function MobileLayout({
             subtotal={contract.total_amount + (contract.discount_amount || 0)}
             discountAmount={contract.discount_amount}
             estimatedProfit={estimatedProfit}
+            hrCost={hrCost > 0 ? hrCost : undefined}
+            printingCost={printingCost > 0 ? printingCost : undefined}
           />
 
           <PaymentPlanCard

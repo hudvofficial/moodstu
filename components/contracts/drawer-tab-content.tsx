@@ -281,7 +281,10 @@ function OperationsTabs({
         <DrawerChecklist items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} />
       )}
       {activeTab === "staff" && (
-        <DrawerAssignments tasks={workTasks as unknown as React.ComponentProps<typeof DrawerAssignments>["tasks"]} />
+        <DrawerAssignments 
+          tasks={workTasks as unknown as React.ComponentProps<typeof DrawerAssignments>["tasks"]} 
+          events={events as unknown as React.ComponentProps<typeof DrawerAssignments>["events"]}
+        />
       )}
     </div>
   );
