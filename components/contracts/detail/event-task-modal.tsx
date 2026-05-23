@@ -327,7 +327,6 @@ export default function EventTaskModal({
     });
   };
 
-  // Add Vendor inline
   const handleAddVendor = async (name: string, phone: string, service_type: string) => {
     const result = await quickAddVendor({ full_name: name, phone, service_type });
     if (result.success && result.data) {
@@ -335,7 +334,8 @@ export default function EventTaskModal({
       setForm((prev) => ({ ...prev, vendor_id: (result.data as Vendor).id, assigned_to: "" }));
       return result.data;
     }
-    throw new Error(result.error || "Lỗi thêm thợ ngoài");
+    const errObj = result as any;
+    throw new Error(errObj.error || "Lỗi thêm thợ ngoài");
   };
 
   // Total cost.
