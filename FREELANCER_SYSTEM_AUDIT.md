@@ -683,26 +683,44 @@ Content:
 
 ### Long-term Actions (P2 - Next Quarter)
 
-#### 6. Vendor Payment Tracking System
-**New Table**: `vendor_payments`
+#### 6. ✅ Vendor Payment Tracking System (COMPLETED 2026-05-25)
+**New Tables**: `vendor_payments`, `vendor_payment_allocations`
 ```sql
 CREATE TABLE vendor_payments (
   id UUID PRIMARY KEY,
   vendor_id UUID REFERENCES vendors(id),
-  work_task_id UUID REFERENCES work_tasks(id),
-  amount NUMERIC(15,2) NOT NULL,
-  payment_date DATE,
-  payment_method VARCHAR(50),  -- tien_mat|chuyen_khoan
-  status VARCHAR(50) DEFAULT 'chua_thanh_toan',  -- chua_thanh_toan|da_thanh_toan
-  notes TEXT,
+  amount NUMERIC NOT NULL,
+  payment_method TEXT DEFAULT 'chuyen_khoan',
+  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE TABLE vendor_payment_allocations (
+  id UUID PRIMARY KEY,
+  payment_id UUID NOT NULL REFERENCES vendor_payments(id) ON DELETE CASCADE,
+  work_task_id UUID NOT NULL REFERENCES work_tasks(id),
+  amount NUMERIC NOT NULL CHECK (amount > 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id),
+  UNIQUE(payment_id, work_task_id)
 );
 ```
 
-**New UI**: Vendor payment management page
+**Implemented Features**:
+- ✅ Database tables with RLS policies and indexes
+- ✅ Atomic RPCs: `record_vendor_payment_atomic()`, `finance_vendor_debt_summary()`
+- ✅ Server actions: `recordVendorPayment()`, `fetchVendorDebtSummary()`, `fetchVendorUnpaidTasks()`
+- ✅ Payment modal with FIFO and manual allocation modes
+- ✅ Desktop table + mobile swipeable cards
+- ✅ Stats bar with debt summary
+- ✅ Page at `/finance/vendor-debts` with SWR integration
+- ✅ Cache invalidation and period lock checking
+- ✅ Navigation link in finance dashboard
 
-**Estimate**: 5-8 sessions
+**Actual**: 8 sessions (Sessions 1-8)
 
 ---
 
@@ -741,7 +759,7 @@ CREATE TABLE vendor_payments (
 - [ ] CTV có badge/visual distinction trong UI (⚠️ missing)
 - [ ] CTV onboarding guide exists (⚠️ missing)
 
-### Vendor (External Contractor) ✅/⚠️
+### Vendor (External Contractor) ✅
 
 - [x] Vendor có bảng riêng `vendors`
 - [x] Vendor có thể được quick-add trong task assignment
@@ -749,9 +767,10 @@ CREATE TABLE vendor_payments (
 - [x] Vendor có thể được assign vào work_tasks qua vendor_id field
 - [x] Vendor task cost KHÔNG được tính vào payroll (by design)
 - [x] Vendor xuất hiện trong contract drawer assignments
-- [ ] Vendor có payment tracking (❌ missing - HIGH PRIORITY)
-- [ ] Vendor có cost summary report (❌ missing - HIGH PRIORITY)
-- [ ] Vendor terminology rõ ràng (⚠️ confusing - gọi là "Freelancer")
+- [x] Vendor có payment tracking ✅ (COMPLETED - vendor_payments + allocations)
+- [x] Vendor có debt summary report ✅ (COMPLETED - finance_vendor_debt_summary RPC)
+- [x] Vendor có payment UI ✅ (COMPLETED - /finance/vendor-debts page)
+- [x] Vendor terminology rõ ràng ✅ (Navigation: "Nợ Vendor" - "Thợ ngoài")
 
 ### Contract & Task Assignment ✅
 
