@@ -92,6 +92,11 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
       return;
     }
 
+    if (!form.phone?.trim()) {
+      setError("Số điện thoại là bắt buộc");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -99,6 +104,12 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
       const result = await createCustomer(form);
       if (!result.success) {
         setError(result.error);
+        return;
+      }
+
+      // Handle duplicate phone case
+      if (result.data.duplicate) {
+        setError(`SĐT đã tồn tại cho khách hàng: ${result.data.customer_name}`);
         return;
       }
 

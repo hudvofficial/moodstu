@@ -296,7 +296,7 @@ export async function getCustomerStats(): Promise<ActionResult<{ total: number; 
 // Moved from contract-queries.ts -> customer domain (V2)
 // ----------------------------------------------------
 
-export async function searchCustomers(query: string) {
+export async function searchCustomers(query: string): Promise<ActionResult<unknown[]>> {
   return withAuth(async (supabase, userId) => {
     await requireCrmAccess(supabase, userId);
 

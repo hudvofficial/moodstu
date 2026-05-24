@@ -51,7 +51,7 @@ export function TBody({ children, className }: { children: React.ReactNode, clas
 export function TH({ children, className }: { children?: React.ReactNode, className?: string }) {
   return (
     <th className={cn(
-      "px-4 py-3 font-medium whitespace-nowrap",
+      "px-5 py-4 font-semibold whitespace-nowrap",
       className
     )}>
       {children}
@@ -72,7 +72,7 @@ export function TD({
     <td
       colSpan={colSpan}
       className={cn(
-        "px-4 whitespace-nowrap transition-colors",
+        "px-5 whitespace-nowrap transition-colors",
         className
       )}
     >
@@ -92,7 +92,7 @@ export function TR({
       onClick={onClick}
       {...props}
       className={cn(
-        "group transition-colors hover:bg-bg-hover h-14",
+        "group transition-colors hover:bg-bg-hover h-16",
         onClick && "cursor-pointer",
         className
       )}

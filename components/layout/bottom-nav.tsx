@@ -169,73 +169,75 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav flex items-start justify-around px-2 pt-2 nav-safe-padding",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav",
           className
         )}
       >
-        {navItems.map((item) => {
-          const isActive = isItemActive(pathname, item, true);
-          const isPending = pendingHref === item.href;
-          const Icon = item.icon;
+        <div className="flex items-start justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] w-full">
+          {navItems.map((item) => {
+            const isActive = isItemActive(pathname, item, true);
+            const isPending = pendingHref === item.href;
+            const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              prefetch
-              onPointerEnter={() => warmRoute(item.href)}
-              onFocus={() => warmRoute(item.href)}
-              onClick={(e) => handleNavClick(e, item.href, isActive)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 rounded-lg",
-                "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-                isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
-              )}
-            >
-              {isPending ? (
-                <Loader2 className="w-6 h-6 animate-spin stroke-[2.5px]" />
-              ) : (
-                <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
-              )}
-              <span className={cn(
-                "text-tiny",
-                isActive || isPending ? "font-semibold" : "font-medium"
-              )}>
-                {('shortLabel' in item && item.shortLabel) || item.label}
-              </span>
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                prefetch
+                onPointerEnter={() => warmRoute(item.href)}
+                onFocus={() => warmRoute(item.href)}
+                onClick={(e) => handleNavClick(e, item.href, isActive)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 rounded-lg",
+                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+                  isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
+                )}
+              >
+                {isPending ? (
+                  <Loader2 className="w-6 h-6 animate-spin stroke-[2.5px]" />
+                ) : (
+                  <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
+                )}
+                <span className={cn(
+                  "text-tiny",
+                  isActive || isPending ? "font-semibold" : "font-medium"
+                )}>
+                  {('shortLabel' in item && item.shortLabel) || item.label}
+                </span>
+              </Link>
+            );
+          })}
 
-        {/* Nút "Thêm" */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            haptic("light");
-            setShowMore(!showMore);
-          }}
-          onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
-          className={cn(
-            "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 cursor-pointer rounded-lg",
-            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-            showMore || moreActive
-              ? "text-primary"
-              : "text-text-muted hover:text-text-secondary"
-          )}
-        >
-          {showMore ? (
-            <X className="w-6 h-6 stroke-[2.5px]" />
-          ) : (
-            <MoreHorizontal className={cn("w-6 h-6", moreActive && "stroke-[2.5px]")} />
-          )}
-          <span className={cn(
-            "text-tiny",
-            showMore || moreActive ? "font-semibold" : "font-medium"
-          )}>
-            Thêm
-          </span>
+          {/* Nút "Thêm" */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              haptic("light");
+              setShowMore(!showMore);
+            }}
+            onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 pt-1.5 pb-1 cursor-pointer rounded-lg",
+              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+              showMore || moreActive
+                ? "text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            )}
+          >
+            {showMore ? (
+              <X className="w-6 h-6 stroke-[2.5px]" />
+            ) : (
+              <MoreHorizontal className={cn("w-6 h-6", moreActive && "stroke-[2.5px]")} />
+            )}
+            <span className={cn(
+              "text-tiny",
+              showMore || moreActive ? "font-semibold" : "font-medium"
+            )}>
+              Thêm
+            </span>
+          </div>
         </div>
       </nav>
     </>
