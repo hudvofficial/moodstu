@@ -168,7 +168,6 @@ COMMENT ON VIEW order_payment_summary IS 'Aggregated payment summary per printin
 CREATE OR REPLACE VIEW inventory_available_stock AS
 SELECT
   i.id,
-  i.studio_id,
   i.item_code,
   i.name,
   i.current_stock,
@@ -184,7 +183,7 @@ SELECT
 FROM inventory_items i
 LEFT JOIN inventory_reservations r ON i.id = r.item_id AND r.status = 'active'
 WHERE i.deleted_at IS NULL
-GROUP BY i.id, i.studio_id, i.item_code, i.name, i.current_stock, i.unit, i.min_stock;
+GROUP BY i.id, i.item_code, i.name, i.current_stock, i.unit, i.min_stock;
 
 COMMENT ON VIEW inventory_available_stock IS 'Real-time available stock = current_stock - reserved_quantity';
 
