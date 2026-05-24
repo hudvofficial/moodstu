@@ -51,6 +51,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
   useEffect(() => {
     setHeaderSlots({
       hideSearch: true,
+      hideHeader: true, // Completely hide global header on gallery page
     });
     return () => setHeaderSlots({});
   }, [setHeaderSlots, contractId]);
@@ -110,6 +111,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     <div className="min-h-screen bg-bg-base">
       {/* ── Sticky Header Block ── */}
       <GalleryToolbar
+        contractId={contractId}
+        galleryTitle={galleryTitle}
         breadcrumbItems={[
           { label: "Hợp đồng", href: "/contracts" },
           { label: "Chi tiết", href: `/contracts/${contractId}` },

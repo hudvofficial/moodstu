@@ -41,7 +41,7 @@ const FORM_PAGE_PATTERNS = [
 
 // Routes that keep Header + BottomNav but remove main padding
 // (e.g. gallery page needs sticky header flush to top)
-const NO_PADDING_PATTERNS = [
+const GALLERY_VIEW_PATTERNS = [
   /\/contracts\/[^/]+\/gallery/,
 ];
 
@@ -62,7 +62,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   const isAppView = APP_VIEW_PATTERNS.some(p => p.test(pathname));
   const isChatView = CHAT_VIEW_PATTERNS.some(p => p.test(pathname));
   const isFormPage = FORM_PAGE_PATTERNS.some(p => p.test(pathname));
-  const isNoPadding = NO_PADDING_PATTERNS.some(p => p.test(pathname));
+  const isGalleryView = GALLERY_VIEW_PATTERNS.some(p => p.test(pathname));
 
   // Ref to the main scroll container — shared via context
   const mainRef = React.useRef<HTMLElement>(null);
@@ -131,8 +131,8 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                   ? "px-0 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:px-6 md:py-6 lg:px-6 lg:pb-6"
                 : isFormPage
                   ? "px-2 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-4 lg:px-6 lg:py-6" // Form padding, no pb-28 (form footer handles)
-                  : isNoPadding
-                    ? "max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6" // Keep only bottom padding for BottomNav spacing
+                  : isGalleryView
+                    ? "pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6" // Gallery handles its own top padding via GalleryToolbar
                     : "px-2 max-lg:pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0 pb-4 md:px-6 md:py-6 lg:px-6 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-6",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>

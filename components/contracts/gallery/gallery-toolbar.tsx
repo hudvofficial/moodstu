@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import Link from "next/link";
 import {
   Camera,
   Eye,
@@ -9,6 +10,7 @@ import {
   Heart,
   MessageCircle,
   Star,
+  ArrowLeft,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { StatsBar, type StatItem } from "@/components/ui/stats-bar";
@@ -16,6 +18,9 @@ import GallerySortDropdown, { type SortOption } from "./gallery-sort-dropdown";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
 import { type FileFilter, type StatsFilter, FOLDER_LABELS, type ImageGroup } from "./gallery-helpers";
 import type { GalleryImage, GallerySummary } from "@/types/gallery";
+import { useScrollDirection } from "@/hooks/use-scroll-direction";
+import { useScrollContainer } from "@/contexts/scroll-container";
+import { cn } from "@/lib/utils";
 
 import { MobilePrimaryStatCard, MobileSecondaryStatChip } from "./gallery-toolbar-stats";
 import { GalleryFilterTabs, GalleryDesktopFilterGroup, DesktopFilterDivider } from "./gallery-toolbar-filters";
@@ -62,6 +67,8 @@ function GalleryStatusBadge({ status, accessUrl }: { status: string; accessUrl?:
 }
 
 interface GalleryToolbarProps {
+  contractId: string;
+  galleryTitle: string;
   breadcrumbItems?: Array<{ label: string; href?: string }>;
   galleries: GallerySummary[];
   images: GalleryImage[];
@@ -104,6 +111,8 @@ interface GalleryToolbarProps {
 }
 
 export default function GalleryToolbar({
+  contractId,
+  galleryTitle,
   breadcrumbItems,
   galleries,
   images,
@@ -146,6 +155,16 @@ export default function GalleryToolbar({
 }: GalleryToolbarProps) {
   const activeGallery = useMemo(() => galleries.find(g => g.id === activeGalleryId), [galleries, activeGalleryId]);
   const isGocGallery = activeGallery?.folder_type === "goc";
+  
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useScrollContainer();
+
+  // Apply proportional scrolling pattern to GalleryToolbar
+  const { isVisible } = useScrollDirection({
+    threshold: 80,
+    containerRef: scrollRef,
+    headerRef: toolbarRef,
+  });
 
   const statsItems = useMemo<StatItem[]>(() => ([
     {
@@ -218,13 +237,36 @@ export default function GalleryToolbar({
   );
 
   return (
-    <div className="sticky top-0 z-40 border-b border-border/60 bg-bg-base/95 backdrop-blur-md">
+    <div 
+      ref={toolbarRef}
+      className={cn(
+        "sticky top-0 z-40 border-b border-border/60 bg-bg-base/95 backdrop-blur-md max-lg:pt-[env(safe-area-inset-top)]",
+        "lg:transition-transform lg:duration-300 lg:ease-in-out",
+        !isVisible && "lg:-translate-y-full"
+      )}
+      style={{
+        transform: 'translateY(var(--header-translate-y, 0px))',
+        transition: 'var(--header-transition, transform 0.3s ease)',
+        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, calc(0.06 * var(--header-shadow-opacity, 1)))`,
+      }}
+    >
       <div className="space-y-2.5 px-3 py-3 md:px-6 md:py-4">
         <div className="flex items-center justify-between gap-3 min-w-0">
-          <div className="min-w-0">
-            {breadcrumbItems && (
-              <Breadcrumb items={breadcrumbItems} className="text-caption md:text-body-sm" />
-            )}
+          <div className="flex items-center gap-2 min-w-0">
+            <Link 
+              href={`/contracts/${contractId}`} 
+              className="lg:hidden p-1.5 -ml-1.5 rounded-full bg-bg-hover text-text-muted hover:text-text-primary"
+            >
+              <ArrowLeft size={20} />
+            </Link>
+            <div className="min-w-0 hidden lg:block">
+              {breadcrumbItems && (
+                <Breadcrumb items={breadcrumbItems} className="text-caption md:text-body-sm" />
+              )}
+            </div>
+            <div className="min-w-0 lg:hidden flex-1">
+              <span className="text-body-sm font-semibold truncate block pr-2">{galleryTitle}</span>
+            </div>
           </div>
           <GalleryStatusBadge status={galleryStatus} accessUrl={galleryAccessUrl} />
         </div>

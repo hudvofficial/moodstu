@@ -13,6 +13,7 @@ interface HeaderSlots {
   subtitleOverride?: string;
   rightSlot?: ReactNode;
   hideSearch?: boolean;
+  hideHeader?: boolean;
 }
 
 interface HeaderSlotsContextValue {

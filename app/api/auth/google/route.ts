@@ -8,11 +8,17 @@ const GOOGLE_OAUTH_STATE_COOKIE = "mood_google_oauth_state";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
+
+  // Auto-detect base URL from request or fallback to env
+  const requestUrl = new URL(request.url);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+                  `${requestUrl.protocol}//${requestUrl.host}`;
+
   const redirectUri =
     process.env.GOOGLE_REDIRECT_URI ||
-    "http://localhost:3000/api/auth/google/callback";
+    `${baseUrl}/api/auth/google/callback`;
   const appBaseUrl = new URL(redirectUri).origin;
 
   const supabase = await createClient();
