@@ -8,6 +8,7 @@ import {
   Lock,
   ReceiptText,
   TrendingUp,
+  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const NAV_ITEMS: QuickNavItem[] = [
   { href: "/finance/cashflow", label: "Sổ cái", description: "Thu chi tổng hợp", icon: BookOpen, tone: "blue" },
   { href: "/finance/debts", label: "Công nợ KH", description: "Khoản cần thu", icon: Landmark, tone: "orange" },
   { href: "/finance/salaries", label: "Bảng lương", description: "Lương nhân sự", icon: BadgeCheck, tone: "indigo" },
+  { href: "/finance/vendor-debts", label: "Nợ Vendor", description: "Thợ ngoài", icon: Users, tone: "orange" },
   { href: "/finance/categories", label: "Danh mục", description: "Nhóm thu chi", icon: Layers, tone: "neutral" },
   { href: "/finance/investments", label: "Tài sản", description: "Đầu tư studio", icon: TrendingUp, tone: "teal" },
   { href: "/finance/goals", label: "Mục tiêu", description: "Kế hoạch tiền", icon: Flag, tone: "violet" },
