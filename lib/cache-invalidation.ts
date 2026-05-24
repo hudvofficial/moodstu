@@ -40,6 +40,7 @@ export async function revalidateFinanceCaches(scope: MonthYear = {}) {
     "finance-categories",
     cacheKeys.financeContracts(),
     cacheKeys.labDebts(),
+    cacheKeys.vendorDebts(),
     cacheKeys.financeFixedCosts(),
     cacheKeys.financeInvestments(),
     "finance-salaries",
