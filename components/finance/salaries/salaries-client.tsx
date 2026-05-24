@@ -129,7 +129,7 @@ export function SalariesClient({
     refresh();
   };
 
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading } = useSWR<SalaryPageData>(
     key,
     () => requireData(fetchSalaries(month, year)),
     { fallbackData: initialData },
