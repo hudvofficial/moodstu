@@ -78,9 +78,8 @@ export function SalaryMobileSwipeCard({
     >
       <article
         onClick={() => onView(item)}
-        className={`card-base cursor-pointer space-y-3 p-4 transition-colors active:bg-bg-hover ${
-          isBusy ? "pointer-events-none opacity-50" : ""
-        }`}
+        className={`card-base cursor-pointer space-y-3 p-4 transition-colors active:bg-bg-hover ${isBusy ? "pointer-events-none opacity-50" : ""
+          }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
