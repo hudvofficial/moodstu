@@ -103,6 +103,9 @@ CREATE INDEX IF NOT EXISTS idx_inventory_reservations_expires ON inventory_reser
 ALTER TABLE inventory_reservations ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated users for now
+DROP POLICY IF EXISTS "Allow authenticated users to manage inventory_reservations" ON inventory_reservations;
+DROP POLICY IF EXISTS "Enable read access for authenticated users on inventory_reserva" ON inventory_reservations;
+DROP POLICY IF EXISTS "Enable all access for authenticated users on inventory_reservat" ON inventory_reservations;
 CREATE POLICY "Allow authenticated users to manage inventory_reservations"
   ON inventory_reservations FOR ALL
   USING (auth.role() = 'authenticated')
