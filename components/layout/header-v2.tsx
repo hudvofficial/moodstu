@@ -16,6 +16,8 @@ import NotificationBell from "@/components/layout/NotificationBell";
 import { useHeaderSlotsContext } from "@/contexts/header-slots-context";
 import { usePullDistance } from "@/contexts/pull-to-refresh-context";
 
+import { useIsMobile } from "@/hooks/use-mobile";
+
 // ──── Props ────
 interface HeaderProps {
   className?: string;
@@ -39,25 +41,26 @@ export function Header({
   const searchParams = useSearchParams();
   const currentModule = getModuleFromPath(pathname);
   const scrollRef = useScrollContainer();
+  const isMobile = useIsMobile();
 
-  // Scroll hide/show with iOS-optimized thresholds
-  const { isVisible } = useScrollDirection({
-    threshold: 80,      // Higher threshold - less sensitive
-    hideDelta: 32,      // Larger hide delta - smoother
-    showDelta: 12,      // Larger show delta - more forgiving
-    containerRef: scrollRef,
-    resetKey: pathname,
-  });
-
-  const pullDistance = usePullDistance();
-
-  // Merge: props > context > defaults
   const ctx = useHeaderSlotsContext();
   const leftSlot = leftSlotProp ?? ctx.leftSlot;
   const titleOverride = titleOverrideProp ?? ctx.titleOverride;
   const subtitleOverride = subtitleOverrideProp ?? ctx.subtitleOverride;
   const rightSlot = rightSlotProp ?? ctx.rightSlot;
   const hideSearch = hideSearchProp ?? ctx.hideSearch;
+
+  const headerRef = React.useRef<HTMLElement>(null);
+
+  // Scroll hide/show with iOS-optimized thresholds
+  const { isVisible } = useScrollDirection({
+    threshold: 80,
+    containerRef: scrollRef,
+    headerRef: headerRef,
+    resetKey: pathname,
+  });
+
+  const pullDistance = usePullDistance();
 
   const [isSearchVisible, setIsSearchVisible] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState(searchParams.get('q') || "");
@@ -101,15 +104,12 @@ export function Header({
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }, [pathname, router, searchParams]);
 
-  // Calculate transform: pull-to-refresh takes priority, then hide/show
+  // Calculate transform: pull-to-refresh takes priority, then hide/show via CSS var
   const getTransform = () => {
     if (pullDistance > 0) {
       return `translateY(${pullDistance}px)`;
     }
-    if (!isVisible) {
-      return 'translateY(-100%)';
-    }
-    return 'translateY(0)';
+    return 'translateY(var(--header-translate-y, 0px))';
   };
 
   // Calculate transition: different for pull vs hide/show
@@ -117,26 +117,35 @@ export function Header({
     if (pullDistance > 0) {
       return 'none'; // No transition while pulling
     }
-    if (pullDistance === 0 && !isVisible) {
-      return 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Spring snap-back
-    }
-    return 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease'; // Smooth hide/show + shadow fade
+    return 'var(--header-transition, transform 0.3s ease)';
   };
 
-  // Shadow opacity based on visibility
-  const shadowOpacity = isVisible && pullDistance === 0 ? 1 : 0;
+  // shadowOpacity is now handled natively via --header-shadow-opacity by useScrollDirection.
+  // We only reset it if pullDistance > 0.
+  React.useEffect(() => {
+    if (isMobile && pullDistance > 0) {
+      document.documentElement.style.setProperty('--header-shadow-opacity', '0');
+    }
+  }, [pullDistance, isMobile]);
 
   return (
     <header
+      ref={headerRef}
       className={cn(
-        "fixed lg:sticky top-0 inset-x-0 z-(--z-header) bg-bg-card print:hidden will-change-transform pt-[env(safe-area-inset-top)]",
-        // Remove translate classes - handled by inline style
+        "sticky top-0 z-(--z-header) bg-bg-card print:hidden",
+        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)]",
+        "lg:transition-transform lg:duration-300 lg:ease-in-out",
+        !isVisible && "lg:-translate-y-full", // Desktop fallback still uses class
         className
       )}
       style={{
-        transform: getTransform(),
-        transition: getTransition(),
-        boxShadow: `0 2px 8px -2px rgba(0, 0, 0, ${0.06 * shadowOpacity})`,
+        ...(isMobile ? {
+          // Mobile-only: pull-to-refresh transform and dynamic shadow via CSS variable
+          transform: getTransform(),
+          transition: getTransition(),
+          boxShadow: `0 2px 8px -2px rgba(0, 0, 0, calc(0.06 * var(--header-shadow-opacity, 1)))`,
+          willChange: pullDistance > 0 ? 'transform' : 'auto', // Optimize pull-to-refresh
+        } : {}),
       }}
     >
       {/* ═══════ MOBILE: Search Overlay ═══════ */}
