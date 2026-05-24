@@ -30,7 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
-import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
+import type { ActionResult, SalaryItem, SalaryPageData, VendorCostSummary } from "@/types/finance-operations";
 
 interface SalariesClientProps {
   initialMonth: number;
@@ -136,9 +136,9 @@ export function SalariesClient({
   );
 
   const vendorKey = cacheKeys.financeVendorCosts(month, year);
-  const { data: vendorData, error: vendorError, isLoading: vendorLoading } = useSWR(
+  const { data: vendorData, error: vendorError, isLoading: vendorLoading } = useSWR<VendorCostSummary>(
     vendorKey,
-    () => fetchVendorCosts(month, year),
+    () => requireData(fetchVendorCosts(month, year)),
     { fallbackData: { items: [], total_cost: 0, total_jobs: 0, vendor_count: 0, month, year } }
   );
 
