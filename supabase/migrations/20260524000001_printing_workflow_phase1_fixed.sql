@@ -66,6 +66,9 @@ CREATE INDEX IF NOT EXISTS idx_order_payments_type ON order_payments(payment_typ
 ALTER TABLE order_payments ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated users for now (can be tightened later)
+DROP POLICY IF EXISTS "Allow authenticated users to manage order_payments" ON order_payments;
+DROP POLICY IF EXISTS "Enable read access for authenticated users on order_payments" ON order_payments;
+DROP POLICY IF EXISTS "Enable insert access for authenticated users on order_payments" ON order_payments;
 CREATE POLICY "Allow authenticated users to manage order_payments"
   ON order_payments FOR ALL
   USING (auth.role() = 'authenticated')
