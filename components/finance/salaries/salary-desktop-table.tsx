@@ -1,6 +1,7 @@
 import { SalaryRowActions } from "./salary-row-actions";
 import { formatVnd } from "@/components/finance/finance-format";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SalaryItem } from "@/types/finance-operations";
 
@@ -34,7 +35,12 @@ export function SalaryDesktopTable({ items, onView, onAdjust, onPay, onPrint, on
                     {items.map((item) => (
                         <TR key={item.id}>
                             <TD>
-                                <div className="font-semibold text-text-primary">{item.employee_name}</div>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-text-primary">{item.employee_name}</span>
+                                    {item.role === "ctv" && (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">CTV</Badge>
+                                    )}
+                                </div>
                                 <div className="text-caption text-text-muted">
                                     {item.employee_code || "-"} · {item.position || "Chưa có vị trí"}
                                 </div>

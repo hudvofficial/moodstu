@@ -18,17 +18,20 @@ interface FilterOption {
 interface SalaryFiltersProps {
   scope: string;
   position: string;
+  role: string;
   sort: string;
   month: string;
   year: string;
   tabs: FilterTab[];
   positionOptions: FilterOption[];
+  roleOptions: FilterOption[];
   sortOptions: FilterOption[];
   monthOptions: FilterOption[];
   yearOptions: FilterOption[];
   hasActiveFilters: boolean;
   onScopeChange: (value: string) => void;
   onPositionChange: (value: string) => void;
+  onRoleChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onMonthChange: (value: string) => void;
   onYearChange: (value: string) => void;
@@ -38,17 +41,20 @@ interface SalaryFiltersProps {
 export function SalaryFilters({
   scope,
   position,
+  role,
   sort,
   month,
   year,
   tabs,
   positionOptions,
+  roleOptions,
   sortOptions,
   monthOptions,
   yearOptions,
   hasActiveFilters,
   onScopeChange,
   onPositionChange,
+  onRoleChange,
   onSortChange,
   onMonthChange,
   onYearChange,
@@ -72,6 +78,12 @@ export function SalaryFilters({
             onChange={onPositionChange}
             options={positionOptions}
             placeholder="Vị trí"
+          />
+          <SelectPill
+            value={role}
+            onChange={onRoleChange}
+            options={roleOptions}
+            placeholder="Loại"
           />
           <SelectPill
             value={sort}
@@ -112,6 +124,12 @@ export function SalaryFilters({
             onChange={onPositionChange}
             options={positionOptions}
             placeholder="Vị trí"
+          />
+          <SelectPill
+            value={role}
+            onChange={onRoleChange}
+            options={roleOptions}
+            placeholder="Loại"
           />
           <SelectPill
             value={sort}

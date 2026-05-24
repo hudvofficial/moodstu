@@ -3,6 +3,7 @@
 import { Printer, Plus, Banknote, Trash2 } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
 import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { SalaryItem } from "@/types/finance-operations";
 
@@ -83,8 +84,11 @@ export function SalaryMobileSwipeCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="mb-1.5 truncate text-body-sm font-bold">
-              {item.employee_name}
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="truncate text-body-sm font-bold">{item.employee_name}</span>
+              {item.role === "ctv" && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">CTV</Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span className="truncate text-caption text-text-muted">

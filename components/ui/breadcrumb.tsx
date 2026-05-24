@@ -43,7 +43,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
             <ChevronRight size={14} className="breadcrumb-separator" />
           )}
           {item.href ? (
-            <Link href={item.href} className="breadcrumb-link">
+            <Link href={item.href} prefetch={false} className="breadcrumb-link">
               {item.label}
             </Link>
           ) : (

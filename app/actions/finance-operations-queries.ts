@@ -696,7 +696,7 @@ export async function fetchSalaries(month: number, year: number) {
       supabase
         .from("employee_salaries")
         .select(
-          "id, employee_id, month, year, base_salary, product_salary, bonus, penalty, advance_payment, total_salary, net_salary, paid_amount, remaining_amount, updated_at, employee:employee_id(full_name, employee_code, position), salary_adjustments(id, type, amount, reason, date, created_at)",
+          "id, employee_id, month, year, base_salary, product_salary, bonus, penalty, advance_payment, total_salary, net_salary, paid_amount, remaining_amount, updated_at, employee:employee_id(full_name, employee_code, position, role), salary_adjustments(id, type, amount, reason, date, created_at)",
         )
         .eq("month", month)
         .eq("year", year)
@@ -718,6 +718,7 @@ export async function fetchSalaries(month: number, year: number) {
       employee_name: relationText((row as Record<string, unknown>).employee, "full_name") || "Nhan vien",
       employee_code: relationText((row as Record<string, unknown>).employee, "employee_code"),
       position: relationText((row as Record<string, unknown>).employee, "position"),
+      role: relationText((row as Record<string, unknown>).employee, "role"),
       month: row.month,
       year: row.year,
       base_salary: row.base_salary || 0,

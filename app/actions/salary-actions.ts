@@ -368,7 +368,7 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
         }
       });
 
-      // 4. Fetch Active Employees & insert
+      // 4. Fetch Active Employees (including Freelancers/CTV) & insert
       const { data: employees, error: empErr } = await supabase
         .from("employees")
         .select("*")
@@ -376,8 +376,19 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
 
       if (empErr) throw empErr;
       if (!employees || employees.length === 0) {
-        throw new Error("Không tìm thấy nhân viên nào đang làm việc");
+        throw new Error("Không tìm thấy nhân viên nào có status='active'. Vui lòng kiểm tra: (1) Nhân viên/CTV có status='active', (2) Chạy query: SELECT * FROM employees WHERE deleted_at IS NULL AND status='active'");
       }
+
+      // Log employee breakdown for debugging
+      const employeesByRole = employees.reduce((acc: Record<string, number>, emp) => {
+        const role = emp.role || "unknown";
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {});
+      const roleBreakdownLog = Object.entries(employeesByRole)
+        .map(([role, count]) => `${role}=${count}`)
+        .join(", ");
+      console.log(`[Salary Generation] Processing ${employees.length} employees (${roleBreakdownLog})`);
 
       const newRecords = employees.map((emp) => {
         // Parse JSONB salary_info for V2 compliance
@@ -427,11 +438,18 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
 
       revalidatePath("/finance/salaries");
 
+      const roleBreakdown = Object.entries(employeesByRole)
+        .map(([role, count]) => {
+          const labels: Record<string, string> = { admin: "Admin", manager: "QL", sale: "Sale", media: "Media", ctv: "CTV" };
+          return `${labels[role] || role}: ${count}`;
+        })
+        .join(", ");
+
       return {
         success: true,
         message: hasWarnings
-          ? `Tạo thành công ${newRecords.length} bảng lương. CẢNH BÁO: Phát hiện Job hoàn thành chưa gán nhân sự hoặc lương 0đ.`
-          : `Đã khởi tạo bảng lương thành công cho ${newRecords.length} nhân viên`
+          ? `Tạo thành công ${newRecords.length} bảng lương (${roleBreakdown}). CẢNH BÁO: Phát hiện Job hoàn thành chưa gán nhân sự hoặc lương 0đ.`
+          : `Đã khởi tạo bảng lương thành công cho ${newRecords.length} nhân viên (${roleBreakdown})`
       };
 
     } catch (error: unknown) {

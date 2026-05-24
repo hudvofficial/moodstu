@@ -180,7 +180,7 @@ export function TaskListPanel({
             <span className="text-label">
               {mode === "assigned" ? assigneeName || "Nhân sự đã lưu" : workTypeLabel}
             </span>
-            {isVendor && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Freelancer</span>}
+            {isVendor && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Thợ ngoài</span>}
             <span className="text-caption text-text-muted">
               {mode === "assigned" ? workTypeLabel : "Chưa giao"}
             </span>

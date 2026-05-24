@@ -11,6 +11,7 @@ import {
   validatePayrollWarningsAction,
 } from "@/app/actions/salary-actions";
 import { fetchSalaries } from "@/app/actions/finance-operations-queries";
+import { fetchVendorCosts } from "@/app/actions/vendor-reports-queries";
 import { SalaryAdjustmentModal } from "@/components/finance/salaries/salary-adjustment-modal";
 import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
 import { SalaryFilters } from "@/components/finance/salaries/salary-filters";
@@ -19,7 +20,10 @@ import { PayslipModal } from "@/components/finance/salaries/payslip-modal";
 import { PaymentConfirmModal } from "@/components/finance/salaries/payment-confirm-modal";
 import { SalaryDesktopTable } from "@/components/finance/salaries/salary-desktop-table";
 import { SalaryStatsBar } from "@/components/finance/salaries/salary-stats-bar";
+import { VendorCostDesktopTable } from "@/components/finance/salaries/vendor-cost-desktop-table";
+import { VendorCostMobileList } from "@/components/finance/salaries/vendor-cost-mobile-list";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,8 +62,10 @@ export function SalariesClient({
 }: SalariesClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
+  const [viewMode, setViewMode] = useState<"salaries" | "vendors">("salaries");
   const [scope, setScope] = useState("all");
   const [position, setPosition] = useState("all");
+  const [role, setRole] = useState("all");
   const [sort, setSort] = useState("default");
   const [isGenerating, setIsGenerating] = useState(false);
   const [viewing, setViewing] = useState<SalaryItem | null>(null);
@@ -129,9 +135,17 @@ export function SalariesClient({
     { fallbackData: initialData },
   );
 
+  const vendorKey = cacheKeys.financeVendorCosts(month, year);
+  const { data: vendorData, error: vendorError, isLoading: vendorLoading } = useSWR(
+    vendorKey,
+    () => fetchVendorCosts(month, year),
+    { fallbackData: { items: [], total_cost: 0, total_jobs: 0, vendor_count: 0, month, year } }
+  );
+
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được bảng lương.");
-  }, [error]);
+    if (vendorError) toast.error(vendorError.message || "Không tải được chi phí thợ ngoài.");
+  }, [error, vendorError]);
 
   const salaryData = data || initialData;
   const allItems = useMemo(() => salaryData.items || [], [salaryData.items]);
@@ -176,6 +190,27 @@ export function SalariesClient({
     ];
   }, [allItems]);
 
+  const roleOptions = useMemo(() => {
+    const roleLabels: Record<string, string> = {
+      admin: "Admin",
+      manager: "Quản lý",
+      sale: "Sale",
+      media: "Media",
+      ctv: "CTV",
+    };
+    const seen = new Set<string>();
+    for (const item of allItems) {
+      if (item.role) seen.add(item.role);
+    }
+
+    return [
+      { value: "all", label: "Loại" },
+      ...Array.from(seen)
+        .sort()
+        .map((value) => ({ value, label: roleLabels[value] || value })),
+    ];
+  }, [allItems]);
+
   const filteredItems = useMemo(() => {
     const next = allItems.filter((item) => {
       if (scope === "unpaid" && item.remaining_amount <= 0) return false;
@@ -186,6 +221,8 @@ export function SalariesClient({
         const current = item.position?.trim().toLowerCase() || "";
         if (current !== position) return false;
       }
+
+      if (role !== "all" && item.role !== role) return false;
 
       return true;
     });
@@ -207,14 +244,15 @@ export function SalariesClient({
     }
 
     return next;
-  }, [allItems, position, scope, sort]);
+  }, [allItems, position, role, scope, sort]);
 
-  const hasActiveFilters = scope !== "all" || position !== "all" || sort !== "default";
+  const hasActiveFilters = scope !== "all" || position !== "all" || role !== "all" || sort !== "default";
   const shouldShowResultMeta = filteredItems.length > 0 && filteredItems.length !== allItems.length;
 
   const resetFilters = useCallback(() => {
     setScope("all");
     setPosition("all");
+    setRole("all");
     setSort("default");
   }, []);
 
@@ -315,9 +353,26 @@ export function SalariesClient({
         ]}
       />
 
+      {/* View Mode Tabs */}
       <section className="entrance entrance-0">
+        <TabsFilter
+          tabs={[
+            { label: "Lương nhân viên", value: "salaries", count: allItems.length },
+            { label: "Chi phí thợ ngoài", value: "vendors", count: vendorData?.vendor_count || 0 },
+          ]}
+          activeTab={viewMode}
+          onChange={(value) => setViewMode(value as "salaries" | "vendors")}
+        />
+      </section>
+
+      <section className="entrance entrance-1">
         <div className="flex items-center justify-between gap-4 rounded-xl bg-bg-card px-5 py-3 shadow-xs">
-          <SalaryStatsBar summary={salaryData.summary} />
+          <SalaryStatsBar summary={viewMode === "salaries" ? salaryData.summary : {
+            total: vendorData?.vendor_count || 0,
+            totalSalary: vendorData?.total_cost || 0,
+            totalPaid: 0,
+            totalRemaining: vendorData?.total_cost || 0,
+          }} />
           <div className="hidden shrink-0 lg:flex">
             {!isLoading ? (
               <Button
@@ -341,28 +396,33 @@ export function SalariesClient({
         </div>
       </section>
 
-      {!isLoading ? (
+      {!isLoading && viewMode === "salaries" ? (
         <FAB
           onClick={handleGenerateSalary}
           label={hasPayrollData ? `Cập nhật T${month}` : `Tạo lương T${month}`}
         />
       ) : null}
 
-      <section className="entrance entrance-1">
-        <SalaryFilters
+      {viewMode === "salaries" ? (
+        <>
+          <section className="entrance entrance-2">
+            <SalaryFilters
           scope={scope}
           position={position}
+          role={role}
           sort={sort}
           month={String(month)}
           year={String(year)}
           tabs={scopeTabs}
           positionOptions={positionOptions}
+          roleOptions={roleOptions}
           sortOptions={SORT_OPTIONS}
           monthOptions={monthOptions}
           yearOptions={yearOptions}
           hasActiveFilters={hasActiveFilters}
           onScopeChange={setScope}
           onPositionChange={setPosition}
+          onRoleChange={setRole}
           onSortChange={setSort}
           onMonthChange={handleMonthChange}
           onYearChange={handleYearChange}
@@ -370,42 +430,69 @@ export function SalariesClient({
         />
       </section>
 
-      <section className="entrance entrance-2">
-        {isLoading && !data ? (
-          <div className="space-y-4 pt-4">
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <Skeleton className="h-16 w-full rounded-2xl" />
-          </div>
-        ) : (
-          <>
-            <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
-              <SalaryDesktopTable
-                items={filteredItems}
-                onView={setViewing}
-                onAdjust={setAdjusting}
-                onPay={handlePay}
-                onPrint={handlePrint}
-                onDelete={handleDelete}
-              />
-            </div>
-            <SalaryMobileList
-              items={filteredItems}
-              onView={setViewing}
-              onAdjust={setAdjusting}
-              onPay={handlePay}
-              onPrint={handlePrint}
-              onDelete={handleDelete}
-              busyId={deletingId}
-            />
-            {shouldShowResultMeta ? (
-              <p className="text-center text-caption text-text-muted">
-                Hiển thị {filteredItems.length} / {allItems.length} nhân sự
-              </p>
-            ) : null}
-          </>
-        )}
-      </section>
+          <section className="entrance entrance-3">
+            {isLoading && !data ? (
+              <div className="space-y-4 pt-4">
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+              </div>
+            ) : (
+              <>
+                <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
+                  <SalaryDesktopTable
+                    items={filteredItems}
+                    onView={setViewing}
+                    onAdjust={setAdjusting}
+                    onPay={handlePay}
+                    onPrint={handlePrint}
+                    onDelete={handleDelete}
+                  />
+                </div>
+                <SalaryMobileList
+                  items={filteredItems}
+                  onView={setViewing}
+                  onAdjust={setAdjusting}
+                  onPay={handlePay}
+                  onPrint={handlePrint}
+                  onDelete={handleDelete}
+                  busyId={deletingId}
+                />
+                {shouldShowResultMeta ? (
+                  <p className="text-center text-caption text-text-muted">
+                    Hiển thị {filteredItems.length} / {allItems.length} nhân sự
+                  </p>
+                ) : null}
+              </>
+            )}
+          </section>
+        </>
+      ) : (
+        <>
+          {/* Vendor costs view */}
+          <section className="entrance entrance-2">
+            {vendorLoading && !vendorData ? (
+              <div className="space-y-4 pt-4">
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
+              </div>
+            ) : (
+              <>
+                <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
+                  <VendorCostDesktopTable items={vendorData?.items || []} />
+                </div>
+                <VendorCostMobileList items={vendorData?.items || []} />
+                {vendorData && vendorData.items.length > 0 && (
+                  <p className="text-center text-caption text-text-muted">
+                    Tổng: {vendorData.vendor_count} thợ ngoài, {vendorData.total_jobs} jobs
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        </>
+      )}
 
       <SalaryDetailModal
         item={viewing}

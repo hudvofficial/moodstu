@@ -58,6 +58,9 @@ export function FinanceQuickNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
+              scroll={false}
+              replace={false}
               className={cn(
                 "card-interactive flex min-h-24 flex-col items-center justify-center gap-2 p-3 text-center",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

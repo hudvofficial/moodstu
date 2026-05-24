@@ -78,6 +78,7 @@ export const cacheKeys = {
   financeFixedCosts: () => "finance-fixed-costs",
   financeInvestments: () => "finance-investments",
   financeSalaries: (month: number, year: number) => `finance-salaries:${year}-${month}`,
+  financeVendorCosts: (month: number, year: number) => `finance-vendor-costs:${year}-${month}`,
   financeBudgets: (month: number, year: number) => `finance-budgets:${year}-${month}`,
   financeCloses: (year: number) => `finance-closes:${year}`,
   financeCloseDetail: (id: string) => `finance-close:${id}`,

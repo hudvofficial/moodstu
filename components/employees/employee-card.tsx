@@ -63,7 +63,7 @@ export default function EmployeeCard({ employee: emp, onSelect }: Props) {
               {formatPhone(emp.phone)}
             </a>
           )}
-          {roleBadge && emp.role !== "ctv" && (
+          {roleBadge && (
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-tiny font-medium ${VARIANT_COLORS[roleBadge.variant] || VARIANT_COLORS.neutral}`}>
               {roleBadge.label}
             </span>

@@ -139,7 +139,7 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
               <div className="flex-1 flex flex-col min-w-0">
                 <span className="text-body-sm font-medium text-text-main truncate">
                   {task.employees?.full_name || task.vendors?.full_name}
-                  {task.vendors && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Freelancer</span>}
+                  {task.vendors && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Thợ ngoài</span>}
                 </span>
                 {events && task.event_id && (
                   <span className="text-[10px] text-text-muted truncate leading-tight">

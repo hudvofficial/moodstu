@@ -78,16 +78,16 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
   const handleSearchChange = React.useCallback((value: string) => {
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+    debounceRef.current = `setTimeout(() => {
+      const currentPath = window.location.pathname;`n      const params = new URLSearchParams(window.location.search);
       if (value.trim()) {
         params.set('q', value.trim());
       } else {
         params.delete('q');
       }
-      router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
+      router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` , { scroll: false });
     }, 300);
-  }, [pathname, router, searchParams]);
+  }, [router]);
 
   // Clear search — instant clear local + URL
   const handleClearSearch = React.useCallback(() => {
@@ -96,8 +96,8 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const params = new URLSearchParams(searchParams.toString());
     params.delete('q');
-    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
-  }, [pathname, router, searchParams]);
+    router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` , { scroll: false });
+  }, [router]);
 
   return (
     <header

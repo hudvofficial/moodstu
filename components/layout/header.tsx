@@ -85,24 +85,28 @@ export function Header({
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      // FIX: Use fresh pathname from window.location instead of stale closure
+      const currentPath = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
       if (value.trim()) {
         params.set('q', value.trim());
       } else {
         params.delete('q');
       }
-      router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
+      router.replace(params.toString() ? `${currentPath}?${params.toString()}` : currentPath, { scroll: false });
     }, 300);
-  }, [pathname, router, searchParams]);
+  }, [router]);
 
   const handleClearSearch = React.useCallback(() => {
     setSearchTerm("");
     setIsSearchVisible(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    const params = new URLSearchParams(searchParams.toString());
+    // FIX: Use fresh pathname from window.location
+    const currentPath = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
     params.delete('q');
-    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
-  }, [pathname, router, searchParams]);
+    router.replace(params.toString() ? `${currentPath}?${params.toString()}` : currentPath, { scroll: false });
+  }, [router]);
 
   // shadowOpacity is now handled natively via --header-shadow-opacity by useScrollDirection.
   // We only reset it if pullDistance > 0.

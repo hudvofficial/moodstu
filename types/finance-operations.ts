@@ -148,6 +148,7 @@ export interface SalaryItem {
   employee_name: string;
   employee_code: string | null;
   position: string | null;
+  role?: string | null;
   month: number;
   year: number;
   base_salary: number;
@@ -264,3 +265,28 @@ export interface IntegrityReportItem {
 
 export type ReceiptPage = PaginatedResult<ReceiptListItem>;
 export type ExpensePage = PaginatedResult<ExpenseListItem>;
+
+// ─── Vendor Cost Reports ─────────────────────────────────
+
+export interface VendorCostItem {
+  vendor_id: string;
+  vendor_name: string;
+  vendor_phone: string | null;
+  service_type: string | null;
+  job_count: number;
+  total_cost: number;
+  contracts: string[];
+}
+
+export interface VendorCostSummary {
+  items: VendorCostItem[];
+  total_cost: number;
+  total_jobs: number;
+  vendor_count: number;
+  month: number;
+  year: number;
+}
+
+export interface VendorCostPageData extends VendorCostSummary {
+  // Matches SalaryPageData pattern
+}
