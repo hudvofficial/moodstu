@@ -65,19 +65,15 @@ CREATE INDEX IF NOT EXISTS idx_order_payments_type ON order_payments(payment_typ
 -- RLS policies
 ALTER TABLE order_payments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view order_payments in their studio"
+CREATE POLICY "Enable read access for authenticated users on order_payments"
   ON order_payments FOR SELECT
-  USING (auth.uid() IN (
-    SELECT user_id FROM user_studio_memberships
-    WHERE studio_id = (SELECT studio_id FROM printing_orders WHERE id = order_payments.order_id)
-  ));
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Users can insert order_payments in their studio"
+CREATE POLICY "Enable insert access for authenticated users on order_payments"
   ON order_payments FOR INSERT
-  WITH CHECK (auth.uid() IN (
-    SELECT user_id FROM user_studio_memberships
-    WHERE studio_id = (SELECT studio_id FROM printing_orders WHERE id = order_payments.order_id)
-  ));
+  TO authenticated
+  WITH CHECK (true);
 
 COMMENT ON TABLE order_payments IS 'Links printing orders to payments/receipts (deposit, final, refund)';
 COMMENT ON COLUMN order_payments.payment_type IS 'Type: deposit (đặt cọc), final (tất toán), refund (hoàn tiền), adjustment (điều chỉnh)';
@@ -107,19 +103,16 @@ CREATE INDEX IF NOT EXISTS idx_inventory_reservations_expires ON inventory_reser
 -- RLS policies
 ALTER TABLE inventory_reservations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view reservations in their studio"
+CREATE POLICY "Enable read access for authenticated users on inventory_reservations"
   ON inventory_reservations FOR SELECT
-  USING (auth.uid() IN (
-    SELECT user_id FROM user_studio_memberships
-    WHERE studio_id = (SELECT studio_id FROM inventory_items WHERE id = inventory_reservations.item_id)
-  ));
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Users can manage reservations in their studio"
+CREATE POLICY "Enable all access for authenticated users on inventory_reservations"
   ON inventory_reservations FOR ALL
-  USING (auth.uid() IN (
-    SELECT user_id FROM user_studio_memberships
-    WHERE studio_id = (SELECT studio_id FROM inventory_items WHERE id = inventory_reservations.item_id)
-  ));
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
 COMMENT ON TABLE inventory_reservations IS 'Soft-lock inventory for printing orders before actual stock out';
 COMMENT ON COLUMN inventory_reservations.status IS 'Status: active (đang đặt), fulfilled (đã xuất), cancelled (đã hủy), expired (hết hạn)';
