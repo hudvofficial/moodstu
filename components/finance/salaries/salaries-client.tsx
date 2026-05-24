@@ -368,14 +368,14 @@ export function SalariesClient({
       <section className="entrance entrance-1">
         <div className="flex items-center justify-between gap-4 rounded-xl bg-bg-card px-5 py-3 shadow-xs">
           <SalaryStatsBar summary={viewMode === "salaries" ? salaryData.summary : {
-            total_employees: vendorData?.vendor_count || 0,
-            total_salary: vendorData?.total_cost || 0,
+            total_employees: vendorData?.vendor_count ?? 0,
+            total_salary: vendorData?.total_cost ?? 0,
             base_salary_total: 0,
             product_salary_total: 0,
             bonus_total: 0,
             penalty_total: 0,
             advance_total: 0,
-          }} />
+          } as import("@/types/finance-operations").SalarySummary} />
           <div className="hidden shrink-0 lg:flex">
             {!isLoading ? (
               <Button

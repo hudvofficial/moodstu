@@ -84,14 +84,15 @@ export function Header({
   const handleSearchChange = React.useCallback((value: string) => {
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = `setTimeout(() => {
-      const currentPath = window.location.pathname;`n      const params = new URLSearchParams(window.location.search);
+    debounceRef.current = setTimeout(() => {
+      const currentPath = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
       if (value.trim()) {
         params.set('q', value.trim());
       } else {
         params.delete('q');
       }
-      router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` , { scroll: false });
+      router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
     }, 300);
   }, [router]);
 
@@ -101,7 +102,7 @@ export function Header({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const params = new URLSearchParams(searchParams.toString());
     params.delete('q');
-    router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` , { scroll: false });
+    router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
   }, [router]);
 
   // Calculate transform: pull-to-refresh takes priority, then hide/show via CSS var
