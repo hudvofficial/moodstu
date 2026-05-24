@@ -104,6 +104,14 @@ export function Header({
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }, [pathname, router, searchParams]);
 
+  // shadowOpacity is now handled natively via --header-shadow-opacity by useScrollDirection.
+  // We only reset it if pullDistance > 0.
+  React.useEffect(() => {
+    if (isMobile && pullDistance > 0) {
+      document.documentElement.style.setProperty('--header-shadow-opacity', '0');
+    }
+  }, [pullDistance, isMobile]);
+
   if (hideHeader) return null;
 
   // Calculate transform: pull-to-refresh takes priority, then hide/show via CSS var
@@ -121,14 +129,6 @@ export function Header({
     }
     return 'var(--header-transition, transform 0.3s ease)';
   };
-
-  // shadowOpacity is now handled natively via --header-shadow-opacity by useScrollDirection.
-  // We only reset it if pullDistance > 0.
-  React.useEffect(() => {
-    if (isMobile && pullDistance > 0) {
-      document.documentElement.style.setProperty('--header-shadow-opacity', '0');
-    }
-  }, [pullDistance, isMobile]);
 
   return (
     <header
