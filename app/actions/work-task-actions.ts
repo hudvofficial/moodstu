@@ -322,7 +322,7 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
       if (expenseError) {
         console.error(`Failed to upsert vendor expense for task ${taskId}:`, expenseError);
         fireAuditLog({
-          action: "ERROR",
+          action: "FAIL",
           tableName: "expenses",
           recordId: taskId,
           description: `Failed to auto-create vendor expense: ${expenseError.message}`,
