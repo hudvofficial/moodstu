@@ -222,9 +222,9 @@ export async function addTask(input: {
         end_time: input.endTime || null, cost: input.cost || 0,
         notes: input.notes || null, status: (input.assignedTo || input.vendorId) ? "dang_lam" : "chua_lam",
       })
-      .eq("id", existingUnassigned.id)
-      .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
-      .single();
+        .eq("id", existingUnassigned.id)
+        .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
+        .single();
       data = res.data;
       error = res.error;
     } else {
@@ -236,8 +236,8 @@ export async function addTask(input: {
         notes: input.notes || null, status: (input.assignedTo || input.vendorId) ? "dang_lam" : "chua_lam",
         created_by: userId,
       })
-      .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
-      .single();
+        .select("id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline, start_date, start_time, end_time, completion_date, cost, notes, employees:assigned_to(id, full_name, avatar_url, department), vendors:vendor_id(id, full_name, phone)")
+        .single();
       data = res.data;
       error = res.error;
     }
@@ -374,7 +374,7 @@ export async function copyTasksFromPreviousEvent(currentEventId: string, contrac
         .from("work_tasks")
         .select("*")
         .eq("event_id", prev.id);
-      
+
       if (tasks && tasks.length > 0) {
         sourceEventId = prev.id;
         sourceTasks = tasks;
@@ -409,12 +409,12 @@ export async function copyTasksFromPreviousEvent(currentEventId: string, contrac
 
     if (insertError) throw new Error(`Lỗi copy ekip: ${insertError.message}`);
 
-    fireAuditLog({ action: "CREATE", tableName: "work_tasks", recordId: contractId, description: `Đã copy ${newTasks.length} nhân sự từ sự kiện trước sang sự kiện ${currentEventId.substring(0,8)}` });
-    
+    fireAuditLog({ action: "CREATE", tableName: "work_tasks", recordId: contractId, description: `Đã copy ${newTasks.length} nhân sự từ sự kiện trước sang sự kiện ${currentEventId.substring(0, 8)}` });
+
     // Update event status
     await checkAndCompleteEvent(supabase, currentEventId);
     invalidateContractPaths(contractId, { detail: true, productivity: true });
-    
+
     return { copied: newTasks.length };
   });
 }
