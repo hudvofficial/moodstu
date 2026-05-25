@@ -418,7 +418,7 @@ export default function DatePicker({
           onClick={toggleOpen}
           data-testid={testId}
           data-state={isOpen ? "open" : "closed"}
-          className={`input-base flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
+          className={`input-base cursor-pointer flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
         >
           <span
             className={`font-medium truncate mr-2 ${selectedDate ? "text-text-primary" : "text-text-muted"}`}

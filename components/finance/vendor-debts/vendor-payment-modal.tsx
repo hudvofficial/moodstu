@@ -103,11 +103,14 @@ export function VendorPaymentModal({
     const allocations: AllocationItem[] = [];
     let remainingPayment = amount;
 
-    // Sort by deadline (oldest first)
+    // Sort by deadline (oldest first, NULL deadlines go last - matches backend NULLS LAST)
     const sortedTasks = [...unpaidTasks].sort((a, b) => {
-      const dateA = a.deadline ? new Date(a.deadline).getTime() : Date.now();
-      const dateB = b.deadline ? new Date(b.deadline).getTime() : Date.now();
-      return dateA - dateB;
+      // NULL deadlines go to the end (same as backend NULLS LAST)
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
     });
 
     for (const task of sortedTasks) {
@@ -137,6 +140,13 @@ export function VendorPaymentModal({
         amount: t.remaining,
       }));
   }, [selectionMode, unpaidTasks, selectedTaskIds]);
+
+  // Auto-update amount when manual tasks are selected/deselected
+  useEffect(() => {
+    if (selectionMode === "manual" && selectedTaskIds.size > 0) {
+      setAmount(selectedTasksTotal);
+    }
+  }, [selectionMode, selectedTasksTotal, selectedTaskIds.size]);
 
   // Toggle task selection (manual mode)
   const toggleTaskSelection = (taskId: string) => {
@@ -172,9 +182,19 @@ export function VendorPaymentModal({
           : undefined;
 
     // Validate manual mode
-    if (selectionMode === "manual" && selectedTaskIds.size === 0) {
-      toast.error("Vui lòng chọn ít nhất 1 task để thanh toán");
-      return;
+    if (selectionMode === "manual") {
+      if (selectedTaskIds.size === 0) {
+        toast.error("Vui lòng chọn ít nhất 1 task để thanh toán");
+        return;
+      }
+
+      // Validate amount matches selected tasks total
+      if (amount !== selectedTasksTotal) {
+        toast.error(
+          `Số tiền phải bằng tổng tasks đã chọn (${formatCurrency(selectedTasksTotal)}${CURRENCY_SYMBOL})`
+        );
+        return;
+      }
     }
 
     startTransition(async () => {

@@ -11,7 +11,6 @@ import {
   validatePayrollWarningsAction,
 } from "@/app/actions/salary-actions";
 import { fetchSalaries } from "@/app/actions/finance-operations-queries";
-import { fetchVendorCosts } from "@/app/actions/vendor-reports-queries";
 import { SalaryAdjustmentModal } from "@/components/finance/salaries/salary-adjustment-modal";
 import { SalaryDetailModal } from "@/components/finance/salaries/salary-detail-modal";
 import { SalaryFilters } from "@/components/finance/salaries/salary-filters";
@@ -20,17 +19,14 @@ import { PayslipModal } from "@/components/finance/salaries/payslip-modal";
 import { PaymentConfirmModal } from "@/components/finance/salaries/payment-confirm-modal";
 import { SalaryDesktopTable } from "@/components/finance/salaries/salary-desktop-table";
 import { SalaryStatsBar } from "@/components/finance/salaries/salary-stats-bar";
-import { VendorCostDesktopTable } from "@/components/finance/salaries/vendor-cost-desktop-table";
-import { VendorCostMobileList } from "@/components/finance/salaries/vendor-cost-mobile-list";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
-import type { ActionResult, SalaryItem, SalaryPageData, VendorCostSummary } from "@/types/finance-operations";
+import type { ActionResult, SalaryItem, SalaryPageData } from "@/types/finance-operations";
 
 interface SalariesClientProps {
   initialMonth: number;
@@ -62,7 +58,6 @@ export function SalariesClient({
 }: SalariesClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
-  const [viewMode, setViewMode] = useState<"salaries" | "vendors">("salaries");
   const [scope, setScope] = useState("all");
   const [position, setPosition] = useState("all");
   const [role, setRole] = useState("all");
@@ -135,17 +130,9 @@ export function SalariesClient({
     { fallbackData: initialData },
   );
 
-  const vendorKey = cacheKeys.financeVendorCosts(month, year);
-  const { data: vendorData, error: vendorError, isLoading: vendorLoading } = useSWR<VendorCostSummary>(
-    vendorKey,
-    () => requireData(fetchVendorCosts(month, year)),
-    { fallbackData: { items: [], total_cost: 0, total_jobs: 0, vendor_count: 0, month, year } }
-  );
-
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được bảng lương.");
-    if (vendorError) toast.error(vendorError.message || "Không tải được chi phí thợ ngoài.");
-  }, [error, vendorError]);
+  }, [error]);
 
   const salaryData = data || initialData;
   const allItems = useMemo(() => salaryData.items || [], [salaryData.items]);
@@ -353,29 +340,9 @@ export function SalariesClient({
         ]}
       />
 
-      {/* View Mode Tabs */}
       <section className="entrance entrance-0">
-        <TabsFilter
-          tabs={[
-            { label: "Lương nhân viên", value: "salaries", count: allItems.length },
-            { label: "Chi phí thợ ngoài", value: "vendors", count: vendorData?.vendor_count || 0 },
-          ]}
-          activeTab={viewMode}
-          onChange={(value) => setViewMode(value as "salaries" | "vendors")}
-        />
-      </section>
-
-      <section className="entrance entrance-1">
         <div className="flex items-center justify-between gap-4 rounded-xl bg-bg-card px-5 py-3 shadow-xs">
-          <SalaryStatsBar summary={viewMode === "salaries" ? salaryData.summary : {
-            total_employees: vendorData?.vendor_count ?? 0,
-            total_salary: vendorData?.total_cost ?? 0,
-            base_salary_total: 0,
-            product_salary_total: 0,
-            bonus_total: 0,
-            penalty_total: 0,
-            advance_total: 0,
-          } as import("@/types/finance-operations").SalarySummary} />
+          <SalaryStatsBar summary={salaryData.summary} />
           <div className="hidden shrink-0 lg:flex">
             {!isLoading ? (
               <Button
@@ -399,16 +366,14 @@ export function SalariesClient({
         </div>
       </section>
 
-      {!isLoading && viewMode === "salaries" ? (
+      {!isLoading ? (
         <FAB
           onClick={handleGenerateSalary}
           label={hasPayrollData ? `Cập nhật T${month}` : `Tạo lương T${month}`}
         />
       ) : null}
 
-      {viewMode === "salaries" ? (
-        <>
-          <section className="entrance entrance-2">
+      <section className="entrance entrance-1">
             <SalaryFilters
           scope={scope}
           position={position}
@@ -469,33 +434,6 @@ export function SalariesClient({
               </>
             )}
           </section>
-        </>
-      ) : (
-        <>
-          {/* Vendor costs view */}
-          <section className="entrance entrance-2">
-            {vendorLoading && !vendorData ? (
-              <div className="space-y-4 pt-4">
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-16 w-full rounded-2xl" />
-              </div>
-            ) : (
-              <>
-                <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
-                  <VendorCostDesktopTable items={vendorData?.items || []} />
-                </div>
-                <VendorCostMobileList items={vendorData?.items || []} />
-                {vendorData && vendorData.items.length > 0 && (
-                  <p className="text-center text-caption text-text-muted">
-                    Tổng: {vendorData.vendor_count} thợ ngoài, {vendorData.total_jobs} jobs
-                  </p>
-                )}
-              </>
-            )}
-          </section>
-        </>
-      )}
 
       <SalaryDetailModal
         item={viewing}

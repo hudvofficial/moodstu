@@ -8,7 +8,7 @@ function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;
 }
 
-export const metadata = { title: "Công nợ Vendor" };
+export const metadata = { title: "Quản lý Vendor" };
 export const dynamic = "force-dynamic";
 
 export default async function VendorDebtsPage() {

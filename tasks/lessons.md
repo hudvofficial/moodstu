@@ -160,3 +160,4 @@ px eslint FILE ð? qua Visual & Syntax Gate trý?c khi bàn giao.
 
 ### C?n th?n Foreign Key Constraint v?i created_by`n- **L?i:** \insert or update on table violates foreign key constraint customers_created_by_fkey\`n- **Nguyên nhân:** Gán \created_by\ b?ng \employee.id\ (ID c?a b?ng \employees\) thay v? \userId\ (ID chu?n c?a \uth.users\ l?y t? \withAuth\).
 - **Gi?i pháp:** Ð?i v?i các trý?ng h? th?ng nhý \created_by\, \updated_by\ luôn s? d?ng \userId\.
+98. **BREAKPOINT-BASED SPACING (MACRO VS MICRO)**: Áp d?ng tri?t l? co gi?n không gian (Breakpoint-based Density). Macro Layout (khung trang, padding, gap, data table) PH?I co gi?n theo breakpoint (VD: \px-4 2xl:px-6\, table row \h-14 2xl:h-16\). Micro Components (Button, Input, Badge, Text body) TUY?T Ð?I GI? C? Ð?NH (VD: \h-10\, \	ext-sm\) ð? b?o toàn click target và t? l? typography chu?n m?c.
