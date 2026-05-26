@@ -25,15 +25,15 @@ export async function GET(
             width: "100%",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#111111",
+            justifyContent: "flex-end",
+            backgroundColor: "#ffffff",
             backgroundImage: highResCoverUrl ? `url(${highResCoverUrl})` : "none",
             backgroundSize: "cover",
             backgroundPosition: "center 25%",
+            position: "relative",
           }}
         >
-          {/* Gradient Overlay */}
+          {/* Bottom Gradient Overlay for text readability (only bottom 60%) */}
           <div
             style={{
               position: "absolute",
@@ -41,8 +41,7 @@ export async function GET(
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.6)",
-              backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.3))",
+              backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0) 60%)",
               display: "flex",
             }}
           />
@@ -52,56 +51,49 @@ export async function GET(
             style={{
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
               zIndex: 10,
-              padding: "40px",
-              textAlign: "center",
-              color: "#ffffff",
+              padding: "60px 80px",
               width: "100%",
             }}
           >
+            {/* Brand / Kicker */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ width: "32px", height: "3px", backgroundColor: "#D4A373", marginRight: "16px", borderRadius: "2px" }} />
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontFamily: "system-ui, sans-serif",
+                  fontWeight: 600,
+                  color: "#D4A373",
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                }}
+              >
+                MOOD STUDIO
+              </div>
+            </div>
+
             {/* Tiêu đề */}
             <h1
               style={{
-                fontSize: "72px",
+                fontSize: "76px",
                 fontFamily: "system-ui, sans-serif",
                 fontWeight: 800,
-                letterSpacing: "-0.02em",
-                margin: "0 0 20px 0",
+                color: "#ffffff",
+                letterSpacing: "-0.03em",
+                margin: 0,
                 lineHeight: 1.1,
-                maxWidth: "900px",
-                textWrap: "balance",
+                maxWidth: "1000px",
               }}
             >
               {title}
             </h1>
-            
-            {/* Divider */}
-            <div
-              style={{
-                width: "60px",
-                height: "4px",
-                backgroundColor: "#ffffff",
-                opacity: 0.8,
-                borderRadius: "2px",
-                margin: "20px 0",
-              }}
-            />
-
-            {/* Subtitle / Brand */}
-            <div
-              style={{
-                fontSize: "32px",
-                fontFamily: "system-ui, sans-serif",
-                fontWeight: 500,
-                color: "rgba(255, 255, 255, 0.8)",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-              }}
-            >
-              Mood Studio
-            </div>
           </div>
         </div>
       ),
