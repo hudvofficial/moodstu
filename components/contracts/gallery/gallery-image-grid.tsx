@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ImageIcon, Star } from "lucide-react";
+import { Heart, ImageIcon, ImageOff, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
@@ -52,6 +52,7 @@ export default function GalleryImageGrid({
     showSentinel,
     aspectRatios,
     loadedGroups,
+    errorGroups,
     handleImageLoad,
     handleImageError,
     DEFAULT_ASPECT_RATIO
@@ -89,6 +90,7 @@ export default function GalleryImageGrid({
                 const hasBoth = group.hasRaw && group.hasJpg;
                 const imageAspectRatio = aspectRatios[group.fileGroup] || DEFAULT_ASPECT_RATIO;
                 const imageLoaded = loadedGroups[group.fileGroup] === true;
+                const isError = errorGroups[group.fileGroup] === true;
                 const imageSrc = getResponsiveThumbnailUrl(
                   image.thumbnail_url,
                   image.image_url,
@@ -156,6 +158,14 @@ export default function GalleryImageGrid({
                         onLoad={(event) => handleImageLoad(group.fileGroup, event)}
                         onError={(event) => handleImageError(image.image_url, event, group.fileGroup)}
                       />
+
+                      {isError && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg-hover text-text-muted">
+                          <ImageOff size={24} className="mb-2 opacity-40" />
+                          <span className="max-w-full truncate px-3 text-micro font-medium">{image.file_name}</span>
+                          <span className="text-micro opacity-60">Lỗi nguồn Drive</span>
+                        </div>
+                      )}
 
                       {watermarkEnabled && (
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">

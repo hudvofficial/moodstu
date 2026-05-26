@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Download, Heart } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Download, Heart, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { detectPlatform } from "@/lib/detect-platform";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider
@@ -42,7 +44,6 @@ export default function ImageViewer({
   totalImagesCount,
 }: ImageViewerProps) {
   const current = images[currentIndex];
-  const [downloading, setDownloading] = useState(false);
 
   // Decode capability from token if not admin
   let clientCapability = "select";
@@ -124,59 +125,30 @@ export default function ImageViewer({
     setTouchStart(null);
   };
 
+  // ─── Hybrid Download (0 RAM) ───────────────
+  const handleDownload = useCallback(() => {
+    if (!current) return;
+    const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
+    const platform = detectPlatform();
+    const fileName = current.file_name || "photo.jpg";
 
-
-  const handleDownload = async () => {
-    if (downloading || !current) return;
-    setDownloading(true);
-
-    try {
-      const downloadUrl = `/api/gallery-download/${accessToken}/${current.id}`;
-      const response = await fetch(downloadUrl);
-      
-      if (!response.ok) {
-        throw new Error("Lỗi tải ảnh");
-      }
-
-      const blob = await response.blob();
-      const fileName = current.file_name || `photo_${current.id}.jpg`;
-      const file = new File([blob], fileName, { type: blob.type });
-
-      // Cố gắng dùng Web Share API (Mobile)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: fileName,
-          });
-        } catch (shareErr: any) {
-          // Bỏ qua lỗi nếu user tự tắt bảng Share
-          if (shareErr.name !== "AbortError") {
-            fallbackDownload(blob, fileName);
-          }
-        }
-      } else {
-        // Fallback cho Desktop / Trình duyệt cũ
-        fallbackDownload(blob, fileName);
-      }
-    } catch (err) {
-      console.error("Download failed:", err);
-      alert("Không thể tải ảnh gốc. Vui lòng thử lại sau.");
-    } finally {
-      setDownloading(false);
+    if (platform === "ios-safari") {
+      // Mở ảnh gốc trong tab mới → khách long-press → Save Image → vào Photos
+      window.open(`${apiUrl}?mode=view`, "_blank");
+      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', {
+        duration: 5000,
+        id: "ios-save-hint",
+      });
+    } else if (platform === "ios-webview") {
+      // Trong Zalo/Facebook: native download → vào Files
+      window.location.href = apiUrl;
+      toast.info("Ảnh sẽ được lưu trong app Tệp (Files)", { duration: 4000 });
+    } else {
+      // Android + Desktop: native download
+      window.location.href = apiUrl;
+      toast.success(`Đang tải ${fileName}...`, { duration: 3000 });
     }
-  };
-
-  const fallbackDownload = (blob: Blob, fileName: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  }, [current, accessToken]);
 
   if (!current) return null;
 
@@ -285,17 +257,16 @@ export default function ImageViewer({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-4">
-          {/* Download button */}
           {showDownloadButton && (
             <div
               role="button"
               tabIndex={0}
               onClick={handleDownload}
               onKeyDown={(e) => { if (e.key === "Enter") handleDownload(); }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 ${downloading ? "opacity-50" : ""}`}
+              className="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
               style={{ background: "rgba(255,255,255,0.15)" }}
             >
-              <Download size={22} className={downloading ? "animate-pulse" : ""} style={{ color: "white" }} />
+              <Download size={22} style={{ color: "white" }} />
             </div>
           )}
 

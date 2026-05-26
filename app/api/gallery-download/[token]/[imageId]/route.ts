@@ -239,9 +239,13 @@ export async function GET(
 
     const headers = new Headers();
     headers.set("Content-Type", meta.mimeType || "image/jpeg");
+    // ?mode=view → inline (iOS Safari long-press "Save Image" to Photos)
+    // default   → attachment (native download for Android/Desktop)
+    const viewMode = request.nextUrl.searchParams.get("mode");
+    const disposition = viewMode === "view" ? "inline" : "attachment";
     headers.set(
       "Content-Disposition",
-      `attachment; filename="${downloadFileName}"; filename*=UTF-8''${encodeURIComponent(downloadFileName)}`,
+      `${disposition}; filename="${downloadFileName}"; filename*=UTF-8''${encodeURIComponent(downloadFileName)}`,
     );
     if (meta.size) {
       headers.set("Content-Length", meta.size);

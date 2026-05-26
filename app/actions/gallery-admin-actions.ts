@@ -247,33 +247,53 @@ export async function setGalleryCoverImage(
         return { success: false as const, error: "Phien truy cap khong hop le." };
       }
       
-      const { error } = await supabase
+      const { data: updatedGallery, error } = await supabase
         .from("galleries")
         .update({ cover_image_id: imageId })
-        .eq("id", galleryId);
+        .eq("id", galleryId)
+        .select("access_url, custom_slug")
+        .single();
 
       if (error) {
         return { success: false as const, error: `Loi cap nhat: ${error.message}` };
       }
+      
+      if (updatedGallery) {
+        revalidatePath(`/gallery/${updatedGallery.access_url}`);
+        if (updatedGallery.custom_slug) {
+          revalidatePath(`/gallery/${updatedGallery.custom_slug}`);
+        }
+      }
+
       return { success: true as const, data: null };
     }
 
     const result = await withAuth(async (supabase, userId) => {
       await requireContractAccess(supabase, userId);
-      const { error } = await supabase
+      const { data: updatedGallery, error } = await supabase
         .from("galleries")
         .update({ cover_image_id: imageId })
-        .eq("id", galleryId);
+        .eq("id", galleryId)
+        .select("access_url, custom_slug")
+        .single();
 
       if (error) {
         throw new Error(`Loi cap nhat anh bia: ${error.message}`);
       }
-      return null;
+      return updatedGallery;
     });
 
     if (!result.success) {
       return { success: false as const, error: result.error };
     }
+
+    if (result.data) {
+      revalidatePath(`/gallery/${result.data.access_url}`);
+      if (result.data.custom_slug) {
+        revalidatePath(`/gallery/${result.data.custom_slug}`);
+      }
+    }
+
     return { success: true as const, data: null };
   } catch (err) {
     console.error("[setGalleryCoverImage] Error:", err);

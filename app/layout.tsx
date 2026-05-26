@@ -14,6 +14,7 @@ import { ServiceWorkerUpdateReload } from "@/components/layout/service-worker-up
 import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
 import { SWRProvider } from "@/components/providers/swr-provider";
 import { Bell, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
+import { SplashScreen } from "@/components/layout/splash-screen";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -27,30 +28,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const splashScript = `
 (function () {
   try {
-    if (sessionStorage.getItem("ms_v2_loaded")) return;
-    sessionStorage.setItem("ms_v2_loaded", "1");
-
-    var splash = document.createElement("div");
-    splash.id = "splash-screen";
-    splash.innerHTML = '<img src="/logo.png" alt="Mood Studio" width="80" height="80" />';
-    document.documentElement.appendChild(splash);
-
-    var done = false;
-    function removeSplash() {
-      if (done) return;
-      done = true;
-      splash.style.opacity = "0";
-      window.setTimeout(function () {
-        if (splash.parentNode) splash.parentNode.removeChild(splash);
-      }, 300);
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", removeSplash, { once: true });
+    if (sessionStorage.getItem("ms_v2_loaded")) {
+      document.documentElement.classList.add("skip-splash");
     } else {
-      removeSplash();
+      sessionStorage.setItem("ms_v2_loaded", "1");
     }
-    window.setTimeout(removeSplash, 4000);
   } catch (error) {}
 })();
 `;
@@ -112,6 +94,14 @@ export default function RootLayout({
                 opacity: 1;
                 transition: opacity 300ms ease;
               }
+              #splash-screen.fade-out {
+                opacity: 0;
+              }
+              html.skip-splash #splash-screen {
+                display: none !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+              }
               #splash-screen img {
                 object-fit: contain;
                 filter: brightness(0) invert(1);
@@ -142,6 +132,7 @@ export default function RootLayout({
                 <ServiceWorkerUpdateReload />
                 <OfflineIndicator />
                 <SlowNetworkIndicator />
+                <SplashScreen />
                 {children}
                 <GlobalModal />
                 <Toaster

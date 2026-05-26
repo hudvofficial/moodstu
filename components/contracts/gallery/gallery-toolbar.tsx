@@ -272,7 +272,22 @@ export default function GalleryToolbar({
               <span className="text-body-sm font-semibold truncate block pr-2">{galleryTitle}</span>
             </div>
           </div>
-          <GalleryStatusBadge status={galleryStatus} accessUrl={galleryAccessUrl} />
+          <div className="flex items-center gap-2 shrink-0">
+            <GalleryStatusBadge status={galleryStatus} accessUrl={galleryAccessUrl} />
+            <div className="lg:hidden">
+              <GalleryMoreMenu
+                downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
+                fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
+                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
+                onOpenShare={onOpenShare}
+                onOpenSettings={onOpenSettings}
+                onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
+                onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
+                onOpenList={onOpenListModal}
+                disableFilter={selectedCount === 0}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl bg-bg-card px-3 py-3 shadow-xs sm:px-4">
@@ -283,27 +298,13 @@ export default function GalleryToolbar({
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap gap-2 flex-1 min-w-0">
+            {mobileSecondaryStats.length > 0 && (
+              <div className="flex flex-wrap gap-2">
                 {mobileSecondaryStats.map((item) => (
                   <MobileSecondaryStatChip key={item.label} item={item} />
                 ))}
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-auto">
-                <GallerySortDropdown value={sortBy} onChange={onSort} />
-                <GalleryMoreMenu
-                  downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
-                  fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
-                  downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
-                  onOpenShare={onOpenShare}
-                  onOpenSettings={onOpenSettings}
-                  onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
-                  onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
-                  onOpenList={onOpenListModal}
-                  disableFilter={selectedCount === 0}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="hidden lg:flex lg:items-center lg:justify-between lg:gap-3">
@@ -368,7 +369,10 @@ export default function GalleryToolbar({
             />
           )}
 
-
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-caption text-text-muted font-medium ml-1">{totalImageCount || images.length} mục</span>
+            <GallerySortDropdown value={sortBy} onChange={onSort} />
+          </div>
         </div>
 
         {hasDesktopFilters && (

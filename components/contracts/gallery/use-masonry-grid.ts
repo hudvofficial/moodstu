@@ -54,6 +54,7 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
   });
   const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
   const [loadedGroups, setLoadedGroups] = useState<Record<string, boolean>>({});
+  const [errorGroups, setErrorGroups] = useState<Record<string, boolean>>({});
   const masonryRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -149,12 +150,10 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
   const handleImageError = useCallback((imageUrl: string, event: React.SyntheticEvent<HTMLImageElement>, fileGroup?: string) => {
     const element = event.currentTarget;
     if (element.dataset.fallbackApplied === "true") {
-      // Fallback cũng lỗi → vẫn đánh dấu loaded để bỏ skeleton trắng
+      // Fallback cũng lỗi → đánh dấu error và loaded để hiện UI lỗi
       if (fileGroup) {
-        setLoadedGroups((prev) => {
-          if (prev[fileGroup]) return prev;
-          return { ...prev, [fileGroup]: true };
-        });
+        setErrorGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
+        setLoadedGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
       }
       return;
     }
@@ -173,6 +172,7 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
     showSentinel,
     aspectRatios,
     loadedGroups,
+    errorGroups,
     handleImageLoad,
     handleImageError,
     DEFAULT_ASPECT_RATIO

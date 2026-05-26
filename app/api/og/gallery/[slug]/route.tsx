@@ -15,6 +15,7 @@ export async function GET(
 
     const title = metadata.title || "Album Ảnh";
     const coverUrl = metadata.coverImageUrl;
+    const highResCoverUrl = coverUrl ? coverUrl.replace(/=s\d+/, "=s1200") : undefined;
 
     return new ImageResponse(
       (
@@ -27,9 +28,9 @@ export async function GET(
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "#111111",
-            backgroundImage: coverUrl ? `url(${coverUrl})` : "none",
+            backgroundImage: highResCoverUrl ? `url(${highResCoverUrl})` : "none",
             backgroundSize: "cover",
-            backgroundPosition: "center",
+            backgroundPosition: "center 25%",
           }}
         >
           {/* Gradient Overlay */}
@@ -107,6 +108,9 @@ export async function GET(
       {
         width: 1200,
         height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+        },
       }
     );
   } catch (e: unknown) {

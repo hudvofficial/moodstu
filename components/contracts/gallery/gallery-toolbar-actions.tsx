@@ -118,9 +118,15 @@ export function GalleryMoreMenu({
       <Button 
         unstyled 
         onClick={() => setOpen((prev) => !prev)} 
-        className={cn(desktopActionClassName, "gap-1.5 flex items-center lg:bg-transparent lg:border-0 lg:shadow-none bg-bg-card border border-border shadow-xs", open && "bg-bg-hover")}
+        className={cn(
+          "flex items-center justify-center h-9 w-9 rounded-md font-semibold whitespace-nowrap transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "bg-bg-card border border-border shadow-xs", // Mobile styles
+          "lg:w-auto lg:px-3 lg:gap-1.5 lg:bg-transparent lg:border-0 lg:shadow-none lg:text-caption lg:hover:bg-bg-hover", // Desktop styles
+          open && "bg-bg-hover"
+        )}
       >
-        <MoreVertical size={15} className="text-text-muted" />
+        <MoreVertical size={15} className="text-text-muted shrink-0" />
         <span className="hidden lg:inline text-text-main">Tác vụ</span>
       </Button>
 

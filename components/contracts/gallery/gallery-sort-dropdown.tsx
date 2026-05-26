@@ -3,6 +3,7 @@
 import { ArrowUpDown, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export type SortOption = "manual" | "name-asc" | "name-desc" | "date-asc" | "date-desc";
 
@@ -43,10 +44,16 @@ export default function GallerySortDropdown({ value, onChange }: GallerySortDrop
       <Button
         unstyled
         onClick={() => setOpen((prev) => !prev)}
-        className="btn-ghost flex h-9 items-center gap-1.5 px-3 text-caption font-semibold"
+        className={cn(
+          "flex items-center gap-1.5 h-9 px-3 rounded-md text-caption font-semibold transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "bg-bg-card border border-border shadow-xs", // Mobile styles
+          "lg:bg-transparent lg:border-0 lg:shadow-none lg:hover:bg-bg-hover", // Desktop styles
+          open && "bg-bg-hover"
+        )}
       >
-        <ArrowUpDown size={14} />
-        <span className="hidden min-[360px]:inline">{activeLabel}</span>
+        <ArrowUpDown size={14} className="text-text-muted" />
+        <span className="hidden min-[360px]:inline text-text-main">{activeLabel}</span>
       </Button>
 
       {open && (

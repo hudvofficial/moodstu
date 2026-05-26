@@ -40,20 +40,15 @@ const INITIAL_STATE: DownloadState = {
   isFetchingFiles: false,
 };
 
-async function downloadSingleFile(accessToken: string, imageId: string, fileName: string): Promise<boolean> {
+function downloadSingleFile(accessToken: string, imageId: string, _fileName: string): boolean {
   try {
-    const res = await fetch(`/api/gallery-download/${accessToken}/${imageId}`);
-    if (!res.ok) return false;
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = fileName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    // Hidden iframe → trigger native download (0 RAM, streamed to disk)
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src = `/api/gallery-download/${accessToken}/${imageId}`;
+    document.body.appendChild(iframe);
+    // Clean up iframe after 30s (download should have started by then)
+    setTimeout(() => { try { iframe.remove(); } catch {} }, 30000);
     return true;
   } catch {
     return false;
@@ -109,7 +104,7 @@ export default function DownloadManager({
       const file = downloadList[index];
       setState((prev) => ({ ...prev, currentFile: file.fileName, completed: index }));
 
-      const ok = await downloadSingleFile(accessToken, file.imageId, file.fileName);
+      const ok = downloadSingleFile(accessToken, file.imageId, file.fileName);
       if (!ok) failed.push(file.fileName);
 
       if (index < downloadList.length - 1) {
