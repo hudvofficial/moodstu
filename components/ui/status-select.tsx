@@ -20,12 +20,27 @@ export {
 
 // ─── Pre-built option sets (kept here for consumers) ──────────
 
+/**
+ * Printing Order Status Options - Phase 2 Workflow
+ *
+ * Ordered by workflow progression + legacy statuses at end.
+ * Includes all statuses from PRINTING_ORDER_STATUSES for full FSM support.
+ *
+ * Migration: 2026-05-26 - Added Phase 2 statuses (dat_coc, da_giao, hoan_thanh, huy_don)
+ */
 export const PRINT_ORDER_STATUS_OPTIONS = [
-  { value: "cho_xu_ly", label: "Chờ xử lý", color: "var(--color-status-pending)" },
-  { value: "dang_in",   label: "Đang in",    color: "var(--color-status-info)" },
-  { value: "da_in",     label: "Đã in",      color: "var(--color-status-printed)" },
-  { value: "da_nhan",   label: "Đã nhận",    color: "var(--color-status-success)" },
-  { value: "da_huy",    label: "Đã hủy",     color: "var(--color-status-error)" },
+  // ─── Active Workflow (Phase 2) ───
+  { value: "cho_xu_ly",   label: "Chờ xử lý",    color: "var(--color-status-warning)" },
+  { value: "dat_coc",     label: "Đã đặt cọc",   color: "var(--color-status-info)" },
+  { value: "dang_in",     label: "Đang in",      color: "var(--color-status-info)" },
+  { value: "da_in",       label: "Đã in",        color: "var(--color-status-primary)" },
+  { value: "da_giao",     label: "Đã giao",      color: "var(--color-status-success)" },
+  { value: "hoan_thanh",  label: "Hoàn thành",   color: "var(--color-status-success)" },
+  { value: "huy_don",     label: "Hủy đơn",      color: "var(--color-status-error)" },
+
+  // ─── Legacy (Backward Compatibility) ───
+  { value: "da_nhan",     label: "Đã nhận",      color: "var(--color-status-success)" },
+  { value: "da_huy",      label: "Đã hủy",       color: "var(--color-status-error)" },
 ] as const;
 
 export const RESERVATION_STATUS_OPTIONS = [
