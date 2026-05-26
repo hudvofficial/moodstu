@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { fetchVendorDebtSummary } from "@/app/actions/vendor-payment-actions";
 import { fetchVendorCosts } from "@/app/actions/vendor-reports-queries";
 import { VendorDebtsStatsBar } from "./vendor-debts-stats-bar";
+import { VendorCostsStatsBar } from "./vendor-costs-stats-bar";
 import { VendorDebtsDesktopTable } from "./vendor-debts-desktop-table";
 import { VendorDebtsMobileList } from "./vendor-debts-mobile-list";
 import { VendorPaymentModal } from "./vendor-payment-modal";
