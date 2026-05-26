@@ -171,7 +171,7 @@ export function useCreateGalleryMutation(contractId: string) {
         show_namecard: newGallery.settings?.show_namecard ?? true,
         allow_download: newGallery.settings?.allow_download ?? true,
         selection_limit: newGallery.settings?.selection_limit || null,
-        selection_deadline: null, // No deadline on creation
+        selection_deadline: null,
         password_hash: null,
         password: null,
       };
