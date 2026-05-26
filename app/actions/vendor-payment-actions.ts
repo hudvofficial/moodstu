@@ -143,6 +143,20 @@ export async function recordVendorPayment(
       throw new Error(`Không thể ghi nhận thanh toán: ${error?.message || "Unknown"}`);
     }
 
+    // Tạo Phiếu chi (Auto-Expense)
+    const { error: expenseError } = await supabase.from("expenses").insert({
+      expense_date: input.payment_date,
+      amount: input.amount,
+      payment_method: input.payment_method,
+      recipient: vendor.full_name,
+      description: `[Auto-Vendor] Thanh toán công nợ - ${vendor.full_name}${input.note ? ` (${input.note})` : ""}`,
+      created_by: userId
+    });
+
+    if (expenseError) {
+      throw new Error(`Đã trừ công nợ nhưng lỗi khi tạo Phiếu chi: ${expenseError.message}`);
+    }
+
     // Audit log
     await writeAuditLog({
       action: "CREATE",

@@ -9,10 +9,11 @@ interface DebtMobileListProps {
     bankInfo: BankInfo | null;
     busyId: string | null;
     onMarkPaid: (item: DebtListItem) => void;
+    onViewHistory: (item: DebtListItem) => void;
     onDelete: (item: DebtListItem) => void;
 }
 
-export function DebtMobileList({ items, bankInfo, busyId, onMarkPaid, onDelete }: DebtMobileListProps) {
+export function DebtMobileList({ items, bankInfo, busyId, onMarkPaid, onViewHistory, onDelete }: DebtMobileListProps) {
     return (
         <div className="space-y-3 lg:hidden pb-32">
             {items.length === 0 ? (
@@ -27,6 +28,7 @@ export function DebtMobileList({ items, bankInfo, busyId, onMarkPaid, onDelete }
                         bankInfo={bankInfo}
                         busyId={busyId}
                         onMarkPaid={onMarkPaid}
+                        onViewHistory={onViewHistory}
                         onDelete={onDelete}
                     />
                 ))

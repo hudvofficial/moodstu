@@ -20,6 +20,7 @@ interface GalleryData {
   capability?: "select" | "view" | "download";
   needsPassword: boolean;
   imageCount?: number;
+  selectedCount?: number;
   hasMoreImages?: boolean;
   currentPage?: number;
   gallery_images?: Gallery["gallery_images"];

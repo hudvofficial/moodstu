@@ -120,6 +120,20 @@ export async function deleteFinanceCategory(id: string) {
     if (!oldData) throw new Error("Khong tim thay danh muc");
     if (oldData.is_default) throw new Error("Khong the xoa danh muc mac dinh");
 
+    // W7 Audit Fix: Check if category is used in transactions before deleting
+    const [receiptsCheck, expensesCheck] = await Promise.all([
+      supabase.from("receipts").select("id", { count: "exact", head: true }).eq("category_id", id),
+      supabase.from("expenses").select("id", { count: "exact", head: true }).eq("category_id", id)
+    ]);
+
+    if (receiptsCheck.error) throw new Error(`Lỗi kiểm tra phiếu thu: ${receiptsCheck.error.message}`);
+    if (expensesCheck.error) throw new Error(`Lỗi kiểm tra phiếu chi: ${expensesCheck.error.message}`);
+
+    const totalUsage = (receiptsCheck.count || 0) + (expensesCheck.count || 0);
+    if (totalUsage > 0) {
+      throw new Error(`Không thể xóa danh mục này vì đã có ${totalUsage} giao dịch phát sinh liên quan.`);
+    }
+
     const { error } = await supabase
       .from("transaction_categories")
       .delete()

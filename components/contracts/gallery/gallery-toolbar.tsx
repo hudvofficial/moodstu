@@ -94,6 +94,8 @@ interface GalleryToolbarProps {
   newAlbumName: string;
   selectedDownloadFiles: { imageId: string; fileName: string }[];
   allDownloadFiles: { imageId: string; fileName: string }[];
+  fetchAllSelectedDownloadFiles?: () => Promise<{ imageId: string; fileName: string }[]>;
+  fetchAllDownloadFiles?: () => Promise<{ imageId: string; fileName: string }[]>;
   onSetActiveGalleryId: (id: string) => void;
   onSetFileFilter: (filter: FileFilter) => void;
   onSetActiveFilter: (filter: StatsFilter) => void;
@@ -138,6 +140,8 @@ export default function GalleryToolbar({
   newAlbumName,
   selectedDownloadFiles,
   allDownloadFiles,
+  fetchAllSelectedDownloadFiles,
+  fetchAllDownloadFiles,
   onSetActiveGalleryId,
   onSetFileFilter,
   onSetActiveFilter,
@@ -279,26 +283,26 @@ export default function GalleryToolbar({
               ))}
             </div>
 
-            {mobileSecondaryStats.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2 flex-1 min-w-0">
                 {mobileSecondaryStats.map((item) => (
                   <MobileSecondaryStatChip key={item.label} item={item} />
                 ))}
               </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <GallerySortDropdown value={sortBy} onChange={onSort} />
-              <GalleryMoreMenu
-                downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
-                downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
-                onOpenShare={onOpenShare}
-                onOpenSettings={onOpenSettings}
-                onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
-                onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
-                onOpenList={onOpenListModal}
-                disableFilter={!(isGocGallery && selectedCount > 0)}
-              />
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                <GallerySortDropdown value={sortBy} onChange={onSort} />
+                <GalleryMoreMenu
+                  downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
+                  fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
+                  downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
+                  onOpenShare={onOpenShare}
+                  onOpenSettings={onOpenSettings}
+                  onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
+                  onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
+                  onOpenList={onOpenListModal}
+                  disableFilter={selectedCount === 0}
+                />
+              </div>
             </div>
           </div>
 
@@ -313,14 +317,15 @@ export default function GalleryToolbar({
                 <span>WM</span>
               </ActionButton>
               <GalleryMoreMenu
-                downloadFiles={selectedDownloadFiles.length > 0 ? selectedDownloadFiles : allDownloadFiles}
-                downloadLabel={selectedDownloadFiles.length > 0 ? `Tải ${selectedDownloadFiles.length} đã chọn` : "Tải tất cả"}
+                downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
+                fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
+                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
                 onOpenShare={onOpenShare}
                 onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
                 onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
                 onOpenList={onOpenListModal}
-                disableFilter={!(isGocGallery && selectedCount > 0)}
+                disableFilter={selectedCount === 0}
               />
             </div>
           </div>

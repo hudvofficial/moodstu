@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, MessageCircle, QrCode, Trash2 } from "lucide-react";
+import { CheckCircle, MessageCircle, QrCode, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DebtQrPaymentModal } from "@/components/finance/debts/debt-qr-payment-modal";
 import { formatVnd, formatFinanceDate } from "@/components/finance/finance-format";
 import type { DebtListItem } from "@/types/finance-operations";
+
 import type { BankInfo } from "@/types/settings";
 
 interface DebtRowActionsProps {
@@ -14,6 +15,7 @@ interface DebtRowActionsProps {
     bankInfo: BankInfo | null;
     busyId: string | null;
     onMarkPaid: (debt: DebtListItem) => void;
+    onViewHistory: (debt: DebtListItem) => void;
     onDelete: (debt: DebtListItem) => void;
 }
 
@@ -22,6 +24,7 @@ export function DebtRowActions({
     bankInfo,
     busyId,
     onMarkPaid,
+    onViewHistory,
     onDelete,
 }: DebtRowActionsProps) {
     const [isQrOpen, setIsQrOpen] = useState(false);
@@ -68,6 +71,18 @@ export function DebtRowActions({
                     title="Mã QR"
                 >
                     <QrCode style={iconStyle} strokeWidth={strokeWg} />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onViewHistory(debt)}
+                    disabled={isDeleting}
+                    className={`${linkClassName} text-brand hover:bg-brand/10`}
+                    style={btnStyle}
+                    aria-label="Lịch sử thanh toán"
+                    title="Lịch sử giao dịch"
+                >
+                    <History style={iconStyle} strokeWidth={strokeWg} />
                 </Button>
                 <Button
                     type="button"

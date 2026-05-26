@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { GalleryShareDetails } from "@/types/gallery";
+import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";
 
 // ═══════════════════════════════════════════
 // DriveGalleryBlock V2 — Compact card, no inline grid
@@ -30,6 +30,8 @@ interface GalleryRow {
   imageCount: number;
   selectedCount: number;
   hasPassword: boolean;
+  custom_slug?: string | null;
+  shareLinks?: GalleryShareLink[];
 }
 
 interface DriveGalleryBlockProps {
@@ -75,6 +77,8 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
         imageCount: g.imageCount,
         selectedCount: g.selectedCount,
         hasPassword: g.hasPassword,
+        custom_slug: g.custom_slug,
+        shareLinks: g.shareLinks,
       })));
     }
     if (progRes.success && progRes.data) setProgress(progRes.data);
@@ -154,6 +158,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           access_url: details.accessUrl,
           status: details.status,
           hasPassword: details.hasPassword,
+          shareLinks: details.shareLinks,
           shared_at: gallery.shared_at || new Date().toISOString(),
         }
         : gallery,
@@ -163,9 +168,11 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   const handleShare = (gallery: GalleryRow) => {
     openModal("SHARE_GALLERY", {
       accessUrl: gallery.access_url || undefined,
+      customSlug: gallery.custom_slug,
       galleryId: gallery.id,
       galleryTitle: gallery.title || "Album",
       hasPassword: gallery.hasPassword,
+      shareLinks: gallery.shareLinks,
       status: gallery.status,
       onSharePrepared: handleSharePrepared,
     });
@@ -254,23 +261,27 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
 
             // ── Normal view ──
             return (
-              <div key={g.id} className="flex items-center gap-2 py-2 px-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ background: "var(--color-bg-secondary)" }} onClick={() => router.push(`/contracts/${contractId}/gallery?galleryId=${g.id}`)}>
-                <span className="text-body-sm">{info.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-body-sm font-medium text-text-primary block truncate">{info.label}</span>
-                  <span className="text-caption text-text-muted">{g.imageCount} ảnh{g.selectedCount > 0 ? ` · ❤️ ${g.selectedCount}` : ""}</span>
+              <div key={g.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 py-3 px-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ background: "var(--color-bg-secondary)" }} onClick={() => router.push(`/contracts/${contractId}/gallery?galleryId=${g.id}`)}>
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/5 dark:bg-white/5">
+                    <span className="text-body-sm">{info.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-body-sm font-medium text-text-primary block truncate">{info.label}</span>
+                    <span className="text-caption text-text-muted">{g.imageCount} ảnh{g.selectedCount > 0 ? ` · ❤️ ${g.selectedCount}` : ""}</span>
+                  </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 justify-end shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/40 mt-1 sm:mt-0">
                   {/* Share indicator + button */}
                   <Button unstyled
                     onClick={(e) => { e.stopPropagation(); handleShare(g); }}
                     className="btn-icon relative"
-                    style={{ width: 28, height: 28 }}
+                    style={{ width: 32, height: 32 }}
                     title={g.status === "shared" ? "Đã chia sẻ — bấm để xem link" : "Chia sẻ album"}
                   >
-                    <Share2 size={14} />
+                    <Share2 size={16} />
                     {g.status === "shared" && (
                       <span
                         className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
@@ -278,19 +289,19 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                       />
                     )}
                   </Button>
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 28, height: 28 }} title="Đồng bộ lại">
-                    <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 32, height: 32 }} title="Đồng bộ lại">
+                    <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
                   </Button>
                   {g.drive_folder_url && (
-                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex items-center justify-center" style={{ width: 28, height: 28 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
-                      <ExternalLink size={14} />
+                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex items-center justify-center" style={{ width: 32, height: 32 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
+                      <ExternalLink size={16} />
                     </a>
                   )}
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); handleStartEdit(g); }} className="btn-icon" style={{ width: 28, height: 28 }} title="Sửa link Drive">
-                    <Pencil size={14} />
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); handleStartEdit(g); }} className="btn-icon" style={{ width: 32, height: 32 }} title="Sửa link Drive">
+                    <Pencil size={16} />
                   </Button>
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleDelete(g); }} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-error)" }} title="Xoá gallery">
-                    <Trash2 size={14} />
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleDelete(g); }} className="btn-icon hover:bg-error/10 hover:text-error transition-colors" style={{ width: 32, height: 32, color: "var(--color-error)" }} title="Xoá gallery">
+                    <Trash2 size={16} />
                   </Button>
                 </div>
               </div>

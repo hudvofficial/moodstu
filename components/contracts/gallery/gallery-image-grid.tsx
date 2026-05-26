@@ -127,7 +127,11 @@ export default function GalleryImageGrid({
                   >
                     <div
                       className="relative w-full overflow-hidden bg-bg-card"
-                      style={{ aspectRatio: String(imageAspectRatio) }}
+                      style={{
+                        aspectRatio: String(imageAspectRatio),
+                        contentVisibility: "auto",
+                        containIntrinsicSize: `auto ${Math.round(columnWidth / imageAspectRatio)}px`,
+                      }}
                     >
                       <div
                         className={`absolute inset-0 transition-opacity duration-300 ${imageLoaded ? "opacity-0" : "opacity-100"}`}

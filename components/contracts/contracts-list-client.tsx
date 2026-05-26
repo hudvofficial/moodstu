@@ -28,7 +28,6 @@ import { ContractsListSkeleton } from "@/components/contracts/contracts-list-ske
 import { useContractFilters } from "@/hooks/useContractFilters";
 import {
   revalidateContractListCaches,
-  updateContractListChecklistCache,
   useContracts,
   useContractStats,
   prefetchContract,
@@ -178,58 +177,18 @@ function ContractsListInner({
   }, []);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  const patchChecklistRealtimePayload = useCallback((payload: RealtimePayload) => {
-    if (payload.table === "contract_checklists") {
-      if (payload.eventType === "UPDATE") {
-        const row = payload.new;
-        const contractId = typeof row.contract_id === "string" ? row.contract_id : "";
-        const checklistId = typeof row.id === "string" ? row.id : "";
-
-        if (contractId && checklistId && typeof row.is_completed === "boolean") {
-          updateContractListChecklistCache(contractId, checklistId, row.is_completed);
-          return true;
-        }
-      }
-    }
-
-    return false;
+  const handleContractRealtime = useCallback(() => {
+    void revalidateContractListCaches();
   }, []);
 
-  const handleContractRealtime = useCallback((payload: RealtimePayload) => {
-    if (patchChecklistRealtimePayload(payload)) return;
-    void revalidateContractListCaches();
-  }, [patchChecklistRealtimePayload]);
-
-  const handleContractRealtimeBatch = useCallback((payloads: RealtimePayload[]) => {
-    let needsRevalidate = false;
-
-    for (const payload of payloads) {
-      if (!patchChecklistRealtimePayload(payload)) {
-        needsRevalidate = true;
-      }
-    }
-
-    if (needsRevalidate) {
-      void revalidateContractListCaches();
-    }
-  }, [patchChecklistRealtimePayload]);
-
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(
-    () => [
-      { table: "contracts" },
-      { table: "contract_notes" },
-      { table: "contract_events" },
-      { table: "contract_checklists", eventTypes: ["INSERT", "UPDATE", "DELETE"] },
-      { table: "work_tasks" },
-      { table: "payment_plans" },
-    ],
+    () => [{ table: "contracts" }],
     [],
   );
 
   useRealtimeMulti(realtimeConfigs, {
     channelName: "contracts-list",
     onChange: handleContractRealtime,
-    onBatchChange: handleContractRealtimeBatch,
     debounceMs: REALTIME_REFRESH_DELAY_MS,
   });
 
@@ -278,8 +237,6 @@ function ContractsListInner({
     (contractRecord: Contract) => {
       const id = (contractRecord.id as string) || "";
       if (id) {
-        prefetchContract(id);
-        prefetchContractDetail(id);
         router.prefetch(`/contracts/${id}`);
         router.prefetch(`/contracts/${id}/edit`);
       }
@@ -294,7 +251,6 @@ function ContractsListInner({
   const handleHover = useCallback(
     (id: string) => {
       if (!id) return;
-      prefetchContract(id);
       router.prefetch(`/contracts/${id}`);
     },
     [router],
@@ -314,26 +270,6 @@ function ContractsListInner({
   const handleApplyDateRange = useCallback(() => {
     applyDateRange(localStartDate, localEndDate);
   }, [applyDateRange, localEndDate, localStartDate]);
-
-  // Build customer map from joined data for ContractsTable
-  const customerMap = useMemo(() => {
-    const map: Record<
-      string,
-      { id: string; full_name: string; phone?: string }
-    > = {};
-    for (const c of contracts) {
-      const contract = c;
-      const customer = contract.customers as {
-        id: string;
-        full_name: string;
-        phone?: string;
-      } | null;
-      if (customer && contract.customer_id) {
-        map[contract.customer_id as string] = customer;
-      }
-    }
-    return map;
-  }, [contracts]);
 
   if (showInitialSkeleton) {
     return <ContractsListSkeleton />;
@@ -461,7 +397,6 @@ function ContractsListInner({
           <>
             <ContractsTable
               contracts={contracts}
-              customerMap={customerMap}
               onView={handleView}
               onEdit={handleEdit}
               onDelete={handleDelete}

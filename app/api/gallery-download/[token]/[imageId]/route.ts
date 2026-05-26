@@ -192,6 +192,7 @@ export async function GET(
     // ─── STREAM FILE FROM GOOGLE DRIVE ─────────────────────────────
     const metaRes = await fetch(
       `https://www.googleapis.com/drive/v3/files/${driveFileId}?fields=name,mimeType,size&key=${API_KEY}`,
+      { next: { revalidate: 3600, tags: [`drive-meta-${driveFileId}`] } }
     );
 
     if (!metaRes.ok) {
@@ -206,7 +207,7 @@ export async function GET(
 
     // A. Thử tải qua lh3
     const lh3Url = `https://lh3.googleusercontent.com/d/${driveFileId}=s0`;
-    const lh3Res = await fetch(lh3Url, { redirect: "follow" });
+    const lh3Res = await fetch(lh3Url, { redirect: "follow", cache: "no-store" });
 
     if (lh3Res.ok && lh3Res.body) {
       const ct = lh3Res.headers.get("content-type") || "";
@@ -219,6 +220,7 @@ export async function GET(
     if (!downloadRes) {
       const apiRes = await fetch(
         `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${API_KEY}`,
+        { cache: "no-store" }
       );
       if (apiRes.ok && apiRes.body) {
         const ct = apiRes.headers.get("content-type") || "";

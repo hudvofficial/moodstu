@@ -153,10 +153,10 @@ export async function deleteSalaryAdjustment(id: string, salaryId: string) {
   });
 }
 
-export async function payEmployeeSalaryAction(salaryId: string, amount: number) {
-  return withAdmin(async (supabase) => {
+export async function payEmployeeSalaryAction(salaryId: string, amount: number, paymentMethod: "tien_mat" | "chuyen_khoan" = "chuyen_khoan") {
+  return withAdmin(async (supabase, userId) => {
     if (amount <= 0) throw new Error("Số tiền thanh toán phải > 0");
-    const { data: salaryRecord } = await supabase.from("employee_salaries").select("*").eq("id", salaryId).single();
+    const { data: salaryRecord } = await supabase.from("employee_salaries").select("*, employees(full_name)").eq("id", salaryId).single();
     if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
 
     await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
@@ -183,6 +183,19 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number) 
       .eq("id", salaryId);
 
     if (updateError) throw updateError;
+
+    // Tự động tạo Phiếu chi (Auto-Expense)
+    const employeeName = salaryRecord.employees?.full_name || "Nhân viên";
+    const { error: expenseError } = await supabase.from("expenses").insert({
+      expense_date: new Date().toISOString().split("T")[0],
+      amount: amount,
+      payment_method: paymentMethod,
+      recipient: employeeName,
+      description: `[Auto-Salary] Thanh toán lương tháng ${salaryRecord.month}/${salaryRecord.year} - ${employeeName}`,
+      created_by: userId
+    });
+
+    if (expenseError) throw new Error(`Đã thanh toán lương nhưng lỗi tạo Phiếu chi: ${expenseError.message}`);
 
     await writeAuditLog({
       action: "UPDATE",

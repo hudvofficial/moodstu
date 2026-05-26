@@ -72,11 +72,11 @@ export function MobilePrimaryStatCard({ item }: { item: StatItem }) {
       <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", item.iconBg || tone.iconBg)}>
         <item.icon className={cn("h-4 w-4", item.iconColor || tone.iconColor)} />
       </div>
-      <div className="min-w-0">
-        <div className={cn("text-body font-bold leading-none", item.active ? tone.activeText : "text-text-main")}>
+      <div className="min-w-0 flex-1">
+        <div className={cn("text-body font-bold leading-none truncate", item.active ? tone.activeText : "text-text-main")}>
           {item.value}
         </div>
-        <div className={cn("mt-1 text-caption leading-none", item.active ? tone.activeText : "text-text-muted")}>
+        <div className={cn("mt-1 text-caption leading-none truncate", item.active ? tone.activeText : "text-text-muted")}>
           {item.label}
         </div>
       </div>
@@ -93,7 +93,7 @@ export function MobileSecondaryStatChip({ item }: { item: StatItem }) {
       type="button"
       onClick={item.onClick}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-caption font-semibold transition-colors",
+        "inline-flex h-8 whitespace-nowrap items-center gap-1.5 rounded-full border px-3 text-caption font-semibold transition-colors",
         item.active
           ? tone.activeBg
           : "border-border/70 bg-elevated/70 text-text-secondary hover:bg-bg-hover hover:text-text-main"

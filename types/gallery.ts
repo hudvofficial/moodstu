@@ -88,6 +88,7 @@ export interface GallerySummary extends Omit<Gallery, "gallery_images"> {
   selectedCount: number;
   coverImageUrl: string | null;
   hasPassword: boolean;
+  shareLinks?: GalleryShareLink[];
 }
 
 export interface GalleryPublicPreview {
@@ -115,6 +116,7 @@ export interface GalleryPublicPreview {
   shareSlug?: string | null;
   ogTitle?: string | null;
   ogDescription?: string | null;
+  shareLinks?: GalleryShareLink[];
 }
 
 export interface GalleryShareLink {

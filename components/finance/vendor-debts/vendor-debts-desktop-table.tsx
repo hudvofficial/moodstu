@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { formatVnd } from "@/components/finance/finance-format";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { DollarSign } from "lucide-react";
+import { Banknote } from "lucide-react";
 import type { VendorDebtItem } from "@/types/vendor";
 
 interface VendorDebtsDesktopTableProps {
@@ -30,7 +30,7 @@ export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTabl
             <TH className="text-right">Còn nợ</TH>
             <TH>Task gần nhất</TH>
             <TH>TT gần nhất</TH>
-            <TH className="text-right w-32">Thao tác</TH>
+            <TH className="text-right w-24">Thao tác</TH>
           </TR>
         </THead>
         <TBody>
@@ -44,8 +44,10 @@ export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTabl
                 <span className="text-caption text-text-muted">{item.service_type || "-"}</span>
               </TD>
               <TD className="text-right tabular-nums">{item.task_count}</TD>
-              <TD className="text-right tabular-nums">{formatVnd(item.total_cost)}</TD>
-              <TD className="text-right tabular-nums text-success">{formatVnd(item.total_paid)}</TD>
+              <TD className="text-right tabular-nums font-medium">{formatVnd(item.total_cost)}</TD>
+              <TD className={cn("text-right tabular-nums", item.total_paid > 0 ? "text-success" : "text-text-muted")}>
+                {formatVnd(item.total_paid)}
+              </TD>
               <TD
                 className={cn(
                   "text-right tabular-nums font-bold",
@@ -61,10 +63,23 @@ export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTabl
                 <span className="text-caption text-text-muted">{formatDate(item.last_payment_date)}</span>
               </TD>
               <TD className="text-right">
-                <Button size="sm" variant="primary" onClick={() => onPay(item)} disabled={item.remaining <= 0}>
-                  <DollarSign className="w-4 h-4 mr-1" />
-                  Thanh toán
-                </Button>
+                <div className="flex items-center justify-end pr-2 opacity-80 hover:opacity-100 transition-opacity">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onPay(item)}
+                    title="Thanh toán"
+                    disabled={item.remaining <= 0}
+                    className={cn(
+                      "btn-icon",
+                      item.remaining <= 0 ? "text-text-muted" : "text-success hover:text-success hover:bg-success/10"
+                    )}
+                    style={{ padding: 0 }}
+                    aria-label="Thanh toán"
+                  >
+                    <Banknote style={{ width: 20, height: 20 }} strokeWidth={1.75} />
+                  </Button>
+                </div>
               </TD>
             </TR>
           ))}

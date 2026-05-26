@@ -11,11 +11,13 @@ interface DownloadFile {
 }
 
 interface DownloadManagerProps {
-  files: DownloadFile[];
+  files?: DownloadFile[];
+  fetchFiles?: () => Promise<DownloadFile[]>;
   label?: string;
   variant?: "icon" | "button" | "full";
   className?: string;
   accessToken?: string;
+  disabled?: boolean;
 }
 
 interface DownloadState {
@@ -25,6 +27,7 @@ interface DownloadState {
   currentFile: string;
   failed: string[];
   cancelled: boolean;
+  isFetchingFiles: boolean;
 }
 
 const INITIAL_STATE: DownloadState = {
@@ -34,6 +37,7 @@ const INITIAL_STATE: DownloadState = {
   currentFile: "",
   failed: [],
   cancelled: false,
+  isFetchingFiles: false,
 };
 
 async function downloadSingleFile(accessToken: string, imageId: string, fileName: string): Promise<boolean> {
@@ -58,59 +62,77 @@ async function downloadSingleFile(accessToken: string, imageId: string, fileName
 
 export default function DownloadManager({
   files,
+  fetchFiles,
   label,
   variant = "button",
   className,
   accessToken = "admin",
+  disabled,
 }: DownloadManagerProps) {
   const [state, setState] = useState<DownloadState>(INITIAL_STATE);
   const cancelRef = useRef(false);
 
   const startDownload = useCallback(async () => {
-    if (files.length === 0) return;
     cancelRef.current = false;
 
     setState({
+      ...INITIAL_STATE,
       active: true,
-      total: files.length,
-      completed: 0,
-      currentFile: files[0].fileName,
-      failed: [],
-      cancelled: false,
+      isFetchingFiles: !!fetchFiles,
     });
+
+    let downloadList = files || [];
+    if (fetchFiles) {
+      try {
+        downloadList = await fetchFiles();
+      } catch {
+        setState((prev) => ({ ...prev, active: false, isFetchingFiles: false }));
+        return;
+      }
+    }
+
+    if (downloadList.length === 0) {
+      setState((prev) => ({ ...prev, active: false, isFetchingFiles: false }));
+      return;
+    }
+
+    setState((prev) => ({ ...prev, isFetchingFiles: false, total: downloadList.length, currentFile: downloadList[0].fileName }));
 
     const failed: string[] = [];
 
-    for (let index = 0; index < files.length; index += 1) {
+    for (let index = 0; index < downloadList.length; index += 1) {
       if (cancelRef.current) {
         setState((prev) => ({ ...prev, cancelled: true, active: false }));
         return;
       }
 
-      const file = files[index];
+      const file = downloadList[index];
       setState((prev) => ({ ...prev, currentFile: file.fileName, completed: index }));
 
       const ok = await downloadSingleFile(accessToken, file.imageId, file.fileName);
       if (!ok) failed.push(file.fileName);
 
-      if (index < files.length - 1) {
+      if (index < downloadList.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
     }
 
     setState({
       active: false,
-      total: files.length,
-      completed: files.length,
+      total: downloadList.length,
+      completed: downloadList.length,
       currentFile: "",
       failed,
       cancelled: false,
+      isFetchingFiles: false,
     });
-  }, [files, accessToken]);
+  }, [files, fetchFiles, accessToken]);
 
   const handleCancel = () => {
     cancelRef.current = true;
   };
+
+  const isDisabled = disabled || state.active || (!files && !fetchFiles);
 
   if (variant === "icon") {
     return (
@@ -120,10 +142,10 @@ export default function DownloadManager({
           event.stopPropagation();
           startDownload();
         }}
-        disabled={state.active}
+        disabled={isDisabled}
         className={cn("btn-icon", className)}
         style={{ width: 28, height: 28 }}
-        title={`Tải ${files[0]?.fileName || "file"}`}
+        title={`Tải file`}
       >
         {state.active ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
       </Button>
@@ -135,19 +157,19 @@ export default function DownloadManager({
       <Button
         unstyled
         onClick={startDownload}
-        disabled={state.active || files.length === 0}
+        disabled={isDisabled}
         className={cn("btn-ghost", className)}
         style={{ padding: "6px 12px", fontSize: "var(--font-size-caption)" }}
       >
         {state.active ? (
           <>
             <Loader2 size={14} className="animate-spin" />
-            <span>Đang tải {state.completed}/{state.total}...</span>
+            <span>{state.isFetchingFiles ? "Đang chuẩn bị..." : `Đang tải ${state.completed}/${state.total}...`}</span>
           </>
         ) : (
           <>
             <Download size={14} />
-            <span>{label || `Tải ${files.length} ảnh`}</span>
+            <span>{label || `Tải xuống`}</span>
           </>
         )}
       </Button>
@@ -160,12 +182,12 @@ export default function DownloadManager({
         <Button
           unstyled
           onClick={startDownload}
-          disabled={files.length === 0}
+          disabled={isDisabled}
           className={cn("btn-primary w-full", className)}
           style={{ justifyContent: "center" }}
         >
           <Download size={16} />
-          <span>{label || `Tải ${files.length} ảnh gốc`}</span>
+          <span>{label || `Tải xuống`}</span>
         </Button>
       )}
 

@@ -188,77 +188,86 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-center gap-3 px-4 pb-3"
+          className="grid grid-cols-3 items-center px-4 py-3"
           style={{
             paddingTop: "calc(var(--spacing-base) + env(safe-area-inset-top))",
             paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
             paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
           }}
         >
-          <span className="text-caption text-white/80">
-            {currentIdx + 1}/{images.length}
-          </span>
-          <div className="flex-1" />
-          {img.is_starred && (
-            <span
-              className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
-              style={{ borderRadius: "var(--radius-md)" }}
-              title="Ảnh đề xuất"
-            >
-              <Star size={14} className="fill-warning text-warning" />
-              Đề xuất
+          {/* Left: Trống */}
+          <div className="flex justify-start"></div>
+
+          {/* Center: File name */}
+          <div className="flex justify-center min-w-0">
+            <span className="text-sm font-medium text-white/90 truncate px-3 py-1 bg-black/30 rounded-full max-w-[200px] md:max-w-[400px]">
+              {img.file_name || "Photo"}
             </span>
-          )}
-          {img.is_selected && (
-            <span
-              className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
-              style={{ borderRadius: "var(--radius-md)" }}
-              title="Khách chọn"
-            >
-              <Heart size={14} className="fill-error text-error" />
-              Khách chọn
-            </span>
-          )}
-          {galleryId && (
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex justify-end items-center gap-3">
+            {img.is_starred && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
+                style={{ borderRadius: "var(--radius-md)" }}
+                title="Ảnh đề xuất"
+              >
+                <Star size={14} className="fill-warning text-warning" />
+                Đề xuất
+              </span>
+            )}
+            {img.is_selected && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 text-white/90 text-caption font-semibold"
+                style={{ borderRadius: "var(--radius-md)" }}
+                title="Khách chọn"
+              >
+                <Heart size={14} className="fill-error text-error" />
+                Khách chọn
+              </span>
+            )}
+            {galleryId && (
+              <Button
+                unstyled
+                type="button"
+                onClick={handleSetCover}
+                disabled={isSettingCover || isCover}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-all"
+                style={{
+                  borderRadius: "var(--radius-md)",
+                  background: isCover ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
+                  color: isCover ? "white" : "rgba(255,255,255,0.85)",
+                  cursor: isCover ? "default" : "pointer",
+                }}
+                aria-label="Đặt ảnh bìa"
+              >
+                {isSettingCover ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <ImageIcon size={14} className={isCover ? "text-white" : ""} />
+                )}
+                {isCover ? "Ảnh bìa hiện tại" : "Đặt làm ảnh bìa"}
+              </Button>
+            )}
             <Button
               unstyled
               type="button"
-              onClick={handleSetCover}
-              disabled={isSettingCover || isCover}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-all"
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="inline-flex items-center justify-center"
               style={{
+                width: "var(--icon-container-sm)",
+                height: "var(--icon-container-sm)",
                 borderRadius: "var(--radius-md)",
-                background: isCover ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
-                color: isCover ? "white" : "rgba(255,255,255,0.85)",
-                cursor: isCover ? "default" : "pointer",
+                background: "rgba(255,255,255,0.10)",
+                color: "rgba(255,255,255,0.85)",
               }}
-              aria-label="Đặt ảnh bìa"
+              aria-label="Đóng"
+              title="Đóng"
             >
-              {isSettingCover ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <ImageIcon size={14} className={isCover ? "text-white" : ""} />
-              )}
-              {isCover ? "Ảnh bìa hiện tại" : "Đặt làm ảnh bìa"}
+              <X size={18} />
             </Button>
-          )}
-          <Button
-            unstyled
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="inline-flex items-center justify-center"
-            style={{
-              width: "var(--icon-container-sm)",
-              height: "var(--icon-container-sm)",
-              borderRadius: "var(--radius-md)",
-              background: "rgba(255,255,255,0.10)",
-              color: "rgba(255,255,255,0.85)",
-            }}
-            aria-label="Đóng"
-            title="Đóng"
-          >
-            <X size={18} />
-          </Button>
+          </div>
         </div>
       </div>
 
@@ -336,9 +345,11 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
             paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
           }}
         >
-          <span className="min-w-0 flex-1 truncate text-caption text-white/80">
-            {img.file_name || "Photo"}
-          </span>
+          <div className="flex items-center">
+            <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
+              {currentIdx + 1} / {images.length}
+            </span>
+          </div>
           <Button
             unstyled
             type="button"

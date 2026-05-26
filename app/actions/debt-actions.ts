@@ -200,6 +200,99 @@ export async function updateDebt(
   });
 }
 
+export async function payDebt(
+  id: string,
+  paymentData: {
+    amount: number;
+    paymentMethod: string;
+    categoryId?: string;
+    note?: string;
+  }
+) {
+  return withAdmin(async (supabase, userId) => {
+    const { amount, paymentMethod, categoryId, note } = paymentData;
+    if (amount <= 0) throw new Error("Số tiền thanh toán phải lớn hơn 0");
+
+    // 1. Fetch current debt
+    const { data: debt } = await supabase
+      .from("debts")
+      .select("id, amount, paid_amount, remaining, type, entity_name, entity_type")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (!debt) throw new Error("Không tìm thấy công nợ.");
+
+    const currentPaid = Number(debt.paid_amount) || 0;
+    const totalAmount = Number(debt.amount) || 0;
+    
+    // 2. Calculate new balances
+    const newPaidAmount = currentPaid + amount;
+    const newRemaining = Math.max(0, totalAmount - newPaidAmount);
+    let newStatus = deriveDebtStatus(totalAmount, newPaidAmount);
+    
+    // 3. Update Debt
+    const updateData: Record<string, unknown> = {
+      paid_amount: newPaidAmount,
+      remaining: newRemaining,
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (newStatus === "closed") {
+      updateData.payment_date = new Date().toISOString().split("T")[0];
+    }
+
+    const { error: updateError } = await supabase
+      .from("debts")
+      .update(updateData)
+      .eq("id", id);
+
+    if (updateError) throw new Error(`Lỗi cập nhật công nợ: ${updateError.message}`);
+
+    // 4. Create Cashflow Document (Receipt / Expense)
+    const isReceivable = debt.type === "receivable" || debt.type === "Phải thu";
+    
+    if (isReceivable) {
+      const { error: rError } = await supabase.from("receipts").insert({
+        debt_id: id,
+        receipt_amount: amount,
+        payment_type: paymentMethod,
+        category_id: categoryId || null,
+        notes: note || `Thanh toán nợ: ${debt.entity_name}`,
+        receipt_date: new Date().toISOString().split("T")[0],
+        receipt_type: "thu_khac",
+        customer_name: debt.entity_name,
+        created_by: userId,
+      });
+      if (rError) throw new Error(`Lỗi sinh Phiếu thu: ${rError.message}`);
+    } else {
+      const { error: eError } = await supabase.from("expenses").insert({
+        debt_id: id,
+        amount: amount,
+        payment_method: paymentMethod as any,
+        category_id: categoryId || null,
+        description: note || `Thanh toán nợ: ${debt.entity_name}`,
+        expense_date: new Date().toISOString().split("T")[0],
+        recipient: debt.entity_name,
+        created_by: userId,
+      });
+      if (eError) throw new Error(`Lỗi sinh Phiếu chi: ${eError.message}`);
+    }
+
+    // 5. Audit Log
+    await writeAuditLog({
+      action: "UPDATE",
+      tableName: "debts",
+      recordId: id,
+      description: `Thanh toán ${formatVnd(amount)} cho công nợ. Trạng thái: ${newStatus}`,
+    });
+
+    revalidatePath("/finance");
+    return { success: true, newStatus };
+  });
+}
+
 export async function deleteDebt(id: string) {
   return withAdmin(async (supabase) => {
     const { data: oldData } = await supabase

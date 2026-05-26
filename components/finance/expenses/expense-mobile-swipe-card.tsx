@@ -25,6 +25,7 @@ export function ExpenseMobileSwipeCard({
   onPrint,
 }: ExpenseMobileSwipeCardProps) {
   const isBusy = busyId === item.id;
+  const isAuto = item.description?.includes("[Auto-");
 
   // Left actions (swipe right to reveal)
   const leftActions: SwipeAction[] = [
@@ -47,7 +48,7 @@ export function ExpenseMobileSwipeCard({
   // Right actions (swipe left to reveal)
   const rightActions: SwipeAction[] = [];
 
-  if (!item.approved_by) {
+  if (!item.approved_by && !isAuto) {
     rightActions.push({
       id: "edit",
       label: "Sửa",

@@ -116,14 +116,14 @@ async function getDashboardMetricsFallback(
   const previous = monthWindow(previousDate.getMonth() + 1, previousDate.getFullYear());
 
   const [payments, receipts, expenses, prevPayments, prevReceipts, newContracts, doneContracts, debtRows] = await Promise.all([
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", current.start).lt("payment_date", current.end),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", current.start).lt("receipt_date", current.end),
-    supabase.from("expenses").select("amount").is("deleted_at", null).gte("expense_date", current.start).lt("expense_date", current.end),
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", previous.start).lt("payment_date", previous.end),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", previous.start).lt("receipt_date", previous.end),
+    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", current.start).lt("payment_date", current.end).limit(5000),
+    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", current.start).lt("receipt_date", current.end).limit(5000),
+    supabase.from("expenses").select("amount").is("deleted_at", null).gte("expense_date", current.start).lt("expense_date", current.end).limit(5000),
+    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", previous.start).lt("payment_date", previous.end).limit(5000),
+    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", previous.start).lt("receipt_date", previous.end).limit(5000),
     supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("contract_date", current.start).lt("contract_date", current.end),
     supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "hoan_thanh").gte("updated_at", current.start).lt("updated_at", current.end),
-    supabase.from("contracts").select("remaining_amount").is("deleted_at", null).gt("remaining_amount", 0),
+    supabase.from("contracts").select("remaining_amount").is("deleted_at", null).gt("remaining_amount", 0).limit(10000),
   ]);
 
   const firstError = payments.error || receipts.error || expenses.error || prevPayments.error || prevReceipts.error || newContracts.error || doneContracts.error || debtRows.error;
@@ -148,8 +148,8 @@ async function getRevenueByMonthFallback(supabase: SupabaseClient, year: number)
   const start = `${year}-01-01`;
   const end = `${year + 1}-01-01`;
   const [payments, receipts] = await Promise.all([
-    supabase.from("payments").select("payment_date, amount").is("deleted_at", null).gte("payment_date", start).lt("payment_date", end),
-    supabase.from("receipts").select("receipt_date, receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", start).lt("receipt_date", end),
+    supabase.from("payments").select("payment_date, amount").is("deleted_at", null).gte("payment_date", start).lt("payment_date", end).limit(10000),
+    supabase.from("receipts").select("receipt_date, receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", start).lt("receipt_date", end).limit(10000),
   ]);
 
   if (payments.error) throw new Error(payments.error.message);
@@ -177,7 +177,8 @@ async function getServiceDistributionFallback(
     .select("id, service_type, total_amount")
     .is("deleted_at", null)
     .gte("contract_date", window.start)
-    .lt("contract_date", window.end);
+    .lt("contract_date", window.end)
+    .limit(5000);
 
   if (error) throw new Error(error.message);
 
@@ -367,6 +368,11 @@ async function fetchLedgerFallback(
     receiptsQuery = receiptsQuery.gte("receipt_date", params.fromDate).lte("receipt_date", params.toDate);
     expensesQuery = expensesQuery.gte("expense_date", params.fromDate).lte("expense_date", params.toDate);
   }
+
+  // Chống quá tải memory (OOM) nếu thiếu RPC, giới hạn 1000 record mỗi bảng
+  paymentsQuery = paymentsQuery.limit(1000);
+  receiptsQuery = receiptsQuery.limit(1000);
+  expensesQuery = expensesQuery.limit(1000);
 
   const [payments, receipts, expenses] = await Promise.all([paymentsQuery, receiptsQuery, expensesQuery]);
   if (payments.error) throw new Error(payments.error.message);

@@ -235,7 +235,9 @@ export function ShareGalleryModalContent({
       /* Compact loading — auto-publishing in background */
       <div className="flex flex-col items-center justify-center py-10 gap-3">
         <Loader2 size={28} className="animate-spin text-primary" />
-        <p className="text-caption text-text-muted">Đang tạo link chia sẻ...</p>
+        <p className="text-caption text-text-muted">
+          {localStatus === "shared" ? "Đang tải thông tin..." : "Đang tạo link chia sẻ..."}
+        </p>
       </div>
     ) : (
     <div className="flex flex-col gap-6">

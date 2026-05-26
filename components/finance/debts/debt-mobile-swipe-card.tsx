@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, QrCode, MessageCircle, Trash2 } from "lucide-react";
+import { CheckCircle, QrCode, MessageCircle, Trash2, History } from "lucide-react";
 import { toast } from "sonner";
 import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
 import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
@@ -16,6 +16,7 @@ interface DebtMobileSwipeCardProps {
     bankInfo: BankInfo | null;
     busyId: string | null;
     onMarkPaid: (item: DebtListItem) => void;
+    onViewHistory: (item: DebtListItem) => void;
     onDelete: (item: DebtListItem) => void;
 }
 
@@ -24,6 +25,7 @@ export function DebtMobileSwipeCard({
     bankInfo,
     busyId,
     onMarkPaid,
+    onViewHistory,
     onDelete,
 }: DebtMobileSwipeCardProps) {
     const isBusy = busyId === item.id;
@@ -78,6 +80,13 @@ export function DebtMobileSwipeCard({
             icon: <QrCode className="w-5 h-5 mb-1" />,
             className: "bg-blue-500 text-text-inverse",
             onClick: () => setIsQrOpen(true),
+        },
+        {
+            id: "history",
+            label: "Lịch sử",
+            icon: <History className="w-5 h-5 mb-1" />,
+            className: "bg-brand text-text-inverse",
+            onClick: () => onViewHistory(item),
         }
     ];
 

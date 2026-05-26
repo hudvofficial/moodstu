@@ -68,6 +68,10 @@ export function SelectStatus({
       setLoading(true);
       try {
         await onUpdate(newStatus);
+      } catch (error: any) {
+        if (error?.message !== "USER_CANCELLED") {
+          console.error("SelectStatus update error:", error);
+        }
       } finally {
         setLoading(false);
       }

@@ -1062,3 +1062,56 @@ export async function getExpenseDetail(id: string) {
     };
   }));
 }
+// ═══════════════ DEBT PAYMENT HISTORY ═══════════════
+
+export async function fetchDebtPaymentHistory(debtId: string) {
+  return withFinanceRead(async (supabase) => {
+    // 1. Lấy danh sách phiếu thu liên quan
+    const { data: receipts, error: rError } = await supabase
+      .from("receipts")
+      .select("id, receipt_amount, payment_type, notes, receipt_date, created_at, created_by")
+      .eq("debt_id", debtId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (rError) throw new Error(`Lỗi tải phiếu thu liên quan: ${rError.message}`);
+
+    // 2. Lấy danh sách phiếu chi liên quan
+    const { data: expenses, error: eError } = await supabase
+      .from("expenses")
+      .select("id, amount, payment_method, description, expense_date, created_at, created_by")
+      .eq("debt_id", debtId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (eError) throw new Error(`Lỗi tải phiếu chi liên quan: ${eError.message}`);
+
+    // Map chung format
+    const history = [
+      ...(receipts || []).map((r) => ({
+        id: r.id,
+        amount: r.receipt_amount || 0,
+        payment_method: r.payment_type || "tien_mat",
+        notes: r.notes || "Thanh toán công nợ",
+        date: r.receipt_date || r.created_at,
+        created_at: r.created_at,
+        type: "receipt" as const,
+      })),
+      ...(expenses || []).map((e) => ({
+        id: e.id,
+        amount: e.amount || 0,
+        payment_method: e.payment_method || "tien_mat",
+        notes: e.description || "Thanh toán công nợ",
+        date: e.expense_date || e.created_at,
+        created_at: e.created_at,
+        type: "expense" as const,
+      })),
+    ].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return history;
+  });
+}

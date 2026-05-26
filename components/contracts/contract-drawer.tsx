@@ -7,7 +7,7 @@
  * V2: DrawerContent + OperationsTabs extracted to drawer-tab-content.tsx
  */
 
-import { useEffect } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Printer,
@@ -22,7 +22,10 @@ import {
 } from "@/types/contract-constants";
 import type { ContractStatus } from "@/types/contract";
 import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkTask } from "./drawer-tab-content";
-import { prefetchContractDetail, useContractDrawerExtra } from "@/lib/hooks/use-contracts";
+import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
+import { mutate } from "swr";
+import { prefetchContractDetail, useContractDrawerExtra, contractKeys } from "@/lib/hooks/use-contracts";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -78,12 +81,36 @@ export function ContractDrawer({
   const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
     useContractDrawerExtra(isOpen ? contractId : null);
 
+  const handleDrawerRealtime = useCallback(() => {
+    if (contractId) {
+      void mutate(contractKeys.drawerExtra(contractId));
+      void mutate(contractKeys.detail(contractId));
+    }
+  }, [contractId]);
+
+  const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(() => {
+    if (!contractId || !isOpen) return [];
+    const filter = `contract_id=eq.${contractId}`;
+    return [
+      { table: "contract_notes", filter },
+      { table: "contract_events", filter },
+      { table: "contract_checklists", filter, eventTypes: ["INSERT", "UPDATE", "DELETE"] },
+      { table: "work_tasks", filter },
+      { table: "payment_plans", filter },
+    ];
+  }, [contractId, isOpen]);
+
+  useRealtimeMulti(realtimeConfigs, {
+    channelName: `drawer-${contractId}`,
+    onChange: handleDrawerRealtime,
+    debounceMs: 500,
+  });
+
   useEffect(() => {
     if (!isOpen || !contractId) return;
 
     router.prefetch(`/contracts/${contractId}`);
     router.prefetch(`/contracts/${contractId}/edit`);
-    prefetchContractDetail(contractId);
   }, [contractId, isOpen, router]);
 
   const contractCode = contract?.contract_code || "...";

@@ -36,6 +36,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     rawCount, jpgCount, selectedCount, starredCount, hasPassword, totalHearts,
     allDownloadFiles, selectedDownloadFiles, totalImageCount,
     hasMoreImages, loadingMore, loadMoreImages,
+    fetchAllSelectedDownloadFiles, fetchAllDownloadFiles,
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
     handleSort, handleViewMode, handleWatermarkToggle, handleCreateAlbum, handleToggleStar,
@@ -62,6 +63,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
   const [filterTab, setFilterTab] = useState<"drive" | "local" | "export">("local");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { openModal } = useModal();
+  const [fullSelectedJpgNames, setFullSelectedJpgNames] = useState<string[]>([]);
 
   // Share modal handler
   const handleOpenShare = () => {
@@ -72,6 +74,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
       galleryId: activeGallery.id,
       galleryTitle: activeGallery.title || "Album",
       hasPassword,
+      shareLinks: activeGallery.shareLinks,
       status: activeGallery.status,
       onSharePrepared: patchGalleryShareDetails,
     });
@@ -79,11 +82,21 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
 
   // Drive copy is now handled entirely inside GalleryFilterModal to support chunking
 
-  const selectedJpgNames = useMemo(() => {
-    return images
-      .filter((img) => img.is_selected && img.file_name && /\.(jpe?g)$/i.test(img.file_name))
-      .map((img) => img.file_name as string);
-  }, [images]);
+  const handleOpenFilterModal = async (tab?: "drive" | "local" | "export") => {
+    if (tab) setFilterTab(tab);
+    setIsFilterModalOpen(true);
+    
+    // Fetch full list of selected jpgs directly from DB to bypass pagination limits
+    try {
+      const files = await fetchAllSelectedDownloadFiles();
+      const jpgNames = files
+        .filter((f: { fileName: string }) => f.fileName && /\.(jpe?g)$/i.test(f.fileName))
+        .map((f: { fileName: string }) => f.fileName);
+      setFullSelectedJpgNames(jpgNames);
+    } catch (e) {
+      console.error("Lỗi lấy danh sách JPG", e);
+    }
+  };
 
   // Reorder handler for drag & drop
   const handleReorder = useCallback((fromIdx: number, toIdx: number) => {
@@ -142,6 +155,8 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         newAlbumName={newAlbumName}
         selectedDownloadFiles={selectedDownloadFiles}
         allDownloadFiles={allDownloadFiles}
+        fetchAllSelectedDownloadFiles={fetchAllSelectedDownloadFiles}
+        fetchAllDownloadFiles={fetchAllDownloadFiles}
         onSetActiveGalleryId={(id) => { setActiveGalleryId(id); setFileFilter("all"); }}
         onSetFileFilter={setFileFilter}
         onSetActiveFilter={setActiveFilter}
@@ -154,17 +169,14 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
         onSetShowAlbumInput={setShowAlbumInput}
         onSetNewAlbumName={setNewAlbumName}
         onCreateAlbum={handleCreateAlbum}
-        onOpenFilterModal={(tab) => {
-          if (tab) setFilterTab(tab);
-          setIsFilterModalOpen(true);
-        }}
+        onOpenFilterModal={handleOpenFilterModal}
         onOpenListModal={() => setIsListModalOpen(true)}
       />
 
       <GalleryFilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        selectedJpgNames={selectedJpgNames}
+        selectedJpgNames={fullSelectedJpgNames}
         contractId={contractId}
         galleryId={activeGalleryId}
         defaultTab={filterTab}

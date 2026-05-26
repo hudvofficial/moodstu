@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+
 // ═══════════════════════════════════════════
 // MobileBottomBar — Sticky 2-button bar for mobile
 // Phase 04f: Stitch mobile design — "Sửa" + "Thu tiền"
@@ -19,23 +22,29 @@ export default function MobileBottomBar({
   remainingAmount,
   onPaymentClick,
 }: Props) {
-  if (isCancelled) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (isCancelled || !mounted) return null;
   const paymentLabel = remainingAmount > 0 ? "Thu tiền" : "Phát sinh";
 
-  return (
+  const content = (
     <div
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40
-                  bg-bg-primary
-                  shadow-md shadow-black/5
-                  px-4 pt-3 pb-8 safe-bottom"
+                  bg-bg-card border-t border-border/50
+                  shadow-[0_-4px_16px_rgba(0,0,0,0.05)]
+                  px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
     >
-      <div className="flex gap-3 max-w-sm mx-auto">
+      <div className="flex gap-3 w-full max-w-sm mx-auto">
         {/* Sửa HĐ — Link to edit page */}
         <Link
           href={`/contracts/${contractId}/edit`}
           className="flex-1 h-12 flex items-center justify-center
-                     rounded-md shadow-xs
-                     text-text-primary
+                     rounded-md shadow-xs border border-border
+                     bg-bg-card text-text-primary
                      font-bold text-sm
                      active:scale-[0.98] transition-all"
         >
@@ -62,4 +71,6 @@ export default function MobileBottomBar({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

@@ -1,5 +1,7 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/server";
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import type { GalleryImage } from "@/types/gallery";
 
@@ -37,3 +39,75 @@ export async function getGalleryImagesPaginated(
     return { images, totalCount, hasMore, page };
   });
 }
+
+// ═══════════════════════════════════════════
+// Gallery Fetch Caching cho Download Manager
+// ═══════════════════════════════════════════
+
+/**
+ * Cached function để lấy TẤT CẢ ảnh của 1 gallery 
+ * Caching bằng unstable_cache của Next.js (lưu trên server cache)
+ */
+async function getCachedGalleryImages(galleryId: string) {
+  const fetcher = unstable_cache(
+    async (id: string) => {
+      const supabase = await createAdminClient();
+      const { data, error } = await supabase
+        .from("gallery_images")
+        .select("id, file_name, drive_file_id, is_selected, selected_at, sort_order")
+        .eq("gallery_id", id)
+        .order("sort_order", { ascending: true });
+      
+      if (error) {
+        console.error("Lỗi lấy danh sách ảnh từ cache:", error);
+        return [];
+      }
+      return data || [];
+    },
+    [`gallery-images-download-${galleryId}`],
+    {
+      tags: [`gallery-images-${galleryId}`],
+      revalidate: 7200, // Cache 2 tiếng, sẽ bị xóa (invalidate) khi khách thao tác (tim ảnh)
+    }
+  );
+
+  return fetcher(galleryId);
+}
+
+/** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh được chọn (Bỏ qua pagination) */
+export async function getAllSelectedImagesForAction(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const allImages = await getCachedGalleryImages(galleryId);
+    
+    return allImages
+      .filter((img) => img.is_selected)
+      .sort((a, b) => {
+        const timeA = a.selected_at ? new Date(a.selected_at).getTime() : 0;
+        const timeB = b.selected_at ? new Date(b.selected_at).getTime() : 0;
+        return timeA - timeB;
+      })
+      .map(img => ({
+        id: img.id,
+        file_name: img.file_name,
+        drive_file_id: img.drive_file_id
+      }));
+  });
+}
+
+/** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh (Bỏ qua pagination) */
+export async function getAllImagesForAction(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const allImages = await getCachedGalleryImages(galleryId);
+    
+    return allImages.map(img => ({
+      id: img.id,
+      file_name: img.file_name,
+      drive_file_id: img.drive_file_id
+    }));
+  });
+}
+

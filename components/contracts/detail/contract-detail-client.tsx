@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimePayload } from "@/hooks/use-realtime";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Pencil } from "lucide-react";
 import {
   revalidateContractDetailCaches,
   updateContractListChecklistCache,
@@ -28,7 +28,6 @@ import type {
 import TopActionBar from "./top-action-bar";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import CancelBanner from "./cancel-banner";
-import MobileBottomBar from "./mobile-bottom-bar";
 import { DesktopLayout, MobileLayout } from "./detail-layout-sections";
 
 const ContractActionsMenu = dynamic(() => import("./contract-actions-menu"), {
@@ -475,13 +474,23 @@ export default function ContractDetailClient({
       titleOverride: headerContractCode,
       hideSearch: true,
       rightSlot: (
-        <ContractActionsMenu
-          contractId={headerContractId}
-          contractCode={headerContractCode}
-          customerName={contract.customers?.full_name || "Khách hàng"}
-          hasReceipts={payments.length > 0}
-          isCancelled={isCancelled}
-        />
+        <div className="flex items-center gap-1 lg:hidden">
+          {!isCancelled && (
+            <Link
+              href={`/contracts/${headerContractId}/edit`}
+              className="btn-icon text-text-primary"
+            >
+              <Pencil size={18} />
+            </Link>
+          )}
+          <ContractActionsMenu
+            contractId={headerContractId}
+            contractCode={headerContractCode}
+            customerName={contract.customers?.full_name || "Khách hàng"}
+            hasReceipts={payments.length > 0}
+            isCancelled={isCancelled}
+          />
+        </div>
       ),
     });
     return () => setHeaderSlots({});
@@ -676,13 +685,6 @@ export default function ContractDetailClient({
           tabSentinelRef={tabSentinelRef}
         />
       </div>
-
-      <MobileBottomBar
-        contractId={contract.id}
-        isCancelled={isCancelled}
-        remainingAmount={contract.remaining_amount}
-        onPaymentClick={() => openPaymentForm()}
-      />
 
       {/* ── Quick Action Modals ── */}
       {showPaymentForm && (

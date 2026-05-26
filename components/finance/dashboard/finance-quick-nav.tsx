@@ -27,13 +27,13 @@ interface QuickNavItem {
 const NAV_ITEMS: QuickNavItem[] = [
   { href: "/finance/receipts", label: "Phiếu thu", description: "Dòng tiền vào", icon: ReceiptText, tone: "emerald" },
   { href: "/finance/expenses", label: "Phiếu chi", description: "Chi phí vận hành", icon: Wallet, tone: "red" },
-  { href: "/finance/cashflow", label: "Sổ cái", description: "Thu chi tổng hợp", icon: BookOpen, tone: "blue" },
   { href: "/finance/debts", label: "Công nợ KH", description: "Khoản cần thu", icon: Landmark, tone: "orange" },
-  { href: "/finance/salaries", label: "Bảng lương", description: "Nhân viên + CTV", icon: BadgeCheck, tone: "indigo" },
   { href: "/finance/vendor-debts", label: "Quản lý Vendor", description: "Chi phí & thanh toán", icon: Users, tone: "orange" },
-  { href: "/finance/categories", label: "Danh mục", description: "Nhóm thu chi", icon: Layers, tone: "neutral" },
+  { href: "/finance/salaries", label: "Bảng lương", description: "Nhân viên + CTV", icon: BadgeCheck, tone: "indigo" },
+  { href: "/finance/cashflow", label: "Sổ cái", description: "Thu chi tổng hợp", icon: BookOpen, tone: "blue" },
   { href: "/finance/investments", label: "Tài sản", description: "Đầu tư studio", icon: TrendingUp, tone: "teal" },
   { href: "/finance/goals", label: "Mục tiêu", description: "Kế hoạch tiền", icon: Flag, tone: "violet" },
+  { href: "/finance/categories", label: "Danh mục", description: "Nhóm thu chi", icon: Layers, tone: "neutral" },
   { href: "/finance/closes", label: "Chốt sổ", description: "Khóa kỳ tháng", icon: Lock, tone: "amber" },
 ];
 
@@ -52,7 +52,7 @@ const toneClasses: Record<QuickNavTone, { icon: string; text: string; border: st
 export function FinanceQuickNav() {
   return (
     <section className="entrance entrance-1">
-      <div className="grid grid-cols-3 gap-3 lg:grid-cols-9">
+      <div className="flex w-full gap-3 overflow-x-auto lg:overflow-x-visible pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const tone = toneClasses[item.tone];
@@ -64,7 +64,7 @@ export function FinanceQuickNav() {
               scroll={false}
               replace={false}
               className={cn(
-                "card-interactive flex min-h-24 flex-col items-center justify-center gap-2 p-3 text-center",
+                "card-interactive flex min-h-24 shrink-0 w-[104px] sm:w-28 lg:w-auto lg:shrink lg:flex-1 flex-col items-center justify-center gap-2 p-3 text-center snap-start",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 tone.border,
               )}

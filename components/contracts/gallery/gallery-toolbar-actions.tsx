@@ -75,17 +75,9 @@ export function ViewModeToggle({
   );
 }
 
-export function GalleryMoreMenu({
-  downloadFiles,
-  downloadLabel = "Tải xuống",
-  onOpenShare,
-  onOpenSettings,
-  onOpenFilterDrive,
-  onOpenFilterLocal,
-  onOpenList,
-  disableFilter = false,
-}: {
+export interface GalleryMoreMenuProps {
   downloadFiles: { imageId: string; fileName: string }[];
+  fetchDownloadFiles?: () => Promise<{ imageId: string; fileName: string }[]>;
   downloadLabel?: string;
   onOpenShare?: () => void;
   onOpenSettings?: () => void;
@@ -93,7 +85,19 @@ export function GalleryMoreMenu({
   onOpenFilterLocal?: () => void;
   onOpenList?: () => void;
   disableFilter?: boolean;
-}) {
+}
+
+export function GalleryMoreMenu({
+  downloadFiles,
+  fetchDownloadFiles,
+  downloadLabel = "Tải xuống",
+  onOpenShare,
+  onOpenSettings,
+  onOpenFilterDrive,
+  onOpenFilterLocal,
+  onOpenList,
+  disableFilter = false,
+}: GalleryMoreMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -175,6 +179,7 @@ export function GalleryMoreMenu({
           
           <DownloadManager
             files={downloadFiles}
+            fetchFiles={fetchDownloadFiles}
             label={downloadLabel}
             variant="button"
             className="h-9 w-full justify-start gap-2.5 px-3 rounded-md text-caption font-medium text-text-main hover:bg-bg-hover bg-transparent border-0 shadow-none shrink-0 transition-colors"

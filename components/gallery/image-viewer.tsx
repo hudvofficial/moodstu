@@ -27,6 +27,7 @@ interface ImageViewerProps {
   onSaveNote: (imageId: string, note: string) => void;
   mode?: "select" | "view";
   accessToken?: string;
+  totalImagesCount?: number;
 }
 
 export default function ImageViewer({
@@ -38,6 +39,7 @@ export default function ImageViewer({
   onSaveNote,
   mode = "select",
   accessToken = "admin",
+  totalImagesCount,
 }: ImageViewerProps) {
   const current = images[currentIndex];
   const [downloading, setDownloading] = useState(false);
@@ -124,6 +126,58 @@ export default function ImageViewer({
 
 
 
+  const handleDownload = async () => {
+    if (downloading || !current) return;
+    setDownloading(true);
+
+    try {
+      const downloadUrl = `/api/gallery-download/${accessToken}/${current.id}`;
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        throw new Error("Lỗi tải ảnh");
+      }
+
+      const blob = await response.blob();
+      const fileName = current.file_name || `photo_${current.id}.jpg`;
+      const file = new File([blob], fileName, { type: blob.type });
+
+      // Cố gắng dùng Web Share API (Mobile)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+          });
+        } catch (shareErr: any) {
+          // Bỏ qua lỗi nếu user tự tắt bảng Share
+          if (shareErr.name !== "AbortError") {
+            fallbackDownload(blob, fileName);
+          }
+        }
+      } else {
+        // Fallback cho Desktop / Trình duyệt cũ
+        fallbackDownload(blob, fileName);
+      }
+    } catch (err) {
+      console.error("Download failed:", err);
+      alert("Không thể tải ảnh gốc. Vui lòng thử lại sau.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const fallbackDownload = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!current) return null;
 
   // Big image URL (sz=s1600 for full-screen — avoid loading 30MB+ originals)
@@ -137,68 +191,28 @@ export default function ImageViewer({
       style={{ background: "#000" }}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 relative z-10">
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={onClose}
-          onKeyDown={(e) => { if (e.key === "Enter") onClose() }}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 cursor-pointer"
-        >
-          <X size={20} style={{ color: "white" }} />
+      <div className="grid grid-cols-3 items-center px-4 py-3 relative z-10 bg-gradient-to-b from-black/60 to-transparent">
+        {/* Left: Blank */}
+        <div className="flex justify-start"></div>
+
+        {/* Center: File name */}
+        <div className="flex justify-center min-w-0">
+          <span className="text-sm font-medium text-white/90 truncate px-3 py-1 bg-black/30 rounded-full max-w-[200px] md:max-w-[400px]">
+            {current.file_name || "Photo"}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span
-            className="text-xs truncate max-w-40"
-            style={{ color: "rgba(255,255,255,0.6)" }}
+        {/* Right: Close */}
+        <div className="flex justify-end">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onClose}
+            onKeyDown={(e) => { if (e.key === "Enter") onClose() }}
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 cursor-pointer hover:bg-white/20 transition-colors"
           >
-            {current.file_name || ""}
-          </span>
-
-          {/* Download button */}
-          {showDownloadButton && (
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (downloading) return;
-                setDownloading(true);
-                
-                // Native Download by changing location.href
-                window.location.href = `/api/gallery-download/${accessToken}/${current.id}`;
-                
-                // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
-                setTimeout(() => {
-                  setDownloading(false);
-                }, 1500);
-              }}
-              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.click(); }}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${downloading ? "opacity-50" : ""}`}
-              style={{ background: "rgba(255,255,255,0.1)" }}
-            >
-              <Download size={18} className={downloading ? "animate-pulse" : ""} style={{ color: "white" }} />
-            </div>
-          )}
-
-          {/* Select button (Heart) */}
-          {mode === "select" && (
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => onToggleStar(current.id)}
-              onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(current.id) }}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer hover:scale-105 active:scale-95"
-              style={{ background: current.is_selected ? "rgba(255, 59, 48, 0.25)" : "rgba(255,255,255,0.1)" }}
-            >
-              <Heart
-                size={20}
-                fill={current.is_selected ? "#ff3b30" : "none"}
-                stroke={current.is_selected ? "#ff3b30" : "white"}
-                style={{ transition: "fill 0.3s, stroke 0.3s" }}
-              />
-            </div>
-          )}
+            <X size={20} style={{ color: "white" }} />
+          </div>
         </div>
       </div>
 
@@ -260,15 +274,49 @@ export default function ImageViewer({
         )}
       </div>
 
-      {/* Bottom bar — counter */}
-      <div className="px-4 py-3 relative z-10">
-        <div className="text-center">
-          <span
-            className="text-xs"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >
-            {currentIndex + 1} / {images.length}
+      {/* Bottom bar */}
+      <div className="flex items-center justify-between px-4 py-3 relative z-10 bg-gradient-to-t from-black/60 to-transparent">
+        {/* Left: Info */}
+        <div className="flex items-center">
+          <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
+            {currentIndex + 1} / {totalImagesCount || images.length}
           </span>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
+          {/* Download button */}
+          {showDownloadButton && (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handleDownload}
+              onKeyDown={(e) => { if (e.key === "Enter") handleDownload(); }}
+              className={`w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95 ${downloading ? "opacity-50" : ""}`}
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <Download size={22} className={downloading ? "animate-pulse" : ""} style={{ color: "white" }} />
+            </div>
+          )}
+
+          {/* Select button (Heart) */}
+          {mode === "select" && (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => onToggleStar(current.id)}
+              onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(current.id) }}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform cursor-pointer hover:scale-105 active:scale-95"
+              style={{ background: current.is_selected ? "rgba(255, 59, 48, 0.25)" : "rgba(255,255,255,0.15)" }}
+            >
+              <Heart
+                size={22}
+                fill={current.is_selected ? "#ff3b30" : "none"}
+                stroke={current.is_selected ? "#ff3b30" : "white"}
+                style={{ transition: "fill 0.3s, stroke 0.3s" }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

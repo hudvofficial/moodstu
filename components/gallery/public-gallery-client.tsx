@@ -1,13 +1,16 @@
 "use client";
 /* eslint-disable */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
+import useSWR from "swr";
+import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import {
   getPublicGalleryImagesPaginated,
   toggleImageSelection,
   updateClientNote,
+  getPublicGalleryStats,
 } from "@/app/actions/gallery-actions";
 import { getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
@@ -30,6 +33,7 @@ interface Gallery {
   status: string | null;
   selection_deadline: string | null;
   imageCount?: number;
+  selectedCount?: number;
   hasMoreImages?: boolean;
   currentPage?: number;
   gallery_images?: GalleryImage[];
@@ -46,17 +50,9 @@ export default function PublicGalleryClient({
   gallery,
   mode = "select",
 }: PublicGalleryClientProps) {
-  const [images, setImages] = useState<GalleryImage[]>(
-    gallery.gallery_images || [],
-  );
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
-  const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
-  const [currentPage, setCurrentPage] = useState(gallery.currentPage || 0);
-  const [hasMoreImages, setHasMoreImages] = useState(Boolean(gallery.hasMoreImages));
-  const [totalImageCount, setTotalImageCount] = useState(gallery.imageCount || (gallery.gallery_images?.length || 0));
-  const [loadingMoreImages, setLoadingMoreImages] = useState(false);
   const isViewOnly = mode === "view";
   const accessUrl = gallery.access_url || "";
   const accessToken = gallery.accessToken || "";
@@ -81,13 +77,72 @@ export default function PublicGalleryClient({
     return id;
   }, []);
 
-  // Load reaction counts
-  useEffect(() => {
-    void getReactionCounts(gallery.id).then(setReactionCounts);
-  }, [gallery.id]);
+  // SWR: Reaction Counts
+  const { data: reactionCounts = {} } = useSWR<ReactionCounts>(
+    gallery.id ? `gallery-reactions-${gallery.id}` : null,
+    () => getReactionCounts(gallery.id),
+    { fallbackData: {} }
+  );
 
-  const selectedCount = images.filter((img) => img.is_selected).length;
+  // SWR: Gallery Stats (selectedCount, imageCount)
+  const { data: stats, mutate: mutateStats } = useSWR(
+    gallery.id ? `gallery-stats-${gallery.id}` : null,
+    () => getPublicGalleryStats(gallery.id),
+    { fallbackData: { selectedCount: gallery.selectedCount || 0, imageCount: gallery.imageCount || (gallery.gallery_images?.length || 0) } }
+  );
+
+  const selectedCount = stats?.selectedCount || 0;
+  const totalImageCount = stats?.imageCount || 0;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
+
+  // ─── SWR Infinite: Gallery Images ─────────
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    if (previousPageData && !previousPageData.hasMore) return null; // reached the end
+    return `gallery-${gallery.id}-images-page-${pageIndex}`; // SWR key
+  };
+
+  const fetchImagesPage = async (key: string) => {
+    const pageStr = key.split('page-')[1];
+    const pageIndex = parseInt(pageStr, 10);
+    const res = await getPublicGalleryImagesPaginated(
+      gallery.id,
+      accessToken,
+      pageIndex,
+      undefined,
+      accessUrl
+    );
+    if (!res.success || !res.data) throw new Error("Failed to load");
+    return res.data;
+  };
+
+  const { data: pagesData, size, setSize, isValidating, mutate: mutatePages } = useSWRInfinite(
+    getKey,
+    fetchImagesPage,
+    {
+      fallbackData: [{
+        images: gallery.gallery_images || [],
+        page: gallery.currentPage || 0,
+        hasMore: gallery.hasMoreImages || false,
+        totalCount: gallery.imageCount || 0
+      }],
+      revalidateFirstPage: false,
+    }
+  );
+
+  const images = useMemo(() => {
+    if (!pagesData) return gallery.gallery_images || [];
+    return pagesData.flatMap(page => page.images) as GalleryImage[];
+  }, [pagesData, gallery.gallery_images]);
+
+  const hasMoreImages = pagesData ? pagesData[pagesData.length - 1].hasMore : false;
+  // isValidating is true during any request, but we only want to show 'loading more' if we are fetching the next page
+  const loadingMoreImages = isValidating && pagesData && pagesData.length === size;
+
+  const loadMoreServerImages = useCallback(() => {
+    if (hasMoreImages && !isValidating) {
+      setSize(size + 1);
+    }
+  }, [hasMoreImages, isValidating, size, setSize]);
 
   // ─── Filtered + visible images ──────────────
   const filteredImages = useMemo(
@@ -98,34 +153,6 @@ export default function PublicGalleryClient({
   const groups = useMemo(() => groupByFileGroup(filteredImages), [filteredImages]);
   const displayImages = useMemo(() => groups.map((g) => g.displayImage), [groups]);
 
-  const loadMoreServerImages = useCallback(async () => {
-    if (!hasMoreImages || loadingMoreImages || !accessToken) return;
-
-    setLoadingMoreImages(true);
-    const nextPage = currentPage + 1;
-    const res = await getPublicGalleryImagesPaginated(
-      gallery.id,
-      accessToken,
-      nextPage,
-      undefined,
-      accessUrl,
-    );
-
-    if (res.success && res.data) {
-      setImages((prev) => {
-        const seen = new Set(prev.map((img) => img.id));
-        const nextImages = (res.data.images as GalleryImage[])
-          .filter((img) => !seen.has(img.id));
-        return [...prev, ...nextImages];
-      });
-      setCurrentPage(res.data.page);
-      setHasMoreImages(res.data.hasMore);
-      setTotalImageCount(res.data.totalCount);
-    }
-
-    setLoadingMoreImages(false);
-  }, [accessToken, accessUrl, currentPage, gallery.id, hasMoreImages, loadingMoreImages]);
-
   // ─── Toggle star (selection) ──────────────────
   const handleToggleStar = useCallback(
     async (imageId: string, _currentSelected?: boolean) => {
@@ -134,28 +161,51 @@ export default function PublicGalleryClient({
       if (!img) return;
 
       const newSelected = !img.is_selected;
-      setImages((prev) =>
-        prev.map((i) =>
-          i.id === imageId ? { ...i, is_selected: newSelected, selected_at: newSelected ? new Date().toISOString() : null } : i,
-        ),
-      );
+      
+      // Update array optimistically
+      mutatePages((currentPages) => {
+        if (!currentPages) return currentPages;
+        return currentPages.map(page => ({
+          ...page,
+          images: page.images.map((img: GalleryImage) =>
+            img.id === imageId ? { ...img, is_selected: newSelected, selected_at: newSelected ? new Date().toISOString() : null } : img
+          )
+        }));
+      }, false);
+
       setTogglingIds((prev) => new Set(prev).add(imageId));
+      
+      // SWR Optimistic UI Update for selectedCount
+      const optimisticSelectedCount = newSelected ? selectedCount + 1 : Math.max(0, selectedCount - 1);
+      mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: optimisticSelectedCount }), false);
+
       const res = await toggleImageSelection(
         imageId,
         newSelected,
         accessUrl,
         accessToken,
       );
+      
       if (!res.success) {
-        setImages((prev) =>
-          prev.map((i) =>
-            i.id === imageId ? { ...i, is_selected: !newSelected, selected_at: !newSelected ? new Date().toISOString() : null } : i,
-          ),
-        );
+        // Rollback on error
+        mutatePages((currentPages) => {
+          if (!currentPages) return currentPages;
+          return currentPages.map(page => ({
+            ...page,
+            images: page.images.map((img: GalleryImage) =>
+              img.id === imageId ? { ...img, is_selected: !newSelected, selected_at: !newSelected ? new Date().toISOString() : null } : img
+            )
+          }));
+        }, false);
+        mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: selectedCount }), false);
+      } else if (res.newSelectedCount !== undefined) {
+        // Sync with exact server count
+        mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: res.newSelectedCount }), false);
       }
+      
       setTogglingIds((prev) => { const next = new Set(prev); next.delete(imageId); return next; });
     },
-    [accessToken, accessUrl, images, isViewOnly],
+    [accessToken, accessUrl, images, isViewOnly, selectedCount, totalImageCount, mutateStats],
   );
 
 
@@ -164,13 +214,32 @@ export default function PublicGalleryClient({
   const handleSaveNote = useCallback(
     async (imageId: string, note: string) => {
       const previousNote = images.find((i) => i.id === imageId)?.client_note || null;
-      setImages((prev) => prev.map((i) => i.id === imageId ? { ...i, client_note: note || null } : i));
+      
+      mutatePages((currentPages) => {
+        if (!currentPages) return currentPages;
+        return currentPages.map(page => ({
+          ...page,
+          images: page.images.map((img: GalleryImage) =>
+            img.id === imageId ? { ...img, client_note: note || null } : img
+          )
+        }));
+      }, false);
+
       const res = await updateClientNote(imageId, note, accessUrl, accessToken);
+      
       if (!res.success) {
-        setImages((prev) => prev.map((i) => i.id === imageId ? { ...i, client_note: previousNote } : i));
+        mutatePages((currentPages) => {
+          if (!currentPages) return currentPages;
+          return currentPages.map(page => ({
+            ...page,
+            images: page.images.map((img: GalleryImage) =>
+              img.id === imageId ? { ...img, client_note: previousNote } : img
+            )
+          }));
+        }, false);
       }
     },
-    [accessToken, accessUrl, images],
+    [accessToken, accessUrl, images, mutatePages],
   );
 
   // ═════════════════════════════════════════
@@ -251,6 +320,7 @@ export default function PublicGalleryClient({
           onSaveNote={handleSaveNote}
           mode={mode}
           accessToken={accessToken}
+          totalImagesCount={activeGroup === "all" ? totalImageCount : selectedCount}
         />
       )}
 

@@ -12,6 +12,7 @@ interface DebtDesktopTableProps {
     bankInfo: BankInfo | null;
     busyId: string | null;
     onMarkPaid: (item: DebtListItem) => void;
+    onViewHistory: (item: DebtListItem) => void;
     onDelete: (item: DebtListItem) => void;
 }
 
@@ -21,7 +22,7 @@ export function getDebtBadge(item: DebtListItem): { variant: BadgeVariant; label
     return { variant: "warning", label: "Đang nợ" };
 }
 
-export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onDelete }: DebtDesktopTableProps) {
+export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onViewHistory, onDelete }: DebtDesktopTableProps) {
     return (
         <div className="hidden lg:block">
             <TableWrapper>
@@ -84,6 +85,7 @@ export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onDelete
                                                 bankInfo={bankInfo}
                                                 busyId={busyId}
                                                 onMarkPaid={onMarkPaid}
+                                                onViewHistory={onViewHistory}
                                                 onDelete={onDelete}
                                             />
                                         </div>

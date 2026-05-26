@@ -10,6 +10,8 @@ import { DebtDesktopTable } from "@/components/finance/debts/debt-desktop-table"
 import { DebtMobileList } from "@/components/finance/debts/debt-mobile-list";
 import { DebtStatsBar } from "@/components/finance/debts/debt-stats-bar";
 import { DebtAgingCard } from "@/components/finance/debts/debt-aging-card";
+import { DebtPaymentModal } from "@/components/finance/debts/debt-payment-modal";
+import { DebtHistoryDrawer } from "@/components/finance/debts/debt-history-drawer";
 import { GhostScanWidget } from "@/components/finance/integrity/ghost-scan-widget";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -39,6 +41,10 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  
+  // States for new features
+  const [selectedDebtForPayment, setSelectedDebtForPayment] = useState<DebtListItem | null>(null);
+  const [selectedDebtForHistory, setSelectedDebtForHistory] = useState<DebtListItem | null>(null);
 
   const handleOpenCreate = useCallback(() => setIsModalOpen(true), []);
   const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
@@ -69,15 +75,11 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
   };
 
   const markPaid = async (item: DebtListItem) => {
-    setBusyId(item.id);
-    const result = await updateDebt(item.id, { status: "da_thanh_toan" }, item.updated_at || undefined);
-    setBusyId(null);
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Đã đánh dấu thanh toán.");
-    refresh();
+    setSelectedDebtForPayment(item);
+  };
+  
+  const viewHistory = (item: DebtListItem) => {
+    setSelectedDebtForHistory(item);
   };
 
   const remove = async (item: DebtListItem) => {
@@ -134,6 +136,7 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
                 bankInfo={bankInfo}
                 busyId={busyId}
                 onMarkPaid={markPaid}
+                onViewHistory={viewHistory}
                 onDelete={remove}
               />
             </div>
@@ -143,6 +146,7 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
                 bankInfo={bankInfo}
                 busyId={busyId}
                 onMarkPaid={markPaid}
+                onViewHistory={viewHistory}
                 onDelete={remove}
               />
               {totalPages > 1 && (
@@ -167,6 +171,8 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
       </div>
 
       <DebtFormModal isOpen={isModalOpen} onClose={handleCloseModal} onSaved={refresh} />
+      <DebtPaymentModal isOpen={!!selectedDebtForPayment} onClose={() => setSelectedDebtForPayment(null)} debt={selectedDebtForPayment} />
+      <DebtHistoryDrawer isOpen={!!selectedDebtForHistory} onClose={() => setSelectedDebtForHistory(null)} debt={selectedDebtForHistory} />
     </div>
   );
 }

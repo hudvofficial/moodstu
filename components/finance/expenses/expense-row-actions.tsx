@@ -28,6 +28,8 @@ export function ExpenseRowActions({
   const btnStyle = { padding: 0 };
   const iconStyle = { width: 20, height: 20 };
 
+  const isAuto = item.description?.includes("[Auto-");
+
   return (
     <div className="flex items-center justify-end gap-1.5 min-w-max">
       <Button
@@ -59,36 +61,36 @@ export function ExpenseRowActions({
             className={linkClassName}
             style={btnStyle}
             onClick={() => onEdit(item)}
-            disabled={busyId === item.id}
-            title="Sửa phiếu"
+            disabled={busyId === item.id || isAuto}
+            title={isAuto ? "Chứng từ tự động (Vui lòng thao tác ở phân hệ gốc)" : "Sửa phiếu"}
           >
             <Edit3 style={iconStyle} strokeWidth={strokeWg} />
           </Button>
           <Button
             type="button"
             variant="ghost"
-            className={`btn-icon ${busyId === item.id
-                ? "text-text-muted"
+            className={`btn-icon ${busyId === item.id || isAuto
+                ? "text-text-muted opacity-50"
                 : "text-interactive hover:bg-interactive/10 hover:text-interactive-hover"
               }`}
             style={btnStyle}
             onClick={() => onApprove(item.id)}
-            disabled={busyId === item.id}
-            title="Duyệt chi"
+            disabled={busyId === item.id || isAuto}
+            title={isAuto ? "Chứng từ tự động" : "Duyệt chi"}
           >
             <Check style={iconStyle} strokeWidth={strokeWg} />
           </Button>
           <Button
             type="button"
             variant="ghost"
-            className={`btn-icon ${busyId === item.id
-                ? "animate-pulse text-text-muted"
+            className={`btn-icon ${busyId === item.id || isAuto
+                ? (busyId === item.id ? "animate-pulse " : "") + "text-text-muted opacity-50"
                 : "text-error hover:text-error hover:bg-error/10"
               }`}
             style={btnStyle}
             onClick={() => onDelete(item.id)}
-            disabled={busyId === item.id}
-            title="Xóa phiếu"
+            disabled={busyId === item.id || isAuto}
+            title={isAuto ? "Chứng từ tự động (Vui lòng thao tác ở phân hệ gốc)" : "Xóa phiếu"}
           >
             <Trash2 style={iconStyle} strokeWidth={strokeWg} />
           </Button>

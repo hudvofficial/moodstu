@@ -116,11 +116,15 @@ export async function updateExpense(
     // 2. Fetch old data and check lock
     const { data: oldData } = await supabase
       .from("expenses")
-      .select("amount, recipient, expense_date, updated_at")
+      .select("amount, recipient, expense_date, updated_at, description")
       .eq("id", id)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy phiếu chi cần sửa.");
+
+    if (oldData.description && oldData.description.includes("[Auto-")) {
+      throw new Error("Không thể sửa Phiếu chi tự động. Vui lòng thực hiện tại phân hệ gốc (Lương/Vendor).");
+    }
 
     // Check lock for old date, and new date (if changing)
     await checkPeriodLock(supabase, oldData.expense_date);
@@ -173,11 +177,15 @@ export async function deleteExpense(id: string) {
     // 1. Fetch old data + lock check
     const { data: oldData } = await supabase
       .from("expenses")
-      .select("amount, recipient, expense_date")
+      .select("amount, recipient, expense_date, description")
       .eq("id", id)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy phiếu chi cần xoá.");
+
+    if (oldData.description && oldData.description.includes("[Auto-")) {
+      throw new Error("Không thể xóa Phiếu chi tự động. Vui lòng thực hiện tại phân hệ gốc (Lương/Vendor).");
+    }
     await checkPeriodLock(supabase, oldData.expense_date);
 
     // 2. Soft delete

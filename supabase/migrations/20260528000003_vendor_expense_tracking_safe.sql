@@ -1,23 +1,31 @@
 -- =====================================================
--- Migration: Vendor Expense Tracking
+-- Migration: Vendor Expense Tracking (SAFE VERSION)
 -- Date: 2026-05-28
--- Description: Implement vendor expense tracking following GAAP/IFRS standards
--- Pattern: Mirrors printing expense system (upsert_printing_expense)
--- Related: VENDOR_DEBTS_AUDIT_20260525.md
+-- Description: Safe version with comprehensive IF NOT EXISTS checks
+-- Replaces: 20260528000001 (if failed)
 -- =====================================================
 
 -- =====================================================
--- PART 1: Schema Changes
+-- PART 1: Add work_task_id column (SAFE)
 -- =====================================================
 
--- Add work_task_id column to expenses table
-ALTER TABLE public.expenses
-  ADD COLUMN IF NOT EXISTS work_task_id uuid NULL;
-
--- Add foreign key constraint with ON DELETE SET NULL
--- (expense preserved even if task deleted - accounting record kept)
 DO $$
 BEGIN
+  -- Add column only if not exists
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'expenses'
+      AND column_name = 'work_task_id'
+  ) THEN
+    ALTER TABLE public.expenses ADD COLUMN work_task_id uuid NULL;
+    RAISE NOTICE 'Added work_task_id column to expenses';
+  ELSE
+    RAISE NOTICE 'work_task_id column already exists';
+  END IF;
+
+  -- Add FK constraint only if not exists
   IF NOT EXISTS (
     SELECT 1
     FROM pg_constraint
@@ -28,34 +36,40 @@ BEGIN
       FOREIGN KEY (work_task_id)
       REFERENCES public.work_tasks(id)
       ON DELETE SET NULL;
+    RAISE NOTICE 'Added FK constraint expenses_work_task_id_fkey';
+  ELSE
+    RAISE NOTICE 'FK constraint already exists';
   END IF;
 END $$;
 
--- Create index for active work task expenses (performance optimization)
+-- Create index (IF NOT EXISTS built-in)
 CREATE INDEX IF NOT EXISTS idx_expenses_active_work_task
   ON public.expenses(work_task_id)
   WHERE deleted_at IS NULL AND work_task_id IS NOT NULL;
 
-COMMENT ON COLUMN public.expenses.work_task_id IS 'Links expense to vendor work_task (similar to printing_order_id for printing expenses)';
-COMMENT ON INDEX idx_expenses_active_work_task IS 'Optimize lookups for active vendor expense tracking';
+-- Add comment (safe - can run multiple times)
+COMMENT ON COLUMN public.expenses.work_task_id IS 'Links expense to vendor work_task (similar to printing_order_id)';
 
 -- =====================================================
--- PART 2: Vendor Expense Category Setup
+-- PART 2: Create Vendor Expense Category (SAFE)
 -- =====================================================
 
--- Create vendor expense category if not exists
 DO $$
 DECLARE
   v_category_id uuid;
 BEGIN
-  -- Check if vendor category already exists
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.transaction_categories
-    WHERE type = 'chi'
-      AND category_code IN ('vendor', 'freelancer')
-  ) THEN
-    -- Create new vendor expense category
+  -- Check if vendor category exists
+  SELECT id INTO v_category_id
+  FROM public.transaction_categories
+  WHERE type = 'chi'
+    AND category_code IN ('vendor', 'freelancer')
+  ORDER BY
+    CASE WHEN category_code = 'vendor' THEN 0 ELSE 1 END,
+    created_at
+  LIMIT 1;
+
+  -- Create if not exists
+  IF v_category_id IS NULL THEN
     INSERT INTO public.transaction_categories(
       category_code,
       name,
@@ -71,38 +85,32 @@ BEGIN
       false,
       NOW(),
       NOW()
-    );
-  END IF;
-
-  -- Get category ID (prefer 'vendor', fallback to 'freelancer')
-  SELECT id
-  INTO v_category_id
-  FROM public.transaction_categories
-  WHERE type = 'chi'
-    AND category_code IN ('vendor', 'freelancer')
-  ORDER BY
-    CASE WHEN category_code = 'vendor' THEN 0 ELSE 1 END,
-    created_at
-  LIMIT 1;
-
-  -- Store category_id in system_settings (like printing expense category)
-  IF v_category_id IS NOT NULL THEN
-    INSERT INTO public.system_settings(key, value, description, updated_at)
-    VALUES (
-      'vendor_expense_category_id',
-      v_category_id::text,
-      'Vendor expense category ID for auto-expense creation',
-      NOW()
     )
-    ON CONFLICT (key) DO UPDATE
-    SET value = v_category_id::text,
-        description = COALESCE(system_settings.description, 'Vendor expense category ID for auto-expense creation'),
-        updated_at = NOW();
+    RETURNING id INTO v_category_id;
+
+    RAISE NOTICE 'Created vendor expense category: %', v_category_id;
+  ELSE
+    RAISE NOTICE 'Vendor category already exists: %', v_category_id;
   END IF;
+
+  -- Upsert system setting
+  INSERT INTO public.system_settings(key, value, description, updated_at)
+  VALUES (
+    'vendor_expense_category_id',
+    v_category_id::text,
+    'Vendor expense category ID for auto-expense creation',
+    NOW()
+  )
+  ON CONFLICT (key) DO UPDATE
+  SET value = v_category_id::text,
+      description = 'Vendor expense category ID for auto-expense creation',
+      updated_at = NOW();
+
+  RAISE NOTICE 'Set system_settings.vendor_expense_category_id = %', v_category_id;
 END $$;
 
 -- =====================================================
--- PART 3: Category Resolver Function
+-- PART 3: Category Resolver Function (SAFE)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION public.resolve_vendor_expense_category_id()
@@ -115,14 +123,13 @@ AS $$
 DECLARE
   v_category_id uuid;
 BEGIN
-  -- Try system_settings first (fastest, cached lookup)
+  -- Try system_settings first
   SELECT value::uuid
   INTO v_category_id
   FROM public.system_settings
   WHERE key = 'vendor_expense_category_id'
   LIMIT 1;
 
-  -- Return if found in settings
   IF v_category_id IS NOT NULL THEN
     RETURN v_category_id;
   END IF;
@@ -143,7 +150,7 @@ END;
 $$;
 
 -- =====================================================
--- PART 4: Main Vendor Expense Upsert Function
+-- PART 4: Vendor Expense Upsert Function (SAFE)
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION public.upsert_vendor_expense(
@@ -165,11 +172,8 @@ DECLARE
   v_contract_code text;
   v_work_type_display text;
 BEGIN
-  -- ===========================
-  -- 1. Lock and load work_task
-  -- ===========================
-  SELECT *
-  INTO v_task
+  -- Lock and load work_task
+  SELECT * INTO v_task
   FROM public.work_tasks
   WHERE id = p_work_task_id
   FOR UPDATE;
@@ -178,16 +182,12 @@ BEGIN
     RAISE EXCEPTION 'Work task không tồn tại';
   END IF;
 
-  -- ===============================
-  -- 2. Validate vendor assignment
-  -- ===============================
+  -- Validate vendor assignment
   IF v_task.vendor_id IS NULL THEN
     RAISE EXCEPTION 'Task không được giao cho vendor (assigned_to employee)';
   END IF;
 
-  -- ===================================
-  -- 3. Find existing expense (if any)
-  -- ===================================
+  -- Find existing expense
   SELECT id, expense_date
   INTO v_expense_id, v_expense_date
   FROM public.expenses
@@ -197,69 +197,48 @@ BEGIN
   LIMIT 1
   FOR UPDATE;
 
-  -- Use existing expense date or current date
   v_expense_date := COALESCE(v_expense_date, CURRENT_DATE);
 
-  -- ======================
-  -- 4. Check period lock
-  -- ======================
+  -- Check period lock
   IF public.is_period_locked(v_expense_date) THEN
     RAISE EXCEPTION 'Kỳ kế toán đã khóa';
   END IF;
 
-  -- ========================================
-  -- 5. Handle edge cases (soft delete expense)
-  -- ========================================
-  -- Conditions: zero cost, not completed, or cancelled
+  -- Handle edge cases (soft delete expense)
   IF COALESCE(v_task.cost, 0) <= 0 OR
      v_task.status != 'hoan_thanh' OR
      v_task.status = 'da_huy' THEN
-    -- Soft delete existing expense if conditions not met
     IF v_expense_id IS NOT NULL THEN
       UPDATE public.expenses
       SET deleted_at = NOW(),
           updated_at = NOW()
       WHERE id = v_expense_id;
     END IF;
-
-    -- Return early (no expense needed)
     RETURN v_expense_id;
   END IF;
 
-  -- =============================
-  -- 6. Fetch vendor details
-  -- =============================
-  SELECT full_name
-  INTO v_vendor_name
+  -- Get vendor name
+  SELECT full_name INTO v_vendor_name
   FROM public.vendors
-  WHERE id = v_task.vendor_id
-    AND deleted_at IS NULL;
+  WHERE id = v_task.vendor_id AND deleted_at IS NULL;
 
   v_vendor_name := COALESCE(v_vendor_name, 'Vendor');
 
-  -- =============================
-  -- 7. Resolve expense category
-  -- =============================
+  -- Resolve category
   v_category_id := public.resolve_vendor_expense_category_id();
 
   IF v_category_id IS NULL THEN
     RAISE EXCEPTION 'Vendor expense category không được cấu hình';
   END IF;
 
-  -- ================================
-  -- 8. Get contract code (if exists)
-  -- ================================
+  -- Get contract code
   IF v_task.contract_id IS NOT NULL THEN
-    SELECT contract_code
-    INTO v_contract_code
+    SELECT contract_code INTO v_contract_code
     FROM public.contracts
-    WHERE id = v_task.contract_id
-      AND deleted_at IS NULL;
+    WHERE id = v_task.contract_id AND deleted_at IS NULL;
   END IF;
 
-  -- =================================
-  -- 9. Format work_type for display
-  -- =================================
+  -- Format work_type
   v_work_type_display := CASE v_task.work_type
     WHEN 'chup_anh' THEN 'Chụp ảnh'
     WHEN 'quay_phim' THEN 'Quay phim'
@@ -269,21 +248,14 @@ BEGIN
     ELSE COALESCE(v_task.work_type::text, 'Công việc')
   END;
 
-  -- ================================
-  -- 10. Build expense description
-  -- ================================
-  -- Format: [Auto-Vendor] {work_type} - {vendor_name} (HD: {code})
+  -- Build description
   v_description := '[Auto-Vendor] ' || v_work_type_display || ' - ' || v_vendor_name;
-
   IF v_contract_code IS NOT NULL THEN
     v_description := v_description || ' (HD: ' || v_contract_code || ')';
   END IF;
 
-  -- ========================================
-  -- 11. Insert or Update expense record
-  -- ========================================
+  -- Insert or Update
   IF v_expense_id IS NULL THEN
-    -- CREATE new expense
     INSERT INTO public.expenses(
       expense_date,
       payment_method,
@@ -298,7 +270,6 @@ BEGIN
       updated_at
     )
     VALUES (
-      -- Use completion_date for accrual accounting (not payment date!)
       COALESCE(v_task.completion_date::date, CURRENT_DATE),
       'chuyen_khoan'::public.payment_method_enum,
       v_category_id,
@@ -313,7 +284,6 @@ BEGIN
     )
     RETURNING id INTO v_expense_id;
   ELSE
-    -- UPDATE existing expense (cost or details changed)
     UPDATE public.expenses
     SET category_id = v_category_id,
         amount = COALESCE(v_task.cost, 0),
@@ -330,19 +300,19 @@ END;
 $$;
 
 -- =====================================================
--- PART 5: Permissions and Grants
+-- PART 5: Permissions (SAFE)
 -- =====================================================
 
--- Revoke all public access (security: service_role only)
+-- Revoke all (safe to run multiple times)
 REVOKE ALL ON FUNCTION public.resolve_vendor_expense_category_id() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.upsert_vendor_expense(uuid, uuid) FROM PUBLIC, anon, authenticated;
 
--- Grant execute to service_role (called from server actions)
+-- Grant to service_role
 GRANT EXECUTE ON FUNCTION public.resolve_vendor_expense_category_id() TO service_role;
 GRANT EXECUTE ON FUNCTION public.upsert_vendor_expense(uuid, uuid) TO service_role;
 
 -- =====================================================
--- PART 6: Documentation
+-- PART 6: Comments
 -- =====================================================
 
 COMMENT ON FUNCTION public.resolve_vendor_expense_category_id() IS 'Resolves vendor expense category ID from system_settings or fallback lookup';
@@ -351,15 +321,5 @@ COMMENT ON FUNCTION public.upsert_vendor_expense(uuid, uuid) IS 'Creates or upda
 -- =====================================================
 -- Migration Complete
 -- =====================================================
--- Changes:
--- 1. ✅ expenses.work_task_id column added
--- 2. ✅ FK constraint with ON DELETE SET NULL
--- 3. ✅ Index for performance
--- 4. ✅ Vendor expense category created
--- 5. ✅ Category stored in system_settings
--- 6. ✅ resolve_vendor_expense_category_id() function
--- 7. ✅ upsert_vendor_expense() main function
--- 8. ✅ Permissions configured
---
--- Next: Phase 2 - Integrate with toggleTaskStatus()
--- =====================================================
+
+SELECT 'Vendor expense tracking migration completed successfully' AS status;

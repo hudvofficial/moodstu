@@ -286,6 +286,22 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     images.filter((i) => i.is_selected && i.drive_file_id).map((i) => ({ imageId: i.id, fileName: i.file_name || "photo" })),
   [images]);
 
+  const fetchAllSelectedDownloadFiles = useCallback(async () => {
+    if (!activeGalleryId) return [];
+    const { getAllSelectedImagesForAction } = await import("@/app/actions/gallery-image-helpers");
+    const res = await getAllSelectedImagesForAction(activeGalleryId);
+    if (!res.success || !res.data) return [];
+    return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
+  }, [activeGalleryId]);
+
+  const fetchAllDownloadFiles = useCallback(async () => {
+    if (!activeGalleryId) return [];
+    const { getAllImagesForAction } = await import("@/app/actions/gallery-image-helpers");
+    const res = await getAllImagesForAction(activeGalleryId);
+    if (!res.success || !res.data) return [];
+    return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
+  }, [activeGalleryId]);
+
   return {
     // State
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
@@ -297,6 +313,8 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     allDownloadFiles, selectedDownloadFiles, totalImageCount: effectiveTotalImageCount,
     // Pagination
     hasMoreImages, loadingMore, loadMoreImages,
+    // Fetchers
+    fetchAllSelectedDownloadFiles, fetchAllDownloadFiles,
     // Setters
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
