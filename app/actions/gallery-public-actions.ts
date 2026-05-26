@@ -256,13 +256,24 @@ export async function getGalleryPreviewMetadata(slug: string) {
     if (link) {
       gallery = await fetchSharedGalleryBaseById(supabase, link.gallery_id);
     } else {
-      const { data } = await supabase
+      const { data: customData } = await supabase
         .from("galleries")
         .select("*")
-        .eq("access_url", slug)
+        .eq("custom_slug", slug)
         .eq("status", "shared")
         .maybeSingle();
-      gallery = data;
+
+      if (customData) {
+        gallery = customData;
+      } else {
+        const { data } = await supabase
+          .from("galleries")
+          .select("*")
+          .eq("access_url", slug)
+          .eq("status", "shared")
+          .maybeSingle();
+        gallery = data;
+      }
     }
 
     if (!gallery) return null;
