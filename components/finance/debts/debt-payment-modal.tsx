@@ -50,7 +50,7 @@ export function DebtPaymentModal({ isOpen, onClose, debt }: DebtPaymentModalProp
         note,
       });
       toast.success("Đã thanh toán công nợ và lưu vào dòng tiền.");
-      void mutate(cacheKeys.financeDebts());
+      void mutate(cacheKeys.debts());
       onClose();
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi thanh toán công nợ");
