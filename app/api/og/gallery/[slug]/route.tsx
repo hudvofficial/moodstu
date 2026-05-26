@@ -21,8 +21,8 @@ export async function GET(
       (
         <div
           style={{
-            height: "100%",
-            width: "100%",
+            height: "630px",
+            width: "1200px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-end",
@@ -31,7 +31,7 @@ export async function GET(
             overflow: "hidden",
           }}
         >
-          {/* Background Image (using img instead of backgroundImage to fix Satori edge artifacts) */}
+          {/* Background Image (using explicit pixel dimensions to prevent Satori letterboxing gaps) */}
           {highResCoverUrl && (
             <img
               src={highResCoverUrl}
@@ -39,8 +39,8 @@ export async function GET(
                 position: "absolute",
                 top: 0,
                 left: 0,
-                width: "100%",
-                height: "100%",
+                width: "1200px",
+                height: "630px",
                 objectFit: "cover",
                 objectPosition: "center 25%",
               }}

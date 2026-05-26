@@ -53,13 +53,13 @@ export async function generateMetadata({
       description,
       type: "website",
       url: `/gallery/${accessUrl}`,
-      ...(ogImageUrl ? { images: [{ url: `${ogImageUrl}?ext=.png`, width: 1200, height: 630, alt: title }] } : {}),
+      ...(ogImageUrl ? { images: [{ url: `${ogImageUrl}?ext=.png&v=4`, width: 1200, height: 630, alt: title }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: res.data.ogTitle || title,
       description,
-      ...(ogImageUrl ? { images: [`${ogImageUrl}?ext=.png`] } : {}),
+      ...(ogImageUrl ? { images: [`${ogImageUrl}?ext=.png&v=4`] } : {}),
     },
   };
 }
