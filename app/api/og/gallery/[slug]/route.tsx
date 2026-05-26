@@ -27,12 +27,26 @@ export async function GET(
             flexDirection: "column",
             justifyContent: "flex-end",
             backgroundColor: "#ffffff",
-            backgroundImage: highResCoverUrl ? `url(${highResCoverUrl})` : "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center 25%",
             position: "relative",
+            overflow: "hidden",
           }}
         >
+          {/* Background Image (using img instead of backgroundImage to fix Satori edge artifacts) */}
+          {highResCoverUrl && (
+            <img
+              src={highResCoverUrl}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 25%",
+              }}
+            />
+          )}
+
           {/* Bottom Gradient Overlay for text readability (only bottom 60%) */}
           <div
             style={{
