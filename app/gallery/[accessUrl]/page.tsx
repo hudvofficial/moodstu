@@ -46,18 +46,20 @@ export async function generateMetadata({
   return {
     title,
     description,
-    robots: { index: false, follow: false },
+    metadataBase: new URL(getAbsoluteMetadataImage("/") || "https://stu.moodwedding.com"),
+    robots: { index: true, follow: true },
     openGraph: {
       title: res.data.ogTitle || title,
       description,
       type: "website",
-      ...(ogImageUrl ? { images: [{ url: ogImageUrl }] } : {}),
+      url: `/gallery/${accessUrl}`,
+      ...(ogImageUrl ? { images: [{ url: `${ogImageUrl}?ext=.png`, width: 1200, height: 630, alt: title }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: res.data.ogTitle || title,
       description,
-      ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
+      ...(ogImageUrl ? { images: [`${ogImageUrl}?ext=.png`] } : {}),
     },
   };
 }

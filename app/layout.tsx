@@ -13,6 +13,7 @@ import { DevServiceWorkerReset } from "@/components/layout/dev-service-worker-re
 import { ServiceWorkerUpdateReload } from "@/components/layout/service-worker-update-reload";
 import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
 import { SWRProvider } from "@/components/providers/swr-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { Bell, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
 import { SplashScreen } from "@/components/layout/splash-screen";
 
@@ -120,7 +121,8 @@ export default function RootLayout({
         <ThemeProvider>
           <NuqsAdapter>
             <SWRProvider>
-              <ModalProvider>
+              <QueryProvider>
+                <ModalProvider>
                 <NextTopLoader
                   color="var(--color-primary)"
                   height={3}
@@ -160,7 +162,8 @@ export default function RootLayout({
                     info: <Info className="w-4 h-4 text-text-muted" />,
                   }}
                 />
-              </ModalProvider>
+                </ModalProvider>
+              </QueryProvider>
             </SWRProvider>
           </NuqsAdapter>
         </ThemeProvider>

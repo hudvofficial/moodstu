@@ -2,17 +2,25 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   FolderOpen, RefreshCw, ExternalLink, Loader2, ImageIcon, Plus, Calendar, Share2,
   Pencil, Trash2, Check, X,
 } from "lucide-react";
-import { getGallerySummariesByContract, syncDriveFolder, deleteGallery } from "@/app/actions/gallery-admin-actions";
-import { getRetouchProgress, getDeliveryDate, updateDriveFolderUrl } from "@/app/actions/gallery-drive-actions";
-import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";
+import {
+  useGalleriesQuery,
+  useRetouchProgressQuery,
+  useDeliveryDateQuery,
+  useDeleteGalleryMutation,
+  useSyncGalleryMutation,
+  useUpdateDriveFolderUrlMutation,
+  galleryKeys,
+} from "@/hooks/use-gallery-queries";
+import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════
 // DriveGalleryBlock V2 — Compact card, no inline grid
@@ -36,6 +44,7 @@ interface GalleryRow {
 
 interface DriveGalleryBlockProps {
   contractId: string;
+  initialGalleries?: any[]; // SSR data from server
 }
 
 const FOLDER_LABELS: Record<string, { icon: string; label: string }> = {
@@ -44,61 +53,34 @@ const FOLDER_LABELS: Record<string, { icon: string; label: string }> = {
   chon_in: { icon: "🖨️", label: "Ảnh chọn in" },
 };
 
-export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps) {
+export default function DriveGalleryBlock({ contractId, initialGalleries }: DriveGalleryBlockProps) {
   const router = useRouter();
-  const [galleries, setGalleries] = useState<GalleryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState<string | null>(null);
   const { openModal } = useModal();
-  const [progress, setProgress] = useState({ selectedCount: 0, editedCount: 0, progress: 0 });
-  const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editUrl, setEditUrl] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  // ─── Load data ────────────────────────────
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    const [galRes, progRes, dateRes] = await Promise.all([
-      getGallerySummariesByContract(contractId),
-      getRetouchProgress(contractId),
-      getDeliveryDate(contractId),
-    ]);
-
-    if (galRes.success && galRes.data) {
-      setGalleries(galRes.data.map((g) => ({
-        id: g.id,
-        title: g.title,
-        access_url: g.access_url,
-        folder_type: g.folder_type,
-        drive_folder_url: g.drive_folder_url,
-        status: g.status,
-        shared_at: g.shared_at,
-        imageCount: g.imageCount,
-        selectedCount: g.selectedCount,
-        hasPassword: g.hasPassword,
-        custom_slug: g.custom_slug,
-        shareLinks: g.shareLinks,
-      })));
+  // ─── Hydrate React Query cache with SSR data ────────────
+  useEffect(() => {
+    if (initialGalleries && initialGalleries.length > 0) {
+      // Hydrate gallery list cache
+      queryClient.setQueryData(galleryKeys.list(contractId), initialGalleries);
     }
-    if (progRes.success && progRes.data) setProgress(progRes.data);
-    if (dateRes.success && dateRes.data) setDeliveryDate(dateRes.data);
-    setLoading(false);
-  }, [contractId]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void loadData(); }, [contractId]);
+  }, [contractId, initialGalleries, queryClient]);
 
-  // ─── Sync folder ──────────────────────────
-  const handleSync = async (galleryId: string) => {
-    setSyncing(galleryId);
-    const res = await syncDriveFolder(galleryId);
-    if (res.success) {
-      toast(res.data.newImages > 0 ? `+${res.data.newImages} ảnh mới` : "Không có ảnh mới", "success");
-      await loadData();
-    } else {
-      toast(res.error, "error");
-    }
-    setSyncing(null);
+  // ─── React Query Hooks (Auto-caching, optimistic updates) ────────────
+  const { data: galleries = [], isLoading, isFetching } = useGalleriesQuery(contractId);
+  const { data: progress = { selectedCount: 0, editedCount: 0, progress: 0 } } = useRetouchProgressQuery(contractId);
+  const { data: deliveryDate = null } = useDeliveryDateQuery(contractId);
+
+  // ─── Mutations with optimistic updates ────────────
+  const deleteMutation = useDeleteGalleryMutation(contractId);
+  const syncMutation = useSyncGalleryMutation(contractId);
+  const updateUrlMutation = useUpdateDriveFolderUrlMutation(contractId);
+
+  // ─── Sync folder (Optimistic update handled by mutation) ──────────────
+  const handleSync = (galleryId: string) => {
+    syncMutation.mutate(galleryId);
   };
 
   // ─── Edit link ─────────────────────────────
@@ -112,57 +94,36 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
     setEditUrl("");
   };
 
-  const handleSaveEdit = async (galleryId: string) => {
+  const handleSaveEdit = (galleryId: string) => {
     if (!editUrl.trim()) {
       toast("Vui lòng nhập link Drive", "error");
       return;
     }
-    setSaving(true);
-    const res = await updateDriveFolderUrl(galleryId, editUrl.trim());
-    if (res.success) {
-      toast("Đã cập nhật link Drive", "success");
-      setEditingId(null);
-      setEditUrl("");
-      await loadData();
-    } else {
-      toast(res.error, "error");
-    }
-    setSaving(false);
+    updateUrlMutation.mutate(
+      { galleryId, url: editUrl.trim() },
+      {
+        onSuccess: () => {
+          setEditingId(null);
+          setEditUrl("");
+        },
+      }
+    );
   };
 
-  // ─── Delete gallery ────────────────────────
-  const handleDelete = async (gallery: GalleryRow) => {
+  // ─── Delete gallery (Optimistic update handled by mutation) ────────────
+  const handleDelete = (gallery: GalleryRow) => {
     const info = FOLDER_LABELS[gallery.folder_type || ""] || { label: gallery.title || "Album" };
     const confirmed = window.confirm(`Xoá gallery "${info.label}"? Tất cả ảnh trong gallery sẽ bị xoá.`);
     if (!confirmed) return;
 
-    // Optimistic: xoá khỏi UI ngay
-    const prev = galleries;
-    setGalleries((current) => current.filter((g) => g.id !== gallery.id));
-    toast("Đã xoá gallery", "success");
-
-    const res = await deleteGallery(gallery.id);
-    if (!res.success) {
-      // Rollback
-      setGalleries(prev);
-      toast(res.error, "error");
-    }
+    deleteMutation.mutate(gallery.id);
   };
 
-  // ─── Share gallery ────────────────────────
+  // ─── Share gallery (Update query cache) ────────────────────────
   const handleSharePrepared = useCallback((details: GalleryShareDetails) => {
-    setGalleries((current) => current.map((gallery) =>
-      gallery.id === details.galleryId
-        ? {
-          ...gallery,
-          access_url: details.accessUrl,
-          status: details.status,
-          hasPassword: details.hasPassword,
-          shareLinks: details.shareLinks,
-          shared_at: gallery.shared_at || new Date().toISOString(),
-        }
-        : gallery,
-    ));
+    // Note: Share modal will handle cache update via mutation
+    // This is kept for backwards compatibility but can be removed
+    // once share modal is refactored to use React Query
   }, []);
 
   const handleShare = (gallery: GalleryRow) => {
@@ -185,7 +146,9 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
   // RENDER
   // ═════════════════════════════════════════
 
-  if (loading) {
+  // ✅ Smart loading: Only show skeleton on FIRST load (no cached data)
+  // After that, show stale data + optional background spinner
+  if (isLoading && !galleries.length) {
     return (
       <div className="card-base p-4 lg:p-5">
         <div className="flex items-center gap-2 mb-3">
@@ -207,7 +170,7 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
           <FolderOpen size={16} className="text-primary" />
           <h3 className="text-body-sm font-bold text-text-primary">Quản lý File ảnh & Drive</h3>
         </div>
-        <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId, onSuccess: loadData })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
+        <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
           <Plus size={14} />
           <span>{hasGalleries ? "Thêm link" : "Gán Link Drive"}</span>
         </Button>
@@ -227,8 +190,9 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
         <div className="space-y-2">
           {galleries.map((g) => {
             const info = FOLDER_LABELS[g.folder_type || ""] || { icon: "📁", label: g.title || "Album" };
-            const isSyncing = syncing === g.id;
+            const isSyncing = syncMutation.isPending;
             const isEditing = editingId === g.id;
+            const isSaving = updateUrlMutation.isPending;
 
             // ── Inline edit mode ──
             if (isEditing) {
@@ -248,10 +212,10 @@ export default function DriveGalleryBlock({ contractId }: DriveGalleryBlockProps
                       onKeyDown={(e: any) => e.key === "Enter" && void handleSaveEdit(g.id)}
                       autoFocus
                     />
-                    <Button unstyled onClick={() => void handleSaveEdit(g.id)} disabled={saving} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-success)" }} title="Lưu">
-                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    <Button unstyled onClick={() => void handleSaveEdit(g.id)} disabled={isSaving} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-success)" }} title="Lưu">
+                      {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                     </Button>
-                    <Button unstyled onClick={handleCancelEdit} disabled={saving} className="btn-icon" style={{ width: 28, height: 28 }} title="Huỷ">
+                    <Button unstyled onClick={handleCancelEdit} disabled={isSaving} className="btn-icon" style={{ width: 28, height: 28 }} title="Huỷ">
                       <X size={14} />
                     </Button>
                   </div>

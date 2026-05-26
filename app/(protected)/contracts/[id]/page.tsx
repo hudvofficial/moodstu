@@ -1,6 +1,7 @@
 export const metadata = { title: "Chi tiết hợp đồng" };
 
 import { getContractDetail } from "@/app/actions/contract-queries";
+import { getGallerySummariesByContract } from "@/app/actions/gallery-admin-actions";
 import ContractDetailClient from "@/components/contracts/detail/contract-detail-client";
 import type { ContractDetailData } from "@/lib/hooks/use-contracts";
 
@@ -16,15 +17,27 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  // ⚡ SSR: Fetch contract detail on the server to eliminate cold-start skeleton
+  // ⚡ SSR: Fetch contract detail + galleries on the server to eliminate cold-start skeleton
   let initialData: ContractDetailData | undefined;
-  
+  let initialGalleries: any[] | undefined;
+
   try {
-    const result = await getContractDetail(id);
-    if (result.success) {
-      initialData = result.data as ContractDetailData;
+    // Parallel fetch for optimal performance
+    const [contractResult, galleriesResult] = await Promise.all([
+      getContractDetail(id),
+      getGallerySummariesByContract(id),
+    ]);
+
+    if (contractResult.success) {
+      initialData = contractResult.data as ContractDetailData;
     } else {
-      console.error("Contract detail SSR failed:", result.error);
+      console.error("Contract detail SSR failed:", contractResult.error);
+    }
+
+    if (galleriesResult.success) {
+      initialGalleries = galleriesResult.data;
+    } else {
+      console.error("Galleries SSR failed:", galleriesResult.error);
     }
   } catch (error) {
     // Let the client handle the error if not found, or use notFound()
@@ -39,6 +52,7 @@ export default async function ContractDetailPage(props: {
       initialPaymentPlans={initialData?.paymentPlans}
       initialReservations={initialData?.reservations}
       initialPrintOrders={initialData?.printOrders}
+      initialGalleries={initialGalleries}
     />
   );
 }

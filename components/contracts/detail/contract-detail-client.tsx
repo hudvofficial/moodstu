@@ -74,6 +74,7 @@ interface Props {
   initialPaymentPlans?: PaymentPlan[];
   initialReservations?: DressReservationRow[];
   initialPrintOrders?: PrintingOrder[];
+  initialGalleries?: any[]; // Gallery SSR data
 }
 
 export default function ContractDetailClient({
@@ -83,6 +84,7 @@ export default function ContractDetailClient({
   initialPaymentPlans,
   initialReservations,
   initialPrintOrders,
+  initialGalleries,
 }: Props) {
   const params = useParams<{ id: string }>();
   const id = contractId || params.id;
@@ -642,6 +644,7 @@ export default function ContractDetailClient({
     reservations,
     printOrders,
     activeEmployees,
+    initialGalleries, // SSR gallery data
     refreshContract: refreshContractCaches,
     onTaskStatusChange: applyTaskStatusOptimistic,
     onEventDeleted: applyEventDeletedOptimistic,

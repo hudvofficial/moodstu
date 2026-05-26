@@ -63,10 +63,6 @@ export function GlobalModal() {
           <DriveLinkModalContent
             contractId={data?.contractId}
             onClose={closeModal}
-            onSuccess={() => {
-              data?.onSuccess?.();
-              closeModal();
-            }}
           />
         );
 

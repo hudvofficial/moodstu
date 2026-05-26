@@ -5,17 +5,16 @@ import { Link as LinkIcon, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { createGallery } from "@/app/actions/gallery-admin-actions";
+import { useCreateGalleryMutation } from "@/hooks/use-gallery-queries";
 import { toast } from "@/lib/toast-utils";
 
 interface DriveLinkModalContentProps {
   contractId: string;
   onClose: () => void;
-  onSuccess: () => void;
 }
 
-export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveLinkModalContentProps) {
-  const [loading, setLoading] = useState(false);
+export function DriveLinkModalContent({ contractId, onClose }: DriveLinkModalContentProps) {
+  const createMutation = useCreateGalleryMutation(contractId);
   const [formData, setFormData] = useState({
     driveUrl: "",
     title: "",
@@ -46,7 +45,7 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
     setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!formData.driveUrl.trim()) {
       toast("Vui lòng nhập Link ảnh Google Drive", "error");
       return;
@@ -56,32 +55,29 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
       return;
     }
 
-    setLoading(true);
     const limit = formData.hasSelectionLimit && formData.selectionLimit ? parseInt(formData.selectionLimit) : null;
 
-    const res = await createGallery(
-      contractId,
-      formData.title.trim(),
-      formData.driveUrl.trim(),
+    createMutation.mutate(
       {
-        client_name: formData.clientName.trim() || null,
-        custom_slug: formData.customSlug.trim() || null,
-        tags: formData.tags.length > 0 ? formData.tags : null,
-        allow_comments: formData.allowComments,
-        enable_watermark: formData.enableWatermark,
-        show_namecard: formData.showNamecard,
-        allow_download: formData.allowDownload,
-        selection_limit: limit,
+        title: formData.title.trim(),
+        driveUrl: formData.driveUrl.trim(),
+        settings: {
+          client_name: formData.clientName.trim() || null,
+          custom_slug: formData.customSlug.trim() || null,
+          tags: formData.tags.length > 0 ? formData.tags : null,
+          allow_comments: formData.allowComments,
+          enable_watermark: formData.enableWatermark,
+          show_namecard: formData.showNamecard,
+          allow_download: formData.allowDownload,
+          selection_limit: limit,
+        },
+      },
+      {
+        onSuccess: () => {
+          onClose(); // Close modal on success
+        },
       }
     );
-
-    if (res.success) {
-      toast("Tạo album thành công", "success");
-      onSuccess();
-    } else {
-      toast(res.error, "error");
-    }
-    setLoading(false);
   };
 
   return (
@@ -251,17 +247,17 @@ export function DriveLinkModalContent({ contractId, onClose, onSuccess }: DriveL
 
       {/* Action buttons */}
       <div className="flex gap-3 justify-end pt-4 border-t border-border">
-        <Button type="button" unstyled onClick={onClose} className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-bg-muted" disabled={loading}>
+        <Button type="button" unstyled onClick={onClose} className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-bg-muted" disabled={createMutation.isPending}>
           Hủy bỏ
         </Button>
         <Button
           type="button"
           unstyled
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={createMutation.isPending}
           className="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 disabled:opacity-50"
         >
-          {loading ? (
+          {createMutation.isPending ? (
             <div className="flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" />
               <span>Đang tạo...</span>

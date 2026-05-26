@@ -63,6 +63,7 @@ interface LayoutProps {
   reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
   activeEmployees?: ActiveEmployee[];
+  initialGalleries?: any[]; // SSR gallery data
   refreshContract: () => void;
   onTaskStatusChange: (taskId: string, eventId: string, status: TaskStatus) => void;
   onEventDeleted: (eventId: string) => void;
@@ -81,6 +82,7 @@ export function DesktopLayout({
   reservations,
   printOrders,
   activeEmployees,
+  initialGalleries,
   refreshContract,
   onTaskStatusChange,
   onEventDeleted,
@@ -184,7 +186,7 @@ export function DesktopLayout({
           </div>
 
           <div id="section-drive">
-            <DriveGalleryBlock contractId={contract.id} />
+            <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
           </div>
 
           <NotesTimeline contractId={contract.id} />
@@ -212,6 +214,7 @@ export function MobileLayout({
   reservations,
   printOrders,
   activeEmployees,
+  initialGalleries,
   refreshContract,
   onTaskStatusChange,
   onEventDeleted,
@@ -302,7 +305,7 @@ export function MobileLayout({
         </div>
 
         <div id="section-drive-mobile">
-          <DriveGalleryBlock contractId={contract.id} />
+          <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
         </div>
 
         <div id="section-notes">
