@@ -5,7 +5,7 @@ import { Link as LinkIcon, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { createGallery } from "@/app/actions/gallery-actions";
+import { createGallery } from "@/app/actions/gallery-admin-actions";
 import { toast } from "@/lib/toast-utils";
 
 interface DriveLinkModalContentProps {

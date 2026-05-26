@@ -29,8 +29,11 @@ export function DebtHistoryDrawer({ isOpen, onClose, debt }: DebtHistoryDrawerPr
     if (!debt) return;
     setLoading(true);
     try {
-      const data = await fetchDebtPaymentHistory(debt.id);
-      setHistory(data);
+      const res = await fetchDebtPaymentHistory(debt.id);
+      if (!res.success) {
+        throw new Error(res.error || "Lỗi tải lịch sử");
+      }
+      setHistory(res.data || []);
     } catch (err: any) {
       toast.error(err.message || "Không tải được lịch sử thanh toán");
     } finally {

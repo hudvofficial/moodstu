@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { getGallerySummariesByContract, toggleImageStar } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract } from "@/app/actions/gallery-admin-actions";
+import { toggleImageStar } from "@/app/actions/gallery-selection-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";

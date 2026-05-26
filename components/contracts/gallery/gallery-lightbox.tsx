@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Download, Heart, Star, X, Image as ImageIcon
 import type { GalleryImage } from "@/types/gallery";
 import { downloadSingleFile } from "@/components/gallery/download-manager";
 import { Button } from "@/components/ui/button";
-import { setGalleryCoverImage } from "@/app/actions/gallery-actions";
+import { setGalleryCoverImage } from "@/app/actions/gallery-admin-actions";
 import { toast } from "sonner";
 
 // ═══════════════════════════════════════════

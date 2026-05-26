@@ -3,10 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
-import {
-  getPublicGalleryWithAccess,
-  verifyGalleryPassword,
-} from "@/app/actions/gallery-actions";
+import { getPublicGalleryWithAccess, verifyGalleryPassword } from "@/app/actions/gallery-public-actions";
 import type { Gallery } from "@/types/gallery";
 
 interface PasswordGateProps {

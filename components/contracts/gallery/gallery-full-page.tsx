@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import { reorderImages, updateGallerySettings } from "@/app/actions/gallery-actions";
-import type { GallerySettingsPayload } from "@/app/actions/gallery-actions";
+import { updateGallerySettings } from "@/app/actions/gallery-admin-actions";
+import { reorderImages } from "@/app/actions/gallery-selection-actions";
+import type { GallerySettingsPayload } from "@/app/actions/gallery-core";
 import { toast } from "sonner";
 import GalleryImageGrid from "./gallery-image-grid";
 import GalleryImageList from "./gallery-image-list";

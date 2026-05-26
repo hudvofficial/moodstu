@@ -6,7 +6,7 @@ import {
   FolderOpen, RefreshCw, ExternalLink, Loader2, ImageIcon, Plus, Calendar, Share2,
   Pencil, Trash2, Check, X,
 } from "lucide-react";
-import { getGallerySummariesByContract, syncDriveFolder, deleteGallery } from "@/app/actions/gallery-actions";
+import { getGallerySummariesByContract, syncDriveFolder, deleteGallery } from "@/app/actions/gallery-admin-actions";
 import { getRetouchProgress, getDeliveryDate, updateDriveFolderUrl } from "@/app/actions/gallery-drive-actions";
 import { toast } from "@/lib/toast-utils";
 import { useModal } from "@/lib/context/modal-context";

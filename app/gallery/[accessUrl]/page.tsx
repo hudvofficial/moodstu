@@ -1,7 +1,4 @@
-import {
-  getPublicGallery,
-  getPublicGalleryPreview,
-} from "@/app/actions/gallery-actions";
+import { getPublicGallery, getPublicGalleryPreview } from "@/app/actions/gallery-public-actions";
 import type { Metadata } from "next";
 import GalleryPageClient from "@/components/gallery/gallery-page-client";
 

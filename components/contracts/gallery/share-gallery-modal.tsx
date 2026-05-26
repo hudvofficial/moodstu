@@ -3,10 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Copy, Download, Check, Shield, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast-utils";
-import {
-  prepareGalleryShare,
-  setGalleryPassword,
-} from "@/app/actions/gallery-actions";
+import { prepareGalleryShare, setGalleryPassword } from "@/app/actions/gallery-admin-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";

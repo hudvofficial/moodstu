@@ -6,12 +6,8 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
-import {
-  getPublicGalleryImagesPaginated,
-  toggleImageSelection,
-  updateClientNote,
-  getPublicGalleryStats,
-} from "@/app/actions/gallery-actions";
+import { getPublicGalleryImagesPaginated, getPublicGalleryStats } from "@/app/actions/gallery-public-actions";
+import { toggleImageSelection, updateClientNote } from "@/app/actions/gallery-selection-actions";
 import { getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid";
