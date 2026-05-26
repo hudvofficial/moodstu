@@ -18,7 +18,8 @@ function getAbsoluteMetadataImage(url: string | null | undefined) {
   try {
     return new URL(url).toString();
   } catch {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || (vercelUrl ? `https://${vercelUrl}` : 'https://stu.moodwedding.com');
     if (!baseUrl) return undefined;
     return new URL(url, baseUrl).toString();
   }
