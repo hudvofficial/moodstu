@@ -8,6 +8,7 @@ import {
 } from "@/lib/report-labels";
 import { enumerateMonthsInRange, getReportRange } from "@/lib/report-period";
 import { reportFiltersSchema } from "@/lib/validations/reports.schema";
+import { BATCH_CHUNK_SIZE, calculatePercentage } from "@/lib/finance-constants";
 import type { FixedCostItem } from "@/types/finance-operations";
 import type { ReportFiltersInput, ReportsSnapshot } from "@/types/reports";
 
@@ -271,10 +272,9 @@ async function calculateFallbackSnapshot(
   const allContractInventory: any[] = [];
 
   if (contractIds.length > 0) {
-    const CHUNK_SIZE = 50;
     const contractIdChunks = [];
-    for (let i = 0; i < contractIds.length; i += CHUNK_SIZE) {
-      contractIdChunks.push(contractIds.slice(i, i + CHUNK_SIZE));
+    for (let i = 0; i < contractIds.length; i += BATCH_CHUNK_SIZE) {
+      contractIdChunks.push(contractIds.slice(i, i + BATCH_CHUNK_SIZE));
     }
 
     for (const chunk of contractIdChunks) {
@@ -444,10 +444,7 @@ async function calculateFallbackSnapshot(
       salaryCost,
       fixedCost,
       netProfit,
-      profitMargin:
-        reportRevenue > 0
-          ? Math.round((netProfit / reportRevenue) * 1000) / 10
-          : 0,
+      profitMargin: calculatePercentage(netProfit, reportRevenue),
       totalContracts: contracts.length,
       completedContracts,
       avgContractValue:
@@ -456,28 +453,19 @@ async function calculateFallbackSnapshot(
       packageRevenue,
       addonRevenue,
       addonCount,
-      addonPercentage:
-        contractRevenue > 0
-          ? Math.round((addonRevenue / contractRevenue) * 1000) / 10
-          : 0,
+      addonPercentage: calculatePercentage(addonRevenue, contractRevenue),
     },
     serviceDistribution,
     revenueBreakdown: [
       {
         label: getReportRevenueLabel("contract_revenue"),
         amount: contractRevenue,
-        percentage:
-          reportRevenue > 0
-            ? Math.round((contractRevenue / reportRevenue) * 1000) / 10
-            : 0,
+        percentage: calculatePercentage(contractRevenue, reportRevenue),
       },
       {
         label: getReportRevenueLabel("other_revenue"),
         amount: standaloneReceiptRevenue,
-        percentage:
-          reportRevenue > 0
-            ? Math.round((standaloneReceiptRevenue / reportRevenue) * 1000) / 10
-            : 0,
+        percentage: calculatePercentage(standaloneReceiptRevenue, reportRevenue),
       },
     ],
     cashflowSummary: {

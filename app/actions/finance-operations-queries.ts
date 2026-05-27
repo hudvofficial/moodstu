@@ -4,6 +4,13 @@ import { withFinanceRead } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
+import {
+  MAX_FINANCE_PAGE_SIZE,
+  MAX_SEARCH_LIMIT,
+  MAX_SEARCH_STRING_LENGTH,
+  MAX_BULK_QUERY_LIMIT,
+  calculateProgress,
+} from "@/lib/finance-constants";
 import type { PaginatedResult } from "@/types/finance-dashboard";
 import type {
   ApprovalFilter,
@@ -23,8 +30,6 @@ import type {
   SalaryPageData,
 } from "@/types/finance-operations";
 
-const MAX_FINANCE_PAGE_SIZE = 50;
-
 function pageWindow(page = 1, pageSize = 12) {
   const current = Math.max(1, Math.trunc(Number(page) || 1));
   const size = Math.min(MAX_FINANCE_PAGE_SIZE, Math.max(1, Math.trunc(Number(pageSize) || 12)));
@@ -41,7 +46,7 @@ function daysOverdue(dueDate: string | null, status: string | null) {
 }
 
 function sanitizePostgrestSearch(value: string) {
-  return value.replace(/[%_(),."\\]/g, "").trim().slice(0, 100);
+  return value.replace(/[%_(),."\\]/g, "").trim().slice(0, MAX_SEARCH_STRING_LENGTH);
 }
 
 type ReceiptDocumentRow = {
@@ -202,7 +207,7 @@ export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all"
 
 export async function fetchContractOptions(limit = 60) {
   return withFinanceRead(async (supabase) => {
-    const safeLimit = Math.min(100, Math.max(1, Math.trunc(Number(limit) || 60)));
+    const safeLimit = Math.min(MAX_SEARCH_LIMIT, Math.max(1, Math.trunc(Number(limit) || 60)));
     const { data, error } = await supabase
       .from("contracts")
       .select("id, contract_code, total_amount, paid_amount, remaining_amount, customer:customer_id(full_name)")
@@ -257,14 +262,14 @@ export async function fetchReceipts(params: MonthYearPageParams & { search?: str
         .is("deleted_at", null)
         .not("contract_id", "is", null)
         .order("payment_date", { ascending: false })
-        .limit(1000),
+        .limit(MAX_BULK_QUERY_LIMIT),
       supabase
         .from("receipts")
         .select("id, receipt_date, receipt_type, payment_type, contract_id, contract_code, customer_name, receipt_amount, total_amount, remaining_amount, category_id, category_name, status, notes, created_at, updated_at")
         .is("deleted_at", null)
         .is("contract_id", null)
         .order("receipt_date", { ascending: false })
-        .limit(1000),
+        .limit(MAX_BULK_QUERY_LIMIT),
     ]);
 
     if (paymentsResult.error) throw new Error(`Loi tai thanh toan hop dong: ${paymentsResult.error.message}`);
@@ -801,7 +806,7 @@ export async function fetchGoals(
         created_at: (goal as Record<string, unknown>).created_at as string | null | undefined,
         icon: (goal as Record<string, unknown>).icon as string | null | undefined,
         color: (goal as Record<string, unknown>).color as string | null | undefined,
-        progress_percent: target > 0 ? Math.min(100, Math.round((current_amt / target) * 100)) : 0,
+        progress_percent: calculateProgress(current_amt, target),
         remaining,
         months_left: monthsLeft,
         monthly_needed: monthlyNeeded,

@@ -5,6 +5,7 @@ import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
 import { getPaymentStageLabel } from "@/types/contract-constants";
+import { MAX_LEDGER_PAGE_SIZE, calculatePercentage } from "@/lib/finance-constants";
 import type {
   ContractProfitReportParams,
   ContractProfitRow,
@@ -20,7 +21,6 @@ import type {
 // Mock data removed — Phase 04: all queries go through real DB/RPC pipeline
 
 type RpcRow = Record<string, unknown>;
-const MAX_LEDGER_PAGE_SIZE = 50;
 
 // Local helpers — specific to this file (not duplicated elsewhere)
 
@@ -141,7 +141,7 @@ async function getDashboardMetricsFallback(
     totalInflow,
     totalOutflow,
     profit: totalInflow - totalOutflow,
-    monthChangePercent: previousInflow === 0 ? (totalInflow > 0 ? 100 : 0) : Math.round(((totalInflow - previousInflow) / previousInflow) * 1000) / 10,
+    monthChangePercent: previousInflow === 0 ? (totalInflow > 0 ? 100 : 0) : calculatePercentage(totalInflow - previousInflow, previousInflow),
     contractsNew: newContracts.count || 0,
     contractsDone: doneContracts.count || 0,
     totalDebt: sumRows(debtRows.data, "remaining_amount"),
@@ -339,7 +339,7 @@ async function getContractProfitReportFallback(
       inventoryCost: inventory,
       totalCost,
       profit,
-      profitMargin: totalAmount > 0 ? Math.round((profit / totalAmount) * 1000) / 10 : 0,
+      profitMargin: calculatePercentage(profit, totalAmount),
     };
   }) satisfies ContractProfitRow[];
 
