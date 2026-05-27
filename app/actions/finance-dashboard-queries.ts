@@ -378,75 +378,97 @@ async function fetchLedgerFallback(
   // ⚡ P0-1 FIX: Reduced from 1000 to 200 per table (600 total vs 3000)
   // Chống quá tải memory (OOM) nếu thiếu RPC
   const MAX_LEDGER_FALLBACK = 200;
-  paymentsQuery = paymentsQuery.limit(MAX_LEDGER_FALLBACK);
-  receiptsQuery = receiptsQuery.limit(MAX_LEDGER_FALLBACK);
-  expensesQuery = expensesQuery.limit(MAX_LEDGER_FALLBACK);
+
+  // ⚡ P0-4 FIX: Database-side sorting to prevent UI freeze
+  paymentsQuery = paymentsQuery.order("payment_date", { ascending: false }).order("created_at", { ascending: false, nullsFirst: false }).limit(MAX_LEDGER_FALLBACK);
+  receiptsQuery = receiptsQuery.order("receipt_date", { ascending: false }).order("created_at", { ascending: false, nullsFirst: false }).limit(MAX_LEDGER_FALLBACK);
+  expensesQuery = expensesQuery.order("expense_date", { ascending: false }).order("created_at", { ascending: false, nullsFirst: false }).limit(MAX_LEDGER_FALLBACK);
 
   const [payments, receipts, expenses] = await Promise.all([paymentsQuery, receiptsQuery, expensesQuery]);
   if (payments.error) throw new Error(payments.error.message);
   if (receipts.error) throw new Error(receipts.error.message);
   if (expenses.error) throw new Error(expenses.error.message);
 
+  // ⚡ P0-4 FIX: Transform arrays (already sorted by DB)
+  const paymentRows: Array<LedgerItem & { createdAt: string | null }> = (params.type === "out") ? [] : (payments.data || []).map(item => ({
+    id: item.id,
+    sourceTable: "payments" as const,
+    direction: "in" as const,
+    transactionDate: item.payment_date,
+    amount: item.amount || 0,
+    code: item.receipt_code || `PAY-${item.id.slice(0, 8)}`,
+    customerName: "-",
+    categoryName: "-",
+    paymentMethod: asString(item.payment_method, "-"),
+    description: item.notes || getPaymentStageLabel(item.payment_stage, ""),
+    status: item.approved_by ? "approved" : "pending",
+    createdAt: item.created_at,
+  }));
+
+  const receiptRows: Array<LedgerItem & { createdAt: string | null }> = (params.type === "out") ? [] : (receipts.data || []).map(item => ({
+    id: item.id,
+    sourceTable: "receipts" as const,
+    direction: "in" as const,
+    transactionDate: item.receipt_date,
+    amount: item.receipt_amount || 0,
+    code: item.contract_code || `REC-${item.id.slice(0, 8)}`,
+    customerName: item.customer_name || "-",
+    categoryName: item.category_name || "-",
+    paymentMethod: item.payment_type || "-",
+    description: item.notes || "",
+    status: item.status || "confirmed",
+    createdAt: item.created_at,
+  }));
+
+  const expenseRows: Array<LedgerItem & { createdAt: string | null }> = (params.type === "in") ? [] : (expenses.data || []).map(item => ({
+    id: item.id,
+    sourceTable: "expenses" as const,
+    direction: "out" as const,
+    transactionDate: item.expense_date,
+    amount: item.amount || 0,
+    code: `EXP-${item.id.slice(0, 8)}`,
+    customerName: item.recipient || "-",
+    categoryName: "-",
+    paymentMethod: asString(item.payment_method, "-"),
+    description: item.description || "",
+    status: item.approved_by ? "approved" : "pending",
+    createdAt: item.created_at,
+  }));
+
+  // ⚡ P0-4 FIX: Merge 3 pre-sorted arrays (O(n) instead of O(n log n))
+  // Each array already sorted by DB: transaction_date DESC, created_at DESC
   const rows: Array<LedgerItem & { createdAt: string | null }> = [];
-  if (!params.type || params.type === "all" || params.type === "in") {
-    for (const item of payments.data || []) {
-      rows.push({
-        id: item.id,
-        sourceTable: "payments",
-        direction: "in",
-        transactionDate: item.payment_date,
-        amount: item.amount || 0,
-        code: item.receipt_code || `PAY-${item.id.slice(0, 8)}`,
-        customerName: "-",
-        categoryName: "-",
-        paymentMethod: asString(item.payment_method, "-"),
-        description: item.notes || getPaymentStageLabel(item.payment_stage, ""),
-        status: item.approved_by ? "approved" : "pending",
-        createdAt: item.created_at,
-      });
+  let i = 0, j = 0, k = 0;
+
+  while (i < paymentRows.length || j < receiptRows.length || k < expenseRows.length) {
+    const paymentItem = paymentRows[i];
+    const receiptItem = receiptRows[j];
+    const expenseItem = expenseRows[k];
+
+    let selected: (typeof paymentItem) | undefined;
+
+    // Find the latest transaction among available items
+    if (paymentItem && (!receiptItem || compareDesc(paymentItem, receiptItem) >= 0) && (!expenseItem || compareDesc(paymentItem, expenseItem) >= 0)) {
+      selected = paymentItem;
+      i++;
+    } else if (receiptItem && (!expenseItem || compareDesc(receiptItem, expenseItem) >= 0)) {
+      selected = receiptItem;
+      j++;
+    } else if (expenseItem) {
+      selected = expenseItem;
+      k++;
     }
-    for (const item of receipts.data || []) {
-      rows.push({
-        id: item.id,
-        sourceTable: "receipts",
-        direction: "in",
-        transactionDate: item.receipt_date,
-        amount: item.receipt_amount || 0,
-        code: item.contract_code || `REC-${item.id.slice(0, 8)}`,
-        customerName: item.customer_name || "-",
-        categoryName: item.category_name || "-",
-        paymentMethod: item.payment_type || "-",
-        description: item.notes || "",
-        status: item.status || "confirmed",
-        createdAt: item.created_at,
-      });
-    }
+
+    if (selected) rows.push(selected);
   }
 
-  if (!params.type || params.type === "all" || params.type === "out") {
-    for (const item of expenses.data || []) {
-      rows.push({
-        id: item.id,
-        sourceTable: "expenses",
-        direction: "out",
-        transactionDate: item.expense_date,
-        amount: item.amount || 0,
-        code: `EXP-${item.id.slice(0, 8)}`,
-        customerName: item.recipient || "-",
-        categoryName: "-",
-        paymentMethod: asString(item.payment_method, "-"),
-        description: item.description || "",
-        status: item.approved_by ? "approved" : "pending",
-        createdAt: item.created_at,
-      });
-    }
+  // Helper: Compare two items DESC (latest first)
+  // Returns: >0 if a should come first (a > b), <0 if b should come first (b > a), 0 if equal
+  function compareDesc(a: { transactionDate: string; createdAt: string | null }, b: { transactionDate: string; createdAt: string | null }): number {
+    const dateCompare = a.transactionDate.localeCompare(b.transactionDate);
+    if (dateCompare !== 0) return dateCompare; // Positive if a > b (a comes first in DESC)
+    return (a.createdAt || "").localeCompare(b.createdAt || ""); // Positive if a > b
   }
-
-  // ⚡ P0-4 WARNING: This client-side sort can freeze UI for 2-5s with 600 rows
-  // Should only run when RPC is unavailable (emergency fallback)
-  console.warn(`[P0-4] Client-side sorting ${rows.length} ledger rows - UI may freeze`);
-
-  rows.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (b.createdAt || "").localeCompare(a.createdAt || ""));
   const start = (params.page - 1) * params.pageSize;
   const pageRows = rows.slice(start, start + params.pageSize).map(({ createdAt, ...item }) => {
     void createdAt;
