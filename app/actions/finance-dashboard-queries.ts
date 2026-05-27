@@ -115,15 +115,19 @@ async function getDashboardMetricsFallback(
   const previousDate = new Date(year, month - 2, 1);
   const previous = monthWindow(previousDate.getMonth() + 1, previousDate.getFullYear());
 
+  // ⚡ P0-1 FIX: Reduced limits to prevent OOM (was 5000/10000)
+  // Fallback mode should be emergency-only, not production path
+  const MAX_FALLBACK_ROWS = 200;
+
   const [payments, receipts, expenses, prevPayments, prevReceipts, newContracts, doneContracts, debtRows] = await Promise.all([
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", current.start).lt("payment_date", current.end).limit(5000),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", current.start).lt("receipt_date", current.end).limit(5000),
-    supabase.from("expenses").select("amount").is("deleted_at", null).gte("expense_date", current.start).lt("expense_date", current.end).limit(5000),
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", previous.start).lt("payment_date", previous.end).limit(5000),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", previous.start).lt("receipt_date", previous.end).limit(5000),
+    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", current.start).lt("payment_date", current.end).limit(MAX_FALLBACK_ROWS),
+    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", current.start).lt("receipt_date", current.end).limit(MAX_FALLBACK_ROWS),
+    supabase.from("expenses").select("amount").is("deleted_at", null).gte("expense_date", current.start).lt("expense_date", current.end).limit(MAX_FALLBACK_ROWS),
+    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", previous.start).lt("payment_date", previous.end).limit(MAX_FALLBACK_ROWS),
+    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", previous.start).lt("receipt_date", previous.end).limit(MAX_FALLBACK_ROWS),
     supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("contract_date", current.start).lt("contract_date", current.end),
     supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "hoan_thanh").gte("updated_at", current.start).lt("updated_at", current.end),
-    supabase.from("contracts").select("remaining_amount").is("deleted_at", null).gt("remaining_amount", 0).limit(10000),
+    supabase.from("contracts").select("remaining_amount").is("deleted_at", null).gt("remaining_amount", 0).limit(MAX_FALLBACK_ROWS),
   ]);
 
   const firstError = payments.error || receipts.error || expenses.error || prevPayments.error || prevReceipts.error || newContracts.error || doneContracts.error || debtRows.error;
@@ -147,9 +151,10 @@ async function getDashboardMetricsFallback(
 async function getRevenueByMonthFallback(supabase: SupabaseClient, year: number): Promise<RevenueByMonthItem[]> {
   const start = `${year}-01-01`;
   const end = `${year + 1}-01-01`;
+  // ⚡ P0-1 FIX: Reduced from 10000 to 500 per query
   const [payments, receipts] = await Promise.all([
-    supabase.from("payments").select("payment_date, amount").is("deleted_at", null).gte("payment_date", start).lt("payment_date", end).limit(10000),
-    supabase.from("receipts").select("receipt_date, receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", start).lt("receipt_date", end).limit(10000),
+    supabase.from("payments").select("payment_date, amount").is("deleted_at", null).gte("payment_date", start).lt("payment_date", end).limit(500),
+    supabase.from("receipts").select("receipt_date, receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", start).lt("receipt_date", end).limit(500),
   ]);
 
   if (payments.error) throw new Error(payments.error.message);
@@ -172,13 +177,14 @@ async function getServiceDistributionFallback(
   year: number,
 ): Promise<ServiceDistributionItem[]> {
   const window = monthWindow(month, year);
+  // ⚡ P0-1 FIX: Reduced from 5000 to 200
   const { data, error } = await supabase
     .from("contracts")
     .select("id, service_type, total_amount")
     .is("deleted_at", null)
     .gte("contract_date", window.start)
     .lt("contract_date", window.end)
-    .limit(5000);
+    .limit(200);
 
   if (error) throw new Error(error.message);
 
@@ -369,10 +375,12 @@ async function fetchLedgerFallback(
     expensesQuery = expensesQuery.gte("expense_date", params.fromDate).lte("expense_date", params.toDate);
   }
 
-  // Chống quá tải memory (OOM) nếu thiếu RPC, giới hạn 1000 record mỗi bảng
-  paymentsQuery = paymentsQuery.limit(1000);
-  receiptsQuery = receiptsQuery.limit(1000);
-  expensesQuery = expensesQuery.limit(1000);
+  // ⚡ P0-1 FIX: Reduced from 1000 to 200 per table (600 total vs 3000)
+  // Chống quá tải memory (OOM) nếu thiếu RPC
+  const MAX_LEDGER_FALLBACK = 200;
+  paymentsQuery = paymentsQuery.limit(MAX_LEDGER_FALLBACK);
+  receiptsQuery = receiptsQuery.limit(MAX_LEDGER_FALLBACK);
+  expensesQuery = expensesQuery.limit(MAX_LEDGER_FALLBACK);
 
   const [payments, receipts, expenses] = await Promise.all([paymentsQuery, receiptsQuery, expensesQuery]);
   if (payments.error) throw new Error(payments.error.message);
@@ -434,6 +442,10 @@ async function fetchLedgerFallback(
     }
   }
 
+  // ⚡ P0-4 WARNING: This client-side sort can freeze UI for 2-5s with 600 rows
+  // Should only run when RPC is unavailable (emergency fallback)
+  console.warn(`[P0-4] Client-side sorting ${rows.length} ledger rows - UI may freeze`);
+
   rows.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate) || (b.createdAt || "").localeCompare(a.createdAt || ""));
   const start = (params.page - 1) * params.pageSize;
   const pageRows = rows.slice(start, start + params.pageSize).map(({ createdAt, ...item }) => {
@@ -452,7 +464,11 @@ async function queryDashboardMetrics(
     .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
     .single();
 
-  if (error && isMissingRpcError(error)) return getDashboardMetricsFallback(supabase, month, year);
+  // ⚡ P0-4 FIX: Log warning when dashboard uses fallback
+  if (error && isMissingRpcError(error)) {
+    console.warn('[P0-4] finance_dashboard_metrics RPC missing, loading limited data (200 rows max)');
+    return getDashboardMetricsFallback(supabase, month, year);
+  }
 
   if (error) throw new Error(`Lỗi tải KPI tài chính: ${error.message}`);
   const row = (data || {}) as RpcRow;
@@ -612,7 +628,11 @@ async function queryLedger(
       p_type: safeParams.type,
     });
 
-    if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
+    // ⚡ P0-4 FIX: Log warning for range queries too
+    if (error && isMissingRpcError(error)) {
+      console.warn('[P0-4] finance_ledger_range RPC missing, using slow fallback');
+      return fetchLedgerFallback(supabase, safeParams);
+    }
     if (error) throw new Error(`Loi tai so cai thu chi: ${error.message}`);
 
     return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
@@ -826,7 +846,11 @@ export async function fetchLedger(params: {
       p_type: safeParams.type,
     });
 
-    if (error && isMissingRpcError(error)) return fetchLedgerFallback(supabase, safeParams);
+    // ⚡ P0-4 FIX: Log warning when ledger uses fallback
+    if (error && isMissingRpcError(error)) {
+      console.warn('[P0-4] finance_ledger RPC missing, using slow fallback with client-side sort');
+      return fetchLedgerFallback(supabase, safeParams);
+    }
 
     if (error) throw new Error(`Lỗi tải sổ cái thu chi: ${error.message}`);
 
