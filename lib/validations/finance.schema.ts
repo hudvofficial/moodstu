@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { paymentMethodSchema } from "@/lib/validations/contract.schema";
 
+// ⚡ P0-3 FIX: Add min/max amount validation
+const MAX_AMOUNT = 10_000_000_000; // 10 billion VND
+
 export const createReceiptSchema = z.object({
   receipt_date: z.string().date(),
   receipt_type: z.string().min(1, "Loại phiếu thu không được để trống"),
@@ -137,9 +140,6 @@ export const createFixedCostSchema = z.object({
 export const updateFixedCostSchema = createFixedCostSchema.partial();
 
 // ─── W2: Payment Schema ─────────────────────────
-// ⚡ P0-3 FIX: Add min/max amount validation
-const MAX_AMOUNT = 10_000_000_000; // 10 billion VND
-
 export const createPaymentSchema = z.object({
   contractId: z.string().uuid("Contract ID không hợp lệ"),
   amount: z.number()

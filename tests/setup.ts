@@ -6,8 +6,7 @@
 // Extend Jest matchers if needed
 // import '@testing-library/jest-dom';
 
-// Setup environment variables for tests
-process.env.NODE_ENV = 'test';
+// Note: Jest automatically sets NODE_ENV='test'
 
 // Mock console methods to reduce noise in test output
 global.console = {
