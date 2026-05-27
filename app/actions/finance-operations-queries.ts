@@ -11,6 +11,7 @@ import {
   MAX_BULK_QUERY_LIMIT,
   calculateProgress,
 } from "@/lib/finance-constants";
+import { differenceInMonths } from "date-fns";
 import type { PaginatedResult } from "@/types/finance-dashboard";
 import type {
   ApprovalFilter,
@@ -37,16 +38,19 @@ function pageWindow(page = 1, pageSize = 12) {
   return { current, size, from, to: from + size - 1 };
 }
 
+// ⚡ P1-1 FIX: Use studio timezone for consistent days overdue calculation
 function daysOverdue(dueDate: string | null, status: string | null) {
   if (!dueDate || status === "da_thanh_toan" || status === "closed") return 0;
-  const today = new Date();
+  const today = new Date(getTodayInTimeZone()); // Studio timezone (GMT+7)
   const due = new Date(dueDate);
   if (Number.isNaN(due.getTime()) || due >= today) return 0;
   return Math.floor((today.getTime() - due.getTime()) / 86400000);
 }
 
+// ⚡ P1-4 FIX: Block SQL special characters to prevent injection
+// PostgREST uses prepared statements, but defense-in-depth: strip dangerous chars
 function sanitizePostgrestSearch(value: string) {
-  return value.replace(/[%_(),."\\]/g, "").trim().slice(0, MAX_SEARCH_STRING_LENGTH);
+  return value.replace(/[%_(),."\\;'"-]/g, "").trim().slice(0, MAX_SEARCH_STRING_LENGTH);
 }
 
 type ReceiptDocumentRow = {
@@ -163,9 +167,12 @@ function investmentBookValue(row: {
   const monthly = usefulLife > 0 ? Math.max(0, row.purchase_price - salvage) / usefulLife : 0;
   const purchasedAt = new Date(row.purchase_date);
   const now = new Date();
+
+  // ⚡ P1-3 FIX: Use date-fns for accurate month calculation (accounts for leap years, partial months)
   const months = Number.isNaN(purchasedAt.getTime())
     ? 0
-    : Math.max(0, (now.getFullYear() - purchasedAt.getFullYear()) * 12 + now.getMonth() - purchasedAt.getMonth());
+    : Math.max(0, differenceInMonths(now, purchasedAt));
+
   return {
     monthly_depreciation: Math.round(monthly),
     book_value: Math.max(salvage, Math.round(row.purchase_price - months * monthly)),

@@ -5,7 +5,7 @@ import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
 import { getPaymentStageLabel } from "@/types/contract-constants";
-import { MAX_LEDGER_PAGE_SIZE, calculatePercentage } from "@/lib/finance-constants";
+import { MAX_LEDGER_PAGE_SIZE, calculatePercentage, calculateChangePercentage } from "@/lib/finance-constants";
 import type {
   ContractProfitReportParams,
   ContractProfitRow,
@@ -141,7 +141,8 @@ async function getDashboardMetricsFallback(
     totalInflow,
     totalOutflow,
     profit: totalInflow - totalOutflow,
-    monthChangePercent: previousInflow === 0 ? (totalInflow > 0 ? 100 : 0) : calculatePercentage(totalInflow - previousInflow, previousInflow),
+    // ⚡ P1-2 FIX: Cap month change at ±1000% to prevent Infinity display
+    monthChangePercent: calculateChangePercentage(totalInflow, previousInflow),
     contractsNew: newContracts.count || 0,
     contractsDone: doneContracts.count || 0,
     totalDebt: sumRows(debtRows.data, "remaining_amount"),
