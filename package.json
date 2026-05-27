@@ -22,6 +22,7 @@
     "perf:chunks": "node scripts/perf-chunks.mjs",
     "perf:audit": "node scripts/perf-audit.mjs",
     "perf:operational": "node scripts/perf-operational-probe.mjs",
+    "perf:contract-detail": "node scripts/perf-contract-detail.mjs",
     "verify:performance-release": "node scripts/verify-performance-release.mjs",
     "verify:printing": "node scripts/verify-printing.mjs",
     "verify:reports": "node scripts/verify-reports.mjs",

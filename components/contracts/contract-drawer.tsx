@@ -111,6 +111,7 @@ export function ContractDrawer({
 
     router.prefetch(`/contracts/${contractId}`);
     router.prefetch(`/contracts/${contractId}/edit`);
+    prefetchContractDetail(contractId); // ⚡ Warm SWR cache before navigation
   }, [contractId, isOpen, router]);
 
   const contractCode = contract?.contract_code || "...";

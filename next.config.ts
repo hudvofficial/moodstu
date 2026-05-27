@@ -240,22 +240,23 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
         },
       },
-      // 🟡 RULE 4a: Dashboard RPCs — NetworkFirst with 3s timeout (instant fallback)
+      // 🟡 RULE 4a: Dashboard + Contract RPCs — NetworkFirst with timeout (instant fallback)
       {
         urlPattern: ({ url }: { url: URL }) => {
           if (!url.pathname.includes('/rest/v1/rpc/')) return false;
-          const dashboardRpcs = [
+          const cachableRpcs = [
             'get_dashboard_kpi',
             'get_dashboard_revenue_chart',
             'get_dashboard_service_breakdown',
+            'get_contract_detail_v2', // ⚡ Contract details cached for instant nav
           ];
-          return dashboardRpcs.some(rpc => url.href.includes(rpc));
+          return cachableRpcs.some(rpc => url.href.includes(rpc));
         },
         handler: "NetworkFirst",
         options: {
-          cacheName: "dashboard-api",
-          expiration: { maxEntries: 20, maxAgeSeconds: 300 }, // 5 minutes
-          networkTimeoutSeconds: 3, // Fallback to cache after 3s
+          cacheName: "rpc-api-cache",
+          expiration: { maxEntries: 60, maxAgeSeconds: 300 }, // 5 minutes, 60 entries
+          networkTimeoutSeconds: 2, // Fallback to cache after 2s
         },
       },
       // 🔴 RULE 4b: Other Supabase REST API — live business data, never cache

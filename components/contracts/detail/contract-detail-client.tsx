@@ -433,6 +433,15 @@ export default function ContractDetailClient({
     }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
   }, [id, muteRealtimeEcho, mutateContractDetail]);
 
+  // ⚡ Defer realtime setup to improve initial render performance
+  const [enableRealtime, setEnableRealtime] = useState(false);
+
+  useEffect(() => {
+    // Wait for first paint before subscribing to realtime
+    const timer = setTimeout(() => setEnableRealtime(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (refreshSettleTimerRef.current) {
@@ -442,18 +451,21 @@ export default function ContractDetailClient({
   }, []);
 
   const detailRealtimeConfigs = useMemo(
-    () => [
-      { table: "contracts", filter: `id=eq.${id}` },
-      { table: "payments", filter: `contract_id=eq.${id}` },
-      { table: "contract_checklists", filter: `contract_id=eq.${id}` },
-      { table: "contract_notes", filter: `contract_id=eq.${id}` },
-      { table: "contract_events", filter: `contract_id=eq.${id}` },
-      { table: "work_tasks", filter: `contract_id=eq.${id}` },
-      { table: "payment_plans", filter: `contract_id=eq.${id}` },
-      { table: "dress_reservations", filter: `contract_id=eq.${id}` },
-      { table: "printing_orders", filter: `contract_id=eq.${id}` },
-    ],
-    [id],
+    () => {
+      if (!enableRealtime) return [];
+      return [
+        { table: "contracts", filter: `id=eq.${id}` },
+        { table: "payments", filter: `contract_id=eq.${id}` },
+        { table: "contract_checklists", filter: `contract_id=eq.${id}` },
+        { table: "contract_notes", filter: `contract_id=eq.${id}` },
+        { table: "contract_events", filter: `contract_id=eq.${id}` },
+        { table: "work_tasks", filter: `contract_id=eq.${id}` },
+        { table: "payment_plans", filter: `contract_id=eq.${id}` },
+        { table: "dress_reservations", filter: `contract_id=eq.${id}` },
+        { table: "printing_orders", filter: `contract_id=eq.${id}` },
+      ];
+    },
+    [id, enableRealtime],
   );
 
   useRealtimeMulti(detailRealtimeConfigs, {
@@ -677,16 +689,22 @@ export default function ContractDetailClient({
       )}
 
       <div className={isCancelled ? "opacity-60" : ""}>
-        <DesktopLayout {...layoutProps} />
-        <MobileLayout
-          {...layoutProps}
-          headerVisible={headerVisible}
-          tabsMerged={tabsMerged}
-          activeTab={activeTab}
-          onTabClick={handleTabClick}
-          setActiveTab={setActiveTab}
-          tabSentinelRef={tabSentinelRef}
-        />
+        {/* ⚡ Conditional render: desktop shown on lg+, mobile hidden */}
+        <div className="hidden lg:block">
+          <DesktopLayout {...layoutProps} />
+        </div>
+        {/* ⚡ Mobile shown on <lg, desktop hidden */}
+        <div className="lg:hidden">
+          <MobileLayout
+            {...layoutProps}
+            headerVisible={headerVisible}
+            tabsMerged={tabsMerged}
+            activeTab={activeTab}
+            onTabClick={handleTabClick}
+            setActiveTab={setActiveTab}
+            tabSentinelRef={tabSentinelRef}
+          />
+        </div>
       </div>
 
       {/* ── Quick Action Modals ── */}

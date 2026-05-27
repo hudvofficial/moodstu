@@ -34,8 +34,10 @@ if (!connectionString) {
     const match = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
     if (match) {
       const projectRef = match[1];
+      // Encode password for URL (special chars like !@# need encoding)
+      const encodedPassword = encodeURIComponent(dbPassword);
       // Direct connection via IPv6 endpoint
-      connectionString = `postgresql://postgres:${dbPassword}@${projectRef}.supabase.co:5432/postgres`;
+      connectionString = `postgresql://postgres:${encodedPassword}@${projectRef}.supabase.co:5432/postgres`;
       console.log(`📊 Connection to: ${projectRef}.supabase.co:5432\n`);
     }
   }
@@ -100,7 +102,9 @@ async function runMigration() {
 
   } catch (error) {
     console.error('\n❌ Migration failed:');
-    console.error('   ', error.message, '\n');
+    console.error('   Message:', error.message);
+    console.error('   Code:', error.code);
+    console.error('   Full error:', error, '\n');
 
     if (error.message.includes('already exists')) {
       console.log('💡 Tables may already exist. Run: npm run migrate:verify\n');

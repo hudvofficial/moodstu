@@ -251,7 +251,8 @@ function ContractsListInner({
   const handleHover = useCallback(
     (id: string) => {
       if (!id) return;
-      router.prefetch(`/contracts/${id}`);
+      router.prefetch(`/contracts/${id}`); // Route prefetch
+      prefetchContractDetail(id); // ⚡ Data prefetch - warm SWR cache
     },
     [router],
   );

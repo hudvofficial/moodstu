@@ -10,6 +10,7 @@ import WorkflowStepper from "./workflow-stepper";
 import QuickActionsGrid from "./quick-actions-grid";
 import MobileTabNav from "./mobile-tab-nav";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { LazyLoad } from "@/components/ui/lazy-load";
 import type {
   Contract,
   Payment,
@@ -185,11 +186,16 @@ export function DesktopLayout({
             <PaymentReceiptsCard payments={payments} />
           </div>
 
+          {/* ⚡ Lazy load gallery when scrolled into view */}
           <div id="section-drive">
-            <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+            <LazyLoad fallback={<SkeletonCard className="h-64" />}>
+              <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+            </LazyLoad>
           </div>
 
-          <NotesTimeline contractId={contract.id} />
+          <LazyLoad fallback={<SkeletonCard className="h-64" />}>
+            <NotesTimeline contractId={contract.id} />
+          </LazyLoad>
         </div>
       </div>
     </div>
@@ -304,12 +310,17 @@ export function MobileLayout({
           />
         </div>
 
+        {/* ⚡ Lazy load gallery - mobile */}
         <div id="section-drive-mobile">
-          <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+          <LazyLoad fallback={<SkeletonCard className="h-64" />}>
+            <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+          </LazyLoad>
         </div>
 
         <div id="section-notes">
-          <NotesTimeline contractId={contract.id} />
+          <LazyLoad fallback={<SkeletonCard className="h-64" />}>
+            <NotesTimeline contractId={contract.id} />
+          </LazyLoad>
         </div>
 
         <ServiceDetailsBlock
