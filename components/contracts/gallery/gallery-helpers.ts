@@ -34,11 +34,28 @@ export function isRawFile(filename: string): boolean {
   return RAW_EXTENSIONS.includes(ext);
 }
 
+/**
+ * Get responsive thumbnail URL with fallback to proxy
+ * For public/client mode: use proxy API for reliable loading
+ */
 export function getResponsiveThumbnailUrl(
   thumbnailUrl: string | null,
   imageUrl: string,
   targetSize: number,
+  useProxy: boolean = false
 ): string {
+  // Extract file ID from URLs for proxy
+  if (useProxy) {
+    const fileIdMatch =
+      thumbnailUrl?.match(/[?&]id=([^&]+)/) ||
+      imageUrl?.match(/\/d\/([^/?]+)/);
+    const fileId = fileIdMatch?.[1] || fileIdMatch?.[2];
+
+    if (fileId) {
+      return `/api/drive-download/${fileId}`;
+    }
+  }
+
   if (!thumbnailUrl) return imageUrl;
 
   const normalizedSize = Math.max(200, Math.round(targetSize));
@@ -46,7 +63,15 @@ export function getResponsiveThumbnailUrl(
     return thumbnailUrl;
   }
 
-  return thumbnailUrl.replace(/sz=s\d+/i, `sz=s${normalizedSize}`);
+  // Use width-based sizing for better quality
+  const sizeParam = `sz=w${normalizedSize}`;
+
+  if (thumbnailUrl.includes('sz=')) {
+    return thumbnailUrl.replace(/sz=[sw]\d+/i, sizeParam);
+  }
+
+  const separator = thumbnailUrl.includes('?') ? '&' : '?';
+  return `${thumbnailUrl}${separator}${sizeParam}`;
 }
 
 /** Group images by file_group (RAW+JPG pairs) */

@@ -7,6 +7,8 @@ import GalleryPageClient from "@/components/gallery/gallery-page-client";
 // NO AUTH — khách xem + chọn ảnh
 // ═══════════════════════════════════════════
 
+// TODO: Research Next.js 16 PPR API - experimental_ppr export removed
+
 interface PageProps {
   params: Promise<{ accessUrl: string }>;
   searchParams: Promise<{ mode?: string }>;

@@ -6,7 +6,7 @@ import { updateGallerySettings } from "@/app/actions/gallery-admin-actions";
 import { reorderImages } from "@/app/actions/gallery-selection-actions";
 import type { GallerySettingsPayload } from "@/app/actions/gallery-core";
 import { toast } from "sonner";
-import GalleryImageGrid from "./gallery-image-grid";
+import GalleryImageGrid from "./gallery-image-grid"; // Using CSS Grid version (works better)
 import GalleryImageList from "./gallery-image-list";
 import GalleryLightbox from "./gallery-lightbox";
 import GalleryToolbar from "./gallery-toolbar";
@@ -17,6 +17,7 @@ import { useModal } from "@/lib/context/modal-context";
 import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { FOLDER_LABELS } from "./gallery-helpers";
+import { useNetworkQuality } from "@/hooks/use-network-quality";
 
 // ═══════════════════════════════════════════
 // GalleryFullPage — Grid view of all images in a gallery

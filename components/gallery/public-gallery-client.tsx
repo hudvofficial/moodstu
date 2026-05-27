@@ -10,9 +10,10 @@ import { getPublicGalleryImagesPaginated, getPublicGalleryStats } from "@/app/ac
 import { toggleImageSelection, updateClientNote } from "@/app/actions/gallery-selection-actions";
 import { getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
-import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid";
+import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
 import ImageViewer from "./image-viewer";
 import SelectionSummary from "./selection-summary";
+import { useNetworkQuality } from "@/hooks/use-network-quality";
 
 // ═══════════════════════════════════════════
 // PublicGalleryClient — Khách xem + chọn ảnh
@@ -53,6 +54,14 @@ export default function PublicGalleryClient({
   const accessUrl = gallery.access_url || "";
   const accessToken = gallery.accessToken || "";
 
+  // ⚡ Network-aware loading: adjust page size and quality based on connection
+  const { isSlowNetwork, effectiveType, saveData } = useNetworkQuality();
+  const pageSize = useMemo(() => {
+    if (isSlowNetwork || saveData) return 20;       // 20 images on 2G/3G or data saver
+    if (effectiveType === "3g") return 50;          // 50 images on 3G
+    return 100;                                     // 100 images on 4G+
+  }, [isSlowNetwork, effectiveType, saveData]);
+
   // Decode capability from token
   let clientCapability = gallery.capability || "select";
   if (accessToken && accessToken !== "admin") {
@@ -91,20 +100,20 @@ export default function PublicGalleryClient({
   const totalImageCount = stats?.imageCount || 0;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
 
-  // ─── SWR Infinite: Gallery Images ─────────
+  // ─── SWR Infinite: Gallery Images (network-aware) ─────────
   const getKey = (pageIndex: number, previousPageData: any) => {
     if (previousPageData && !previousPageData.hasMore) return null; // reached the end
-    return `gallery-${gallery.id}-images-page-${pageIndex}`; // SWR key
+    return `gallery-${gallery.id}-images-page-${pageIndex}-size-${pageSize}`; // Include pageSize in key
   };
 
   const fetchImagesPage = async (key: string) => {
-    const pageStr = key.split('page-')[1];
+    const pageStr = key.split('page-')[1].split('-size-')[0];
     const pageIndex = parseInt(pageStr, 10);
     const res = await getPublicGalleryImagesPaginated(
       gallery.id,
       accessToken,
       pageIndex,
-      undefined,
+      pageSize, // Use adaptive page size
       accessUrl
     );
     if (!res.success || !res.data) throw new Error("Failed to load");

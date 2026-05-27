@@ -18,6 +18,7 @@ import {
 } from "@/types/gallery";
 
 import { GallerySettingsPayload, createGalleryShareProfiler, assertGalleryProof, fetchGalleryCoverImage, fetchAllGalleryImages, ensureAllGalleryShareLinks, prepareGallerySharePayload } from "./gallery-core";
+import { backfillGalleryDimensions } from "./gallery-dimensions-actions";
 import { fetchSharedGalleryByAccessUrl } from "./gallery-actions";
 
 export async function createGallery(
@@ -350,6 +351,13 @@ export async function syncDriveFolder(galleryId: string) {
       if (error) {
         throw new Error(`Loi them anh moi: ${error.message}`);
       }
+
+      // Background: backfill dimensions for new images
+      if (newRows.length > 0) {
+        backfillGalleryDimensions(galleryId).catch(err =>
+          console.error('Failed to backfill dimensions:', err)
+        );
+      }
     }
 
     revalidatePath(`/contracts/${gallery.contract_id}`);
@@ -387,31 +395,45 @@ export async function getGallerySummariesByContract(contractId: string) {
       .in("gallery_id", galleryIds);
 
     const { data: links } = await supabase
-      .from("gallery_links")
-      .select("*")
+      .from("gallery_share_links")
+      .select("id, gallery_id, slug, capability, status, access_version, created_at, updated_at, expires_at, created_by")
+      .eq("status", "active")
       .in("gallery_id", galleryIds);
 
-    const summaries = await Promise.all(
-      galleries.map(async (gallery) => {
-        // Gom và đếm trên memory Server Node.js (cực nhanh và không tốn roundtrip DB)
-        const gImages = (images || []).filter((img) => img.gallery_id === gallery.id);
-        const imageCount = gImages.length;
-        const selectedCount = gImages.filter((img) => img.is_selected).length;
-        const gLinks = (links || []).filter((link) => link.gallery_id === gallery.id);
+    // ⚡ Batch fetch cover images (1 query instead of N queries)
+    const { data: coverImages } = await supabase
+      .from("gallery_images")
+      .select("gallery_id, thumbnail_url, sort_order")
+      .in("gallery_id", galleryIds)
+      .order("sort_order", { ascending: true });
 
-        // Chỉ query lấy ảnh bìa
-        const coverImageUrl = await fetchGalleryCoverImage(supabase, gallery.id);
+    // Create lookup map: galleryId → first image thumbnail
+    const coverMap = new Map<string, string>();
+    coverImages?.forEach((img) => {
+      if (!coverMap.has(img.gallery_id)) {
+        coverMap.set(img.gallery_id, img.thumbnail_url);
+      }
+    });
 
-        return {
-          ...gallery,
-          imageCount,
-          selectedCount,
-          coverImageUrl,
-          hasPassword: Boolean(gallery.password_hash || gallery.password),
-          shareLinks: gLinks,
-        };
-      }),
-    );
+    const summaries = galleries.map((gallery) => {
+      // Gom và đếm trên memory Server Node.js (cực nhanh và không tốn roundtrip DB)
+      const gImages = (images || []).filter((img) => img.gallery_id === gallery.id);
+      const imageCount = gImages.length;
+      const selectedCount = gImages.filter((img) => img.is_selected).length;
+      const gLinks = (links || []).filter((link) => link.gallery_id === gallery.id);
+
+      // Get cover image from batched map
+      const coverImageUrl = coverMap.get(gallery.id) || null;
+
+      return {
+        ...gallery,
+        imageCount,
+        selectedCount,
+        coverImageUrl,
+        hasPassword: Boolean(gallery.password_hash || gallery.password),
+        shareLinks: gLinks,
+      };
+    });
 
     return summaries as GallerySummary[];
   });
@@ -437,8 +459,9 @@ export async function getGalleriesByContract(contractId: string) {
     
     const galleryIds = galleries.map(g => g.id);
     const { data: links } = await supabase
-      .from("gallery_links")
-      .select("*")
+      .from("gallery_share_links")
+      .select("id, gallery_id, slug, capability, status, access_version, created_at, updated_at, expires_at, created_by")
+      .eq("status", "active")
       .in("gallery_id", galleryIds);
 
     const galleriesWithImages = await Promise.all(

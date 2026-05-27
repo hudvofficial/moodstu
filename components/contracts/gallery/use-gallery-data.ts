@@ -10,6 +10,7 @@ import { getGalleryDataV2, getGalleryMetadataAll } from "@/app/actions/gallery-c
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
+import { useNetworkQuality } from "@/hooks/use-network-quality";
 
 // ═══════════════════════════════════════════
 // useGalleryData — All state + data logic for GalleryFullPage
@@ -17,6 +18,14 @@ import { type SortOption } from "./gallery-sort-dropdown";
 // ═══════════════════════════════════════════
 
 export function useGalleryData(contractId: string, galleryId: string | null, folderType: string | null) {
+  // Network-aware pagination
+  const { isSlowNetwork, effectiveType, saveData } = useNetworkQuality();
+  const pageSize = useMemo(() => {
+    if (isSlowNetwork || saveData) return 50;   // Load fewer images on slow connections
+    if (effectiveType === "3g") return 100;
+    return 200;  // Full batch on fast connections
+  }, [isSlowNetwork, effectiveType, saveData]);
+
   const [galleries, setGalleries] = useState<GallerySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGalleryId, setActiveGalleryId] = useState<string | null>(galleryId);
@@ -163,7 +172,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     if (!activeGalleryId || loadingMore || !hasMoreImages) return;
     setLoadingMore(true);
     const nextPage = currentPage + 1;
-    const res = await getGalleryImagesPaginated(activeGalleryId, nextPage);
+    const res = await getGalleryImagesPaginated(activeGalleryId, nextPage, pageSize);
     if (res.success && res.data) {
       setPaginatedImages((prev) => [...prev, ...res.data.images]);
       setTotalImageCount(res.data.totalCount);
@@ -171,7 +180,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       setCurrentPage(nextPage);
     }
     setLoadingMore(false);
-  }, [activeGalleryId, loadingMore, hasMoreImages, currentPage]);
+  }, [activeGalleryId, loadingMore, hasMoreImages, currentPage, pageSize]);
 
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);

@@ -1,4 +1,5 @@
 // Removed Suspense - using parallel Promise.all() instead for better performance
+// TODO: Re-add Suspense boundaries + research Next.js 16 PPR API
 import {
   AlertTriangle,
   CheckCircle,
@@ -13,6 +14,8 @@ import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { DashboardRealtimeRefresh } from "@/components/dashboard/dashboard-realtime-refresh";
 import { KPICard } from "@/components/ui/kpi-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { LazyLoad } from "@/components/ui/lazy-load";
+import { ChartSkeleton } from "@/components/ui/chart-skeleton";
 import {
   getDashboardCritical,
   getDashboardPaymentRemindersSection,
@@ -145,21 +148,25 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <SectionErrorNotice errors={revenueResult.errors} />
-          <RevenueChart
-            data={revenueResult.data}
-            canView={visibility.canViewFinancials}
-            periodLabel="6 tháng gần nhất"
-          />
+          <LazyLoad fallback={<ChartSkeleton height={400} />} rootMargin="100px">
+            <RevenueChart
+              data={revenueResult.data}
+              canView={visibility.canViewFinancials}
+              periodLabel="6 tháng gần nhất"
+            />
+          </LazyLoad>
         </div>
 
         {/* Service Breakdown */}
         <div className="lg:col-span-2">
           <SectionErrorNotice errors={serviceResult.errors} />
-          <ServicePieChart
-            data={serviceResult.data}
-            canView={visibility.canViewContracts}
-            showRevenue={visibility.canViewFinancials}
-          />
+          <LazyLoad fallback={<ChartSkeleton height={400} />} rootMargin="100px">
+            <ServicePieChart
+              data={serviceResult.data}
+              canView={visibility.canViewContracts}
+              showRevenue={visibility.canViewFinancials}
+            />
+          </LazyLoad>
         </div>
       </div>
 

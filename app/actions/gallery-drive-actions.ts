@@ -7,6 +7,7 @@ import {
   detectFolderType, getDriveThumbnailUrl, getDriveImageUrl, extractFileGroup,
 } from "@/lib/google-drive";
 import { generateAccessUrl } from "@/types/gallery";
+import { backfillGalleryDimensions } from "./gallery-dimensions-actions";
 
 // ═══════════════════════════════════════════
 // Gallery Drive Actions — Multi-folder, tracking, delivery
@@ -65,6 +66,11 @@ export async function createMultiFolderGalleries(
       }));
 
       await supabase.from("gallery_images").insert(imageRows);
+
+      // Background: backfill dimensions for masonry layout
+      backfillGalleryDimensions(gallery.id).catch(err =>
+        console.error('Failed to backfill dimensions:', err)
+      );
 
       return { galleryId: gallery.id, folderType, totalImages: driveFiles.length };
     }

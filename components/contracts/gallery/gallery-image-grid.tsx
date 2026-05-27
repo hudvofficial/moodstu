@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
 import { useMasonryGrid } from "./use-masonry-grid";
+import { GalleryImageTile } from "./gallery-image-tile";
 
 interface GalleryImageGridProps {
   groups: ImageGroup[];
@@ -55,7 +56,7 @@ export default function GalleryImageGrid({
     errorGroups,
     handleImageLoad,
     handleImageError,
-    DEFAULT_ASPECT_RATIO
+    DEFAULT_ASPECT_RATIO,
   } = useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns: publicMode ? 5 : undefined });
 
   if (groups.length === 0) {
@@ -77,6 +78,7 @@ export default function GalleryImageGrid({
             gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
             gap: "var(--gallery-admin-masonry-gap)",
             maxWidth: "100%",
+            position: "relative",
           }}
         >
           {columnGroups.map((column, columnIndex) => (
@@ -95,6 +97,7 @@ export default function GalleryImageGrid({
                   image.thumbnail_url,
                   image.image_url,
                   resolveThumbnailSize(columnWidth),
+                  publicMode // Use proxy in public mode for reliability
                 );
                 const eagerLoad = index < Math.max(columnCount * 2, 6);
                 const overlayChipStyle = {
@@ -127,46 +130,18 @@ export default function GalleryImageGrid({
                     className="group relative min-w-0 overflow-hidden bg-bg-card text-left shadow-xs ring-1 ring-border/25 transition-[transform,box-shadow,ring-color] duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:ring-border/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     style={{ borderRadius: "var(--gallery-admin-tile-radius)" }}
                   >
-                    <div
-                      className="relative w-full overflow-hidden bg-bg-card"
-                      style={{
-                        aspectRatio: String(imageAspectRatio),
-                        contentVisibility: "auto",
-                        containIntrinsicSize: `auto ${Math.round(columnWidth / imageAspectRatio)}px`,
-                      }}
+                    <GalleryImageTile
+                      imageSrc={imageSrc}
+                      image={image}
+                      imageLoaded={imageLoaded}
+                      isError={isError}
+                      eagerLoad={eagerLoad}
+                      imageAspectRatio={imageAspectRatio}
+                      columnWidth={columnWidth}
+                      fileGroup={group.fileGroup}
+                      onImageLoad={handleImageLoad}
+                      onImageError={handleImageError}
                     >
-                      <div
-                        className={`absolute inset-0 transition-opacity duration-300 ${imageLoaded ? "opacity-0" : "opacity-100"}`}
-                        style={{
-                          background: "linear-gradient(180deg, var(--gallery-admin-skeleton-highlight) 0%, var(--gallery-admin-skeleton-base) 100%)",
-                        }}
-                      />
-
-                      {/* eslint-disable-next-line @next/next/no-img-element -- Drive thumbnail URL is computed per tile width */}
-                      <img
-                        ref={(node) => {
-                          if (node && node.complete && node.naturalWidth > 0 && !imageLoaded) {
-                            handleImageLoad(group.fileGroup, { currentTarget: node } as any);
-                          }
-                        }}
-                        src={imageSrc}
-                        alt={image.file_name || "Photo"}
-                        className={`absolute inset-0 h-full w-full object-cover transition-all duration-500 group-hover:scale-[1.025] ${imageLoaded ? "opacity-100" : "opacity-0"}`}
-                        loading={eagerLoad ? "eager" : "lazy"}
-                        fetchPriority={eagerLoad ? "high" : "auto"}
-                        decoding="async"
-                        onLoad={(event) => handleImageLoad(group.fileGroup, event)}
-                        onError={(event) => handleImageError(image.image_url, event, group.fileGroup)}
-                      />
-
-                      {isError && (
-                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg-hover text-text-muted">
-                          <ImageOff size={24} className="mb-2 opacity-40" />
-                          <span className="max-w-full truncate px-3 text-micro font-medium">{image.file_name}</span>
-                          <span className="text-micro opacity-60">Lỗi nguồn Drive</span>
-                        </div>
-                      )}
-
                       {watermarkEnabled && (
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
                           <span
@@ -249,7 +224,7 @@ export default function GalleryImageGrid({
                       >
                         <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
-                    </div>
+                    </GalleryImageTile>
                   </div>
                 );
               })}
@@ -258,18 +233,22 @@ export default function GalleryImageGrid({
         </div>
       </div>
 
-      {showSentinel && (
-        <div ref={sentinelRef} className="py-6 text-center">
-          {loadingMore ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-              <p className="text-caption text-text-muted">Đang tải thêm ảnh...</p>
-            </div>
-          ) : (
-            <p className="text-caption text-text-muted">
-              Đang tải thêm... ({visibleCount}/{groups.length})
-            </p>
-          )}
+      {loadingMore && hasMoreServer && (
+        <div className="py-6 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+            <p className="text-caption text-text-muted">Đang tải thêm ảnh...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Virtual Scrolling Stats (Development Only) */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="py-4 text-center">
+          <p className="text-caption text-text-muted">
+            🚀 Virtual: Rendering {stats.renderedItems}/{stats.totalItems} images
+            ({stats.virtualizedOut} virtualized out, {stats.visibleRows} visible rows)
+          </p>
         </div>
       )}
     </>

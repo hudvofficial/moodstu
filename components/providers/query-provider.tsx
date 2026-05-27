@@ -2,7 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState, type ReactNode } from "react";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { useState, useEffect, type ReactNode } from "react";
 
 /**
  * React Query Provider for Gallery Management
@@ -66,6 +68,30 @@ interface QueryProviderProps {
 export function QueryProvider({ children }: QueryProviderProps) {
   // Create QueryClient in state to avoid re-creation on re-renders
   const [queryClient] = useState(() => createQueryClient());
+
+  // Enable persistent cache to localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const persister = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: "MOOD_REACT_QUERY_CACHE",
+    });
+
+    persistQueryClient({
+      queryClient,
+      persister,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      dehydrateOptions: {
+        // Don't persist mutations or errors
+        shouldDehydrateMutation: () => false,
+        shouldDehydrateQuery: (query) => {
+          // Only persist successful queries
+          return query.state.status === "success";
+        },
+      },
+    });
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

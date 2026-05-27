@@ -82,6 +82,11 @@ export default function RootLayout({
             <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />
           </>
         ) : null}
+        {/* Preconnect to Google Drive for faster image loading */}
+        <link rel="dns-prefetch" href="https://drive.google.com" />
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+        <link rel="preconnect" href="https://drive.google.com" />
+        <link rel="preconnect" href="https://lh3.googleusercontent.com" />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -115,9 +120,9 @@ export default function RootLayout({
             `,
           }}
         />
-        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
       </head>
-      <body className="antialiased" suppressHydrationWarning>
+      <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
+        <div dangerouslySetInnerHTML={{ __html: `<script>${splashScript}</script>` }} />
         <ThemeProvider>
           <NuqsAdapter>
             <SWRProvider>

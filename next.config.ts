@@ -172,6 +172,8 @@ const nextConfig: NextConfig = {
   turbopack: {},
 
   experimental: {
+    // ⚡ Partial Prerendering — enable per-route via export const experimental_ppr = true
+    // Note: Not using global cacheComponents due to conflict with API route segment configs
     // ⚡ Client Router Cache — reduce SSR re-renders on navigation
     staleTimes: {
       dynamic: 180, // 3 min — reduce 2/3 SSR calls

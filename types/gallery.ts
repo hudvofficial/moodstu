@@ -17,6 +17,12 @@ export interface GalleryImage {
   file_group: string | null;
   selected_at: string | null;
   created_at: string;
+  // Masonry layout dimensions
+  width?: number | null;
+  height?: number | null;
+  // BlurHash for instant placeholder (SSR-safe)
+  blur_hash?: string | null;
+  blur_data_url?: string | null;
 }
 
 export type GalleryShareCapability = "select" | "view" | "download";

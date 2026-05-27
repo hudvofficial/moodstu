@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
@@ -14,10 +15,18 @@ import {
 
 import { PUBLIC_IMAGE_PAGE_SIZE, PublicGalleryRow, createGalleryShareProfiler, galleryHasPassword, getGalleryPublicSlug, buildGalleryAccessToken, normalizeShareLinkRow, fetchActiveShareLinkBySlug, fetchSharedGalleryBaseById, attachShareLinkToGallery, fetchSharedGalleryById, assertGalleryProof, fetchGalleryImageCount, fetchGalleryCoverImage, fetchPublicGalleryImagesPage, fetchGalleryShareLinks } from "./gallery-core";
 
+// ═══════════════════════════════════════════
+// React cache() wrappers for SSR deduplication
+// Prevents duplicate DB queries during SSR when same data is fetched by
+// both generateMetadata() and page component
+// ═══════════════════════════════════════════
+
+const fetchSharedGalleryByAccessUrlCached = cache(fetchSharedGalleryByAccessUrl);
+
 export async function getPublicGallery(accessUrl: string) {
   try {
     const supabase = await createAdminClient();
-    const data = await fetchSharedGalleryByAccessUrl(supabase, accessUrl);
+    const data = await fetchSharedGalleryByAccessUrlCached(supabase, accessUrl);
 
     if (!data) {
       return {
@@ -73,7 +82,7 @@ export async function getPublicGallery(accessUrl: string) {
 export async function getPublicGalleryPreview(accessUrl: string) {
   try {
     const supabase = await createAdminClient();
-    const data = await fetchSharedGalleryByAccessUrl(supabase, accessUrl);
+    const data = await fetchSharedGalleryByAccessUrlCached(supabase, accessUrl);
 
     if (!data) {
       return {

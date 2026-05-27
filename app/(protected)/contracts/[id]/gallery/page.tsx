@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import GalleryFullPage from "@/components/contracts/gallery/gallery-full-page";
 
 export const metadata = { title: "Thư viện hợp đồng" };
+// TODO: Research Next.js 16 PPR API - experimental_ppr export removed
 
 // ═══════════════════════════════════════════
 // Gallery Full Page — Admin view all images in a gallery
