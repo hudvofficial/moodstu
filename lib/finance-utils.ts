@@ -65,7 +65,9 @@ export function relationText(value: unknown, key: string): string | null {
 
 /** Safe number coercion for RPC/query results */
 export function asNumber(value: unknown): number {
-  return Number(value) || 0;
+  const num = Number(value) || 0;
+  // ⚡ P0-3 FIX: Clamp to safe range
+  return Math.max(0, Math.min(10_000_000_000, num));
 }
 
 /** Safe string coercion with fallback */

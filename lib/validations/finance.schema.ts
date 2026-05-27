@@ -6,7 +6,9 @@ export const createReceiptSchema = z.object({
   receipt_type: z.string().min(1, "Loại phiếu thu không được để trống"),
   payment_type: z.string().min(1, "Hình thức thanh toán không được để trống"),
   contract_id: z.string().uuid().optional().nullable(),
-  receipt_amount: z.number().positive("Số tiền thu phải > 0"),
+  receipt_amount: z.number()
+    .positive("Số tiền thu phải > 0")
+    .max(MAX_AMOUNT, "Số tiền thu vượt quá giới hạn"),
   notes: z.string().optional().nullable(),
   category_id: z.string().uuid().optional().nullable(),
 });
@@ -23,7 +25,9 @@ export const createExpenseSchema = z.object({
   expense_date: z.string().date(),
   payment_method: paymentMethodSchema,
   category_id: z.string().uuid().optional().nullable(),
-  amount: z.number().positive("Số tiền chi phải > 0"),
+  amount: z.number()
+    .positive("Số tiền chi phải > 0")
+    .max(MAX_AMOUNT, "Số tiền chi vượt quá giới hạn"),
   description: z.string().optional().nullable(),
   recipient: z.string().optional().nullable(),
   contract_id: z.string().uuid().optional().nullable(),
@@ -38,13 +42,15 @@ export const createDebtSchema = z.object({
   entity_name: z.string().min(1, "Tên đối tượng không được để trống"),
   entity_type: z.enum(["nha_cung_cap", "khach_hang", "nhan_vien", "khac"]),
   type: z.enum(["Phải thu", "Phải trả"]),
-  amount: z.number().positive("Số tiền phải lớn hơn 0"),
+  amount: z.number()
+    .positive("Số tiền phải lớn hơn 0")
+    .max(MAX_AMOUNT, "Số tiền vượt quá giới hạn"),
   due_date: z.string().date().optional().nullable(),
   notes: z.string().optional().nullable(),
   entity_id: z.string().uuid().optional().nullable(),
   status: debtStatusSchema.default("open"),
-  installment_total: z.number().min(0).optional().nullable(),
-  installment_amount: z.number().min(0).optional().nullable(),
+  installment_total: z.number().min(0).max(100).optional().nullable(),
+  installment_amount: z.number().min(0).max(MAX_AMOUNT).optional().nullable(),
   platform: z.string().optional().nullable(),
   card_id: z.string().uuid().optional().nullable(),
 });
@@ -131,9 +137,14 @@ export const createFixedCostSchema = z.object({
 export const updateFixedCostSchema = createFixedCostSchema.partial();
 
 // ─── W2: Payment Schema ─────────────────────────
+// ⚡ P0-3 FIX: Add min/max amount validation
+const MAX_AMOUNT = 10_000_000_000; // 10 billion VND
+
 export const createPaymentSchema = z.object({
   contractId: z.string().uuid("Contract ID không hợp lệ"),
-  amount: z.number().positive("Số tiền phải lớn hơn 0"),
+  amount: z.number()
+    .positive("Số tiền phải lớn hơn 0")
+    .max(MAX_AMOUNT, `Số tiền không được vượt quá ${MAX_AMOUNT.toLocaleString("vi-VN")} VND`),
   paymentDate: z.string().date(),
   paymentMethod: paymentMethodSchema,
   paymentStage: z.string().optional().nullable(),
