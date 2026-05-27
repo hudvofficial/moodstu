@@ -241,16 +241,6 @@ export default function GalleryImageGrid({
           </div>
         </div>
       )}
-
-      {/* Virtual Scrolling Stats (Development Only) */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="py-4 text-center">
-          <p className="text-caption text-text-muted">
-            🚀 Virtual: Rendering {stats.renderedItems}/{stats.totalItems} images
-            ({stats.virtualizedOut} virtualized out, {stats.visibleRows} visible rows)
-          </p>
-        </div>
-      )}
     </>
   );
 }

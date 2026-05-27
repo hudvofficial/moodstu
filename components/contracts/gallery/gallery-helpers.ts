@@ -36,7 +36,11 @@ export function isRawFile(filename: string): boolean {
 
 /**
  * Get responsive thumbnail URL with fallback to proxy
- * For public/client mode: use proxy API for reliable loading
+ *
+ * Strategy:
+ * 1. Proxy mode: use /api/drive-download for same-origin loading
+ * 2. Prefer lh3.googleusercontent.com (whitelisted in next.config.ts)
+ * 3. Fallback to drive.google.com/thumbnail (requires <img> tag or config update)
  */
 export function getResponsiveThumbnailUrl(
   thumbnailUrl: string | null,
@@ -44,7 +48,7 @@ export function getResponsiveThumbnailUrl(
   targetSize: number,
   useProxy: boolean = false
 ): string {
-  // Extract file ID from URLs for proxy
+  // Strategy 1: Use proxy for same-origin loading (public mode)
   if (useProxy) {
     const fileIdMatch =
       thumbnailUrl?.match(/[?&]id=([^&]+)/) ||
@@ -56,9 +60,20 @@ export function getResponsiveThumbnailUrl(
     }
   }
 
+  const normalizedSize = Math.max(200, Math.round(targetSize));
+
+  // Strategy 2: Prefer lh3.googleusercontent.com (already whitelisted for Next.js Image)
+  // lh3 URLs support =sXXX parameter for responsive sizing
+  if (imageUrl && /lh3\.googleusercontent\.com/i.test(imageUrl)) {
+    // Remove existing size param if present
+    const baseUrl = imageUrl.replace(/[?=]s\d+$/, '');
+    return `${baseUrl}=s${normalizedSize}`;
+  }
+
+  // Strategy 3: Fallback to drive.google.com/thumbnail
+  // Note: Requires drive.google.com in next.config.ts remotePatterns OR using <img> tag
   if (!thumbnailUrl) return imageUrl;
 
-  const normalizedSize = Math.max(200, Math.round(targetSize));
   if (!/drive\.google\.com\/thumbnail/i.test(thumbnailUrl)) {
     return thumbnailUrl;
   }

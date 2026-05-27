@@ -76,6 +76,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className={inter.variable} suppressHydrationWarning>
       <head>
+        {/* Splash screen skip - must run before any React code */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
         {supabaseUrl ? (
           <>
             <link rel="dns-prefetch" href={supabaseUrl} />
@@ -122,7 +125,6 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
-        <div dangerouslySetInnerHTML={{ __html: `<script>${splashScript}</script>` }} />
         <ThemeProvider>
           <NuqsAdapter>
             <SWRProvider>

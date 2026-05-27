@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.8] - 2026-05-27
+
+### Fixed
+- **Gallery Display Bug**: Fixed critical issue where galleries showed "Chưa có ảnh nào" (no images) despite having images in database
+  - Root cause: `get_gallery_data_v2` RPC was missing `image_url` field and referenced non-existent columns (`file_path`, album `name`)
+  - Fixed RPC to include all required image fields: `image_url`, `file_group`, `selected_at`, `client_note`
+  - Fixed album fields to use correct column names: `title`, `description`, `cover_image_id` instead of `name`
+  - Added diagnostic script `scripts/debug-gallery.mjs` for troubleshooting gallery issues
+  - Migration: `20260528000005_fix_gallery_data_v2_rpc.sql`
+
 ## [2.0.7] - 2026-05-26
 
 ### Added
