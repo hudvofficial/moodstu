@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { ModalProvider } from "@/lib/context/modal-context";
@@ -14,8 +13,8 @@ import { ServiceWorkerUpdateReload } from "@/components/layout/service-worker-up
 import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
 import { SWRProvider } from "@/components/providers/swr-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { Bell, CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
 import { SplashScreen } from "@/components/layout/splash-screen";
+import { ToasterWrapper } from "@/components/ui/toaster-wrapper";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -144,31 +143,7 @@ export default function RootLayout({
                 <SplashScreen />
                 {children}
                 <GlobalModal />
-                <Toaster
-                  position="top-right"
-                  className="!top-[60px] lg:!top-[72px] !right-4 lg:!right-8 flex flex-col items-end"
-                  toastOptions={{
-                    classNames: {
-                      toast: "group flex flex-row-reverse items-center gap-2.5 !w-auto !min-w-0 max-w-[400px] ml-auto",
-                      title: "text-[13px] font-medium text-text-primary",
-                      description: "text-[12px] text-text-muted mt-0.5",
-                      icon: "m-0 shrink-0",
-                    },
-                    style: {
-                      background: "var(--color-bg-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
-                      padding: "8px 12px",
-                      boxShadow: "var(--shadow-md)",
-                    },
-                  }}
-                  icons={{
-                    success: <CheckCircle2 className="w-4 h-4 text-success" />,
-                    error: <XCircle className="w-4 h-4 text-error" />,
-                    warning: <AlertCircle className="w-4 h-4 text-warning" />,
-                    info: <Info className="w-4 h-4 text-text-muted" />,
-                  }}
-                />
+                <ToasterWrapper />
                 </ModalProvider>
               </QueryProvider>
             </SWRProvider>

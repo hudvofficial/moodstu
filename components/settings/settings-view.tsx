@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { updateNotificationPreferences } from "@/app/actions/notification-actions";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import type {
   EmployeeProfile,
   NotificationPreferences,

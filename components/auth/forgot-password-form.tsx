@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Mail } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import AuthShell from "@/components/auth/auth-shell";
 import { requestPasswordReset } from "@/app/actions/password-recovery";
 import { Button } from "@/components/ui/button";

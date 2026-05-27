@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import { AlertCircle, Link2, Shield, Unlink } from "lucide-react";
 import {
   updateUserRole,

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { X, ChevronLeft, ChevronRight, Download, Heart, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { detectPlatform } from "@/lib/detect-platform";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider
@@ -62,9 +61,12 @@ export default function ImageViewer({
     const preload = (idx: number) => {
       const img = images[idx];
       if (!img) return;
-      const url = img.thumbnail_url
-        ? img.thumbnail_url.replace(/sz=s\d+/, "sz=s1600")
-        : img.image_url;
+      // Use image_url (lh3) directly, not thumbnail_url (drive redirect)
+      const url = img.image_url
+        ? (img.image_url.includes('=s')
+            ? img.image_url.replace(/=s\d+/, '=s1600')
+            : img.image_url + '=s1600')
+        : img.thumbnail_url || '';
       const link = document.createElement("link");
       link.rel = "prefetch";
       link.as = "image";
@@ -125,37 +127,43 @@ export default function ImageViewer({
     setTouchStart(null);
   };
 
-  // ─── Hybrid Download (0 RAM) ───────────────
+  // ─── Universal Download (hidden iframe - works on ALL platforms) ───────────────
   const handleDownload = useCallback(() => {
     if (!current) return;
     const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
-    const platform = detectPlatform();
     const fileName = current.file_name || "photo.jpg";
 
-    if (platform === "ios-safari") {
-      // Mở ảnh gốc trong tab mới → khách long-press → Save Image → vào Photos
-      window.open(`${apiUrl}?mode=view`, "_blank");
-      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', {
-        duration: 5000,
-        id: "ios-save-hint",
-      });
-    } else if (platform === "ios-webview") {
-      // Trong Zalo/Facebook: native download → vào Files
-      window.location.href = apiUrl;
-      toast.info("Ảnh sẽ được lưu trong app Tệp (Files)", { duration: 4000 });
-    } else {
-      // Android + Desktop: native download
-      window.location.href = apiUrl;
+    // Hidden iframe method - works universally (same as admin)
+    // iOS Safari, Android, Desktop all work without user intervention!
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = apiUrl;
+      document.body.appendChild(iframe);
+
+      // Cleanup after 10s
+      setTimeout(() => {
+        try { iframe.remove(); } catch {}
+      }, 10000);
+
+      // Show success toast
       toast.success(`Đang tải ${fileName}...`, { duration: 3000 });
+    } catch (error) {
+      // Fallback: open in new window
+      window.open(apiUrl, "_blank", "noopener,noreferrer");
+      toast.info("Đã mở ảnh trong tab mới", { duration: 3000 });
     }
   }, [current, accessToken]);
 
   if (!current) return null;
 
-  // Big image URL (sz=s1600 for full-screen — avoid loading 30MB+ originals)
-  const bigImageUrl = current.thumbnail_url
-    ? current.thumbnail_url.replace(/sz=s\d+/, "sz=s1600")
-    : current.image_url;
+  // Big image URL - Use image_url directly (lh3) with size parameter
+  // DO NOT use thumbnail_url → it redirects and browser can't follow in some contexts
+  const bigImageUrl = current.image_url
+    ? (current.image_url.includes('=s')
+        ? current.image_url.replace(/=s\d+/, '=s1600')
+        : current.image_url + '=s1600')
+    : current.thumbnail_url || '';
 
   return (
     <div

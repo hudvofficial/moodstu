@@ -140,8 +140,6 @@ export function Header({
       className={cn(
         "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden",
         "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:shadow-none",
-        "lg:transition-transform lg:duration-300 lg:ease-in-out",
-        !isVisible && "lg:-translate-y-full", // Desktop fallback still uses class
         className
       )}
       style={{

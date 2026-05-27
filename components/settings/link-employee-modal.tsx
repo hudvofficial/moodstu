@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import Image from "next/image";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import { Mail, Loader2 } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";

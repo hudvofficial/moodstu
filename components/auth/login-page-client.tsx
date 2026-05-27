@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import LoginTransition from "@/components/auth/login-transition";
 import { Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
+import { TOAST_MESSAGES } from "@/lib/toast-messages";
 import { cn } from "@/lib/utils";
 
 type LoginState = "idle" | "transitioning" | "navigating";
@@ -30,9 +31,9 @@ export default function LoginPageClient() {
     if (!resetStatus && !authError) return;
 
     if (resetStatus === "success") {
-      toast.success("Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.");
+      toast.success(TOAST_MESSAGES.AUTH.PASSWORD_RESET_SUCCESS);
     } else if (authError === "auth_failed") {
-      toast.error("Liên kết xác thực không hợp lệ hoặc đã hết hạn.");
+      toast.error(TOAST_MESSAGES.AUTH.AUTH_LINK_INVALID);
     }
 
     url.searchParams.delete("reset");

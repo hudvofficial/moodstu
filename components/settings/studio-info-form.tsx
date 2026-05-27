@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import { Save, Loader2 } from "lucide-react";
 import {
   disconnectGoogleOAuth,

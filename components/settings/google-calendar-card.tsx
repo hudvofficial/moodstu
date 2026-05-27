@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import { Calendar, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

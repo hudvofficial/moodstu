@@ -1,22 +1,17 @@
-# Kế hoạch sửa lỗi tạo khách hàng mới & Tối ưu hoá toàn hệ thống
+# Kế hoạch sửa lỗi Header Desktop bị cuộn ẩn
 
-## Vấn đề gốc rễ
-- Lỗi `insert or update on table "customers" violates foreign key constraint "customers_created_by_fkey"` xảy ra khi tạo khách hàng mới.
-- Nguyên nhân: Trong file `customer-actions.ts`, biến `created_by` đang gán nhầm thành `employee.id` (ID nội bộ của bảng `employees`) thay vì phải là `userId` (ID của bảng `auth.users`).
+## Vấn đề
+- Khi cuộn trang trên màn hình Desktop (như ở `/contracts/[id]`), Global Header bị ẩn đi để lại khoảng trống.
+- Nguyên nhân: File `components/layout/header.tsx` đang áp dụng class `-translate-y-full` trên Desktop khi cuộn xuống. Tính năng ẩn/hiện này đáng lẽ chỉ dành cho Mobile.
 
-## Kết quả Audit diện rộng toàn dự án
-Để đảm bảo xử lý triệt để, em đã audit toàn bộ các file trong thư mục `app/actions/` để tìm kiếm sự phân công sai lệch tương tự:
-1. **Các modules bị ảnh hưởng:**
-   - `app/actions/customer-actions.ts` (1 lỗi tại hàm `createCustomer`)
-   - `app/actions/lead-actions.ts` (1 lỗi tại hàm `createLead`)
-2. **Các modules KHÔNG bị ảnh hưởng (đang dùng đúng `userId`):**
-   - Hầu hết toàn bộ các module khác (finance, inventory, printing, expense, receipt, debt, work-task, v.v...) đều dùng chuẩn `created_by: userId` và `updated_by: userId`.
-   - Hàm `writeAuditLog` tại `lib/audit.ts` cũng đã tách bạch rất chuẩn `performed_by` (auth.users.id) và `employee_id`.
+## Kế hoạch thực hiện
+- `[x]` **Xoá logic cuộn ẩn trên Desktop**: Mở file `components/layout/header.tsx`.
+- `[x]` Loại bỏ class CSS `!isVisible && "lg:-translate-y-full"` khỏi thẻ `<header>`.
+- `[x]` Loại bỏ các class hiệu ứng dư thừa `lg:transition-transform lg:duration-300 lg:ease-in-out`.
+- `[x]` Đảm bảo không ảnh hưởng đến Mobile (Mobile vẫn ẩn/hiện mượt mà thông qua `style={{ transform }}`).
 
-## Kế hoạch thực hiện (Đã cập nhật)
-- `[x]` **Sửa lỗi chính:** Thay thế `employee.id` bằng `userId` tại hàm `createCustomer` (file `customer-actions.ts`).
-- `[x]` **Tối ưu phòng ngừa:** Thay thế `employee.id` bằng `userId` tại hàm `createLead` (file `lead-actions.ts`).
-- `[x]` Kiểm tra lại các file này xem còn truyền biến nào sai lệch tham chiếu không (ví dụ: `assigned_to` đã dùng đúng `employee.id`).
-- `[x]` Tiến hành build lại và kiểm tra code để đảm bảo code sạch.
+## Kết quả Review
+- Đã kiểm tra lại code `header.tsx`. Thanh header hiện tại sẽ luôn được đặt ở vị trí cố định (`sticky top-0`) đối với giao diện máy tính và không bị trượt lên trên do ảnh hưởng từ hook `useScrollDirection`.
+- Đối với giao diện Mobile, phần `style={{ transform: getTransform() }}` vẫn được giữ nguyên nên hiệu ứng scroll hide/show sẽ không bị gián đoạn.
 
-Xin phép anh duyệt plan hoàn chỉnh này để em bắt đầu code!
+Xin phép anh duyệt plan trong file này để em tiến hành sửa đổi!

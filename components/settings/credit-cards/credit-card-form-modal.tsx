@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast-manager";
 import { Trash2 } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Input } from "@/components/ui/input";
