@@ -1,23 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Download, Heart, Loader2 } from "lucide-react";
+import type { MouseEvent, TouchEvent } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { ChevronLeft, ChevronRight, Download, Heart, X } from "lucide-react";
+import type { GalleryImage } from "@/types/gallery";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 // ═══════════════════════════════════════════
-// ImageViewer — Full-screen gallery slider
-// Swipe (mobile) + Arrow keys (desktop)
+// ImageViewer — Full-screen gallery slider (Public)
+// Cloned UI from Admin Gallery Lightbox
 // ═══════════════════════════════════════════
-
-interface GalleryImage {
-  id: string;
-  image_url: string;
-  thumbnail_url: string | null;
-  file_name: string | null;
-  is_selected: boolean;
-  client_note: string | null;
-  drive_file_id: string | null;
-}
 
 interface ImageViewerProps {
   images: GalleryImage[];
@@ -31,18 +24,47 @@ interface ImageViewerProps {
   totalImagesCount?: number;
 }
 
+function withThumbSize(url: string, size: number): string {
+  if (/sz=s\d+/.test(url)) return url.replace(/sz=s\d+/, `sz=s${size}`);
+  if (/=s\d+/.test(url)) return url.replace(/=s\d+/, `=s${size}`);
+  // Nếu là url lh3 mà chưa có tham số size thì tự thêm
+  if (url.includes('lh3.googleusercontent.com') && !url.includes('=s')) {
+    return url + `=s${size}`;
+  }
+  return url;
+}
+
+function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?: string } {
+  if (!image) return { src: "" };
+  // Ưu tiên dùng image_url (lh3) để tránh lỗi redirect chéo tên miền trên mobile Safari
+  const base = image.image_url || image.thumbnail_url;
+  if (!base) return { src: "" };
+
+  const canResize = /sz=s\d+/.test(base) || /=s\d+/.test(base) || base.includes("lh3.googleusercontent.com");
+  if (!canResize) return { src: base };
+
+  const mobile = withThumbSize(base, 1200);
+  const desktop = withThumbSize(base, 2048);
+  return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w` };
+}
+
 export default function ImageViewer({
   images,
   currentIndex,
   onClose,
   onIndexChange,
   onToggleStar,
-  onSaveNote,
   mode = "select",
   accessToken = "admin",
   totalImagesCount,
 }: ImageViewerProps) {
-  const current = images[currentIndex];
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const currentIdx = currentIndex;
+  const setCurrentIdx = onIndexChange;
+  const img = images[currentIdx];
+
+  const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
 
   // Decode capability from token if not admin
   let clientCapability = "select";
@@ -54,84 +76,52 @@ export default function ImageViewer({
     } catch {}
   }
 
-  const showDownloadButton = current?.drive_file_id && (accessToken === "admin" || clientCapability !== "view");
+  const showDownloadButton = img?.drive_file_id && (accessToken === "admin" || clientCapability !== "view");
 
-  // Preload next/prev images for smooth navigation
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  // Preload prev/next images
   useEffect(() => {
     const preload = (idx: number) => {
-      const img = images[idx];
-      if (!img) return;
-      // Use image_url (lh3) directly, not thumbnail_url (drive redirect)
-      const url = img.image_url
-        ? (img.image_url.includes('=s')
-            ? img.image_url.replace(/=s\d+/, '=s1600')
-            : img.image_url + '=s1600')
-        : img.thumbnail_url || '';
+      const next = images[idx];
+      if (!next) return null;
+      const { src: nextSrc } = getPreviewUrls(next);
       const link = document.createElement("link");
       link.rel = "prefetch";
       link.as = "image";
-      link.href = url;
+      link.href = nextSrc;
       document.head.appendChild(link);
       return link;
     };
-    const links = [preload(currentIndex - 1), preload(currentIndex + 1)].filter(Boolean) as HTMLLinkElement[];
+
+    const links = [preload(currentIdx - 1), preload(currentIdx + 1)].filter(Boolean) as HTMLLinkElement[];
     return () => links.forEach((l) => l.remove());
-  }, [currentIndex, images]);
+  }, [currentIdx, images]);
 
-  // ─── Navigation ────────────────────────────
-  const goNext = useCallback(() => {
-    if (currentIndex < images.length - 1) {
-      onIndexChange(currentIndex + 1);
-    }
-  }, [currentIndex, images.length, onIndexChange]);
-
-  const goPrev = useCallback(() => {
-    if (currentIndex > 0) {
-      onIndexChange(currentIndex - 1);
-    }
-  }, [currentIndex, onIndexChange]);
-
-  // ─── Keyboard shortcuts ────────────────────
+  // Keyboard shortcuts
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case "ArrowRight":
-          goNext();
-          break;
-        case "ArrowLeft":
-          goPrev();
-          break;
-        case "Escape":
-          onClose();
-          break;
-      }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setCurrentIdx(Math.max(0, currentIdx - 1));
+      if (e.key === "ArrowRight") setCurrentIdx(Math.min(images.length - 1, currentIdx + 1));
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [goNext, goPrev, onClose]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentIdx, images.length, onClose, setCurrentIdx]);
 
-  // ─── Touch/swipe support ───────────────────
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  if (!img) return null;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-  };
+  const downloadFileName = img.file_name || "photo.jpg";
+  const apiUrl = `/api/gallery-download/${accessToken}/${img.id}`;
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const diff = touchStart - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) goNext();
-      else goPrev();
-    }
-    setTouchStart(null);
-  };
-
-  // ─── Download Strategy: Blob method (works on iOS Safari!) ─────────────────────
-  const handleDownload = useCallback(async () => {
-    if (!current) return;
-    const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
-    const fileName = current.file_name || "photo.jpg";
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -142,182 +132,223 @@ export default function ImageViewer({
       return;
     }
 
-    // Show loading toast
-    const toastId = toast.loading(`Đang tải ${fileName}...`);
-
+    const toastId = toast.loading(`Đang tải ${downloadFileName}...`);
     try {
-      // Fetch as blob → works on Android/Desktop
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
 
-      // Create temporary <a> tag and trigger download
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = fileName;
+      link.download = downloadFileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // Cleanup
       setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
-
-      toast.success(`Đã tải ${fileName}`, { id: toastId });
+      toast.success(`Đã tải ${downloadFileName}`, { id: toastId });
     } catch (error) {
       console.error("[handleDownload] Error:", error);
-
-      // Fallback: open in new tab for manual save
       window.open(apiUrl, "_blank", "noopener,noreferrer");
       toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
     }
-  }, [current, accessToken]);
+  };
 
-  if (!current) return null;
+  const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
+    const x = e.touches[0]?.clientX;
+    if (typeof x === "number") setTouchStartX(x);
+  };
 
-  // Big image URL - Use image_url directly (lh3) with size parameter
-  // DO NOT use thumbnail_url → it redirects and browser can't follow in some contexts
-  const bigImageUrl = current.image_url
-    ? (current.image_url.includes('=s')
-        ? current.image_url.replace(/=s\d+/, '=s1600')
-        : current.image_url + '=s1600')
-    : current.thumbnail_url || '';
+  const handleTouchEnd = (e: React.TouchEvent<HTMLImageElement>) => {
+    if (touchStartX === null) return;
+    const x = e.changedTouches[0]?.clientX;
+    setTouchStartX(null);
+    if (typeof x !== "number") return;
+
+    const diff = touchStartX - x;
+    if (Math.abs(diff) < 50) return;
+
+    if (diff > 0) {
+      setCurrentIdx(Math.min(images.length - 1, currentIdx + 1));
+    } else {
+      setCurrentIdx(Math.max(0, currentIdx - 1));
+    }
+  };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "#000" }}
+      className="fixed inset-0 z-(--z-modal) flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.9)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       {/* Top bar */}
-      <div className="grid grid-cols-3 items-center px-4 py-3 relative z-10 bg-gradient-to-b from-black/60 to-transparent">
-        {/* Left: Blank */}
-        <div className="flex justify-start"></div>
+      <div
+        className="absolute inset-x-0 top-0 z-20 bg-linear-to-b from-black/70 to-transparent"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="grid grid-cols-3 items-center px-4 py-3"
+          style={{
+            paddingTop: "calc(var(--spacing-base) + env(safe-area-inset-top))",
+            paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
+            paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+          }}
+        >
+          {/* Left: Trống */}
+          <div className="flex justify-start"></div>
 
-        {/* Center: File name */}
-        <div className="flex justify-center min-w-0">
-          <span className="text-sm font-medium text-white/90 truncate px-3 py-1 bg-black/30 rounded-full max-w-[200px] md:max-w-[400px]">
-            {current.file_name || "Photo"}
-          </span>
-        </div>
+          {/* Center: File name */}
+          <div className="flex justify-center min-w-0">
+            <span className="text-sm font-medium text-white/90 truncate px-3 py-1 bg-black/30 rounded-full max-w-[200px] md:max-w-[400px]">
+              {img.file_name || "Photo"}
+            </span>
+          </div>
 
-        {/* Right: Close */}
-        <div className="flex justify-end">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={onClose}
-            onKeyDown={(e) => { if (e.key === "Enter") onClose() }}
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 cursor-pointer hover:bg-white/20 transition-colors"
-          >
-            <X size={20} style={{ color: "white" }} />
+          {/* Right: Actions */}
+          <div className="flex justify-end items-center gap-3">
+            {mode === "select" && (
+              <Button
+                unstyled
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onToggleStar(img.id); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-all"
+                style={{
+                  borderRadius: "var(--radius-md)",
+                  background: img.is_selected ? "rgba(255, 59, 48, 0.2)" : "rgba(255,255,255,0.1)",
+                  color: img.is_selected ? "#ff3b30" : "rgba(255,255,255,0.85)",
+                }}
+                aria-label="Chọn ảnh"
+              >
+                <Heart size={14} className={img.is_selected ? "fill-[#ff3b30] text-[#ff3b30]" : ""} />
+                <span className="hidden sm:inline">
+                  {img.is_selected ? "Đã chọn" : "Chọn ảnh"}
+                </span>
+              </Button>
+            )}
+            <Button
+              unstyled
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="inline-flex items-center justify-center"
+              style={{
+                width: "var(--icon-container-sm)",
+                height: "var(--icon-container-sm)",
+                borderRadius: "var(--radius-md)",
+                background: "rgba(255,255,255,0.10)",
+                color: "rgba(255,255,255,0.85)",
+              }}
+              aria-label="Đóng"
+              title="Đóng"
+            >
+              <X size={18} />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Image area */}
-      <div
-        className="flex-1 flex items-center justify-center relative overflow-hidden px-2 py-2 md:px-12"
+      {/* Navigation arrows */}
+      {currentIdx > 0 && (
+        <Button
+          unstyled
+          type="button"
+          className="absolute z-20 inline-flex items-center justify-center"
+          onClick={(e) => { e.stopPropagation(); setCurrentIdx(Math.max(0, currentIdx - 1)); }}
+          aria-label="Ảnh trước"
+          title="Ảnh trước"
+          style={{
+            top: "50%",
+            transform: "translateY(-50%)",
+            left: "calc(var(--spacing-base) + env(safe-area-inset-left))",
+            width: "var(--icon-container-sm)",
+            height: "var(--icon-container-sm)",
+            borderRadius: "var(--radius-md)",
+            background: "rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.85)",
+          }}
+        >
+          <ChevronLeft size={22} />
+        </Button>
+      )}
+      {currentIdx < images.length - 1 && (
+        <Button
+          unstyled
+          type="button"
+          className="absolute z-20 inline-flex items-center justify-center"
+          onClick={(e) => { e.stopPropagation(); setCurrentIdx(Math.min(images.length - 1, currentIdx + 1)); }}
+          aria-label="Ảnh tiếp theo"
+          title="Ảnh tiếp theo"
+          style={{
+            top: "50%",
+            transform: "translateY(-50%)",
+            right: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+            width: "var(--icon-container-sm)",
+            height: "var(--icon-container-sm)",
+            borderRadius: "var(--radius-md)",
+            background: "rgba(255,255,255,0.10)",
+            color: "rgba(255,255,255,0.85)",
+          }}
+        >
+          <ChevronRight size={22} />
+        </Button>
+      )}
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={img.id}
+        src={src}
+        srcSet={srcSet}
+        sizes="(max-width: 768px) 100vw, 95vw"
+        alt={img.file_name || "Photo"}
+        className="max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw]"
+        style={{ borderRadius: "var(--radius-lg)" }}
+        decoding="async"
+        onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onClick={(e) => {
-          if (window.innerWidth >= 768) return;
-          const { clientX } = e;
-          const { innerWidth } = window;
-          if (clientX < innerWidth * 0.3 && currentIndex > 0) goPrev();
-          else if (clientX > innerWidth * 0.7 && currentIndex < images.length - 1) goNext();
-        }}
-      >
-        {/* Prev arrow (desktop) */}
-        {currentIndex > 0 && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); goPrev(); }}
-            onKeyDown={(e) => { if (e.key === "Enter") goPrev() }}
-            className="hidden md:flex absolute left-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
-          >
-            <ChevronLeft size={24} style={{ color: "white" }} />
-          </div>
-        )}
-
-        {/* Mobile tap zones removed to allow native long-press on image */}
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={current.id}
-          src={bigImageUrl}
-          alt={current.file_name || "ảnh"}
-          className="max-w-full max-h-full object-contain"
-          style={{ animation: "fadeIn 0.25s ease-out" }}
-        />
-
-        {/* Next arrow (desktop) */}
-        {currentIndex < images.length - 1 && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); goNext(); }}
-            onKeyDown={(e) => { if (e.key === "Enter") goNext() }}
-            className="hidden md:flex absolute right-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
-          >
-            <ChevronRight size={24} style={{ color: "white" }} />
-          </div>
-        )}
-      </div>
+      />
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-4 py-3 relative z-10 bg-gradient-to-t from-black/60 to-transparent">
-        {/* Left: Info */}
-        <div className="flex items-center">
-          <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
-            {currentIndex + 1} / {totalImagesCount || images.length}
-          </span>
-        </div>
-
-        {/* Right: Actions */}
-        <div className="flex items-center gap-4">
+      <div
+        className="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/70 to-transparent"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex items-center justify-between gap-3 px-4 pt-3"
+          style={{
+            paddingBottom: "calc(var(--spacing-base) + env(safe-area-inset-bottom))",
+            paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
+            paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+          }}
+        >
+          <div className="flex items-center">
+            <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
+              {currentIdx + 1} / {totalImagesCount || images.length}
+            </span>
+          </div>
           {showDownloadButton && (
-            <div
-              role="button"
-              tabIndex={0}
+            <Button
+              unstyled
+              type="button"
               onClick={handleDownload}
-              onKeyDown={(e) => { if (e.key === "Enter") handleDownload(); }}
-              className="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
-              style={{ background: "rgba(255,255,255,0.15)" }}
+              className="inline-flex items-center gap-2 px-3 py-2"
+              style={{
+                borderRadius: "var(--radius-md)",
+                background: "rgba(255,255,255,0.10)",
+                color: "rgba(255,255,255,0.90)",
+              }}
+              aria-label="Tải xuống"
+              title="Tải xuống"
             >
-              <Download size={22} style={{ color: "white" }} />
-            </div>
-          )}
-
-          {/* Select button (Heart) */}
-          {mode === "select" && (
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => onToggleStar(current.id)}
-              onKeyDown={(e) => { if (e.key === "Enter") onToggleStar(current.id) }}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform cursor-pointer hover:scale-105 active:scale-95"
-              style={{ background: current.is_selected ? "rgba(255, 59, 48, 0.25)" : "rgba(255,255,255,0.15)" }}
-            >
-              <Heart
-                size={22}
-                fill={current.is_selected ? "#ff3b30" : "none"}
-                stroke={current.is_selected ? "#ff3b30" : "white"}
-                style={{ transition: "fill 0.3s, stroke 0.3s" }}
-              />
-            </div>
+              <Download size={16} />
+              <span className="text-caption font-semibold">Tải xuống</span>
+            </Button>
           )}
         </div>
       </div>
-
-      {/* Animations */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
