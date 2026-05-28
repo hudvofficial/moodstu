@@ -49,7 +49,7 @@ const ReportsCashflowView = dynamic(
 
 interface ReportsClientProps {
   initialFilters: ReportFiltersInput;
-  initialSnapshot: ReportsSnapshot;
+  initialSnapshot?: ReportsSnapshot;
 }
 
 const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {
@@ -129,7 +129,11 @@ export function ReportsClient({
     hasFilterError ? null : cacheKeys.reportsSnapshot(periodKey),
     () => requireData(getReportsSnapshot(filters)),
     isInitialPeriod
-      ? { fallbackData: initialSnapshot, keepPreviousData: false, revalidateOnMount: false }
+      ? { 
+          ...(initialSnapshot ? { fallbackData: initialSnapshot } : {}), 
+          keepPreviousData: false, 
+          revalidateOnMount: !initialSnapshot 
+        }
       : { keepPreviousData: false },
   );
 

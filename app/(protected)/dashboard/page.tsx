@@ -1,5 +1,4 @@
-// Removed Suspense - using parallel Promise.all() instead for better performance
-// TODO: Re-add Suspense boundaries + research Next.js 16 PPR API
+import { Suspense } from "react";
 import {
   AlertTriangle,
   CheckCircle,
@@ -14,7 +13,6 @@ import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { DashboardRealtimeRefresh } from "@/components/dashboard/dashboard-realtime-refresh";
 import { KPICard } from "@/components/ui/kpi-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import { LazyLoad } from "@/components/ui/lazy-load";
 import { ChartSkeleton } from "@/components/ui/chart-skeleton";
 import {
   getDashboardCritical,
@@ -22,9 +20,10 @@ import {
   getDashboardRevenueChartSection,
   getDashboardServiceBreakdownSection,
   getDashboardUpcomingEventsSection,
+  requireDashboardAccess,
 } from "@/lib/api/dashboard";
+import type { DashboardVisibility, DashboardKPIs } from "@/types/dashboard";
 import { formatVnd } from "@/lib/utils";
-import type { DashboardKPIs, DashboardVisibility } from "@/types/dashboard";
 
 export const metadata = { title: "Tổng quan" };
 export const dynamic = "force-dynamic";
@@ -38,17 +37,41 @@ function formatTrend(value: number | null) {
   return `${Math.abs(value).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
 }
 
+// --- SKELETONS ---
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <SkeletonCard className="h-[120px]" />
+      <SkeletonCard className="h-[120px]" />
+      <SkeletonCard className="h-[120px]" />
+      <SkeletonCard className="h-[120px]" />
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 p-5 card-base h-[400px]">
+      <SkeletonCard className="h-6 w-1/3 mb-2" />
+      <SkeletonCard className="h-16 w-full" />
+      <SkeletonCard className="h-16 w-full" />
+      <SkeletonCard className="h-16 w-full" />
+      <SkeletonCard className="h-16 w-full" />
+    </div>
+  );
+}
+
+// --- UI HELPERS ---
 function DashboardErrorBanner({ errors }: { errors: string[] }) {
   if (errors.length === 0) return null;
-
   return (
-    <div className="card-base border-warning/30 bg-warning/8 p-4 text-body-sm text-text-primary">
+    <div className="card-base border-warning/30 bg-warning/8 p-4 text-body-sm text-text-primary mb-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
         <div className="min-w-0">
-          <p className="font-semibold">Một số dữ liệu dashboard chưa tải được.</p>
+          <p className="font-semibold">Một số dữ liệu chưa tải được.</p>
           <p className="mt-1 text-text-secondary">
-            Dashboard đang hiển thị phần dữ liệu tải thành công. Chi tiết lỗi đã được giữ lại để xử lý.
+            Chi tiết lỗi đã được ghi nhận. Vui lòng thử tải lại trang nếu cần.
           </p>
         </div>
       </div>
@@ -58,21 +81,14 @@ function DashboardErrorBanner({ errors }: { errors: string[] }) {
 
 function SectionErrorNotice({ errors }: { errors: string[] }) {
   if (errors.length === 0) return null;
-
   return (
     <div className="mb-3 rounded-md border border-warning/25 bg-warning/8 px-3 py-2 text-caption text-text-secondary">
-      Phần này đang dùng dữ liệu dự phòng do truy vấn chưa hoàn tất.
+      Đang dùng dữ liệu dự phòng do lỗi truy vấn.
     </div>
   );
 }
 
-function DashboardKpiGrid({
-  kpis,
-  visibility,
-}: {
-  kpis: DashboardKPIs;
-  visibility: DashboardVisibility;
-}) {
+function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibility: DashboardVisibility }) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <KPICard
@@ -123,69 +139,114 @@ function DashboardKpiGrid({
   );
 }
 
-export default async function DashboardPage() {
-  // Fetch critical data first
-  const critical = await getDashboardCritical();
-  const { visibility } = critical.access;
+// --- STREAMING SERVER COMPONENTS ---
 
-  // Parallel fetch all sections (eliminates waterfall!)
-  const [revenueResult, serviceResult, eventsResult, paymentsResult] = await Promise.all([
-    getDashboardRevenueChartSection(),
-    getDashboardServiceBreakdownSection(),
-    getDashboardUpcomingEventsSection(),
-    getDashboardPaymentRemindersSection(),
-  ]);
+async function KpiSection() {
+  const critical = await getDashboardCritical();
+  return (
+    <>
+      <DashboardErrorBanner errors={critical.errors} />
+      <DashboardKpiGrid kpis={critical.kpis} visibility={critical.access.visibility} />
+    </>
+  );
+}
+
+async function RevenueSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardRevenueChartSection();
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <RevenueChart
+        data={result.data}
+        canView={visibility.canViewFinancials}
+        periodLabel="6 tháng gần nhất"
+      />
+    </>
+  );
+}
+
+async function ServiceBreakdownSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardServiceBreakdownSection();
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <ServicePieChart
+        data={result.data}
+        canView={visibility.canViewContracts}
+        showRevenue={visibility.canViewFinancials}
+      />
+    </>
+  );
+}
+
+async function EventsSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardUpcomingEventsSection();
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <UpcomingEventsList
+        events={result.data}
+        canView={visibility.canViewCalendar || visibility.canViewContracts}
+      />
+    </>
+  );
+}
+
+async function PaymentsSection({ visibility }: { visibility: DashboardVisibility }) {
+  const result = await getDashboardPaymentRemindersSection();
+  return (
+    <>
+      <SectionErrorNotice errors={result.errors} />
+      <PaymentReminders
+        reminders={result.data}
+        canView={visibility.canViewFinancials}
+      />
+    </>
+  );
+}
+
+// --- MAIN PAGE (THIN SHELL) ---
+
+export default async function DashboardPage() {
+  // ⚡ LOẠI BỎ CHẶN LUỒNG: Auth check chạy trong 0ms (Cache cookie). Không gọi DB ở đây.
+  const access = await requireDashboardAccess();
+  const { visibility, role } = access;
 
   return (
     <div className="main-container">
       <DashboardRealtimeRefresh />
+      
+      <QuickAccessGrid role={role} />
 
-      <QuickAccessGrid role={critical.access.role} />
-      <DashboardErrorBanner errors={critical.errors} />
-      <DashboardKpiGrid kpis={critical.kpis} visibility={visibility} />
+      <Suspense fallback={<KpiSkeleton />}>
+        <KpiSection />
+      </Suspense>
 
-      {/* Revenue Chart */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 mt-4">
         <div className="lg:col-span-3">
-          <SectionErrorNotice errors={revenueResult.errors} />
-          <LazyLoad fallback={<ChartSkeleton height={400} />} rootMargin="100px">
-            <RevenueChart
-              data={revenueResult.data}
-              canView={visibility.canViewFinancials}
-              periodLabel="6 tháng gần nhất"
-            />
-          </LazyLoad>
+          <Suspense fallback={<ChartSkeleton height={400} />}>
+            <RevenueSection visibility={visibility} />
+          </Suspense>
         </div>
 
-        {/* Service Breakdown */}
         <div className="lg:col-span-2">
-          <SectionErrorNotice errors={serviceResult.errors} />
-          <LazyLoad fallback={<ChartSkeleton height={400} />} rootMargin="100px">
-            <ServicePieChart
-              data={serviceResult.data}
-              canView={visibility.canViewContracts}
-              showRevenue={visibility.canViewFinancials}
-            />
-          </LazyLoad>
+          <Suspense fallback={<ChartSkeleton height={400} />}>
+            <ServiceBreakdownSection visibility={visibility} />
+          </Suspense>
         </div>
       </div>
 
-      {/* Events & Payments */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
         <div>
-          <SectionErrorNotice errors={eventsResult.errors} />
-          <UpcomingEventsList
-            events={eventsResult.data}
-            canView={visibility.canViewCalendar || visibility.canViewContracts}
-          />
+          <Suspense fallback={<ListSkeleton />}>
+            <EventsSection visibility={visibility} />
+          </Suspense>
         </div>
 
         <div>
-          <SectionErrorNotice errors={paymentsResult.errors} />
-          <PaymentReminders
-            reminders={paymentsResult.data}
-            canView={visibility.canViewFinancials}
-          />
+          <Suspense fallback={<ListSkeleton />}>
+            <PaymentsSection visibility={visibility} />
+          </Suspense>
         </div>
       </div>
     </div>

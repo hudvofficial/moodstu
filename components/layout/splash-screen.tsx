@@ -19,8 +19,10 @@ export function SplashScreen() {
 
       if (hasVisited) {
         // User has visited before - hide immediately
-        setHidden(true);
-        setShow(false);
+        setTimeout(() => {
+          setHidden(true);
+          setShow(false);
+        }, 0);
       } else {
         // First visit - mark as visited and show splash
         sessionStorage.setItem("ms_v2_loaded", "1");

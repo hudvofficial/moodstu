@@ -218,11 +218,11 @@ function visibilityForRole(role: Role): DashboardVisibility {
   };
 }
 
-type DashboardAccessWithUser = DashboardAccess & {
+export type DashboardAccessWithUser = DashboardAccess & {
   userId: string;
 };
 
-async function requireDashboardAccess(): Promise<DashboardAccessWithUser> {
+export async function requireDashboardAccess(): Promise<DashboardAccessWithUser> {
   const context = await getAuthenticatedUserContext();
 
   if (!context) {

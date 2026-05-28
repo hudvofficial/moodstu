@@ -38,7 +38,7 @@ export function useProductivityOverview({
   >(key, () => fetchProductivityData(period), {
     fallbackData,
     keepPreviousData: true,
-    revalidateOnMount: false,
+    revalidateOnMount: fallbackData ? false : undefined,
     revalidateOnFocus: false,
     dedupingInterval: 5000,
   });

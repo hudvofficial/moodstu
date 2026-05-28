@@ -29,6 +29,7 @@ import { WidgetSalesFunnel } from "./widgets/widget-sales-funnel";
 import { CrmSubnav } from "./crm-subnav";
 import { CrmToolbarSurface } from "./crm-toolbar-surface";
 import { CrmViewSwitch } from "./crm-view-switch";
+import LeadsLoading from "@/app/(protected)/crm/leads/loading";
 
 const PipelineBoard = dynamic(() => import("./pipeline-board"), {
   ssr: false,
@@ -138,6 +139,9 @@ export default function LeadListPage({
   const page = listData.page;
   const pageSize = listData.pageSize;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  // Xác định trạng thái loading (chưa có data + đang fetch)
+  const isDataLoading = listQuery.isLoading || (!listQuery.data && !listQuery.error && initialLeads.length === 0);
 
   const scheduleRefresh = useCallback(
     (delay = 0) => {
@@ -260,6 +264,14 @@ export default function LeadListPage({
 
   return (
     <>
+      {isDataLoading && visibleLeads.length === 0 ? (
+        <>
+          <div className="lg:hidden px-4 pt-2">
+            <CrmSubnav activeHref="/crm/leads" />
+          </div>
+          <LeadsLoading />
+        </>
+      ) : (
       <div className="main-container gap-3!">
         <CrmSubnav activeHref="/crm/leads" className="lg:hidden px-1" />
 
@@ -373,6 +385,7 @@ export default function LeadListPage({
           </CrmDashboardLayout>
         )}
       </div>
+      )}
 
       <LeadFormModal
         isOpen={showForm}

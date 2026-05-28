@@ -107,13 +107,8 @@ export function ContractDrawer({
     debounceMs: 500,
   });
 
-  useEffect(() => {
-    if (!isOpen || !contractId) return;
-
-    router.prefetch(`/contracts/${contractId}`);
-    router.prefetch(`/contracts/${contractId}/edit`);
-    prefetchContractDetail(queryClient, contractId); // ⚡ Warm React Query cache before navigation
-  }, [contractId, isOpen, router, queryClient]);
+  // Đã loại bỏ useEffect tự động prefetch khi mở Drawer để tránh Over-fetching.
+  // Quá trình prefetch sẽ được thực hiện khi user hover vào nút Chi tiết (onHoverDetail).
 
   const contractCode = contract?.contract_code || "...";
 
@@ -169,6 +164,12 @@ export function ContractDrawer({
           onClose();
           router.push(`/contracts/${contractId}`);
         }}
+        onHoverDetail={() => {
+          if (contractId) {
+            router.prefetch(`/contracts/${contractId}`);
+            prefetchContractDetail(queryClient, contractId);
+          }
+        }}
         onTrackPayment={() => {
           onClose();
           router.push(`/contracts/${contractId}#section-payment`);
@@ -185,6 +186,7 @@ import { toast } from "sonner";
 import { updateContractStatus } from "@/app/actions/contract-mutations";
 import { SelectStatus } from "@/components/ui/select/SelectStatus";
 import { updateContractStatusCache } from "@/lib/hooks/use-contract-queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function ContractStatusBadge({
   contractId,
@@ -199,6 +201,25 @@ function ContractStatusBadge({
 }) {
   const queryClient = useQueryClient();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    msg: string;
+    resolve: ((value: boolean) => void) | null;
+  }>({
+    isOpen: false,
+    msg: "",
+    resolve: null,
+  });
+
+  const showConfirm = (msg: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setConfirmState({
+        isOpen: true,
+        msg,
+        resolve,
+      });
+    });
+  };
 
   useEffect(() => {
     setOptimisticStatus(currentStatus);
@@ -226,48 +247,62 @@ function ContractStatusBadge({
   });
 
   return (
-    <SelectStatus
-      current={optimisticStatus}
-      options={options}
-      variant="compact"
-      onUpdate={async (newStatus) => {
-        const debt = Number(remainingAmount) || 0;
-        const tasks = Number(unfinishedTasksCount) || 0;
+    <>
+      <SelectStatus
+        current={optimisticStatus}
+        options={options}
+        variant="compact"
+        onUpdate={async (newStatus) => {
+          const debt = Number(remainingAmount) || 0;
+          const tasks = Number(unfinishedTasksCount) || 0;
 
-        if (newStatus === "hoan_thanh" && (debt > 0 || tasks > 0)) {
-          let msg = `CẢNH BÁO: Hợp đồng này`;
-          if (debt > 0) msg += ` đang còn nợ ${debt.toLocaleString("vi-VN")}đ`;
-          if (debt > 0 && tasks > 0) msg += ` và`;
-          if (tasks > 0) msg += ` còn ${tasks} công việc chưa xong`;
-          msg += `.\n\nBạn có chắc chắn muốn chuyển sang trạng thái Hoàn thành không?`;
-          
-          // Fix: Radix UI dropdown closes and restores focus, which can instantly dismiss window.confirm.
-          // Delaying the confirm by 50ms ensures Radix finishes its focus management first.
-          const isConfirmed = await new Promise((resolve) => {
-            setTimeout(() => {
-              resolve(window.confirm(msg));
-            }, 50);
-          });
+          if (newStatus === "hoan_thanh" && (debt > 0 || tasks > 0)) {
+            let msg = `CẢNH BÁO: Hợp đồng này`;
+            if (debt > 0) msg += ` đang còn nợ ${debt.toLocaleString("vi-VN")}đ`;
+            if (debt > 0 && tasks > 0) msg += ` và`;
+            if (tasks > 0) msg += ` còn ${tasks} công việc chưa xong`;
+            msg += `.\n\nBạn có chắc chắn muốn chuyển sang trạng thái Hoàn thành không?`;
+            
+            // Delaying the modal state update slightly to ensure Radix UI finishes closing
+            // and restoring focus from the SelectStatus dropdown.
+            await new Promise(r => setTimeout(r, 50));
+            const isConfirmed = await showConfirm(msg);
 
-          if (!isConfirmed) {
+            if (!isConfirmed) {
+              setOptimisticStatus(currentStatus);
+              throw new Error("USER_CANCELLED");
+            }
+          }
+
+          try {
+            setOptimisticStatus(newStatus as ContractStatus);
+            await updateContractStatus(contractId, newStatus as ContractStatus);
+            updateContractStatusCache(queryClient, contractId, newStatus as ContractStatus);
+            toast.success("Đã cập nhật trạng thái hợp đồng");
+          } catch (error: any) {
             setOptimisticStatus(currentStatus);
-            throw new Error("USER_CANCELLED");
+            if (error.message !== "USER_CANCELLED") {
+              toast.error(error.message || "Lỗi khi cập nhật trạng thái");
+            }
+            throw error; // Re-throw to reset SelectStatus
           }
-        }
-
-        try {
-          setOptimisticStatus(newStatus as ContractStatus);
-          await updateContractStatus(contractId, newStatus as ContractStatus);
-          updateContractStatusCache(queryClient, contractId, newStatus as ContractStatus);
-          toast.success("Đã cập nhật trạng thái hợp đồng");
-        } catch (error: any) {
-          setOptimisticStatus(currentStatus);
-          if (error.message !== "USER_CANCELLED") {
-            toast.error(error.message || "Lỗi khi cập nhật trạng thái");
-          }
-          throw error; // Re-throw to reset SelectStatus
-        }
-      }}
-    />
+        }}
+      />
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={() => {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+          if (confirmState.resolve) confirmState.resolve(false);
+        }}
+        onConfirm={() => {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+          if (confirmState.resolve) confirmState.resolve(true);
+        }}
+        title="Xác nhận chuyển trạng thái"
+        message={confirmState.msg}
+        confirmLabel="Đồng ý hoàn thành"
+        variant="warning"
+      />
+    </>
   );
 }

@@ -74,6 +74,7 @@ interface DrawerContentProps {
   };
   isLoadingExtra?: boolean;
   onViewDetail: () => void;
+  onHoverDetail?: () => void;
   onTrackPayment: () => void;
 }
 
@@ -82,6 +83,7 @@ export function DrawerContent({
   extra,
   isLoadingExtra = false,
   onViewDetail,
+  onHoverDetail,
   onTrackPayment,
 }: DrawerContentProps) {
   const totalAmount = c.total_amount || 0;
@@ -105,7 +107,7 @@ export function DrawerContent({
 
       {/* ── Section: Khách hàng ── */}
       <section className="card-base p-4">
-        <Button unstyled onClick={onViewDetail} className="flex items-center gap-3 group w-full text-left">
+        <Button unstyled onClick={onViewDetail} onMouseEnter={onHoverDetail} className="flex items-center gap-3 group w-full text-left">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
             {(customer?.full_name || "K")[0].toUpperCase()}
           </div>
@@ -169,7 +171,7 @@ export function DrawerContent({
           <div className="w-px bg-border/50 my-1" />
           <div className="flex-1 text-center">
             <span className="text-tiny font-bold text-text-muted uppercase block">Đã thu</span>
-            <span className="text-body-sm font-black text-success block">
+            <span className={`text-body-sm font-black block ${paidAmount > 0 ? "text-success" : "text-text-muted"}`}>
               {fmt(paidAmount)}
             </span>
           </div>
@@ -214,7 +216,7 @@ export function DrawerContent({
 
       {/* ── Footer: Action button ── */}
       <div className="pt-2">
-        <Button unstyled onClick={onViewDetail} className="btn btn-primary w-full gap-2">
+        <Button unstyled onClick={onViewDetail} onMouseEnter={onHoverDetail} className="btn btn-primary w-full gap-2">
           <ExternalLink className="w-4 h-4" />
           Chi tiết hợp đồng
         </Button>
@@ -268,23 +270,26 @@ function OperationsTabs({
       </div>
 
       {/* Tab content */}
-      {isLoading && (
+      {isLoading ? (
         <div className="mb-3 flex flex-col gap-2 rounded-lg bg-bg-subtle p-3">
           <div className="skeleton skeleton-text w-full" />
           <div className="skeleton skeleton-text w-3/4" />
         </div>
-      )}
-      {activeTab === "events" && (
-        <DrawerEventTimeline events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]} />
-      )}
-      {activeTab === "checklist" && (
-        <DrawerChecklist items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} />
-      )}
-      {activeTab === "staff" && (
-        <DrawerAssignments 
-          tasks={workTasks as unknown as React.ComponentProps<typeof DrawerAssignments>["tasks"]} 
-          events={events as unknown as React.ComponentProps<typeof DrawerAssignments>["events"]}
-        />
+      ) : (
+        <>
+          {activeTab === "events" && (
+            <DrawerEventTimeline events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]} />
+          )}
+          {activeTab === "checklist" && (
+            <DrawerChecklist items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} />
+          )}
+          {activeTab === "staff" && (
+            <DrawerAssignments 
+              tasks={workTasks as unknown as React.ComponentProps<typeof DrawerAssignments>["tasks"]} 
+              events={events as unknown as React.ComponentProps<typeof DrawerAssignments>["events"]}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -118,6 +118,7 @@ export async function createContract(rawData: unknown) {
       groom_height: parseIntOrNull(data.formData.groom_height),
       groom_weight: parseIntOrNull(data.formData.groom_weight),
       groom_shoe_size: parseIntOrNull(data.formData.groom_shoe_size),
+      wedding_date: data.weddingDate || null,
     };
 
     const itemPayload = data.items.map((item) => ({
@@ -183,32 +184,7 @@ export async function createContract(rawData: unknown) {
     const result = rpcData as SaveContractResult;
     const contractId = result.id;
 
-    if (isEdit || data.formData.assigned_to) {
-      const { error: assignmentError } = await supabase
-        .from("contracts")
-        .update({
-          assigned_to: data.formData.assigned_to || null,
-          updated_by: userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", contractId)
-        .is("deleted_at", null);
-
-      if (assignmentError) {
-        throw new Error(`Loi luu nhan vien phu trach: ${assignmentError.message}`);
-      }
-    }
-
-    if (data.weddingDate) {
-      const { error: customerError } = await supabase
-        .from("customers")
-        .update({ wedding_date: data.weddingDate })
-        .eq("id", data.formData.customer_id);
-
-      if (customerError) {
-        throw new Error(`Lỗi lưu ngày cưới khách hàng: ${customerError.message}`);
-      }
-    }
+    // Logic cập nhật assigned_to và wedding_date đã được gom vào save_contract_atomic RPC
 
     if (!isEdit && data.paymentInfo.amount > 0 && data.paymentInfo.notes) {
       const { data: latestPayment, error: paymentFetchError } = await supabase

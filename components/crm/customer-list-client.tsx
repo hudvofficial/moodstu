@@ -23,6 +23,7 @@ import { WidgetCTA } from "./widgets/widget-cta";
 import { WidgetUpcoming } from "./widgets/widget-upcoming";
 import { CrmSubnav } from "./crm-subnav";
 import { CrmToolbarSurface } from "./crm-toolbar-surface";
+import CustomersLoading from "@/app/(protected)/crm/customers/loading";
 
 interface CustomerListClientProps {
   initialData: {
@@ -108,6 +109,9 @@ export default function CustomerListClient({
   const totalPages = data.totalPages || 1;
   const pageSize = data.pageSize || 10;
 
+  // Xác định trạng thái loading (chưa có data + đang fetch)
+  const isDataLoading = listQuery.isLoading || (!listQuery.data && !listQuery.error && initialData.customers.length === 0);
+
   const selectedCustomer = data.customers.find(c => c.id === selectedCustomerId) || null;
   const editingCustomer = data.customers.find(c => c.id === editingCustomerId) || null;
 
@@ -170,6 +174,14 @@ export default function CustomerListClient({
 
   return (
     <>
+      {isDataLoading && data.customers.length === 0 ? (
+        <>
+          <div className="lg:hidden px-4 pt-2">
+            <CrmSubnav activeHref="/crm/customers" />
+          </div>
+          <CustomersLoading />
+        </>
+      ) : (
       <div className="main-container gap-3!">
         <CrmSubnav activeHref="/crm/customers" className="lg:hidden px-1" />
 
@@ -247,6 +259,7 @@ export default function CustomerListClient({
           </CrmDashboardLayout>
         )}
       </div>
+      )}
 
       <CustomerFormModal
         isOpen={isModalOpen}

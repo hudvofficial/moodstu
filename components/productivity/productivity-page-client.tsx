@@ -12,6 +12,7 @@ import { ProductivitySelfView } from "@/components/productivity/productivity-sel
 import { ProductivityStatsBar } from "@/components/productivity/productivity-stats-bar";
 import { ProductivityTeamView } from "@/components/productivity/productivity-team-view";
 import { ProductivityErrorBanner } from "@/components/productivity/productivity-toolbar";
+import ProductivityLoading from "@/app/(protected)/productivity/loading";
 import { formatRole, sortEmployees } from "@/components/productivity/utils";
 import { EmptyState } from "@/components/ui/ux-states";
 import { SelectPill } from "@/components/ui/select/SelectPill";
@@ -39,7 +40,7 @@ import {
 } from "@/types/productivity-constants";
 
 interface ProductivityPageClientProps {
-  initialPayload: ProductivityPagePayload;
+  initialPayload?: ProductivityPagePayload;
   initialPeriod: ProductivityPeriod;
 }
 
@@ -68,11 +69,11 @@ export default function ProductivityPageClient({
 
   const period = normalizedSearchPeriod as ProductivityPeriod;
 
-  const initialOverviewResult = useMemo<ActionResult<ProductivityPagePayload>>(
-    () => ({
+  const initialOverviewResult = useMemo<ActionResult<ProductivityPagePayload> | undefined>(
+    () => initialPayload ? {
       success: true,
       data: initialPayload,
-    }),
+    } : undefined,
     [initialPayload],
   );
 
@@ -86,27 +87,28 @@ export default function ProductivityPageClient({
     mutate: mutateOverview,
   } = useProductivityOverview({
     period,
-    viewMode: initialPayload.viewer.viewMode,
+    viewMode: initialPayload?.viewer?.viewMode || "team",
     fallbackData: overviewFallback,
   });
 
   const effectivePayload = payload ?? initialPayload;
-  const viewer = effectivePayload.viewer;
-  const overview = effectivePayload.overview;
-  const selfEmployee = overview.employees[0] || null;
 
-  const detailEmployeeId = viewer.viewMode === "self" ? viewer.currentEmployeeId : selectedEmployeeId;
+  const viewer = effectivePayload?.viewer;
+  const overview = effectivePayload?.overview;
+  const selfEmployee = overview?.employees[0] || null;
+
+  const detailEmployeeId = viewer?.viewMode === "self" ? viewer.currentEmployeeId : selectedEmployeeId;
 
   const initialDetailResult = useMemo<ActionResult<EmployeeJobGroup[]> | undefined>(
     () =>
-      initialPayload.initialDetail
+      initialPayload?.initialDetail
         ? { success: true, data: initialPayload.initialDetail }
         : undefined,
-    [initialPayload.initialDetail],
+    [initialPayload?.initialDetail],
   );
 
   const detailFallback =
-    viewer.viewMode === "self" && period === initialPeriod
+    viewer?.viewMode === "self" && period === initialPeriod
       ? initialDetailResult
       : undefined;
 
@@ -118,19 +120,19 @@ export default function ProductivityPageClient({
     isLoading: isDetailLoading,
     mutate: mutateDetail,
   } = useProductivityDetail({
-    employeeId: detailEmployeeId,
-    startDate: overview.date_range.start,
-    endDate: overview.date_range.end,
+    employeeId: detailEmployeeId || null,
+    startDate: overview?.date_range.start || "",
+    endDate: overview?.date_range.end || "",
     fallbackData: detailEmployeeId ? detailFallback : undefined,
   });
 
   const selectedEmployee =
-    viewer.viewMode === "self"
+    viewer?.viewMode === "self"
       ? selfEmployee
-      : overview.employees.find(
+      : overview?.employees.find(
           (employee) => employee.employee_id === selectedEmployeeId,
         ) || null;
-  const isDrawerOpen = viewer.viewMode === "team" && Boolean(selectedEmployee);
+  const isDrawerOpen = viewer?.viewMode === "team" && Boolean(selectedEmployee);
 
   // ── Workload tabs with counts (Contract tabsWithCounts pattern) ──
   const workloadTabsWithCounts = useMemo(
@@ -139,14 +141,14 @@ export default function ProductivityPageClient({
         ...tab,
         count:
           tab.value === "all"
-            ? overview.employees.length
-            : overview.employees.filter((e) => e.workload_level === tab.value).length,
+            ? (overview?.employees.length || 0)
+            : (overview?.employees.filter((e) => e.workload_level === tab.value).length || 0),
       })),
-    [overview.employees],
+    [overview?.employees],
   );
 
   const teamEmployees = useMemo(() => {
-    if (!overview.employees.length) return [];
+    if (!overview?.employees.length) return [];
 
     const query = searchQuery.trim().toLowerCase();
     const hasQuery = query.length > 0;
@@ -169,13 +171,17 @@ export default function ProductivityPageClient({
     });
 
     return sortEmployees(result, sortKey, sortDirection);
-  }, [searchQuery, overview.employees, sortDirection, sortKey, workloadFilter, roleFilter]);
+  }, [searchQuery, overview?.employees, sortDirection, sortKey, workloadFilter, roleFilter]);
 
   const overviewErrorMessage = overviewResult && !overviewResult.success
     ? overviewResult.error : overviewError?.message;
   const detailErrorMessage = detailResult && !detailResult.success
     ? detailResult.error : detailError?.message;
   const hasSearch = searchQuery.trim().length > 0;
+
+  if (!effectivePayload || !viewer || !overview) {
+    return <ProductivityLoading />;
+  }
 
   function handlePeriodChange(nextPeriod: string) {
     if (!isProductivityPeriod(nextPeriod) || nextPeriod === period) return;

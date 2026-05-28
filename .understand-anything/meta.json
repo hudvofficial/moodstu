@@ -1,20 +1,8 @@
 {
-  "lastAnalyzedAt": "2026-05-28T12:26:00Z",
-  "gitCommitHash": "a45b06fb924e5a1a48aa2276ffbce0bb45b15811",
+  "lastAnalyzedAt": "2026-05-28T16:20:00Z",
+  "gitCommitHash": "17fb62cdeab62d629ae974bfe9a425460566e03e",
   "version": "1.0.0",
-  "analyzedFiles": 890,
-  "analyzedNodes": 672,
-  "layers": 16,
-  "tourSteps": 12,
-  "analysis": {
-    "detailed": 22,
-    "stub": 19,
-    "total": 41
-  },
-  "limitations": [
-    "Import map không đầy đủ - chỉ 82 edges",
-    "165 nodes thiếu required fields (name/summary/tags)",
-    "Nhiều files không được assign vào layers",
-    "Phân tích dựa trên 22 detailed batches + 19 stub batches"
-  ]
+  "analyzedFiles": 29,
+  "analyzedScope": "app/(protected)/finance",
+  "subdomainGraph": true
 }

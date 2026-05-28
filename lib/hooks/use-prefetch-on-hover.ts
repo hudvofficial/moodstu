@@ -8,6 +8,9 @@ import type { Arguments } from "swr";
 import { getContractList } from "@/app/actions/contract-queries";
 import { getEmployeeList } from "@/app/actions/employee-queries";
 import { getServices } from "@/app/actions/service-queries";
+import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
+import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
+import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import type { ContractFilters } from "@/types/contract";
@@ -53,7 +56,7 @@ const DRESS_PREFETCH_SELECT = `
   created_at, updated_at, created_by, updated_by, deleted_at
 `;
 
-function getPrefetchConfig(href: string): PrefetchConfig | null {
+function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | null {
   const supabase = createClient();
   const route = href.split("?")[0];
 
@@ -115,6 +118,91 @@ function getPrefetchConfig(href: string): PrefetchConfig | null {
     return null;
   }
 
+  if (route === "/crm/leads") {
+    return [
+      {
+        key: [cacheKeys.leads(), "", "", "", "", "1", "50"],
+        fetcher: async () => {
+          const result = await getLeads({ page: 1, pageSize: 50 });
+          if (!result.success) throw new Error(result.error);
+          return {
+            leads: result.data.leads,
+            total: result.data.total,
+            page: result.data.page,
+            pageSize: result.data.pageSize,
+          };
+        },
+      },
+      {
+        key: `${cacheKeys.leads()}:stats`,
+        fetcher: async () => {
+          const result = await getLeadStats();
+          if (!result.success) throw new Error(result.error);
+          return result.data;
+        },
+      }
+    ];
+  }
+
+  if (route === "/crm/customers") {
+    return [
+      {
+        key: [cacheKeys.customers(), "", "", "", "1", "10"],
+        fetcher: async () => {
+          const result = await getCustomers({ page: 1, pageSize: 10 });
+          if (!result.success) throw new Error(result.error);
+          return {
+            customers: result.data.customers,
+            total: result.data.total,
+            totalPages: result.data.totalPages,
+            page: result.data.page,
+            pageSize: result.data.pageSize,
+          };
+        },
+      },
+      {
+        key: `${cacheKeys.customers()}:stats`,
+        fetcher: async () => {
+          const result = await getCustomerStats();
+          if (!result.success) throw new Error(result.error);
+          return result.data;
+        },
+      }
+    ];
+  }
+
+  if (route === "/calendar") {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    
+    return [
+      {
+        key: cacheKeys.calendar(month, year),
+        fetcher: async () => {
+          const result = await fetchCalendarEvents(month, year);
+          if (!result.success) throw new Error(result.error);
+          return result.data;
+        },
+      },
+      {
+        key: "calendar-filter-employees",
+        fetcher: async () => {
+          const result = await fetchCalendarFilterEmployees();
+          if (!result.success) throw new Error(result.error);
+          return result.data;
+        },
+      },
+      {
+        key: "calendar-google-connected",
+        fetcher: async () => {
+          const result = await checkGoogleCalendarStatus();
+          return result.success ? result.data : false;
+        },
+      }
+    ];
+  }
+
   return null;
 }
 
@@ -135,12 +223,16 @@ export function usePrefetchOnHover() {
       router.prefetch(route);
       if (prefetchedRef.current.has(route)) return;
 
-      const config = getPrefetchConfig(route);
-      if (!config) return;
+      const configOrConfigs = getPrefetchConfig(route);
+      if (!configOrConfigs) return;
 
       prefetchedRef.current.add(route);
-      void mutate(config.key, config.fetcher(), { revalidate: false }).catch(() => {
-        prefetchedRef.current.delete(route);
+      const configs = Array.isArray(configOrConfigs) ? configOrConfigs : [configOrConfigs];
+
+      configs.forEach((config) => {
+        void mutate(config.key, config.fetcher(), { revalidate: false }).catch(() => {
+          prefetchedRef.current.delete(route);
+        });
       });
     },
     [pathname, router, isSlowNetwork],

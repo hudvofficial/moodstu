@@ -17,42 +17,14 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  // ⚡ SSR: Fetch contract detail + galleries on the server to eliminate cold-start skeleton
-  let initialData: ContractDetailData | undefined;
-  let initialGalleries: any[] | undefined;
-
-  try {
-    // Parallel fetch for optimal performance
-    const [contractResult, galleriesResult] = await Promise.all([
-      getContractDetail(id),
-      getGallerySummariesByContract(id),
-    ]);
-
-    if (contractResult.success) {
-      initialData = contractResult.data as ContractDetailData;
-    } else {
-      console.error("Contract detail SSR failed:", contractResult.error);
-    }
-
-    if (galleriesResult.success) {
-      initialGalleries = galleriesResult.data;
-    } else {
-      console.error("Galleries SSR failed:", galleriesResult.error);
-    }
-  } catch (error) {
-    // Let the client handle the error if not found, or use notFound()
-    console.error("Contract detail SSR failed:", error);
-  }
+  // ⚡ LOẠI BỎ CHẶN LUỒNG SERVER: Không await fetch data ở đây nữa.
+  // Next.js sẽ render ngay lập tức (Thin Server Shell). 
+  // Client Component (SWR/React Query) đã có sẵn cache từ Drawer Prefetch nên sẽ render 0ms native!
+  // Khi Cold Start (vào trực tiếp URL), sẽ hiện Skeleton Loading.
 
   return (
     <ContractDetailClient
       contractId={id}
-      initialContract={initialData?.contract}
-      initialPayments={initialData?.payments}
-      initialPaymentPlans={initialData?.paymentPlans}
-      initialReservations={initialData?.reservations}
-      initialPrintOrders={initialData?.printOrders}
-      initialGalleries={initialGalleries}
     />
   );
 }

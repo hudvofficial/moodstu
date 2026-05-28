@@ -17,35 +17,17 @@ export default async function LeadsRoute(props: {
   const page = typeof searchParams.page === "string" ? parseInt(searchParams.page, 10) : 1;
   const pageSize = 50; // Fix to 50 items/page as requested in Spec and confirmed by default
 
-  const [result, statsResult] = await Promise.all([
-    getLeads({
-      search,
-      status,
-      source,
-      assigned_to: assigned,
-      page,
-      pageSize,
-    }),
-    getLeadStats(),
-  ]);
-
-  if (!result.success) {
-    throw new Error(result.error);
-  }
-
-  if (!statsResult.success) {
-    throw new Error(statsResult.error);
-  }
-  
-  const stats = statsResult.data;
+  // ⚡ LOẠI BỎ CHẶN LUỒNG SERVER: Không await fetch data ở đây nữa.
+  // Trả về Thin Server Shell để Next.js route chuyển trang 0ms.
+  // Data sẽ được lấy từ SWR Cache hoặc tự động fetch ở Client.
 
   return (
     <LeadListPage 
-      leads={result.data.leads as CrmLead[]}
-      stats={stats}
-      total={result.data.total}
-      page={result.data.page}
-      pageSize={result.data.pageSize}
+      leads={[]}
+      stats={undefined as any}
+      total={0}
+      page={page}
+      pageSize={pageSize}
     />
   );
 }

@@ -1,8 +1,4 @@
 import { redirect } from "next/navigation";
-import {
-  fetchEmployeeJobDetails,
-  fetchProductivityData,
-} from "@/app/actions/productivity-actions";
 import ProductivityPageClient from "@/components/productivity/productivity-page-client";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 import { PRODUCTIVITY_ALLOWED_ROLES, isProductivityPeriod } from "@/types/productivity-constants";
@@ -41,38 +37,11 @@ export default async function ProductivityPage({
     ? params.period
     : "month";
 
-  const overviewResult = await fetchProductivityData(period);
-  if (!overviewResult.success) {
-    if (overviewResult.error.includes("quyền")) {
-      redirect("/dashboard");
-    }
-    throw new Error(overviewResult.error);
-  }
-
-  let initialPayload = overviewResult.data;
-
-  if (
-    initialPayload.viewer.viewMode === "self" &&
-    initialPayload.viewer.isLinkedEmployee &&
-    initialPayload.viewer.currentEmployeeId
-  ) {
-    const detailResult = await fetchEmployeeJobDetails(
-      initialPayload.viewer.currentEmployeeId,
-      initialPayload.overview.date_range.start,
-      initialPayload.overview.date_range.end,
-    );
-
-    if (detailResult.success) {
-      initialPayload = {
-        ...initialPayload,
-        initialDetail: detailResult.data,
-      };
-    }
-  }
-
+  // 0ms navigation: we skip Server-blocking database queries here.
+  // We just calculate the default period and render the client shell.
+  // SWR will handle the fetching while showing the beautiful skeleton UI.
   return (
     <ProductivityPageClient
-      initialPayload={initialPayload}
       initialPeriod={period}
     />
   );

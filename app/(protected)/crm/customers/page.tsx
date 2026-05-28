@@ -19,19 +19,11 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   const source = typeof sp.source === "string" ? sp.source : undefined;
   const tags = typeof sp.tags === "string" ? sp.tags : undefined;
 
-  const [initialDataReq, statsReq] = await Promise.all([
-    getCustomers({
-      page: page || 1,
-      pageSize: 10,
-      search: search || undefined,
-      source: source || undefined,
-      tags: tags || undefined,
-    }),
-    getCustomerStats(),
-  ]);
-
-  const initialData = (initialDataReq.success ? initialDataReq.data : { customers: [], total: 0, totalPages: 1, page: 1, pageSize: 10 }) as unknown as { customers: Customer[]; total: number; totalPages: number; page: number; pageSize: number };
-  const stats = statsReq.success ? statsReq.data : { total: 0, newThisMonth: 0, avgLifetimeValue: 0 };
+  // ⚡ LOẠI BỎ CHẶN LUỒNG SERVER: Không await fetch data ở đây nữa.
+  // Trả về Thin Server Shell để Next.js route chuyển trang 0ms.
+  // Data sẽ được lấy từ SWR Cache hoặc tự động fetch ở Client.
+  const initialData = { customers: [], total: 0, totalPages: 1, page: page, pageSize: 10 };
+  const stats = { total: 0, newThisMonth: 0, avgLifetimeValue: 0 };
 
   return (
     <Suspense>

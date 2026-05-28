@@ -47,10 +47,32 @@ type ActionResult<T> =
   | { success: false; error: string };
 
 interface Props {
-  initialOrdersPage: PrintingOrdersPage;
-  initialStats: PrintingStats;
-  initialLabOptions: LabOption[];
+  initialOrdersPage?: PrintingOrdersPage;
+  initialStats?: PrintingStats;
+  initialLabOptions?: LabOption[];
 }
+
+const EMPTY_ORDERS_PAGE: PrintingOrdersPage = {
+  orders: [],
+  total: 0,
+  page: 1,
+  pageSize: 15,
+};
+
+const EMPTY_STATS: PrintingStats = {
+  total: 0,
+  choXuLy: 0,
+  datCoc: 0,
+  dangIn: 0,
+  daIn: 0,
+  daGiao: 0,
+  hoanThanh: 0,
+  huyDon: 0,
+  daNhan: 0,
+  daHuy: 0,
+  totalCost: 0,
+  unpaidCost: 0,
+};
 
 function PrintingListInner({
   initialOrdersPage,
@@ -98,9 +120,9 @@ function PrintingListInner({
     [cacheKeys.printingOrders(), swrFilters],
     () => fetchPrintingOrders(swrFilters),
     {
-      fallbackData: { success: true, data: initialOrdersPage },
+      ...(initialOrdersPage ? { fallbackData: { success: true, data: initialOrdersPage } } : {}),
       keepPreviousData: true,
-      revalidateOnMount: false,
+      revalidateOnMount: !initialOrdersPage,
     },
   );
 
@@ -108,9 +130,9 @@ function PrintingListInner({
     cacheKeys.printingStats(),
     () => getPrintingOrderStats(),
     {
-      fallbackData: { success: true, data: initialStats },
+      ...(initialStats ? { fallbackData: { success: true, data: initialStats } } : {}),
       keepPreviousData: true,
-      revalidateOnMount: false,
+      revalidateOnMount: !initialStats,
     },
   );
 
@@ -118,15 +140,15 @@ function PrintingListInner({
     [cacheKeys.labs(), "options"],
     () => getLabOptions(),
     {
-      fallbackData: { success: true, data: initialLabOptions },
+      ...(initialLabOptions ? { fallbackData: { success: true, data: initialLabOptions } } : {}),
       keepPreviousData: true,
-      revalidateOnMount: false,
+      revalidateOnMount: !initialLabOptions,
     },
   );
 
-  const ordersPage = ordersResult?.success ? ordersResult.data : initialOrdersPage;
-  const stats = statsResult?.success ? statsResult.data : initialStats;
-  const labOptions = labsResult?.success ? labsResult.data : initialLabOptions;
+  const ordersPage = ordersResult?.success ? ordersResult.data : (initialOrdersPage || EMPTY_ORDERS_PAGE);
+  const stats = statsResult?.success ? statsResult.data : (initialStats || EMPTY_STATS);
+  const labOptions = labsResult?.success ? labsResult.data : (initialLabOptions || []);
   const totalPages = Math.max(
     1,
     Math.ceil(ordersPage.total / Math.max(ordersPage.pageSize, 1)),
