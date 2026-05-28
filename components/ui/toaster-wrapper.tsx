@@ -81,7 +81,7 @@ export function ToasterWrapper() {
       className={
         isMobile
           ? // Mobile: bottom-center với bottom nav offset
-            "!bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+1rem)] !left-1/2 !-translate-x-1/2 flex flex-col items-center"
+            "!bottom-[calc(var(--bottom-nav-h)+var(--safe-area-bottom)+1rem)] !left-1/2 !-translate-x-1/2 flex flex-col items-center"
           : // Desktop: top-right với header offset
             "!top-[60px] lg:!top-[72px] !right-4 lg:!right-8 flex flex-col items-end"
       }
