@@ -50,30 +50,36 @@ export default function SelectionSummary({
       const ids = downloadableImages.map((i) => i.id).join(",");
       window.location.href = `/api/gallery-download-batch/${accessToken}?ids=${ids}`;
     } else {
-      // Single file download - use blob method (works on iOS Safari!)
+      // Single file download
       const img = downloadableImages[0];
       const url = `/api/gallery-download/${accessToken}/${img.id}`;
       const fileName = img.file_name || "photo.jpg";
 
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
+      if (isIOS) {
+        window.open(`${url}?mode=view`, "_blank", "noopener,noreferrer");
+        alert('Đã mở ảnh sang tab mới. Vui lòng nhấn giữ ảnh và chọn "Lưu hình ảnh".');
+      } else {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
 
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
-      } catch (error) {
-        console.error("[selection-download] Error:", error);
-        // Fallback
-        window.open(url, "_blank", "noopener,noreferrer");
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+        } catch (error) {
+          console.error("[selection-download] Error:", error);
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
       }
     }
 

@@ -72,8 +72,6 @@ export default function PublicGalleryClient({
     } catch {}
   }
 
-  const showAlbumDownload = accessToken && clientCapability !== "view";
-
   // Client identifier for anonymous reactions
   const getClientId = useCallback(() => {
     if (typeof window === "undefined") return "guest";
@@ -265,15 +263,6 @@ export default function PublicGalleryClient({
           <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
             <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
             <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {selectedCount}</span>
-            {showAlbumDownload && (
-              <a
-                href={`/api/gallery-download-batch/${accessToken}`}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary text-text-inverse hover:opacity-90 transition-opacity"
-              >
-                <Download size={12} />
-                <span>Tải album (ZIP)</span>
-              </a>
-            )}
           </div>
         </div>
         

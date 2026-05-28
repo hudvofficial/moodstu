@@ -133,11 +133,20 @@ export default function ImageViewer({
     const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
     const fileName = current.file_name || "photo.jpg";
 
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      const toastId = toast.loading(`Đang chuẩn bị ảnh...`);
+      window.open(`${apiUrl}?mode=view`, "_blank", "noopener,noreferrer");
+      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
+      return;
+    }
+
     // Show loading toast
     const toastId = toast.loading(`Đang tải ${fileName}...`);
 
     try {
-      // Fetch as blob → works on iOS Safari with <a> tag download!
+      // Fetch as blob → works on Android/Desktop
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -211,13 +220,20 @@ export default function ImageViewer({
         className="flex-1 flex items-center justify-center relative overflow-hidden px-2 py-2 md:px-12"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onClick={(e) => {
+          if (window.innerWidth >= 768) return;
+          const { clientX } = e;
+          const { innerWidth } = window;
+          if (clientX < innerWidth * 0.3 && currentIndex > 0) goPrev();
+          else if (clientX > innerWidth * 0.7 && currentIndex < images.length - 1) goNext();
+        }}
       >
         {/* Prev arrow (desktop) */}
         {currentIndex > 0 && (
           <div
             role="button"
             tabIndex={0}
-            onClick={goPrev}
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
             onKeyDown={(e) => { if (e.key === "Enter") goPrev() }}
             className="hidden md:flex absolute left-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
           >
@@ -225,21 +241,7 @@ export default function ImageViewer({
           </div>
         )}
 
-        {/* Mobile tap zones (invisible) */}
-        {currentIndex > 0 && (
-          <div
-            className="md:hidden absolute inset-y-0 left-0 z-10"
-            style={{ width: "30%" }}
-            onClick={goPrev}
-          />
-        )}
-        {currentIndex < images.length - 1 && (
-          <div
-            className="md:hidden absolute inset-y-0 right-0 z-10"
-            style={{ width: "30%" }}
-            onClick={goNext}
-          />
-        )}
+        {/* Mobile tap zones removed to allow native long-press on image */}
 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -255,7 +257,7 @@ export default function ImageViewer({
           <div
             role="button"
             tabIndex={0}
-            onClick={goNext}
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
             onKeyDown={(e) => { if (e.key === "Enter") goNext() }}
             className="hidden md:flex absolute right-4 w-10 h-10 rounded-full items-center justify-center z-10 bg-white/10 cursor-pointer"
           >
