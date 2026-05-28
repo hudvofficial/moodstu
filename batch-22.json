@@ -1,0 +1,441 @@
+{
+  "batch": 22,
+  "description": "Contract Core Components (Part 1) - List, Drawer, Stats & Table",
+  "generated_at": "2026-05-28",
+  "statistics": {
+    "total_files": 22,
+    "categories": {
+      "contracts_core": 8,
+      "contracts_detail": 14
+    },
+    "total_components": 22,
+    "client_components": 20,
+    "summary": "Contract list management, drawer system, statistics displays và detail page components"
+  },
+  "files": [
+    {
+      "file": "components/contracts/contracts-list-client.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsListClient",
+      "type": "client",
+      "description": "Main client component cho contracts list page với filtering, sorting, pagination và realtime sync",
+      "hooks": ["useContractFilters", "useContracts", "useContractStats", "useQueryClient", "useRouter", "useRealtimeMulti", "usePullToRefreshCallback", "useIsMobile", "useIsTablet"],
+      "props": {
+        "initialData": {"type": "ContractsInitialData", "required": false},
+        "initialFilters": {"type": "ContractFilters", "required": false},
+        "initialStats": {"type": "ContractStats", "required": false}
+      },
+      "state_variables": ["mounted"],
+      "features": {
+        "swr_data_fetching": true,
+        "realtime_sync": true,
+        "server_side_filtering": true,
+        "pagination": true,
+        "pull_to_refresh": true,
+        "prefetch": true,
+        "responsive": true,
+        "tab_filters": true,
+        "advanced_filters": true
+      },
+      "filter_types": ["status", "service", "time", "dateRange", "sort"],
+      "status_tabs": ["all", "dang_thuc_hien", "cho_xu_ly", "hoan_thanh", "da_huy"],
+      "realtime_tables": ["contracts", "customers", "payment_receipts", "payment_plans"]
+    },
+    {
+      "file": "components/contracts/contract-drawer.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractDrawer",
+      "type": "client",
+      "description": "Quick preview drawer từ contract list với 0ms load (all data từ list query)",
+      "hooks": ["useEffect", "useCallback", "useMemo", "useRouter", "useQueryClient", "useContractDrawerExtra", "useRealtimeMulti"],
+      "props": {
+        "contract": {"type": "ContractListItem | null", "required": true},
+        "isOpen": {"type": "boolean", "required": true},
+        "onClose": {"type": "() => void", "required": true}
+      },
+      "features": {
+        "zero_ms_drawer": true,
+        "realtime_sync": true,
+        "prefetch_detail": true,
+        "status_badge": true,
+        "tab_navigation": true,
+        "edit_print_actions": true
+      },
+      "drawer_sections": ["events", "checklists", "work_tasks", "payment_plans", "notes"],
+      "realtime_tables": ["contract_notes", "contract_events", "contract_checklists", "work_tasks", "payment_plans"]
+    },
+    {
+      "file": "components/contracts/contracts-table.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsTable",
+      "type": "client",
+      "description": "Table component hiển thị contracts với avatars, badges, progress indicators và empty states",
+      "props": {
+        "contracts": {"type": "Contract[]", "required": true},
+        "onView": {"type": "(contract: Contract) => void", "required": true},
+        "onEdit": {"type": "(id: string) => void", "required": true},
+        "onDelete": {"type": "(id: string) => void", "required": true},
+        "onHover": {"type": "(id: string) => void", "required": false}
+      },
+      "features": {
+        "responsive": true,
+        "desktop_table": true,
+        "mobile_cards": true,
+        "avatar_colors": true,
+        "status_badges": true,
+        "progress_badges": true,
+        "missing_info_badges": true,
+        "hover_prefetch": true,
+        "empty_state": true
+      },
+      "ui_components": ["TableWrapper", "Badge", "MissingInfoBadge", "ProgressBadge", "EmptyState"],
+      "memoized_rows": true
+    },
+    {
+      "file": "components/contracts/contracts-stats.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsStats",
+      "type": "client",
+      "description": "Statistics cards hiển thị contract metrics với growth indicators",
+      "estimated_props": {
+        "stats": "ContractStats",
+        "loading": "boolean"
+      },
+      "features": {
+        "stat_cards": true,
+        "growth_indicators": true,
+        "currency_formatting": true,
+        "icon_display": true,
+        "skeleton_loading": true
+      },
+      "metrics": ["total", "active", "pending", "completed", "revenue", "outstanding"]
+    },
+    {
+      "file": "components/contracts/compact-stats.tsx",
+      "category": "contracts_core",
+      "component_name": "CompactStats",
+      "type": "client",
+      "description": "Compact version của contract stats cho mobile/narrow views",
+      "estimated_props": {
+        "stats": "ContractStats",
+        "variant": "compact | mini"
+      },
+      "features": {
+        "compact_layout": true,
+        "minimal_design": true,
+        "responsive": true
+      }
+    },
+    {
+      "file": "components/contracts/contracts-dropdown-filters.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsDropdownFilters",
+      "type": "client",
+      "description": "Advanced filter dropdown cho contracts list với service type và date range",
+      "estimated_props": {
+        "filters": "ContractFilters",
+        "onChange": "function"
+      },
+      "state_variables": ["isOpen", "selectedFilters"],
+      "features": {
+        "dropdown": true,
+        "service_filter": true,
+        "date_range": true,
+        "reset_filters": true
+      }
+    },
+    {
+      "file": "components/contracts/contracts-list-skeleton.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsListSkeleton",
+      "type": "client",
+      "description": "Loading skeleton cho contracts list",
+      "props": {},
+      "features": {
+        "skeleton_loading": true,
+        "animated": true,
+        "responsive": true
+      }
+    },
+    {
+      "file": "components/contracts/progress-badge.tsx",
+      "category": "contracts_core",
+      "component_name": "ProgressBadge",
+      "type": "client",
+      "description": "Badge hiển thị progress của tasks/checklist với visual indicators",
+      "estimated_props": {
+        "total": "number",
+        "completed": "number",
+        "variant": "string"
+      },
+      "features": {
+        "progress_bar": true,
+        "percentage": true,
+        "color_coding": true
+      }
+    },
+    {
+      "file": "components/contracts/missing-info-badge.tsx",
+      "category": "contracts_core",
+      "component_name": "MissingInfoBadge",
+      "type": "client",
+      "description": "Badge cảnh báo khi thiếu thông tin quan trọng trong contract",
+      "estimated_props": {
+        "summary": "ContractChecklistSummary | null",
+        "items": "ContractChecklistForBadge[]"
+      },
+      "features": {
+        "warning_badge": true,
+        "tooltip": true,
+        "conditional_render": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/contract-detail-client.tsx",
+      "category": "contracts_detail",
+      "component_name": "ContractDetailClient",
+      "type": "client",
+      "description": "Main detail page client component với tab navigation, realtime sync và comprehensive data display",
+      "hooks": ["useContractDetail", "useRealtimeMulti", "useQueryClient", "useRouter", "useIsMobile"],
+      "props": {
+        "contractId": {"type": "string", "required": true},
+        "initialData": {"type": "any", "required": false}
+      },
+      "state_variables": ["activeTab", "selectedEvent", "selectedTask"],
+      "features": {
+        "tab_navigation": true,
+        "realtime_sync": true,
+        "swr_data": true,
+        "responsive_layout": true,
+        "error_handling": true,
+        "loading_states": true
+      },
+      "tabs": ["overview", "financial", "checklist", "tasks", "notes", "gallery"],
+      "realtime_tables": ["contracts", "contract_events", "contract_checklists", "work_tasks", "payment_plans", "contract_notes"]
+    },
+    {
+      "file": "components/contracts/detail/top-action-bar.tsx",
+      "category": "contracts_detail",
+      "component_name": "TopActionBar",
+      "type": "client",
+      "description": "Action bar trên detail page với edit, print, status actions",
+      "estimated_props": {
+        "contractId": "string",
+        "status": "ContractStatus",
+        "onAction": "function"
+      },
+      "features": {
+        "sticky_bar": true,
+        "action_buttons": true,
+        "status_dropdown": true,
+        "responsive": true
+      },
+      "actions": ["edit", "print", "change_status", "delete"]
+    },
+    {
+      "file": "components/contracts/detail/cancel-banner.tsx",
+      "category": "contracts_detail",
+      "component_name": "CancelBanner",
+      "type": "client",
+      "description": "Warning banner hiển thị khi contract bị cancel",
+      "estimated_props": {
+        "cancellation_reason": "string",
+        "cancelled_at": "string",
+        "cancelled_by": "string"
+      },
+      "features": {
+        "warning_banner": true,
+        "dismissible": true,
+        "formatted_dates": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/summary-card.tsx",
+      "category": "contracts_detail",
+      "component_name": "SummaryCard",
+      "type": "client",
+      "description": "Card hiển thị contract summary thông tin chính",
+      "estimated_props": {
+        "contract": "Contract"
+      },
+      "features": {
+        "info_grid": true,
+        "formatted_values": true,
+        "status_badge": true
+      },
+      "displays": ["contract_code", "service_type", "work_date", "customer", "total_amount"]
+    },
+    {
+      "file": "components/contracts/detail/customer-info-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "CustomerInfoBlock",
+      "type": "client",
+      "description": "Block hiển thị customer information với contact details",
+      "estimated_props": {
+        "customer": "Customer",
+        "editable": "boolean"
+      },
+      "features": {
+        "contact_info": true,
+        "editable": true,
+        "phone_link": true,
+        "address_display": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/financial-summary.tsx",
+      "category": "contracts_detail",
+      "component_name": "FinancialSummary",
+      "type": "client",
+      "description": "Summary card cho financial information với amounts và payment status",
+      "estimated_props": {
+        "totalAmount": "number",
+        "paidAmount": "number",
+        "remainingAmount": "number"
+      },
+      "features": {
+        "currency_formatting": true,
+        "payment_progress": true,
+        "color_coding": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/financial-dashboard.tsx",
+      "category": "contracts_detail",
+      "component_name": "FinancialDashboard",
+      "type": "client",
+      "description": "Comprehensive financial dashboard với charts, payment plans và receipts",
+      "estimated_props": {
+        "contract": "Contract",
+        "paymentPlans": "PaymentPlan[]",
+        "receipts": "Receipt[]"
+      },
+      "features": {
+        "charts": true,
+        "payment_timeline": true,
+        "receipt_list": true,
+        "breakdown": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/payment-plan-card.tsx",
+      "category": "contracts_detail",
+      "component_name": "PaymentPlanCard",
+      "type": "client",
+      "description": "Card hiển thị payment plan schedule với status tracking",
+      "estimated_props": {
+        "plan": "PaymentPlan",
+        "onEdit": "function"
+      },
+      "features": {
+        "payment_schedule": true,
+        "status_badges": true,
+        "due_dates": true,
+        "editable": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/payment-receipts-card.tsx",
+      "category": "contracts_detail",
+      "component_name": "PaymentReceiptsCard",
+      "type": "client",
+      "description": "Card hiển thị danh sách payment receipts với details",
+      "estimated_props": {
+        "receipts": "Receipt[]",
+        "onView": "function"
+      },
+      "features": {
+        "receipt_list": true,
+        "date_formatting": true,
+        "amount_display": true,
+        "payment_method": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/payment-receipt-form.tsx",
+      "category": "contracts_detail",
+      "component_name": "PaymentReceiptForm",
+      "type": "client",
+      "description": "Form tạo/sửa payment receipt với validation",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["formData", "errors"],
+      "features": {
+        "form_validation": true,
+        "date_picker": true,
+        "amount_input": true,
+        "payment_method_select": true,
+        "server_action": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/service-details-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "ServiceDetailsBlock",
+      "type": "client",
+      "description": "Block hiển thị service details với items breakdown",
+      "estimated_props": {
+        "serviceItems": "ServiceItem[]",
+        "addonItems": "AddonItem[]"
+      },
+      "features": {
+        "item_list": true,
+        "price_breakdown": true,
+        "quantity": true,
+        "expandable": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/checklist-manager.tsx",
+      "category": "contracts_detail",
+      "component_name": "ChecklistManager",
+      "type": "client",
+      "description": "Manager component cho contract checklist với category organization",
+      "hooks": ["useContractChecklists", "useState"],
+      "state_variables": ["expandedCategories"],
+      "features": {
+        "category_grouping": true,
+        "expandable_sections": true,
+        "progress_tracking": true,
+        "inline_edit": true,
+        "add_item": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/checklist-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "ChecklistBlock",
+      "type": "client",
+      "description": "Individual checklist item block với checkbox và actions",
+      "estimated_props": {
+        "item": "ChecklistItem",
+        "onToggle": "function",
+        "onEdit": "function",
+        "onDelete": "function"
+      },
+      "features": {
+        "checkbox": true,
+        "inline_edit": true,
+        "delete_action": true,
+        "status_badge": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/checklist-category-card.tsx",
+      "category": "contracts_detail",
+      "component_name": "ChecklistCategoryCard",
+      "type": "client",
+      "description": "Card wrapper cho checklist category với header và items",
+      "estimated_props": {
+        "category": "string",
+        "items": "ChecklistItem[]",
+        "expanded": "boolean",
+        "onToggle": "function"
+      },
+      "features": {
+        "collapsible": true,
+        "progress_header": true,
+        "item_list": true
+      }
+    }
+  ]
+}

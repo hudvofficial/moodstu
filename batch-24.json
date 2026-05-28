@@ -1,0 +1,476 @@
+{
+  "batch": 24,
+  "description": "Contract Form Components & Gallery System (Part 3)",
+  "generated_at": "2026-05-28",
+  "statistics": {
+    "total_files": 23,
+    "categories": {
+      "contracts_form": 12,
+      "contracts_gallery": 11
+    },
+    "total_components": 23,
+    "client_components": 20,
+    "hooks": 3,
+    "summary": "Form system cho contract creation/editing và full-featured photo gallery"
+  },
+  "files": [
+    {
+      "file": "components/contracts/form/index.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractForm",
+      "type": "client",
+      "description": "Main contract form wrapper với multi-section layout và validation",
+      "hooks": ["useContractForm", "useRouter", "useTransition"],
+      "estimated_props": {
+        "contractId": "string | null",
+        "initialData": "any",
+        "mode": "create | edit"
+      },
+      "state_variables": ["formData", "errors", "isPending", "currentSection"],
+      "features": {
+        "multi_section": true,
+        "validation": true,
+        "auto_save": true,
+        "section_navigation": true,
+        "server_action": true
+      },
+      "sections": ["customer", "info", "items", "payment", "financial"]
+    },
+    {
+      "file": "components/contracts/form/ContractCustomerSection.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractCustomerSection",
+      "type": "client",
+      "description": "Section form cho customer information với search và create new customer",
+      "hooks": ["useContractCustomer"],
+      "features": {
+        "customer_search": true,
+        "create_customer": true,
+        "customer_select": true,
+        "contact_info": true
+      }
+    },
+    {
+      "file": "components/contracts/form/ContractInfoSection.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractInfoSection",
+      "type": "client",
+      "description": "Section form cho contract basic info (dates, service type, status)",
+      "estimated_props": {
+        "formData": "any",
+        "onChange": "function",
+        "errors": "any"
+      },
+      "features": {
+        "date_pickers": true,
+        "service_select": true,
+        "status_select": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/ContractItemsSection.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractItemsSection",
+      "type": "client",
+      "description": "Section quản lý service items và addon items với pricing",
+      "hooks": ["useContractItems"],
+      "features": {
+        "item_list": true,
+        "add_service": true,
+        "add_addon": true,
+        "quantity_price": true,
+        "drag_drop": true,
+        "total_calculation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/ContractPaymentSection.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractPaymentSection",
+      "type": "client",
+      "description": "Section tạo payment plan với installment scheduling",
+      "estimated_props": {
+        "totalAmount": "number",
+        "onPaymentPlanChange": "function"
+      },
+      "features": {
+        "payment_plan": true,
+        "installments": true,
+        "date_scheduling": true,
+        "amount_split": true
+      }
+    },
+    {
+      "file": "components/contracts/form/ContractFinancialSummary.tsx",
+      "category": "contracts_form",
+      "component_name": "ContractFinancialSummary",
+      "type": "client",
+      "description": "Summary card hiển thị financial totals trong form",
+      "hooks": ["useContractFinancials"],
+      "features": {
+        "live_calculation": true,
+        "breakdown_display": true,
+        "currency_formatting": true,
+        "sticky_sidebar": true
+      }
+    },
+    {
+      "file": "components/contracts/form/CoupleDetailFields.tsx",
+      "category": "contracts_form",
+      "component_name": "CoupleDetailFields",
+      "type": "client",
+      "description": "Form fields cho couple details (bride/groom information)",
+      "estimated_props": {
+        "values": "any",
+        "onChange": "function",
+        "errors": "any"
+      },
+      "features": {
+        "bride_groom_fields": true,
+        "name_inputs": true,
+        "contact_info": true
+      }
+    },
+    {
+      "file": "components/contracts/form/FormActions.tsx",
+      "category": "contracts_form",
+      "component_name": "FormActions",
+      "type": "client",
+      "description": "Action buttons cho form (save, cancel, draft)",
+      "estimated_props": {
+        "onSave": "function",
+        "onCancel": "function",
+        "onSaveDraft": "function",
+        "isPending": "boolean"
+      },
+      "features": {
+        "action_buttons": true,
+        "loading_states": true,
+        "keyboard_shortcuts": true,
+        "confirmation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/ItemModal.tsx",
+      "category": "contracts_form",
+      "component_name": "ItemModal",
+      "type": "client",
+      "description": "Generic modal wrapper cho item selection/editing",
+      "estimated_props": {
+        "isOpen": "boolean",
+        "onClose": "function",
+        "onSelect": "function",
+        "itemType": "service | addon"
+      },
+      "features": {
+        "modal": true,
+        "search": true,
+        "pagination": true,
+        "item_cards": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/ServiceItemForm.tsx",
+      "category": "contracts_form",
+      "component_name": "ServiceItemForm",
+      "type": "client",
+      "description": "Form modal cho service item configuration",
+      "hooks": ["useState"],
+      "state_variables": ["formData", "errors"],
+      "features": {
+        "service_selection": true,
+        "quantity_input": true,
+        "price_input": true,
+        "description": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/AddonItemForm.tsx",
+      "category": "contracts_form",
+      "component_name": "AddonItemForm",
+      "type": "client",
+      "description": "Form modal cho addon item configuration",
+      "hooks": ["useState"],
+      "state_variables": ["formData"],
+      "features": {
+        "addon_selection": true,
+        "quantity_input": true,
+        "price_calculation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/CreateServiceModal.tsx",
+      "category": "contracts_form",
+      "component_name": "CreateServiceModal",
+      "type": "client",
+      "description": "Modal tạo service mới từ catalog",
+      "hooks": ["useState", "useTransition"],
+      "features": {
+        "catalog_search": true,
+        "service_template": true,
+        "customization": true,
+        "create_action": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/CustomerFormModal.tsx",
+      "category": "contracts_form",
+      "component_name": "CustomerFormModal",
+      "type": "client",
+      "description": "Modal form tạo/sửa customer information",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["formData", "errors", "isPending"],
+      "features": {
+        "customer_form": true,
+        "validation": true,
+        "phone_email": true,
+        "address": true,
+        "server_action": true
+      }
+    },
+    {
+      "file": "components/contracts/form/hooks/useContractForm.ts",
+      "category": "contracts_form",
+      "component_name": "useContractForm",
+      "type": "hook",
+      "description": "Custom hook quản lý contract form state và operations",
+      "features": {
+        "form_state": true,
+        "validation": true,
+        "auto_save": true,
+        "error_handling": true,
+        "submit_handler": true
+      }
+    },
+    {
+      "file": "components/contracts/form/hooks/useContractItems.ts",
+      "category": "contracts_form",
+      "component_name": "useContractItems",
+      "type": "hook",
+      "description": "Hook quản lý contract items (add, remove, update, calculate)",
+      "features": {
+        "item_management": true,
+        "price_calculation": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/hooks/useContractCustomer.ts",
+      "category": "contracts_form",
+      "component_name": "useContractCustomer",
+      "type": "hook",
+      "description": "Hook quản lý customer selection và creation",
+      "features": {
+        "customer_search": true,
+        "customer_create": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/form/hooks/useContractFinancials.ts",
+      "category": "contracts_form",
+      "component_name": "useContractFinancials",
+      "type": "hook",
+      "description": "Hook tính toán financial totals và breakdown",
+      "features": {
+        "calculation": true,
+        "real_time": true,
+        "breakdown": true
+      }
+    },
+    {
+      "file": "components/contracts/form/modals/catalog-cache.ts",
+      "category": "contracts_form",
+      "component_name": "catalogCache",
+      "type": "utility",
+      "description": "Cache utility cho service catalog data",
+      "features": {
+        "caching": true,
+        "performance": true,
+        "ttl": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-full-page.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryFullPage",
+      "type": "client",
+      "description": "Full-page gallery view với toolbar, filters và masonry grid",
+      "hooks": ["useGalleryData", "useState"],
+      "state_variables": ["filterDrive", "sortBy", "viewMode"],
+      "features": {
+        "full_page": true,
+        "toolbar": true,
+        "filters": true,
+        "masonry": true,
+        "lightbox": true,
+        "infinite_scroll": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-toolbar.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryToolbar",
+      "type": "client",
+      "description": "Toolbar cho gallery với actions, filters và sort options",
+      "estimated_props": {
+        "onFilterChange": "function",
+        "onSortChange": "function",
+        "onAction": "function"
+      },
+      "features": {
+        "toolbar": true,
+        "filter_buttons": true,
+        "sort_dropdown": true,
+        "action_buttons": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-toolbar-filters.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryToolbarFilters",
+      "type": "client",
+      "description": "Filter section trong gallery toolbar",
+      "estimated_props": {
+        "filters": "any",
+        "onChange": "function"
+      },
+      "features": {
+        "filter_chips": true,
+        "drive_filter": true,
+        "date_filter": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-toolbar-stats.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryToolbarStats",
+      "type": "client",
+      "description": "Stats display trong gallery toolbar",
+      "estimated_props": {
+        "totalImages": "number",
+        "selectedCount": "number"
+      },
+      "features": {
+        "stat_display": true,
+        "selection_count": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-toolbar-actions.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryToolbarActions",
+      "type": "client",
+      "description": "Action buttons trong gallery toolbar (download, share, delete)",
+      "estimated_props": {
+        "selectedImages": "string[]",
+        "onAction": "function"
+      },
+      "features": {
+        "action_buttons": true,
+        "bulk_actions": true,
+        "confirmation": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-sort-dropdown.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GallerySortDropdown",
+      "type": "client",
+      "description": "Dropdown để sort gallery images",
+      "estimated_props": {
+        "value": "string",
+        "onChange": "function"
+      },
+      "features": {
+        "dropdown": true,
+        "sort_options": true
+      },
+      "sort_options": ["date_asc", "date_desc", "name_asc", "name_desc"]
+    },
+    {
+      "file": "components/contracts/gallery/gallery-filter-modal.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryFilterModal",
+      "type": "client",
+      "description": "Advanced filter modal cho gallery",
+      "hooks": ["useState"],
+      "state_variables": ["filterState"],
+      "features": {
+        "modal": true,
+        "advanced_filters": true,
+        "date_range": true,
+        "drive_filter": true,
+        "apply_reset": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-settings-modal.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GallerySettingsModal",
+      "type": "client",
+      "description": "Settings modal cho gallery preferences",
+      "estimated_props": {
+        "isOpen": "boolean",
+        "onClose": "function"
+      },
+      "features": {
+        "modal": true,
+        "view_settings": true,
+        "grid_size": true,
+        "auto_play": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-list-modal.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryListModal",
+      "type": "client",
+      "description": "Modal hiển thị gallery list view (alternative to grid)",
+      "estimated_props": {
+        "images": "GalleryImage[]",
+        "isOpen": "boolean",
+        "onClose": "function"
+      },
+      "features": {
+        "modal": true,
+        "list_view": true,
+        "detailed_info": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/share-gallery-modal.tsx",
+      "category": "contracts_gallery",
+      "component_name": "ShareGalleryModal",
+      "type": "client",
+      "description": "Modal để share gallery với link generation",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["shareLink", "isPending"],
+      "features": {
+        "modal": true,
+        "link_generation": true,
+        "copy_link": true,
+        "expiration": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-image-list.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryImageList",
+      "type": "client",
+      "description": "List view component cho gallery images",
+      "estimated_props": {
+        "images": "GalleryImage[]",
+        "onImageClick": "function"
+      },
+      "features": {
+        "list_layout": true,
+        "thumbnail": true,
+        "metadata": true,
+        "actions": true
+      }
+    }
+  ]
+}

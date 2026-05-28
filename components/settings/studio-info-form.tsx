@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "@/lib/toast-manager";
 import { Save, Loader2 } from "lucide-react";
 import {
   disconnectGoogleOAuth,
   uploadStudioLogo,
-  updateMoodieAiSettings,
-  updateStudioInfo,
 } from "@/app/actions/settings-mutations";
 import { getMoodieGeminiModelOptions } from "@/app/actions/settings-queries";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -17,12 +15,12 @@ import {
   type MoodieGeminiModelOption,
 } from "@/lib/moodie/model-options";
 import { cacheKeys, mutate } from "@/lib/swr";
-import GoogleCalendarCard from "./google-calendar-card";
-import MoodieAiCard from "./moodie-ai-card";
 import StudioIdentitySection from "./studio/studio-identity-section";
 import StudioBankSection from "./studio/studio-bank-section";
 import StudioSocialSection from "./studio/studio-social-section";
 import StudioHoursSection from "./studio/studio-hours-section";
+import StudioIntegrationCards from "./studio/studio-integration-cards";
+import { executeSaveTasks } from "./studio/studio-save-logic";
 import type {
   BankInfo,
   MoodieAiSettings,
@@ -35,12 +33,6 @@ interface StudioInfoFormProps {
   studioInfo: StudioInfo;
   moodieAiSettings: MoodieAiSettings;
 }
-
-type SaveResult = {
-  section: string;
-  success: boolean;
-  error?: string;
-};
 
 function normalizeRequiredText(value: string) {
   return value.trim();
@@ -65,31 +57,19 @@ export default function StudioInfoForm({
   const [name, setName] = useState(studioInfo.name || "");
   const [hotline, setHotline] = useState(studioInfo.hotline || "");
   const [address, setAddress] = useState(studioInfo.address || "");
-  const [representative, setRepresentative] = useState(
-    studioInfo.representative || "",
-  );
+  const [representative, setRepresentative] = useState(studioInfo.representative || "");
   const [logoUrl, setLogoUrl] = useState(studioInfo.logo_url || "");
-  const [timezone, setTimezone] = useState(
-    studioInfo.timezone || "Asia/Ho_Chi_Minh",
-  );
+  const [timezone, setTimezone] = useState(studioInfo.timezone || "Asia/Ho_Chi_Minh");
   const [bankInfo, setBankInfo] = useState<BankInfo>(studioInfo.bank_info || {});
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>(
-    studioInfo.social_links || {},
-  );
-  const [workingHours, setWorkingHours] = useState<WorkingHours>(
-    studioInfo.working_hours || {},
-  );
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(studioInfo.social_links || {});
+  const [workingHours, setWorkingHours] = useState<WorkingHours>(studioInfo.working_hours || {});
   const [moodieApiKeyInput, setMoodieApiKeyInput] = useState("");
-  const [moodieGeminiModel, setMoodieGeminiModel] = useState(
-    moodieAiSettings.geminiModel,
+  const [moodieGeminiModel, setMoodieGeminiModel] = useState(moodieAiSettings.geminiModel);
+  const [moodieModelOptions, setMoodieModelOptions] = useState<MoodieGeminiModelOption[]>(
+    [...MOODIE_GEMINI_MODEL_OPTIONS],
   );
-  const [moodieModelOptions, setMoodieModelOptions] = useState<
-    MoodieGeminiModelOption[]
-  >([...MOODIE_GEMINI_MODEL_OPTIONS]);
   const [isLoadingMoodieModels, setIsLoadingMoodieModels] = useState(false);
-  const [moodieModelSource, setMoodieModelSource] = useState<"api" | "fallback">(
-    "fallback",
-  );
+  const [moodieModelSource, setMoodieModelSource] = useState<"api" | "fallback">("fallback");
   const [moodieModelMessage, setMoodieModelMessage] = useState(
     moodieAiSettings.hasGeminiKey
       ? "Đang dùng danh sách mặc định; có thể làm mới từ Gemini API."
@@ -135,7 +115,7 @@ export default function StudioInfoForm({
     moodieGeminiModel.trim() !== savedMoodieSettings.geminiModel;
   const hasChanges = hasStudioChanges || hasMoodieChanges;
 
-  async function loadMoodieModels(showToast = false) {
+  const loadMoodieModels = useCallback(async (showToast = false) => {
     const overrideKey = moodieApiKeyInput.trim();
 
     if (!savedMoodieSettings.hasGeminiKey && !overrideKey) {
@@ -180,7 +160,7 @@ export default function StudioInfoForm({
     } finally {
       setIsLoadingMoodieModels(false);
     }
-  }
+  }, [moodieApiKeyInput, savedMoodieSettings.hasGeminiKey]);
 
   function handleSave() {
     if (!name.trim()) {
@@ -194,66 +174,16 @@ export default function StudioInfoForm({
     }
 
     startTransition(async () => {
-      const tasks: Array<() => Promise<SaveResult>> = [];
-
-      if (hasStudioChanges) {
-        tasks.push(() =>
-          updateStudioInfo(studioPayload).then((result): SaveResult =>
-            result.success
-              ? (() => {
-                  const publicStudioInfo = {
-                    ...result.data,
-                    google_oauth: null,
-                  };
-                  setSavedStudioInfo(result.data);
-                  void mutate(cacheKeys.studioInfo(), publicStudioInfo, { revalidate: false });
-                  void mutate(cacheKeys.settings(), publicStudioInfo, { revalidate: false });
-                  return { section: "Studio", success: true };
-                })()
-              : {
-                  section: "Thông tin studio",
-                  success: false,
-                  error: result.error || "Lỗi cập nhật",
-                },
-          ),
-        );
-      }
-
-      if (hasMoodieChanges) {
-        const nextModel = moodieGeminiModel.trim();
-        tasks.push(() =>
-          updateMoodieAiSettings({
-            gemini_api_key: moodieApiKeyInput.trim() || undefined,
-            gemini_model:
-              nextModel && nextModel !== savedMoodieSettings.geminiModel
-                ? nextModel
-                : undefined,
-          }).then((result): SaveResult =>
-            result.success
-              ? (() => {
-                  setSavedMoodieSettings((current) => ({
-                    ...current,
-                    hasGeminiKey: current.hasGeminiKey || moodieApiKeyInput.trim().length > 0,
-                    geminiModel: nextModel || current.geminiModel,
-                  }));
-                  return { section: "Moodie AI", success: true };
-                })()
-              : {
-                  section: "Moodie AI",
-                  success: false,
-                  error: result.error || "Lỗi cập nhật",
-                },
-          ),
-        );
-      }
-
-      const results: SaveResult[] = [];
-      for (const task of tasks) {
-        const result = await task();
-        results.push(result);
-        if (!result.success) break;
-      }
-      const failed = results.find((result) => !result.success);
+      const { failed } = await executeSaveTasks({
+        hasStudioChanges,
+        hasMoodieChanges,
+        studioPayload,
+        moodieApiKeyInput,
+        moodieGeminiModel,
+        savedMoodieSettings,
+        setSavedStudioInfo: (fn) => setSavedStudioInfo((prev) => fn(prev)),
+        setSavedMoodieSettings: (fn) => setSavedMoodieSettings((prev) => fn(prev)),
+      });
 
       if (failed) {
         toast.error(`${failed.section}: ${failed.error || "Không thể lưu"}`);
@@ -273,21 +203,13 @@ export default function StudioInfoForm({
     });
   }
 
-  const moodieCard = (
-    <MoodieAiCard
-      settings={savedMoodieSettings}
-      apiKeyInput={moodieApiKeyInput}
-      setApiKeyInput={setMoodieApiKeyInput}
-      geminiModel={moodieGeminiModel}
-      setGeminiModel={setMoodieGeminiModel}
-      modelOptions={moodieModelOptions}
-      modelSource={moodieModelSource}
-      modelMessage={moodieModelMessage}
-      isLoadingModels={isLoadingMoodieModels}
-      onRefreshModels={() => void loadMoodieModels(true)}
-      disabled={isPending}
-    />
-  );
+  const handleDisconnected = useCallback(() => {
+    setSavedStudioInfo((current) => ({ ...current, google_oauth: null }));
+  }, []);
+
+  const handleMutateSwr = useCallback(() => {
+    void mutate(cacheKeys.studioInfo());
+  }, []);
 
   const saveButton = (
     <Button
@@ -345,31 +267,45 @@ export default function StudioInfoForm({
         </div>
 
         <div className="detail-sidebar">
-          <GoogleCalendarCard
-            isConnected={!!savedStudioInfo.google_oauth}
-            grantedScopes={savedStudioInfo.google_oauth?.granted_scopes}
+          <StudioIntegrationCards
+            savedStudioInfo={savedStudioInfo}
+            savedMoodieSettings={savedMoodieSettings}
+            moodieApiKeyInput={moodieApiKeyInput}
+            setMoodieApiKeyInput={setMoodieApiKeyInput}
+            moodieGeminiModel={moodieGeminiModel}
+            setMoodieGeminiModel={setMoodieGeminiModel}
+            moodieModelOptions={moodieModelOptions}
+            moodieModelSource={moodieModelSource}
+            moodieModelMessage={moodieModelMessage}
+            isLoadingMoodieModels={isLoadingMoodieModels}
+            onRefreshModels={() => void loadMoodieModels(true)}
             onDisconnect={disconnectGoogleOAuth}
-            onDisconnected={() => {
-              setSavedStudioInfo((current) => ({ ...current, google_oauth: null }));
-              void mutate(cacheKeys.studioInfo());
-            }}
+            onDisconnected={handleDisconnected}
+            onMutateSwr={handleMutateSwr}
+            disabled={isPending}
           />
-          {moodieCard}
           {saveButton}
         </div>
       </div>
 
       <div className="lg:hidden flex flex-col gap-4">
-        <GoogleCalendarCard
-          isConnected={!!savedStudioInfo.google_oauth}
-          grantedScopes={savedStudioInfo.google_oauth?.granted_scopes}
+        <StudioIntegrationCards
+          savedStudioInfo={savedStudioInfo}
+          savedMoodieSettings={savedMoodieSettings}
+          moodieApiKeyInput={moodieApiKeyInput}
+          setMoodieApiKeyInput={setMoodieApiKeyInput}
+          moodieGeminiModel={moodieGeminiModel}
+          setMoodieGeminiModel={setMoodieGeminiModel}
+          moodieModelOptions={moodieModelOptions}
+          moodieModelSource={moodieModelSource}
+          moodieModelMessage={moodieModelMessage}
+          isLoadingMoodieModels={isLoadingMoodieModels}
+          onRefreshModels={() => void loadMoodieModels(true)}
           onDisconnect={disconnectGoogleOAuth}
-          onDisconnected={() => {
-            setSavedStudioInfo((current) => ({ ...current, google_oauth: null }));
-            void mutate(cacheKeys.studioInfo());
-          }}
+          onDisconnected={handleDisconnected}
+          onMutateSwr={handleMutateSwr}
+          disabled={isPending}
         />
-        {moodieCard}
         <div className="flex justify-end">{saveButton}</div>
       </div>
     </div>

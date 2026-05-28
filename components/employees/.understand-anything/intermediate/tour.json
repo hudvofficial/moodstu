@@ -1,0 +1,28 @@
+[
+    {
+        "title":  "Employee List Page",
+        "description":  "The main entry point for the employees module, displaying the data table and filters.",
+        "nodeIds":  [
+                        "file:employee-list-page.tsx"
+                    ],
+        "order":  1
+    },
+    {
+        "title":  "Employee Table and Filters",
+        "description":  "Components for rendering the list of employees and filtering them.",
+        "nodeIds":  [
+                        "file:employee-table.tsx",
+                        "file:employee-filters.tsx"
+                    ],
+        "order":  2
+    },
+    {
+        "title":  "Employee Detail",
+        "description":  "Components for viewing detailed information about an employee.",
+        "nodeIds":  [
+                        "file:employee-detail-page.tsx",
+                        "file:employee-detail-drawer.tsx"
+                    ],
+        "order":  3
+    }
+]

@@ -1,0 +1,35 @@
+{
+  "scriptCompleted": true,
+  "stats": {
+    "filesScanned": 10,
+    "filesWithImports": 3,
+    "totalEdges": 12
+  },
+  "importMap": {
+    "employee-card.tsx": [],
+    "employee-detail-drawer.tsx": [
+      "employee-form-modal.tsx",
+      "employee-info-card.tsx",
+      "employee-notes.tsx"
+    ],
+    "employee-detail-page.tsx": [
+      "employee-form-modal.tsx",
+      "employee-info-card.tsx",
+      "employee-notes.tsx"
+    ],
+    "employee-filters.tsx": [],
+    "employee-form-modal.tsx": [],
+    "employee-info-card.tsx": [],
+    "employee-list-page.tsx": [
+      "employee-card.tsx",
+      "employee-detail-drawer.tsx",
+      "employee-filters.tsx",
+      "employee-form-modal.tsx",
+      "employee-stats-bar.tsx",
+      "employee-table.tsx"
+    ],
+    "employee-notes.tsx": [],
+    "employee-stats-bar.tsx": [],
+    "employee-table.tsx": []
+  }
+}

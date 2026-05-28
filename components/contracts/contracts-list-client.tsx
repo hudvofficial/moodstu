@@ -26,13 +26,14 @@ import type { RealtimePayload } from "@/hooks/use-realtime";
 import { ContractsListSkeleton } from "@/components/contracts/contracts-list-skeleton";
 
 import { useContractFilters } from "@/hooks/useContractFilters";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  revalidateContractListCaches,
   useContracts,
   useContractStats,
   prefetchContract,
   prefetchContractDetail,
-} from "@/lib/hooks/use-contracts";
+  revalidateContractListCaches,
+} from "@/lib/hooks/use-contract-queries";
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
@@ -136,6 +137,7 @@ function ContractsListInner({
   initialStats,
 }: ContractsListClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     filters,
     isPending,
@@ -173,13 +175,13 @@ function ContractsListInner({
 
   // Pull-to-refresh callback
   usePullToRefreshCallback(async () => {
-    await revalidateContractListCaches();
-  }, []);
+    await revalidateContractListCaches(queryClient);
+  }, [queryClient]);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
   const handleContractRealtime = useCallback(() => {
-    void revalidateContractListCaches();
-  }, []);
+    void revalidateContractListCaches(queryClient);
+  }, [queryClient]);
 
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(
     () => [{ table: "contracts" }],
@@ -252,9 +254,9 @@ function ContractsListInner({
     (id: string) => {
       if (!id) return;
       router.prefetch(`/contracts/${id}`); // Route prefetch
-      prefetchContractDetail(id); // ⚡ Data prefetch - warm SWR cache
+      prefetchContractDetail(queryClient, id); // ⚡ Data prefetch - warm React Query cache
     },
-    [router],
+    [router, queryClient],
   );
 
   const handleEdit = useCallback(

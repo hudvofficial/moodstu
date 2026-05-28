@@ -1,0 +1,17 @@
+{
+    "nodeIds":  [
+                    "file:employee-card.tsx",
+                    "file:employee-detail-drawer.tsx",
+                    "file:employee-detail-page.tsx",
+                    "file:employee-filters.tsx",
+                    "file:employee-form-modal.tsx",
+                    "file:employee-info-card.tsx",
+                    "file:employee-list-page.tsx",
+                    "file:employee-notes.tsx",
+                    "file:employee-stats-bar.tsx",
+                    "file:employee-table.tsx"
+                ],
+    "description":  "React components for employees",
+    "name":  "UI Components",
+    "id":  "layer:components"
+}

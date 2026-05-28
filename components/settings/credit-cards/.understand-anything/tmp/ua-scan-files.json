@@ -1,0 +1,36 @@
+{
+  "scriptCompleted": true,
+  "files": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "credit-card-form-modal.tsx",
+      "language": "typescript",
+      "sizeLines": 250,
+      "fileCategory": "code"
+    },
+    {
+      "path": "credit-cards-client.tsx",
+      "language": "typescript",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 3,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "small",
+  "stats": {
+    "filesScanned": 3,
+    "byCategory": {
+      "code": 3
+    },
+    "byLanguage": {
+      "unknown": 1,
+      "typescript": 2
+    }
+  }
+}

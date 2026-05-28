@@ -25,6 +25,8 @@ export interface DressItem {
   current_stock: number | null;
   min_stock: number | null;
   image_url: string | null;
+  blur_hash: string | null;
+  blur_data_url: string | null;
   status: DressStatus | null;
   notes: string | null;
   created_at: string;

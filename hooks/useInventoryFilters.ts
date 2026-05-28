@@ -19,7 +19,7 @@ import type { TransactionFilters } from "@/types/inventory";
 // ── Default values ────────────────────────────────────────────
 const INVENTORY_FILTER_DEFAULTS = {
   // Tab state
-  tab:      "history", // "history" | "items" — default to transaction history
+  tab:      "history", // "history" | "items" | "approvals"
   // Inventory item filters
   status:   "all",     // "all" | "active" | "low_stock" | "out_of_stock" | "discontinued"
   q:        "",
@@ -35,7 +35,7 @@ const INVENTORY_FILTER_DEFAULTS = {
   txPage:     "1",
 } as const;
 
-export type InventoryTab = "history" | "items";
+export type InventoryTab = "history" | "items" | "approvals";
 
 // ── Hook ──────────────────────────────────────────────────────
 export function useInventoryFilters() {
@@ -43,7 +43,7 @@ export function useInventoryFilters() {
     useListFilters(INVENTORY_FILTER_DEFAULTS);
 
   // ── Tab ───────────────────────────────────────────────────────
-  const tab = (params.tab === "items" ? "items" : "history") as InventoryTab;
+  const tab = (["items", "history", "approvals"].includes(params.tab) ? params.tab : "history") as InventoryTab;
 
   const setTab = useCallback(
     (newTab: InventoryTab) => setParams({ tab: newTab, page: "1", txPage: "1" }),

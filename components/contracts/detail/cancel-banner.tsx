@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, RotateCcw, Loader2, ReceiptText } from "lucide-react";
@@ -20,7 +20,7 @@ import {
   invalidateFinanceAfterWrite,
   invalidatePrintingAfterWrite,
 } from "@/lib/cache-invalidation";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 import { toast } from "@/lib/toast-utils";
 

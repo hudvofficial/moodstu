@@ -1,0 +1,421 @@
+{
+  "batch": 23,
+  "description": "Contract Detail & Event Components (Part 2) - Tasks, Events, Notes, Gallery",
+  "generated_at": "2026-05-28",
+  "statistics": {
+    "total_files": 22,
+    "categories": {
+      "contracts_detail": 12,
+      "contracts_drawer": 4,
+      "contracts_gallery": 6
+    },
+    "total_components": 22,
+    "client_components": 20,
+    "summary": "Task management, event timeline, notes system, và gallery components"
+  },
+  "files": [
+    {
+      "file": "components/contracts/detail/event-timeline.tsx",
+      "category": "contracts_detail",
+      "component_name": "EventTimeline",
+      "type": "client",
+      "description": "Timeline hiển thị contract events chronologically với visual indicators",
+      "estimated_props": {
+        "events": "ContractEvent[]",
+        "onEventClick": "function",
+        "onAddEvent": "function"
+      },
+      "features": {
+        "timeline_layout": true,
+        "chronological_order": true,
+        "event_cards": true,
+        "add_event": true,
+        "date_grouping": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/add-event-modal.tsx",
+      "category": "contracts_detail",
+      "component_name": "AddEventModal",
+      "type": "client",
+      "description": "Modal form để thêm contract event mới",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["formData", "errors", "isPending"],
+      "features": {
+        "modal_form": true,
+        "date_time_picker": true,
+        "event_type_select": true,
+        "validation": true,
+        "server_action": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/event-task-modal.tsx",
+      "category": "contracts_detail",
+      "component_name": "EventTaskModal",
+      "type": "client",
+      "description": "Modal hiển thị chi tiết event/task với edit capabilities",
+      "estimated_props": {
+        "eventOrTask": "ContractEvent | WorkTask",
+        "isOpen": "boolean",
+        "onClose": "function",
+        "onSave": "function"
+      },
+      "features": {
+        "modal": true,
+        "edit_mode": true,
+        "type_detection": true,
+        "form_fields": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/task-list-panel.tsx",
+      "category": "contracts_detail",
+      "component_name": "TaskListPanel",
+      "type": "client",
+      "description": "Panel hiển thị work tasks với filtering và status management",
+      "hooks": ["useState", "useWorkTasks"],
+      "state_variables": ["filterStatus"],
+      "features": {
+        "task_list": true,
+        "status_filter": true,
+        "inline_edit": true,
+        "add_task": true,
+        "drag_drop": true,
+        "status_badges": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/workflow-stepper.tsx",
+      "category": "contracts_detail",
+      "component_name": "WorkflowStepper",
+      "type": "client",
+      "description": "Visual stepper hiển thị workflow progress của contract",
+      "estimated_props": {
+        "currentStep": "number",
+        "steps": "WorkflowStep[]",
+        "onStepClick": "function"
+      },
+      "features": {
+        "stepper_ui": true,
+        "progress_indicator": true,
+        "clickable_steps": true,
+        "status_icons": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/notes-timeline.tsx",
+      "category": "contracts_detail",
+      "component_name": "NotesTimeline",
+      "type": "client",
+      "description": "Timeline hiển thị contract notes với author và timestamps",
+      "hooks": ["useContractNotes"],
+      "features": {
+        "timeline_layout": true,
+        "rich_text": true,
+        "author_info": true,
+        "timestamps": true,
+        "add_note": true,
+        "edit_delete": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/quick-note-modal.tsx",
+      "category": "contracts_detail",
+      "component_name": "QuickNoteModal",
+      "type": "client",
+      "description": "Quick modal để thêm note nhanh vào contract",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["content", "isPending"],
+      "features": {
+        "modal": true,
+        "textarea": true,
+        "quick_save": true,
+        "keyboard_shortcut": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/quick-actions-grid.tsx",
+      "category": "contracts_detail",
+      "component_name": "QuickActionsGrid",
+      "type": "client",
+      "description": "Grid các quick action buttons cho contract operations",
+      "estimated_props": {
+        "contractId": "string",
+        "actions": "QuickAction[]"
+      },
+      "features": {
+        "grid_layout": true,
+        "icon_buttons": true,
+        "action_handlers": true,
+        "responsive": true
+      },
+      "actions": ["add_event", "add_note", "add_receipt", "view_gallery", "print"]
+    },
+    {
+      "file": "components/contracts/detail/mobile-tab-nav.tsx",
+      "category": "contracts_detail",
+      "component_name": "MobileTabNav",
+      "type": "client",
+      "description": "Mobile-optimized tab navigation cho contract detail",
+      "estimated_props": {
+        "activeTab": "string",
+        "onTabChange": "function",
+        "tabs": "Tab[]"
+      },
+      "features": {
+        "mobile_optimized": true,
+        "sticky_nav": true,
+        "swipe_support": true,
+        "badge_counts": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/mobile-bottom-bar.tsx",
+      "category": "contracts_detail",
+      "component_name": "MobileBottomBar",
+      "type": "client",
+      "description": "Bottom bar cho mobile với primary actions",
+      "estimated_props": {
+        "actions": "BottomAction[]",
+        "onAction": "function"
+      },
+      "features": {
+        "bottom_bar": true,
+        "safe_area": true,
+        "action_buttons": true,
+        "mobile_only": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/detail-layout-sections.tsx",
+      "category": "contracts_detail",
+      "component_name": "DetailLayoutSections",
+      "type": "client",
+      "description": "Layout wrapper cho detail page sections với responsive grid",
+      "estimated_props": {
+        "sections": "ReactNode[]",
+        "layout": "grid | stack"
+      },
+      "features": {
+        "responsive_grid": true,
+        "section_wrapper": true,
+        "layout_variants": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/contract-actions-menu.tsx",
+      "category": "contracts_detail",
+      "component_name": "ContractActionsMenu",
+      "type": "client",
+      "description": "Dropdown menu với contract actions (edit, delete, export, etc)",
+      "hooks": ["useState"],
+      "state_variables": ["isOpen"],
+      "features": {
+        "dropdown_menu": true,
+        "action_items": true,
+        "icons": true,
+        "confirmation_dialogs": true
+      },
+      "actions": ["edit", "duplicate", "export_pdf", "cancel_contract", "delete"]
+    },
+    {
+      "file": "components/contracts/drawer-tab-content.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerContent",
+      "type": "client",
+      "description": "Tab content component cho contract drawer với events, checklists, tasks tabs",
+      "estimated_props": {
+        "activeTab": "string",
+        "events": "DrawerEvent[]",
+        "checklists": "DrawerChecklist[]",
+        "workTasks": "DrawerWorkTask[]",
+        "paymentPlans": "any[]"
+      },
+      "features": {
+        "tab_switching": true,
+        "lazy_loading": true,
+        "empty_states": true,
+        "item_lists": true
+      },
+      "tabs": ["events", "checklist", "tasks", "payments"]
+    },
+    {
+      "file": "components/contracts/drawer-notes.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerNotes",
+      "type": "client",
+      "description": "Notes section trong contract drawer",
+      "estimated_props": {
+        "contractId": "string",
+        "notes": "ContractNote[]"
+      },
+      "features": {
+        "note_list": true,
+        "add_note": true,
+        "inline_display": true
+      }
+    },
+    {
+      "file": "components/contracts/drawer-checklist.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerChecklist",
+      "type": "client",
+      "description": "Checklist section trong contract drawer với compact view",
+      "estimated_props": {
+        "items": "DrawerChecklist[]",
+        "onToggle": "function"
+      },
+      "features": {
+        "compact_list": true,
+        "checkbox": true,
+        "progress_bar": true
+      }
+    },
+    {
+      "file": "components/contracts/drawer-assignments.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerAssignments",
+      "type": "client",
+      "description": "Assignments section trong drawer hiển thị assigned employees",
+      "estimated_props": {
+        "assignments": "Assignment[]"
+      },
+      "features": {
+        "employee_list": true,
+        "avatar_display": true,
+        "role_badges": true
+      }
+    },
+    {
+      "file": "components/contracts/drawer-event-timeline.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerEventTimeline",
+      "type": "client",
+      "description": "Compact event timeline cho drawer view",
+      "estimated_props": {
+        "events": "DrawerEvent[]",
+        "compact": "boolean"
+      },
+      "features": {
+        "compact_timeline": true,
+        "date_markers": true,
+        "event_badges": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/costumes-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "CostumesBlock",
+      "type": "client",
+      "description": "Block quản lý costume/dress reservations cho wedding contracts",
+      "estimated_props": {
+        "contractId": "string",
+        "costumes": "Costume[]"
+      },
+      "features": {
+        "costume_list": true,
+        "reservation_status": true,
+        "add_costume": true,
+        "image_display": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/dress-reservation-form.tsx",
+      "category": "contracts_detail",
+      "component_name": "DressReservationForm",
+      "type": "client",
+      "description": "Form để đặt dress/costume reservations",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["formData", "errors"],
+      "features": {
+        "form": true,
+        "date_picker": true,
+        "dress_selection": true,
+        "size_input": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/print-orders-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "PrintOrdersBlock",
+      "type": "client",
+      "description": "Block quản lý print orders cho photo/album printing",
+      "estimated_props": {
+        "contractId": "string",
+        "printOrders": "PrintOrder[]"
+      },
+      "features": {
+        "order_list": true,
+        "status_tracking": true,
+        "add_order": true,
+        "quantity_display": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/printing-order-form.tsx",
+      "category": "contracts_detail",
+      "component_name": "PrintingOrderForm",
+      "type": "client",
+      "description": "Form tạo printing orders với specifications",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["formData", "quantity", "specs"],
+      "features": {
+        "form": true,
+        "quantity_input": true,
+        "specs_options": true,
+        "price_calculation": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/gallery-grid.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryGrid",
+      "type": "client",
+      "description": "Grid layout cho contract photo gallery với masonry style",
+      "estimated_props": {
+        "images": "GalleryImage[]",
+        "onImageClick": "function"
+      },
+      "features": {
+        "masonry_grid": true,
+        "lazy_loading": true,
+        "lightbox": true,
+        "responsive": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/gallery-stats.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryStats",
+      "type": "client",
+      "description": "Stats display cho gallery (total photos, albums, etc)",
+      "estimated_props": {
+        "totalPhotos": "number",
+        "totalAlbums": "number",
+        "storageUsed": "number"
+      },
+      "features": {
+        "stat_cards": true,
+        "icon_display": true,
+        "formatted_values": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/files-drive-placeholder.tsx",
+      "category": "contracts_detail",
+      "component_name": "FilesDrivePlaceholder",
+      "type": "client",
+      "description": "Placeholder component cho Google Drive integration section",
+      "estimated_props": {
+        "onConnect": "function"
+      },
+      "features": {
+        "empty_state": true,
+        "call_to_action": true,
+        "integration_info": true
+      }
+    }
+  ]
+}

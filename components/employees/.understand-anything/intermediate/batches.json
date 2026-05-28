@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 10,
+  "totalBatches": 1,
+  "exportsByPath": {
+    "employee-card.tsx": [
+      "EmployeeCard"
+    ],
+    "employee-detail-drawer.tsx": [
+      "EmployeeDetailDrawer"
+    ],
+    "employee-detail-page.tsx": [
+      "EmployeeDetailPage"
+    ],
+    "employee-filters.tsx": [
+      "EmployeeFilters"
+    ],
+    "employee-form-modal.tsx": [
+      "EmployeeFormModal"
+    ],
+    "employee-info-card.tsx": [
+      "EmployeeInfoCard"
+    ],
+    "employee-list-page.tsx": [
+      "EmployeeListPage"
+    ],
+    "employee-notes.tsx": [
+      "EmployeeNotes"
+    ],
+    "employee-stats-bar.tsx": [
+      "EmployeeStatsBar"
+    ],
+    "employee-table.tsx": [
+      "EmployeeTable"
+    ]
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": "employee-card.tsx",
+          "language": "typescript",
+          "sizeLines": 84,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-detail-drawer.tsx",
+          "language": "typescript",
+          "sizeLines": 366,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-detail-page.tsx",
+          "language": "typescript",
+          "sizeLines": 213,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-filters.tsx",
+          "language": "typescript",
+          "sizeLines": 136,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-form-modal.tsx",
+          "language": "typescript",
+          "sizeLines": 230,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-info-card.tsx",
+          "language": "typescript",
+          "sizeLines": 48,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-list-page.tsx",
+          "language": "typescript",
+          "sizeLines": 217,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-notes.tsx",
+          "language": "typescript",
+          "sizeLines": 87,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-stats-bar.tsx",
+          "language": "typescript",
+          "sizeLines": 27,
+          "fileCategory": "code"
+        },
+        {
+          "path": "employee-table.tsx",
+          "language": "typescript",
+          "sizeLines": 99,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        "employee-card.tsx": [],
+        "employee-detail-drawer.tsx": [],
+        "employee-detail-page.tsx": [],
+        "employee-filters.tsx": [],
+        "employee-form-modal.tsx": [],
+        "employee-info-card.tsx": [],
+        "employee-list-page.tsx": [],
+        "employee-notes.tsx": [],
+        "employee-stats-bar.tsx": [],
+        "employee-table.tsx": []
+      },
+      "neighborMap": {}
+    }
+  ]
+}

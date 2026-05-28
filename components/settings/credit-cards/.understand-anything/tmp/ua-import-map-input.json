@@ -1,0 +1,20 @@
+{
+  "projectRoot": "c:/Users/Admin/Desktop/Ai/mood saas/mood-studio/components/settings/credit-cards",
+  "files": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "fileCategory": "code"
+    },
+    {
+      "path": "credit-card-form-modal.tsx",
+      "language": "typescript",
+      "fileCategory": "code"
+    },
+    {
+      "path": "credit-cards-client.tsx",
+      "language": "typescript",
+      "fileCategory": "code"
+    }
+  ]
+}

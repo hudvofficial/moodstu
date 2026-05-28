@@ -49,6 +49,11 @@ const CONDITION_OPTIONS = DRESS_CONDITIONS.map((c) => ({
   label: DRESS_CONDITION_MAP[c],
 }));
 
+const CATEGORY_OPTIONS = DRESS_CATEGORIES.map((c) => ({
+  value: c,
+  label: DRESS_CATEGORY_MAP[c].label,
+}));
+
 // Category → Lucide icon map (ENUM keys — V1 ref: mỗi loại có icon riêng)
 const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   vay_cuoi: Shirt,
@@ -241,28 +246,13 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
             />
           </div>
 
-          {/* Category chips */}
-          <div>
-              <label className="label-base mb-1.5">Phân loại</label>
-              <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5">
-                {DRESS_CATEGORIES.map((cat) => (
-                <Button
-                  key={cat}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => update({ category: cat })}
-                  className={`flex flex-col items-center gap-0.5 !p-2 rounded-lg text-caption font-semibold transition-all ${
-                    form.category === cat
-                      ? "bg-primary/10 text-primary ring-1 ring-primary"
-                      : "bg-bg-hover text-text-muted hover:bg-bg-secondary"
-                  }`}>
-                  {(() => { const Icon = CATEGORY_ICON_MAP[cat] || Shapes; return <Icon size={16} />; })()}
-                  {DRESS_CATEGORY_MAP[cat].label}
-                </Button>
-              ))}
-            </div>
-          </div>
+          {/* Category Select */}
+          <SelectForm
+            label="Phân loại"
+            value={form.category}
+            onChange={(v) => update({ category: v })}
+            options={CATEGORY_OPTIONS}
+          />
 
           {/* Fix #7: form-grid-2col — Code + Color */}
           <div className="form-grid-2col">

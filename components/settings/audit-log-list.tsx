@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { fetchAuditLogs } from "@/app/actions/audit-log-actions";
+import { toast } from "@/lib/toast-manager";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SelectPill } from "@/components/ui/select/SelectPill";
@@ -91,6 +92,8 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
         const { logs: newLogs, total: newTotal } = result.data as { logs: AuditLog[]; total: number };
         setLogs(newLogs);
         setTotal(newTotal);
+      } else if (!result.success) {
+        toast.error(result.error || "Không thể tải nhật ký hoạt động");
       }
     });
   }, [typeFilter]);
@@ -104,6 +107,8 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
         const { logs: newLogs, total: newTotal } = result.data as { logs: AuditLog[]; total: number };
         setLogs(newLogs);
         setTotal(newTotal);
+      } else if (!result.success) {
+        toast.error(result.error || "Không thể tải nhật ký hoạt động");
       }
     });
   }, []);

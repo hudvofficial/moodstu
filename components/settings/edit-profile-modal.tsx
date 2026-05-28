@@ -62,6 +62,21 @@ export default function EditProfileModal({
     };
   }, [avatarPreview]);
 
+  // Reset form state when modal opens with latest profile data
+  useEffect(() => {
+    if (isOpen) {
+      setName(profile.full_name || "");
+      setPhone(profile.phone || "");
+      setGender(profile.gender || "");
+      setDepartment(profile.department || "");
+      setPosition(profile.position || "");
+      setAvatarFile(null);
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reset on open
+  }, [isOpen]);
+
   function handleSave() {
     if (!name.trim()) {
       toast.error("Tên không được để trống");
@@ -81,35 +96,38 @@ export default function EditProfileModal({
         nextAvatarUrl = avatarResult.data.url;
       }
 
-      const result = await updateProfile({
+      const profilePromise = updateProfile({
         full_name: name.trim(),
         phone,
         gender,
       });
+
+      const deptChanged = department !== (profile.department || "");
+      const posChanged = position !== (profile.position || "");
+      const needsAdminUpdate =
+        canManageSettings && profile.id && (deptChanged || posChanged);
+
+      const adminPromise = needsAdminUpdate
+        ? updateAdminProfileFields({
+            employee_id: profile.id,
+            department,
+            position,
+          })
+        : null;
+
+      const [result, adminResult] = await Promise.all([
+        profilePromise,
+        adminPromise,
+      ]);
 
       if (!result.success) {
         toast.error(result.error || "Lỗi cập nhật");
         return;
       }
 
-      if (canManageSettings && profile.id) {
-        const deptChanged = department !== (profile.department || "");
-        const posChanged = position !== (profile.position || "");
-
-        if (deptChanged || posChanged) {
-          const adminResult = await updateAdminProfileFields({
-            employee_id: profile.id,
-            department,
-            position,
-          });
-
-          if (!adminResult.success) {
-            toast.error(
-              adminResult.error || "Lỗi cập nhật phòng ban/chức vụ",
-            );
-            return;
-          }
-        }
+      if (adminResult && !adminResult.success) {
+        toast.error(adminResult.error || "Lỗi cập nhật phòng ban/chức vụ");
+        return;
       }
 
       toast.success("Đã cập nhật hồ sơ");

@@ -1,0 +1,180 @@
+{
+  "batch": 36,
+  "description": "Types - Phần 1: Action result, Addon, Calendar, Common, Contract types",
+  "files": [
+    {
+      "path": "types/action-result.ts",
+      "type": "type-definition",
+      "purpose": "Generic action result type với success/error pattern",
+      "keyFeatures": [
+        "Type generic ActionResult<T> cho success/error responses",
+        "Success case có data: T",
+        "Error case có error: string",
+        "Pattern chuẩn cho server actions"
+      ],
+      "exports": ["ActionResult"],
+      "dependencies": [],
+      "notes": "SSOT cho action result pattern trong toàn bộ app"
+    },
+    {
+      "path": "types/addon-history.ts",
+      "type": "type-definition",
+      "purpose": "Addon history types cho autocomplete và price suggestions",
+      "keyFeatures": [
+        "AddonCategory enum: makeup, trang_phuc, phu_kien, them_gio, khac",
+        "AddonHistory interface với usage tracking",
+        "AddonSuggestion interface cho autocomplete",
+        "Last price và usage count tracking"
+      ],
+      "exports": ["AddonCategory", "AddonHistory", "AddonSuggestion"],
+      "databaseTables": ["addon_history"],
+      "businessLogic": "Track previously used addons để suggest trong contract form",
+      "notes": "Phase 00 migration feature - addon autocomplete với price history"
+    },
+    {
+      "path": "types/calendar.types.ts",
+      "type": "type-definition",
+      "purpose": "Unified calendar event types cho schedules, tasks, và Google events",
+      "keyFeatures": [
+        "UnifiedCalendarEvent interface - thống nhất 3 nguồn data",
+        "Source types: schedule, task, google",
+        "Grouping logic với groupKey format: {contractId}_{ISO_Date}",
+        "Color token system cho styling",
+        "Google event integration fields"
+      ],
+      "exports": ["UnifiedCalendarEvent", "CalendarViewMode"],
+      "integration": {
+        "internal": ["schedules", "work_tasks"],
+        "external": ["Google Calendar API"]
+      },
+      "notes": "Unified calendar data structure - SSOT cho calendar view"
+    },
+    {
+      "path": "types/common.ts",
+      "type": "type-definition",
+      "purpose": "Common ActionResult type (duplicate của action-result.ts)",
+      "keyFeatures": [
+        "Same ActionResult<T> type",
+        "Success/error pattern"
+      ],
+      "exports": ["ActionResult"],
+      "notes": "Duplicate - nên consolidate về action-result.ts"
+    },
+    {
+      "path": "types/contract-constants.ts",
+      "type": "constants",
+      "purpose": "Contract display constants - map DB ENUMs sang Vietnamese labels",
+      "keyFeatures": [
+        "CONTRACT_STATUS_MAP: DB snake_case → Vietnamese với variants",
+        "SERVICE_TYPE_MAP: Service types với icons",
+        "PAYMENT_STATUS_MAP, PAYMENT_METHOD_MAP, PAYMENT_STAGE_MAP",
+        "EVENT_TYPE_MAP: Event types với colors và order",
+        "WORK_TYPE_MAP, TASK_STATUS_MAP",
+        "Normalize và label helper functions",
+        "Payment stage normalization logic"
+      ],
+      "exports": [
+        "CONTRACT_STATUS_MAP",
+        "SERVICE_TYPE_MAP",
+        "PAYMENT_STATUS_MAP",
+        "EVENT_TYPE_MAP",
+        "WORK_TYPE_MAP",
+        "TASK_STATUS_MAP",
+        "PAYMENT_METHOD_MAP",
+        "PAYMENT_STAGE_MAP",
+        "ITEM_TYPE_MAP",
+        "Helper functions cho labels"
+      ],
+      "designPattern": "Display layer mapping - DB stores snake_case, UI shows Vietnamese",
+      "notes": "SSOT cho tất cả contract-related display labels - Lesson #65 implementation"
+    },
+    {
+      "path": "types/contract-form.ts",
+      "type": "type-definition",
+      "purpose": "Contract form types riêng biệt với DB types",
+      "keyFeatures": [
+        "ContractFormData: Main contract form fields",
+        "ContractItemFormData: Item form với _tempId tracking",
+        "ContractPaymentFormData: Payment form (CREATE mode only)",
+        "ContractFinancials: Calculated totals",
+        "SelectedCustomer: Customer display info với couple details",
+        "ContractEditData: Pre-fill data cho edit mode",
+        "Helper functions: showCoupleFields, workDateLabel",
+        "SERVICE_TYPE_GROUPS: Grouped dropdown UI"
+      ],
+      "exports": [
+        "ContractFormMode",
+        "ItemModalMode",
+        "ContractFormData",
+        "ContractItemFormData",
+        "ContractPaymentFormData",
+        "ContractFinancials",
+        "SelectedCustomer",
+        "ContractEditData",
+        "WEDDING_SERVICE_TYPES",
+        "SERVICE_TYPE_LABELS",
+        "SERVICE_TYPE_GROUPS"
+      ],
+      "separation": "Form types tách biệt với DB types để keep concerns clean",
+      "notes": "Form-specific types - useContractForm orchestrator pattern"
+    },
+    {
+      "path": "types/contract.ts",
+      "type": "type-definition",
+      "purpose": "Contract module core types - DB schema types",
+      "keyFeatures": [
+        "Core ENUMs: ContractStatus, ServiceType, PaymentStatus, EventType, WorkType, TaskStatus",
+        "Contract interface: Main contracts table",
+        "ContractItem: contract_items table",
+        "ContractEvent: contract_events table với Google sync",
+        "WorkTask: work_tasks table với vendor support",
+        "ContractChecklist: contract_checklists table",
+        "Payment: payments table",
+        "ContractFilters: URL param synced filters",
+        "ContractStats: Dashboard stats",
+        "DressReservationRow, PrintingOrder: Sidebar types",
+        "PaymentPlan, PaymentPlanAllocation: Phase 00B payment plans"
+      ],
+      "exports": [
+        "Contract",
+        "ContractItem",
+        "ContractEvent",
+        "WorkTask",
+        "ContractChecklist",
+        "Payment",
+        "ContractFilters",
+        "ContractStats",
+        "DressReservationRow",
+        "PrintingOrder",
+        "PaymentPlan",
+        "PaymentPlanAllocation",
+        "All ENUM types"
+      ],
+      "databaseTables": [
+        "contracts",
+        "contract_items",
+        "contract_events",
+        "work_tasks",
+        "contract_checklists",
+        "payments",
+        "payment_plans",
+        "payment_plan_allocations"
+      ],
+      "designPattern": "V2 snake_case ENUM pattern - Lesson #65, #66",
+      "notes": "Core contract module types - SSOT cho contract domain"
+    }
+  ],
+  "summary": {
+    "totalFiles": 7,
+    "categories": {
+      "types": 7
+    },
+    "keyPatterns": [
+      "ActionResult success/error pattern",
+      "DB ENUM → Vietnamese display mapping",
+      "Form types tách biệt DB types",
+      "Unified calendar event structure",
+      "Payment plan tracking system"
+    ]
+  }
+}

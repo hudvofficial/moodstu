@@ -24,8 +24,8 @@ import type { ContractStatus } from "@/types/contract";
 import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkTask } from "./drawer-tab-content";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
-import { mutate } from "swr";
-import { prefetchContractDetail, useContractDrawerExtra, contractKeys } from "@/lib/hooks/use-contracts";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchContractDetail, useContractDrawerExtra, contractKeys } from "@/lib/hooks/use-contract-queries";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -77,16 +77,17 @@ export function ContractDrawer({
   onClose,
 }: ContractDrawerProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const contractId = contract?.id || null;
   const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
     useContractDrawerExtra(isOpen ? contractId : null);
 
   const handleDrawerRealtime = useCallback(() => {
     if (contractId) {
-      void mutate(contractKeys.drawerExtra(contractId));
-      void mutate(contractKeys.detail(contractId));
+      void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) });
+      void queryClient.invalidateQueries({ queryKey: contractKeys.detail(contractId) });
     }
-  }, [contractId]);
+  }, [contractId, queryClient]);
 
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(() => {
     if (!contractId || !isOpen) return [];
@@ -111,8 +112,8 @@ export function ContractDrawer({
 
     router.prefetch(`/contracts/${contractId}`);
     router.prefetch(`/contracts/${contractId}/edit`);
-    prefetchContractDetail(contractId); // ⚡ Warm SWR cache before navigation
-  }, [contractId, isOpen, router]);
+    prefetchContractDetail(queryClient, contractId); // ⚡ Warm React Query cache before navigation
+  }, [contractId, isOpen, router, queryClient]);
 
   const contractCode = contract?.contract_code || "...";
 
@@ -183,19 +184,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { updateContractStatus } from "@/app/actions/contract-mutations";
 import { SelectStatus } from "@/components/ui/select/SelectStatus";
-import { updateContractStatusCache } from "@/lib/hooks/use-contracts";
+import { updateContractStatusCache } from "@/lib/hooks/use-contract-queries";
 
-function ContractStatusBadge({ 
-  contractId, 
+function ContractStatusBadge({
+  contractId,
   currentStatus,
   remainingAmount = 0,
   unfinishedTasksCount = 0
-}: { 
-  contractId: string | null; 
+}: {
+  contractId: string | null;
   currentStatus: string;
   remainingAmount?: number;
   unfinishedTasksCount?: number;
 }) {
+  const queryClient = useQueryClient();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
 
   useEffect(() => {
@@ -256,7 +258,7 @@ function ContractStatusBadge({
         try {
           setOptimisticStatus(newStatus as ContractStatus);
           await updateContractStatus(contractId, newStatus as ContractStatus);
-          updateContractStatusCache(contractId, newStatus as ContractStatus);
+          updateContractStatusCache(queryClient, contractId, newStatus as ContractStatus);
           toast.success("Đã cập nhật trạng thái hợp đồng");
         } catch (error: any) {
           setOptimisticStatus(currentStatus);

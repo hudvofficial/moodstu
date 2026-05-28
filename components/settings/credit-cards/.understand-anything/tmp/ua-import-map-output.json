@@ -1,0 +1,15 @@
+{
+  "scriptCompleted": true,
+  "stats": {
+    "filesScanned": 3,
+    "filesWithImports": 1,
+    "totalEdges": 1
+  },
+  "importMap": {
+    ".understand-anything/.understandignore": [],
+    "credit-card-form-modal.tsx": [],
+    "credit-cards-client.tsx": [
+      "credit-card-form-modal.tsx"
+    ]
+  }
+}

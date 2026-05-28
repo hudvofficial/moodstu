@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { toast } from "@/lib/toast-manager";
 import { Trash2 } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
@@ -18,14 +18,12 @@ interface CreditCardFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: CreditCardOption | null;
-  onSuccess: () => Promise<void> | void;
 }
 
 export default function CreditCardFormModal({
   isOpen,
   onClose,
   initialData,
-  onSuccess,
 }: CreditCardFormModalProps) {
   const isEditing = !!initialData;
   const [isPending, startTransition] = useTransition();
@@ -41,6 +39,24 @@ export default function CreditCardFormModal({
   const [creditLimit, setCreditLimit] = useState<number | null>(
     initialData?.credit_limit ?? null,
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      setBankName(initialData?.bank_name || "");
+      setLast4(initialData?.last_4 || "");
+      setStatementDay(initialData?.statement_day || 10);
+      setDueDay(initialData?.due_day || 25);
+      setCreditLimit(initialData?.credit_limit ?? null);
+    }
+  }, [isOpen, initialData]);
+
+  const clampDay = (val: string | number) => {
+    if (!val && val !== 0) return "";
+    const num = Number(val);
+    if (num < 1) return 1;
+    if (num > 31) return 31;
+    return num;
+  };
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -84,7 +100,6 @@ export default function CreditCardFormModal({
         }
 
         onClose();
-        void onSuccess();
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -117,7 +132,6 @@ export default function CreditCardFormModal({
         }
         toast.success("Đã xóa thẻ");
         onClose();
-        void onSuccess();
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -213,6 +227,7 @@ export default function CreditCardFormModal({
               onChange={(event) =>
                 setStatementDay(event.target.value.replace(/\D/g, "").slice(0, 2))
               }
+              onBlur={(event) => setStatementDay(clampDay(event.target.value))}
               required
             />
           </div>
@@ -229,6 +244,7 @@ export default function CreditCardFormModal({
               onChange={(event) =>
                 setDueDay(event.target.value.replace(/\D/g, "").slice(0, 2))
               }
+              onBlur={(event) => setDueDay(clampDay(event.target.value))}
               required
             />
           </div>

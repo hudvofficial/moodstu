@@ -1,0 +1,114 @@
+{
+  "nodes": [
+    {
+      "id": "config:.understand-anything/.understandignore",
+      "type": "config",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Understand-Anything plugin ignore file for credit-cards module.",
+      "tags": [
+        "configuration",
+        "ignore",
+        "build-system"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:credit-card-form-modal.tsx",
+      "type": "file",
+      "name": "credit-card-form-modal.tsx",
+      "filePath": "credit-card-form-modal.tsx",
+      "summary": "Modal component for creating and editing credit cards with form validation.",
+      "tags": [
+        "component",
+        "modal",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:credit-card-form-modal.tsx:CreditCardFormModal",
+      "type": "function",
+      "name": "CreditCardFormModal",
+      "filePath": "credit-card-form-modal.tsx",
+      "lineRange": [
+        24,
+        250
+      ],
+      "summary": "React component rendering the credit card form inside a modal.",
+      "tags": [
+        "component",
+        "modal",
+        "form"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:credit-cards-client.tsx",
+      "type": "file",
+      "name": "credit-cards-client.tsx",
+      "filePath": "credit-cards-client.tsx",
+      "summary": "Client component listing credit cards and managing the modal state.",
+      "tags": [
+        "component",
+        "list",
+        "client"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:credit-cards-client.tsx:CreditCardsClient",
+      "type": "function",
+      "name": "CreditCardsClient",
+      "filePath": "credit-cards-client.tsx",
+      "lineRange": [
+        12,
+        126
+      ],
+      "summary": "React client component displaying a list of credit cards and a button to add new ones.",
+      "tags": [
+        "component",
+        "list",
+        "client"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:credit-cards-client.tsx",
+      "target": "file:credit-card-form-modal.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:credit-card-form-modal.tsx",
+      "target": "function:credit-card-form-modal.tsx:CreditCardFormModal",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:credit-card-form-modal.tsx",
+      "target": "function:credit-card-form-modal.tsx:CreditCardFormModal",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:credit-cards-client.tsx",
+      "target": "function:credit-cards-client.tsx:CreditCardsClient",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:credit-cards-client.tsx",
+      "target": "function:credit-cards-client.tsx:CreditCardsClient",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

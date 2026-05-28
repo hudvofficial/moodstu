@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "louvain",
+  "totalFiles": 3,
+  "totalBatches": 1,
+  "exportsByPath": {
+    ".understand-anything/.understandignore": [],
+    "credit-card-form-modal.tsx": [
+      "CreditCardFormModal"
+    ],
+    "credit-cards-client.tsx": [
+      "CreditCardsClient"
+    ]
+  },
+  "batches": [
+    {
+      "batchIndex": 1,
+      "files": [
+        {
+          "path": ".understand-anything/.understandignore",
+          "language": "unknown",
+          "sizeLines": 13,
+          "fileCategory": "code"
+        },
+        {
+          "path": "credit-card-form-modal.tsx",
+          "language": "typescript",
+          "sizeLines": 250,
+          "fileCategory": "code"
+        },
+        {
+          "path": "credit-cards-client.tsx",
+          "language": "typescript",
+          "sizeLines": 126,
+          "fileCategory": "code"
+        }
+      ],
+      "batchImportData": {
+        ".understand-anything/.understandignore": [],
+        "credit-card-form-modal.tsx": [],
+        "credit-cards-client.tsx": [
+          "credit-card-form-modal.tsx"
+        ]
+      },
+      "neighborMap": {}
+    }
+  ]
+}

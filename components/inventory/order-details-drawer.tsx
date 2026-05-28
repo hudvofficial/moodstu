@@ -11,15 +11,18 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import type { InventoryTransaction } from "@/types/inventory";
 import { CURRENCY_SYMBOL } from "@/lib/utils";
 import { useOrderFulfillments } from "@/lib/hooks/use-order-fulfillments";
-import { addFulfillmentTransaction } from "@/app/actions/inventory-mutations";
+import { addFulfillmentTransaction, requestFulfillmentAction } from "@/app/actions/inventory-mutations";
 import { toast } from "sonner";
 import { fetchInventoryForSale, type InventorySaleOption } from "@/app/actions/inventory-queries";
 import { useEffect } from "react";
+import { UnifiedModal } from "@/components/ui/unified-modal";
+import { Input } from "@/components/ui/input";
 
 interface OrderDetailsDrawerProps {
   txn: InventoryTransaction | null;
   isOpen: boolean;
   onClose: () => void;
+  userRole?: string;
 }
 
 function fmt(value: number | null | undefined) {
@@ -30,6 +33,7 @@ export function OrderDetailsDrawer({
   txn,
   isOpen,
   onClose,
+  userRole = "viewer"
 }: OrderDetailsDrawerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -41,6 +45,11 @@ export function OrderDetailsDrawer({
   const [items, setItems] = useState<InventorySaleOption[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [showAllFulfillments, setShowAllFulfillments] = useState(true);
+
+  // Hybrid Approval states
+  const [actionItem, setActionItem] = useState<{ id: string, type: "delete_fulfillment" | "update_fulfillment" } | null>(null);
+  const [reason, setReason] = useState("");
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   const { fulfillments, isLoading, mutate } = useOrderFulfillments(txn?.id);
 
@@ -109,6 +118,45 @@ export function OrderDetailsDrawer({
         toast.error(err.message || "Đã có lỗi xảy ra");
       }
     });
+  };
+
+  const handleActionConfirm = async () => {
+    if (!actionItem) return;
+    const isDirect = userRole === "admin" || userRole === "manager";
+    
+    if (!isDirect && !reason.trim()) {
+      toast.error("Vui lòng nhập lý do");
+      return;
+    }
+
+    setIsSubmittingAction(true);
+    try {
+      const res = await requestFulfillmentAction({
+        target_id: actionItem.id,
+        action_type: actionItem.type,
+        reason: isDirect ? "Direct action" : reason.trim(),
+        payload: actionItem.type === "update_fulfillment" ? { 
+          // For MVP Edit, we don't implement full form here, just a placeholder. 
+        } : undefined
+      });
+      
+      if (!res.success) {
+        throw new Error(res.error || "Lỗi xử lý yêu cầu");
+      }
+
+      if (res.data?.direct) {
+        toast.success(actionItem.type === "delete_fulfillment" ? "Xoá phát sinh thành công" : "Cập nhật thành công");
+      } else {
+        toast.success("Đã gửi yêu cầu chờ duyệt");
+      }
+      setActionItem(null);
+      setReason("");
+      mutate();
+    } catch (err: any) {
+      toast.error(err.message || "Đã có lỗi xảy ra");
+    } finally {
+      setIsSubmittingAction(false);
+    }
   };
 
   const handlePrintReceipt = (item: InventoryTransaction | null) => {
@@ -227,14 +275,14 @@ export function OrderDetailsDrawer({
                 <Loader2 className="size-6 animate-spin text-interactive" />
               </div>
             ) : (
-            <div className="relative pl-6 space-y-6">
+            <div className="relative pl-[30px] space-y-6">
               {/* Vertical line */}
-              <div className="absolute top-4 bottom-8 left-[7px] w-[2px] bg-border-light rounded-full" />
+              <div className="absolute top-4 bottom-8 left-[8px] w-[2px] bg-border-light rounded-full" />
 
               {(showAllFulfillments ? fulfillments : fulfillments.slice(0, 3)).map((f, idx) => (
                 <div key={f.id} className="relative group">
                   {/* Timeline dot */}
-                  <div className="absolute -left-[29px] top-5 size-[10px] rounded-full ring-4 ring-bg-card bg-border group-hover:bg-interactive transition-colors z-10" />
+                  <div className="absolute -left-[26px] top-5 size-[10px] rounded-full ring-4 ring-bg-card bg-border group-hover:bg-interactive transition-colors z-10" />
                   
                   {/* Fulfillment Card */}
                   <div className="bg-bg-card rounded-xl border border-border/40 p-5 shadow-xs hover:shadow-sm transition-all group-hover:border-interactive/20">
@@ -247,20 +295,42 @@ export function OrderDetailsDrawer({
                           {formatDate(f.created_at)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant={"success"} className="font-medium px-2.5 py-0.5 mr-1">
+                          Đã xuất
+                        </Badge>
                         {(f.receipt_id || f.source_type === 'contract_addon_sale' || f.unit_cost > 0) && (
                           <Button 
                             unstyled 
                             onClick={() => handlePrintReceipt(f)}
-                            className="text-text-muted hover:text-interactive p-1.5 bg-bg-base/50 rounded-md border border-border hover:border-interactive/30 transition-colors"
+                            className="text-text-muted hover:text-interactive p-1.5 bg-bg-base/50 hover:bg-interactive-light/50 rounded-md border border-border/50 hover:border-interactive/50 transition-all"
                             title="In phiếu thu phát sinh"
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </Button>
                         )}
-                        <Badge variant={"success"} className="font-medium px-2.5 py-0.5">
-                          Đã xuất
-                        </Badge>
+                        <Button 
+                          unstyled 
+                          onClick={() => toast.info('Tính năng chỉnh sửa phát sinh đang được hoàn thiện, vui lòng xoá tạo lại nếu cần')}
+                          className="text-text-muted hover:text-interactive p-1.5 bg-bg-base/50 hover:bg-interactive-light/50 rounded-md border border-border/50 hover:border-interactive/50 transition-all"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit2 className="size-3.5" />
+                        </Button>
+                        <Button 
+                          unstyled 
+                          onClick={() => {
+                            if (userRole === "admin" || userRole === "manager") {
+                              setActionItem({ id: f.id, type: "delete_fulfillment" });
+                            } else {
+                              setActionItem({ id: f.id, type: "delete_fulfillment" });
+                            }
+                          }}
+                          className="text-text-muted hover:text-status-error p-1.5 bg-bg-base/50 hover:bg-status-error/10 rounded-md border border-border/50 hover:border-status-error/50 transition-all"
+                          title={userRole === "admin" || userRole === "manager" ? "Xoá" : "Yêu cầu Xoá"}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </div>
                     </div>
 
@@ -284,22 +354,14 @@ export function OrderDetailsDrawer({
                       </div>
                     </div>
                     
-                    {/* Hover actions (Desktop only) */}
-                    <div className="hidden lg:flex absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity items-center gap-1.5">
-                      <Button unstyled className="p-1.5 text-text-muted hover:text-interactive bg-bg-card rounded-md shadow-xs border border-border/50 hover:border-interactive/30 transition-all">
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                      <Button unstyled className="p-1.5 text-text-muted hover:text-status-error bg-bg-card rounded-md shadow-xs border border-border/50 hover:border-status-error/30 transition-all">
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
+
                   </div>
                 </div>
               ))}
 
               {/* Add Button / Inline Form */}
               <div className="relative pt-2">
-                <div className="absolute -left-[29px] top-6 size-[10px] rounded-full ring-4 ring-bg-card bg-interactive-light z-10" />
+                <div className="absolute -left-[26px] top-6 size-[10px] rounded-full ring-4 ring-bg-card bg-interactive-light z-10" />
                 
                 {!showAddForm ? (
                   <Button 
@@ -386,6 +448,46 @@ export function OrderDetailsDrawer({
           </Button>
         </div>
       </div>
+      
+      {/* Action Modal (Delete/Edit) */}
+      <UnifiedModal 
+        isOpen={!!actionItem} 
+        onClose={() => setActionItem(null)}
+        title={actionItem?.type === "delete_fulfillment" 
+          ? (userRole === "admin" || userRole === "manager" ? "Xác nhận xoá phát sinh" : "Yêu cầu xoá phát sinh")
+          : "Cập nhật phát sinh"}
+      >
+        <div className="space-y-4">
+          <p className="text-body-sm text-text-secondary">
+            {userRole === "admin" || userRole === "manager" 
+              ? "Bạn có chắc chắn muốn thực hiện hành động này? Hệ thống sẽ tự động điều chỉnh lại số lượng tồn kho và công nợ."
+              : "Vui lòng nhập lý do để Quản lý phê duyệt yêu cầu của bạn."}
+          </p>
+          
+          {userRole !== "admin" && userRole !== "manager" && (
+            <div className="space-y-2">
+              <label className="text-body-sm font-medium text-text-primary">Lý do (Bắt buộc)</label>
+              <Input 
+                value={reason} 
+                onChange={(e) => setReason(e.target.value)} 
+                placeholder="Khách đổi ý, nhập sai số lượng..."
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setActionItem(null)} disabled={isSubmittingAction}>Hủy</Button>
+            <Button 
+              variant={userRole === "admin" || userRole === "manager" ? "danger" : "interactive"} 
+              onClick={handleActionConfirm} 
+              disabled={isSubmittingAction || (userRole !== "admin" && userRole !== "manager" && !reason.trim())}
+            >
+              {isSubmittingAction && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {userRole === "admin" || userRole === "manager" ? "Xác nhận" : "Gửi yêu cầu"}
+            </Button>
+          </div>
+        </div>
+      </UnifiedModal>
     </Drawer>
   );
 }

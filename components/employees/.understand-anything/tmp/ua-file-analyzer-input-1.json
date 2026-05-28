@@ -1,0 +1,97 @@
+{
+    "projectRoot":  "c:/Users/Admin/Desktop/Ai/mood saas/mood-studio/components/employees",
+    "batchImportData":  {
+                            "employee-card.tsx":  [
+
+                                                  ],
+                            "employee-detail-drawer.tsx":  [
+
+                                                           ],
+                            "employee-detail-page.tsx":  [
+
+                                                         ],
+                            "employee-filters.tsx":  [
+
+                                                     ],
+                            "employee-form-modal.tsx":  [
+
+                                                        ],
+                            "employee-info-card.tsx":  [
+
+                                                       ],
+                            "employee-list-page.tsx":  [
+
+                                                       ],
+                            "employee-notes.tsx":  [
+
+                                                   ],
+                            "employee-stats-bar.tsx":  [
+
+                                                       ],
+                            "employee-table.tsx":  [
+
+                                                   ]
+                        },
+    "batchFiles":  [
+                       {
+                           "path":  "employee-card.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  84,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-detail-drawer.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  366,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-detail-page.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  213,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-filters.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  136,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-form-modal.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  230,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-info-card.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  48,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-list-page.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  217,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-notes.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  87,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-stats-bar.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  27,
+                           "fileCategory":  "code"
+                       },
+                       {
+                           "path":  "employee-table.tsx",
+                           "language":  "typescript",
+                           "sizeLines":  99,
+                           "fileCategory":  "code"
+                       }
+                   ]
+}

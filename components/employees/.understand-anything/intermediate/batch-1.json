@@ -1,0 +1,338 @@
+{
+  "nodes": [
+    {
+      "id": "file:employee-card.tsx",
+      "type": "file",
+      "name": "employee-card.tsx",
+      "filePath": "employee-card.tsx",
+      "summary": "Component employee-card.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-card.tsx:EmployeeCard",
+      "type": "function",
+      "name": "EmployeeCard",
+      "filePath": "employee-card.tsx",
+      "summary": "Exported function EmployeeCard",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-detail-drawer.tsx",
+      "type": "file",
+      "name": "employee-detail-drawer.tsx",
+      "filePath": "employee-detail-drawer.tsx",
+      "summary": "Component employee-detail-drawer.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-detail-drawer.tsx:EmployeeDetailDrawer",
+      "type": "function",
+      "name": "EmployeeDetailDrawer",
+      "filePath": "employee-detail-drawer.tsx",
+      "summary": "Exported function EmployeeDetailDrawer",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-detail-page.tsx",
+      "type": "file",
+      "name": "employee-detail-page.tsx",
+      "filePath": "employee-detail-page.tsx",
+      "summary": "Component employee-detail-page.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-detail-page.tsx:EmployeeDetailPage",
+      "type": "function",
+      "name": "EmployeeDetailPage",
+      "filePath": "employee-detail-page.tsx",
+      "summary": "Exported function EmployeeDetailPage",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-filters.tsx",
+      "type": "file",
+      "name": "employee-filters.tsx",
+      "filePath": "employee-filters.tsx",
+      "summary": "Component employee-filters.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-filters.tsx:EmployeeFilters",
+      "type": "function",
+      "name": "EmployeeFilters",
+      "filePath": "employee-filters.tsx",
+      "summary": "Exported function EmployeeFilters",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-form-modal.tsx",
+      "type": "file",
+      "name": "employee-form-modal.tsx",
+      "filePath": "employee-form-modal.tsx",
+      "summary": "Component employee-form-modal.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-form-modal.tsx:EmployeeFormModal",
+      "type": "function",
+      "name": "EmployeeFormModal",
+      "filePath": "employee-form-modal.tsx",
+      "summary": "Exported function EmployeeFormModal",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-info-card.tsx",
+      "type": "file",
+      "name": "employee-info-card.tsx",
+      "filePath": "employee-info-card.tsx",
+      "summary": "Component employee-info-card.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-info-card.tsx:EmployeeInfoCard",
+      "type": "function",
+      "name": "EmployeeInfoCard",
+      "filePath": "employee-info-card.tsx",
+      "summary": "Exported function EmployeeInfoCard",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-list-page.tsx",
+      "type": "file",
+      "name": "employee-list-page.tsx",
+      "filePath": "employee-list-page.tsx",
+      "summary": "Component employee-list-page.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-list-page.tsx:EmployeeListPage",
+      "type": "function",
+      "name": "EmployeeListPage",
+      "filePath": "employee-list-page.tsx",
+      "summary": "Exported function EmployeeListPage",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-notes.tsx",
+      "type": "file",
+      "name": "employee-notes.tsx",
+      "filePath": "employee-notes.tsx",
+      "summary": "Component employee-notes.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-notes.tsx:EmployeeNotes",
+      "type": "function",
+      "name": "EmployeeNotes",
+      "filePath": "employee-notes.tsx",
+      "summary": "Exported function EmployeeNotes",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-stats-bar.tsx",
+      "type": "file",
+      "name": "employee-stats-bar.tsx",
+      "filePath": "employee-stats-bar.tsx",
+      "summary": "Component employee-stats-bar.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-stats-bar.tsx:EmployeeStatsBar",
+      "type": "function",
+      "name": "EmployeeStatsBar",
+      "filePath": "employee-stats-bar.tsx",
+      "summary": "Exported function EmployeeStatsBar",
+      "tags": [
+        "export"
+      ]
+    },
+    {
+      "id": "file:employee-table.tsx",
+      "type": "file",
+      "name": "employee-table.tsx",
+      "filePath": "employee-table.tsx",
+      "summary": "Component employee-table.tsx",
+      "tags": [
+        "component"
+      ]
+    },
+    {
+      "id": "function:employee-table.tsx:EmployeeTable",
+      "type": "function",
+      "name": "EmployeeTable",
+      "filePath": "employee-table.tsx",
+      "summary": "Exported function EmployeeTable",
+      "tags": [
+        "export"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:employee-card.tsx",
+      "target": "function:employee-card.tsx:EmployeeCard",
+      "type": "contains",
+      "description": "Exports EmployeeCard"
+    },
+    {
+      "source": "file:employee-detail-drawer.tsx",
+      "target": "function:employee-detail-drawer.tsx:EmployeeDetailDrawer",
+      "type": "contains",
+      "description": "Exports EmployeeDetailDrawer"
+    },
+    {
+      "source": "file:employee-detail-page.tsx",
+      "target": "function:employee-detail-page.tsx:EmployeeDetailPage",
+      "type": "contains",
+      "description": "Exports EmployeeDetailPage"
+    },
+    {
+      "source": "file:employee-filters.tsx",
+      "target": "function:employee-filters.tsx:EmployeeFilters",
+      "type": "contains",
+      "description": "Exports EmployeeFilters"
+    },
+    {
+      "source": "file:employee-form-modal.tsx",
+      "target": "function:employee-form-modal.tsx:EmployeeFormModal",
+      "type": "contains",
+      "description": "Exports EmployeeFormModal"
+    },
+    {
+      "source": "file:employee-info-card.tsx",
+      "target": "function:employee-info-card.tsx:EmployeeInfoCard",
+      "type": "contains",
+      "description": "Exports EmployeeInfoCard"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "function:employee-list-page.tsx:EmployeeListPage",
+      "type": "contains",
+      "description": "Exports EmployeeListPage"
+    },
+    {
+      "source": "file:employee-notes.tsx",
+      "target": "function:employee-notes.tsx:EmployeeNotes",
+      "type": "contains",
+      "description": "Exports EmployeeNotes"
+    },
+    {
+      "source": "file:employee-stats-bar.tsx",
+      "target": "function:employee-stats-bar.tsx:EmployeeStatsBar",
+      "type": "contains",
+      "description": "Exports EmployeeStatsBar"
+    },
+    {
+      "source": "file:employee-table.tsx",
+      "target": "function:employee-table.tsx:EmployeeTable",
+      "type": "contains",
+      "description": "Exports EmployeeTable"
+    },
+    {
+      "source": "file:employee-detail-drawer.tsx",
+      "target": "file:employee-form-modal.tsx",
+      "type": "imports",
+      "description": "Imports employee-form-modal.tsx"
+    },
+    {
+      "source": "file:employee-detail-drawer.tsx",
+      "target": "file:employee-info-card.tsx",
+      "type": "imports",
+      "description": "Imports employee-info-card.tsx"
+    },
+    {
+      "source": "file:employee-detail-drawer.tsx",
+      "target": "file:employee-notes.tsx",
+      "type": "imports",
+      "description": "Imports employee-notes.tsx"
+    },
+    {
+      "source": "file:employee-detail-page.tsx",
+      "target": "file:employee-form-modal.tsx",
+      "type": "imports",
+      "description": "Imports employee-form-modal.tsx"
+    },
+    {
+      "source": "file:employee-detail-page.tsx",
+      "target": "file:employee-info-card.tsx",
+      "type": "imports",
+      "description": "Imports employee-info-card.tsx"
+    },
+    {
+      "source": "file:employee-detail-page.tsx",
+      "target": "file:employee-notes.tsx",
+      "type": "imports",
+      "description": "Imports employee-notes.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-card.tsx",
+      "type": "imports",
+      "description": "Imports employee-card.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-detail-drawer.tsx",
+      "type": "imports",
+      "description": "Imports employee-detail-drawer.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-filters.tsx",
+      "type": "imports",
+      "description": "Imports employee-filters.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-form-modal.tsx",
+      "type": "imports",
+      "description": "Imports employee-form-modal.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-stats-bar.tsx",
+      "type": "imports",
+      "description": "Imports employee-stats-bar.tsx"
+    },
+    {
+      "source": "file:employee-list-page.tsx",
+      "target": "file:employee-table.tsx",
+      "type": "imports",
+      "description": "Imports employee-table.tsx"
+    }
+  ]
+}

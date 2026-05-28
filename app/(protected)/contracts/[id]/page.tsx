@@ -3,7 +3,7 @@ export const metadata = { title: "Chi tiết hợp đồng" };
 import { getContractDetail } from "@/app/actions/contract-queries";
 import { getGallerySummariesByContract } from "@/app/actions/gallery-admin-actions";
 import ContractDetailClient from "@/components/contracts/detail/contract-detail-client";
-import type { ContractDetailData } from "@/lib/hooks/use-contracts";
+import type { ContractDetailData } from "@/lib/hooks/use-contract-queries";
 
 // ═══════════════════════════════════════════
 // Contract Detail Page — Thin Server Shell

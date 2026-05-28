@@ -1,29 +1,21 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2, Pencil, RotateCcw, UserMinus } from "lucide-react";
 import { toast } from "sonner";
-import {
-  getEmployeeById,
-} from "@/app/actions/employee-queries";
-import {
-  restoreEmployee,
-  softDeleteEmployee,
-} from "@/app/actions/employee-mutations";
+import { getEmployeeById } from "@/app/actions/employee-queries";
+import { restoreEmployee, softDeleteEmployee } from "@/app/actions/employee-mutations";
 import type { BadgeVariant } from "@/components/ui/badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  EMPLOYEE_STATUS_MAP,
-  ROLE_BADGE_MAP,
-  getRoleLabel,
-} from "@/types/employee-constants";
+import { EMPLOYEE_STATUS_MAP, ROLE_BADGE_MAP, getRoleLabel } from "@/types/employee-constants";
 import type { EmployeeDetail, EmployeeListItem, EmployeeRole, SalaryInfo } from "@/types/employee";
 import { formatDate, formatPhone, formatVnd, getInitials } from "@/lib/utils";
 import { invalidateEmployeeAfterWrite, revalidateEmployeeCaches } from "@/lib/cache-invalidation";
+import { useSWR } from "@/lib/swr";
 import EmployeeFormModal from "./employee-form-modal";
 import EmployeeInfoCard from "./employee-info-card";
 import EmployeeNotes from "./employee-notes";
@@ -33,18 +25,11 @@ interface EmployeeDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onChanged?: () => void;
+  canEdit?: boolean;
 }
 
 function asBadgeVariant(value: string | undefined): BadgeVariant {
-  const variants = new Set<BadgeVariant>([
-    "success",
-    "warning",
-    "error",
-    "info",
-    "neutral",
-    "primary",
-    "accent",
-  ]);
+  const variants = new Set<BadgeVariant>(["success", "warning", "error", "info", "neutral", "primary", "accent"]);
   return variants.has(value as BadgeVariant) ? (value as BadgeVariant) : "neutral";
 }
 
@@ -53,64 +38,45 @@ export default function EmployeeDetailDrawer({
   isOpen,
   onClose,
   onChanged,
+  canEdit = false,
 }: EmployeeDetailDrawerProps) {
-  const [detail, setDetail] = useState<EmployeeDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Cache the last employee to prevent layout jump during exit animation
+  const prevEmployee = useRef<EmployeeListItem | null>(null);
+  useEffect(() => {
+    if (employee) {
+      prevEmployee.current = employee;
+    }
+  }, [employee]);
+
+  const activeEmployee = employee || prevEmployee.current;
+
+  // Use SWR for robust fetching and caching
+  const { data: detail, isValidating, mutate } = useSWR(
+    activeEmployee?.id ? `employee-detail:${activeEmployee.id}` : null,
+    async () => {
+      if (!activeEmployee?.id) return null;
+      const result = await getEmployeeById(activeEmployee.id);
+      if (!result.success) throw new Error(result.error);
+      if (!result.data) throw new Error("Không tải được hồ sơ nhân viên");
+      return result.data as EmployeeDetail;
+    },
+    { revalidateOnFocus: false, revalidateOnMount: true }
+  );
+
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen || !employee?.id) {
-      setDetail(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setDetail(null);
-    setLoading(true);
-
-    getEmployeeById(employee.id)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result.success) throw new Error(result.error);
-        if (!result.data) throw new Error("Không tải được hồ sơ nhân viên");
-        setDetail(result.data);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        toast.error(error instanceof Error ? error.message : "Không tải được hồ sơ nhân viên");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [employee?.id, isOpen]);
-
-  const source = detail || employee;
+  const source = detail || activeEmployee;
   const isDeleted = !!source?.deleted_at;
   const effectiveStatus = isDeleted ? "inactive" : source?.status || "active";
-  const statusInfo = EMPLOYEE_STATUS_MAP[effectiveStatus] || {
-    label: effectiveStatus,
-    variant: "neutral",
-  };
+  const statusInfo = EMPLOYEE_STATUS_MAP[effectiveStatus] || { label: effectiveStatus, variant: "neutral" };
   const role = source?.role as EmployeeRole | undefined;
   const roleBadge = role ? ROLE_BADGE_MAP[role] : null;
   const salary = (detail?.salary_info || {}) as SalaryInfo;
 
-  const refreshDrawer = async () => {
-    if (!employee?.id) return;
-    const result = await getEmployeeById(employee.id);
-    if (result.success && result.data) setDetail(result.data);
-  };
-
   const handleSoftDelete = async () => {
     if (!detail) return;
-
     setActionLoading(true);
     try {
       const result = await softDeleteEmployee(detail.id);
@@ -128,14 +94,13 @@ export default function EmployeeDetailDrawer({
 
   const handleRestore = async () => {
     if (!detail) return;
-
     setActionLoading(true);
     try {
       const result = await restoreEmployee(detail.id);
       if (!result.success) throw new Error(result.error || "Lỗi khôi phục");
       toast.success("Đã khôi phục nhân viên");
       await Promise.all([
-        refreshDrawer(),
+        mutate(),
         revalidateEmployeeCaches(detail.id),
       ]);
       onChanged?.();
@@ -147,17 +112,19 @@ export default function EmployeeDetailDrawer({
   };
 
   const titleBadge = (
-    <Badge variant={asBadgeVariant(statusInfo.variant)} dot>
-      {statusInfo.label}
-    </Badge>
+    <div
+      className="size-2.5 rounded-full shrink-0"
+      style={{ backgroundColor: `var(--color-${asBadgeVariant(statusInfo.variant)})` }}
+      title={statusInfo.label}
+    />
   );
 
   const actionClassName =
-    "btn btn-secondary h-9 px-2.5 sm:px-3 gap-1.5 text-xs font-semibold";
+    "btn btn-secondary h-9 px-2.5 sm:px-3 gap-1.5 text-xs font-semibold whitespace-nowrap shrink-0";
   const dangerActionClassName =
-    "btn btn-secondary h-9 px-2.5 sm:px-3 gap-1.5 text-xs font-semibold border-error/25 bg-error/5 text-error hover:bg-error/10 hover:border-error/40";
+    "btn btn-secondary h-9 px-2.5 sm:px-3 gap-1.5 text-xs font-semibold whitespace-nowrap shrink-0 border-error/25 bg-error/5 text-error hover:bg-error/10 hover:border-error/40";
 
-  const headerRight = detail ? (
+  const headerRight = (detail && canEdit) ? (
     <div className="flex items-center gap-2">
       {isDeleted ? (
         <Button
@@ -264,7 +231,7 @@ export default function EmployeeDetailDrawer({
         title={source?.full_name || "Chi tiết nhân viên"}
         titleBadge={source ? titleBadge : undefined}
         headerRight={headerRight}
-        size="lg"
+        size="md"
       >
         {!source ? null : (
           <div className="space-y-4">
@@ -307,7 +274,7 @@ export default function EmployeeDetailDrawer({
               </div>
             </section>
 
-            {loading ? (
+            {isValidating && !detail ? (
               <div className="card-base p-6 flex items-center justify-center gap-2 text-text-muted">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Đang tải hồ sơ...
@@ -344,7 +311,7 @@ export default function EmployeeDetailDrawer({
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSaved={async () => {
-          await refreshDrawer();
+          await mutate();
           await revalidateEmployeeCaches(detail?.id);
           onChanged?.();
         }}

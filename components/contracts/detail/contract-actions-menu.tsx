@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import {
   invalidateFinanceAfterWrite,
   invalidatePrintingAfterWrite,
 } from "@/lib/cache-invalidation";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { toast } from "@/lib/toast-utils";
 
 // ═══════════════════════════════════════════

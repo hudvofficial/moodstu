@@ -379,9 +379,6 @@ export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTr
             inventory_items (
               name,
               item_code
-            ),
-            performer:users!performed_by (
-              full_name
             )
           `)
           .or(`id.eq.${txnId},parent_transaction_id.eq.${txnId}`)
@@ -396,10 +393,79 @@ export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTr
           ...txn,
           item_name: txn.inventory_items?.name,
           item_code: txn.inventory_items?.item_code,
-          performer_name: txn.performer?.full_name || null,
+          performer_name: null,
         })) as InventoryTransaction[];
       }),
       "fetchOrderFulfillments"
     )
+  );
+}
+
+export interface ApprovalRequestFilters {
+  status: string;
+  page: number;
+  pageSize: number;
+}
+
+export async function getApprovalRequests(filters: ApprovalRequestFilters = { status: 'all', page: 1, pageSize: 20 }) {
+  return profileAction("getApprovalRequests", () =>
+    withInventoryAccess(async (supabase) => {
+      let query = supabase
+        .from("approval_requests")
+        .select(`
+          id,
+          module,
+          action_type,
+          target_id,
+          payload,
+          reason,
+          status,
+          requested_by,
+          reviewed_by,
+          created_at
+        `, { count: 'exact' })
+        .eq("module", "inventory");
+
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      }
+
+      const offset = (filters.page - 1) * filters.pageSize;
+      query = query.order("created_at", { ascending: false }).range(offset, offset + filters.pageSize - 1);
+
+      const { data, count, error } = await query;
+
+      if (error) {
+        throw new Error(`Lỗi lấy danh sách yêu cầu: ${error.message}`);
+      }
+
+      const userIds = [...new Set((data || []).map(req => req.requested_by).filter(Boolean))];
+      let employeesMap: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: employees } = await supabase
+          .from("employees")
+          .select("auth_user_id, full_name")
+          .in("auth_user_id", userIds);
+          
+        employeesMap = (employees || []).reduce((acc, emp) => {
+          if (emp.auth_user_id) acc[emp.auth_user_id] = emp.full_name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      const requests = (data || []).map(req => ({
+        ...req,
+        requester_name: req.requested_by ? employeesMap[req.requested_by] || 'Unknown' : 'Unknown',
+        reviewer_name: req.reviewed_by ? employeesMap[req.reviewed_by] || null : null,
+      }));
+
+      return {
+        requests,
+        total: count || 0,
+        page: filters.page,
+        pageSize: filters.pageSize,
+      };
+    })
   );
 }

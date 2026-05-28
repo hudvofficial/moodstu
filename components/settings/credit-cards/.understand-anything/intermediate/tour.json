@@ -1,0 +1,20 @@
+[
+  {
+    "order": 1,
+    "title": "Configuration & Setup",
+    "description": "Understand-Anything ignore rules for this module.",
+    "nodeIds": ["config:.understand-anything/.understandignore"]
+  },
+  {
+    "order": 2,
+    "title": "Main List View",
+    "description": "The client component that renders the list of credit cards and triggers the add/edit modal.",
+    "nodeIds": ["file:credit-cards-client.tsx"]
+  },
+  {
+    "order": 3,
+    "title": "Credit Card Form Modal",
+    "description": "The modal form component for creating and updating credit cards.",
+    "nodeIds": ["file:credit-card-form-modal.tsx"]
+  }
+]

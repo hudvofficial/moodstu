@@ -1,0 +1,1508 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 10,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": "employee-card.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 84,
+      "nonEmptyLines": 77,
+      "functions": [
+        {
+          "name": "EmployeeCard",
+          "startLine": 20,
+          "endLine": 84,
+          "params": [
+            "{ employee: emp, onSelect }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeCard",
+          "line": 20,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeCard",
+          "callee": "onSelect",
+          "lineNumber": 27
+        },
+        {
+          "caller": "EmployeeCard",
+          "callee": "getInitials",
+          "lineNumber": 35
+        },
+        {
+          "caller": "EmployeeCard",
+          "callee": "e.stopPropagation",
+          "lineNumber": 59
+        },
+        {
+          "caller": "EmployeeCard",
+          "callee": "formatPhone",
+          "lineNumber": 63
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-detail-drawer.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 366,
+      "nonEmptyLines": 341,
+      "functions": [
+        {
+          "name": "asBadgeVariant",
+          "startLine": 38,
+          "endLine": 49,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "EmployeeDetailDrawer",
+          "startLine": 51,
+          "endLine": 366,
+          "params": [
+            "{\n  employee,\n  isOpen,\n  onClose,\n  onChanged,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeDetailDrawer",
+          "line": 51,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "asBadgeVariant",
+          "callee": "variants.has",
+          "lineNumber": 48
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useState",
+          "lineNumber": 57
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useState",
+          "lineNumber": 58
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useState",
+          "lineNumber": 59
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useState",
+          "lineNumber": 60
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useState",
+          "lineNumber": 61
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "useEffect",
+          "lineNumber": 63
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setDetail",
+          "lineNumber": 65
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setLoading",
+          "lineNumber": 66
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setDetail",
+          "lineNumber": 71
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setLoading",
+          "lineNumber": 72
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getEmployeeById(employee.id)\n      .then((result) => {\n        if (cancelled) return;\n        if (!result.success) throw new Error(result.error);\n        if (!result.data) throw new Error(\"Không tải được hồ sơ nhân viên\");\n        setDetail(result.data);\n      })\n      .catch((error) => {\n        if (cancelled) return;\n        toast.error(error instanceof Error ? error.message : \"Không tải được hồ sơ nhân viên\");\n      })\n      .finally",
+          "lineNumber": 74
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getEmployeeById(employee.id)\n      .then((result) => {\n        if (cancelled) return;\n        if (!result.success) throw new Error(result.error);\n        if (!result.data) throw new Error(\"Không tải được hồ sơ nhân viên\");\n        setDetail(result.data);\n      })\n      .catch",
+          "lineNumber": 74
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getEmployeeById(employee.id)\n      .then",
+          "lineNumber": 74
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getEmployeeById",
+          "lineNumber": 74
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setDetail",
+          "lineNumber": 79
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "toast.error",
+          "lineNumber": 83
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setLoading",
+          "lineNumber": 86
+        },
+        {
+          "caller": "refreshDrawer",
+          "callee": "getEmployeeById",
+          "lineNumber": 107
+        },
+        {
+          "caller": "refreshDrawer",
+          "callee": "setDetail",
+          "lineNumber": 108
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "setActionLoading",
+          "lineNumber": 114
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "softDeleteEmployee",
+          "lineNumber": 116
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "toast.success",
+          "lineNumber": 118
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "invalidateEmployeeAfterWrite",
+          "lineNumber": 119
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "onChanged",
+          "lineNumber": 120
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "onClose",
+          "lineNumber": 121
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "toast.error",
+          "lineNumber": 123
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "setActionLoading",
+          "lineNumber": 125
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "setActionLoading",
+          "lineNumber": 132
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "restoreEmployee",
+          "lineNumber": 134
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "toast.success",
+          "lineNumber": 136
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "Promise.all",
+          "lineNumber": 137
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "refreshDrawer",
+          "lineNumber": 138
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "revalidateEmployeeCaches",
+          "lineNumber": 139
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "onChanged",
+          "lineNumber": 141
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "toast.error",
+          "lineNumber": 143
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "setActionLoading",
+          "lineNumber": 145
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "asBadgeVariant",
+          "lineNumber": 150
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setShowForm",
+          "lineNumber": 184
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setConfirmDeleteOpen",
+          "lineNumber": 195
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "formatPhone",
+          "lineNumber": 218
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getRoleLabel",
+          "lineNumber": 235
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "formatDate",
+          "lineNumber": 239
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "formatVnd",
+          "lineNumber": 250
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "getInitials",
+          "lineNumber": 281
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "asBadgeVariant",
+          "lineNumber": 298
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "asBadgeVariant",
+          "lineNumber": 302
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setShowForm",
+          "lineNumber": 345
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "refreshDrawer",
+          "lineNumber": 347
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "revalidateEmployeeCaches",
+          "lineNumber": 348
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "onChanged",
+          "lineNumber": 349
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "setConfirmDeleteOpen",
+          "lineNumber": 355
+        },
+        {
+          "caller": "EmployeeDetailDrawer",
+          "callee": "handleSoftDelete",
+          "lineNumber": 357
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-detail-page.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 213,
+      "nonEmptyLines": 193,
+      "functions": [
+        {
+          "name": "EmployeeDetailPage",
+          "startLine": 28,
+          "endLine": 213,
+          "params": [
+            "{ employee: initialEmployee }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeDetailPage",
+          "line": 28,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useRouter",
+          "lineNumber": 29
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useState",
+          "lineNumber": 30
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useState",
+          "lineNumber": 31
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useState",
+          "lineNumber": 32
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useState",
+          "lineNumber": 33
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useEffect",
+          "lineNumber": 35
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setEmployee",
+          "lineNumber": 36
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useCallback",
+          "lineNumber": 39
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "getEmployeeById",
+          "lineNumber": 40
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setEmployee",
+          "lineNumber": 42
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "revalidateEmployeeCaches",
+          "lineNumber": 44
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "useRealtime",
+          "lineNumber": 47
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "formatPhone",
+          "lineNumber": 61
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "getRoleLabel",
+          "lineNumber": 68
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "formatDate",
+          "lineNumber": 69
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "formatVnd",
+          "lineNumber": 73
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "setActionLoading",
+          "lineNumber": 80
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "softDeleteEmployee",
+          "lineNumber": 82
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "toast.success",
+          "lineNumber": 84
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "invalidateEmployeeAfterWrite",
+          "lineNumber": 85
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "router.push",
+          "lineNumber": 86
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "toast.error",
+          "lineNumber": 89
+        },
+        {
+          "caller": "handleSoftDelete",
+          "callee": "setActionLoading",
+          "lineNumber": 90
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "setActionLoading",
+          "lineNumber": 94
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "restoreEmployee",
+          "lineNumber": 96
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "toast.success",
+          "lineNumber": 98
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "refreshEmployee",
+          "lineNumber": 99
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "toast.error",
+          "lineNumber": 102
+        },
+        {
+          "caller": "handleRestore",
+          "callee": "setActionLoading",
+          "lineNumber": 103
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "getInitials",
+          "lineNumber": 121
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setShowForm",
+          "lineNumber": 151
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setConfirmDeleteOpen",
+          "lineNumber": 155
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setShowForm",
+          "lineNumber": 196
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "setConfirmDeleteOpen",
+          "lineNumber": 202
+        },
+        {
+          "caller": "EmployeeDetailPage",
+          "callee": "handleSoftDelete",
+          "lineNumber": 204
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-filters.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 136,
+      "nonEmptyLines": 123,
+      "functions": [
+        {
+          "name": "EmployeeFilters",
+          "startLine": 41,
+          "endLine": 136,
+          "params": [
+            "{ stats }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeFilters",
+          "line": 41,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeFilters",
+          "callee": "useRouter",
+          "lineNumber": 42
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "usePathname",
+          "lineNumber": 43
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "useSearchParams",
+          "lineNumber": 44
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "useCallback",
+          "lineNumber": 46
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.toString",
+          "lineNumber": 48
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "params.set",
+          "lineNumber": 50
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "params.delete",
+          "lineNumber": 52
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "params.delete",
+          "lineNumber": 54
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "router.push",
+          "lineNumber": 55
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "params.toString",
+          "lineNumber": 55
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 61
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 75
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 82
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 83
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 89
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 90
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 96
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 97
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 108
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 113
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 114
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 120
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 121
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "searchParams.get",
+          "lineNumber": 127
+        },
+        {
+          "caller": "EmployeeFilters",
+          "callee": "updateParam",
+          "lineNumber": 128
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-form-modal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 230,
+      "nonEmptyLines": 212,
+      "functions": [
+        {
+          "name": "employeeToForm",
+          "startLine": 30,
+          "endLine": 45,
+          "params": [
+            "emp"
+          ]
+        },
+        {
+          "name": "EmployeeFormModal",
+          "startLine": 47,
+          "endLine": 230,
+          "params": [
+            "{ isOpen, onClose, onSaved, editEmployee }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeFormModal",
+          "line": 47,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "employeeToForm",
+          "callee": "emp.salary_info?.base_salary?.toString",
+          "lineNumber": 40
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "useState",
+          "lineNumber": 49
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "useState",
+          "lineNumber": 50
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "useState",
+          "lineNumber": 51
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "useState",
+          "lineNumber": 52
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "useEffect",
+          "lineNumber": 55
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setForm",
+          "lineNumber": 57
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "employeeToForm",
+          "lineNumber": 57
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setShowSalary",
+          "lineNumber": 58
+        },
+        {
+          "caller": "setField",
+          "callee": "setForm",
+          "lineNumber": 63
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "form.full_name.trim",
+          "lineNumber": 69
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "/^[0-9]{10,11}$/.test",
+          "lineNumber": 71
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "form.phone.replace",
+          "lineNumber": 71
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test",
+          "lineNumber": 72
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "Number",
+          "lineNumber": 73
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "Object.keys",
+          "lineNumber": 75
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "setErrors",
+          "lineNumber": 76
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "Object.values",
+          "lineNumber": 77
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "toast.error",
+          "lineNumber": 78
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "setErrors",
+          "lineNumber": 81
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "setSubmitting",
+          "lineNumber": 83
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "form.full_name.trim",
+          "lineNumber": 87
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "Number",
+          "lineNumber": 100
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "updateEmployee",
+          "lineNumber": 108
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "createEmployee",
+          "lineNumber": 109
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "toast.success",
+          "lineNumber": 112
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "onSaved",
+          "lineNumber": 113
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "onClose",
+          "lineNumber": 114
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "toast.error",
+          "lineNumber": 119
+        },
+        {
+          "caller": "handleSubmit",
+          "callee": "setSubmitting",
+          "lineNumber": 121
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 152
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 157
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 162
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setErrors",
+          "lineNumber": 162
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 167
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setErrors",
+          "lineNumber": 167
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 180
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 187
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 192
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 195
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setShowSalary",
+          "lineNumber": 201
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 209
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setErrors",
+          "lineNumber": 209
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 214
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 218
+        },
+        {
+          "caller": "EmployeeFormModal",
+          "callee": "setField",
+          "lineNumber": 222
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-info-card.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 48,
+      "nonEmptyLines": 43,
+      "functions": [
+        {
+          "name": "EmployeeInfoCard",
+          "startLine": 18,
+          "endLine": 48,
+          "params": [
+            "{ title, items, embedded }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeInfoCard",
+          "line": 18,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeInfoCard",
+          "callee": "items.map",
+          "lineNumber": 25
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-list-page.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 217,
+      "nonEmptyLines": 201,
+      "functions": [
+        {
+          "name": "EmployeeListPage",
+          "startLine": 36,
+          "endLine": 217,
+          "params": [
+            "{\n  employees: initialEmployees = [],\n  stats: initialStats = EMPTY_STATS,\n  total: initialTotal = 0,\n  page: initialPage = 1,\n  pageSize: initialPageSize = 20,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeListPage",
+          "line": 36,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useRouter",
+          "lineNumber": 43
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "usePathname",
+          "lineNumber": 44
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useSearchParams",
+          "lineNumber": 45
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useState",
+          "lineNumber": 46
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useState",
+          "lineNumber": 47
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 48
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 49
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 50
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 51
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 52
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 53
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "cacheKeys.employees",
+          "lineNumber": 55
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useSWR",
+          "lineNumber": 63
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "getEmployeeList",
+          "lineNumber": 66
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useSWR",
+          "lineNumber": 88
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "cacheKeys.employees",
+          "lineNumber": 88
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "getEmployeeStats",
+          "lineNumber": 89
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "Math.ceil",
+          "lineNumber": 109
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useCallback",
+          "lineNumber": 112
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.toString",
+          "lineNumber": 114
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "params.set",
+          "lineNumber": 115
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "String",
+          "lineNumber": 115
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "params.delete",
+          "lineNumber": 116
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "router.push",
+          "lineNumber": 117
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "params.toString",
+          "lineNumber": 117
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 123
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 123
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 124
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "searchParams.get",
+          "lineNumber": 124
+        },
+        {
+          "caller": "clearFilters",
+          "callee": "router.push",
+          "lineNumber": 126
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "useCallback",
+          "lineNumber": 128
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "revalidateByPrefixes",
+          "lineNumber": 129
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "cacheKeys.employees",
+          "lineNumber": 129
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "setShowForm",
+          "lineNumber": 138
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "setShowForm",
+          "lineNumber": 145
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "setShowForm",
+          "lineNumber": 178
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "employees.map",
+          "lineNumber": 187
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "Math.min",
+          "lineNumber": 197
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "setShowForm",
+          "lineNumber": 205
+        },
+        {
+          "caller": "EmployeeListPage",
+          "callee": "setSelectedEmployee",
+          "lineNumber": 212
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-notes.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 87,
+      "nonEmptyLines": 77,
+      "functions": [
+        {
+          "name": "EmployeeNotes",
+          "startLine": 21,
+          "endLine": 87,
+          "params": [
+            "{ employeeId, initialNotes }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeNotes",
+          "line": 21,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useState",
+          "lineNumber": 22
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useRef",
+          "lineNumber": 24
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useRef",
+          "lineNumber": 25
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useCallback",
+          "lineNumber": 27
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setSaveState",
+          "lineNumber": 28
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "updateEmployeeNotes",
+          "lineNumber": 30
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setSaveState",
+          "lineNumber": 32
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "toast.success",
+          "lineNumber": 33
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setTimeout",
+          "lineNumber": 34
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setSaveState",
+          "lineNumber": 34
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setSaveState",
+          "lineNumber": 39
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "toast.error",
+          "lineNumber": 40
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "useEffect",
+          "lineNumber": 45
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "clearTimeout",
+          "lineNumber": 49
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setTimeout",
+          "lineNumber": 50
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "saveNotes",
+          "lineNumber": 51
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "clearTimeout",
+          "lineNumber": 56
+        },
+        {
+          "caller": "EmployeeNotes",
+          "callee": "setNotes",
+          "lineNumber": 81
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-stats-bar.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 27,
+      "nonEmptyLines": 22,
+      "functions": [
+        {
+          "name": "EmployeeStatsBar",
+          "startLine": 14,
+          "endLine": 27,
+          "params": [
+            "{ stats }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeStatsBar",
+          "line": 14,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeStatsBar",
+          "callee": "Object.entries",
+          "lineNumber": 15
+        },
+        {
+          "caller": "EmployeeStatsBar",
+          "callee": "deptEntries.sort",
+          "lineNumber": 17
+        },
+        {
+          "caller": "EmployeeStatsBar",
+          "callee": "String",
+          "lineNumber": 21
+        },
+        {
+          "caller": "EmployeeStatsBar",
+          "callee": "String",
+          "lineNumber": 22
+        },
+        {
+          "caller": "EmployeeStatsBar",
+          "callee": "String",
+          "lineNumber": 23
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "employee-table.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 99,
+      "nonEmptyLines": 94,
+      "functions": [
+        {
+          "name": "EmployeeTable",
+          "startLine": 21,
+          "endLine": 99,
+          "params": [
+            "{ employees, onSelect }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EmployeeTable",
+          "line": 21,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "EmployeeTable",
+          "callee": "employees.map",
+          "lineNumber": 37
+        },
+        {
+          "caller": "EmployeeTable",
+          "callee": "onSelect",
+          "lineNumber": 45
+        },
+        {
+          "caller": "EmployeeTable",
+          "callee": "getInitials",
+          "lineNumber": 53
+        },
+        {
+          "caller": "EmployeeTable",
+          "callee": "e.stopPropagation",
+          "lineNumber": 75
+        },
+        {
+          "caller": "EmployeeTable",
+          "callee": "formatPhone",
+          "lineNumber": 78
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

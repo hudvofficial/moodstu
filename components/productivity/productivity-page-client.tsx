@@ -146,27 +146,27 @@ export default function ProductivityPageClient({
   );
 
   const teamEmployees = useMemo(() => {
-    let result = overview.employees;
+    if (!overview.employees.length) return [];
 
-    // Workload filter (ported from Contract status filter)
-    if (workloadFilter !== "all") {
-      result = result.filter((e) => e.workload_level === (workloadFilter as WorkloadLevel));
-    }
-
-    // Role filter (ported from Contract service filter)
-    if (roleFilter !== "all") {
-      result = result.filter((e) => e.role === roleFilter);
-    }
-
-    // Search (giữ nguyên)
     const query = searchQuery.trim().toLowerCase();
-    if (query) {
-      result = result.filter((employee) => {
-        const name = employee.full_name.toLowerCase();
-        const roleLabel = formatRole(employee.role).toLowerCase();
-        return name.includes(query) || roleLabel.includes(query);
-      });
-    }
+    const hasQuery = query.length > 0;
+
+    const result = overview.employees.filter((employee) => {
+      // Workload filter
+      if (workloadFilter !== "all" && employee.workload_level !== workloadFilter) return false;
+      
+      // Role filter
+      if (roleFilter !== "all" && employee.role !== roleFilter) return false;
+      
+      // Search
+      if (hasQuery) {
+        const nameMatch = employee.full_name.toLowerCase().includes(query);
+        const roleMatch = formatRole(employee.role).toLowerCase().includes(query);
+        if (!nameMatch && !roleMatch) return false;
+      }
+      
+      return true;
+    });
 
     return sortEmployees(result, sortKey, sortDirection);
   }, [searchQuery, overview.employees, sortDirection, sortKey, workloadFilter, roleFilter]);

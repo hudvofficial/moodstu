@@ -47,6 +47,7 @@ interface DatePickerProps {
   className?: string;
   triggerClassName?: string;
   compact?: boolean;
+  disabled?: boolean;
   testId?: string;
 }
 
@@ -59,6 +60,7 @@ export default function DatePicker({
   className = "",
   triggerClassName = "",
   compact = false,
+  disabled = false,
   testId,
 }: DatePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -416,9 +418,10 @@ export default function DatePicker({
           ref={triggerRef}
           type="button"
           onClick={toggleOpen}
+          disabled={disabled}
           data-testid={testId}
           data-state={isOpen ? "open" : "closed"}
-          className={`input-base cursor-pointer flex items-center justify-between group transition-colors text-left ${triggerClassName || ""}`}
+          className={`input-base cursor-pointer flex items-center justify-between group transition-colors text-left ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${triggerClassName || ""}`}
         >
           <span
             className={`font-medium truncate mr-2 ${selectedDate ? "text-text-primary" : "text-text-muted"}`}

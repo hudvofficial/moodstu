@@ -60,7 +60,7 @@ async function fetchTeamOverview(
 
   const employees = sortEmployeesDefault(
     (data || []).map((row: RpcEmployeeRow) =>
-      transformEmployeeRow(row, dayCount, true),
+      transformEmployeeRow(row, dayCount, viewer.canViewCost),
     ),
   );
 
@@ -101,7 +101,7 @@ async function fetchSelfOverview(
   }
 
   const employees = (data || []).map((row: RpcEmployeeRow) =>
-    transformEmployeeRow(row, dayCount, false),
+    transformEmployeeRow(row, dayCount, viewer.canViewCost),
   );
 
   return {

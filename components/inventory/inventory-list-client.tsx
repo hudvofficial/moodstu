@@ -14,7 +14,7 @@ import { toast } from "sonner";
  */
 
 import { Suspense, useMemo, useCallback } from "react";
-import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2, History, Package, ChevronDown, BarChart3 } from "lucide-react";
+import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2, History, Package, ChevronDown, BarChart3, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 
@@ -32,6 +32,7 @@ import { InventoryFilters as InventoryFiltersBar } from "@/components/inventory/
 import { TransactionFilters, computeDateRange } from "@/components/inventory/transaction-filters";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { TransactionHistoryTable } from "@/components/inventory/transaction-history-table";
+import { ApprovalRequestsTab } from "@/components/inventory/approval-requests-tab";
 import type {
   InventoryFilters as InventoryFiltersType,
   InventoryItem,
@@ -51,6 +52,7 @@ import { Pagination } from "@/components/ui/pagination";
 interface InventoryListClientProps {
   initialList?: { data: InventoryItem[]; count: number };
   initialStats?: InventoryStats;
+  userRole?: string;
 }
 
 const REALTIME_REFRESH_DELAY_MS = 600;
@@ -85,7 +87,7 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
 
 // ─── INNER COMPONENT ─────────────────────────────────
 
-function InventoryListInner({ initialList, initialStats }: InventoryListClientProps) {
+function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: InventoryListClientProps) {
   const router = useRouter();
 
   const {
@@ -146,7 +148,7 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
 
   // Computed values based on active tab
   const isLoading = tab === "history" ? txLoading : itemsLoading;
-  const error = tab === "history" ? txError : itemsError;
+  const error = tab === "history" ? txError : tab === "items" ? itemsError : null;
 
   // 📡 Realtime — single multi-table channel for both items + transactions
   const refreshInventoryCaches = useCallback(() => {
@@ -261,64 +263,23 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
   return (
     <>
     <div className="main-container gap-3!">
-      {/* ── Header: Tabs + Stats + Actions ── */}
-      <div className="flex flex-col gap-3 py-3 px-4 lg:px-5 bg-bg-card rounded-xl shadow-xs">
-        {/* Top row: Tabs + Actions */}
-        <div className="flex items-center justify-between gap-3">
-          {/* Left: Tab Selector */}
-          <div className="flex items-center gap-1 p-1 bg-bg-muted rounded-lg w-fit shrink-0">
-            <TabButton
-              active={tab === "history"}
-              onClick={() => setTab("history")}
-              icon={<History className="w-4 h-4" />}
-              label="Lịch sử"
-            />
-            <TabButton
-              active={tab === "items"}
-              onClick={() => setTab("items")}
-              icon={<Package className="w-4 h-4" />}
-              label="Vật tư"
-            />
-          </div>
-
-          {/* Right: Actions */}
-          <div className="hidden lg:flex gap-2 shrink-0">
-            <Button unstyled onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
-              <Plus className="w-5 h-5" />
-              <span>Khai báo</span>
-            </Button>
-            <Button unstyled onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
-              <ArrowDownToLine className="w-5 h-5" />
-              <span>Nhập</span>
-            </Button>
-            <Button unstyled onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
-              <ArrowUpFromLine className="w-5 h-5" />
-              <span>Xuất</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Row (Desktop: always visible, Mobile: collapsible) */}
-        <div className="lg:hidden">
-          <Button
-            unstyled
-            onClick={() => setShowMobileStats(!showMobileStats)}
-            className="flex items-center gap-2 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors w-full justify-between py-2"
-          >
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span>Thống kê tổng quan</span>
-            </div>
-            <ChevronDown className={`w-4 h-4 transition-transform ${showMobileStats ? "rotate-180" : ""}`} />
+      {/* ── Stats + Action (unified container — same pattern as contracts) ── */}
+      <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
+        <InventoryStatsBar stats={stats} />
+        
+        <div className="hidden lg:flex gap-2">
+          <Button unstyled onClick={handleCreate} className="btn btn-primary gap-2 shrink-0">
+            <Plus className="w-5 h-5" />
+            <span>Khai báo</span>
           </Button>
-          {showMobileStats && (
-            <div className="mt-3 animate-in slide-in-from-top-2">
-              <InventoryStatsBar stats={stats} />
-            </div>
-          )}
-        </div>
-        <div className="hidden lg:block">
-          <InventoryStatsBar stats={stats} />
+          <Button unstyled onClick={handleStockIn} className="btn btn-primary gap-2 shrink-0">
+            <ArrowDownToLine className="w-5 h-5" />
+            <span>Nhập</span>
+          </Button>
+          <Button unstyled onClick={handleStockOut} className="btn btn-primary gap-2 shrink-0">
+            <ArrowUpFromLine className="w-5 h-5" />
+            <span>Xuất</span>
+          </Button>
         </div>
       </div>
 
@@ -344,25 +305,52 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
         ]}
       />
 
-      {/* ── Filters (conditional based on tab) ── */}
-      {tab === "history" ? (
-        <TransactionFilters
-          type={txFilters.type || "all"}
-          dateRange={dateRangeKey}
-          onTypeChange={setTxType}
-          onDateRangeChange={handleDateRangeChange}
-        />
-      ) : (
-        <InventoryFiltersBar
-          status={filters.status}
-          category={filters.category}
-          sort={filters.sort}
-          onStatusChange={setStatus}
-          onCategoryChange={setCategory}
-          onSortChange={setSort}
-          stats={stats}
-        />
-      )}
+      {/* ── Tabs & Filters Row ── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Left: Tab Selector */}
+        <div className="flex items-center gap-1 p-1 bg-bg-card border border-border/50 rounded-lg w-fit shrink-0 shadow-xs">
+          <TabButton
+            active={tab === "history"}
+            onClick={() => setTab("history")}
+            icon={<History className="w-4 h-4" />}
+            label="Lịch sử"
+          />
+          <TabButton
+            active={tab === "items"}
+            onClick={() => setTab("items")}
+            icon={<Package className="w-4 h-4" />}
+            label="Vật tư"
+          />
+          <TabButton
+            active={tab === "approvals"}
+            onClick={() => setTab("approvals")}
+            icon={<ClipboardCheck className="w-4 h-4" />}
+            label="Duyệt yêu cầu"
+          />
+        </div>
+
+        {/* Right: Filters */}
+        <div className="flex-1 overflow-x-auto scrollbar-hide flex lg:justify-end">
+          {tab === "approvals" ? null : tab === "history" ? (
+            <TransactionFilters
+              type={txFilters.type || "all"}
+              dateRange={dateRangeKey}
+              onTypeChange={setTxType}
+              onDateRangeChange={handleDateRangeChange}
+            />
+          ) : (
+            <InventoryFiltersBar
+              status={filters.status}
+              category={filters.category}
+              sort={filters.sort}
+              onStatusChange={setStatus}
+              onCategoryChange={setCategory}
+              onSortChange={setSort}
+              stats={stats}
+            />
+          )}
+        </div>
+      </div>
 
       {/* ── Loading State ── */}
       {isLoading && (
@@ -384,7 +372,9 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
       )}
 
       {/* ── Content (conditional based on tab) ── */}
-      {!isLoading && !error && (
+      {tab === "approvals" ? (
+        <ApprovalRequestsTab userRole={userRole} />
+      ) : !isLoading && !error && (
         <>
           {tab === "history" ? (
             <TransactionHistoryTable
@@ -441,6 +431,7 @@ function InventoryListInner({ initialList, initialStats }: InventoryListClientPr
       txn={drawerTxn}
       isOpen={!!drawerTxn}
       onClose={() => setDrawerTxn(null)}
+      userRole={userRole}
     />
     <ConfirmDialog
       isOpen={!!txnToDelete}

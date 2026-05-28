@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
-import { updateContractListChecklistCache } from "@/lib/hooks/use-contracts";
+import { updateContractListChecklistCache } from "@/lib/hooks/use-contract-queries";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ function getCatStyle(category: string) {
 }
 
 export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
+  const queryClient = useQueryClient();
   const [items, setItems] = useState(initialItems);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
 
@@ -85,7 +87,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
       rollback: () => applyState(item.is_completed),
       action: () => toggleChecklist(item.id, nextCompleted),
       onSuccess: (result) => {
-        updateContractListChecklistCache(result.data.contract_id, item.id, nextCompleted);
+        updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);
       },
       onError: (error) => {
         toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");

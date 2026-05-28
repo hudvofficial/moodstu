@@ -1,0 +1,19 @@
+[
+  {
+    "id": "layer:ui-components",
+    "name": "UI Components",
+    "description": "React components for managing credit card forms and listings.",
+    "nodeIds": [
+      "file:credit-card-form-modal.tsx",
+      "file:credit-cards-client.tsx"
+    ]
+  },
+  {
+    "id": "layer:configuration",
+    "name": "Configuration",
+    "description": "Project configuration and ignore files.",
+    "nodeIds": [
+      "config:.understand-anything/.understandignore"
+    ]
+  }
+]

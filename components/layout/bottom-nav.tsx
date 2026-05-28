@@ -9,6 +9,7 @@ import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
 import { Home, MoreHorizontal, X, Loader2 } from "lucide-react";
 import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
 import { haptic } from "@/lib/haptic";
+import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
 
 interface BottomNavProps {
   role: Role;
@@ -114,8 +115,11 @@ export function BottomNav({ role, className }: BottomNavProps) {
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [moreItems, showMore, warmRoute]);
 
-  // Hide BottomNav during print mode
+  const isKeyboardOpen = useVirtualKeyboard();
+
+  // Hide BottomNav during print mode or when virtual keyboard is open
   if (pathname.includes("/print")) return null;
+  if (isKeyboardOpen) return null;
 
   return (
     <>

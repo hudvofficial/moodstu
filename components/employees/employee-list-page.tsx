@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { AlertTriangle, Plus, Users, FilterX } from "lucide-react";
-import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
 import type { EmployeeListItem } from "@/types/employee";
-import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,7 @@ import EmployeeDetailDrawer from "./employee-detail-drawer";
 
 // ═══════════════════════════════════════════
 // EmployeeListPage — Client wrapper for /employees
-// Phase 4: shared Pagination, removed EmployeePagination
+// Optimized: Removed SWR, using RSC props and useTransition
 // ═══════════════════════════════════════════
 
 interface Props {
@@ -29,83 +27,26 @@ interface Props {
   total?: number;
   page?: number;
   pageSize?: number;
+  canEdit?: boolean;
 }
 
 const EMPTY_STATS = { total: 0, active: 0, inactive: 0, departments: {} };
 
 export default function EmployeeListPage({
-  employees: initialEmployees = [],
-  stats: initialStats = EMPTY_STATS,
-  total: initialTotal = 0,
-  page: initialPage = 1,
-  pageSize: initialPageSize = 20,
+  employees = [],
+  stats = EMPTY_STATS,
+  total = 0,
+  page = 1,
+  pageSize = 20,
+  canEdit = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
-  const search = searchParams.get("search") || undefined;
-  const status = searchParams.get("status") || undefined;
-  const department = searchParams.get("dept") || undefined;
-  const role = searchParams.get("role") || undefined;
-  const sort = searchParams.get("sort") || undefined;
-  const pageParam = searchParams.get("page") || undefined;
-  const listKey = [
-    cacheKeys.employees(),
-    search || "",
-    status || "",
-    department || "",
-    role || "",
-    sort || "",
-    pageParam || "1",
-  ];
-  const listQuery = useSWR(
-    listKey,
-    async () => {
-      const result = await getEmployeeList({
-        search,
-        status,
-        department,
-        role,
-        sort,
-        page: pageParam,
-      });
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    {
-      fallbackData: {
-        employees: initialEmployees,
-        total: initialTotal,
-        page: initialPage,
-        pageSize: initialPageSize,
-      },
-      keepPreviousData: true,
-      revalidateOnMount: true,
-    },
-  );
-  const statsQuery = useSWR(cacheKeys.employees() + ":stats", async () => {
-    const result = await getEmployeeStats();
-    if (!result.success) throw new Error(result.error);
-    return result.data;
-  }, {
-    fallbackData: initialStats,
-    keepPreviousData: true,
-    revalidateOnMount: true,
-  });
 
-  const list = listQuery.data || {
-    employees: initialEmployees,
-    total: initialTotal,
-    page: initialPage,
-    pageSize: initialPageSize,
-  };
-  const employees = list.employees || [];
-  const stats = statsQuery.data || initialStats;
-  const total = list.total || 0;
-  const page = list.page || 1;
-  const pageSize = list.pageSize || 20;
   const totalPages = Math.ceil(total / pageSize);
 
   // Pagination onChange — update URL param
@@ -114,7 +55,9 @@ export default function EmployeeListPage({
       const params = new URLSearchParams(searchParams.toString());
       if (newPage > 1) params.set("page", String(newPage));
       else params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     },
     [router, pathname, searchParams]
   );
@@ -123,40 +66,40 @@ export default function EmployeeListPage({
   const hasFilters = searchParams.get("search") || searchParams.get("dept") ||
     searchParams.get("role") || searchParams.get("status");
 
-  const clearFilters = () => router.push(pathname);
+  const clearFilters = () => {
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
+  };
 
   const refreshEmployees = useCallback(() => {
-    void revalidateByPrefixes(cacheKeys.employees());
-  }, []);
+    startTransition(() => {
+      router.refresh();
+    });
+  }, [router]);
 
   return (
     <div className="main-container gap-3!">
       {/* ── Stats + Action ── */}
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
         <EmployeeStatsBar stats={stats} />
-        <div className="hidden lg:flex">
-          <Button unstyled onClick={() => setShowForm(true)} className="btn btn-primary gap-2 shrink-0">
-            <Plus className="w-5 h-5" />
-            <span>Thêm nhân viên</span>
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="hidden lg:flex">
+            <Button unstyled onClick={() => setShowForm(true)} className="btn btn-primary gap-2 shrink-0">
+              <Plus className="w-5 h-5" />
+              <span>Thêm nhân viên</span>
+            </Button>
+          </div>
+        )}
       </div>
 
-      <FAB onClick={() => setShowForm(true)} label="Thêm nhân viên" />
+      {canEdit && <FAB onClick={() => setShowForm(true)} label="Thêm nhân viên" />}
 
       {/* ── Filters (pass stats for pill counts) ── */}
       <EmployeeFilters stats={{ total: stats.total, active: stats.active, inactive: stats.inactive }} />
 
       {/* ── Employee List ── */}
-      {listQuery.error ? (
-        <EmptyState
-          icon={AlertTriangle}
-          title="Không tải được danh sách nhân viên"
-          description={listQuery.error instanceof Error ? listQuery.error.message : "Vui lòng thử lại."}
-          actionLabel="Tải lại"
-          onAction={refreshEmployees}
-        />
-      ) : listQuery.isLoading && !listQuery.data ? (
+      {isPending && employees.length === 0 ? (
         <div className="card-base p-5">
           <SkeletonTable rows={6} />
         </div>
@@ -180,10 +123,16 @@ export default function EmployeeListPage({
         )
       ) : (
         <>
-          <div className="hidden lg:block">
+          <div className="hidden lg:block relative">
+            {isPending && (
+              <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl" />
+            )}
             <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
           </div>
-          <div className="lg:hidden space-y-2">
+          <div className="lg:hidden space-y-2 relative">
+            {isPending && (
+              <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 rounded-xl" />
+            )}
             {employees.map((emp) => (
               <EmployeeCard
                 key={emp.id}
@@ -211,6 +160,7 @@ export default function EmployeeListPage({
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
         onChanged={refreshEmployees}
+        canEdit={canEdit}
       />
     </div>
   );

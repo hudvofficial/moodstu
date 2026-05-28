@@ -40,6 +40,8 @@ export default function DressCard({ dress, onEdit, onClick }: Props) {
             loading="lazy"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            placeholder={dress.blur_data_url ? "blur" : "empty"}
+            blurDataURL={dress.blur_data_url || undefined}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-text-muted/30">

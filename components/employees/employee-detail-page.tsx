@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, UserX, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { EmployeeDetail, EmployeeRole, SalaryInfo } from "@/types/employee";
 import { ROLE_BADGE_MAP, EMPLOYEE_STATUS_MAP, getRoleLabel } from "@/types/employee-constants";
 import { formatDate, formatPhone, formatVnd, getInitials } from "@/lib/utils";
-import { invalidateEmployeeAfterWrite, revalidateEmployeeCaches } from "@/lib/cache-invalidation";
+import { invalidateEmployeeAfterWrite } from "@/lib/cache-invalidation";
 import { useRealtime } from "@/hooks/use-realtime";
-import { getEmployeeById } from "@/app/actions/employee-queries";
 import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-mutations";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
@@ -21,28 +20,28 @@ import EmployeeFormModal from "./employee-form-modal";
 
 // ═══════════════════════════════════════════
 // EmployeeDetailPage — Detail + Edit + Soft Delete
-// Phase 5: consolidated utils from SSOT lib/utils.ts
+// Optimized: Removed derived local state, enforced RBAC `canEdit`
 // ═══════════════════════════════════════════
 
 
-export default function EmployeeDetailPage({ employee: initialEmployee }: { employee: EmployeeDetail }) {
+export default function EmployeeDetailPage({ 
+  employee, 
+  canEdit = false 
+}: { 
+  employee: EmployeeDetail, 
+  canEdit?: boolean 
+}) {
   const router = useRouter();
-  const [employee, setEmployee] = useState(initialEmployee);
+  const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  useEffect(() => {
-    setEmployee(initialEmployee);
-  }, [initialEmployee]);
-
-  const refreshEmployee = useCallback(async () => {
-    const result = await getEmployeeById(employee.id);
-    if (result.success && result.data) {
-      setEmployee(result.data as EmployeeDetail);
-    }
-    await revalidateEmployeeCaches(employee.id);
-  }, [employee.id]);
+  const refreshEmployee = useCallback(() => {
+    startTransition(() => {
+      router.refresh();
+    });
+  }, [router]);
 
   useRealtime("employees", {
     filter: `id=eq.${employee.id}`,
@@ -96,7 +95,7 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
       const result = await restoreEmployee(employee.id);
       if (result.success) {
         toast.success("Đã khôi phục nhân viên");
-        void refreshEmployee();
+        refreshEmployee();
       } else { throw new Error(result.error || "Lỗi"); }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi khôi phục");
@@ -104,7 +103,7 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
   };
 
   return (
-    <div className="main-container gap-4!">
+    <div className={`main-container gap-4! ${isPending ? 'opacity-70 transition-opacity' : ''}`}>
       {/* ── Breadcrumb ── */}
       <Breadcrumb items={[
         { label: "Nhân viên", href: "/employees" },
@@ -140,25 +139,27 @@ export default function EmployeeDetailPage({ employee: initialEmployee }: { empl
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 shrink-0">
-          {isDeleted ? (
-            <Button unstyled onClick={handleRestore} disabled={actionLoading} className="btn btn-secondary gap-1.5">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-              <span className="hidden sm:inline">Khôi phục</span>
-            </Button>
-          ) : (
-            <>
-              <Button unstyled onClick={() => setShowForm(true)} className="btn btn-secondary gap-1.5">
-                <Pencil className="w-4 h-4" />
-                <span className="hidden sm:inline">Sửa</span>
+        {canEdit && (
+          <div className="flex items-center gap-2 shrink-0">
+            {isDeleted ? (
+              <Button unstyled onClick={handleRestore} disabled={actionLoading} className="btn btn-secondary gap-1.5">
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                <span className="hidden sm:inline">Khôi phục</span>
               </Button>
-              <Button unstyled onClick={() => setConfirmDeleteOpen(true)} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
-                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
-                <span className="hidden sm:inline">Cho nghỉ</span>
-              </Button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <Button unstyled onClick={() => setShowForm(true)} className="btn btn-secondary gap-1.5">
+                  <Pencil className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sửa</span>
+                </Button>
+                <Button unstyled onClick={() => setConfirmDeleteOpen(true)} disabled={actionLoading} className="btn btn-secondary gap-1.5 text-error">
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Cho nghỉ</span>
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Desktop Layout ── */}

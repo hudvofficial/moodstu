@@ -13,6 +13,7 @@ import {
   reserveDressSchema,
 } from "@/lib/validations/dress.schema";
 import { CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
+import { generateBlurHashFromUrl } from "./blurhash-actions";
 
 type RpcError = { message?: string; code?: string } | null;
 
@@ -142,10 +143,24 @@ export async function createDress(rawData: unknown) {
       itemCode = `${prefix}-${String(nextNum).padStart(3, "0")}`;
     }
 
+    let blurHash: string | null = null;
+    let blurDataUrl: string | null = null;
+    if (data.image_url) {
+      try {
+        const result = await generateBlurHashFromUrl(data.image_url);
+        blurHash = result.blurHash;
+        blurDataUrl = result.dataUrl;
+      } catch (e) {
+        console.error("Failed to generate blur hash for dress:", e);
+      }
+    }
+
     const insertPayload = {
       ...data,
       item_code: itemCode,
       image_url: data.image_url || null,
+      blur_hash: blurHash,
+      blur_data_url: blurDataUrl,
       notes: data.notes || null,
       status: "available",
       current_stock: 1,
@@ -207,7 +222,7 @@ export async function updateDress(rawData: unknown) {
 
     const { data: current, error: fetchError } = await supabase
       .from("dresses")
-      .select("updated_at")
+      .select("updated_at, image_url, blur_hash, blur_data_url")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -217,11 +232,32 @@ export async function updateDress(rawData: unknown) {
       throw new Error("Du lieu da duoc cap nhat boi nguoi khac. Vui long tai lai trang.");
     }
 
+    let blurHash = current.blur_hash;
+    let blurDataUrl = current.blur_data_url;
+    if (data.image_url !== current.image_url) {
+      if (data.image_url) {
+        try {
+          const result = await generateBlurHashFromUrl(data.image_url);
+          blurHash = result.blurHash;
+          blurDataUrl = result.dataUrl;
+        } catch (e) {
+          console.error("Failed to generate blur hash for dress:", e);
+          blurHash = null;
+          blurDataUrl = null;
+        }
+      } else {
+        blurHash = null;
+        blurDataUrl = null;
+      }
+    }
+
     const { error } = await supabase
       .from("dresses")
       .update({
         ...data,
         image_url: data.image_url || null,
+        blur_hash: blurHash,
+        blur_data_url: blurDataUrl,
         notes: data.notes || null,
         updated_by: userId,
         updated_at: new Date().toISOString(),

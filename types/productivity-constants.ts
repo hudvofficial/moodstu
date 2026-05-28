@@ -31,6 +31,7 @@ export const PRODUCTIVITY_ALLOWED_ROLES = [
 ] as const;
 
 export const PRODUCTIVITY_TEAM_ROLES = ["admin", "manager"] as const;
+export const PRODUCTIVITY_COST_ROLES = ["admin"] as const;
 
 export const PERIOD_LABELS: Record<ProductivityPeriod, string> = {
   week: "Tuần này",

@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { Plus, CreditCard, Banknote, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  fetchCreditCards,
-  type CreditCardOption,
-} from "@/app/actions/finance-operations-queries";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import type { CreditCardOption } from "@/app/actions/finance-operations-queries";
 import CreditCardFormModal from "./credit-card-form-modal";
 
 export default function CreditCardsClient({
@@ -14,9 +12,10 @@ export default function CreditCardsClient({
 }: {
   initialCards: CreditCardOption[];
 }) {
-  const [cards, setCards] = useState<CreditCardOption[]>(initialCards || []);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CreditCardOption | null>(null);
+
+  const cards = initialCards || [];
 
   const handleOpenEdit = (card: CreditCardOption) => {
     setSelectedCard(card);
@@ -28,14 +27,12 @@ export default function CreditCardsClient({
     setIsOpen(true);
   };
 
-  const onSuccess = () => {
-    void fetchCreditCards().then((response) => {
-      if (response.success) setCards(response.data);
-    });
-  };
-
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Cài đặt", href: "/settings" },
+        { label: "Quản lý thẻ tín dụng" },
+      ]} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-h2 flex items-center">
@@ -113,14 +110,11 @@ export default function CreditCardsClient({
         </div>
       )}
 
-      {isOpen && (
-        <CreditCardFormModal
-          isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
-          initialData={selectedCard}
-          onSuccess={onSuccess}
-        />
-      )}
+      <CreditCardFormModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        initialData={selectedCard}
+      />
     </div>
   );
 }

@@ -1,0 +1,178 @@
+{
+    "layers":  {
+                   "value":  [
+                                 {
+                                     "id":  "layer:ui-components",
+                                     "name":  "UI Components",
+                                     "description":  "React components for managing credit card forms and listings.",
+                                     "nodeIds":  [
+                                                     "file:credit-card-form-modal.tsx",
+                                                     "file:credit-cards-client.tsx"
+                                                 ]
+                                 },
+                                 {
+                                     "id":  "layer:configuration",
+                                     "name":  "Configuration",
+                                     "description":  "Project configuration and ignore files.",
+                                     "nodeIds":  [
+                                                     "config:.understand-anything/.understandignore"
+                                                 ]
+                                 }
+                             ],
+                   "Count":  2
+               },
+    "version":  "1.0.0",
+    "edges":  [
+                  {
+                      "source":  "file:credit-cards-client.tsx",
+                      "target":  "file:credit-card-form-modal.tsx",
+                      "type":  "imports",
+                      "direction":  "forward",
+                      "weight":  0.7
+                  },
+                  {
+                      "source":  "file:credit-card-form-modal.tsx",
+                      "target":  "function:credit-card-form-modal.tsx:CreditCardFormModal",
+                      "type":  "contains",
+                      "direction":  "forward",
+                      "weight":  1.0
+                  },
+                  {
+                      "source":  "file:credit-card-form-modal.tsx",
+                      "target":  "function:credit-card-form-modal.tsx:CreditCardFormModal",
+                      "type":  "exports",
+                      "direction":  "forward",
+                      "weight":  0.8
+                  },
+                  {
+                      "source":  "file:credit-cards-client.tsx",
+                      "target":  "function:credit-cards-client.tsx:CreditCardsClient",
+                      "type":  "contains",
+                      "direction":  "forward",
+                      "weight":  1.0
+                  },
+                  {
+                      "source":  "file:credit-cards-client.tsx",
+                      "target":  "function:credit-cards-client.tsx:CreditCardsClient",
+                      "type":  "exports",
+                      "direction":  "forward",
+                      "weight":  0.8
+                  }
+              ],
+    "nodes":  [
+                  {
+                      "id":  "config:.understand-anything/.understandignore",
+                      "type":  "config",
+                      "name":  ".understandignore",
+                      "filePath":  ".understand-anything/.understandignore",
+                      "summary":  "Understand-Anything plugin ignore file for credit-cards module.",
+                      "tags":  [
+                                   "configuration",
+                                   "ignore",
+                                   "build-system"
+                               ],
+                      "complexity":  "simple"
+                  },
+                  {
+                      "id":  "file:credit-card-form-modal.tsx",
+                      "type":  "file",
+                      "name":  "credit-card-form-modal.tsx",
+                      "filePath":  "credit-card-form-modal.tsx",
+                      "summary":  "Modal component for creating and editing credit cards with form validation.",
+                      "tags":  [
+                                   "component",
+                                   "modal",
+                                   "form"
+                               ],
+                      "complexity":  "moderate"
+                  },
+                  {
+                      "id":  "function:credit-card-form-modal.tsx:CreditCardFormModal",
+                      "type":  "function",
+                      "name":  "CreditCardFormModal",
+                      "filePath":  "credit-card-form-modal.tsx",
+                      "lineRange":  [
+                                        24,
+                                        250
+                                    ],
+                      "summary":  "React component rendering the credit card form inside a modal.",
+                      "tags":  [
+                                   "component",
+                                   "modal",
+                                   "form"
+                               ],
+                      "complexity":  "moderate"
+                  },
+                  {
+                      "id":  "file:credit-cards-client.tsx",
+                      "type":  "file",
+                      "name":  "credit-cards-client.tsx",
+                      "filePath":  "credit-cards-client.tsx",
+                      "summary":  "Client component listing credit cards and managing the modal state.",
+                      "tags":  [
+                                   "component",
+                                   "list",
+                                   "client"
+                               ],
+                      "complexity":  "moderate"
+                  },
+                  {
+                      "id":  "function:credit-cards-client.tsx:CreditCardsClient",
+                      "type":  "function",
+                      "name":  "CreditCardsClient",
+                      "filePath":  "credit-cards-client.tsx",
+                      "lineRange":  [
+                                        12,
+                                        126
+                                    ],
+                      "summary":  "React client component displaying a list of credit cards and a button to add new ones.",
+                      "tags":  [
+                                   "component",
+                                   "list",
+                                   "client"
+                               ],
+                      "complexity":  "moderate"
+                  }
+              ],
+    "tour":  {
+                 "value":  [
+                               {
+                                   "order":  1,
+                                   "title":  "Configuration \u0026 Setup",
+                                   "description":  "Understand-Anything ignore rules for this module.",
+                                   "nodeIds":  [
+                                                   "config:.understand-anything/.understandignore"
+                                               ]
+                               },
+                               {
+                                   "order":  2,
+                                   "title":  "Main List View",
+                                   "description":  "The client component that renders the list of credit cards and triggers the add/edit modal.",
+                                   "nodeIds":  [
+                                                   "file:credit-cards-client.tsx"
+                                               ]
+                               },
+                               {
+                                   "order":  3,
+                                   "title":  "Credit Card Form Modal",
+                                   "description":  "The modal form component for creating and updating credit cards.",
+                                   "nodeIds":  [
+                                                   "file:credit-card-form-modal.tsx"
+                                               ]
+                               }
+                           ],
+                 "Count":  3
+             },
+    "project":  {
+                    "analyzedAt":  "2026-05-28T08:35:47Z",
+                    "frameworks":  [
+
+                                   ],
+                    "description":  "No description available",
+                    "name":  "credit-cards",
+                    "languages":  [
+                                      "typescript",
+                                      "unknown"
+                                  ]
+                }
+}

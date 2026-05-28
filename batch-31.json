@@ -1,0 +1,760 @@
+{
+  "batch": 31,
+  "ten_batch": "Lib Core Utilities - Supabase, Cache & Query",
+  "mo_ta": "Các utilities cốt lõi: Supabase client setup (browser/server/middleware), hệ thống cache đa tầng (SWR, React Query, server cache), cache invalidation, React Query hooks cho contracts, performance monitoring, validation, và core utilities",
+  "tong_so_file": 20,
+  "files": [
+    {
+      "duong_dan": "lib/supabase/client.ts",
+      "mo_ta": "Supabase browser client cho client components - sử dụng @supabase/ssr với anon key",
+      "chuc_nang_chinh": [
+        "createClient() - Tạo browser client với env variables"
+      ],
+      "exports": [
+        "createClient"
+      ],
+      "dependencies": [
+        "@supabase/ssr"
+      ],
+      "pattern": "SSR browser client pattern từ V1"
+    },
+    {
+      "duong_dan": "lib/supabase/server.ts",
+      "mo_ta": "Supabase server client cho server components và actions - hỗ trợ cả user client (RLS) và admin client (bypass RLS)",
+      "chuc_nang_chinh": [
+        "createClient() - Cached server client với RLS (sử dụng user JWT từ cookies)",
+        "createAdminClient() - Cached admin client bypass RLS (service role key)"
+      ],
+      "exports": [
+        "createClient",
+        "createAdminClient"
+      ],
+      "dependencies": [
+        "@supabase/ssr",
+        "next/headers",
+        "react (cache)"
+      ],
+      "pattern": "React cache() để tránh duplicate client instances trong cùng request",
+      "security_note": "Admin client CHỈ dùng trong Server Actions sau khi verify auth manually"
+    },
+    {
+      "duong_dan": "lib/supabase/middleware.ts",
+      "mo_ta": "Next.js middleware - xử lý auth session refresh, protected routes, và auth timing profiler",
+      "chuc_nang_chinh": [
+        "updateSession() - Middleware chính: refresh session, check auth, redirect",
+        "Auth performance profiler - Log slow auth checks (>700ms mặc định)",
+        "Protected routes vs public routes logic",
+        "clearAuthProxyHeaders() - Xóa auth proxy headers"
+      ],
+      "exports": [
+        "updateSession"
+      ],
+      "public_routes": [
+        "/login",
+        "/forgot-password",
+        "/reset-password",
+        "/account-disabled",
+        "/auth",
+        "/offline",
+        "/api/auth",
+        "/api/drive-download",
+        "/api/og",
+        "/api/gallery-download",
+        "/api/gallery-download-batch",
+        "/gallery",
+        "/manifest.json",
+        "/sw.js",
+        "/workbox-*",
+        "/fallback-*",
+        "/swe-worker-*",
+        "/favicon.ico",
+        "/icon.png",
+        "/apple-icon.png",
+        "/icons/"
+      ],
+      "flow": [
+        "1. Tạo Supabase client với cookie handlers",
+        "2. Nếu là public route (trừ /login) → allow",
+        "3. getClaims() để check authenticated",
+        "4. Nếu chưa auth & route protected → redirect /login",
+        "5. Nếu đã auth & đang ở /login → redirect /dashboard",
+        "6. Return response với noStore() cache headers"
+      ],
+      "env_vars": [
+        "AUTH_CONTEXT_PROFILE_SLOW_MS - Ngưỡng slow auth (default: 700ms)",
+        "AUTH_CONTEXT_PROFILE - Force log all (1) hoặc disable (0)",
+        "AUTH_LOGIN_PROFILE - Enable login profiling (1)"
+      ]
+    },
+    {
+      "duong_dan": "lib/cache-invalidation.ts",
+      "mo_ta": "Client-side cache invalidation utilities - invalidate SWR và React Query caches sau mutations",
+      "chuc_nang_chinh": [
+        "revalidateFinanceCaches() - Invalidate tất cả finance caches",
+        "revalidateCrmCaches() - Invalidate CRM (customers/leads)",
+        "revalidateEmployeeCaches() - Invalidate employee caches",
+        "revalidateServiceCaches() - Invalidate services/categories",
+        "revalidateContractCaches() - Invalidate React Query contract caches",
+        "revalidateContractDetailCaches() - Invalidate chi tiết contract",
+        "revalidateInventoryCaches() - Invalidate inventory/transactions",
+        "revalidateDressCaches() - Invalidate dress/rental caches",
+        "revalidatePrintingCaches() - Invalidate printing orders",
+        "revalidateCalendarCaches() - Invalidate calendar/productivity"
+      ],
+      "exports": [
+        "revalidateFinanceCaches",
+        "revalidateCrmCaches",
+        "revalidateEmployeeCaches",
+        "revalidateServiceCaches",
+        "revalidateContractCaches",
+        "revalidateContractDetailCaches",
+        "revalidateInventoryCaches",
+        "revalidateDressCaches",
+        "revalidatePrintingCaches",
+        "revalidateCalendarCaches",
+        "invalidateContractAfterWrite (alias)",
+        "invalidateContractDetailAfterWrite (alias)",
+        "invalidateInventoryAfterWrite (alias)",
+        "invalidateServiceAfterWrite (alias)",
+        "invalidateEmployeeAfterWrite (alias)",
+        "invalidateFinanceAfterWrite (alias)",
+        "invalidateDressAfterWrite (alias)",
+        "invalidatePrintingAfterWrite (alias)"
+      ],
+      "dependencies": [
+        "lib/swr (revalidateByPrefixes, revalidateMultiple)",
+        "lib/query-client-instance (getGlobalQueryClient)",
+        "lib/hooks/use-contract-queries (contractKeys)"
+      ],
+      "pattern": "Hybrid SWR + React Query invalidation"
+    },
+    {
+      "duong_dan": "lib/cache.ts",
+      "mo_ta": "Server-side in-memory cache với TTL - giảm database queries từ 100-500ms → <1ms",
+      "chuc_nang_chinh": [
+        "cachedQuery() - Cache wrapper cho async functions với TTL",
+        "swrQuery() - Stale-While-Revalidate pattern (serve stale + background refresh)",
+        "invalidateCache() - Clear cache by pattern hoặc clear all",
+        "Hit rate monitor (dev only) - Log cache hit/miss rate"
+      ],
+      "exports": [
+        "cachedQuery",
+        "swrQuery",
+        "invalidateCache"
+      ],
+      "cache_behavior": [
+        "Dev mode: Skip cache để instant feedback",
+        "Production: Cache with TTL",
+        "Cleanup expired entries mỗi 5 phút"
+      ],
+      "performance": {
+        "lan_1": "Fetch từ Supabase (100-500ms) → cache result",
+        "lan_2_den_n": "Trả cache NGAY (<1ms)",
+        "sau_ttl": "Fetch mới, cache lại"
+      },
+      "swr_pattern": {
+        "0_30s": "Fresh cache - return immediately",
+        "30_60s": "Serve stale + background revalidate",
+        "tren_60s": "Must wait for fresh fetch"
+      }
+    },
+    {
+      "duong_dan": "lib/server-cache-invalidation.ts",
+      "mo_ta": "Server-side cache invalidation - revalidatePath() và revalidateTag() cho Next.js cache",
+      "chuc_nang_chinh": [
+        "invalidateDashboardCritical() - Invalidate dashboard critical cache",
+        "invalidateFinancePaths() - Invalidate finance paths (receipts, cashflow, reports)",
+        "invalidateDressPaths() - Invalidate dress paths + contract detail",
+        "invalidatePrintingPaths() - Invalidate printing paths + contract detail",
+        "invalidateCalendarPaths() - Invalidate calendar + productivity paths",
+        "invalidateContractPaths() - Invalidate contract paths với scope options",
+        "invalidateContractListCache() - Invalidate contract list + stats cache tags"
+      ],
+      "exports": [
+        "invalidateDashboardCritical",
+        "invalidateFinancePaths",
+        "invalidateDressPaths",
+        "invalidatePrintingPaths",
+        "invalidateCalendarPaths",
+        "invalidateContractPaths",
+        "invalidateContractListCache",
+        "DASHBOARD_CRITICAL_CACHE_TAG",
+        "CONTRACT_LIST_CACHE_TAG",
+        "CONTRACT_STATS_CACHE_TAG"
+      ],
+      "types": {
+        "FinanceScope": "receipts, cashflow, reports booleans",
+        "ContractScope": "list, detail, finance, dresses, printing, calendar, dashboard, productivity, reports booleans"
+      },
+      "dependencies": [
+        "next/cache (revalidatePath, revalidateTag)"
+      ]
+    },
+    {
+      "duong_dan": "lib/query-client-instance.ts",
+      "mo_ta": "Singleton QueryClient instance cho non-React contexts - sử dụng bởi cache-invalidation.ts",
+      "chuc_nang_chinh": [
+        "getGlobalQueryClient() - Lazy create QueryClient singleton",
+        "setGlobalQueryClient() - Set custom QueryClient (cho testing)"
+      ],
+      "exports": [
+        "getGlobalQueryClient",
+        "setGlobalQueryClient"
+      ],
+      "config": {
+        "staleTime": "5 phút",
+        "gcTime": "10 phút",
+        "refetchOnWindowFocus": false,
+        "refetchOnMount": false,
+        "retry": "Retry < 2 lần, skip 4xx errors",
+        "retryDelay": "Exponential backoff (max 30s)"
+      },
+      "important_note": "CHỈ dùng ở non-React contexts. Trong React components, dùng useQueryClient() hook"
+    },
+    {
+      "duong_dan": "lib/hooks/use-contract-queries.ts",
+      "mo_ta": "React Query hooks cho contract data - migration từ SWR sang React Query",
+      "chuc_nang_chinh": [
+        "useContracts() - Fetch contracts list với filters",
+        "useContractStats() - Fetch contract stats (dashboard summary)",
+        "useContractDetail() - Fetch full contract detail cho detail page",
+        "useContractDrawerExtra() - Fetch drawer extra data (lazy-loaded)",
+        "useActiveEmployees() - Fetch active employees cho assignment dropdowns",
+        "useContractInvalidation() - Cache invalidation helpers",
+        "prefetchContract() - Pre-warm cache cho drawer data",
+        "prefetchContractDetail() - Pre-warm cache cho full detail",
+        "updateContractStatusCache() - Optimistic update contract status",
+        "updateContractListChecklistCache() - Optimistic update checklist"
+      ],
+      "exports": [
+        "contractKeys (Query keys factory)",
+        "useContracts",
+        "useContractStats",
+        "useContractDetail",
+        "useContractDrawerExtra",
+        "useActiveEmployees",
+        "useContractInvalidation",
+        "revalidateContractCaches",
+        "revalidateContractListCaches",
+        "revalidateContractDetailCaches",
+        "updateContractStatusCache",
+        "updateContractListChecklistCache",
+        "prefetchContract",
+        "prefetchContractDetail",
+        "ContractDetailData type"
+      ],
+      "query_keys_factory": {
+        "all": "[contracts]",
+        "lists": "[contracts, list]",
+        "list": "[contracts, list, JSON.stringify(filters)]",
+        "stats": "[contracts, stats]",
+        "details": "[contracts, detail]",
+        "detail": "[contracts, detail, id]",
+        "drawerExtras": "[contracts, drawer-extra]",
+        "drawerExtra": "[contracts, drawer-extra, id]",
+        "employees": "[active-employees]"
+      },
+      "cache_config": {
+        "staleTime": "5 phút",
+        "gcTime": "10 phút",
+        "placeholderData": "Keep previous data while loading (như SWR keepPreviousData)"
+      },
+      "optimistic_updates": [
+        "updateContractStatusCache() - Update status across list + detail caches",
+        "updateContractListChecklistCache() - Update checklist completion across list + drawer + detail"
+      ],
+      "prefetch": {
+        "drawer": "4 queries (events, checklists, workTasks, paymentPlans)",
+        "detail": "6 queries (contract, payments, paymentPlans, reservations, printOrders, events)"
+      }
+    },
+    {
+      "duong_dan": "lib/hooks/use-prefetch-contract.ts",
+      "mo_ta": "Prefetch contract detail data on hover/viewport để improve perceived performance",
+      "chuc_nang_chinh": [
+        "usePrefetchContract() - Prefetch contract trên hover",
+        "usePrefetchOnView() - Prefetch contract khi vào viewport (IntersectionObserver)"
+      ],
+      "exports": [
+        "usePrefetchContract",
+        "usePrefetchOnView"
+      ],
+      "usage_example": {
+        "hover": "<Link href={`/contracts/${id}`} onMouseEnter={() => prefetchContract(id)}>Chi tiết</Link>",
+        "viewport": "const { ref } = usePrefetchOnView(contractId); <div ref={ref}><Link>Chi tiết</Link></div>"
+      },
+      "api_endpoint": "/api/contracts/${contractId}/prefetch",
+      "staleTime": "5 phút"
+    },
+    {
+      "duong_dan": "lib/swr.ts",
+      "mo_ta": "SWR cache key factory (SSOT) và utilities - kế thừa từ Coffee V1",
+      "chuc_nang_chinh": [
+        "cacheKeys - Factory cho tất cả cache keys trong app",
+        "swrConfig - Default SWR configuration",
+        "revalidate() - Revalidate single key",
+        "revalidateMultiple() - Revalidate multiple keys",
+        "revalidateByPrefixes() - Revalidate by prefix pattern (hỗ trợ array keys)",
+        "prefetch() - Pre-warm SWR cache"
+      ],
+      "exports": [
+        "cacheKeys",
+        "swrConfig",
+        "revalidate",
+        "revalidateMultiple",
+        "revalidateByPrefixes",
+        "prefetch",
+        "useSWR (re-export)",
+        "mutate (re-export)"
+      ],
+      "cache_keys_categories": [
+        "CRM: customers, customerDetail, leads, leadDetail",
+        "Contracts: contracts, contractDetail, contractEvents, contractDetails, contractReceipts, contractPaymentPlans",
+        "Payments: payments, receipts",
+        "Dresses: dresses, dressStats, dressDetail, dressRentals",
+        "Inventory: inventory, inventorySaleOptions, inventoryStats, inventoryDetail, inventoryHistory, inventoryTransactions",
+        "Dashboard: dashboard, dashboardBootstrap, dashboardStats, reportsSnapshot, reportsLedger",
+        "Finance: expenses, debts, debtStats, goals, goalsCashflow, goalContributions, financeCategories, financeReceipts, financeReceiptStats, financeExpenses, financeExpenseStats, financeDashboard, financeRevenue, financeServiceDist, financeUpcoming, financePending, financeProfitReport, financeCashflow, financeLedger, financeContracts, labDebts, financeFixedCosts, financeInvestments, financeSalaries, financeVendorCosts, vendorDebts, financeBudgets, financeCloses, financeCloseDetail, financeIntegrity, financeIntelligence, financeCashflowForecast, financeExpenseBreakdown, financeReceivableAging, financeBudgetVsActual, financeAdvancedIntelligence",
+        "Team & Calendar: team, calendar, calendarGoogle, jobs, productivity, productivityJobDetails",
+        "Services: services, categories",
+        "System: employees, notifications, settings, studioInfo, printingOrders, printingStats, printingDetail, labs, labDetail"
+      ],
+      "swrConfig": {
+        "revalidateOnFocus": true,
+        "revalidateOnReconnect": true,
+        "dedupingInterval": "5s",
+        "errorRetryCount": 2,
+        "keepPreviousData": true
+      },
+      "pattern": "Prefix matching hỗ trợ cả string keys và array keys [namespace, filters]"
+    },
+    {
+      "duong_dan": "lib/utils.ts",
+      "mo_ta": "Core utility functions (SSOT) - cn, formatCurrency, formatDate, getInitials, formatPhone, parseIntOrNull",
+      "chuc_nang_chinh": [
+        "cn() - Merge Tailwind classes safely với clsx + twMerge",
+        "formatCurrency() - Format số thành VND (vi-VN)",
+        "formatVnd() - Format với đơn vị VND",
+        "safeFormatDate() - Format date defensively với date-fns",
+        "formatDate() - Format date với style: short/long/relative",
+        "parseIntOrNull() - Parse string to int, return null if empty/NaN",
+        "getInitials() - Get 2-char initials từ full name",
+        "formatPhone() - Format Vietnamese phone: 0901234001 → 0901 234 001"
+      ],
+      "exports": [
+        "cn",
+        "CURRENCY_CODE",
+        "CURRENCY_SYMBOL",
+        "formatCurrency",
+        "formatVnd",
+        "safeFormatDate",
+        "formatDate",
+        "parseIntOrNull",
+        "getInitials",
+        "formatPhone"
+      ],
+      "constants": {
+        "CURRENCY_CODE": "VND",
+        "CURRENCY_SYMBOL": "VND"
+      },
+      "date_formats": {
+        "short": "dd/MM/yyyy (default)",
+        "long": "weekday long, year numeric, month long, day numeric",
+        "relative": "Vừa xong / X phút trước / X giờ trước / X ngày trước"
+      }
+    },
+    {
+      "duong_dan": "lib/finance-utils.ts",
+      "mo_ta": "Finance utilities - period lock check, date helpers, relation text extraction, RPC fallback pattern, readMoney",
+      "chuc_nang_chinh": [
+        "isMissingRpcError() - Check RPC missing error (PGRST202)",
+        "checkPeriodLock() - Throw if date falls trong closed accounting period",
+        "firstDayOfMonth() - Build date string for first day of month",
+        "monthWindow() - Date window cho month-based queries: [start, end)",
+        "monthWindowOptional() - Optional month window (null if missing)",
+        "relationText() - Extract text từ Supabase relation join (array or object)",
+        "asNumber() - Safe number coercion (clamp 0 to 10B)",
+        "asString() - Safe string coercion với fallback",
+        "rpcWithFallback() - Call RPC, fallback to query-based implementation if missing",
+        "readMoney() - Chuyển số tiền thành chữ (Tiếng Việt)"
+      ],
+      "exports": [
+        "isMissingRpcError",
+        "checkPeriodLock",
+        "firstDayOfMonth",
+        "monthWindow",
+        "monthWindowOptional",
+        "relationText",
+        "asNumber",
+        "asString",
+        "rpcWithFallback",
+        "readMoney"
+      ],
+      "period_lock_logic": [
+        "1. Call is_period_locked RPC",
+        "2. If RPC missing → fallback: check finance_monthly_closes table",
+        "3. If status = 'locked' → throw error",
+        "4. Otherwise allow"
+      ],
+      "read_money_example": "readMoney(1500000) → 'Một triệu năm trăm nghìn đồng chẵn.'"
+    },
+    {
+      "duong_dan": "lib/finance-constants.ts",
+      "mo_ta": "Finance constants - eliminate magic numbers, query limits, calculation helpers",
+      "chuc_nang_chinh": [
+        "Query limits constants (MAX_LEDGER_PAGE_SIZE, MAX_FINANCE_PAGE_SIZE, MAX_SEARCH_LIMIT, MAX_BULK_QUERY_LIMIT, BATCH_CHUNK_SIZE)",
+        "Calculation constants (MAX_PERCENTAGE, MAX_CHANGE_PERCENT, PERCENTAGE_PRECISION_MULTIPLIER, PERCENTAGE_PRECISION_DIVISOR)",
+        "calculatePercentage() - Tính % với 1 chữ số thập phân",
+        "calculateProgress() - Tính progress % (capped at 100%)",
+        "calculateChangePercentage() - Tính % thay đổi (capped at ±1000%)"
+      ],
+      "exports": [
+        "MAX_LEDGER_PAGE_SIZE (50)",
+        "MAX_FINANCE_PAGE_SIZE (50)",
+        "MAX_SEARCH_LIMIT (100)",
+        "MAX_BULK_QUERY_LIMIT (1000)",
+        "BATCH_CHUNK_SIZE (50)",
+        "MAX_SEARCH_STRING_LENGTH (100)",
+        "MAX_PERCENTAGE (100)",
+        "MAX_CHANGE_PERCENT (1000)",
+        "PERCENTAGE_PRECISION_MULTIPLIER (1000)",
+        "PERCENTAGE_PRECISION_DIVISOR (10)",
+        "calculatePercentage",
+        "calculateProgress",
+        "calculateChangePercentage"
+      ],
+      "calculation_examples": {
+        "calculatePercentage(456, 1000)": "45.6",
+        "calculateProgress(50, 100)": "50",
+        "calculateProgress(150, 100)": "100 (capped)",
+        "calculateChangePercentage(150, 100)": "50.0 (50% increase)",
+        "calculateChangePercentage(1000000, 1)": "1000.0 (capped)"
+      }
+    },
+    {
+      "duong_dan": "lib/optimistic-mutation.ts",
+      "mo_ta": "Optimistic mutation helper - apply → action → rollback if fail hoặc onSuccess",
+      "chuc_nang_chinh": [
+        "runOptimisticMutation() - Wrapper cho optimistic updates với rollback"
+      ],
+      "exports": [
+        "runOptimisticMutation",
+        "ActionResult type",
+        "OptimisticMutationOptions type"
+      ],
+      "flow": [
+        "1. apply() - Apply optimistic update",
+        "2. action() - Run server action",
+        "3a. If success → onSuccess()",
+        "3b. If fail → rollback() + onError()"
+      ]
+    },
+    {
+      "duong_dan": "lib/toast-manager.ts",
+      "mo_ta": "Centralized toast system với deduplication, loading flows, batch operations, server action integration",
+      "chuc_nang_chinh": [
+        "Core toasts: success, error, info, warning, loading",
+        "Loading flows: startLoading, finishLoading, updateLoading",
+        "Batch operations: batchSuccess, batchError (summary toasts)",
+        "Server action integration: result()",
+        "Promise helper: promise() - Auto loading → success/error",
+        "Action toasts: successWithUndo, errorWithRetry",
+        "Critical toasts: critical() - No auto-dismiss",
+        "Utilities: dismiss, clear"
+      ],
+      "exports": [
+        "toastManager (class instance)",
+        "toast (default API)",
+        "ToastOptions type",
+        "ToastType type"
+      ],
+      "features": {
+        "deduplication": "Prevent spam - track activeToasts by message",
+        "loading_flow": "loading() → success/error với same ID",
+        "batch_summary": "batchSuccess(['a','b','c'], 'tải xuống') → 'Đã tải xuống 3 mục'",
+        "server_action": "result(actionResult, 'Success message') - auto error handling",
+        "undo": "successWithUndo() - 6s duration with Undo button",
+        "retry": "errorWithRetry() - 8s duration with Retry button",
+        "critical": "critical() - Infinity duration, must manually close"
+      },
+      "usage_examples": {
+        "simple": "toast.success('Đã lưu')",
+        "loading": "const id = toast.loading('Đang tải...'); toast.success('Xong', { id })",
+        "batch": "toast.batchSuccess(['file1.jpg', 'file2.jpg'], 'tải xuống')",
+        "action": "toast.result(await createGallery(...), 'Tạo album thành công')"
+      }
+    },
+    {
+      "duong_dan": "lib/action-profiler.ts",
+      "mo_ta": "Server action profiler - log slow actions (>800ms mặc định)",
+      "chuc_nang_chinh": [
+        "profileAction() - Wrap async action với timing log"
+      ],
+      "exports": [
+        "profileAction"
+      ],
+      "env_vars": [
+        "ACTION_PROFILE=1 - Force log tất cả actions",
+        "ACTION_PROFILE=0 - Disable profiling",
+        "ACTION_PROFILE_SLOW_MS - Custom slow threshold (default: 800ms)"
+      ],
+      "usage": "await profileAction('createContract', () => createContractLogic())"
+    },
+    {
+      "duong_dan": "lib/performance-monitor.ts",
+      "mo_ta": "Performance monitoring cho Dashboard - track Core Web Vitals và dashboard-specific metrics",
+      "chuc_nang_chinh": [
+        "trackDashboardLoad() - Track dashboard load performance",
+        "calculatePerformanceScore() - Calculate score 0-10 based on metrics",
+        "getPerformanceMetrics() - Get current metrics",
+        "measureSectionLoad() - Measure section load time",
+        "observeWebVitals() - Get Web Vitals from PerformanceObserver"
+      ],
+      "exports": [
+        "trackDashboardLoad",
+        "getPerformanceMetrics",
+        "measureSectionLoad",
+        "observeWebVitals",
+        "DashboardPerformanceMetrics type"
+      ],
+      "metrics": {
+        "ttfb": "Time to First Byte",
+        "fcp": "First Contentful Paint",
+        "lcp": "Largest Contentful Paint",
+        "fid": "First Input Delay",
+        "cls": "Cumulative Layout Shift",
+        "tti": "Time to Interactive",
+        "cacheHit": "Cache hit boolean",
+        "loadTime": "Total load time"
+      },
+      "performance_score": {
+        "penalties": "TTFB >200ms/300ms (-0.5/-0.5), FCP >400ms/600ms (-0.5/-0.5), LCP >600ms/900ms/1200ms (-1/-1/-1), CLS >0.01/0.05 (-0.5/-0.5)",
+        "bonus": "Cache hit (+0.5)",
+        "range": "0-10"
+      },
+      "warnings": "Log console.warn if LCP > 1000ms"
+    },
+    {
+      "duong_dan": "lib/amount-validation.ts",
+      "mo_ta": "Amount validation utility - prevent negative amounts và overflow bugs (P0-3 FIX)",
+      "chuc_nang_chinh": [
+        "validateAmount() - Validate and sanitize amount value",
+        "asValidAmount() - Safe number coercion với default",
+        "assertValidAmount() - Throw error if invalid (cho server actions)"
+      ],
+      "exports": [
+        "AMOUNT_LIMITS",
+        "validateAmount",
+        "asValidAmount",
+        "assertValidAmount",
+        "AmountValidationResult type"
+      ],
+      "limits": {
+        "MIN": 0,
+        "MAX": "10,000,000,000 (10 billion VND)"
+      },
+      "validations": [
+        "NaN check",
+        "Infinity check",
+        "Minimum check (>= 0)",
+        "Maximum check (<= 10B)"
+      ]
+    },
+    {
+      "duong_dan": "lib/breakpoints.ts",
+      "mo_ta": "Centralized breakpoint system (SSOT) - matches Tailwind CSS default breakpoints",
+      "chuc_nang_chinh": [
+        "BREAKPOINTS constants",
+        "mediaQueries helpers cho useMediaQuery hooks"
+      ],
+      "exports": [
+        "BREAKPOINTS",
+        "mediaQueries",
+        "MOBILE_BREAKPOINT (deprecated, use BREAKPOINTS.lg)",
+        "TABLET_BREAKPOINT (deprecated, use BREAKPOINTS.lg)"
+      ],
+      "breakpoints": {
+        "sm": "640px (Mobile: 0-639px)",
+        "md": "768px (Tablet: 640-1023px)",
+        "lg": "1024px (Desktop: 1024px+)",
+        "xl": "1280px (Large Desktop)",
+        "2xl": "1536px (Extra Large)"
+      },
+      "media_queries": {
+        "mobile": "max-width: 639px",
+        "tablet": "640-1023px",
+        "desktop": "min-width: 1024px",
+        "belowDesktop": "max-width: 1023px",
+        "touch": "hover: none and pointer: coarse",
+        "landscapeSmall": "orientation: landscape and max-height: 600px"
+      }
+    },
+    {
+      "duong_dan": "lib/context/modal-context.tsx",
+      "mo_ta": "Modal context provider - quản lý global modal state",
+      "chuc_nang_chinh": [
+        "ModalProvider - Context provider",
+        "useModal() - Hook để access modal state"
+      ],
+      "exports": [
+        "ModalProvider",
+        "useModal",
+        "ModalType type"
+      ],
+      "modal_types": [
+        "CONFIRM_DELETE",
+        "CONTRACT_FORM",
+        "CUSTOMER_FORM",
+        "QUICK_SEARCH",
+        "USER_PROFILE",
+        "DRIVE_LINK",
+        "SHARE_GALLERY"
+      ],
+      "api": {
+        "openModal": "(type, data?) - Open modal with data",
+        "closeModal": "() - Close modal (300ms animation delay)"
+      }
+    },
+    {
+      "duong_dan": "lib/navigation.ts",
+      "mo_ta": "Navigation module config - SSOT cho sidebar menu và module definitions",
+      "chuc_nang_chinh": [
+        "MODULES array - Tất cả module configs",
+        "MODULE_MAP - Object map by ID",
+        "DEFAULT_MODULE - Dashboard config",
+        "getModuleFromPath() - Get module từ pathname",
+        "getMenuGroups() - Get unique menu groups"
+      ],
+      "exports": [
+        "MODULES",
+        "MODULE_MAP",
+        "DEFAULT_MODULE",
+        "GROUP_LABELS",
+        "getModuleFromPath",
+        "getMenuGroups",
+        "ModuleConfig type",
+        "MenuGroup type"
+      ],
+      "menu_groups": {
+        "daily": "Hằng ngày (Contracts, Calendar, CRM)",
+        "management": "Quản lý (Finance, Printing, Reports, Productivity)",
+        "assets": "Tài sản (Services, Inventory, Dresses)",
+        "system": "System (Employees, Settings, Moodie)"
+      },
+      "modules": [
+        "contracts (FileText)",
+        "calendar (Calendar)",
+        "crm (Users)",
+        "finance (Wallet)",
+        "printing (Printer)",
+        "reports (BarChart3)",
+        "productivity (TrendingUp)",
+        "services (ClipboardList)",
+        "inventory (Package)",
+        "dresses (Shirt)",
+        "employees (Briefcase)",
+        "settings (Settings)",
+        "moodie (Bot)"
+      ]
+    },
+    {
+      "duong_dan": "lib/studio-info.ts",
+      "mo_ta": "Studio info utilities - get or create studio_info row với default values",
+      "chuc_nang_chinh": [
+        "getOrCreateStudioInfo() - Get existing hoặc create với default values"
+      ],
+      "exports": [
+        "getOrCreateStudioInfo"
+      ],
+      "default_studio_info": {
+        "name": "Mood Studio",
+        "hotline": null,
+        "address": null,
+        "representative": null,
+        "logo_url": null,
+        "bank_info": "{}",
+        "social_links": "{}",
+        "working_hours": "{}",
+        "timezone": "Asia/Ho_Chi_Minh"
+      }
+    },
+    {
+      "duong_dan": "lib/system-settings.ts",
+      "mo_ta": "System settings utilities - Moodie Gemini API key và model settings",
+      "chuc_nang_chinh": [
+        "getMoodieGeminiStoredApiKey() - Get API key từ system_settings",
+        "getMoodieGeminiSettingsSnapshot() - Get settings snapshot (masked key)",
+        "getMoodieGeminiRuntimeConfig() - Get runtime config (API key + model) với env fallback"
+      ],
+      "exports": [
+        "getMoodieGeminiStoredApiKey",
+        "getMoodieGeminiSettingsSnapshot",
+        "getMoodieGeminiRuntimeConfig",
+        "MOODIE_GEMINI_API_KEY_SETTING_KEY",
+        "MOODIE_GEMINI_MODEL_SETTING_KEY"
+      ],
+      "setting_keys": {
+        "api_key": [
+          "moodie_gemini_api_key (mới)",
+          "gemini_api_key (legacy)"
+        ],
+        "model": [
+          "moodie_gemini_model (mới)",
+          "gemini_model (legacy)"
+        ]
+      },
+      "fallback_order": "system_settings → env vars (MOODIE_GEMINI_API_KEY / GOOGLE_AI_API_KEY / GEMINI_API_KEY)",
+      "runtime_config_return": {
+        "apiKey": "Resolved API key",
+        "model": "Resolved model name",
+        "source": "settings | env | none"
+      }
+    },
+    {
+      "duong_dan": "lib/variant-colors.ts",
+      "mo_ta": "Variant colors SSOT - badge/status styling cho semantic variants",
+      "chuc_nang_chinh": [
+        "VARIANT_COLORS - Background + text classes",
+        "VARIANT_DOT - Dot color classes"
+      ],
+      "exports": [
+        "VARIANT_COLORS",
+        "VARIANT_DOT"
+      ],
+      "variants": {
+        "success": "bg-success/10 text-success | bg-success",
+        "warning": "bg-warning/10 text-warning | bg-warning",
+        "error": "bg-error/10 text-error | bg-error",
+        "info": "bg-info/10 text-info | bg-info",
+        "neutral": "bg-surface text-text-muted | bg-text-muted",
+        "primary": "bg-primary/10 text-primary | bg-primary"
+      }
+    }
+  ],
+  "key_patterns": [
+    "Supabase SSR pattern: browser client (anon key) vs server client (cookies) vs admin client (service role)",
+    "Multi-layer cache: Server in-memory cache (TTL) → SWR (client cache) → React Query (contracts only)",
+    "Cache invalidation: Client-side (SWR + React Query) + Server-side (revalidatePath + revalidateTag)",
+    "React Query migration: Contracts module đã migrate từ SWR → React Query",
+    "Query keys factory: contractKeys object với nested structure",
+    "Optimistic updates: updateContractStatusCache, updateContractListChecklistCache",
+    "Prefetch strategy: hover prefetch + viewport prefetch (IntersectionObserver)",
+    "Toast system: Deduplication, loading flows, batch operations, server action integration",
+    "Performance monitoring: Action profiler, dashboard Web Vitals tracking",
+    "Amount validation: Prevent negative amounts và overflow (0 to 10B VND)",
+    "Period lock check: Prevent mutations trong closed accounting periods",
+    "RPC fallback pattern: Try RPC → fallback to query if missing"
+  ],
+  "dependencies_chinh": [
+    "@supabase/ssr",
+    "@tanstack/react-query",
+    "swr",
+    "next/headers",
+    "next/cache",
+    "date-fns",
+    "clsx",
+    "tailwind-merge",
+    "sonner (toast)",
+    "lucide-react (icons)"
+  ]
+}

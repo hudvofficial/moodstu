@@ -15,6 +15,7 @@ import { SWRProvider } from "@/components/providers/swr-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SplashScreen } from "@/components/layout/splash-screen";
 import { ToasterWrapper } from "@/components/ui/toaster-wrapper";
+import { ViewTransitions } from "next-view-transitions";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -141,7 +142,9 @@ export default function RootLayout({
                 <OfflineIndicator />
                 <SlowNetworkIndicator />
                 <SplashScreen />
-                {children}
+                <ViewTransitions>
+                  {children}
+                </ViewTransitions>
                 <GlobalModal />
                 <ToasterWrapper />
                 </ModalProvider>

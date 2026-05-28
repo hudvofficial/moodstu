@@ -7,13 +7,14 @@ import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimePayload } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, Pencil } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   revalidateContractDetailCaches,
   updateContractListChecklistCache,
   useContractDetail,
   useActiveEmployees,
-} from "@/lib/hooks/use-contracts";
-import { mutate } from "swr";
+  contractKeys,
+} from "@/lib/hooks/use-contract-queries";
 import ContractDetailLoading from "@/app/(protected)/contracts/[id]/loading";
 import type {
   Contract,
@@ -88,6 +89,13 @@ export default function ContractDetailClient({
 }: Props) {
   const params = useParams<{ id: string }>();
   const id = contractId || params.id;
+  const queryClient = useQueryClient();
+
+  // Helper for optimistic updates using React Query
+  const updateContractDetailOptimistic = useCallback((updater: (current: any) => any) => {
+    if (!id) return;
+    queryClient.setQueryData(contractKeys.detail(id), updater);
+  }, [id, queryClient]);
   const {
     contract: liveContract,
     payments: livePayments,
@@ -135,7 +143,7 @@ export default function ContractDetailClient({
       const checklistId = typeof row.id === "string" ? row.id : "";
 
       if (contractId && checklistId && typeof row.is_completed === "boolean") {
-        updateContractListChecklistCache(contractId, checklistId, row.is_completed);
+        updateContractListChecklistCache(queryClient, contractId, checklistId, row.is_completed);
         return true;
       }
     }
@@ -157,16 +165,16 @@ export default function ContractDetailClient({
       return true;
     }
 
-    void mutateContractDetail(
-      (current) => {
+    updateContractDetailOptimistic(
+      (current: any) => {
         if (!current?.contract) return current;
 
         const events = current.contract.contract_events || [];
         const nextEvents =
           payload.eventType === "DELETE" || row.deleted_at
-            ? events.filter((event) => event.id !== eventId)
-            : events.some((event) => event.id === eventId)
-              ? events.map((event) =>
+            ? events.filter((event: ContractEvent) => event.id !== eventId)
+            : events.some((event: ContractEvent) => event.id === eventId)
+              ? events.map((event: ContractEvent) =>
                   event.id === eventId
                     ? { ...event, ...(row as Partial<ContractEvent>) }
                     : event,
@@ -180,12 +188,11 @@ export default function ContractDetailClient({
             contract_events: nextEvents,
           },
         };
-      },
-      { revalidate: false },
+      }
     );
 
     return true;
-  }, [id, mutateContractDetail]);
+  }, [id, updateContractDetailOptimistic, queryClient]);
 
   const patchTaskRealtimePayload = useCallback((payload: RealtimePayload) => {
     if (payload.table !== "work_tasks") return false;
@@ -202,15 +209,15 @@ export default function ContractDetailClient({
       return true;
     }
 
-    void mutateContractDetail(
-      (current) => {
+    updateContractDetailOptimistic(
+      (current: any) => {
         if (!current?.contract) return current;
 
         const tasks = current.contract.work_tasks || [];
         const nextTasks =
           payload.eventType === "DELETE"
-            ? tasks.filter((task) => task.id !== taskId)
-            : tasks.map((task) =>
+            ? tasks.filter((task: WorkTask) => task.id !== taskId)
+            : tasks.map((task: WorkTask) =>
                 task.id === taskId
                   ? { ...task, ...(row as Partial<WorkTask>), employees: task.employees }
                   : task,
@@ -223,14 +230,13 @@ export default function ContractDetailClient({
             work_tasks: nextTasks,
           },
         };
-      },
-      { revalidate: false },
+      }
     );
 
-    void mutate(["contract-drawer-extra", id], undefined, { revalidate: true });
+    void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(id) });
 
     return true;
-  }, [id, mutateContractDetail]);
+  }, [id, updateContractDetailOptimistic, queryClient]);
 
   const patchContractRealtimePayload = useCallback((payload: RealtimePayload) => {
     return (
@@ -248,9 +254,7 @@ export default function ContractDetailClient({
     const now = Date.now();
 
     const doRefresh = () => {
-      void revalidateContractDetailCaches(id).then(() => {
-        void mutateContractDetail();
-      });
+      void revalidateContractDetailCaches(queryClient, id);
     };
 
     if (now >= refreshCooldownUntilRef.current) {
@@ -333,29 +337,29 @@ export default function ContractDetailClient({
       const completionDate =
         nextStatus === "hoan_thanh" ? new Date().toISOString() : null;
 
-      void mutateContractDetail(
-        (current) => {
-          // SWR fallbackData doesn't populate cache → current may be undefined.
+      updateContractDetailOptimistic(
+        (current: any) => {
+          // fallbackData doesn't populate cache → current may be undefined.
           // Fall back to building from current rendered props.
           const base = current ?? renderedDetailRef.current;
           if (!base.contract) return current;
 
-          const nextTasks = (base.contract.work_tasks || []).map((task) =>
+          const nextTasks = (base.contract.work_tasks || []).map((task: WorkTask) =>
             task.id === taskId
               ? { ...task, status: nextStatus, completion_date: completionDate }
               : task,
           );
-          const eventTasks = nextTasks.filter((task) => task.event_id === eventId);
+          const eventTasks = nextTasks.filter((task: WorkTask) => task.event_id === eventId);
           const allDone =
             eventTasks.length > 0 &&
-            eventTasks.every((task) => task.status === "hoan_thanh");
-          const anyInProgress = eventTasks.some((task) => task.status === "dang_lam");
+            eventTasks.every((task: WorkTask) => task.status === "hoan_thanh");
+          const anyInProgress = eventTasks.some((task: WorkTask) => task.status === "dang_lam");
           const nextEventStatus: TaskStatus = allDone
             ? "hoan_thanh"
             : anyInProgress
               ? "dang_lam"
               : "chua_lam";
-          const nextEvents = (base.contract.contract_events || []).map((event) =>
+          const nextEvents = (base.contract.contract_events || []).map((event: ContractEvent) =>
             event.id === eventId ? { ...event, status: nextEventStatus } : event,
           );
 
@@ -367,28 +371,27 @@ export default function ContractDetailClient({
               contract_events: nextEvents,
             },
           };
-        },
-        { revalidate: false },
+        }
       );
     },
-    [muteRealtimeEcho, mutateContractDetail],
+    [muteRealtimeEcho, updateContractDetailOptimistic],
   );
 
   const applyEventCreatedOptimistic = useCallback((event?: ContractEvent) => {
     if (!event) {
-      void revalidateContractDetailCaches(id);
+      void revalidateContractDetailCaches(queryClient, id);
       return;
     }
 
     muteRealtimeEcho();
-    void mutateContractDetail(
-      (current) => {
+    updateContractDetailOptimistic(
+      (current: any) => {
         const base = current ?? renderedDetailRef.current;
         if (!base.contract) return current;
 
         const events = base.contract.contract_events || [];
-        const nextEvents = events.some((item) => item.id === event.id)
-          ? events.map((item) => (item.id === event.id ? { ...item, ...event } : item))
+        const nextEvents = events.some((item: any) => item.id === event.id)
+          ? events.map((item: any) => (item.id === event.id ? { ...item, ...event } : item))
           : [...events, event];
 
         return {
@@ -398,18 +401,17 @@ export default function ContractDetailClient({
             contract_events: nextEvents,
           },
         };
-      },
-      { revalidate: false },
+      }
     );
     window.setTimeout(() => {
-      void revalidateContractDetailCaches(id);
+      void revalidateContractDetailCaches(queryClient, id);
     }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
-  }, [id, muteRealtimeEcho, mutateContractDetail]);
+  }, [id, muteRealtimeEcho]);
 
   const applyEventDeletedOptimistic = useCallback((eventId: string) => {
     muteRealtimeEcho();
-    void mutateContractDetail(
-      (current) => {
+    updateContractDetailOptimistic(
+      (current: any) => {
         const base = current ?? renderedDetailRef.current;
         if (!base.contract) return current;
 
@@ -418,20 +420,19 @@ export default function ContractDetailClient({
           contract: {
             ...base.contract,
             contract_events: (base.contract.contract_events || []).filter(
-              (event) => event.id !== eventId,
+              (event: ContractEvent) => event.id !== eventId,
             ),
             work_tasks: (base.contract.work_tasks || []).filter(
-              (task) => task.event_id !== eventId,
+              (task: WorkTask) => task.event_id !== eventId,
             ),
           },
         };
-      },
-      { revalidate: false },
+      }
     );
     window.setTimeout(() => {
-      void revalidateContractDetailCaches(id);
+      void revalidateContractDetailCaches(queryClient, id);
     }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
-  }, [id, muteRealtimeEcho, mutateContractDetail]);
+  }, [id, muteRealtimeEcho]);
 
   // ⚡ Defer realtime setup to improve initial render performance
   const [enableRealtime, setEnableRealtime] = useState(false);

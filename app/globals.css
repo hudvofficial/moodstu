@@ -141,6 +141,11 @@
 }
 
 /* ── Global base styles ── */
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);

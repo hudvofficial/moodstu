@@ -139,18 +139,30 @@ function DressesListInner({
   }, [router, pathname]);
 
   // ── Scanner callback ──
-  const handleScanned = useCallback((code: string) => {
+  const handleScanned = useCallback(async (code: string) => {
     const found = dresses.find(d => d.item_code === code);
     if (found) {
       setDrawerItem(found);
       toast(`Tìm thấy: ${found.name}`, "success");
-    } else {
-      toast("Đang tìm kiếm...", "info");
-      const params = new URLSearchParams();
-      params.set("q", code);
-      router.push(`${pathname}?${params.toString()}`);
+      return;
     }
-  }, [dresses, pathname, router]);
+    
+    // Fallback: search in DB without redirecting URL (Background Fetch)
+    toast("Đang tìm trên máy chủ...", "info");
+    try {
+      const res = await fetchDressList({ search: code });
+      const backendFound = res.data.find(d => d.item_code === code);
+      
+      if (backendFound) {
+        setDrawerItem(backendFound);
+        toast(`Tìm thấy: ${backendFound.name}`, "success");
+      } else {
+        toast(`Không tìm thấy trang phục mã ${code}`, "error");
+      }
+    } catch (err) {
+      toast("Lỗi khi tìm kiếm trên máy chủ", "error");
+    }
+  }, [dresses]);
 
   return (
     <div className="main-container gap-3!">

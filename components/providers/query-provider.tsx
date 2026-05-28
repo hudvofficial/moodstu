@@ -2,9 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { persistQueryClient } from "@tanstack/react-query-persist-client";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+// Persistence temporarily disabled for SSR compatibility
+// import { persistQueryClient } from "@tanstack/react-query-persist-client";
+// import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { useState, useEffect, type ReactNode } from "react";
+import { setGlobalQueryClient } from "@/lib/query-client-instance";
 
 /**
  * React Query Provider for Gallery Management
@@ -67,10 +69,19 @@ interface QueryProviderProps {
 
 export function QueryProvider({ children }: QueryProviderProps) {
   // Create QueryClient in state to avoid re-creation on re-renders
-  const [queryClient] = useState(() => createQueryClient());
+  const [queryClient] = useState(() => {
+    const client = createQueryClient();
+    // Set global instance for non-React contexts
+    setGlobalQueryClient(client);
+    return client;
+  });
 
-  // Enable persistent cache to localStorage
+  // Disable persistence during SSR to prevent hydration mismatches
+  // Persistence can be re-enabled later after verifying SSR stability
   useEffect(() => {
+    // Persistence temporarily disabled for SSR compatibility
+    // TODO: Re-enable after confirming no hydration issues
+    /*
     if (typeof window === "undefined") return;
 
     const persister = createSyncStoragePersister({
@@ -81,23 +92,22 @@ export function QueryProvider({ children }: QueryProviderProps) {
     persistQueryClient({
       queryClient,
       persister,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
       dehydrateOptions: {
-        // Don't persist mutations or errors
         shouldDehydrateMutation: () => false,
         shouldDehydrateQuery: (query) => {
-          // Only persist successful queries
           return query.state.status === "success";
         },
       },
     });
+    */
   }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
       {children}
       {/* Show devtools in development only */}
-      {process.env.NODE_ENV === "development" && (
+      {process.env.NODE_ENV === "development" && typeof window !== "undefined" && (
         <ReactQueryDevtools
           initialIsOpen={false}
           buttonPosition="bottom-right"

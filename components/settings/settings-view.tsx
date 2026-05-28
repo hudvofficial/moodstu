@@ -156,7 +156,6 @@ export default function SettingsView({
       </div>
 
       <EditProfileModal
-        key={String(editOpen)}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
         profile={currentEmployee}

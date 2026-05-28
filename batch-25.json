@@ -1,0 +1,392 @@
+{
+  "batch": 25,
+  "description": "Gallery Advanced Components, Print System & Drive Integration (Final Batch)",
+  "generated_at": "2026-05-28",
+  "statistics": {
+    "total_files": 23,
+    "categories": {
+      "contracts_gallery": 14,
+      "contracts_print": 2,
+      "contracts_detail": 7
+    },
+    "total_components": 20,
+    "hooks": 5,
+    "utilities": 3,
+    "summary": "Advanced gallery với masonry layouts, lightbox, Drive integration và contract print system"
+  },
+  "files": [
+    {
+      "file": "components/contracts/gallery/gallery-image-grid.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryImageGrid",
+      "type": "client",
+      "description": "Main image grid component với responsive masonry layout",
+      "hooks": ["useMasonryGrid"],
+      "estimated_props": {
+        "images": "GalleryImage[]",
+        "onImageClick": "function",
+        "viewMode": "grid | masonry"
+      },
+      "features": {
+        "masonry_layout": true,
+        "responsive": true,
+        "lazy_loading": true,
+        "selection": true,
+        "hover_effects": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-image-grid-index.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryImageGridIndex",
+      "type": "client",
+      "description": "Index/entrypoint cho gallery grid với view mode switching",
+      "features": {
+        "view_switching": true,
+        "grid_modes": true,
+        "lazy_import": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-image-grid-pinterest.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryImageGridPinterest",
+      "type": "client",
+      "description": "Pinterest-style masonry grid layout cho gallery",
+      "hooks": ["useMasonryPinterest"],
+      "features": {
+        "pinterest_layout": true,
+        "column_based": true,
+        "variable_heights": true,
+        "smooth_loading": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-image-tile.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryImageTile",
+      "type": "client",
+      "description": "Individual image tile component cho gallery với hover actions",
+      "estimated_props": {
+        "image": "GalleryImage",
+        "onClick": "function",
+        "onSelect": "function",
+        "selected": "boolean"
+      },
+      "features": {
+        "image_display": true,
+        "lazy_loading": true,
+        "hover_overlay": true,
+        "selection_checkbox": true,
+        "quick_actions": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-lightbox.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryLightbox",
+      "type": "client",
+      "description": "Full-screen lightbox cho image viewing với navigation và zoom",
+      "hooks": ["useState", "useEffect", "useKeyboard"],
+      "state_variables": ["currentIndex", "zoom", "isFullscreen"],
+      "features": {
+        "lightbox": true,
+        "fullscreen": true,
+        "zoom": true,
+        "keyboard_nav": true,
+        "swipe_support": true,
+        "thumbnails": true,
+        "download": true,
+        "share": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/use-masonry-grid.ts",
+      "category": "contracts_gallery",
+      "component_name": "useMasonryGrid",
+      "type": "hook",
+      "description": "Hook tính toán masonry grid layout positions",
+      "features": {
+        "layout_calculation": true,
+        "responsive": true,
+        "column_balancing": true,
+        "position_caching": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/use-masonry-pinterest.ts",
+      "category": "contracts_gallery",
+      "component_name": "useMasonryPinterest",
+      "type": "hook",
+      "description": "Hook cho Pinterest-style masonry layout với dynamic column count",
+      "features": {
+        "pinterest_algorithm": true,
+        "dynamic_columns": true,
+        "height_optimization": true,
+        "performance": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/use-masonry-virtual.ts",
+      "category": "contracts_gallery",
+      "component_name": "useMasonryVirtual",
+      "type": "hook",
+      "description": "Hook cho virtualized masonry grid (hiệu năng cao cho large datasets)",
+      "features": {
+        "virtualization": true,
+        "windowing": true,
+        "scroll_performance": true,
+        "memory_efficient": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/use-masonry-grid-virtual.ts",
+      "category": "contracts_gallery",
+      "component_name": "useMasonryGridVirtual",
+      "type": "hook",
+      "description": "Alternative virtualized masonry implementation",
+      "features": {
+        "virtual_scrolling": true,
+        "dynamic_item_heights": true,
+        "performance_optimized": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/use-gallery-data.ts",
+      "category": "contracts_gallery",
+      "component_name": "useGalleryData",
+      "type": "hook",
+      "description": "Hook fetch và manage gallery data với filtering và pagination",
+      "features": {
+        "data_fetching": true,
+        "filtering": true,
+        "pagination": true,
+        "sorting": true,
+        "caching": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/gallery-helpers.ts",
+      "category": "contracts_gallery",
+      "component_name": "galleryHelpers",
+      "type": "utility",
+      "description": "Utility functions cho gallery operations",
+      "features": {
+        "image_processing": true,
+        "url_generation": true,
+        "metadata_extraction": true,
+        "validation": true
+      }
+    },
+    {
+      "file": "components/contracts/gallery/tabs/gallery-filter-drive-tab.tsx",
+      "category": "contracts_gallery",
+      "component_name": "GalleryFilterDriveTab",
+      "type": "client",
+      "description": "Tab component để filter gallery theo Google Drive folders",
+      "estimated_props": {
+        "drives": "Drive[]",
+        "selectedDrive": "string",
+        "onSelect": "function"
+      },
+      "features": {
+        "drive_filter": true,
+        "folder_tree": true,
+        "selection": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/drive-gallery-block.tsx",
+      "category": "contracts_detail",
+      "component_name": "DriveGalleryBlock",
+      "type": "client",
+      "description": "Block hiển thị Google Drive gallery trong contract detail",
+      "estimated_props": {
+        "contractId": "string",
+        "driveLink": "string"
+      },
+      "features": {
+        "drive_integration": true,
+        "iframe_embed": true,
+        "link_management": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/drive-link-modal.tsx",
+      "category": "contracts_detail",
+      "component_name": "DriveLinkModal",
+      "type": "client",
+      "description": "Modal để add/edit Google Drive link cho contract",
+      "hooks": ["useState", "useTransition"],
+      "state_variables": ["driveUrl", "isPending", "error"],
+      "features": {
+        "modal": true,
+        "url_input": true,
+        "validation": true,
+        "preview": true,
+        "server_action": true
+      }
+    },
+    {
+      "file": "components/contracts/print/print-contract-client.tsx",
+      "category": "contracts_print",
+      "component_name": "PrintContractClient",
+      "type": "client",
+      "description": "Client component cho print view với print-optimized layout",
+      "hooks": ["useEffect", "usePrintContract"],
+      "estimated_props": {
+        "contractId": "string",
+        "initialData": "any"
+      },
+      "features": {
+        "print_layout": true,
+        "auto_print": true,
+        "print_styles": true,
+        "page_breaks": true,
+        "logo_header": true
+      }
+    },
+    {
+      "file": "components/contracts/print/contract-template.tsx",
+      "category": "contracts_print",
+      "component_name": "ContractTemplate",
+      "type": "client",
+      "description": "Print template cho contract với formal formatting",
+      "estimated_props": {
+        "contract": "Contract",
+        "customer": "Customer",
+        "items": "ContractItem[]"
+      },
+      "features": {
+        "formal_layout": true,
+        "signature_section": true,
+        "terms_conditions": true,
+        "itemized_list": true,
+        "totals_section": true,
+        "print_optimized": true
+      }
+    },
+    {
+      "file": "components/contracts/contracts-list-client.tsx",
+      "category": "contracts_core",
+      "component_name": "ContractsListInner",
+      "type": "client",
+      "description": "Inner implementation của contracts list với full functionality",
+      "hooks": ["useContractFilters", "useContracts", "useContractStats", "useRealtimeMulti", "useQueryClient", "useRouter", "useIsMobile"],
+      "state_variables": ["selectedContract", "isDrawerOpen"],
+      "features": {
+        "realtime_updates": true,
+        "filter_management": true,
+        "pagination": true,
+        "drawer_preview": true,
+        "prefetch": true,
+        "responsive": true,
+        "pull_to_refresh": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/contract-actions-menu.tsx",
+      "category": "contracts_detail",
+      "component_name": "ContractActionsMenu",
+      "type": "client",
+      "description": "Dropdown menu với tất cả contract actions",
+      "hooks": ["useState"],
+      "state_variables": ["isOpen", "confirmAction"],
+      "features": {
+        "dropdown": true,
+        "action_items": true,
+        "confirmation_dialogs": true,
+        "permission_check": true
+      },
+      "actions": ["edit", "duplicate", "export_pdf", "cancel", "delete", "archive"]
+    },
+    {
+      "file": "components/contracts/drawer-tab-content.tsx",
+      "category": "contracts_drawer",
+      "component_name": "DrawerTabContent",
+      "type": "client",
+      "description": "Main tab content router cho contract drawer",
+      "estimated_props": {
+        "activeTab": "string",
+        "data": "any"
+      },
+      "features": {
+        "tab_routing": true,
+        "lazy_loading": true,
+        "empty_states": true
+      },
+      "tabs": ["overview", "events", "checklist", "tasks", "payments", "notes"]
+    },
+    {
+      "file": "components/contracts/detail/checklist-manager.tsx",
+      "category": "contracts_detail",
+      "component_name": "ChecklistManager",
+      "type": "client",
+      "description": "Complete checklist manager với categories và item management",
+      "hooks": ["useContractChecklists", "useState", "useTransition"],
+      "state_variables": ["expandedCategories", "editingItem", "isPending"],
+      "features": {
+        "category_management": true,
+        "item_crud": true,
+        "drag_drop": true,
+        "progress_tracking": true,
+        "bulk_actions": true,
+        "templates": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/notes-timeline.tsx",
+      "category": "contracts_detail",
+      "component_name": "NotesTimeline",
+      "type": "client",
+      "description": "Timeline view cho contract notes với rich text support",
+      "hooks": ["useContractNotes", "useState"],
+      "state_variables": ["editingNote", "replyingTo"],
+      "features": {
+        "timeline_layout": true,
+        "rich_text": true,
+        "edit_delete": true,
+        "replies": true,
+        "mentions": true,
+        "attachments": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/top-action-bar.tsx",
+      "category": "contracts_detail",
+      "component_name": "TopActionBar",
+      "type": "client",
+      "description": "Sticky action bar trên contract detail page",
+      "estimated_props": {
+        "contractId": "string",
+        "status": "ContractStatus",
+        "hasChanges": "boolean"
+      },
+      "features": {
+        "sticky_bar": true,
+        "action_buttons": true,
+        "breadcrumbs": true,
+        "save_indicator": true,
+        "responsive": true
+      }
+    },
+    {
+      "file": "components/contracts/detail/cancel-banner.tsx",
+      "category": "contracts_detail",
+      "component_name": "CancelBanner",
+      "type": "client",
+      "description": "Warning banner khi contract bị cancel với reason display",
+      "estimated_props": {
+        "cancellation_reason": "string",
+        "cancelled_at": "string",
+        "cancelled_by": "string"
+      },
+      "features": {
+        "warning_banner": true,
+        "dismissible": true,
+        "user_info": true,
+        "timestamp": true
+      }
+    }
+  ]
+}

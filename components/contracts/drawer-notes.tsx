@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 /**
  * 📝 DrawerNotes — Quick notes view with add capability
@@ -10,7 +10,7 @@
 import { useState, useRef, useCallback } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { addContractNote } from "@/app/actions/note-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { useContractNotes } from "@/lib/hooks/use-contract-notes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

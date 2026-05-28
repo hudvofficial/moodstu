@@ -1,4 +1,6 @@
 import { cacheKeys, mutate, revalidateByPrefixes, revalidateMultiple } from "@/lib/swr";
+import { getGlobalQueryClient } from "@/lib/query-client-instance";
+import { contractKeys } from "@/lib/hooks/use-contract-queries";
 
 type MonthYear = {
   month?: number;
@@ -78,26 +80,22 @@ export async function revalidateServiceCaches(serviceId?: string) {
 }
 
 export async function revalidateContractCaches(contractId?: string) {
+  const queryClient = getGlobalQueryClient();
+
   await Promise.all([
-    contractId ? mutate(["contract", contractId]) : Promise.resolve(),
-    contractId ? mutate(["contract-drawer-extra", contractId]) : Promise.resolve(),
-    mutate((key: unknown) => {
-      if (!Array.isArray(key)) return false;
-      return key[0] === "contracts";
-    }, undefined, { revalidate: true }),
-    mutate((key: unknown) => {
-      if (!Array.isArray(key)) return false;
-      if (key[0] !== "contract-notes") return false;
-      return contractId ? key[1] === contractId : true;
-    }, undefined, { revalidate: true }),
-    mutate(["contract-stats"]),
+    contractId ? queryClient.invalidateQueries({ queryKey: contractKeys.detail(contractId) }) : Promise.resolve(),
+    contractId ? queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) }) : Promise.resolve(),
+    queryClient.invalidateQueries({ queryKey: contractKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: contractKeys.stats() }),
   ]);
 }
 
 export async function revalidateContractDetailCaches(contractId: string) {
+  const queryClient = getGlobalQueryClient();
+
   await Promise.all([
-    mutate(["contract", contractId], undefined, { revalidate: true }),
-    mutate(["contract-drawer-extra", contractId], undefined, { revalidate: true }),
+    queryClient.invalidateQueries({ queryKey: contractKeys.detail(contractId) }),
+    queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) }),
   ]);
 }
 

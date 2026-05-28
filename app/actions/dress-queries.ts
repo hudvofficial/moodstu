@@ -14,7 +14,7 @@ import { DRESS_PAGE_SIZE, RENTAL_HISTORY_PAGE_SIZE } from "@/types/dress-constan
 const DRESS_SELECT = `
   id, item_code, name, category, size, color, condition,
   rental_price, sale_price, purchase_price,
-  current_stock, min_stock, image_url, status, notes,
+  current_stock, min_stock, image_url, blur_hash, blur_data_url, status, notes,
   created_at, updated_at, created_by, updated_by, deleted_at
 `;
 

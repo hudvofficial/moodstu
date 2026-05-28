@@ -1,0 +1,349 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "results": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "fileCategory": "code",
+      "totalLines": 13,
+      "nonEmptyLines": 12,
+      "metrics": {}
+    },
+    {
+      "path": "credit-card-form-modal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 250,
+      "nonEmptyLines": 233,
+      "functions": [
+        {
+          "name": "CreditCardFormModal",
+          "startLine": 24,
+          "endLine": 250,
+          "params": [
+            "{\n  isOpen,\n  onClose,\n  initialData,\n  onSuccess,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "CreditCardFormModal",
+          "line": 24,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useTransition",
+          "lineNumber": 31
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useState",
+          "lineNumber": 33
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useState",
+          "lineNumber": 34
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useState",
+          "lineNumber": 35
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useState",
+          "lineNumber": 38
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "useState",
+          "lineNumber": 41
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "event.preventDefault",
+          "lineNumber": 46
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "toast.error",
+          "lineNumber": 49
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "toast.error",
+          "lineNumber": 54
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "startTransition",
+          "lineNumber": 58
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "Number",
+          "lineNumber": 63
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "Number",
+          "lineNumber": 64
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "updateCreditCard",
+          "lineNumber": 69
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "toast.success",
+          "lineNumber": 77
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "createCreditCard",
+          "lineNumber": 79
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "toast.success",
+          "lineNumber": 83
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "onClose",
+          "lineNumber": 86
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "onSuccess",
+          "lineNumber": 87
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "String",
+          "lineNumber": 95
+        },
+        {
+          "caller": "onSubmit",
+          "callee": "toast.error",
+          "lineNumber": 97
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "confirm",
+          "lineNumber": 105
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "startTransition",
+          "lineNumber": 112
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "deleteCreditCard",
+          "lineNumber": 114
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "toast.success",
+          "lineNumber": 118
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "onClose",
+          "lineNumber": 119
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "onSuccess",
+          "lineNumber": 120
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "String",
+          "lineNumber": 128
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "toast.error",
+          "lineNumber": 130
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "setBankName",
+          "lineNumber": 182
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "setLast4",
+          "lineNumber": 196
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace(/\\D/g, \"\").slice",
+          "lineNumber": 196
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace",
+          "lineNumber": 196
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "setStatementDay",
+          "lineNumber": 214
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace(/\\D/g, \"\").slice",
+          "lineNumber": 214
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace",
+          "lineNumber": 214
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "setDueDay",
+          "lineNumber": 230
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace(/\\D/g, \"\").slice",
+          "lineNumber": 230
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "event.target.value.replace",
+          "lineNumber": 230
+        },
+        {
+          "caller": "CreditCardFormModal",
+          "callee": "setCreditLimit",
+          "lineNumber": 243
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "credit-cards-client.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 126,
+      "nonEmptyLines": 114,
+      "functions": [
+        {
+          "name": "CreditCardsClient",
+          "startLine": 12,
+          "endLine": 126,
+          "params": [
+            "{\n  initialCards,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "CreditCardsClient",
+          "line": 12,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "CreditCardsClient",
+          "callee": "useState",
+          "lineNumber": 17
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "useState",
+          "lineNumber": 18
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "useState",
+          "lineNumber": 19
+        },
+        {
+          "caller": "handleOpenEdit",
+          "callee": "setSelectedCard",
+          "lineNumber": 22
+        },
+        {
+          "caller": "handleOpenEdit",
+          "callee": "setIsOpen",
+          "lineNumber": 23
+        },
+        {
+          "caller": "handleOpenAdd",
+          "callee": "setSelectedCard",
+          "lineNumber": 27
+        },
+        {
+          "caller": "handleOpenAdd",
+          "callee": "setIsOpen",
+          "lineNumber": 28
+        },
+        {
+          "caller": "onSuccess",
+          "callee": "fetchCreditCards().then",
+          "lineNumber": 32
+        },
+        {
+          "caller": "onSuccess",
+          "callee": "fetchCreditCards",
+          "lineNumber": 32
+        },
+        {
+          "caller": "onSuccess",
+          "callee": "setCards",
+          "lineNumber": 33
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "Array.isArray",
+          "lineNumber": 55
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "cards.map",
+          "lineNumber": 67
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "handleOpenEdit",
+          "lineNumber": 71
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "new Intl.NumberFormat(\"vi-VN\").format",
+          "lineNumber": 94
+        },
+        {
+          "caller": "CreditCardsClient",
+          "callee": "setIsOpen",
+          "lineNumber": 119
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

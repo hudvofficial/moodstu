@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { MessageSquare, Send, Trash2 } from "lucide-react";
 import { getContractNotes, addContractNote, deleteContractNote } from "@/app/actions/note-actions";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { toast } from "@/lib/toast-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

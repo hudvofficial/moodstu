@@ -149,22 +149,23 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
           <div className="form-grid-2col">
             <div>
               <label className="label-base">Họ tên <span className="text-error">*</span></label>
-              <Input className="w-full" value={form.full_name} onChange={(e) => setField("full_name", e.target.value)} placeholder="Nguyễn Văn A" />
+              <Input className="w-full" value={form.full_name} onChange={(e) => setField("full_name", e.target.value)} placeholder="Nguyễn Văn A" disabled={submitting} />
             </div>
             <SelectForm
               label="Giới tính"
               value={form.gender}
               onChange={(v) => setField("gender", v)}
               options={[...GENDER_OPTIONS]}
+              disabled={submitting}
             />
             <div>
               <label className="label-base">Số điện thoại</label>
-              <Input className="w-full" value={form.phone} onChange={(e) => { setField("phone", e.target.value); setErrors((p) => ({ ...p, phone: "" })); }} placeholder="0912 345 678" />
+              <Input className="w-full" value={form.phone} onChange={(e) => { setField("phone", e.target.value); setErrors((p) => ({ ...p, phone: "" })); }} placeholder="0912 345 678" disabled={submitting} />
               {errors.phone && <p className="error-text">{errors.phone}</p>}
             </div>
             <div>
               <label className="label-base">Email</label>
-              <Input className="w-full" type="email" value={form.email} onChange={(e) => { setField("email", e.target.value); setErrors((p) => ({ ...p, email: "" })); }} placeholder="email@example.com" />
+              <Input className="w-full" type="email" value={form.email} onChange={(e) => { setField("email", e.target.value); setErrors((p) => ({ ...p, email: "" })); }} placeholder="email@example.com" disabled={submitting} />
               {errors.email && <p className="error-text">{errors.email}</p>}
             </div>
           </div>
@@ -181,18 +182,20 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
               options={[...DEPARTMENT_OPTIONS]}
               placeholder="Chọn phòng ban"
               error={errors.department}
+              disabled={submitting}
             />
             <div>
               <label className="label-base">Chức vụ</label>
-              <Input className="w-full" value={form.position} onChange={(e) => setField("position", e.target.value)} placeholder="Photographer" />
+              <Input className="w-full" value={form.position} onChange={(e) => setField("position", e.target.value)} placeholder="Photographer" disabled={submitting} />
             </div>
             <SelectForm
               label="Vai trò"
               value={form.role}
               onChange={(v) => setField("role", v as EmployeeRole)}
               options={ROLE_OPTIONS}
+              disabled={submitting}
             />
-            <DatePicker label="Ngày bắt đầu" value={form.start_date} onChange={(date) => setField("start_date", date)} />
+            <DatePicker label="Ngày bắt đầu" value={form.start_date} onChange={(date) => setField("start_date", date)} disabled={submitting} />
           </div>
         </div>
 
@@ -206,20 +209,20 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
             <div className="form-grid-2col mt-3">
               <div>
                 <label className="label-base">Lương cơ bản</label>
-                <Input className="w-full" type="number" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" />
+                <Input className="w-full" type="number" min="0" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" disabled={submitting} />
                 {errors.base_salary && <p className="error-text">{errors.base_salary}</p>}
               </div>
               <div>
                 <label className="label-base">Ngân hàng</label>
-                <Input className="w-full" value={form.bank_name} onChange={(e) => setField("bank_name", e.target.value)} placeholder="Vietcombank" />
+                <Input className="w-full" value={form.bank_name} onChange={(e) => setField("bank_name", e.target.value)} placeholder="Vietcombank" disabled={submitting} />
               </div>
               <div>
                 <label className="label-base">Số tài khoản</label>
-                <Input className="w-full" value={form.bank_account_no} onChange={(e) => setField("bank_account_no", e.target.value)} placeholder="1234567890" />
+                <Input className="w-full" value={form.bank_account_no} onChange={(e) => setField("bank_account_no", e.target.value)} placeholder="1234567890" disabled={submitting} />
               </div>
               <div>
                 <label className="label-base">Tên tài khoản</label>
-                <Input className="w-full" value={form.bank_account_name} onChange={(e) => setField("bank_account_name", e.target.value)} placeholder="NGUYEN VAN A" />
+                <Input className="w-full" value={form.bank_account_name} onChange={(e) => setField("bank_account_name", e.target.value)} placeholder="NGUYEN VAN A" disabled={submitting} />
               </div>
             </div>
           )}

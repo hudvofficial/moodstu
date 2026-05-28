@@ -1,0 +1,234 @@
+{
+  "batch": 37,
+  "description": "Types - Phần 2: CRM, Dashboard, Database, Dress, Employee types",
+  "files": [
+    {
+      "path": "types/crm.ts",
+      "type": "type-definition",
+      "purpose": "CRM module types - Leads và Customers với pipeline management",
+      "keyFeatures": [
+        "LeadStatus ENUM: moi, da_lien_he, hen_gap, da_bao_gia, da_chot, huy",
+        "LeadPotential ENUM: hot, warm, cold",
+        "LeadSource types: facebook, zalo, walk_in, referral, website, tiktok",
+        "LEAD_STATUS_MAP: Pipeline colors và labels",
+        "PIPELINE_STAGES: Ordered Kanban stages",
+        "VALID_LEAD_TRANSITIONS: State machine cho lead status",
+        "SOURCE_MAP, POTENTIAL_MAP: Display colors",
+        "Customer, CrmLead interfaces với full details",
+        "CareLogEntry: Care history tracking",
+        "TAG_PRESETS: Pre-defined tags với colors",
+        "Score level helpers: getScoreLevel()",
+        "PipelineStageStats, ConversionFunnelEntry"
+      ],
+      "exports": [
+        "LeadStatus",
+        "LeadPotential",
+        "LeadSource",
+        "LEAD_STATUS_MAP",
+        "PIPELINE_STAGES",
+        "VALID_LEAD_TRANSITIONS",
+        "SOURCE_MAP",
+        "POTENTIAL_MAP",
+        "TAG_PRESETS",
+        "Customer",
+        "CrmLead",
+        "CareLogEntry",
+        "CustomerFormData",
+        "LeadFormData",
+        "CustomerStats",
+        "LeadStats",
+        "getScoreLevel",
+        "PipelineStageStats",
+        "ConversionFunnelEntry"
+      ],
+      "databaseTables": ["customers", "crm_leads"],
+      "businessLogic": "Full CRM pipeline với lead scoring, state machine transitions, care history",
+      "notes": "V2 CRM với ENUM-based status, pipeline flow, Kanban UI support"
+    },
+    {
+      "path": "types/dashboard.ts",
+      "type": "type-definition",
+      "purpose": "Dashboard types cho KPIs, charts, và access control",
+      "keyFeatures": [
+        "DashboardVisibility: Role-based feature flags",
+        "DashboardAccess: User access control",
+        "DashboardKPIs: Revenue, contracts, debt metrics với growth",
+        "DashboardPeriod: Month/year selection",
+        "RevenueChartData, ServiceBreakdownData: Chart data structures",
+        "UpcomingEventData: Event milestones tracking",
+        "PaymentReminderData: Payment due tracking với overdue logic",
+        "DashboardBootstrapData: Full page initial data",
+        "DashboardCriticalData: Priority data subset",
+        "DashboardSectionResult<T>: Error handling per section"
+      ],
+      "exports": [
+        "DashboardVisibility",
+        "DashboardAccess",
+        "DashboardKPIs",
+        "DashboardPeriod",
+        "RevenueChartData",
+        "ServiceBreakdownData",
+        "UpcomingEventSource",
+        "UpcomingEventData",
+        "UpcomingEventMilestone",
+        "PaymentReminderData",
+        "PaymentReminderMilestone",
+        "DashboardBootstrapData",
+        "DashboardCriticalData"
+      ],
+      "usedBy": ["app/(protected)/dashboard/page.tsx"],
+      "notes": "Dashboard data structures với role-based access, error handling per section"
+    },
+    {
+      "path": "types/database.types.ts",
+      "type": "generated",
+      "purpose": "Supabase generated database types",
+      "keyFeatures": [
+        "Full database schema types",
+        "Table Row/Insert/Update types",
+        "ENUM definitions",
+        "Relationship types",
+        "Json type definition",
+        "GraphQL types"
+      ],
+      "exports": ["Database", "Json", "All table types"],
+      "generatedBy": "Supabase CLI",
+      "notes": "Auto-generated file - DO NOT EDIT MANUALLY. Re-generate via supabase gen types"
+    },
+    {
+      "path": "types/dress-constants.ts",
+      "type": "constants",
+      "purpose": "Dress catalog display constants",
+      "keyFeatures": [
+        "DRESS_STATUS_MAP: Status → Vietnamese với badge variants",
+        "DRESS_CONDITION_MAP: Condition labels",
+        "DRESS_CATEGORY_MAP: Category labels với Lucide icons",
+        "CATEGORY_PREFIX_MAP: Item code prefixes (VC, AD, VT, etc.)",
+        "RESERVATION_STATUS_MAP, RENTAL_STATUS_MAP",
+        "Page size constants"
+      ],
+      "exports": [
+        "DRESS_STATUS_MAP",
+        "DRESS_CONDITION_MAP",
+        "DRESS_CATEGORY_MAP",
+        "CATEGORY_PREFIX_MAP",
+        "RESERVATION_STATUS_MAP",
+        "RENTAL_STATUS_MAP",
+        "DRESS_PAGE_SIZE",
+        "RENTAL_HISTORY_PAGE_SIZE"
+      ],
+      "designPattern": "DB ENUM → Vietnamese display mapping - Lesson #65",
+      "notes": "Dress catalog UI display constants - SSOT cho dress module"
+    },
+    {
+      "path": "types/dress.ts",
+      "type": "type-definition",
+      "purpose": "Dress catalog types cho rental và reservation management",
+      "keyFeatures": [
+        "DressItem: Main dresses table",
+        "DressFilters: URL param synced filters",
+        "DressStats: Catalog overview stats",
+        "DressReservation: Reservation tracking",
+        "DressDetail: Item với reservations",
+        "RentalHistoryRow: Full rental history",
+        "RentalHistoryFilters",
+        "DressRental: Standalone rental records (dress_rentals table)"
+      ],
+      "exports": [
+        "DressItem",
+        "DressFilters",
+        "DressStats",
+        "DressReservation",
+        "DressDetail",
+        "RentalHistoryRow",
+        "RentalHistoryFilters",
+        "DressRental"
+      ],
+      "databaseTables": ["dresses", "dress_reservations", "dress_rentals"],
+      "businessLogic": "Dress inventory tracking, reservation system, rental management",
+      "notes": "Dress module types - rental business logic support"
+    },
+    {
+      "path": "types/employee-constants.ts",
+      "type": "constants",
+      "purpose": "Employee display constants",
+      "keyFeatures": [
+        "DEPARTMENT_OPTIONS: Predefined departments",
+        "ROLE_LABELS: EmployeeRole → Vietnamese",
+        "ROLE_BADGE_MAP: Role badges với variants",
+        "GENDER_OPTIONS: DB enum options",
+        "EMPLOYEE_STATUS_MAP: Status display",
+        "Helper functions: getDepartmentLabel, getRoleLabel, getStatusInfo"
+      ],
+      "exports": [
+        "DEPARTMENT_OPTIONS",
+        "ROLE_LABELS",
+        "ROLE_BADGE_MAP",
+        "GENDER_OPTIONS",
+        "EMPLOYEE_STATUS_MAP",
+        "getDepartmentLabel",
+        "getRoleLabel",
+        "getStatusInfo"
+      ],
+      "notes": "SSOT cho employee UI display constants"
+    },
+    {
+      "path": "types/employee-form.ts",
+      "type": "type-definition",
+      "purpose": "Employee form types tách biệt DB types",
+      "keyFeatures": [
+        "EmployeeFormData: UI form state",
+        "DEFAULT_FORM_DATA: Form initial values",
+        "ALLOWED_FIELDS: Update whitelist",
+        "Salary info trong form (Admin only access)"
+      ],
+      "exports": [
+        "EmployeeFormData",
+        "DEFAULT_FORM_DATA",
+        "ALLOWED_FIELDS"
+      ],
+      "separation": "Form types ≠ DB row types",
+      "notes": "Form-specific employee types với validation whitelist"
+    },
+    {
+      "path": "types/employee.ts",
+      "type": "type-definition",
+      "purpose": "Employee module core types",
+      "keyFeatures": [
+        "EmployeeRole ENUM: admin, manager, sale, media, ctv",
+        "EmployeeStatus ENUM: active, inactive",
+        "SalaryInfo: Bank account và salary details",
+        "Employee: Full employee record",
+        "EmployeeListItem: Lighter list query subset",
+        "EmployeeDetail: Full detail page data",
+        "ActiveEmployee: Assignment dropdown data"
+      ],
+      "exports": [
+        "EmployeeRole",
+        "EmployeeStatus",
+        "SalaryInfo",
+        "Employee",
+        "EmployeeListItem",
+        "EmployeeDetail",
+        "ActiveEmployee"
+      ],
+      "databaseTables": ["employees"],
+      "notes": "Employee domain types - role-based access control support"
+    }
+  ],
+  "summary": {
+    "totalFiles": 7,
+    "categories": {
+      "types": 6,
+      "generated": 1
+    },
+    "keyPatterns": [
+      "CRM pipeline state machine",
+      "Dashboard role-based access",
+      "Dress rental tracking",
+      "Employee role management",
+      "ENUM → Vietnamese display mapping",
+      "Form types separation pattern"
+    ]
+  }
+}

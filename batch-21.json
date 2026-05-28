@@ -1,0 +1,435 @@
+{
+  "batch": 21,
+  "description": "Auth Components + Calendar Components (Part 1) - mood-studio project",
+  "generated_at": "2026-05-28",
+  "statistics": {
+    "total_files": 21,
+    "categories": {
+      "auth": 5,
+      "calendar": 16
+    },
+    "total_components": 21,
+    "client_components": 19,
+    "summary": "Authentication và Calendar core components với drawer system, form handling và toolbar navigation"
+  },
+  "files": [
+    {
+      "file": "components/auth/auth-shell.tsx",
+      "category": "auth",
+      "component_name": "AuthShell",
+      "type": "universal",
+      "description": "Layout shell cho authentication pages với dual-column design, branding và footer",
+      "props": {
+        "title": {"type": "string", "required": true},
+        "subtitle": {"type": "string", "required": true},
+        "children": {"type": "ReactNode", "required": true},
+        "backHref": {"type": "string", "required": false},
+        "backLabel": {"type": "string", "required": false}
+      },
+      "features": {
+        "responsive": true,
+        "has_image_background": true,
+        "has_logo": true,
+        "has_footer_link": true
+      },
+      "imports": ["next/image", "next/link"],
+      "ui_components": ["Image", "Link"]
+    },
+    {
+      "file": "components/auth/login-transition.tsx",
+      "category": "auth",
+      "component_name": "LoginTransition",
+      "type": "client",
+      "description": "Transition overlay hiển thị loading state khi đăng nhập hoặc navigate",
+      "props": {
+        "isVisible": {"type": "boolean", "required": true},
+        "state": {"type": "'transitioning' | 'navigating'", "required": true}
+      },
+      "features": {
+        "animated": true,
+        "backdrop_blur": true,
+        "conditional_render": true
+      },
+      "state_variables": [],
+      "exports": ["LoginTransition", "LoginSkeleton"]
+    },
+    {
+      "file": "components/auth/reset-password-form.tsx",
+      "category": "auth",
+      "component_name": "ResetPasswordForm",
+      "type": "client",
+      "description": "Form đặt lại mật khẩu với password recovery flow, validation và error handling",
+      "hooks": ["useState", "useEffect", "useRouter"],
+      "state_variables": ["status", "statusMessage", "password", "confirmPassword", "showPassword", "showConfirmPassword", "errors"],
+      "props": {},
+      "features": {
+        "form_validation": true,
+        "password_strength": true,
+        "supabase_auth": true,
+        "error_mapping": true,
+        "url_cleanup": true
+      },
+      "validation_schema": "resetPasswordSchema",
+      "auth_methods": ["exchangeCodeForSession", "setSession", "getSession", "updateUser", "signOut"]
+    },
+    {
+      "file": "components/auth/forgot-password-form.tsx",
+      "category": "auth",
+      "component_name": "ForgotPasswordForm",
+      "type": "client",
+      "description": "Form quên mật khẩu với email sending, resend cooldown và success state",
+      "hooks": ["useState", "useEffect"],
+      "state_variables": ["identifier", "error", "isSubmitting", "sentTo", "cooldown"],
+      "props": {},
+      "features": {
+        "form_validation": true,
+        "resend_cooldown": true,
+        "server_action": true,
+        "identifier_normalization": true
+      },
+      "validation_schema": "forgotPasswordRequestSchema",
+      "server_actions": ["requestPasswordReset"],
+      "cooldown_seconds": 30
+    },
+    {
+      "file": "components/auth/login-page-client.tsx",
+      "category": "auth",
+      "component_name": "LoginPageClient",
+      "type": "client",
+      "description": "Login page chính với email/password form và Google OAuth, responsive dual-column layout",
+      "hooks": ["useState", "useEffect", "useRouter"],
+      "state_variables": ["loginState", "showPassword"],
+      "props": {},
+      "features": {
+        "email_login": true,
+        "google_oauth": true,
+        "remember_me": true,
+        "transition_overlay": true,
+        "toast_notifications": true,
+        "url_query_handling": true
+      },
+      "server_actions": ["login", "signInWithGoogleAction"],
+      "login_states": ["idle", "transitioning", "navigating"]
+    },
+    {
+      "file": "components/calendar/calendar-event-card.tsx",
+      "category": "calendar",
+      "component_name": "CalendarEventCard",
+      "type": "client",
+      "description": "Event card component để hiển thị event trong calendar với time, employee và groupLabel",
+      "props": {
+        "event": {"type": "UnifiedCalendarEvent", "required": true},
+        "onClick": {"type": "() => void", "required": false}
+      },
+      "features": {
+        "google_event_styling": true,
+        "time_parsing": true,
+        "color_token": true,
+        "memoized": true
+      },
+      "memo": true,
+      "icons": ["Clock", "User", "FileText"]
+    },
+    {
+      "file": "components/calendar/calendar-toolbar.tsx",
+      "category": "calendar",
+      "component_name": "CalendarToolbar",
+      "type": "client",
+      "description": "Toolbar cho calendar với navigation, view mode switching, filters và lunar converter",
+      "props": {
+        "currentDate": {"type": "Date", "required": true},
+        "onDateChange": {"type": "(date: Date) => void", "required": true},
+        "viewMode": {"type": "CalendarViewMode", "required": true},
+        "onViewModeChange": {"type": "(mode: CalendarViewMode) => void", "required": true},
+        "filters": {"type": "FilterConfig", "required": true},
+        "onNewEvent": {"type": "() => void", "required": true}
+      },
+      "state_variables": ["showMobileFilters", "isConverterOpen"],
+      "features": {
+        "responsive": true,
+        "mobile_filters": true,
+        "view_mode_toggle": true,
+        "date_navigation": true,
+        "employee_status_filters": true,
+        "lunar_converter": true
+      },
+      "view_modes": ["month", "week", "day"]
+    },
+    {
+      "file": "components/calendar/calendar-wrapper.tsx",
+      "category": "calendar",
+      "component_name": "CalendarWrapper",
+      "type": "client",
+      "description": "Main wrapper cho calendar app với routing, realtime sync, keyboard shortcuts và mobile swipe",
+      "hooks": ["useState", "useEffect", "useRef", "useCallback", "useIsMobile", "useIsTablet", "useCalendarData", "useCalendarKeyboard", "useRealtimeMulti"],
+      "props": {
+        "userRole": {"type": "string", "required": false},
+        "currentUserId": {"type": "string", "required": false}
+      },
+      "state_variables": ["selectedMobileDate", "isFormOpen", "editingEvent", "defaultDate", "mounted"],
+      "features": {
+        "realtime_sync": true,
+        "swipe_navigation": true,
+        "keyboard_shortcuts": true,
+        "responsive_views": true,
+        "background_sync": true,
+        "skeleton_loading": true,
+        "prefetch": true
+      },
+      "keyboard_shortcuts": ["T=Today", "M/W/D=ViewMode", "←→=Navigate", "C=Create"]
+    },
+    {
+      "file": "components/calendar/drawers/day-drawer.tsx",
+      "category": "calendar",
+      "component_name": "DayDrawer",
+      "type": "client",
+      "description": "Drawer hiển thị events của một ngày cụ thể với create/contract shortcuts",
+      "props": {
+        "date": {"type": "Date | null", "required": true},
+        "events": {"type": "UnifiedCalendarEvent[]", "required": true},
+        "onClose": {"type": "() => void", "required": true},
+        "onEventClick": {"type": "(event: UnifiedCalendarEvent) => void", "required": false},
+        "onCreateEvent": {"type": "(date: Date) => void", "required": false}
+      },
+      "features": {
+        "empty_state": true,
+        "event_cards": true,
+        "fab_actions": true,
+        "date_formatting": true
+      },
+      "ui_components": ["Drawer", "Button", "CalendarEventCard"]
+    },
+    {
+      "file": "components/calendar/drawers/event-form-drawer.tsx",
+      "category": "calendar",
+      "component_name": "EventFormDrawer",
+      "type": "client",
+      "description": "Form drawer tạo/sửa calendar events với date/time pickers, employee assignment và Google sync",
+      "hooks": ["useState", "useEffect", "useTransition"],
+      "props": {
+        "open": {"type": "boolean", "required": true},
+        "onOpenChange": {"type": "(open: boolean) => void", "required": true},
+        "event": {"type": "UnifiedCalendarEvent | null", "required": false},
+        "defaultDate": {"type": "Date | null", "required": false},
+        "employees": {"type": "Array", "required": true},
+        "currentUserId": {"type": "string", "required": false},
+        "userRole": {"type": "Role", "required": true},
+        "isGoogleConnected": {"type": "boolean", "required": true},
+        "onSuccess": {"type": "() => void", "required": false}
+      },
+      "state_variables": ["isPending", "error", "isEditMode", "showTimeFields", "allDay", "showMoreOptions", "formData"],
+      "features": {
+        "edit_mode_toggle": true,
+        "view_mode": true,
+        "date_time_picker": true,
+        "all_day_toggle": true,
+        "google_sync": true,
+        "location_notes": true,
+        "task_deadline_update": true,
+        "validation": true
+      },
+      "server_actions": ["createCalendarEvent", "updateCalendarEvent", "deleteCalendarEvent", "updateCalendarTaskDetails"]
+    },
+    {
+      "file": "components/calendar/drawers/event-view-drawer.tsx",
+      "category": "calendar",
+      "component_name": "EventViewDrawer",
+      "type": "client",
+      "description": "View-only drawer cho calendar events với edit và delete actions",
+      "estimated_props": {
+        "open": "boolean",
+        "onOpenChange": "function",
+        "event": "UnifiedCalendarEvent",
+        "source": "string",
+        "setIsEditMode": "function",
+        "handleDelete": "function",
+        "isPending": "boolean"
+      },
+      "features": {
+        "read_only_view": true,
+        "event_details": true,
+        "google_event_link": true,
+        "edit_delete_actions": true
+      }
+    },
+    {
+      "file": "components/calendar/views/day-view.tsx",
+      "category": "calendar",
+      "component_name": "DayView",
+      "type": "client",
+      "description": "Day view cho calendar hiển thị hourly timeline với events",
+      "estimated_props": {
+        "currentDate": "Date",
+        "eventsByDate": "Record<string, UnifiedCalendarEvent[]>",
+        "onEventClick": "function",
+        "onCreateEvent": "function"
+      },
+      "features": {
+        "hourly_grid": true,
+        "time_slots": true,
+        "event_positioning": true,
+        "click_to_create": true
+      }
+    },
+    {
+      "file": "components/calendar/views/week-grid.tsx",
+      "category": "calendar",
+      "component_name": "WeekGrid",
+      "type": "client",
+      "description": "Week view grid hiển thị 7 ngày với drag-drop support",
+      "estimated_props": {
+        "currentDate": "Date",
+        "eventsByDate": "Record<string, UnifiedCalendarEvent[]>",
+        "mutate": "function",
+        "onEventClick": "function",
+        "onDateClick": "function"
+      },
+      "features": {
+        "week_layout": true,
+        "drag_drop": true,
+        "date_headers": true,
+        "multi_day_events": true
+      }
+    },
+    {
+      "file": "components/calendar/views/month-grid.tsx",
+      "category": "calendar",
+      "component_name": "MonthGrid",
+      "type": "client",
+      "description": "Month view grid calendar với drag-drop event management",
+      "estimated_props": {
+        "currentDate": "Date",
+        "events": "UnifiedCalendarEvent[]",
+        "mutate": "function",
+        "onEventClick": "function",
+        "onDateClick": "function"
+      },
+      "features": {
+        "month_layout": true,
+        "drag_drop": true,
+        "droppable_days": true,
+        "week_rows": true
+      }
+    },
+    {
+      "file": "components/calendar/views/month-week-row.tsx",
+      "category": "calendar",
+      "component_name": "MonthWeekRow",
+      "type": "client",
+      "description": "Row component cho month grid hiển thị một tuần",
+      "estimated_props": {
+        "weekDays": "Date[]",
+        "events": "UnifiedCalendarEvent[]",
+        "onDateClick": "function",
+        "onEventClick": "function"
+      },
+      "features": {
+        "week_row": true,
+        "day_cells": true,
+        "event_badges": true
+      }
+    },
+    {
+      "file": "components/calendar/views/droppable-day.tsx",
+      "category": "calendar",
+      "component_name": "DroppableDay",
+      "type": "client",
+      "description": "Day cell với drag-and-drop support cho events",
+      "estimated_props": {
+        "date": "Date",
+        "events": "UnifiedCalendarEvent[]",
+        "onDrop": "function",
+        "onClick": "function"
+      },
+      "features": {
+        "drag_drop": true,
+        "drop_zone": true,
+        "visual_feedback": true
+      }
+    },
+    {
+      "file": "components/calendar/views/draggable-event.tsx",
+      "category": "calendar",
+      "component_name": "DraggableEvent",
+      "type": "client",
+      "description": "Event component có thể drag để reschedule",
+      "estimated_props": {
+        "event": "UnifiedCalendarEvent",
+        "onDragStart": "function",
+        "onDragEnd": "function",
+        "onClick": "function"
+      },
+      "features": {
+        "draggable": true,
+        "drag_preview": true,
+        "event_card": true
+      }
+    },
+    {
+      "file": "components/calendar/views/mobile-month-grid.tsx",
+      "category": "calendar",
+      "component_name": "MobileMonthGrid",
+      "type": "client",
+      "description": "Mobile-optimized month grid với touch-friendly interactions",
+      "estimated_props": {
+        "currentDate": "Date",
+        "events": "UnifiedCalendarEvent[]",
+        "onDateSelect": "function"
+      },
+      "features": {
+        "mobile_optimized": true,
+        "touch_friendly": true,
+        "compact_view": true,
+        "event_indicators": true
+      }
+    },
+    {
+      "file": "components/calendar/solar-lunar-converter.tsx",
+      "category": "calendar",
+      "component_name": "SolarLunarConverter",
+      "type": "client",
+      "description": "Modal/Drawer converter giữa Dương lịch và Âm lịch",
+      "estimated_props": {
+        "isOpen": "boolean",
+        "onClose": "function"
+      },
+      "features": {
+        "solar_lunar": true,
+        "date_conversion": true,
+        "bidirectional": true
+      }
+    },
+    {
+      "file": "components/calendar/calendar-month-year-picker.tsx",
+      "category": "calendar",
+      "component_name": "CalendarMonthYearPicker",
+      "type": "client",
+      "description": "Picker component để chọn tháng và năm cho calendar navigation",
+      "estimated_props": {
+        "value": "Date",
+        "onChange": "function"
+      },
+      "features": {
+        "month_picker": true,
+        "year_picker": true,
+        "dropdown": true
+      }
+    },
+    {
+      "file": "components/calendar/lunar-day-drawer.tsx",
+      "category": "calendar",
+      "component_name": "LunarDayDrawer",
+      "type": "client",
+      "description": "Drawer hiển thị thông tin Âm lịch cho một ngày cụ thể",
+      "estimated_props": {
+        "date": "Date | null",
+        "onClose": "function"
+      },
+      "features": {
+        "lunar_info": true,
+        "traditional_calendar": true,
+        "auspicious_dates": true
+      }
+    }
+  ]
+}

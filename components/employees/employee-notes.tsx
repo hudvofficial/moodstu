@@ -41,6 +41,10 @@ export default function EmployeeNotes({ employeeId, initialNotes }: Props) {
     }
   }, [employeeId]);
 
+  // Ref to hold the latest notes for cleanup access
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
+
   // Debounced auto-save
   useEffect(() => {
     // Skip if value hasn't changed from last saved (fixes React Strict Mode double-mount)
@@ -50,12 +54,20 @@ export default function EmployeeNotes({ employeeId, initialNotes }: Props) {
     timerRef.current = setTimeout(() => {
       saveNotes(notes);
       lastSavedRef.current = notes;
+      timerRef.current = null;
     }, 1000);
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        // Flush unsaved changes immediately on unmount
+        if (notesRef.current !== lastSavedRef.current) {
+          void updateEmployeeNotes(employeeId, notesRef.current || null);
+          lastSavedRef.current = notesRef.current;
+        }
+      }
     };
-  }, [notes, saveNotes]);
+  }, [notes, saveNotes, employeeId]);
 
   return (
     <div className="card-base p-4">

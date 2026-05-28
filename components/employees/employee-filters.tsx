@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useTransition } from "react";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { DEPARTMENT_OPTIONS, ROLE_LABELS } from "@/types/employee-constants";
@@ -42,6 +42,7 @@ export default function EmployeeFilters({ stats }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -52,7 +53,9 @@ export default function EmployeeFilters({ stats }: Props) {
         params.delete(key);
       }
       params.delete("page");
-      router.push(`${pathname}?${params.toString()}`);
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     },
     [router, pathname, searchParams]
   );

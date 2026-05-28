@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus } from "lucide-react";
@@ -28,7 +28,7 @@ import { SkeletonTable } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
-import { revalidateContractCaches } from "@/lib/hooks/use-contracts";
+import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, FinanceCategory, FinanceContractOption, ReceiptPage, ReceiptListItem } from "@/types/finance-operations";

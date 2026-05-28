@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
-import { withInventoryAccess } from "@/lib/auth_utils";
+import { withInventoryAccess, withAuth, requireInventoryAccess } from "@/lib/auth_utils";
 import { checkPeriodLock, isMissingRpcError } from "@/lib/finance-utils";
 import {
   inventoryContractAddonSaleSchema,
@@ -659,5 +659,210 @@ export async function deleteInventoryTransaction(transactionId: string) {
     revalidatePath("/inventory");
     revalidatePath(`/inventory/${txn.item_id}`);
     return { id: parsedId.data };
+  });
+}
+
+const approvalRequestSchema = z.object({
+  target_id: z.string().uuid(),
+  action_type: z.enum(["delete_fulfillment", "update_fulfillment"]),
+  payload: z.any().optional(),
+  reason: z.string().min(1, "Vui lòng nhập lý do"),
+});
+
+export async function requestFulfillmentAction(input: z.infer<typeof approvalRequestSchema>) {
+  return withAuth(async (supabase, userId) => {
+    const { role } = await requireInventoryAccess(supabase, userId);
+    
+    // If Admin/Manager -> execute directly
+    if (role === "admin" || role === "manager") {
+      if (input.action_type === "delete_fulfillment") {
+        const { error } = await supabase.rpc("delete_fulfillment_transaction_atomic", {
+          p_txn_id: input.target_id,
+          p_user_id: userId
+        });
+        if (error) throw new Error(`Lỗi xoá phát sinh: ${error.message}`);
+      } else {
+        const { error } = await supabase.rpc("update_fulfillment_transaction_atomic", {
+          p_txn_id: input.target_id,
+          p_new_quantity: input.payload.quantity,
+          p_new_unit_price: input.payload.sale_unit_price,
+          p_user_id: userId
+        });
+        if (error) throw new Error(`Lỗi sửa phát sinh: ${error.message}`);
+      }
+      
+      await fireAuditLog({
+        action: "UPDATE",
+        tableName: "inventory_transactions",
+        recordId: input.target_id,
+        newData: { action: input.action_type, by: "admin_direct" },
+        description: `Direct action ${input.action_type} on fulfillment ${input.target_id}`,
+        severity: "WARNING",
+        source: "server_action",
+      });
+
+      revalidatePath("/inventory");
+      return { success: true, direct: true };
+    }
+
+    // If Sale/Staff -> create approval request
+    const { error } = await supabase.from("approval_requests").insert({
+      module: "inventory",
+      action_type: input.action_type,
+      target_id: input.target_id,
+      payload: input.payload,
+      reason: input.reason,
+      status: "pending",
+      requested_by: userId,
+    });
+
+    if (error) throw new Error(`Lỗi tạo yêu cầu duyệt: ${error.message}`);
+
+    await fireAuditLog({
+      action: "CREATE",
+      tableName: "approval_requests",
+      recordId: input.target_id,
+      newData: { target: input.target_id, action: input.action_type },
+      description: `Yêu cầu duyệt ${input.action_type} cho phiếu ${input.target_id}`,
+      severity: "INFO",
+      source: "server_action",
+    });
+
+    revalidatePath("/inventory");
+    return { success: true, direct: false };
+  });
+}
+
+export async function approveFulfillmentRequest(requestId: string) {
+  return withAuth(async (supabase, userId) => {
+    const { role } = await requireInventoryAccess(supabase, userId);
+    
+    if (role !== "admin" && role !== "manager") {
+      throw new Error("Chỉ Quản lý mới có quyền duyệt yêu cầu");
+    }
+
+    const { data: request, error: reqError } = await supabase
+      .from("approval_requests")
+      .select("*")
+      .eq("id", requestId)
+      .single();
+
+    if (reqError || !request) throw new Error("Không tìm thấy yêu cầu");
+    if (request.status !== "pending") throw new Error("Yêu cầu này đã được xử lý");
+
+    if (request.action_type === "delete_fulfillment") {
+      const { error } = await supabase.rpc("delete_fulfillment_transaction_atomic", {
+        p_txn_id: request.target_id,
+        p_user_id: userId
+      });
+      if (error) throw new Error(`Lỗi duyệt xoá phát sinh: ${error.message}`);
+    } else if (request.action_type === "update_fulfillment") {
+      const { error } = await supabase.rpc("update_fulfillment_transaction_atomic", {
+        p_txn_id: request.target_id,
+        p_new_quantity: request.payload.quantity,
+        p_new_unit_price: request.payload.sale_unit_price,
+        p_user_id: userId
+      });
+      if (error) throw new Error(`Lỗi duyệt sửa phát sinh: ${error.message}`);
+    }
+
+    const { error: updateError } = await supabase
+      .from("approval_requests")
+      .update({
+        status: "approved",
+        reviewed_by: userId,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", requestId);
+
+    if (updateError) throw new Error(`Lỗi cập nhật trạng thái đơn: ${updateError.message}`);
+
+    await fireAuditLog({
+      action: "UPDATE",
+      tableName: "approval_requests",
+      recordId: requestId,
+      newData: { status: "approved" },
+      description: `Đã duyệt yêu cầu ${request.action_type} cho phiếu ${request.target_id}`,
+      severity: "WARNING",
+      source: "server_action",
+    });
+
+    // Notify requester
+    if (request.requested_by) {
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("auth_user_id", request.requested_by)
+        .single();
+
+      if (employee?.id) {
+        await supabase.from("notification_queue").insert({
+          employee_id: employee.id,
+          type: "system_alerts",
+          title: "Yêu cầu đã được duyệt",
+          content: `Yêu cầu ${request.action_type === 'delete_fulfillment' ? 'xoá' : 'sửa'} phát sinh #${request.target_id.slice(0, 8)} đã được duyệt.`,
+          status: "pending",
+          resource_type: "inventory_approval",
+          resource_id: requestId,
+        });
+      }
+    }
+
+    revalidatePath("/inventory");
+    return { success: true };
+  });
+}
+
+export async function rejectFulfillmentRequest(requestId: string, reviewNotes: string) {
+  return withAuth(async (supabase, userId) => {
+    const { role } = await requireInventoryAccess(supabase, userId);
+    
+    if (role !== "admin" && role !== "manager") {
+      throw new Error("Chỉ Quản lý mới có quyền duyệt yêu cầu");
+    }
+
+    const { data: request, error: reqError } = await supabase
+      .from("approval_requests")
+      .select("*")
+      .eq("id", requestId)
+      .single();
+
+    if (reqError || !request) throw new Error("Không tìm thấy yêu cầu");
+
+    const { error: updateError } = await supabase
+      .from("approval_requests")
+      .update({
+        status: "rejected",
+        reviewed_by: userId,
+        review_notes: reviewNotes,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", requestId);
+
+    if (updateError) throw new Error(`Lỗi từ chối đơn: ${updateError.message}`);
+
+    // Notify requester
+    if (request.requested_by) {
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("auth_user_id", request.requested_by)
+        .single();
+
+      if (employee?.id) {
+        await supabase.from("notification_queue").insert({
+          employee_id: employee.id,
+          type: "system_alerts",
+          title: "Yêu cầu bị từ chối",
+          content: `Yêu cầu ${request.action_type === 'delete_fulfillment' ? 'xoá' : 'sửa'} phát sinh #${request.target_id.slice(0, 8)} đã bị từ chối với lý do: "${reviewNotes}".`,
+          status: "pending",
+          resource_type: "inventory_approval",
+          resource_id: requestId,
+        });
+      }
+    }
+
+    revalidatePath("/inventory");
+    return { success: true };
   });
 }

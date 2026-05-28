@@ -1,6 +1,7 @@
 import EmployeeListPage from "@/components/employees/employee-list-page";
 import { RealtimeSync } from "@/components/shared/realtime-sync";
 import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
+import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 
 export const metadata = { title: "Nhân viên" };
 
@@ -40,6 +41,10 @@ export default async function EmployeesPage({
     sort: firstParam(params.sort),
     page: firstParam(params.page),
   };
+
+  const authContext = await getAuthenticatedUserContext();
+  const role = authContext?.shellRole;
+  const canEdit = role === "admin" || role === "manager";
 
   const [listSettled, statsSettled] = await Promise.allSettled([
     getEmployeeList(listParams),
@@ -83,6 +88,7 @@ export default async function EmployeesPage({
         page={listResult.page}
         pageSize={listResult.pageSize}
         stats={statsResult}
+        canEdit={canEdit}
       />
     </>
   );
