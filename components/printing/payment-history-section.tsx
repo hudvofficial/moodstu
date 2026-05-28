@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp, Receipt, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getOrderPaymentHistory } from "@/app/actions/printing-queries";
@@ -48,7 +48,7 @@ export function PaymentHistorySection({
   const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPaymentHistory = async () => {
+  const loadPaymentHistory = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -63,13 +63,13 @@ export function PaymentHistorySection({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [orderId]);
 
   useEffect(() => {
     if (isExpanded && payments.length === 0) {
       loadPaymentHistory();
     }
-  }, [isExpanded, orderId]);
+  }, [isExpanded, loadPaymentHistory, payments.length]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -83,7 +83,7 @@ export function PaymentHistorySection({
   return (
     <div className="border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <button
+      <Button unstyled
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 bg-bg-hover hover:bg-bg-base transition-colors"
@@ -119,7 +119,7 @@ export function PaymentHistorySection({
             <ChevronDown className="w-5 h-5 text-text-secondary" />
           )}
         </div>
-      </button>
+      </Button>
 
       {/* Content */}
       {isExpanded && (

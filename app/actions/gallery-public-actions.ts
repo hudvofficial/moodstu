@@ -302,7 +302,7 @@ export async function getGalleryPreviewMetadata(slug: string) {
 }
 
 export async function fetchSharedGalleryByAccessUrl(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   accessUrl: string,
 ) {

@@ -27,7 +27,7 @@ interface DressQRModalProps {
 
 export function QRLabel({ dress, qrSize = 180 }: { dress: DressItem; qrSize?: number }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const qrInstance = useRef<any>(null);
 
   const generateQR = useCallback(async () => {

@@ -26,18 +26,6 @@ const inter = localFont({
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const splashScript = `
-(function () {
-  try {
-    if (sessionStorage.getItem("ms_v2_loaded")) {
-      document.documentElement.classList.add("skip-splash");
-    } else {
-      sessionStorage.setItem("ms_v2_loaded", "1");
-    }
-  } catch (error) {}
-})();
-`;
-
 export const metadata: Metadata = {
   title: {
     default: "Mood Studio",
@@ -76,9 +64,6 @@ export default function RootLayout({
   return (
     <html lang="vi" className={inter.variable} suppressHydrationWarning>
       <head>
-        {/* Splash screen skip - must run before any React code */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script dangerouslySetInnerHTML={{ __html: splashScript }} />
         {supabaseUrl ? (
           <>
             <link rel="dns-prefetch" href={supabaseUrl} />
@@ -95,7 +80,12 @@ export default function RootLayout({
             __html: `
               #splash-screen {
                 position: fixed;
-                inset: 0;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100dvh;
+                margin: 0;
+                padding: 0;
                 z-index: 2147483647;
                 display: grid;
                 place-items: center;
@@ -106,7 +96,7 @@ export default function RootLayout({
               #splash-screen.fade-out {
                 opacity: 0;
               }
-              html.skip-splash #splash-screen {
+              #splash-screen.hidden {
                 display: none !important;
                 opacity: 0 !important;
                 pointer-events: none !important;

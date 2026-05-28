@@ -139,10 +139,10 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
               <div className="flex-1 flex flex-col min-w-0">
                 <span className="text-body-sm font-medium text-text-main truncate">
                   {task.employees?.full_name || task.vendors?.full_name}
-                  {task.vendors && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Thợ ngoài</span>}
+                  {task.vendors && <span className="ml-1.5 text-text-muted text-micro font-normal italic">Thợ ngoài</span>}
                 </span>
                 {events && task.event_id && (
-                  <span className="text-[10px] text-text-muted truncate leading-tight">
+                  <span className="text-micro text-text-muted truncate leading-tight">
                     {events.find((e) => e.id === task.event_id)?.title || "Sự kiện"}
                   </span>
                 )}

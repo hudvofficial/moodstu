@@ -17,6 +17,7 @@ import { fetchInventoryForSale, type InventorySaleOption } from "@/app/actions/i
 import { useEffect } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Input } from "@/components/ui/input";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 
 interface OrderDetailsDrawerProps {
   txn: InventoryTransaction | null;
@@ -340,7 +341,7 @@ export function OrderDetailsDrawer({
                         <span className="truncate block font-medium">
                           {f.item_name || txn.item_name || "Vật tư"} 
                           {f.item_id !== txn.item_id && f.item_id && (
-                             <Badge variant="neutral" className="ml-2 text-[10px] py-0">Đổi mã</Badge>
+                             <Badge variant="neutral" className="ml-2 text-micro py-0">Đổi mã</Badge>
                           )}
                         </span>
                       </div>
@@ -389,7 +390,7 @@ export function OrderDetailsDrawer({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Số lượng</label>
-                          <input 
+                          <Input unstyled 
                             type="number" 
                             value={quantity}
                             onChange={(e) => setQuantity(Number(e.target.value))}
@@ -398,7 +399,7 @@ export function OrderDetailsDrawer({
                         </div>
                         <div>
                           <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Đơn giá (VND)</label>
-                          <input 
+                          <Input unstyled 
                             type="number" 
                             value={unitCost}
                             onChange={(e) => setUnitCost(Number(e.target.value))}
@@ -410,15 +411,15 @@ export function OrderDetailsDrawer({
                       {unitCost > 0 && (
                         <div>
                           <label className="text-micro uppercase tracking-wider text-text-muted mb-1.5 block">Phương thức thanh toán</label>
-                          <select
+                          <SelectForm
                             value={paymentMethod}
-                            onChange={(e) => setPaymentMethod(e.target.value as any)}
-                            className="w-full bg-bg-base/50 border border-border/50 rounded-lg px-3 py-2 text-sm outline-none focus:border-interactive focus:ring-1 focus:ring-interactive focus:bg-bg-card transition-all"
-                          >
-                            <option value="cash">Tiền mặt</option>
-                            <option value="transfer">Chuyển khoản</option>
-                            <option value="card">Quẹt thẻ</option>
-                          </select>
+                            onChange={(val) => setPaymentMethod(val as any)}
+                            options={[
+                              { value: "cash", label: "Tiền mặt" },
+                              { value: "transfer", label: "Chuyển khoản" },
+                              { value: "card", label: "Quẹt thẻ" }
+                            ]}
+                          />
                         </div>
                       )}
                     </div>

@@ -28,9 +28,9 @@ export async function refreshAccessToken(
   return response.json();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export async function getValidGoogleToken(supabase: any, studioInfo: any) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let authData = decryptGoogleOAuth(studioInfo.google_oauth) as any;
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;

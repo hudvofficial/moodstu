@@ -14,7 +14,10 @@ export function useVirtualKeyboard() {
   useEffect(() => {
     // Only detect on mobile devices
     if (!isMobile) {
-      if (isKeyboardOpen) setIsKeyboardOpen(false);
+      if (isKeyboardOpen) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsKeyboardOpen(false);
+      }
       return;
     }
 

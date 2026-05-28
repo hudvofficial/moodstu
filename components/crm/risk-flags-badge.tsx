@@ -35,7 +35,7 @@ export function RiskFlagsBadge({ lead }: { lead: CrmLead }) {
   return (
     <div className="flex gap-1 shrink-0" title={flags.join(", ")}>
       {flags.map(flag => (
-        <div key={flag} className="flex h-[22px] px-1.5 shrink-0 items-center justify-center rounded-full bg-error/10 border border-error/20 gap-1 text-[10px] font-medium text-error">
+        <div key={flag} className="flex h-fit py-0.5 px-1.5 shrink-0 items-center justify-center rounded-full bg-error/10 border border-error/20 gap-1 text-micro font-medium text-error">
           <AlertCircle className="w-3 h-3" />
           <span>{flag}</span>
         </div>

@@ -27,7 +27,7 @@ export function useContractNotes(
       revalidateOnFocus: false,
       // fallbackData: instant render from list query, SWR revalidates in background
       ...(initialNotes ? { fallbackData: { success: true as const, data: initialNotes } } : {}),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
     } as any
   );
 

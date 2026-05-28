@@ -86,7 +86,7 @@ export function SalaryMobileSwipeCard({
             <div className="mb-1.5 flex items-center gap-2">
               <span className="truncate text-body-sm font-bold">{item.employee_name}</span>
               {item.role === "ctv" && (
-                <Badge variant="neutral" className="text-[10px] px-1.5 py-0 shrink-0">CTV</Badge>
+                <Badge variant="neutral" className="text-micro px-1.5 py-0 shrink-0">CTV</Badge>
               )}
             </div>
             <div className="flex items-center gap-2">

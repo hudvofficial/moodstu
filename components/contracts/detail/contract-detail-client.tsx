@@ -149,7 +149,7 @@ export default function ContractDetailClient({
     }
 
     return false;
-  }, [id]);
+  }, [id, queryClient]);
 
   const patchEventRealtimePayload = useCallback((payload: RealtimePayload) => {
     if (payload.table !== "contract_events") return false;
@@ -192,7 +192,7 @@ export default function ContractDetailClient({
     );
 
     return true;
-  }, [id, updateContractDetailOptimistic, queryClient]);
+  }, [id, updateContractDetailOptimistic]);
 
   const patchTaskRealtimePayload = useCallback((payload: RealtimePayload) => {
     if (payload.table !== "work_tasks") return false;
@@ -270,7 +270,7 @@ export default function ContractDetailClient({
       refreshCooldownUntilRef.current = Date.now() + CONTRACT_DETAIL_REFRESH_SETTLE_MS;
       doRefresh();
     }, Math.max(refreshCooldownUntilRef.current - now, 0));
-  }, [id, patchContractRealtimePayload, mutateContractDetail]);
+  }, [id, patchContractRealtimePayload, queryClient]);
 
   const refreshContractCachesBatch = useCallback((payloads: RealtimePayload[]) => {
     let needsRefresh = false;
@@ -406,7 +406,7 @@ export default function ContractDetailClient({
     window.setTimeout(() => {
       void revalidateContractDetailCaches(queryClient, id);
     }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
-  }, [id, muteRealtimeEcho]);
+  }, [id, muteRealtimeEcho, queryClient, updateContractDetailOptimistic]);
 
   const applyEventDeletedOptimistic = useCallback((eventId: string) => {
     muteRealtimeEcho();
@@ -432,7 +432,7 @@ export default function ContractDetailClient({
     window.setTimeout(() => {
       void revalidateContractDetailCaches(queryClient, id);
     }, CONTRACT_DETAIL_REFRESH_SETTLE_MS);
-  }, [id, muteRealtimeEcho]);
+  }, [id, muteRealtimeEcho, queryClient, updateContractDetailOptimistic]);
 
   // ⚡ Defer realtime setup to improve initial render performance
   const [enableRealtime, setEnableRealtime] = useState(false);

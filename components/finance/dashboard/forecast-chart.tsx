@@ -66,7 +66,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
               tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             />
             <Tooltip 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               formatter={(value: any) => formatVnd(Number(value))}
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />

@@ -54,9 +54,9 @@ export function ShareGalleryModalContent({
   
   const qrSelectRef = useRef<HTMLDivElement>(null);
   const qrViewRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const qrSelectInstance = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const qrViewInstance = useRef<any>(null);
 
   const selectSlug = customSlug || shareLinks.find((link) => link.capability === "select")?.slug || localAccessUrl;
@@ -207,7 +207,7 @@ export function ShareGalleryModalContent({
   };
 
   // ─── Download QR ──────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const handleDownloadQR = (instance: any, name: string) => {
     if (instance?.current) {
       instance.current.download({

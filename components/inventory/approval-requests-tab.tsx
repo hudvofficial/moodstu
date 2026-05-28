@@ -159,7 +159,7 @@ export function ApprovalRequestsTab({ userRole }: { userRole: string }) {
                     <td className="px-4 py-3 align-top">
                       {getStatusBadge(req.status)}
                       {req.status === 'rejected' && req.review_notes && (
-                        <p className="text-caption text-error mt-1">"{req.review_notes}"</p>
+                        <p className="text-caption text-error mt-1">&quot;{req.review_notes}&quot;</p>
                       )}
                     </td>
                     <td className="px-4 py-3 align-top text-right">

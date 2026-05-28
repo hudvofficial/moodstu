@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useSyncExternalStore,
 } from "react";
@@ -76,19 +77,6 @@ function applyTheme(resolved: "light" | "dark") {
   }
 }
 
-// Anti-FOUC inline script
-const themeScript = `
-(function(){
-  try {
-    var t = localStorage.getItem('${STORAGE_KEY}') || 'light';
-    var r = t === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : t;
-    document.documentElement.classList.add(r);
-  } catch(e) {}
-})()
-`;
-
 // Initialize from localStorage at module load
 if (typeof window !== "undefined") {
   currentTheme = (localStorage.getItem(STORAGE_KEY) as Theme) || "light";
@@ -107,7 +95,8 @@ export default function ThemeProvider({
 
   const resolvedTheme: "light" | "dark" = resolve(theme);
 
-  useEffect(() => {
+  // Apply theme immediately on mount (before paint) to minimize FOUC
+  useLayoutEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
@@ -137,10 +126,6 @@ export default function ThemeProvider({
     <ThemeContext.Provider
       value={{ theme, resolvedTheme, setTheme, toggleTheme }}
     >
-      <script
-        dangerouslySetInnerHTML={{ __html: themeScript }}
-        suppressHydrationWarning
-      />
       {children}
     </ThemeContext.Provider>
   );

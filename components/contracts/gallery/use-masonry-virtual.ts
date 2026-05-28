@@ -193,6 +193,7 @@ export function useMasonryVirtual({
   // Each "virtual row" represents one item from the tallest column
   const maxColumnLength = Math.max(...columnGroups.map(col => col.items.length), 0);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: maxColumnLength,
     getScrollElement: () => {

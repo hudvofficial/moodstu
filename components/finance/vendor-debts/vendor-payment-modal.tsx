@@ -17,6 +17,8 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, AlertCircle, Check } from "lucide-react";
 
+const EMPTY_TASKS: VendorUnpaidTask[] = [];
+
 interface VendorPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,19 +67,20 @@ export function VendorPaymentModal({
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("fifo");
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
-  // Reset form when modal opens
-  useEffect(() => {
+  // Reset form when modal opens (Adjust state on render to avoid cascading updates)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
-      const today = getTodayDate();
       setAmount(0);
       setPaymentMethod("chuyen_khoan");
-      setPaymentDate(today);
+      setPaymentDate(getTodayDate());
       setNote("");
       setShowAllocationDetails(false);
       setSelectionMode("fifo");
       setSelectedTaskIds(new Set());
     }
-  }, [isOpen]);
+  }
 
   // Fetch unpaid tasks for this vendor
   const { data: tasksResult, isLoading } = useSWR(
@@ -86,7 +89,7 @@ export function VendorPaymentModal({
     { revalidateOnMount: true }
   );
 
-  const unpaidTasks: VendorUnpaidTask[] = tasksResult?.success ? tasksResult.data : [];
+  const unpaidTasks: VendorUnpaidTask[] = tasksResult?.success ? tasksResult.data : EMPTY_TASKS;
   const totalDebt = unpaidTasks.reduce((sum, t) => sum + t.remaining, 0);
 
   // Calculate selected tasks total (for manual mode)
@@ -141,13 +144,6 @@ export function VendorPaymentModal({
       }));
   }, [selectionMode, unpaidTasks, selectedTaskIds]);
 
-  // Auto-update amount when manual tasks are selected/deselected
-  useEffect(() => {
-    if (selectionMode === "manual" && selectedTaskIds.size > 0) {
-      setAmount(selectedTasksTotal);
-    }
-  }, [selectionMode, selectedTasksTotal, selectedTaskIds.size]);
-
   // Toggle task selection (manual mode)
   const toggleTaskSelection = (taskId: string) => {
     setSelectedTaskIds((prev) => {
@@ -157,8 +153,24 @@ export function VendorPaymentModal({
       } else {
         next.add(taskId);
       }
+      
+      // Update amount immediately
+      if (selectionMode === "manual") {
+        const newTotal = unpaidTasks
+          .filter((t) => next.has(t.id))
+          .reduce((sum, t) => sum + t.remaining, 0);
+        setAmount(newTotal);
+      }
+      
       return next;
     });
+  };
+
+  const handleModeChange = (val: SelectionMode) => {
+    setSelectionMode(val);
+    if (val === "manual" && selectedTaskIds.size > 0) {
+      setAmount(selectedTasksTotal);
+    }
   };
 
   // Handle submit
@@ -308,7 +320,7 @@ export function VendorPaymentModal({
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-body-sm font-medium text-text-primary">Phân bổ thanh toán</label>
-            <button
+            <Button unstyled
               type="button"
               onClick={() => setShowAllocationDetails(!showAllocationDetails)}
               className="flex items-center gap-1 text-caption text-interactive hover:underline"
@@ -324,12 +336,12 @@ export function VendorPaymentModal({
                   Xem chi tiết
                 </>
               )}
-            </button>
+            </Button>
           </div>
 
           <TabsFilter
             activeTab={selectionMode}
-            onChange={(val) => setSelectionMode(val as SelectionMode)}
+            onChange={(val) => handleModeChange(val as SelectionMode)}
             tabs={[
               { value: "fifo", label: "FIFO (Tự động)" },
               { value: "manual", label: "Thủ công" },
@@ -368,12 +380,12 @@ export function VendorPaymentModal({
                   {unpaidTasks.map((task) => {
                     const isSelected = selectedTaskIds.has(task.id);
                     return (
-                      <button
+                      <Button unstyled
                         key={task.id}
                         type="button"
                         onClick={() => toggleTaskSelection(task.id)}
                         className={cn(
-                          "w-full card-base p-3 text-left transition-colors hover:bg-bg-hover",
+                          "w-full card-base p-3 text-left transition-colors hover:bg-bg-hover block",
                           isSelected && "ring-2 ring-interactive"
                         )}
                       >
@@ -393,7 +405,7 @@ export function VendorPaymentModal({
                             {isSelected && <Check className="h-5 w-5 text-interactive" />}
                           </div>
                         </div>
-                      </button>
+                      </Button>
                     );
                   })}
                   {unpaidTasks.length === 0 && (

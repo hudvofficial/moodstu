@@ -38,7 +38,7 @@ export function SalaryDesktopTable({ items, onView, onAdjust, onPay, onPrint, on
                                 <div className="flex items-center gap-2">
                                     <span className="font-semibold text-text-primary">{item.employee_name}</span>
                                     {item.role === "ctv" && (
-                                        <Badge variant="neutral" className="text-[10px] px-1.5 py-0">CTV</Badge>
+                                        <Badge variant="neutral" className="text-micro px-1.5 py-0">CTV</Badge>
                                     )}
                                 </div>
                                 <div className="text-caption text-text-muted">

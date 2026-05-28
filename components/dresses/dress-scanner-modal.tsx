@@ -23,7 +23,7 @@ interface DressScannerModalProps {
 
 export function DressScannerModal({ isOpen, onClose, onScanned }: DressScannerModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const scannerRef = useRef<any>(null);
   const [isStarting, setIsStarting] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);

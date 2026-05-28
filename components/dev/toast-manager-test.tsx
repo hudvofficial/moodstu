@@ -356,11 +356,11 @@ export function ToastManagerTest() {
           <li>• Test 2: Only 1 toast despite 3 calls (deduplication)</li>
           <li>• Test 3: Loading toast updates to success</li>
           <li>• Test 4: Loading shows progress updates</li>
-          <li>• Test 5: Summary "Đã tải xuống 5 mục" with file list</li>
+          <li>• Test 5: Summary &quot;Đã tải xuống 5 mục&quot; with file list</li>
           <li>• Test 6: Success then error toast (2 total)</li>
           <li>• Test 7: Loading → success after 2s</li>
-          <li>• Test 8: Success toast with "Hoàn tác" button</li>
-          <li>• Test 9: Error with "Thử lại" button → success</li>
+          <li>• Test 8: Success toast with &quot;Hoàn tác&quot; button</li>
+          <li>• Test 9: Error with &quot;Thử lại&quot; button → success</li>
           <li>• Test 10: Critical toast (no auto-dismiss)</li>
           <li>• Test 11: Loading with retry attempts → success</li>
           <li>• Test 12: 3 summary toasts (not 100+)</li>
@@ -378,7 +378,7 @@ export function ToastManagerTest() {
           <li>Test rapid clicks on deduplication test</li>
           <li>Verify batch tests show summary (not spam)</li>
           <li>Check undo/retry buttons work</li>
-          <li>Verify critical toast doesn't auto-dismiss</li>
+          <li>Verify critical toast doesn&apos;t auto-dismiss</li>
         </ol>
       </div>
     </div>

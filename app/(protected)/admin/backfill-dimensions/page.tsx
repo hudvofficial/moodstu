@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { backfillAllDimensions, backfillGalleryDimensions } from "@/app/actions/gallery-dimensions-actions";
-import { Loader2, Image, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Image as ImageIcon, CheckCircle2, XCircle } from "lucide-react";
 
 export default function BackfillDimensionsPage() {
   const [loading, setLoading] = useState(false);
@@ -63,7 +64,7 @@ export default function BackfillDimensionsPage() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-              <Image size={20} />
+              <ImageIcon size={20} />
               Backfill All Galleries
             </h2>
             <p className="text-sm text-text-muted">
@@ -91,17 +92,17 @@ export default function BackfillDimensionsPage() {
       {/* Backfill Specific Gallery */}
       <div className="p-6 mb-6 bg-bg-card border border-border rounded-lg">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Image size={20} />
+          <ImageIcon size={20} />
           Backfill Specific Gallery
         </h2>
 
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             placeholder="Gallery ID (UUID)"
             value={specificGalleryId}
             onChange={(e) => setSpecificGalleryId(e.target.value)}
-            className="flex-1 px-3 py-2 border border-border rounded-lg"
+            className="flex-1"
             disabled={loading}
           />
           <Button

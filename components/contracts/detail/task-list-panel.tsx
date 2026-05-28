@@ -180,7 +180,7 @@ export function TaskListPanel({
             <span className="text-label">
               {mode === "assigned" ? assigneeName || "Nhân sự đã lưu" : workTypeLabel}
             </span>
-            {isVendor && <span className="ml-1.5 text-text-muted text-[10px] font-normal italic">Thợ ngoài</span>}
+            {isVendor && <span className="ml-1.5 text-text-muted text-xs font-normal italic">Thợ ngoài</span>}
             <span className="text-caption text-text-muted">
               {mode === "assigned" ? workTypeLabel : "Chưa giao"}
             </span>
@@ -263,25 +263,25 @@ export function TaskListPanel({
       {/* ── Add task form ── */}
       <div className="pt-4 border-t border-border mt-4">
         {!isFormOpen ? (
-          <button
+          <Button unstyled
             type="button"
             onClick={() => setIsFormOpen(true)}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-bold text-text-muted hover:text-primary transition-colors py-2.5 border-2 border-dashed border-border hover:border-primary/50 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/20 cursor-pointer"
           >
             <Plus size={16} />
             Thêm nhân sự
-          </button>
+          </Button>
         ) : (
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-bold text-text-primary">Thêm nhân sự mới</span>
-            <button
+            <Button unstyled
               type="button"
               onClick={() => setIsFormOpen(false)}
               className="flex items-center gap-1 text-xs font-bold text-text-muted hover:text-error hover:bg-error/10 px-2 py-1 rounded-md transition-colors"
             >
               <X size={14} />
               Đóng
-            </button>
+            </Button>
           </div>
         )}
 
@@ -301,7 +301,7 @@ export function TaskListPanel({
 
         {/* Tabs */}
         <div className="flex items-center gap-4 mb-3 border-b border-border">
-          <button
+          <Button unstyled
             type="button"
             onClick={() => setActiveTab("employee")}
             className={`text-sm pb-1.5 font-medium transition-colors ${
@@ -309,8 +309,8 @@ export function TaskListPanel({
             }`}
           >
             Nhân viên
-          </button>
-          <button
+          </Button>
+          <Button unstyled
             type="button"
             onClick={() => setActiveTab("vendor")}
             className={`text-sm pb-1.5 font-medium transition-colors ${
@@ -318,7 +318,7 @@ export function TaskListPanel({
             }`}
           >
             Thợ ngoài
-          </button>
+          </Button>
         </div>
 
         {activeTab === "employee" && (
@@ -349,9 +349,9 @@ export function TaskListPanel({
                 placeholder="-- Chọn thợ ngoài --"
               />
             </div>
-            <button type="button" onClick={() => setIsAddingVendor(true)} title="Thêm thợ ngoài mới" className="h-9 w-9 mb-1 shrink-0 flex items-center justify-center rounded-md border border-border text-text-muted hover:bg-bg-hover hover:text-text-primary transition-colors">
+            <Button unstyled type="button" onClick={() => setIsAddingVendor(true)} title="Thêm thợ ngoài mới" className="h-9 w-9 mb-1 shrink-0 flex items-center justify-center rounded-md border border-border text-text-muted hover:bg-bg-hover hover:text-text-primary transition-colors">
               <Plus size={16} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -359,9 +359,9 @@ export function TaskListPanel({
           <div className="space-y-2 p-3 bg-bg-hover rounded-md border border-border">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-text-primary">Thêm thợ ngoài mới</span>
-              <button type="button" onClick={() => setIsAddingVendor(false)} className="text-text-muted hover:text-error">
+              <Button unstyled type="button" onClick={() => setIsAddingVendor(false)} className="text-text-muted hover:text-error">
                 <X size={14} />
-              </button>
+              </Button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Input unstyled placeholder="Họ tên thợ" value={newVendorName} onChange={(e) => setNewVendorName(e.target.value)} className="input-base text-sm py-1.5" />

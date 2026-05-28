@@ -49,7 +49,7 @@ export function AgingBarsChart({ data }: AgingBarsChartProps) {
             <XAxis type="number" tickFormatter={(val) => `${val / 1000000}M`} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
             <YAxis dataKey="name" type="category" width={110} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
             <Tooltip 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               formatter={(value: any, name: any, props: any) => [formatVnd(Number(value)), `Số lượng: ${props.payload.count} HĐ`]}
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />

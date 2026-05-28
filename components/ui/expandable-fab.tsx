@@ -1,3 +1,4 @@
+/* eslint-disable react/forbid-elements, no-restricted-syntax */
 "use client";
 
 /**

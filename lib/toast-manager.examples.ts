@@ -97,7 +97,7 @@ async function example_server_actions() {
 // 5. REACT QUERY MUTATIONS
 // ═══════════════════════════════════════════
 
-function example_react_query() {
+function ExampleReactQuery() {
   // In mutation callbacks
   const mutation = useMutation({
     mutationFn: createGallery,

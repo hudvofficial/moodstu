@@ -10,6 +10,7 @@ import DatePicker from "@/components/ui/date-picker";
 import { GroupedSelect } from "@/components/ui/grouped-select";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Fingerprint, X, Plus } from "lucide-react";
 
 // ═══════════════════════════════════════════
@@ -162,7 +163,7 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
                 />
               </div>
               {idx > 0 && (
-                <button
+                <Button unstyled
                   type="button"
                   onClick={() => {
                     const newDates = workDates.filter((_, i) => i !== idx);
@@ -171,17 +172,17 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
                   className="p-1 text-text-muted hover:text-error transition-colors"
                 >
                   <X size={16} />
-                </button>
+                </Button>
               )}
             </div>
           ))}
-          <button
+          <Button unstyled
             type="button"
             onClick={() => updateField("work_date", [...workDates, ""].filter(Boolean).join(','))}
             className="flex items-center gap-1 text-xs font-medium text-interactive hover:text-interactive-hover mt-1"
           >
             <Plus size={12} /> Thêm ngày
-          </button>
+          </Button>
         </div>
 
         {showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && (
@@ -201,7 +202,7 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
                   />
                 </div>
                 {idx > 0 && (
-                  <button
+                  <Button unstyled
                     type="button"
                     onClick={() => {
                       const newDates = weddingDatesArr.filter((_, i) => i !== idx);
@@ -210,17 +211,17 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
                     className="p-1 text-text-muted hover:text-error transition-colors"
                   >
                     <X size={16} />
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
-            <button
+            <Button unstyled
               type="button"
               onClick={() => onWeddingDateChange([...weddingDatesArr, ""].filter(Boolean).join(','))}
               className="flex items-center gap-1 text-xs font-medium text-interactive hover:text-interactive-hover mt-1"
             >
               <Plus size={12} /> Thêm ngày
-            </button>
+            </Button>
           </div>
         )}
 

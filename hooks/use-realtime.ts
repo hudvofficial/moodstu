@@ -125,7 +125,7 @@ export function useRealtime(
       const eventsToBind = eventTypes.length > 0 ? eventTypes : ["*"];
 
       eventsToBind.forEach((event) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (channel as any).on(
           "postgres_changes",
           { event, schema, table: tableName, filter },

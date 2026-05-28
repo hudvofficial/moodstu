@@ -111,7 +111,7 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onVie
                   {lab.lab_name}
                 </h3>
                 {debt > 0 && (
-                  <Badge variant="warning" dot className="shrink-0 px-2 py-0.5 text-[10px] uppercase tracking-wider mt-0.5">
+                  <Badge variant="warning" dot className="shrink-0 px-2 py-0.5 text-micro uppercase tracking-wider mt-0.5">
                     Có nợ
                   </Badge>
                 )}
@@ -134,7 +134,7 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onVie
                   <MapPin className="h-3.5 w-3.5 shrink-0 text-text-muted mt-0.5" />
                   <span className="line-clamp-2 sm:line-clamp-1">{lab.address || "Chưa có địa chỉ"}</span>
                 </div>
-                <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary shrink-0">
+                <div className="flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary shrink-0">
                   <Layers className="h-3 w-3 shrink-0" />
                   <span>{lab.serviceCount > 0 ? `${lab.serviceCount} dịch vụ` : "Chưa có giá"}</span>
                 </div>
@@ -180,11 +180,11 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onVie
         <div className="mt-auto pt-5">
           <div className="flex rounded-xl bg-surface py-3.5">
             <div className="flex flex-1 flex-col items-center justify-center border-r border-border/50">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Đơn treo</span>
+              <span className="text-micro font-semibold uppercase tracking-wider text-text-muted">Đơn treo</span>
               <span className="mt-1 text-h2 font-bold tabular-nums text-primary">{lab.unpaidOrders}</span>
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Công nợ</span>
+              <span className="text-micro font-semibold uppercase tracking-wider text-text-muted">Công nợ</span>
               <span className={cn("mt-1 text-h3 font-bold tabular-nums", debt > 0 ? "text-error" : "text-text-primary")}>
                 {formatVnd(debt)}
               </span>
@@ -206,7 +206,7 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onVie
             }}
           >
             <WalletCards className="h-4 w-4 text-primary transition-transform group-hover/pay:scale-110" />
-            <span className="text-[13px] font-bold uppercase tracking-wide text-primary">Thanh toán</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-primary">Thanh toán</span>
           </Button>
         )}
         <Button
@@ -218,7 +218,7 @@ function LabCard({ lab, debt, onEdit, onToggleStatus, onDelete, onPayDebt, onVie
           )}
           onClick={() => onViewDetail ? onViewDetail(lab) : onEdit(lab)}
         >
-          <span className="text-[13px] font-bold uppercase tracking-wide text-text-secondary transition-colors group-hover/detail:text-primary">
+          <span className="text-xs font-bold uppercase tracking-wide text-text-secondary transition-colors group-hover/detail:text-primary">
             {onViewDetail ? "Chi tiết" : "Dịch vụ"}
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-text-muted transition-all group-hover/detail:translate-x-0.5 group-hover/detail:text-primary" />

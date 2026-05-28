@@ -38,6 +38,7 @@ export function useScrollDirection({
     if (disabled || !headerRef?.current) {
       document.documentElement.style.setProperty('--header-translate-y', '0px');
       document.documentElement.style.setProperty('--header-transition', 'transform 0.3s ease-out');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       return;
     }

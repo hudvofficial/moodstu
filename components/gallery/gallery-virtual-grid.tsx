@@ -58,6 +58,7 @@ export default function GalleryVirtualGrid({
     return result;
   }, [images, columns]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -117,10 +118,11 @@ export default function GalleryVirtualGrid({
                       key={image.id}
                       className="group relative overflow-hidden bg-bg-card rounded-lg shadow-xs ring-1 ring-border/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:ring-border/45"
                     >
-                      <button
+                      <Button unstyled
                         onClick={() => onImageClick(absoluteIndex)}
-                        className="relative w-full aspect-square overflow-hidden"
+                        className="relative w-full aspect-square overflow-hidden block"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={imageSrc}
                           alt={image.file_name || "Photo"}
@@ -138,7 +140,7 @@ export default function GalleryVirtualGrid({
                             {image.file_name}
                           </p>
                         </div>
-                      </button>
+                      </Button>
 
                       {/* Selection heart button */}
                       {onToggleStar && (

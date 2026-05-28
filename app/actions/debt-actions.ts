@@ -229,7 +229,7 @@ export async function payDebt(
     // 2. Calculate new balances
     const newPaidAmount = currentPaid + amount;
     const newRemaining = Math.max(0, totalAmount - newPaidAmount);
-    let newStatus = deriveDebtStatus(totalAmount, newPaidAmount);
+    const newStatus = deriveDebtStatus(totalAmount, newPaidAmount);
     
     // 3. Update Debt
     const updateData: Record<string, unknown> = {

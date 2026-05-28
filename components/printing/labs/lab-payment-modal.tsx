@@ -18,6 +18,8 @@ import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
+const EMPTY_ORDERS: LabUnpaidOrder[] = [];
+
 interface LabPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,7 +71,9 @@ export function LabPaymentModal({
   // Reset form state when modal opens
   // KEY FIX: Only depend on isOpen transitioning to true, not labId
   // This ensures reset happens EVERY time modal opens, even with same lab
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       // CRITICAL: Reset all form fields to initial state with FRESH TODAY date
       const today = getTodayDate(); // Get TODAY from system, not cached value
@@ -81,7 +85,7 @@ export function LabPaymentModal({
       setSelectionMode("fifo");
       setSelectedOrderIds(new Set());
     }
-  }, [isOpen]); // Only depend on isOpen, not labId!
+  }
 
   // Fetch unpaid orders for this lab
   const { data: ordersResult, isLoading, mutate } = useSWR(
@@ -90,7 +94,7 @@ export function LabPaymentModal({
     { revalidateOnMount: true }
   );
 
-  const unpaidOrders: LabUnpaidOrder[] = ordersResult?.success ? ordersResult.data : [];
+  const unpaidOrders: LabUnpaidOrder[] = ordersResult?.success ? ordersResult.data : EMPTY_ORDERS;
   const totalDebt = unpaidOrders.reduce((sum, o) => sum + o.remainingAmount, 0);
 
   // Calculate selected orders total (for manual mode)
@@ -366,7 +370,7 @@ export function LabPaymentModal({
                       isSelected ? "bg-primary/10 border border-primary" : "bg-surface hover:bg-bg-hover border border-transparent"
                     )}
                   >
-                    <input
+                    <Input unstyled
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleOrderSelection(order.id)}
@@ -490,10 +494,10 @@ export function LabPaymentModal({
         {/* Allocation Preview */}
         {amount > 0 && allocation.length > 0 && (
           <div className="card-base p-3 space-y-2">
-            <button
+            <Button unstyled
               type="button"
               onClick={() => setShowAllocationDetails(!showAllocationDetails)}
-              className="w-full flex items-center justify-between text-sm font-medium text-text-main hover:text-primary transition-colors"
+              className="w-full flex items-center justify-between text-sm font-medium text-text-main hover:text-primary transition-colors block"
             >
               <span>
                 Sẽ thanh toán {allocation.length} đơn
@@ -504,7 +508,7 @@ export function LabPaymentModal({
               ) : (
                 <ChevronDown className={ICON_SIZE} />
               )}
-            </button>
+            </Button>
 
             {showAllocationDetails && (
               <div className="space-y-1 pt-2 border-t border-border">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -118,7 +118,7 @@ export default function ContractChecklistManager({
         return next;
       });
     }
-  }, [pendingIds]);
+  }, [pendingIds, queryClient]);
 
   if (total === 0) {
     return (

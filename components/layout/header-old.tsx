@@ -98,7 +98,7 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
     const params = new URLSearchParams(searchParams.toString());
     params.delete('q');
     router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
-  }, [router]);
+  }, [router, searchParams]);
 
   return (
     <header

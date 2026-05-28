@@ -219,7 +219,7 @@ export function normalizePreparedShareDetails(raw: unknown): GalleryShareDetails
 }
 
 export async function fetchActiveShareLinkBySlug(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   slug: string,
 ) {
@@ -239,7 +239,7 @@ export async function fetchActiveShareLinkBySlug(
 }
 
 export async function fetchSharedGalleryBaseById(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
 ) {
@@ -281,7 +281,7 @@ export function attachShareLinkToGallery(
 }
 
 export async function fetchSharedGalleryById(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   accessUrl?: string,
@@ -313,7 +313,7 @@ export function assertGalleryProof(
 }
 
 export async function requirePublicGalleryImageAccess(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   accessUrl: string,
   accessToken: string,
@@ -354,7 +354,7 @@ export async function requirePublicGalleryImageAccess(
 }
 
 export async function updateGalleryImageSelection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   imageId: string,
   selected: boolean,
@@ -390,7 +390,7 @@ export function applyPublicImageFilter(query: any) {
 }
 
 export async function fetchGalleryImageCount(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   options?: { selectedOnly?: boolean; publicVisibleOnly?: boolean },
@@ -417,7 +417,7 @@ export async function fetchGalleryImageCount(
 }
 
 export async function fetchGalleryCoverImage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   publicVisibleOnly = false,
@@ -462,7 +462,7 @@ export async function fetchGalleryCoverImage(
 }
 
 export async function fetchGallerySummaryMetrics(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
 ) {
@@ -476,7 +476,7 @@ export async function fetchGallerySummaryMetrics(
 }
 
 export async function fetchPublicGalleryImagesPage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   page: number,
@@ -514,12 +514,12 @@ export async function fetchPublicGalleryImagesPage(
 }
 
 export async function fetchAllGalleryImages(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   columns = IMAGE_COLS,
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const all: any[] = [];
   const pageSize = 1000;
   let from = 0;
@@ -554,7 +554,7 @@ export function generateShareLinkSlug(capability: GalleryShareCapability) {
 }
 
 export async function insertShareLinkWithRetry(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   capability: GalleryShareCapability,
@@ -596,7 +596,7 @@ export async function insertShareLinkWithRetry(
 }
 
 export async function ensureGalleryShareLink(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   capability: GalleryShareCapability,
@@ -639,7 +639,7 @@ export async function ensureGalleryShareLink(
 }
 
 export async function fetchGalleryShareLinks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
 ) {
@@ -656,7 +656,7 @@ export async function fetchGalleryShareLinks(
 }
 
 export async function ensureAllGalleryShareLinks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   userId: string,
@@ -678,7 +678,7 @@ export async function ensureAllGalleryShareLinks(
 }
 
 export async function prepareGalleryShareViaRpc(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   userId: string,
@@ -703,7 +703,7 @@ export async function prepareGalleryShareViaRpc(
 }
 
 export async function prepareGalleryShareFallback(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   userId: string,
@@ -759,7 +759,7 @@ export async function prepareGalleryShareFallback(
 }
 
 export async function prepareGallerySharePayload(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   galleryId: string,
   userId: string,

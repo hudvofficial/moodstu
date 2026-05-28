@@ -10,6 +10,8 @@ import { fetchLabPaymentHistory } from "@/app/actions/lab-queries";
 import { formatCurrency, CURRENCY_SYMBOL, cn } from "@/lib/utils";
 import type { LabPaymentHistoryItem } from "@/types/printing";
 
+const EMPTY_PAYMENTS: LabPaymentHistoryItem[] = [];
+
 interface PaymentHistorySectionProps {
   labId: string;
   isOpen?: boolean;
@@ -42,7 +44,7 @@ export function LabPaymentHistorySection({
 
   const allPayments: LabPaymentHistoryItem[] = historyResult?.success
     ? historyResult.data.items
-    : [];
+    : EMPTY_PAYMENTS;
 
   // Filter payments based on search and date range
   const payments = useMemo(() => {
@@ -156,7 +158,7 @@ export function LabPaymentHistorySection({
   return (
     <div className="border border-border rounded-xl overflow-hidden">
       {/* Header */}
-      <button
+      <Button unstyled
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between p-4 bg-bg-hover hover:bg-bg-base transition-colors"
@@ -192,7 +194,7 @@ export function LabPaymentHistorySection({
             <ChevronDown className="w-5 h-5 text-text-secondary" />
           )}
         </div>
-      </button>
+      </Button>
 
       {/* Filters */}
       {isExpanded && (
@@ -210,12 +212,13 @@ export function LabPaymentHistorySection({
                 className="pl-9 pr-8"
               />
               {searchQuery && (
-                <button
+                <Button unstyled
+                  type="button"
                   onClick={() => setSearchQuery("")}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-bg-hover rounded"
                 >
                   <X className="w-3.5 h-3.5 text-text-muted" />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -294,10 +297,10 @@ export function LabPaymentHistorySection({
                 return (
                   <div key={payment.id} className="hover:bg-bg-hover transition-colors">
                     {/* Payment Summary Row */}
-                    <button
+                    <Button unstyled
                       type="button"
                       onClick={() => togglePayment(payment.id)}
-                      className="w-full p-4 flex items-start justify-between gap-4 text-left"
+                      className="w-full p-4 flex items-start justify-between gap-4 text-left block"
                     >
                       {/* Left: Date & Method */}
                       <div className="flex-1 min-w-0">
@@ -339,7 +342,7 @@ export function LabPaymentHistorySection({
                           <ChevronDown className="w-4 h-4 text-text-secondary" />
                         )}
                       </div>
-                    </button>
+                    </Button>
 
                     {/* Allocation Details (Expanded) */}
                     {isPaymentExpanded && payment.allocations.length > 0 && (

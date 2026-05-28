@@ -91,14 +91,14 @@ export function LabDetailDrawer({ isOpen, onClose, lab, debt = 0 }: LabDetailDra
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-4 bg-surface rounded-xl border border-border">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-1">Đơn chưa trả</p>
+                <p className="text-micro font-semibold uppercase tracking-wider text-text-muted mb-1">Đơn chưa trả</p>
                 <p className="text-h2 font-bold text-info tabular-nums">
                   {lab.unpaidOrders}
                 </p>
               </div>
 
               <div className="p-4 bg-surface rounded-xl border border-border">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-1">Dịch vụ</p>
+                <p className="text-micro font-semibold uppercase tracking-wider text-text-muted mb-1">Dịch vụ</p>
                 <p className="text-h2 font-bold text-primary tabular-nums">
                   {lab.serviceCount}
                 </p>
@@ -108,7 +108,7 @@ export function LabDetailDrawer({ isOpen, onClose, lab, debt = 0 }: LabDetailDra
             {/* Debt Summary */}
             <div className={cn("p-4 rounded-xl border border-border flex items-center justify-between", debt > 0 ? "bg-error/5" : "bg-success/5")}>
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-1">Công nợ</h3>
+                <h3 className="text-micro font-semibold uppercase tracking-wider text-text-muted mb-1">Công nợ</h3>
                 <span className="text-body-sm font-medium text-text-secondary">Tổng nợ hiện tại</span>
               </div>
               <div className="text-right">

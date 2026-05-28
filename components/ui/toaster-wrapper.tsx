@@ -37,6 +37,7 @@ export function ToasterWrapper() {
   // Prevent hydration mismatch - render with default first
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

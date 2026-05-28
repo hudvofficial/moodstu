@@ -80,7 +80,7 @@ export async function deleteSchedule(scheduleId: string, googleEventId?: string)
 
 // ─── GOOGLE CALENDAR SYNC (Private helpers) ──────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function syncGoogleCalendarCreate(supabase: any, newEvent: any, input: ScheduleInput) {
   try {
     const { createGoogleCalendarEvent } = await import("@/lib/googleCalendarService");

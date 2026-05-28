@@ -287,6 +287,4 @@ export interface VendorCostSummary {
   year: number;
 }
 
-export interface VendorCostPageData extends VendorCostSummary {
-  // Matches SalaryPageData pattern
-}
+export type VendorCostPageData = VendorCostSummary;

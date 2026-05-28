@@ -12,7 +12,7 @@ export type ModalType =
   | "DRIVE_LINK"
   | "SHARE_GALLERY";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 interface ModalContextType<T = any> {
   isOpen: boolean;
   type: ModalType | null;
@@ -26,10 +26,10 @@ const ModalContext = React.createContext<ModalContextType | undefined>(undefined
 export function ModalProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [type, setType] = React.useState<ModalType | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const [data, setData] = React.useState<any>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const openModal = React.useCallback((newType: ModalType, newData?: any) => {
     setType(newType);
     setData(newData);

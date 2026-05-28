@@ -96,7 +96,7 @@ export function useRealtimeMulti(
           : ["INSERT", "UPDATE", "DELETE"];
 
         for (const event of eventTypes) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           (channel as any).on(
             "postgres_changes",
             {

@@ -37,7 +37,7 @@ export async function toggleImageSelection(
       
       // Bỏ cache tải xuống để nhận cập nhật mới
       const { revalidateTag } = await import("next/cache");
-      // @ts-ignore - Next.js typing mismatch
+      // @ts-expect-error - Next.js typing mismatch
       revalidateTag(`gallery-images-${gallery.id}`);
       
       return { success: true as const, data: null, newSelectedCount };
@@ -53,7 +53,7 @@ export async function toggleImageSelection(
         
         // Bỏ cache tải xuống
         const { revalidateTag } = await import("next/cache");
-        // @ts-ignore - Next.js typing mismatch
+        // @ts-expect-error - Next.js typing mismatch
         revalidateTag(`gallery-images-${image.gallery_id}`);
       }
       return { newSelectedCount };
@@ -136,7 +136,7 @@ export async function updateClientNote(
 }
 
 export async function updateGalleryImageNote(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   supabase: any,
   imageId: string,
   note: string,

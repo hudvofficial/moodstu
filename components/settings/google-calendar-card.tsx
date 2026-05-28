@@ -22,10 +22,6 @@ export default function GoogleCalendarCard({
 }: GoogleCalendarCardProps) {
   const [isPending, startTransition] = useTransition();
 
-  const handleConnect = () => {
-    window.location.href = "/api/auth/google";
-  };
-
   const handleDisconnect = () => {
     startTransition(async () => {
       const result = await onDisconnect();
@@ -78,15 +74,13 @@ export default function GoogleCalendarCard({
             {isPending ? "Đang ngắt..." : "Ngắt kết nối"}
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConnect}
-            className="gap-1.5"
+          <a
+            href="/api/auth/google"
+            className="btn btn-outline px-3 py-2 text-xs min-h-[40px] gap-1.5"
           >
             <Calendar className="w-3.5 h-3.5" />
             Kết nối
-          </Button>
+          </a>
         )}
       </div>
 
@@ -110,14 +104,12 @@ export default function GoogleCalendarCard({
           </div>
           
           {needsReconnect && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleConnect}
-              className="mt-2 w-full text-xs h-8"
+            <a
+              href="/api/auth/google"
+              className="btn btn-outline px-3 py-2 text-xs min-h-[40px] mt-2 w-full h-8"
             >
               Kết nối lại để cấp đủ quyền
-            </Button>
+            </a>
           )}
         </div>
       )}

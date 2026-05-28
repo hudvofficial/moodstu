@@ -91,13 +91,13 @@ export function DebtPaymentModal({ isOpen, onClose, debt }: DebtPaymentModalProp
               className="pr-16"
               autoFocus
             />
-            <button
+            <Button unstyled
               type="button"
               onClick={handleSetMax}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-brand hover:text-brand-dark px-2 py-1 rounded"
             >
               Tối đa
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -106,12 +106,12 @@ export function DebtPaymentModal({ isOpen, onClose, debt }: DebtPaymentModalProp
           <label className="text-label text-text-primary font-medium block">Phương thức thanh toán</label>
           <div className="grid grid-cols-2 gap-3">
             <label className={`flex items-center gap-2 p-3 border rounded-md cursor-pointer transition-colors ${paymentMethod === "chuyen_khoan" ? "border-brand bg-brand/5 text-brand" : "border-border text-text-secondary hover:bg-surface-elevated"}`}>
-              <input type="radio" name="method" value="chuyen_khoan" checked={paymentMethod === "chuyen_khoan"} onChange={() => setPaymentMethod("chuyen_khoan")} className="sr-only" />
+              <Input unstyled type="radio" name="method" value="chuyen_khoan" checked={paymentMethod === "chuyen_khoan"} onChange={() => setPaymentMethod("chuyen_khoan")} className="sr-only" />
               <CreditCard className="w-4 h-4" />
               <span className="text-body-sm font-medium">Chuyển khoản</span>
             </label>
             <label className={`flex items-center gap-2 p-3 border rounded-md cursor-pointer transition-colors ${paymentMethod === "tien_mat" ? "border-brand bg-brand/5 text-brand" : "border-border text-text-secondary hover:bg-surface-elevated"}`}>
-              <input type="radio" name="method" value="tien_mat" checked={paymentMethod === "tien_mat"} onChange={() => setPaymentMethod("tien_mat")} className="sr-only" />
+              <Input unstyled type="radio" name="method" value="tien_mat" checked={paymentMethod === "tien_mat"} onChange={() => setPaymentMethod("tien_mat")} className="sr-only" />
               <Banknote className="w-4 h-4" />
               <span className="text-body-sm font-medium">Tiền mặt</span>
             </label>

@@ -12,7 +12,7 @@ interface CacheEntry<T> {
   expiry: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const cache = new Map<string, CacheEntry<any>>();
 
 // Hit Rate Monitor (dev only)

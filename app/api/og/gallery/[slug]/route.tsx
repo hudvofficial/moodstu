@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import { getGalleryPreviewMetadata } from "@/app/actions/gallery-actions";
 
@@ -34,6 +35,7 @@ export async function GET(
           {/* Background Image (using explicit pixel dimensions to prevent Satori letterboxing gaps) */}
           {highResCoverUrl && (
             <img
+              alt=""
               src={highResCoverUrl}
               style={{
                 position: "absolute",

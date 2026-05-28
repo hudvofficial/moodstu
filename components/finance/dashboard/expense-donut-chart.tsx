@@ -55,7 +55,7 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
               ))}
             </Pie>
             <Tooltip 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               formatter={(value: any) => formatVnd(Number(value))}
               contentStyle={{ borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
             />

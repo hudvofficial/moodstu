@@ -173,7 +173,10 @@ export function useMasonryGridVirtual({
     });
 
     if (hasNew) {
-      setAspectRatios(prev => ({ ...prev, ...newRatios }));
+      const t = setTimeout(() => {
+        setAspectRatios(prev => ({ ...prev, ...newRatios }));
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [groups, aspectRatios]);
 

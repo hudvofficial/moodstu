@@ -103,7 +103,7 @@ export function Header({
     const params = new URLSearchParams(searchParams.toString());
     params.delete('q');
     router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
-  }, [router]);
+  }, [router, searchParams]);
 
   // Calculate transform: pull-to-refresh takes priority, then hide/show via CSS var
   const getTransform = () => {

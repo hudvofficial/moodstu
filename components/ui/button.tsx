@@ -19,12 +19,13 @@ const sizeMap = {
 
 /* eslint-disable react/forbid-elements -- This IS the <Button> SSOT wrapper */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", unstyled = false, loading = false, disabled, children, ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", unstyled = false, loading = false, disabled, children, type = "button", ...props }, ref) => {
     const baseClassName = unstyled ? "" : variant === "icon" ? "icon-btn" : `btn btn-${variant}`;
     const sizeClassName = unstyled || variant === "icon" ? "" : sizeMap[size];
 
     return (
       <button
+        type={type}
         ref={ref}
         className={cn(
           baseClassName,

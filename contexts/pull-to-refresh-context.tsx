@@ -69,6 +69,7 @@ export function usePullToRefreshCallback(callback: () => Promise<void>, deps: un
 
   useEffect(() => {
     callbackRef.current = callback;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callback, ...deps]);
 
   useEffect(() => {

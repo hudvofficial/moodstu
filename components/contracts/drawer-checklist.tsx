@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -93,7 +93,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
         toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
       },
     });
-  }, []);
+  }, [queryClient]);
 
   if (total === 0) {
     return (
@@ -165,7 +165,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                         key={item.id}
                         type="button"
                         onClick={() => handleToggle(item)}
-                        className="w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-[0.98] hover:bg-hover/20"
+                        className="w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-95 hover:bg-hover/20"
                       >
                         <div className="shrink-0 transition-transform duration-200 group-active:scale-90">
                           {item.is_completed ? (

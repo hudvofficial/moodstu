@@ -507,7 +507,7 @@ async function queryDashboardMetrics(
   } satisfies DashboardMetrics;
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 async function queryRevenueByMonth(
   supabase: SupabaseClient,
   year: number,
@@ -675,7 +675,7 @@ async function queryLedger(
 
   return mapLedgerRows(data, safeParams.page, safeParams.pageSize);
 }
-/* eslint-enable @typescript-eslint/no-unused-vars */
+ 
 
 export async function getDashboardMetrics(month: number, year: number) {
 

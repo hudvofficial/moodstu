@@ -419,7 +419,7 @@ export async function copyTasksFromPreviousEvent(currentEventId: string, contrac
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function checkAndCompleteEvent(supabase: any, eventId: string) {
   const { data: event, error: eventError } = await supabase
     .from("contract_events")

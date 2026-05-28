@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { History, Banknote, CreditCard, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Drawer } from "@/components/ui/drawer";
@@ -19,13 +19,7 @@ export function DebtHistoryDrawer({ isOpen, onClose, debt }: DebtHistoryDrawerPr
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && debt) {
-      loadHistory();
-    }
-  }, [isOpen, debt]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!debt) return;
     setLoading(true);
     try {
@@ -39,7 +33,13 @@ export function DebtHistoryDrawer({ isOpen, onClose, debt }: DebtHistoryDrawerPr
     } finally {
       setLoading(false);
     }
-  };
+  }, [debt]);
+
+  useEffect(() => {
+    if (isOpen && debt) {
+      loadHistory();
+    }
+  }, [isOpen, debt, loadHistory]);
 
   if (!debt) return null;
 

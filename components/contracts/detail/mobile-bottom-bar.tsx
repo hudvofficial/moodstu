@@ -25,7 +25,10 @@ export default function MobileBottomBar({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const t = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   if (isCancelled || !mounted) return null;
@@ -35,8 +38,8 @@ export default function MobileBottomBar({
     <div
       className="lg:hidden fixed bottom-0 left-0 right-0 z-40
                   bg-bg-card border-t border-border/50
-                  shadow-[0_-4px_16px_rgba(0,0,0,0.05)]
-                  px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+                  shadow-lg px-4 pt-3 pb-6"
+      style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
     >
       <div className="flex gap-3 w-full max-w-sm mx-auto">
         {/* Sửa HĐ — Link to edit page */}
@@ -46,7 +49,7 @@ export default function MobileBottomBar({
                      rounded-md shadow-xs border border-border
                      bg-bg-card text-text-primary
                      font-bold text-sm
-                     active:scale-[0.98] transition-all"
+                     active:scale-95 transition-all"
         >
           Sửa
         </Link>
@@ -63,7 +66,7 @@ export default function MobileBottomBar({
                        ${remainingAmount > 0 ? "bg-interactive text-white" : "bg-bg-hover text-text-primary"}
                        font-bold text-sm
                        shadow-lg shadow-interactive/20
-                       active:scale-[0.98] transition-all`}
+                       active:scale-95 transition-all`}
           >
             {paymentLabel}
           </div>

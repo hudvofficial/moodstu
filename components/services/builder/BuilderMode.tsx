@@ -41,7 +41,7 @@ export default function BuilderMode({
 
   // Fetch rules
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     getPriceRules().then((res) => setRules(res as any as PriceRule[]));
   }, []);
 
@@ -200,7 +200,7 @@ export default function BuilderMode({
           <div className="flex-1 overflow-hidden">
             <ComponentSelector
               onSelect={handleAddItem}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               categories={preFetchedCategories as any}
             />
           </div>

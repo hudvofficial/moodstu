@@ -111,7 +111,7 @@ export async function getGoogleCalendarEvents(
       ? await getPrimaryCalendarDefaultColor(authData.access_token)
       : GOOGLE_DEFAULT_CALENDAR_COLOR;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return items.map((item: Record<string, any>) => ({
       id: item.id,
       title: item.summary || "(Không tiêu đề)",

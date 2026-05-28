@@ -9,6 +9,7 @@ import {
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatVnd, getInitials } from "@/lib/utils";
 import type { Customer } from "@/types/crm";
 import { SOURCE_MAP } from "@/types/crm";
@@ -300,9 +301,9 @@ export function CustomerDrawer({
                     NV
                   </div>
                   <div className="flex-1 flex flex-col gap-2">
-                    <textarea 
+                    <Textarea 
                       placeholder="Ghi chú tương tác / CSKH..." 
-                      className="input-base w-full min-h-[80px] p-3 text-body-sm resize-none"
+                      className="w-full min-h-[80px] p-3 text-body-sm resize-none"
                       value={noteInput}
                       onChange={(e) => setNoteInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -312,7 +313,7 @@ export function CustomerDrawer({
                         }
                       }}
                       disabled={isSavingNote}
-                    ></textarea>
+                    />
                     <div className="flex justify-end">
                       <Button 
                         unstyled 
@@ -392,7 +393,7 @@ export function CustomerDrawer({
 
 function TabButton({ active, onClick, children, icon }: { active: boolean; onClick: () => void; children: React.ReactNode; icon: React.ReactNode }) {
   return (
-    <button
+    <Button unstyled
       type="button"
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-semibold rounded-md transition-all ${
@@ -403,7 +404,7 @@ function TabButton({ active, onClick, children, icon }: { active: boolean; onCli
     >
       {icon}
       <span className="truncate">{children}</span>
-    </button>
+    </Button>
   );
 }
 
