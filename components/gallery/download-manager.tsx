@@ -40,34 +40,31 @@ const INITIAL_STATE: DownloadState = {
   isFetchingFiles: false,
 };
 
-function isIOSSafari(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) &&
-         /Safari/.test(ua) &&
-         !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(ua);
-}
-
-function downloadSingleFile(accessToken: string, imageId: string, _fileName: string): boolean {
+async function downloadSingleFile(accessToken: string, imageId: string, fileName: string): Promise<boolean> {
   try {
-    const baseUrl = `/api/gallery-download/${accessToken}/${imageId}`;
+    const url = `/api/gallery-download/${accessToken}/${imageId}`;
 
-    // iOS Safari: Open in new tab with inline mode
-    if (isIOSSafari()) {
-      const url = `${baseUrl}?mode=view`;
-      window.open(url, "_blank", "noopener,noreferrer");
-      return true;
-    }
+    // Blob method (works on iOS Safari!)
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    // All other platforms: Hidden iframe → trigger native download (0 RAM, streamed to disk)
-    const iframe = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src = baseUrl;
-    document.body.appendChild(iframe);
-    // Clean up iframe after 30s (download should have started by then)
-    setTimeout(() => { try { iframe.remove(); } catch {} }, 30000);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    // Create temporary <a> tag and trigger download
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Cleanup
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+
     return true;
-  } catch {
+  } catch (error) {
+    console.error("[downloadSingleFile] Error:", error);
     return false;
   }
 }
@@ -110,17 +107,6 @@ export default function DownloadManager({
 
     setState((prev) => ({ ...prev, isFetchingFiles: false, total: downloadList.length, currentFile: downloadList[0].fileName }));
 
-    // iOS Safari: Warn user about multiple tabs
-    if (isIOSSafari() && downloadList.length > 1) {
-      const proceed = confirm(
-        `iOS Safari sẽ mở ${downloadList.length} tab mới. Bạn cần nhấn giữ từng ảnh và chọn "Lưu hình ảnh".\n\nTip: Dùng "Tải ZIP" để tải nhiều ảnh cùng lúc dễ dàng hơn.\n\nTiếp tục?`
-      );
-      if (!proceed) {
-        setState((prev) => ({ ...prev, active: false }));
-        return;
-      }
-    }
-
     const failed: string[] = [];
 
     for (let index = 0; index < downloadList.length; index += 1) {
@@ -132,7 +118,7 @@ export default function DownloadManager({
       const file = downloadList[index];
       setState((prev) => ({ ...prev, currentFile: file.fileName, completed: index }));
 
-      const ok = downloadSingleFile(accessToken, file.imageId, file.fileName);
+      const ok = await downloadSingleFile(accessToken, file.imageId, file.fileName);
       if (!ok) failed.push(file.fileName);
 
       if (index < downloadList.length - 1) {

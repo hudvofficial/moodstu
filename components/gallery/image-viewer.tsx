@@ -127,43 +127,41 @@ export default function ImageViewer({
     setTouchStart(null);
   };
 
-  // ─── Platform-Aware Download Strategy ─────────────────────────────────────────
-  const handleDownload = useCallback(() => {
+  // ─── Download Strategy: Blob method (works on iOS Safari!) ─────────────────────
+  const handleDownload = useCallback(async () => {
     if (!current) return;
-    const baseUrl = `/api/gallery-download/${accessToken}/${current.id}`;
+    const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
     const fileName = current.file_name || "photo.jpg";
 
-    // Detect iOS Safari (not iOS WebView like Zalo/FB)
-    const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) &&
-                        /Safari/.test(navigator.userAgent) &&
-                        !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(navigator.userAgent);
+    // Show loading toast
+    const toastId = toast.loading(`Đang tải ${fileName}...`);
 
-    if (isIOSSafari) {
-      // iOS Safari: Open in new tab with inline mode
-      // User can long-press → "Save Image" to Photos (native iOS UX)
-      const url = `${baseUrl}?mode=view`;
-      window.open(url, "_blank", "noopener,noreferrer");
-      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', { duration: 5000 });
-    } else {
-      // All other platforms: Hidden iframe (auto-download)
-      // Works on: iOS WebView (Zalo/FB/Line), Android, Desktop
-      try {
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = baseUrl;
-        document.body.appendChild(iframe);
+    try {
+      // Fetch as blob → works on iOS Safari with <a> tag download!
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        // Cleanup after 10s
-        setTimeout(() => {
-          try { iframe.remove(); } catch {}
-        }, 10000);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
 
-        toast.success(`Đang tải ${fileName}...`, { duration: 3000 });
-      } catch (error) {
-        // Fallback: open in new window
-        window.open(baseUrl, "_blank", "noopener,noreferrer");
-        toast.info("Đã mở ảnh trong tab mới", { duration: 3000 });
-      }
+      // Create temporary <a> tag and trigger download
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Cleanup
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+
+      toast.success(`Đã tải ${fileName}`, { id: toastId });
+    } catch (error) {
+      console.error("[handleDownload] Error:", error);
+
+      // Fallback: open in new tab for manual save
+      window.open(apiUrl, "_blank", "noopener,noreferrer");
+      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
     }
   }, [current, accessToken]);
 

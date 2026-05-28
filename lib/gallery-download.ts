@@ -70,23 +70,19 @@ export async function downloadSingleImage(
   // Retry loop
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const success = await attemptDownloadViaIframe(accessToken, imageId);
+      // Try blob method first (works on iOS Safari!)
+      const success = await attemptDownloadViaBlob(accessToken, imageId);
 
       if (success) {
         // Success!
         if (showToast && toastId) {
-          // Different message for iOS Safari (requires manual save)
-          if (isIOSSafari()) {
-            toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', { id: toastId, duration: 5000 });
-          } else {
-            toast.success(successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName), { id: toastId });
-          }
+          toast.success(successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName), { id: toastId });
         }
         return true;
       }
 
-      // If iframe method fails, throw to trigger retry
-      throw new Error("Iframe download failed");
+      // If blob method fails, throw to trigger retry
+      throw new Error("Blob download failed");
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Unknown error");
@@ -128,20 +124,44 @@ export async function downloadSingleImage(
 }
 
 /**
- * Detect iOS Safari (not iOS WebView)
+ * Attempt download using blob + <a> tag method
+ * This works reliably on iOS Safari (same as admin method)
  */
-function isIOSSafari(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) &&
-         /Safari/.test(ua) &&
-         !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(ua);
+async function attemptDownloadViaBlob(
+  accessToken: string,
+  imageId: string
+): Promise<boolean> {
+  try {
+    const url = `/api/gallery-download/${accessToken}/${imageId}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    // Create temporary <a> tag and trigger download
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = ""; // Filename from Content-Disposition header
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Cleanup
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+
+    return true;
+  } catch (error) {
+    console.error("[attemptDownloadViaBlob] Error:", error);
+    return false;
+  }
 }
 
 /**
- * Attempt download using hidden iframe method
- * This triggers native browser download and works on most platforms
- * For iOS Safari, uses inline mode + window.open (native iOS UX)
+ * Attempt download using hidden iframe method (fallback)
  */
 function attemptDownloadViaIframe(
   accessToken: string,
@@ -151,24 +171,7 @@ function attemptDownloadViaIframe(
     try {
       const baseUrl = `/api/gallery-download/${accessToken}/${imageId}`;
 
-      // iOS Safari needs special handling
-      if (isIOSSafari()) {
-        // Open in new tab with inline mode
-        // User can long-press → "Save Image" to Photos
-        const url = `${baseUrl}?mode=view`;
-        const newWindow = window.open(url, "_blank", "noopener,noreferrer");
-
-        if (!newWindow) {
-          resolve(false);
-          return;
-        }
-
-        // Show iOS-specific instruction
-        setTimeout(() => resolve(true), 500);
-        return;
-      }
-
-      // All other platforms: Hidden iframe (auto-download)
+      // Hidden iframe method
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.style.position = "absolute";
@@ -190,7 +193,7 @@ function attemptDownloadViaIframe(
       }, 2000);
 
     } catch (error) {
-      console.error("[downloadSingleImage] Iframe error:", error);
+      console.error("[attemptDownloadViaIframe] Error:", error);
       resolve(false);
     }
   });

@@ -1,0 +1,136 @@
+
+> mood-studio-temp@2.0.7 build
+> next build --webpack
+
+Warning: Custom Cache-Control headers detected for the following routes:
+  - /_next/static/:path*
+
+Setting a custom Cache-Control header can break Next.js development behavior.
+▲ Next.js 16.2.6 (webpack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · optimizePackageImports
+  · staleTimes
+
+  Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ○ (pwa) This app will fallback to these precached routes when fetching from the cache and the network fails:
+ ○ (pwa)   Documents (pages): /offline
+ ○ (pwa) Custom runtimeCaching array found, using it instead of the default one.
+✓ Compiled successfully in 39.3s
+  Running TypeScript ...
+  Finished TypeScript in 21.1s ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/31) ...
+[withAuth] Error: Error: Dynamic server usage: Route /finance/expenses couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at y (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\3597.js:1:40746)
+    at n (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\524.js:1:6200)
+    at <unknown> (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\app\api\calendar\sync-worker\route.js:1:10177)
+    at <unknown> (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\4454.js:1:3702)
+    at <unknown> (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\4454.js:1:6072)
+    at i (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\4454.js:1:2526)
+    at <unknown> (C:\Users\Admin\Desktop\Ai\mood saas\mood-studio\.next\server\chunks\4454.js:1:6003) {
+  description: "Route /finance/expenses couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+  Generating static pages using 19 workers (7/31) 
+  Generating static pages using 19 workers (15/31) 
+  Generating static pages using 19 workers (23/31) 
+✓ Generating static pages using 19 workers (31/31) in 1089ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /account-disabled
+├ ƒ /admin/backfill-dimensions
+├ ƒ /api/auth/callback
+├ ƒ /api/auth/google
+├ ƒ /api/auth/google/callback
+├ ƒ /api/calendar/sync-worker
+├ ƒ /api/contracts/[id]/prefetch
+├ ƒ /api/drive-download/[fileId]
+├ ƒ /api/gallery-download-batch/[token]
+├ ƒ /api/gallery-download/[token]/[imageId]
+├ ƒ /api/monitoring/web-vitals
+├ ƒ /api/og/gallery/[slug]
+├ ƒ /api/push/send
+├ ƒ /api/push/subscribe
+├ ƒ /api/run-migration
+├ ƒ /api/test
+├ ƒ /api/test-google
+├ ○ /apple-icon.png
+├ ƒ /audit-logs
+├ ƒ /auth/callback
+├ ƒ /auth/confirm
+├ ƒ /calendar
+├ ƒ /contracts
+├ ƒ /contracts/[id]
+├ ƒ /contracts/[id]/edit
+├ ƒ /contracts/[id]/gallery
+├ ƒ /contracts/[id]/print
+├ ƒ /contracts/create
+├ ƒ /crm
+├ ƒ /crm/customers
+├ ƒ /crm/customers/[id]
+├ ƒ /crm/leads
+├ ƒ /dashboard
+├ ○ /dev/toast-test
+├ ƒ /dresses
+├ ƒ /dresses/rentals
+├ ƒ /employees
+├ ƒ /employees/[id]
+├ ƒ /finance
+├ ƒ /finance/budget
+├ ƒ /finance/cashflow
+├ ƒ /finance/categories
+├ ƒ /finance/closes
+├ ƒ /finance/closes/[id]
+├ ƒ /finance/dashboard
+├ ƒ /finance/debts
+├ ƒ /finance/expenses
+├ ƒ /finance/expenses/[id]
+├ ƒ /finance/expenses/[id]/print
+├ ƒ /finance/fixed-costs
+├ ƒ /finance/goals
+├ ƒ /finance/investments
+├ ƒ /finance/lab-debts
+├ ƒ /finance/receipts
+├ ƒ /finance/receipts/[id]
+├ ƒ /finance/receipts/[id]/print
+├ ƒ /finance/salaries
+├ ƒ /finance/vendor-debts
+├ ○ /forgot-password
+├ ƒ /gallery/[accessUrl]
+├ ○ /icon.png
+├ ƒ /inventory
+├ ƒ /inventory/[id]
+├ ○ /login
+├ ƒ /moodie
+├ ○ /offline
+├ ƒ /printing
+├ ƒ /printing/labs
+├ ƒ /productivity
+├ ƒ /reports
+├ ○ /reset-password
+├ ƒ /services
+├ ƒ /services/[id]
+├ ƒ /services/[id]/quote
+├ ƒ /services/create
+├ ƒ /settings
+├ ƒ /settings/credit-cards
+└ ƒ /settings/studio
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

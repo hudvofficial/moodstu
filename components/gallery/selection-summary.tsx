@@ -35,7 +35,7 @@ export default function SelectionSummary({
   const downloadableImages = selectedImages.filter((i) => i.drive_file_id);
 
   // Download logic — native download
-  const handleBatchDownload = () => {
+  const handleBatchDownload = async () => {
     if (downloadableImages.length === 0) return;
 
     if (downloadableImages.length > 30) {
@@ -45,27 +45,35 @@ export default function SelectionSummary({
 
     setDownloading(true);
 
-    // Detect iOS Safari
-    const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) &&
-                        /Safari/.test(navigator.userAgent) &&
-                        !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(navigator.userAgent);
-
     if (downloadableImages.length > 1) {
       // Batch ZIP download - works on all platforms via window.location
       const ids = downloadableImages.map((i) => i.id).join(",");
       window.location.href = `/api/gallery-download-batch/${accessToken}?ids=${ids}`;
     } else {
-      // Single file download
+      // Single file download - use blob method (works on iOS Safari!)
       const img = downloadableImages[0];
       const url = `/api/gallery-download/${accessToken}/${img.id}`;
+      const fileName = img.file_name || "photo.jpg";
 
-      if (isIOSSafari) {
-        // iOS Safari: Open in new tab with inline mode
-        window.open(`${url}?mode=view`, "_blank", "noopener,noreferrer");
-        alert('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album');
-      } else {
-        // All other platforms: Direct navigation triggers download
-        window.location.href = url;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+      } catch (error) {
+        console.error("[selection-download] Error:", error);
+        // Fallback
+        window.open(url, "_blank", "noopener,noreferrer");
       }
     }
 
