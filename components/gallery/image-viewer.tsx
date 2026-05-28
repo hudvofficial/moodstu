@@ -127,31 +127,43 @@ export default function ImageViewer({
     setTouchStart(null);
   };
 
-  // ─── Universal Download (hidden iframe - works on ALL platforms) ───────────────
+  // ─── Platform-Aware Download Strategy ─────────────────────────────────────────
   const handleDownload = useCallback(() => {
     if (!current) return;
-    const apiUrl = `/api/gallery-download/${accessToken}/${current.id}`;
+    const baseUrl = `/api/gallery-download/${accessToken}/${current.id}`;
     const fileName = current.file_name || "photo.jpg";
 
-    // Hidden iframe method - works universally (same as admin)
-    // iOS Safari, Android, Desktop all work without user intervention!
-    try {
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = apiUrl;
-      document.body.appendChild(iframe);
+    // Detect iOS Safari (not iOS WebView like Zalo/FB)
+    const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) &&
+                        /Safari/.test(navigator.userAgent) &&
+                        !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(navigator.userAgent);
 
-      // Cleanup after 10s
-      setTimeout(() => {
-        try { iframe.remove(); } catch {}
-      }, 10000);
+    if (isIOSSafari) {
+      // iOS Safari: Open in new tab with inline mode
+      // User can long-press → "Save Image" to Photos (native iOS UX)
+      const url = `${baseUrl}?mode=view`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', { duration: 5000 });
+    } else {
+      // All other platforms: Hidden iframe (auto-download)
+      // Works on: iOS WebView (Zalo/FB/Line), Android, Desktop
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = baseUrl;
+        document.body.appendChild(iframe);
 
-      // Show success toast
-      toast.success(`Đang tải ${fileName}...`, { duration: 3000 });
-    } catch (error) {
-      // Fallback: open in new window
-      window.open(apiUrl, "_blank", "noopener,noreferrer");
-      toast.info("Đã mở ảnh trong tab mới", { duration: 3000 });
+        // Cleanup after 10s
+        setTimeout(() => {
+          try { iframe.remove(); } catch {}
+        }, 10000);
+
+        toast.success(`Đang tải ${fileName}...`, { duration: 3000 });
+      } catch (error) {
+        // Fallback: open in new window
+        window.open(baseUrl, "_blank", "noopener,noreferrer");
+        toast.info("Đã mở ảnh trong tab mới", { duration: 3000 });
+      }
     }
   }, [current, accessToken]);
 

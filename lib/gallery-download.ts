@@ -75,7 +75,12 @@ export async function downloadSingleImage(
       if (success) {
         // Success!
         if (showToast && toastId) {
-          toast.success(successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName), { id: toastId });
+          // Different message for iOS Safari (requires manual save)
+          if (isIOSSafari()) {
+            toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album', { id: toastId, duration: 5000 });
+          } else {
+            toast.success(successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName), { id: toastId });
+          }
         }
         return true;
       }
@@ -123,8 +128,20 @@ export async function downloadSingleImage(
 }
 
 /**
+ * Detect iOS Safari (not iOS WebView)
+ */
+function isIOSSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) &&
+         /Safari/.test(ua) &&
+         !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(ua);
+}
+
+/**
  * Attempt download using hidden iframe method
  * This triggers native browser download and works on most platforms
+ * For iOS Safari, uses inline mode + window.open (native iOS UX)
  */
 function attemptDownloadViaIframe(
   accessToken: string,
@@ -132,18 +149,34 @@ function attemptDownloadViaIframe(
 ): Promise<boolean> {
   return new Promise((resolve) => {
     try {
-      // Create hidden iframe
+      const baseUrl = `/api/gallery-download/${accessToken}/${imageId}`;
+
+      // iOS Safari needs special handling
+      if (isIOSSafari()) {
+        // Open in new tab with inline mode
+        // User can long-press → "Save Image" to Photos
+        const url = `${baseUrl}?mode=view`;
+        const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+        if (!newWindow) {
+          resolve(false);
+          return;
+        }
+
+        // Show iOS-specific instruction
+        setTimeout(() => resolve(true), 500);
+        return;
+      }
+
+      // All other platforms: Hidden iframe (auto-download)
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.style.position = "absolute";
       iframe.style.width = "0";
       iframe.style.height = "0";
       iframe.style.border = "none";
+      iframe.src = baseUrl;
 
-      // Set source to download endpoint
-      iframe.src = `/api/gallery-download/${accessToken}/${imageId}`;
-
-      // Append to body
       document.body.appendChild(iframe);
 
       // Wait a bit to ensure download started

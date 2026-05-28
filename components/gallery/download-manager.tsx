@@ -40,12 +40,29 @@ const INITIAL_STATE: DownloadState = {
   isFetchingFiles: false,
 };
 
+function isIOSSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) &&
+         /Safari/.test(ua) &&
+         !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(ua);
+}
+
 function downloadSingleFile(accessToken: string, imageId: string, _fileName: string): boolean {
   try {
-    // Hidden iframe → trigger native download (0 RAM, streamed to disk)
+    const baseUrl = `/api/gallery-download/${accessToken}/${imageId}`;
+
+    // iOS Safari: Open in new tab with inline mode
+    if (isIOSSafari()) {
+      const url = `${baseUrl}?mode=view`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      return true;
+    }
+
+    // All other platforms: Hidden iframe → trigger native download (0 RAM, streamed to disk)
     const iframe = document.createElement("iframe");
     iframe.style.display = "none";
-    iframe.src = `/api/gallery-download/${accessToken}/${imageId}`;
+    iframe.src = baseUrl;
     document.body.appendChild(iframe);
     // Clean up iframe after 30s (download should have started by then)
     setTimeout(() => { try { iframe.remove(); } catch {} }, 30000);
@@ -92,6 +109,17 @@ export default function DownloadManager({
     }
 
     setState((prev) => ({ ...prev, isFetchingFiles: false, total: downloadList.length, currentFile: downloadList[0].fileName }));
+
+    // iOS Safari: Warn user about multiple tabs
+    if (isIOSSafari() && downloadList.length > 1) {
+      const proceed = confirm(
+        `iOS Safari sẽ mở ${downloadList.length} tab mới. Bạn cần nhấn giữ từng ảnh và chọn "Lưu hình ảnh".\n\nTip: Dùng "Tải ZIP" để tải nhiều ảnh cùng lúc dễ dàng hơn.\n\nTiếp tục?`
+      );
+      if (!proceed) {
+        setState((prev) => ({ ...prev, active: false }));
+        return;
+      }
+    }
 
     const failed: string[] = [];
 

@@ -45,14 +45,28 @@ export default function SelectionSummary({
 
     setDownloading(true);
 
+    // Detect iOS Safari
+    const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) &&
+                        /Safari/.test(navigator.userAgent) &&
+                        !/CriOS|FxiOS|OPiOS|mercury|Line|FBAV|FBAN|FB_IAB|Instagram|Zalo/.test(navigator.userAgent);
+
     if (downloadableImages.length > 1) {
-      // Batch ZIP download
+      // Batch ZIP download - works on all platforms via window.location
       const ids = downloadableImages.map((i) => i.id).join(",");
       window.location.href = `/api/gallery-download-batch/${accessToken}?ids=${ids}`;
     } else {
       // Single file download
       const img = downloadableImages[0];
-      window.location.href = `/api/gallery-download/${accessToken}/${img.id}`;
+      const url = `/api/gallery-download/${accessToken}/${img.id}`;
+
+      if (isIOSSafari) {
+        // iOS Safari: Open in new tab with inline mode
+        window.open(`${url}?mode=view`, "_blank", "noopener,noreferrer");
+        alert('Nhấn giữ ảnh → chọn "Lưu hình ảnh" để lưu vào Album');
+      } else {
+        // All other platforms: Direct navigation triggers download
+        window.location.href = url;
+      }
     }
 
     // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
