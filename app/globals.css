@@ -146,6 +146,13 @@ html, body {
   height: 100%;
 }
 
+/* Gallery public pages: unlock scroll (không dùng app-shell-viewport) */
+html:has(.gallery-public-layout),
+html:has(.gallery-public-layout) body {
+  overflow: auto;
+  height: auto;
+}
+
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);
