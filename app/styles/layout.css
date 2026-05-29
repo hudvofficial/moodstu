@@ -145,32 +145,8 @@
   pointer-events: none;
 }
 
-/* ══════════════════════════════════════
-   5. MOBILE SAFE AREA (BOTTOM NAV)
-   ══════════════════════════════════════ */
 
-:root {
-  --safe-area-bottom: env(safe-area-inset-bottom);
-}
-
-@media (pointer: coarse) and (max-width: 1023px) and (display-mode: browser) {
-  @supports (height: 100dvh) {
-    :root {
-      --safe-area-bottom: 0px;
-    }
-  }
-}
-
-.nav-safe-padding {
-  padding-bottom: var(--safe-area-bottom);
-}
-
-@supports (padding-bottom: max(0.5rem, env(safe-area-inset-bottom))) {
-  .nav-safe-padding {
-    padding-bottom: max(0.5rem, var(--safe-area-bottom));
-  }
-}
 
 .nav-popup-offset {
-  bottom: calc(var(--bottom-nav-h) + var(--safe-area-bottom) + 0.5rem);
+  bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 0.5rem);
 }
