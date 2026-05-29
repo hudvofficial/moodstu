@@ -160,6 +160,7 @@ export function TaskListPanel({
 
   const renderTaskRow = (task: TaskRow, mode: "assigned" | "unassigned") => {
     const isDeleting = deletingTaskIds.has(task.id);
+    const isOptimistic = task.id.startsWith("optimistic-");
     const employeeName = Array.isArray(task.employees)
       ? task.employees[0]?.full_name
       : task.employees?.full_name;
@@ -172,7 +173,7 @@ export function TaskListPanel({
       <div
         key={task.id}
         className={`flex items-center gap-2.5 p-2.5 rounded-md bg-bg-hover/40 hover:bg-bg-hover group transition-colors ${
-          isDeleting ? "opacity-60 pointer-events-none" : ""
+          isDeleting || isOptimistic ? "opacity-70 pointer-events-none" : ""
         }`}
       >
         <div className="flex-1 min-w-0">
@@ -206,15 +207,16 @@ export function TaskListPanel({
           options={TASK_STATUS_OPTIONS}
           onUpdate={(newStatus) => onStatusUpdate(task.id, newStatus)}
           variant="compact"
+          disabled={isOptimistic}
         />
 
         <Button unstyled
           onClick={() => onDelete(task.id)}
-          disabled={isDeleting}
+          disabled={isDeleting || isOptimistic}
           className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={`Xóa ${mode === "assigned" ? "phân công" : "công việc"} ${workTypeLabel}`}
         >
-          {isDeleting ? (
+          {isDeleting || isOptimistic ? (
             <Loader2 size={14} className="animate-spin" />
           ) : (
             <X size={14} />
