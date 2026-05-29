@@ -109,7 +109,15 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
 
     setVisibleCount((prev) => {
       const next = Math.min(prev + SCROLL_BATCH_SIZE, groups.length);
+      console.log('[useMasonryGrid] Scroll detected:', {
+        prev,
+        next,
+        groupsLength: groups.length,
+        hasMoreServer,
+        willLoadMore: next >= groups.length && hasMoreServer && !!onLoadMore
+      });
       if (next >= groups.length && hasMoreServer && onLoadMore) {
+        console.log('[useMasonryGrid] 🚀 Calling onLoadMore()');
         onLoadMore();
       }
       return next;
