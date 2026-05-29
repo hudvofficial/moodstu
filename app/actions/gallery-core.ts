@@ -496,6 +496,7 @@ export async function fetchPublicGalleryImagesPage(
 
   const { data, error, count } = await query
     .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
     .range(from, to);
 
   if (error) {
@@ -531,6 +532,7 @@ export async function fetchAllGalleryImages(
       .select(columns)
       .eq("gallery_id", galleryId)
       .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
       .range(from, from + pageSize - 1);
 
     if (error) {

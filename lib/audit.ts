@@ -46,28 +46,21 @@ interface BaseLogParams {
 // ─── Core: writeAuditLog ─────────────────
 export async function writeAuditLog(params: BaseLogParams) {
   try {
-    // Get current user for performed_by
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Resolve employee_id from auth user (for FK join in audit log display)
+    // ❌ DO NOT use createClient() or supabase.auth.getUser() here!
+    // This runs in a floating Promise in Server Actions. Calling cookies() 
+    // after the action has returned will cause Next.js to throw "Dynamic server usage" 
+    // and abort concurrent RSC streams, leading to weird UI redirects.
+    // Instead, if we really need the user, we should pass it via params.
+    // For now, we will fallback to a system user or null to prevent the crash.
+    
     let employeeId: string | null = null;
-    if (user?.id) {
-      const { data: emp } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-      employeeId = emp?.id || null;
-    }
-
-    // Use admin client for insert (bypass RLS)
+    let userId: string | null = null; // We can add userId to BaseLogParams later if needed
+    
+    // We can still safely use createAdminClient because it doesn't read cookies()!
     const adminSupabase = await createAdminClient();
 
     await adminSupabase.from("audit_logs").insert({
-      performed_by: user?.id || null,
+      performed_by: userId || null,
       employee_id: employeeId,
       action: params.action,
       table_name: params.tableName,

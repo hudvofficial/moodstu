@@ -89,21 +89,71 @@ export function getResponsiveThumbnailUrl(
   return `${thumbnailUrl}${separator}${sizeParam}`;
 }
 
-/** Group images by file_group (RAW+JPG pairs) */
+/** Group images by file_group (RAW+JPG pairs), ensuring duplicate JPGs are NOT hidden */
 export function groupByFileGroup(images: GalleryImage[]): ImageGroup[] {
-  const map = new Map<string, GalleryImage[]>();
-
-  for (const img of images) {
-    const key = img.file_group || img.file_name || img.id;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(img);
+  const raws = images.filter((i) => isRawFile(i.file_name || ""));
+  const nonRaws = images.filter((i) => !isRawFile(i.file_name || ""));
+  
+  // Create a map of RAWs by file_group/file_name for pairing
+  const rawByGroup = new Map<string, GalleryImage[]>();
+  for (const raw of raws) {
+    const key = raw.file_group || raw.file_name || raw.id;
+    if (!rawByGroup.has(key)) rawByGroup.set(key, []);
+    rawByGroup.get(key)!.push(raw);
   }
 
-  return Array.from(map.entries()).map(([key, imgs]) => {
-    const hasRaw = imgs.some((i) => isRawFile(i.file_name || ""));
-    const hasJpg = imgs.some((i) => !isRawFile(i.file_name || ""));
-    const displayImage = imgs.find((i) => !isRawFile(i.file_name || "")) || imgs[0];
+  const groups: ImageGroup[] = [];
+  const usedRaws = new Set<string>();
 
-    return { fileGroup: key, images: imgs, displayImage, hasRaw, hasJpg };
+  // 1. Each non-Raw (JPG) creates a distinct group to avoid hiding duplicate uploads
+  for (const img of nonRaws) {
+    const key = img.file_group || img.file_name || img.id;
+    let pairedRaw: GalleryImage | undefined;
+    
+    // Pair with an unused RAW that matches the key
+    if (rawByGroup.has(key)) {
+      pairedRaw = rawByGroup.get(key)!.find((r) => !usedRaws.has(r.id));
+    }
+    
+    const groupImages = [img];
+    if (pairedRaw) {
+      groupImages.push(pairedRaw);
+      usedRaws.add(pairedRaw.id);
+    }
+    
+    groups.push({
+      fileGroup: key,
+      images: groupImages,
+      displayImage: img,
+      hasRaw: !!pairedRaw,
+      hasJpg: true,
+    });
+  }
+
+  // 2. Any unpaired RAWs get their own group
+  for (const raw of raws) {
+    if (!usedRaws.has(raw.id)) {
+      const key = raw.file_group || raw.file_name || raw.id;
+      groups.push({
+        fileGroup: key,
+        images: [raw],
+        displayImage: raw,
+        hasRaw: true,
+        hasJpg: false,
+      });
+    }
+  }
+
+  // Maintain original sort order (images array was already sorted)
+  groups.sort((a, b) => {
+    const orderA = a.displayImage.sort_order ?? 0;
+    const orderB = b.displayImage.sort_order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+    // Fallback to created_at
+    const timeA = new Date(a.displayImage.created_at).getTime();
+    const timeB = new Date(b.displayImage.created_at).getTime();
+    return timeA - timeB;
   });
+
+  return groups;
 }

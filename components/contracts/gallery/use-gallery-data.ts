@@ -194,6 +194,20 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
 
+  // ─── Debug logs ─────────────────────────────
+  useEffect(() => {
+    console.log('[useGalleryData] Debug:', {
+      activeGalleryId,
+      paginatedImagesLength: paginatedImages.length,
+      groupedImagesLength: groupedImages.length,
+      totalImageCount,
+      hasMoreImages,
+      fileFilter,
+      activeFilter,
+      activeAlbumId,
+    });
+  }, [activeGalleryId, paginatedImages.length, groupedImages.length, totalImageCount, hasMoreImages, fileFilter, activeFilter, activeAlbumId]);
+
   // ─── Smart Prefetch (Phase 2) ──────────────
   const { prefetchedPages } = usePrefetchGallery(
     activeGalleryId,

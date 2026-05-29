@@ -28,6 +28,7 @@ export async function getGalleryImagesPaginated(
       .select(IMAGE_COLS, { count: "exact" })
       .eq("gallery_id", galleryId)
       .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
       .range(from, to);
 
     if (error) throw new Error(`Lỗi tải ảnh: ${error.message}`);
@@ -56,7 +57,8 @@ async function getCachedGalleryImages(galleryId: string) {
         .from("gallery_images")
         .select("id, file_name, drive_file_id, is_selected, selected_at, sort_order")
         .eq("gallery_id", id)
-        .order("sort_order", { ascending: true });
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
       
       if (error) {
         console.error("Lỗi lấy danh sách ảnh từ cache:", error);
