@@ -42,8 +42,7 @@ BEGIN
       'client_note', gi.client_note,
       'album_id', gi.album_id,
       'sort_order', gi.sort_order,
-      'created_at', gi.created_at,
-      'blur_data_url', gi.blur_data_url
+      'created_at', gi.created_at
     ) ORDER BY gi.sort_order ASC, gi.created_at ASC
   )
   INTO v_images

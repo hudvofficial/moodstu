@@ -23,7 +23,8 @@ console.log('🚀 Direct Migration via PostgreSQL\n');
 let connectionString = process.env.DATABASE_URL ||
                       process.env.DIRECT_URL ||
                       process.env.POSTGRES_URL ||
-                      process.env.SUPABASE_DB_URL;
+                      process.env.SUPABASE_DB_URL ||
+                      process.env.SUPABASE_POOLER_URL;
 
 // If no direct URL, construct from Supabase credentials
 if (!connectionString) {
@@ -36,9 +37,10 @@ if (!connectionString) {
       const projectRef = match[1];
       // Encode password for URL (special chars like !@# need encoding)
       const encodedPassword = encodeURIComponent(dbPassword);
-      // Direct connection via IPv6 endpoint
-      connectionString = `postgresql://postgres:${encodedPassword}@${projectRef}.supabase.co:5432/postgres`;
-      console.log(`📊 Connection to: ${projectRef}.supabase.co:5432\n`);
+      // Use session pooler (port 5432) with pgbouncer user
+      // Pooler format: postgres:[ref].[password]@aws-0-region.pooler.supabase.com:6543
+      connectionString = `postgresql://postgres:${projectRef}%5B${encodedPassword}%5D@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?pgbouncer=true`;
+      console.log(`📊 Connection to: pooler.supabase.com:5432 (session mode)\n`);
     }
   }
 }
