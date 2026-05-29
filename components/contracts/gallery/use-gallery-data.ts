@@ -119,20 +119,17 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
     const loadGalleryData = async () => {
       // Try V2 RPC first (single call for everything) with network-aware pageSize
-      console.log('[useGalleryData] Initial load with pageSize:', pageSize);
+      console.log(`[useGalleryData] 🚀 INITIAL LOAD: pageSize=${pageSize}`);
       const v2Result = await getGalleryDataV2(activeGalleryId, 0, pageSize);
 
       if (cancelled) return;
 
+      console.log('[useGalleryData] V2 Result:', v2Result);
+
       if (v2Result.success && v2Result.data) {
         // V2 RPC succeeded - use combined data
         const data = v2Result.data;
-        console.log('[useGalleryData] V2 RPC success:', {
-          loaded: data.images.length,
-          total: data.totalCount,
-          hasMore: data.hasMore,
-          pageSize: data.pageSize,
-        });
+        console.log(`[useGalleryData] ✅ V2 RPC SUCCESS: ${data.images.length}/${data.totalCount} images, hasMore=${data.hasMore}, pageSize=${data.pageSize}`);
         setPaginatedImages(data.images);
         setTotalImageCount(data.totalCount);
         setHasMoreImages(data.hasMore);
@@ -178,7 +175,13 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
   const loadMoreImages = useCallback(async () => {
     if (!activeGalleryId || loadingMore || !hasMoreImages) {
-      console.log('[useGalleryData] loadMoreImages blocked:', { activeGalleryId, loadingMore, hasMoreImages });
+      console.log('[useGalleryData] 🚫 LOAD MORE BLOCKED:', {
+        activeGalleryId,
+        loadingMore,
+        hasMoreImages,
+        currentImages: paginatedImages.length,
+        totalCount: totalImageCount
+      });
       return;
     }
     setLoadingMore(true);
@@ -215,7 +218,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
   // ─── Debug logs ─────────────────────────────
   useEffect(() => {
-    console.log('[useGalleryData] Debug:', {
+    const debugData = {
       activeGalleryId,
       paginatedImagesLength: paginatedImages.length,
       groupedImagesLength: groupedImages.length,
@@ -224,7 +227,12 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       fileFilter,
       activeFilter,
       activeAlbumId,
-    });
+    };
+    console.log('[useGalleryData] 📊 STATE:',
+      `Images: ${debugData.paginatedImagesLength} → Groups: ${debugData.groupedImagesLength}`,
+      `Total: ${debugData.totalImageCount}`,
+      `HasMore: ${debugData.hasMoreImages}`
+    );
   }, [activeGalleryId, paginatedImages.length, groupedImages.length, totalImageCount, hasMoreImages, fileFilter, activeFilter, activeAlbumId]);
 
   // ─── Smart Prefetch (Phase 2) ──────────────
@@ -243,12 +251,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
   // ─── Filter + Sort ────────────────────────
   const filteredGroups = useMemo(() => {
-    console.log('[useGalleryData] Filtering:', {
-      groupedImagesLength: groupedImages.length,
-      fileFilter,
-      activeFilter,
-      activeAlbumId
-    });
+    console.log(`[useGalleryData] 🔍 FILTER START: ${groupedImages.length} groups, filter="${fileFilter}", activeFilter="${activeFilter}"`);
 
     let filtered = groupedImages.filter((group) => {
       if (fileFilter === "all") return true;
@@ -271,11 +274,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       filtered = filtered.filter((g) => (commentCountsPerImage[g.displayImage.id] || 0) > 0);
     }
 
-    console.log('[useGalleryData] After filtering:', {
-      beforeFilter: groupedImages.length,
-      afterFilter: filtered.length,
-      dropped: groupedImages.length - filtered.length
-    });
+    console.log(`[useGalleryData] ✅ FILTER DONE: ${groupedImages.length} → ${filtered.length} (dropped ${groupedImages.length - filtered.length})`);
 
     return [...filtered].sort((a, b) => {
       const nameA = a.displayImage.file_name || "";

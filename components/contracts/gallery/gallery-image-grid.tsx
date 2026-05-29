@@ -233,6 +233,11 @@ export default function GalleryImageGrid({
         </div>
       </div>
 
+      {/* Invisible sentinel — IntersectionObserver watches this to trigger load-more */}
+      {showSentinel && (
+        <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
+      )}
+
       {loadingMore && hasMoreServer && (
         <div className="py-6 text-center">
           <div className="flex items-center justify-center gap-2">

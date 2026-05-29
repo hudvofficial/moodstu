@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import type { ImageGroup } from "./gallery-helpers";
 
-const INITIAL_BATCH_SIZE = 100; // Load more images initially
+const INITIAL_BATCH_SIZE = 200; // Match default pageSize from useGalleryData
 const SCROLL_BATCH_SIZE = 50;
 const MAX_COLUMNS = 7;
 const MIN_COLUMNS = 2;
@@ -105,19 +105,19 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
   }, [maxColumns, debouncedUpdateLayout]);
 
   const handleIntersect = useCallback((entries: IntersectionObserverEntry[]) => {
+    console.log('[useMasonryGrid] 👁️ INTERSECTION:', {
+      isIntersecting: entries[0]?.isIntersecting,
+      boundingRect: entries[0]?.boundingClientRect,
+      rootBounds: entries[0]?.rootBounds
+    });
+
     if (!entries[0]?.isIntersecting) return;
 
     setVisibleCount((prev) => {
       const next = Math.min(prev + SCROLL_BATCH_SIZE, groups.length);
-      console.log('[useMasonryGrid] Scroll detected:', {
-        prev,
-        next,
-        groupsLength: groups.length,
-        hasMoreServer,
-        willLoadMore: next >= groups.length && hasMoreServer && !!onLoadMore
-      });
+      console.log(`[useMasonryGrid] 📜 SCROLL: ${prev} → ${next}/${groups.length}, hasMoreServer=${hasMoreServer}`);
       if (next >= groups.length && hasMoreServer && onLoadMore) {
-        console.log('[useMasonryGrid] 🚀 Calling onLoadMore()');
+        console.log('[useMasonryGrid] 🚀 TRIGGER onLoadMore()');
         onLoadMore();
       }
       return next;
@@ -139,6 +139,14 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
   const visibleGroups = groups.slice(0, visibleCount);
   const hasMoreLocal = visibleCount < groups.length;
   const showSentinel = hasMoreLocal || hasMoreServer;
+
+  // Auto-trigger onLoadMore if all local images rendered but server has more
+  useEffect(() => {
+    if (visibleCount >= groups.length && hasMoreServer && onLoadMore && !hasMoreLocal) {
+      console.log('[useMasonryGrid] ⚡ AUTO-TRIGGER: All local images rendered, fetching next page');
+      onLoadMore();
+    }
+  }, [visibleCount, groups.length, hasMoreServer, onLoadMore, hasMoreLocal]);
 
   const columnGroups = useMemo(() => {
     const columns = Array.from({ length: columnCount }, () => [] as Array<{ group: ImageGroup; index: number }>);

@@ -29,7 +29,7 @@ export function usePrefetchGallery(
   } = options;
 
   const prefetchedPages = useRef(new Set<number>());
-  const prefetchTimer = useRef<NodeJS.Timeout>();
+  const prefetchTimer = useRef<NodeJS.Timeout | undefined>(undefined);
   const isPrefetching = useRef(false);
 
   useEffect(() => {
