@@ -864,7 +864,10 @@ async function queryPaymentReminders(
 
   assertQueryOk("Lỗi tải đợt cần thu", planError);
 
-  const planReminders = ((planRows || []) as QueryRow[])
+  // Internal type với planAmount để track từng đợt
+  type PlanReminderInternal = PaymentReminderData & { planAmount?: number };
+
+  const planReminders: PlanReminderInternal[] = ((planRows || []) as QueryRow[])
     .filter((row) => !isPaidPlanStatus(row.status))
     .map((row) => {
       const contract = relationObject(row.contracts);
@@ -877,9 +880,8 @@ async function queryPaymentReminders(
         contractCode: asString(contract?.contract_code),
         customerName: relationText(contract?.customers, "full_name") || "Khách hàng",
         stageName: asString(row.stage_name, "Đợt thanh toán"),
-        remainingAmount: asNumber(row.amount) > 0
-          ? asNumber(row.amount)
-          : asNumber(contract?.remaining_amount),
+        remainingAmount: asNumber(contract?.remaining_amount), // ✅ Fix: Luôn lấy tổng nợ của HĐ
+        planAmount: asNumber(row.amount), // Track đợt amount riêng để hiển thị milestone detail
         dueDate,
         source: "payment_plans" as const,
         isOverdue: !!dueDate && dueDate < today,
@@ -902,7 +904,7 @@ async function queryPaymentReminders(
 
   assertQueryOk("Lỗi tải danh sách cần thu", contractError);
 
-  const fallbackReminders = ((contractRows || []) as QueryRow[])
+  const fallbackReminders: PlanReminderInternal[] = ((contractRows || []) as QueryRow[])
     .filter((row) => !planContractIds.has(asString(row.id)))
     .map((row) => {
       const dueDate = asString(row.work_date, "") || asString(row.contract_date, "") || null;
@@ -928,7 +930,7 @@ async function queryPaymentReminders(
     const milestone = {
       id: item.id,
       stageName: item.stageName,
-      amount: item.remainingAmount,
+      amount: item.planAmount || item.remainingAmount, // Use planAmount for milestones detail
       dueDate: item.dueDate,
       source: item.source,
       isOverdue: item.isOverdue,
@@ -945,13 +947,17 @@ async function queryPaymentReminders(
       continue;
     }
 
-    existing.remainingAmount += item.remainingAmount;
+    // ✅ Fix: KHÔNG cộng dồn remainingAmount - giữ nguyên tổng nợ HĐ từ lần đầu
+    // remainingAmount đã là contract.remaining_amount (SSOT) rồi
     existing.isOverdue = existing.isOverdue || item.isOverdue;
-    
-    // NOTE: Theo logic business, 1 hợp đồng nợ nhiều đợt sẽ chỉ tính là 1 khoản công nợ tổng.
-    // Lấy tên/hạn của đợt cũ nhất (do đã sort theo dueDate). Không push thêm milestone để UI ko hiện "X đợt".
-    if (item.isOverdue && !existing.overdueCount) {
-      existing.overdueCount = 1;
+    existing.installmentCount = (existing.installmentCount || 1) + 1; // ✅ Fix: đếm đúng số đợt
+
+    // Push milestone để UI có thể hiển thị detail các đợt
+    existing.milestones = [...(existing.milestones || []), milestone];
+
+    // Đếm số đợt quá hạn
+    if (item.isOverdue) {
+      existing.overdueCount = (existing.overdueCount || 0) + 1;
     }
   }
 
