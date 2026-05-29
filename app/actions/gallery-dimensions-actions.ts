@@ -1,9 +1,16 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
-import sharp from "sharp";
 import https from "https";
 import http from "http";
+
+// Dynamic import for sharp (optional dependency for Vercel)
+let sharp: any;
+try {
+  sharp = require("sharp");
+} catch {
+  console.warn("Sharp module not available - dimension detection will be limited");
+}
 
 /**
  * Fetch image buffer from URL (partial download for metadata)
@@ -44,6 +51,11 @@ async function fetchImageBuffer(url: string): Promise<Buffer> {
  * Get image dimensions from URL using Sharp
  */
 async function getDimensionsFromUrl(imageUrl: string): Promise<{ width: number; height: number }> {
+  if (!sharp) {
+    console.warn("Sharp not available, using fallback dimensions");
+    return { width: 3000, height: 2000 };
+  }
+
   try {
     // For Google Drive, use thumbnail URL with decent size
     const url = imageUrl.includes('googleusercontent.com')

@@ -1,9 +1,16 @@
 "use server";
 
 import { encode, decode } from "blurhash";
-import sharp from "sharp";
 import { withAuth } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
+
+// Dynamic import for sharp (optional dependency for Vercel)
+let sharp: any;
+try {
+  sharp = require("sharp");
+} catch {
+  console.warn("Sharp module not available - blurhash features will be limited");
+}
 
 /**
  * Generate BlurHash AND data URL from image URL
@@ -12,6 +19,10 @@ import { createAdminClient } from "@/lib/supabase/server";
 export async function generateBlurHashFromUrl(
   imageUrl: string
 ): Promise<{ blurHash: string; dataUrl: string }> {
+  if (!sharp) {
+    throw new Error("Sharp module not available");
+  }
+
   try {
     // Fetch image
     const response = await fetch(imageUrl);

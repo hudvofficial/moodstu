@@ -190,6 +190,14 @@ const nextConfig: NextConfig = {
       "swr",
     ],
   },
+
+  // 🖼️ Sharp — webpack config for Vercel deployment
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('sharp');
+    }
+    return config;
+  },
 };
 
 // 🔍 Bundle Analyzer — run with: ANALYZE=true npm run build
