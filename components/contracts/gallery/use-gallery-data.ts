@@ -243,6 +243,13 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
   // ─── Filter + Sort ────────────────────────
   const filteredGroups = useMemo(() => {
+    console.log('[useGalleryData] Filtering:', {
+      groupedImagesLength: groupedImages.length,
+      fileFilter,
+      activeFilter,
+      activeAlbumId
+    });
+
     let filtered = groupedImages.filter((group) => {
       if (fileFilter === "all") return true;
       if (fileFilter === "raw") return group.hasRaw;
@@ -263,6 +270,12 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     } else if (activeFilter === "commented") {
       filtered = filtered.filter((g) => (commentCountsPerImage[g.displayImage.id] || 0) > 0);
     }
+
+    console.log('[useGalleryData] After filtering:', {
+      beforeFilter: groupedImages.length,
+      afterFilter: filtered.length,
+      dropped: groupedImages.length - filtered.length
+    });
 
     return [...filtered].sort((a, b) => {
       const nameA = a.displayImage.file_name || "";
