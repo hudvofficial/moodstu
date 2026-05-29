@@ -80,8 +80,8 @@ export function ToasterWrapper() {
       // Responsive offset classes
       className={
         isMobile
-          ? // Mobile: bottom-center với bottom nav offset (56px nav + 4px pt + safe-area + 1rem gap)
-            "!bottom-[calc(60px+env(safe-area-inset-bottom)+1rem)] !left-1/2 !-translate-x-1/2 flex flex-col items-center"
+          ? // Mobile: bottom-center với bottom nav offset (60px nav + max(0.5rem, safe-area) + 1rem gap)
+            "!bottom-[calc(60px+max(0.5rem,env(safe-area-inset-bottom))+1rem)] !left-1/2 !-translate-x-1/2 flex flex-col items-center"
           : // Desktop: top-right với header offset
             "!top-[60px] lg:!top-[72px] !right-4 lg:!right-8 flex flex-col items-end"
       }
