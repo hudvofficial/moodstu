@@ -28,6 +28,7 @@ interface Props {
   paidAmount: number;
   paymentPlans: PaymentPlan[];
   initialPlanId?: string;
+  onSuccess?: () => void;
 }
 
 interface CategoryOption {
@@ -136,6 +137,7 @@ export default function PaymentReceiptForm({
   remainingAmount,
   paymentPlans,
   initialPlanId,
+  onSuccess,
 }: Props) {
   const isFullyPaid = remainingAmount <= 0;
   const [amount, setAmount] = useState(0);
@@ -354,6 +356,7 @@ export default function PaymentReceiptForm({
           invalidateContractAfterWrite(contractId),
           invalidateFinanceAfterWrite(),
         ]);
+        onSuccess?.();
         resetForm();
         onClose();
       } else {

@@ -722,6 +722,10 @@ export default function ContractDetailClient({
           paidAmount={contract.paid_amount}
           paymentPlans={paymentPlans}
           initialPlanId={initialPaymentPlanId}
+          onSuccess={() => {
+            muteRealtimeEcho();
+            void revalidateContractDetailCaches(queryClient, id);
+          }}
         />
       )}
       {showPrintForm && (
