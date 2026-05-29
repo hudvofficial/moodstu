@@ -11,6 +11,7 @@ import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
 import { useNetworkQuality } from "@/hooks/use-network-quality";
+import { usePrefetchGallery } from "@/hooks/use-gallery-prefetch";
 
 // ═══════════════════════════════════════════
 // useGalleryData — All state + data logic for GalleryFullPage
@@ -117,8 +118,8 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     setActiveFilter("all");
 
     const loadGalleryData = async () => {
-      // Try V2 RPC first (single call for everything)
-      const v2Result = await getGalleryDataV2(activeGalleryId);
+      // Try V2 RPC first (single call for everything) with network-aware pageSize
+      const v2Result = await getGalleryDataV2(activeGalleryId, 0, pageSize);
 
       if (cancelled) return;
 
@@ -141,7 +142,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       console.warn("[useGalleryData] V2 RPC unavailable, using legacy fallback");
 
       const [imagesRes, metadataRes] = await Promise.all([
-        getGalleryImagesPaginated(activeGalleryId, 0),
+        getGalleryImagesPaginated(activeGalleryId, 0, pageSize),
         getGalleryMetadataAll(activeGalleryId),
       ]);
 
@@ -171,19 +172,41 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const loadMoreImages = useCallback(async () => {
     if (!activeGalleryId || loadingMore || !hasMoreImages) return;
     setLoadingMore(true);
-    const nextPage = currentPage + 1;
+    
+    // Calculate exact page based on loaded images to avoid overlapping offsets when pageSize changes
+    const nextPage = Math.floor(paginatedImages.length / pageSize);
     const res = await getGalleryImagesPaginated(activeGalleryId, nextPage, pageSize);
+    
     if (res.success && res.data) {
-      setPaginatedImages((prev) => [...prev, ...res.data.images]);
+      // Filter duplicates in case the math still caused an overlap
+      const newImages = res.data.images.filter(
+        (newImg) => !paginatedImages.some((existingImg) => existingImg.id === newImg.id)
+      );
+      
+      setPaginatedImages((prev) => [...prev, ...newImages]);
       setTotalImageCount(res.data.totalCount);
       setHasMoreImages(res.data.hasMore);
       setCurrentPage(nextPage);
     }
     setLoadingMore(false);
-  }, [activeGalleryId, loadingMore, hasMoreImages, currentPage, pageSize]);
+  }, [activeGalleryId, loadingMore, hasMoreImages, paginatedImages, pageSize]);
 
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
+
+  // ─── Smart Prefetch (Phase 2) ──────────────
+  const { prefetchedPages } = usePrefetchGallery(
+    activeGalleryId,
+    paginatedImages.length,
+    totalImageCount,
+    hasMoreImages,
+    pageSize,
+    {
+      enabled: true,
+      prefetchThreshold: 0.6, // Prefetch when user viewed 60% of loaded images
+      debounceMs: 1000, // Wait 1s before prefetch (avoid rapid-fire during fast scroll)
+    }
+  );
 
   // ─── Filter + Sort ────────────────────────
   const filteredGroups = useMemo(() => {

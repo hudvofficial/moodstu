@@ -14,18 +14,27 @@ export interface GalleryDataV2Result {
   images: GalleryImage[];
   totalCount: number;
   hasMore: boolean;
+  page: number;
+  pageSize: number;
+  loadedCount: number;
   reactionCounts: ReactionCounts;
   commentCountsPerImage: Record<string, number>;
   totalCommentCount: number;
   albums: (GalleryAlbum & { imageCount: number })[];
 }
 
-export async function getGalleryDataV2(galleryId: string) {
+export async function getGalleryDataV2(
+  galleryId: string,
+  page = 0,
+  pageSize = 200
+) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase.rpc("get_gallery_data_v2", {
       p_gallery_id: galleryId,
+      p_limit: pageSize,
+      p_offset: page * pageSize,
     });
 
     if (error) {
@@ -40,6 +49,9 @@ export async function getGalleryDataV2(galleryId: string) {
       images: GalleryImage[];
       totalCount: number;
       hasMore: boolean;
+      page: number;
+      pageSize: number;
+      loadedCount: number;
       reactionCounts: Record<string, { hearts: number; stars: number }>;
       commentCountsPerImage: Record<string, number>;
       totalCommentCount: number;
@@ -50,6 +62,9 @@ export async function getGalleryDataV2(galleryId: string) {
       images: result.images || [],
       totalCount: result.totalCount || 0,
       hasMore: result.hasMore || false,
+      page: result.page || 0,
+      pageSize: result.pageSize || pageSize,
+      loadedCount: result.loadedCount || 0,
       reactionCounts: result.reactionCounts || {},
       commentCountsPerImage: result.commentCountsPerImage || {},
       totalCommentCount: result.totalCommentCount || 0,
