@@ -119,6 +119,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
 
     const loadGalleryData = async () => {
       // Try V2 RPC first (single call for everything) with network-aware pageSize
+      console.log('[useGalleryData] Initial load with pageSize:', pageSize);
       const v2Result = await getGalleryDataV2(activeGalleryId, 0, pageSize);
 
       if (cancelled) return;
@@ -126,6 +127,12 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       if (v2Result.success && v2Result.data) {
         // V2 RPC succeeded - use combined data
         const data = v2Result.data;
+        console.log('[useGalleryData] V2 RPC success:', {
+          loaded: data.images.length,
+          total: data.totalCount,
+          hasMore: data.hasMore,
+          pageSize: data.pageSize,
+        });
         setPaginatedImages(data.images);
         setTotalImageCount(data.totalCount);
         setHasMoreImages(data.hasMore);
@@ -170,19 +177,31 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   }, [activeGalleryId]);
 
   const loadMoreImages = useCallback(async () => {
-    if (!activeGalleryId || loadingMore || !hasMoreImages) return;
+    if (!activeGalleryId || loadingMore || !hasMoreImages) {
+      console.log('[useGalleryData] loadMoreImages blocked:', { activeGalleryId, loadingMore, hasMoreImages });
+      return;
+    }
     setLoadingMore(true);
-    
+
     // Calculate exact page based on loaded images to avoid overlapping offsets when pageSize changes
     const nextPage = Math.floor(paginatedImages.length / pageSize);
+    console.log('[useGalleryData] Loading more:', { nextPage, pageSize, currentLoaded: paginatedImages.length });
+
     const res = await getGalleryImagesPaginated(activeGalleryId, nextPage, pageSize);
-    
+
     if (res.success && res.data) {
       // Filter duplicates in case the math still caused an overlap
       const newImages = res.data.images.filter(
         (newImg) => !paginatedImages.some((existingImg) => existingImg.id === newImg.id)
       );
-      
+
+      console.log('[useGalleryData] Loaded more:', {
+        fetched: res.data.images.length,
+        afterDedup: newImages.length,
+        newTotal: paginatedImages.length + newImages.length,
+        hasMore: res.data.hasMore,
+      });
+
       setPaginatedImages((prev) => [...prev, ...newImages]);
       setTotalImageCount(res.data.totalCount);
       setHasMoreImages(res.data.hasMore);
