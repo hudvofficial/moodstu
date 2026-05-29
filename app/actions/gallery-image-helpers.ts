@@ -9,7 +9,7 @@ import type { GalleryImage } from "@/types/gallery";
 // Gallery Image Server Actions — Pagination
 // ═══════════════════════════════════════════
 
-const IMAGE_COLS = "id, image_url, thumbnail_url, sort_order, is_selected, is_starred, client_note, drive_file_id, file_name, file_group, selected_at, starred_at, created_at, width, height, blur_data_url";
+const IMAGE_COLS = "id, image_url, thumbnail_url, sort_order, is_selected, is_starred, client_note, drive_file_id, file_name, file_group, selected_at, starred_at, created_at, width, height, blur_hash, blur_data_url";
 
 /** Server action: paginated images for lazy-load UI */
 export async function getGalleryImagesPaginated(

@@ -280,7 +280,7 @@ function ContractsListInner({
 
   return (
     <>
-      <div className="main-container gap-3!">
+      <div className="main-container gap-3! lg:flex-1 lg:min-h-0 lg:overflow-hidden">
         {/* ── Stats + Action (unified container — same pattern as employees) ── */}
         <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
           <CompactStats stats={displayStats} />
@@ -406,18 +406,17 @@ function ContractsListInner({
               onHover={handleHover}
             />
 
-            {/* ── Pagination ── */}
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onChange={setPage}
-              className="mt-6"
-            />
-
-            {/* ── Footer Count ── */}
-            <p className="text-center text-xs text-text-muted mt-3">
-              Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
-            </p>
+            {/* ── Pagination + Footer (luôn ở dưới đáy) ── */}
+            <div className="mt-4 lg:mt-auto lg:shrink-0 lg:pt-3">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={setPage}
+              />
+              <p className="text-center text-xs text-text-muted mt-3">
+                Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
+              </p>
+            </div>
           </>
         )}
       </div>

@@ -31,12 +31,7 @@ export default function PrintContractClient({
   const templateRef = useRef<HTMLDivElement>(null);
   const autoDownloadStartedRef = useRef(false);
   const [logoUrl, setLogoUrl] = useState(studio.logo_url || DEFAULT_LOGO_URL);
-  const [isPdfReady, setIsPdfReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  useEffect(() => {
-    import("html2pdf.js").then(() => setIsPdfReady(true));
-  }, []);
 
   useEffect(() => {
     const sourceLogo = studio.logo_url || DEFAULT_LOGO_URL;
@@ -124,14 +119,14 @@ export default function PrintContractClient({
   }, [contract.contract_code, isGenerating]);
 
   useEffect(() => {
-    if (!isExportMode || !isPdfReady || autoDownloadStartedRef.current) return;
+    if (!isExportMode || autoDownloadStartedRef.current) return;
 
     autoDownloadStartedRef.current = true;
     const timer = setTimeout(() => {
       void handleDownload();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [handleDownload, isExportMode, isPdfReady]);
+  }, [handleDownload, isExportMode]);
 
   const templateProps = { contract, customer, items, paymentPlans, studio, logoUrl };
 
@@ -153,7 +148,7 @@ export default function PrintContractClient({
               <Button
                 unstyled
                 onClick={handleDownload}
-                disabled={!isPdfReady || isGenerating}
+                disabled={isGenerating}
                 className="btn btn-primary disabled:opacity-50"
               >
                 <Download size={16} />

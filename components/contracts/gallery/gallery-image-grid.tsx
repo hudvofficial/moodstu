@@ -57,7 +57,7 @@ export default function GalleryImageGrid({
     handleImageLoad,
     handleImageError,
     DEFAULT_ASPECT_RATIO,
-  } = useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns: publicMode ? 5 : undefined });
+  } = useMasonryGrid({ groups, hasMoreServer, loadingMore, onLoadMore, maxColumns: publicMode ? 5 : undefined });
 
   if (groups.length === 0) {
     return (

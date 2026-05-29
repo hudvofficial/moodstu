@@ -373,67 +373,32 @@ export async function getGallerySummariesByContract(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const { data: galleries, error } = await supabase
-      .from("galleries")
-      .select("*")
-      .eq("contract_id", contractId)
-      .order("created_at", { ascending: true });
+    // ⚡ OPTIMIZED: Single RPC call (4 queries → 1)
+    const startTime = performance.now();
+    const { data, error } = await supabase.rpc("get_gallery_summaries_by_contract", {
+      p_contract_id: contractId
+    });
+    const duration = Math.round(performance.now() - startTime);
+
+    console.log(`[Gallery RPC] get_gallery_summaries_by_contract in ${duration}ms (${data?.length || 0} galleries)`);
 
     if (error) {
       throw new Error(`Loi lay galleries: ${error.message}`);
     }
 
-    if (!galleries || galleries.length === 0) {
+    if (!data || data.length === 0) {
       return [] as GallerySummary[];
     }
-    const galleryIds = galleries.map((g) => g.id);
 
-    // Optimize N+1 Query: Lấy tất cả ảnh của contract này trong 1 query (cực nhỏ vì chỉ lấy 3 field)
-    const { data: images } = await supabase
-      .from("gallery_images")
-      .select("id, gallery_id, is_selected")
-      .in("gallery_id", galleryIds);
-
-    const { data: links } = await supabase
-      .from("gallery_share_links")
-      .select("id, gallery_id, slug, capability, status, access_version, created_at, updated_at, expires_at, created_by")
-      .eq("status", "active")
-      .in("gallery_id", galleryIds);
-
-    // ⚡ Batch fetch cover images (1 query instead of N queries)
-    const { data: coverImages } = await supabase
-      .from("gallery_images")
-      .select("gallery_id, thumbnail_url, sort_order")
-      .in("gallery_id", galleryIds)
-      .order("sort_order", { ascending: true });
-
-    // Create lookup map: galleryId → first image thumbnail
-    const coverMap = new Map<string, string>();
-    coverImages?.forEach((img) => {
-      if (!coverMap.has(img.gallery_id)) {
-        coverMap.set(img.gallery_id, img.thumbnail_url);
-      }
-    });
-
-    const summaries = galleries.map((gallery) => {
-      // Gom và đếm trên memory Server Node.js (cực nhanh và không tốn roundtrip DB)
-      const gImages = (images || []).filter((img) => img.gallery_id === gallery.id);
-      const imageCount = gImages.length;
-      const selectedCount = gImages.filter((img) => img.is_selected).length;
-      const gLinks = (links || []).filter((link) => link.gallery_id === gallery.id);
-
-      // Get cover image from batched map
-      const coverImageUrl = coverMap.get(gallery.id) || null;
-
-      return {
-        ...gallery,
-        imageCount,
-        selectedCount,
-        coverImageUrl,
-        hasPassword: Boolean(gallery.password_hash || gallery.password),
-        shareLinks: gLinks,
-      };
-    });
+    // Transform RPC result to GallerySummary format
+    const summaries = data.map((gallery: any) => ({
+      ...gallery,
+      imageCount: gallery.image_count || 0,
+      selectedCount: gallery.selected_count || 0,
+      coverImageUrl: gallery.cover_thumbnail || null,
+      hasPassword: Boolean(gallery.password_hash || gallery.password),
+      shareLinks: gallery.share_links || [],
+    }));
 
     return summaries as GallerySummary[];
   });

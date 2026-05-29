@@ -20,10 +20,10 @@ export function TableWrapper({
 }: TableWrapperProps) {
   return (
     <div className={cn(
-      "card-base overflow-x-auto",
+      "card-base overflow-x-auto lg:flex lg:flex-col lg:flex-1 lg:min-h-0",
       containerClassName
     )}>
-      <div className="overflow-x-auto scrollbar-hide">
+      <div className="overflow-x-auto scrollbar-hide lg:overflow-y-auto lg:flex-1 lg:min-h-0">
         <table className={cn("w-full border-collapse text-left", className)}>
           {children}
         </table>
@@ -92,7 +92,7 @@ export function TR({
       onClick={onClick}
       {...props}
       className={cn(
-        "group transition-colors hover:bg-bg-hover h-14 2xl:h-16",
+        "group transition-colors hover:bg-bg-hover h-12 2xl:h-14",
         onClick && "cursor-pointer",
         className
       )}

@@ -69,7 +69,7 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
 
   // Share modal handler
   const handleOpenShare = () => {
-    if (!activeGallery?.access_url) return;
+    if (!activeGallery?.id) return; // Only require galleryId, modal will generate access_url if missing
     openModal("SHARE_GALLERY", {
       accessUrl: activeGallery.access_url,
       customSlug: activeGallery.custom_slug,

@@ -858,6 +858,7 @@ async function queryPaymentReminders(
     .lte("due_date", end)
     .is("contracts.deleted_at", null)
     .neq("contracts.status", "da_huy")
+    .gt("contracts.remaining_amount", 0)
     .order("due_date", { ascending: true })
     .limit(LIST_LIMIT * 3);
 
@@ -946,12 +947,16 @@ async function queryPaymentReminders(
 
     existing.remainingAmount += item.remainingAmount;
     existing.isOverdue = existing.isOverdue || item.isOverdue;
-    existing.milestones = [...(existing.milestones || []), milestone];
-    existing.installmentCount = existing.milestones.length;
-    existing.overdueCount = (existing.overdueCount || 0) + (item.isOverdue ? 1 : 0);
+    
+    // NOTE: Theo logic business, 1 hợp đồng nợ nhiều đợt sẽ chỉ tính là 1 khoản công nợ tổng.
+    // Lấy tên/hạn của đợt cũ nhất (do đã sort theo dueDate). Không push thêm milestone để UI ko hiện "X đợt".
+    if (item.isOverdue && !existing.overdueCount) {
+      existing.overdueCount = 1;
+    }
   }
 
   return Array.from(grouped.values())
+    .filter((item) => item.remainingAmount > 0)
     .sort((left, right) => compareDateAsc(left.dueDate, right.dueDate))
     .slice(0, LIST_LIMIT);
 }

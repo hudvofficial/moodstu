@@ -147,12 +147,13 @@ export function ShareGalleryModalContent({
 
   useEffect(() => {
     if (!safeGalleryId) return;
-    if (localStatus === "shared" && localAccessUrl && shareLinks.length > 0) {
+    // ✅ Real-world pattern: Skip API call if share links already exist (regardless of status)
+    if (localAccessUrl && shareLinks.length > 0) {
       setIsPreparing(false);
       return;
     }
+    // Only call API on first share (when no links exist yet)
     void handlePrepareShare();
-    // Run once per modal open. Local state is updated by handlePrepareShare.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeGalleryId]);
 

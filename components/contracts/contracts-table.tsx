@@ -171,7 +171,7 @@ const DesktopTableRow = memo(function DesktopTableRow({
 
 const DesktopTable = memo(function DesktopTable({ contracts, onView, onHover }: ContractsTableProps) {
   return (
-    <div className="hidden lg:block">
+    <div className="hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
       <TableWrapper>
         <THead>
           <tr>

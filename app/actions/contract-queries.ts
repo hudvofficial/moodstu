@@ -502,9 +502,14 @@ export async function getContractDetail(id: string) {
   return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
+    // ⚡ A/B test: v3 (single-query LATERAL) vs v2 (sequential)
+    // Feature flag: NEXT_PUBLIC_RPC_V3=true to enable v3
+    const useV3 = process.env.NEXT_PUBLIC_RPC_V3 === "true";
+    const rpcFunction = useV3 ? "get_contract_detail_v3" : "get_contract_detail_v2";
+
     // ⚡ Try RPC first for max performance (single request)
     const { data: rpcData, error: rpcError } = await supabase
-      .rpc("get_contract_detail_v2", { p_contract_id: id });
+      .rpc(rpcFunction, { p_contract_id: id });
 
     if (!rpcError && rpcData) {
       const data = rpcData as ContractDetailRpcPayload;
@@ -528,8 +533,9 @@ export async function getContractDetail(id: string) {
       }
     }
 
-    console.warn("[contracts.getContractDetail] get_contract_detail_v2 unavailable; using 8-query fallback", {
+    console.warn(`[contracts.getContractDetail] ${rpcFunction} unavailable; using 8-query fallback`, {
       contractId: id,
+      rpcVersion: useV3 ? "v3" : "v2",
       error: rpcError?.message || "RPC returned invalid data",
     });
 

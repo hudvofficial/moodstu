@@ -10,7 +10,7 @@ import {
 import { useModal } from "@/lib/context/modal-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { GalleryShareDetails, GalleryShareLink } from "@/types/gallery";
+import type { GalleryShareDetails, GalleryShareLink, GallerySummary } from "@/types/gallery";
 import {
   useGalleriesQuery,
   useRetouchProgressQuery,
@@ -119,12 +119,17 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
     deleteMutation.mutate(gallery.id);
   };
 
-  // ─── Share gallery (Update query cache) ────────────────────────
+  // ─── Share gallery: Update cache IMMEDIATELY (synchronous) ────────────────────────
   const handleSharePrepared = useCallback((details: GalleryShareDetails) => {
-    // Note: Share modal will handle cache update via mutation
-    // This is kept for backwards compatibility but can be removed
-    // once share modal is refactored to use React Query
-  }, []);
+    // ✅ SYNCHRONOUS cache update - no refetch delay!
+    queryClient.setQueryData(galleryKeys.list(contractId), (old: any) =>
+      old?.map((g: any) =>
+        g.id === details.galleryId
+          ? { ...g, status: details.status, hasPassword: details.hasPassword, shareLinks: details.shareLinks }
+          : g
+      )
+    );
+  }, [contractId, queryClient]);
 
   const handleShare = (gallery: GalleryRow) => {
     openModal("SHARE_GALLERY", {

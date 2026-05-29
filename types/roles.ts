@@ -20,6 +20,8 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "services",
     "dresses",
     "moodie",
+    "salaries",
+    "goals",
   ],
   manager: [
     "dashboard",
@@ -36,6 +38,8 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
     "services",
     "dresses",
     "moodie",
+    "salaries",
+    "goals",
   ],
   sale: ["dashboard", "contracts", "crm", "calendar", "dresses", "moodie"],
   media: ["dashboard", "productivity", "calendar", "moodie"],

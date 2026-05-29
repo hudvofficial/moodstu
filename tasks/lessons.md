@@ -165,3 +165,9 @@ px eslint FILE �? qua Visual & Syntax Gate tr�?c khi b�n giao.
 99. **SAFARI DOUBLE SAFE-AREA PADDING BUG**: Lỗi double padding cực lớn ở đáy màn hình iOS Safari khi dùng `100dvh` kết hợp `env(safe-area-inset-bottom)`. Safari không tự reset `env()` về 0 khi `100dvh` đã co lên né tab bar. **Cách fix:** Khai báo SSOT `--safe-area-bottom: env(safe-area-inset-bottom)`. Chỉ override thành `0px` thông qua query khắt khe: `@media (pointer: coarse) and (max-width: 1023px) and (display-mode: browser)`. KHÔNG override toàn cục để bảo vệ iPad (tab bar ở trên) và PWA (`standalone`).
 
 100. **BLIND COPYING COMPONENTS (V-GATE VIOLATION)**: TUYỆT ĐỐI KHÔNG BÊ NGUYÊN cấu trúc UI từ V1 sang V2 (ví dụ BottomNav) mà không hiểu AppShell của V2 đang render thế nào. Ở V2, khoảng cách padding đáy được xử lý ở container cha (<AppShell>). Khi tự ý sửa BottomNav.tsx theo V1 mà không xem xét AppShell, toàn bộ layout PWA sẽ bị phá vỡ. **Luôn mở trình duyệt kiểm tra trước và sau mỗi lần sửa theo V-GATE ENFORCEMENT.**
+## Lesson: NO MULTIPLE INSTALLMENTS DEBT
+- Date: 2026-05-29
+- Trigger: User complained about UI showing "2 đợt" (e.g. Cọc, Tất toán) and "2 quá hạn" for a single contract debt in the Payment Reminders dashboard.
+- Mistake: The dashboard API aggregated multiple unpaid payment plans (milestones) for the same contract and accumulated them into an installment array, which caused the UI to render "X đợt" and "X quá hạn", confusing the business logic which sees a single contract debt.
+- Rule Enforced: Business logic for debt: "1 hợp đồng nợ nhiều đợt sẽ chỉ tính là 1 khoản công nợ tổng".
+- Action: When grouping debts by contract ID, sum the total remaining amount but DO NOT push multiple stages into a milestones array or increment installment/overdue counters beyond 1. Only keep the earliest unpaid milestone's stageName and dueDate.

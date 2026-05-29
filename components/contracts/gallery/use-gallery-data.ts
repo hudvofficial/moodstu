@@ -180,10 +180,12 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
         loadingMore,
         hasMoreImages,
         currentImages: paginatedImages.length,
-        totalCount: totalImageCount
+        totalCount: totalImageCount,
+        reason: !activeGalleryId ? 'NO_GALLERY' : loadingMore ? 'ALREADY_LOADING' : 'NO_MORE_DATA'
       });
       return;
     }
+    console.log('[useGalleryData] 🔄 LOAD MORE STARTING...');
     setLoadingMore(true);
 
     // Calculate exact page based on loaded images to avoid overlapping offsets when pageSize changes
@@ -216,6 +218,20 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
 
+  // Diagnostic: Check Drive file completeness
+  useEffect(() => {
+    const missingDriveId = images.filter(i => !i.drive_file_id);
+    const missingDimensions = images.filter(i => !i.width || !i.height);
+    if (missingDriveId.length > 0 || missingDimensions.length > 0) {
+      console.warn('[useGalleryData] ⚠️ INCOMPLETE DATA:', {
+        totalImages: images.length,
+        missingDriveId: missingDriveId.length,
+        missingDimensions: missingDimensions.length,
+        groups: groupedImages.length,
+      });
+    }
+  }, [images, groupedImages.length]);
+
   // ─── Debug logs ─────────────────────────────
   useEffect(() => {
     const debugData = {
@@ -224,6 +240,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
       groupedImagesLength: groupedImages.length,
       totalImageCount,
       hasMoreImages,
+      loadingMore,
       fileFilter,
       activeFilter,
       activeAlbumId,
@@ -231,9 +248,10 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     console.log('[useGalleryData] 📊 STATE:',
       `Images: ${debugData.paginatedImagesLength} → Groups: ${debugData.groupedImagesLength}`,
       `Total: ${debugData.totalImageCount}`,
-      `HasMore: ${debugData.hasMoreImages}`
+      `HasMore: ${debugData.hasMoreImages}`,
+      `Loading: ${debugData.loadingMore}`
     );
-  }, [activeGalleryId, paginatedImages.length, groupedImages.length, totalImageCount, hasMoreImages, fileFilter, activeFilter, activeAlbumId]);
+  }, [activeGalleryId, paginatedImages.length, groupedImages.length, totalImageCount, hasMoreImages, loadingMore, fileFilter, activeFilter, activeAlbumId]);
 
   // ─── Smart Prefetch (Phase 2) ──────────────
   const { prefetchedPages } = usePrefetchGallery(
@@ -349,6 +367,7 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
           access_url: details.accessUrl,
           status: details.status,
           hasPassword: details.hasPassword,
+          shareLinks: details.shareLinks, // ✅ Update share links!
           shared_at: gallery.shared_at || new Date().toISOString(),
         }
         : gallery,

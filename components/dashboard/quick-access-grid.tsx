@@ -19,6 +19,8 @@ const MODULE_COLORS: Record<string, { bg: string; text: string }> = {
   employees: { bg: "bg-slate-100", text: "text-slate-600" },
   settings: { bg: "bg-stone-100", text: "text-stone-600" },
   moodie: { bg: "bg-violet-50", text: "text-violet-600" },
+  salaries: { bg: "bg-green-50", text: "text-green-600" },
+  goals: { bg: "bg-sky-50", text: "text-sky-600" },
 };
 
 const DEFAULT_COLOR = { bg: "bg-primary/10", text: "text-primary" };

@@ -32,11 +32,12 @@ function resolveColumnCount(width: number, tileMin: number, gutter: number, maxC
 interface UseMasonryGridProps {
   groups: ImageGroup[];
   hasMoreServer?: boolean;
+  loadingMore?: boolean;
   onLoadMore?: () => void;
   maxColumns?: number;
 }
 
-export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns = MAX_COLUMNS }: UseMasonryGridProps) {
+export function useMasonryGrid({ groups, hasMoreServer, loadingMore, onLoadMore, maxColumns = MAX_COLUMNS }: UseMasonryGridProps) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
   const [columnCount, setColumnCount] = useState(() => {
     if (typeof window !== "undefined") {
@@ -142,11 +143,11 @@ export function useMasonryGrid({ groups, hasMoreServer, onLoadMore, maxColumns =
 
   // Auto-trigger onLoadMore if all local images rendered but server has more
   useEffect(() => {
-    if (visibleCount >= groups.length && hasMoreServer && onLoadMore && !hasMoreLocal) {
+    if (visibleCount >= groups.length && hasMoreServer && onLoadMore && !hasMoreLocal && !loadingMore) {
       console.log('[useMasonryGrid] ⚡ AUTO-TRIGGER: All local images rendered, fetching next page');
       onLoadMore();
     }
-  }, [visibleCount, groups.length, hasMoreServer, onLoadMore, hasMoreLocal]);
+  }, [visibleCount, groups.length, hasMoreServer, onLoadMore, hasMoreLocal, loadingMore]);
 
   const columnGroups = useMemo(() => {
     const columns = Array.from({ length: columnCount }, () => [] as Array<{ group: ImageGroup; index: number }>);
