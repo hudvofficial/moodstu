@@ -170,16 +170,18 @@ export function BottomNav({ role, className }: BottomNavProps) {
         </div>
       )}
 
-      {/* Bottom Nav Bar — SOLID bg (no transparency/blur). A solid bar fully
-          covers the iOS safe-area under the home indicator, so the cream body
-          canvas never shows a seam. Pattern proven in v1 + mcoffe. */}
+      {/* Bottom Nav Bar — SOLID bg + NATURAL height (v1 pattern). No forced inner
+          height: a fixed 56px row would center the icons and leave dead white
+          space below them, which together with the safe-area pad reads as a gap
+          above the home indicator. Instead: pt-2 on top, content height in the
+          middle, pb carries the iOS safe-area — so icons sit snug like v1. */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 shrink-0 w-full bg-bg-card border-t border-border shadow-bottom-nav px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 w-full bg-bg-card border-t border-border shadow-bottom-nav px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           className
         )}
       >
-        <div className="flex items-center justify-around h-(--bottom-nav-h) w-full">
+        <div className="flex items-center justify-around w-full">
           {navItems.map((item) => {
             const isActive = isItemActive(pathname, item, true);
             const isPending = pendingHref === item.href;
@@ -194,7 +196,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
                 onFocus={() => warmRoute(item.href)}
                 onClick={(e) => handleNavClick(e, item.href, isActive)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 h-full py-1 rounded-lg",
+                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 rounded-lg",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                   isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
                 )}
@@ -225,7 +227,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
             onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 h-full py-1 cursor-pointer rounded-lg",
+              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer rounded-lg",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
               showMore || moreActive
                 ? "text-primary"
