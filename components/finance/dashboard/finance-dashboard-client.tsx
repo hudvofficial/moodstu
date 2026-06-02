@@ -208,7 +208,7 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   const isBootstrapping = !props.initialMetrics && metrics.isLoading;
 
   return (
-    <div className="main-container gap-3!">
+    <div className="main-container gap-3!" suppressHydrationWarning>
       {/* ── Tổng quan tài chính: Snapshot Hiện Tại ── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-sm">
         <div className="flex-1 min-w-0">
@@ -224,12 +224,12 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
 
       <SmartDashboardBanner />
 
-      <section className="entrance entrance-2 mt-4">
+      <section className="entrance entrance-2 mt-4" suppressHydrationWarning>
         {showDeferredSections ? <ProfitReportTable initialData={props.initialProfit} /> : <ProfitReportSkeleton />}
       </section>
 
-      <section className="space-y-4 entrance entrance-3 mt-4">
-        <div className="flex flex-row items-center justify-between gap-2 lg:gap-3">
+      <section className="space-y-4 entrance entrance-3 mt-4" suppressHydrationWarning>
+        <div className="flex flex-row items-center justify-between gap-2 lg:gap-3" suppressHydrationWarning>
           <h2 className="section-title min-w-0 truncate">Trí tuệ Tài chính & Báo cáo</h2>
           <FinanceFilters
             month={month}
@@ -260,7 +260,7 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
         </div>
       </section>
 
-      <section className="space-y-4 entrance entrance-4 mt-4">
+      <section className="space-y-4 entrance entrance-4 mt-4" suppressHydrationWarning>
         <h2 className="section-title">Cập nhật mới nhất</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {!showDeferredSections && !props.initialUpcoming ? (

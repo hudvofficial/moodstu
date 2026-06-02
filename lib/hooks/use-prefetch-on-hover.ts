@@ -8,7 +8,7 @@ import type { Arguments } from "swr";
 import { getContractList } from "@/app/actions/contract-queries";
 import { getEmployeeList } from "@/app/actions/employee-queries";
 import { getServices } from "@/app/actions/service-queries";
-import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
+import { getLeadsBootstrap } from "@/app/actions/lead-actions";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
 import { cacheKeys } from "@/lib/swr";
@@ -119,28 +119,23 @@ function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | nu
   }
 
   if (route === "/crm/leads") {
+    // Key + payload phải khớp bootstrapQuery trong lead-list-page.tsx (list + stats
+    // chung 1 entry) để hover→mở trang là cache-hit, không gọi lại server.
     return [
       {
         key: [cacheKeys.leads(), "", "", "", "", "1", "50"],
         fetcher: async () => {
-          const result = await getLeads({ page: 1, pageSize: 50 });
+          const result = await getLeadsBootstrap({ page: 1, pageSize: 50 });
           if (!result.success) throw new Error(result.error);
           return {
             leads: result.data.leads,
             total: result.data.total,
             page: result.data.page,
             pageSize: result.data.pageSize,
+            stats: result.data.stats,
           };
         },
       },
-      {
-        key: `${cacheKeys.leads()}:stats`,
-        fetcher: async () => {
-          const result = await getLeadStats();
-          if (!result.success) throw new Error(result.error);
-          return result.data;
-        },
-      }
     ];
   }
 

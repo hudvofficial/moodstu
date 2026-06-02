@@ -60,6 +60,32 @@ const nextConfig: NextConfig = {
 
   // 📦 Browser Cache Headers
   async headers() {
+    const staticAssetRules = isDev
+      ? []
+      : [
+          {
+            source: "/workbox-:hash.js",
+            headers: [
+              {
+                key: "Cache-Control",
+                value: "public, max-age=31536000, immutable",
+              },
+            ],
+          },
+          {
+            // Static assets (JS, CSS) — cache 1 năm (hashed = immutable).
+            // Dev mode tắt: chunk hash đổi mỗi rebuild, browser pin chunk cũ
+            // sẽ gây lỗi "module factory is not available" khi HMR.
+            source: "/_next/static/:path*",
+            headers: [
+              {
+                key: "Cache-Control",
+                value: "public, max-age=31536000, immutable",
+              },
+            ],
+          },
+        ];
+
     return [
       {
         // Service worker must be checked often so mobile clients update quickly.
@@ -73,15 +99,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/workbox-:hash.js",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
         source: "/manifest.json",
         headers: [
           {
@@ -90,16 +107,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // Static assets (JS, CSS) — cache 1 năm (hashed = immutable)
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      ...staticAssetRules,
       {
         // Images — cache 1 năm
         source: "/images/:path*",

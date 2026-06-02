@@ -1,5 +1,4 @@
-import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
-import { LeadStatus, CrmLead } from "@/types/crm";
+import { LeadStatus } from "@/types/crm";
 import LeadListPage from "@/components/crm/lead-list-page";
 
 export const metadata = { title: "Lead CRM" };

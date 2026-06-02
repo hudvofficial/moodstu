@@ -28,11 +28,20 @@ export const LEAD_STATUSES = ["moi", "da_lien_he", "hen_gap", "da_bao_gia", "da_
 export const LEAD_POTENTIALS = ["hot", "warm", "cold"] as const;
 export const LEAD_SOURCES = ["facebook", "zalo", "walk_in", "referral", "website", "tiktok"] as const;
 
+// ⚠️ Zod 4: union chứa z.undefined() KHÔNG làm field optional khi key vắng mặt
+// (báo "expected nonoptional, received undefined"). Phải dùng .optional() ở cuối.
+// transform vẫn chuẩn hoá ""/null -> undefined. Đây là regression khi nâng Zod 3 → 4.
 const NullableEnum = (values: readonly [string, ...string[]]) =>
-  z.union([z.enum(values), z.literal(""), z.undefined(), z.null()]).transform((val) => (val === "" || val === null ? undefined : val));
+  z
+    .union([z.enum(values), z.literal(""), z.null()])
+    .transform((val) => (val === "" || val === null ? undefined : val))
+    .optional();
 
 const NullableUuid = (message: string) =>
-  z.union([z.string().uuid(message), z.literal(""), z.undefined(), z.null()]).transform((val) => (val === "" || val === null ? undefined : val));
+  z
+    .union([z.string().uuid(message), z.literal(""), z.null()])
+    .transform((val) => (val === "" || val === null ? undefined : val))
+    .optional();
 
 const ZodPage = z.coerce.number().int().min(1).optional();
 const ZodPageSize = z.coerce.number().int().min(1).max(100).optional();

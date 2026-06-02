@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, FilterX, Kanban, List, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
-import { getLeads, getLeadStats } from "@/app/actions/lead-actions";
+import { getLeadsBootstrap } from "@/app/actions/lead-actions";
 import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
 import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
@@ -55,6 +55,19 @@ const LEAD_VIEW_ITEMS = [
   { value: "kanban", label: "Kanban", icon: Kanban },
 ] as const;
 
+// 🛡️ Thin-shell route truyền stats=undefined; bootstrapQuery có thể chưa resolve
+// (hoặc lỗi) khi mở trang. Không có default an toàn ở đây sẽ gây crash
+// "Cannot read properties of undefined (reading 'bySource')" → vòng lặp
+// ErrorBoundary (nhìn như tự refresh). Luôn có object hợp lệ để render.
+const EMPTY_LEAD_STATS: LeadStats = {
+  total: 0,
+  active: 0,
+  closed: 0,
+  conversionRate: 0,
+  byStatus: {},
+  bySource: {},
+};
+
 export default function LeadListPage({
   leads: initialLeads,
   stats: initialStats,
@@ -92,7 +105,12 @@ export default function LeadListPage({
     [initialLeads, initialTotal, initialPage, initialPageSize],
   );
 
-  const listQuery = useSWR(
+  // ⚡ Một SWR query gộp list + stats qua getLeadsBootstrap → 1 POST (1 lần auth)
+  // thay cho 2 POST (getLeads + getLeadStats) trước đây. Key trùng với prefetch
+  // on-hover ([leads, search, status, source, assigned, page, pageSize]) nên khi
+  // hover nav đã warm cache, mở trang là cache-hit cả list lẫn stats. Stats nằm
+  // chung payload; keepPreviousData (mặc định) giữ stats ổn định khi đổi trang.
+  const bootstrapQuery = useSWR(
     [
       cacheKeys.leads(),
       search || "",
@@ -103,7 +121,7 @@ export default function LeadListPage({
       String(initialPageSize),
     ],
     async () => {
-      const result = await getLeads({
+      const result = await getLeadsBootstrap({
         search,
         status,
         source,
@@ -117,31 +135,22 @@ export default function LeadListPage({
         total: result.data.total,
         page: result.data.page,
         pageSize: result.data.pageSize,
+        stats: result.data.stats,
       };
     },
-    { fallbackData: fallbackList },
+    { fallbackData: { ...fallbackList, stats: initialStats } },
   );
 
-  const statsQuery = useSWR(
-    `${cacheKeys.leads()}:stats`,
-    async () => {
-      const result = await getLeadStats();
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    { fallbackData: initialStats },
-  );
-
-  const listData = listQuery.data || fallbackList;
+  const listData = bootstrapQuery.data || { ...fallbackList, stats: initialStats };
   const leads = listData.leads;
-  const stats = statsQuery.data || initialStats;
+  const stats = listData.stats || initialStats || EMPTY_LEAD_STATS;
   const total = listData.total;
   const page = listData.page;
   const pageSize = listData.pageSize;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // Xác định trạng thái loading (chưa có data + đang fetch)
-  const isDataLoading = listQuery.isLoading || (!listQuery.data && !listQuery.error && initialLeads.length === 0);
+  const isDataLoading = bootstrapQuery.isLoading || (!bootstrapQuery.data && !bootstrapQuery.error && initialLeads.length === 0);
 
   const scheduleRefresh = useCallback(
     (delay = 0) => {

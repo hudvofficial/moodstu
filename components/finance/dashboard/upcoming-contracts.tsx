@@ -10,7 +10,7 @@ interface UpcomingContractsProps {
 
 export function UpcomingContracts({ data }: UpcomingContractsProps) {
   return (
-    <div className="card-base p-4">
+    <div className="card-base p-4" suppressHydrationWarning>
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <div className="icon-box bg-info/10">

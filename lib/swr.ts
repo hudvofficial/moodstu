@@ -157,13 +157,14 @@ function cacheKeyMatchesPrefix(key: unknown, prefix: string) {
   );
 }
 
-/** Revalidate all SWR entries under a namespace, including array keys like [namespace, filters]. */
+/** Revalidate all SWR entries under a namespace, including array keys like [namespace, filters].
+ *  KHÔNG truyền data=undefined kèm revalidate — nếu truyền, SWR sẽ xoá cache ngay
+ *  trước khi refetch xong, làm component thấy data=undefined trong khoảng giữa và
+ *  flash skeleton (gây "auto-refresh" trên trang list). */
 export async function revalidateByPrefixes(prefixes: string | string[]) {
   const list = Array.isArray(prefixes) ? prefixes : [prefixes];
-  await mutate(
-    (key: unknown) => list.some((prefix) => cacheKeyMatchesPrefix(key, prefix)),
-    undefined,
-    { revalidate: true },
+  await mutate((key: unknown) =>
+    list.some((prefix) => cacheKeyMatchesPrefix(key, prefix)),
   );
 }
 

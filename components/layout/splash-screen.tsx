@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+// Removed Next/Image to prevent hydration mismatch on injected attributes
 
 export function SplashScreen() {
   const [show, setShow] = useState(true);
@@ -47,7 +47,7 @@ export function SplashScreen() {
       className={fadeOut ? "fade-out" : ""}
       suppressHydrationWarning
     >
-      <Image src="/logo.png" alt="Mood Studio" width={80} height={80} priority />
+      <img src="/logo.png" alt="Mood Studio" width={80} height={80} />
     </div>
   );
 }

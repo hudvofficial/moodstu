@@ -94,6 +94,17 @@ export function useRealtime(
         return;
       }
 
+      // 🛡️ StrictMode (dev) mount→unmount→remount: cleanup gọi removeChannel
+      // là async và chưa kịp hoàn tất, nên supabase.channel(name) lần 2 trả về
+      // channel CŨ đã subscribe → .on() sau subscribe() throw
+      // "cannot add postgres_changes callbacks ... after subscribe()".
+      // Dọn sạch channel trùng topic trước khi tạo mới.
+      const topic = `realtime:${channelName}`;
+      const stale = supabase.getChannels().filter((c) => c.topic === topic);
+      if (stale.length > 0) {
+        await Promise.all(stale.map((c) => supabase.removeChannel(c)));
+      }
+
       channel = supabase.channel(channelName);
 
       const handler = (payload: RealtimePayload) => {

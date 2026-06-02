@@ -73,7 +73,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   }, [isMobile]);
 
   return (
-    <div className="app-shell-viewport flex bg-bg-base overflow-hidden">
+    <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
       <NavigationWarmup role={role} />
       <NavigationProgress />
 

@@ -47,7 +47,7 @@ function EmptyState({ message }: { message: string }) {
 
 export function UpcomingEventsList({ events, canView }: UpcomingEventsListProps) {
   return (
-    <div className="card-base p-5 entrance entrance-5">
+    <div className="card-base p-5 entrance entrance-5" suppressHydrationWarning>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-info/10">

@@ -2,6 +2,7 @@
 
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LeadStatus, CrmLead } from "@/types/crm";
 import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
 import { format } from "date-fns";
@@ -48,6 +49,34 @@ function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
 }
 
+/**
+ * 🔒 Lead visibility scope. A `sale` only sees their own leads plus unassigned
+ * (claimable) ones; admin/manager see everything. Applied to list queries so the
+ * count/list match what the user is allowed to see.
+ */
+function applyLeadVisibilityScope<Q extends { or(filter: string): Q }>(
+  query: Q,
+  role: string,
+  employeeId: string,
+): Q {
+  if (role === "sale") {
+    return query.or(`assigned_to.eq.${employeeId},assigned_to.is.null`);
+  }
+  return query;
+}
+
+/** A `sale` may only read/mutate a lead assigned to them or still unassigned. */
+function assertLeadVisibleToRole(
+  role: string,
+  employeeId: string,
+  currentAssignedTo: string | null | undefined,
+) {
+  if (role !== "sale") return;
+  if (currentAssignedTo && currentAssignedTo !== employeeId) {
+    throw new Error("Bạn không có quyền truy cập lead đã giao cho nhân viên khác.");
+  }
+}
+
 function assertLeadAssignmentAllowed(params: {
   role: string;
   currentEmployeeId: string;
@@ -87,36 +116,50 @@ function assertLeadStatusTransitionAllowed(
 
 // ----------------------------------------------------
 
-export async function getLeads(params: {
+type LeadFilterParams = {
   search?: string; status?: LeadStatus; source?: string; assigned_to?: string; page?: number; pageSize?: number;
-}): Promise<ActionResult<{ leads: unknown[]; total: number; page: number; pageSize: number }>> {
+};
+type LeadListResult = { leads: unknown[]; total: number; page: number; pageSize: number };
+
+/** Core list query (no auth wrapper) — shared by getLeads and getLeadsBootstrap. */
+async function queryLeads(
+  supabase: SupabaseClient,
+  role: string,
+  employeeId: string,
+  params: LeadFilterParams,
+): Promise<LeadListResult> {
+  const parsed = ZodLeadFilter.safeParse(params);
+  if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
+
+  const page = parsed.data.page || 1;
+  const pageSize = parsed.data.limit || parsed.data.pageSize || 50;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase.from("crm_leads").select(LEAD_LIST_FIELDS, { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
+  if (parsed.data.search) {
+    const s = escapeSearch(parsed.data.search);
+    query = query.or(`contact_name.ilike.%${s}%,phone.ilike.%${s}%`);
+  }
+  if (parsed.data.status) query = query.eq("status", parsed.data.status);
+  if (parsed.data.source) query = query.eq("source", parsed.data.source);
+  if (parsed.data.assigned_to) {
+    if (parsed.data.assigned_to === "unassigned") query = query.is("assigned_to", null);
+    else if (parsed.data.assigned_to === "me") query = query.eq("assigned_to", employeeId);
+    else query = query.eq("assigned_to", parsed.data.assigned_to);
+  }
+  // 🔒 Sale chỉ thấy lead của mình + lead chưa giao. Admin/manager thấy tất cả.
+  query = applyLeadVisibilityScope(query, role, employeeId);
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return { leads: data || [], total: count || 0, page, pageSize };
+}
+
+export async function getLeads(params: LeadFilterParams): Promise<ActionResult<LeadListResult>> {
   return withAuth(async (supabase, userId) => {
-    const { employee } = await requireCrmAccess(supabase, userId);
-    
-    const parsed = ZodLeadFilter.safeParse(params);
-    if (!parsed.success) throw new Error("Tham số lọc không hợp lệ");
-    
-    const page = parsed.data.page || 1;
-    const pageSize = parsed.data.limit || parsed.data.pageSize || 50;
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase.from("crm_leads").select(LEAD_LIST_FIELDS, { count: "exact" }).is("deleted_at", null).order("created_at", { ascending: false }).range(from, to);
-    if (parsed.data.search) {
-      const s = escapeSearch(parsed.data.search);
-      query = query.or(`contact_name.ilike.%${s}%,phone.ilike.%${s}%`);
-    }
-    if (parsed.data.status) query = query.eq("status", parsed.data.status);
-    if (parsed.data.source) query = query.eq("source", parsed.data.source);
-    if (parsed.data.assigned_to) {
-      if (parsed.data.assigned_to === "unassigned") query = query.is("assigned_to", null);
-      else if (parsed.data.assigned_to === "me") query = query.eq("assigned_to", employee.id);
-      else query = query.eq("assigned_to", parsed.data.assigned_to);
-    }
-
-    const { data, count, error } = await query;
-    if (error) throw error;
-    return { leads: data || [], total: count || 0, page, pageSize };
+    const { employee, role } = await requireCrmAccess(supabase, userId);
+    return queryLeads(supabase, role, employee.id, params);
   });
 }
 
@@ -180,6 +223,8 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
       recordId: newLead.id,
       oldData: undefined,
       newData: insertData,
+      performedBy: userId,
+      employeeId: employee.id,
     });
 
     revalidatePath("/crm/leads");
@@ -203,9 +248,21 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     const { data: oldData, error: oldError } = await supabase.from("crm_leads").select("*").eq("id", tData.id).is("deleted_at", null).single();
     if (oldError || !oldData) throw new Error("Không tìm thấy lead hoặc lead đã bị xóa");
 
-    // Optimistic Locking Check
+    // 🔒 Sale không được sửa lead đã giao cho người khác.
+    assertLeadVisibleToRole(role, employee.id, oldData.assigned_to);
+
+    // Optimistic Locking Check (early, friendly message for stale client)
     if (tData.expectedUpdatedAt && oldData.updated_at && new Date(oldData.updated_at).getTime() > new Date(tData.expectedUpdatedAt).getTime()) {
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
+    }
+
+    // Duplicate-phone guard on change (parity with createLead; closes the create→edit bypass).
+    const nextPhone = tData.phone?.trim();
+    if (nextPhone && nextPhone !== (oldData.phone || "")) {
+      const { data: dup } = await supabase.from("crm_leads").select("id, contact_name").eq("phone", nextPhone).neq("status", "huy").is("deleted_at", null).neq("id", tData.id).limit(1);
+      if (dup && dup.length > 0) {
+        throw new Error(`SĐT này đã tồn tại (${dup[0].contact_name}). Vui lòng kiểm tra lại.`);
+      }
     }
 
     const now = new Date().toISOString();
@@ -240,16 +297,27 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     if (tData.tags !== undefined) updateData.tags = tData.tags || [];
     if (tData.score !== undefined) updateData.score = tData.score || 0;
 
-    const { error } = await supabase.from("crm_leads").update(updateData).eq("id", tData.id);
+    // ⚙️ Atomic optimistic lock: only write if the row hasn't changed since we read it.
+    // Closes the TOCTOU lost-update window (read → compare → write was non-atomic).
+    const { data: updatedRows, error } = await supabase
+      .from("crm_leads")
+      .update(updateData)
+      .eq("id", tData.id)
+      .eq("updated_at", oldData.updated_at)
+      .select("id");
     if (error) throw error;
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
+    }
 
     await writeAuditLog({
       action: "UPDATE",
       tableName: "crm_leads",
       recordId: tData.id,
-      
       oldData: oldData,
       newData: updateData,
+      performedBy: userId,
+      employeeId: employee.id,
     });
 
     revalidatePath("/crm/leads");
@@ -261,8 +329,8 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
 
 export async function deleteLead(id: string): Promise<ActionResult<null>> {
   return withAuth(async (supabase, userId) => {
-    const { role } = await requireCrmAccess(supabase, userId);
-    
+    const { employee, role } = await requireCrmAccess(supabase, userId);
+
     if (role !== "admin" && role !== "manager") {
       throw new Error("Chỉ tài khoản Quản lý mới được xóa lead");
     }
@@ -285,9 +353,10 @@ export async function deleteLead(id: string): Promise<ActionResult<null>> {
       action: "DELETE",
       tableName: "crm_leads",
       recordId: id,
-      
       oldData: oldData,
       newData: updateData, // Capturing the deletion timestamp
+      performedBy: userId,
+      employeeId: employee.id,
     });
 
     revalidatePath("/crm/leads");
@@ -299,55 +368,102 @@ export async function deleteLead(id: string): Promise<ActionResult<null>> {
 
 export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
   return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+    const { employee: actor, role } = await requireCrmAccess(supabase, userId);
     const parsed = ZodUuidId.safeParse({ id });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "ID không hợp lệ");
 
-    const { data, error } = await supabase.from("crm_leads").select("*").eq("id", id).is("deleted_at", null).single();
+    // Single round-trip: embed the assigned employee (FK crm_leads.assigned_to → employees.id).
+    const { data, error } = await supabase
+      .from("crm_leads")
+      .select("*, employees:assigned_to ( id, full_name )")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
     if (error) throw error;
     if (!data) throw new Error("Không tìm thấy lead");
 
-    // Fetch employee separately — no FK dependency
-    let employee: { id: string; full_name: string } | null = null;
-    if (data.assigned_to) {
-      const { data: emp, error: empError } = await supabase
-        .from("employees")
-        .select("id, full_name")
-        .eq("id", data.assigned_to)
-        .maybeSingle();
-      if (empError) throw empError;
-      employee = emp ?? null;
-    }
+    // 🔒 Sale may only open their own / unassigned leads.
+    assertLeadVisibleToRole(role, actor.id, (data as { assigned_to?: string | null }).assigned_to);
 
-    return { ...data, employees: employee } as CrmLead;
+    return data as CrmLead;
   });
 }
 
 // ----------------------------------------------------
 
-export async function getLeadStats(): Promise<ActionResult<{ total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number>; bySource: Record<string, number> }>> {
-  return withAuth(async (supabase, userId) => {
-    await requireCrmAccess(supabase, userId);
+type LeadStatsResult = { total: number; active: number; closed: number; conversionRate: number; byStatus: Record<string, number>; bySource: Record<string, number> };
 
+/** Core stats (no auth wrapper). Admin/manager use the fast RPC; sale aggregates the
+ *  scoped (own + unassigned) set in TS so stats match the visible list. */
+async function getLeadStatsScoped(
+  supabase: SupabaseClient,
+  role: string,
+  employeeId: string,
+): Promise<LeadStatsResult> {
+  if (role !== "sale") {
     const { data, error } = await supabase.rpc("get_crm_lead_stats");
     if (error) throw error;
-
-    const stats = data as {
-      total?: number;
-      active?: number;
-      closed?: number;
-      conversionRate?: number;
-      byStatus?: Record<string, number>;
-      bySource?: Record<string, number>;
-    };
+    const stats = (data || {}) as Partial<LeadStatsResult>;
     return {
       total: stats.total || 0,
       active: stats.active || 0,
       closed: stats.closed || 0,
       conversionRate: stats.conversionRate || 0,
       byStatus: stats.byStatus || {},
-      bySource: stats.bySource || {}
+      bySource: stats.bySource || {},
     };
+  }
+
+  const { data, error } = await supabase
+    .from("crm_leads")
+    .select("status, source")
+    .is("deleted_at", null)
+    .or(`assigned_to.eq.${employeeId},assigned_to.is.null`);
+  if (error) throw error;
+
+  const rows = (data || []) as { status: string | null; source: string | null }[];
+  const byStatus: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
+  for (const r of rows) {
+    const st = r.status || "unknown";
+    byStatus[st] = (byStatus[st] || 0) + 1;
+    const src = r.source && r.source.trim() ? r.source : "Khac";
+    bySource[src] = (bySource[src] || 0) + 1;
+  }
+  const total = rows.length;
+  const closed = byStatus["da_chot"] || 0;
+  const cancelled = byStatus["huy"] || 0;
+  return {
+    total,
+    active: total - closed - cancelled,
+    closed,
+    conversionRate: total > 0 ? Math.round((closed / total) * 100) : 0,
+    byStatus,
+    bySource,
+  };
+}
+
+export async function getLeadStats(): Promise<ActionResult<LeadStatsResult>> {
+  return withAuth(async (supabase, userId) => {
+    const { employee, role } = await requireCrmAccess(supabase, userId);
+    return getLeadStatsScoped(supabase, role, employee.id);
+  });
+}
+
+/**
+ * ⚡ Combined bootstrap for the leads page: one auth + parallel list/stats in a single
+ * server action, replacing two separate POSTs that each re-ran auth + the employee lookup.
+ */
+export async function getLeadsBootstrap(
+  params: LeadFilterParams,
+): Promise<ActionResult<LeadListResult & { stats: LeadStatsResult }>> {
+  return withAuth(async (supabase, userId) => {
+    const { employee, role } = await requireCrmAccess(supabase, userId);
+    const [list, stats] = await Promise.all([
+      queryLeads(supabase, role, employee.id, params),
+      getLeadStatsScoped(supabase, role, employee.id),
+    ]);
+    return { ...list, stats };
   });
 }
 

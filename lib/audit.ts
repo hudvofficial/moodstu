@@ -41,26 +41,29 @@ interface BaseLogParams {
   logType?: LogType;
   severity?: Severity;
   source?: LogSource;
+  /** auth.users.id of the actor — pass from the server action (do NOT read cookies() here). */
+  performedBy?: string | null;
+  /** employees.id of the actor, when known. */
+  employeeId?: string | null;
 }
 
 // ─── Core: writeAuditLog ─────────────────
 export async function writeAuditLog(params: BaseLogParams) {
   try {
     // ❌ DO NOT use createClient() or supabase.auth.getUser() here!
-    // This runs in a floating Promise in Server Actions. Calling cookies() 
-    // after the action has returned will cause Next.js to throw "Dynamic server usage" 
+    // This runs in a floating Promise in Server Actions. Calling cookies()
+    // after the action has returned will cause Next.js to throw "Dynamic server usage"
     // and abort concurrent RSC streams, leading to weird UI redirects.
-    // Instead, if we really need the user, we should pass it via params.
-    // For now, we will fallback to a system user or null to prevent the crash.
-    
-    let employeeId: string | null = null;
-    let userId: string | null = null; // We can add userId to BaseLogParams later if needed
-    
+    // The actor MUST be passed in via params (performedBy/employeeId) by the caller,
+    // which already has it in scope — we never resolve it from cookies here.
+    const employeeId: string | null = params.employeeId ?? null;
+    const userId: string | null = params.performedBy ?? null;
+
     // We can still safely use createAdminClient because it doesn't read cookies()!
     const adminSupabase = await createAdminClient();
 
     await adminSupabase.from("audit_logs").insert({
-      performed_by: userId || null,
+      performed_by: userId,
       employee_id: employeeId,
       action: params.action,
       table_name: params.tableName,

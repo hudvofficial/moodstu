@@ -36,8 +36,22 @@ function getConnection(): NetworkInformation | undefined {
   return navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 }
 
+const SERVER_STATE: NetworkQualityState = {
+  quality: "unknown",
+  effectiveType: "unknown",
+  downlink: 10,
+  rtt: 50,
+  saveData: false,
+  isSlowNetwork: false,
+  isOnline: true,
+};
+
 function getNetworkState(): NetworkQualityState {
-  const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+  if (typeof navigator === "undefined") {
+    return SERVER_STATE;
+  }
+
+  const isOnline = navigator.onLine;
 
   if (!isOnline) {
     return {
@@ -54,15 +68,7 @@ function getNetworkState(): NetworkQualityState {
   const connection = getConnection();
 
   if (!connection) {
-    return {
-      quality: "unknown",
-      effectiveType: "unknown",
-      downlink: 10,
-      rtt: 50,
-      saveData: false,
-      isSlowNetwork: false,
-      isOnline: true,
-    };
+    return SERVER_STATE;
   }
 
   const effectiveType = connection.effectiveType;
@@ -80,13 +86,17 @@ function getNetworkState(): NetworkQualityState {
 }
 
 export function useNetworkQuality(): NetworkQualityState {
-  const [state, setState] = useState<NetworkQualityState>(() => getNetworkState());
+  // Initialize with server state to prevent hydration mismatches
+  const [state, setState] = useState<NetworkQualityState>(SERVER_STATE);
 
   const updateState = useCallback(() => {
     setState(getNetworkState());
   }, []);
 
   useEffect(() => {
+    // Set actual client state after mount
+    updateState();
+
     const connection = getConnection();
 
     window.addEventListener("online", updateState);
