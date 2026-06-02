@@ -17,9 +17,17 @@ interface PullToRefreshProviderProps {
   children: ReactNode;
   scrollRef: RefObject<HTMLElement | null>;
   disabled?: boolean;
+  /**
+   * When true, append a flex-child spacer after children so the scroll area
+   * extends past the fixed bottom-nav on mobile. Required because main's
+   * `padding-bottom` does NOT contribute to scrollHeight when the inner
+   * flex-1/min-h-0 child has overflowing content (the page-wrapper case).
+   * See memory: ios-safe-area-cream-seam.md (Bug #4).
+   */
+  bottomNavSpacer?: boolean;
 }
 
-export function PullToRefreshProvider({ children, scrollRef, disabled }: PullToRefreshProviderProps) {
+export function PullToRefreshProvider({ children, scrollRef, disabled, bottomNavSpacer }: PullToRefreshProviderProps) {
   const [refreshCallback, setRefreshCallback] = useState<(() => Promise<void>) | null>(null);
 
   const handleRefresh = useCallback(async () => {
@@ -58,6 +66,18 @@ export function PullToRefreshProvider({ children, scrollRef, disabled }: PullToR
         }}
       >
         {children}
+        {bottomNavSpacer && (
+          <div
+            aria-hidden="true"
+            className="shrink-0 lg:hidden"
+            style={{
+              // nav height ≈ pt-2 (8) + items (~50) + pb-safe (env) ≈ 58 + safe-area
+              // Spacer = nav height + comfortable 1rem buffer = 1.5rem + nav-h + safe-area.
+              height:
+                "calc(var(--bottom-nav-h) + 1.5rem + max(0.5rem, env(safe-area-inset-bottom)))",
+            }}
+          />
+        )}
       </div>
     </PullToRefreshContext.Provider>
   );

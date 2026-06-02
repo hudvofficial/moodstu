@@ -133,12 +133,17 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                   ? "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 pb-4 lg:px-6 lg:py-6"
                   : isGalleryView
                     ? "pt-0 lg:pb-6"
-                    : "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 max-lg:pb-[calc(var(--bottom-nav-h)+0.25rem+max(0.5rem,env(safe-area-inset-bottom)))] md:px-6 md:py-6 lg:px-6 lg:pb-6",
+                    : "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 md:px-6 md:py-6 lg:px-6 lg:pb-6",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
               <PullToRefreshProvider
                 scrollRef={mainRef}
                 disabled={isAppView || isChatView || isFormPage || isFullpage}
+                // Add a flex-child spacer below content when the fixed bottom-nav
+                // is showing. main's `padding-bottom` alone doesn't reach
+                // scrollHeight (overflow + min-h-0 swallows it), so the last
+                // content card was hidden behind the nav.
+                bottomNavSpacer={!(isFullpage || isFormPage || isChatView || isGalleryView || isAppView)}
               >
                 {children}
               </PullToRefreshProvider>
