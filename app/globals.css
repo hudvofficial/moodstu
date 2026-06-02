@@ -149,6 +149,11 @@ html, body {
      a dark-mode phone makes iOS paint the canvas / safe-area chin / form controls
      dark around the light content (the "dark frame + blue ring" bug). */
   color-scheme: light;
+  /* iOS PWA safe-area chin (the zone behind the home indicator on standalone)
+     is painted with <html> background, NOT body. Without this, html is
+     rgba(0,0,0,0) transparent and a Dark-Mode iPhone fills the chin with the
+     system dark color = a black band below the home indicator. */
+  background-color: var(--color-bg-base);
 }
 
 /* Gallery public pages: unlock scroll (không dùng app-shell-viewport) */
