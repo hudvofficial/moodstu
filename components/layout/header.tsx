@@ -138,8 +138,10 @@ export function Header({
     <header
       ref={headerRef}
       className={cn(
-        "sticky top-0 z-(--z-header) bg-bg-card shadow-(--shadow-header) print:hidden",
-        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:shadow-none",
+        "sticky top-0 z-(--z-header) print:hidden",
+        "lg:bg-bg-card lg:shadow-(--shadow-header)",
+        "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)]",
+        "max-lg:bg-bg-card/90 max-lg:backdrop-blur-xl max-lg:border-b max-lg:border-border/40",
         className
       )}
       style={{

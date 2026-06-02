@@ -30,7 +30,7 @@
 @media (orientation: landscape) and (max-height: 600px) and (max-width: 1023px) {
   .app-shell-viewport {
     --header-mobile-h: 3rem; /* Reduce from 3.5rem (56px) to 3rem (48px) */
-    --bottom-nav-h: 2.5rem; /* Reduce from 3.0625rem (49px) to 2.5rem (40px) */
+    --bottom-nav-h: 2.5rem; /* Reduce from 3.5rem (56px) to 2.5rem (40px) */
   }
 }
 

@@ -173,11 +173,11 @@ export function BottomNav({ role, className }: BottomNavProps) {
       {/* Bottom Nav Bar */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 shrink-0 w-full bg-bg-card/90 backdrop-blur-lg border-t border-border shadow-bottom-nav px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 shrink-0 w-full bg-bg-card/90 backdrop-blur-xl border-t border-border/40 shadow-bottom-nav px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           className
         )}
       >
-        <div className="flex items-center justify-around px-2 pb-1 h-[56px] w-full">
+        <div className="flex items-center justify-around h-(--bottom-nav-h) w-full">
           {navItems.map((item) => {
             const isActive = isItemActive(pathname, item, true);
             const isPending = pendingHref === item.href;
