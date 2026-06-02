@@ -170,18 +170,12 @@ export function BottomNav({ role, className }: BottomNavProps) {
         </div>
       )}
 
-      {/* Solid underlay for the bottom safe-area — guarantees the translucent
-          nav never reveals the cream body bg behind the iOS home indicator */}
-      <div
-        aria-hidden
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-bg-card pointer-events-none"
-        style={{ height: "env(safe-area-inset-bottom)" }}
-      />
-
-      {/* Bottom Nav Bar */}
+      {/* Bottom Nav Bar — SOLID bg (no transparency/blur). A solid bar fully
+          covers the iOS safe-area under the home indicator, so the cream body
+          canvas never shows a seam. Pattern proven in v1 + mcoffe. */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 shrink-0 w-full bg-bg-card/90 backdrop-blur-xl border-t border-border/40 shadow-bottom-nav px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 shrink-0 w-full bg-bg-card border-t border-border shadow-bottom-nav px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           className
         )}
       >
