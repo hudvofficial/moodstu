@@ -144,6 +144,11 @@
 html, body {
   overflow: hidden;
   height: 100%;
+  /* Pin light UA rendering. Dark-mode tokens are NOT implemented (see
+     app/styles/utilities.css — the .dark block is commented out). Without this,
+     a dark-mode phone makes iOS paint the canvas / safe-area chin / form controls
+     dark around the light content (the "dark frame + blue ring" bug). */
+  color-scheme: light;
 }
 
 /* Gallery public pages: unlock scroll (không dùng app-shell-viewport) */

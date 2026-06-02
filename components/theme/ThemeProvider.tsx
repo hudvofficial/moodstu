@@ -65,15 +65,17 @@ function resolve(t: Theme): "light" | "dark" {
   return t;
 }
 
-function applyTheme(resolved: "light" | "dark") {
+function applyTheme(_resolved: "light" | "dark") {
   const root = document.documentElement;
+  // Dark-mode tokens are commented out (app/styles/utilities.css) — the app is
+  // light-only for now. Pin light so a dark-mode phone never gets a dark
+  // theme-color chin / canvas around the light content. Revisit when dark ships.
   root.classList.remove("light", "dark");
-  root.classList.add(resolved);
+  root.classList.add("light");
 
-  // V2: earth-tone meta-theme-color
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", resolved === "dark" ? "#1a1a1a" : "#faf8f5");
+    meta.setAttribute("content", "#faf8f5");
   }
 }
 

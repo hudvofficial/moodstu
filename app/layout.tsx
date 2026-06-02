@@ -52,7 +52,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#8B5E3C",
+  // Light-only app (dark tokens not implemented). Light theme-color + colorScheme
+  // keep the iOS status bar / safe-area chin light to match the content.
+  themeColor: "#faf8f5",
+  colorScheme: "light",
   viewportFit: "cover",
 };
 
