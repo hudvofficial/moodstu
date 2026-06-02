@@ -196,7 +196,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
                 onFocus={() => warmRoute(item.href)}
                 onClick={(e) => handleNavClick(e, item.href, isActive)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 rounded-lg",
+                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 rounded-lg",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                   isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
                 )}
@@ -227,7 +227,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
             onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 py-1 cursor-pointer rounded-lg",
+              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 cursor-pointer rounded-lg",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
               showMore || moreActive
                 ? "text-primary"
