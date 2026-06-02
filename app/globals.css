@@ -153,6 +153,13 @@ html:has(.gallery-public-layout) body {
   height: auto;
 }
 
+/* Login: paint root + safe-area insets white so the cream bg-base
+   never shows as a seam under the iOS home indicator (viewport-fit=cover) */
+html:has(.login-root),
+html:has(.login-root) body {
+  background-color: var(--color-bg-card);
+}
+
 body {
   background-color: var(--color-bg-base);
   color: var(--color-text-primary);

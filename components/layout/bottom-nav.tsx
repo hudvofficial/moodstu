@@ -170,6 +170,14 @@ export function BottomNav({ role, className }: BottomNavProps) {
         </div>
       )}
 
+      {/* Solid underlay for the bottom safe-area — guarantees the translucent
+          nav never reveals the cream body bg behind the iOS home indicator */}
+      <div
+        aria-hidden
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-bg-card pointer-events-none"
+        style={{ height: "env(safe-area-inset-bottom)" }}
+      />
+
       {/* Bottom Nav Bar */}
       <nav
         className={cn(

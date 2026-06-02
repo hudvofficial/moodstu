@@ -88,7 +88,7 @@ export default function LoginPageClient() {
     <>
       <LoginTransition isVisible={isLoading} state={loginState === "navigating" ? "navigating" : "transitioning"} />
 
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-5 bg-white lg:bg-bg-base overflow-hidden">
+      <div className="login-root min-h-dvh grid grid-cols-1 lg:grid-cols-5 bg-white lg:bg-bg-base overflow-hidden">
         {/* Left Side: Brand Experience (Desktop Only) */}
         <div className="hidden lg:block lg:col-span-3 relative h-full">
           <Image
@@ -116,7 +116,7 @@ export default function LoginPageClient() {
         </div>
 
         {/* Right Side: Authentication Form */}
-        <div className="col-span-1 lg:col-span-2 min-h-screen lg:h-screen bg-white flex flex-col justify-between lg:justify-center relative shadow-none lg:shadow-2xl z-10 overflow-y-auto">
+        <div className="col-span-1 lg:col-span-2 min-h-dvh lg:h-screen bg-white flex flex-col justify-between lg:justify-center relative shadow-none lg:shadow-2xl z-10 overflow-y-auto">
           <div className="w-full max-w-[420px] mx-auto px-8 md:px-12 py-12 lg:py-16 space-y-10 lg:space-y-12">
             <div className="space-y-10 lg:space-y-12">
               {/* Logo/Branding */}
@@ -268,7 +268,7 @@ export default function LoginPageClient() {
         </div>
 
         {/* Footer */}
-        <footer className="pb-8 lg:pb-12 text-center space-y-6">
+        <footer className="pb-[max(2rem,calc(env(safe-area-inset-bottom)+0.5rem))] lg:pb-12 text-center space-y-6">
               <p className="text-caption font-medium text-text-muted">
                 Bạn chưa có quyền truy cập?{" "}
                 <a href="https://zalo.me/0976317031" target="_blank" rel="noopener noreferrer" className="font-bold text-primary hover:underline">
