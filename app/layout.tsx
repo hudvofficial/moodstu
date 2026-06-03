@@ -43,7 +43,10 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    // "default" (not black-translucent): with viewport-fit removed, iOS keeps the
+    // status bar as its own opaque bar above the content instead of letting the
+    // page render under it. Matches mcoffe (the working reference).
+    statusBarStyle: "default",
     title: "Mood Studio",
   },
 };
@@ -53,10 +56,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   // Light-only app (dark tokens not implemented). Light theme-color + colorScheme
-  // keep the iOS status bar / safe-area chin light to match the content.
+  // keep the iOS status bar light to match the content.
   themeColor: "#faf8f5",
   colorScheme: "light",
-  viewportFit: "cover",
+  // NOTE: deliberately NO `viewportFit: "cover"`. mcoffe (the working reference)
+  // does not use it — so iOS renders inside the safe area and the OS paints the
+  // status-bar / home-indicator bars itself. Opting into cover (edge-to-edge) is
+  // what forced manual safe-area handling everywhere and caused the seam / dark
+  // band / nav-gap bugs. Staying inset = those whole classes of bugs disappear.
 };
 
 export default function RootLayout({
