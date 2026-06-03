@@ -36,7 +36,7 @@ export function QuickAccessGrid({ role }: QuickAccessGridProps) {
 
   return (
     <div className="lg:hidden">
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-2 md:grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] md:gap-3">
         {modules.map((mod) => {
           const Icon = mod.icon;
           const color = MODULE_COLORS[mod.id] || DEFAULT_COLOR;
@@ -48,12 +48,12 @@ export function QuickAccessGrid({ role }: QuickAccessGridProps) {
             >
               <div
                 className={cn(
-                  "flex h-14 w-14 items-center justify-center rounded-xl shadow-md",
+                  "flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl shadow-md",
                   "transition-all duration-200 group-active:scale-90",
                   color.bg,
                 )}
               >
-                <Icon className={cn("h-6 w-6", color.text)} />
+                <Icon className={cn("h-6 w-6 md:h-7 md:w-7", color.text)} />
               </div>
               <span className="line-clamp-1 text-center text-caption leading-tight">
                 {mod.shortLabel || mod.label}
