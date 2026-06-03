@@ -80,6 +80,7 @@ export async function updateSession(request: NextRequest) {
     "/gallery",
     "/manifest.json",
     "/sw.js",
+    "/push-sw.js",
     "/workbox-",
     "/fallback-",
     "/swe-worker-",
