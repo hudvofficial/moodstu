@@ -222,6 +222,11 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true, // mcoffe pattern — auto reload khi có mạng lại
+  // Never precache files whose names contain '#' (URL fragment delimiter) or a
+  // space — those URLs 404 when Workbox fetches them, which aborts the entire
+  // SW install and freezes the PWA on the old build. Keep next-pwa's default
+  // noprecache exclusion too.
+  publicExcludes: ["!noprecache/**/*", "!**/*#*", "!**/* *"],
   fallbacks: {
     document: "/offline",
   },
