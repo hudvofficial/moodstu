@@ -177,11 +177,11 @@ export function BottomNav({ role, className }: BottomNavProps) {
           middle, pb carries the iOS safe-area — so icons sit snug like v1. */}
       <nav
         className={cn(
-          "lg:hidden fixed bottom-0 left-0 right-0 z-50 w-full bg-bg-card border-t border-border shadow-bottom-nav px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          "lg:hidden fixed bottom-0 left-0 right-0 z-50 w-full bg-bg-card border-t border-border shadow-bottom-nav px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
           className
         )}
       >
-        <div className="flex items-center justify-around w-full">
+        <div className="flex items-center justify-around h-16 w-full">
           {navItems.map((item) => {
             const isActive = isItemActive(pathname, item, true);
             const isPending = pendingHref === item.href;
@@ -196,18 +196,18 @@ export function BottomNav({ role, className }: BottomNavProps) {
                 onFocus={() => warmRoute(item.href)}
                 onClick={(e) => handleNavClick(e, item.href, isActive)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 rounded-lg",
+                  "flex flex-col items-center justify-center gap-1 min-w-16 h-full transition-all duration-200 rounded-lg",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                   isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
                 )}
               >
                 {isPending ? (
-                  <Loader2 className="w-6 h-6 animate-spin stroke-[2.5px]" />
+                  <Loader2 className="w-[26px] h-[26px] animate-spin stroke-[2.5px]" />
                 ) : (
-                  <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5px]")} />
+                  <Icon className={cn("w-[26px] h-[26px]", isActive && "stroke-[2.5px]")} />
                 )}
                 <span className={cn(
-                  "text-tiny",
+                  "text-[11px]",
                   isActive || isPending ? "font-semibold" : "font-medium"
                 )}>
                   {('shortLabel' in item && item.shortLabel) || item.label}
@@ -227,7 +227,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
             onPointerEnter={() => moreItems.slice(0, 4).forEach((item) => warmRoute(item.href))}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMore(!showMore); } }}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 min-w-16 transition-all duration-200 cursor-pointer rounded-lg",
+              "flex flex-col items-center justify-center gap-1 min-w-16 h-full transition-all duration-200 cursor-pointer rounded-lg",
               "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
               showMore || moreActive
                 ? "text-primary"
@@ -235,12 +235,12 @@ export function BottomNav({ role, className }: BottomNavProps) {
             )}
           >
             {showMore ? (
-              <X className="w-6 h-6 stroke-[2.5px]" />
+              <X className="w-[26px] h-[26px] stroke-[2.5px]" />
             ) : (
-              <MoreHorizontal className={cn("w-6 h-6", moreActive && "stroke-[2.5px]")} />
+              <MoreHorizontal className={cn("w-[26px] h-[26px]", moreActive && "stroke-[2.5px]")} />
             )}
             <span className={cn(
-              "text-tiny",
+              "text-[11px]",
               showMore || moreActive ? "font-semibold" : "font-medium"
             )}>
               Thêm
