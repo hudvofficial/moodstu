@@ -168,4 +168,45 @@ export async function revalidateByPrefixes(prefixes: string | string[]) {
   );
 }
 
+// ============================================
+// Optimistic list-cache helpers — dùng trong apply/rollback của runOptimisticMutation
+// (bổ trợ cho lib/optimistic-mutation.ts, KHÔNG thay thế nó)
+// ============================================
+type ListCache<T> = { data: T[]; count: number };
+
+/** Patch tại chỗ 1 item trong MỌI cache list của 1 namespace (vd key ["dresses", filters]). */
+export function patchListCache<T extends { id: string }>(
+  namespace: string,
+  id: string,
+  patch: Partial<T>,
+) {
+  return mutate(
+    (key: unknown) => cacheKeyMatchesPrefix(key, namespace),
+    (cur: ListCache<T> | undefined) =>
+      cur
+        ? { ...cur, data: cur.data.map((it) => (it.id === id ? { ...it, ...patch } : it)) }
+        : cur,
+    { revalidate: false },
+  );
+}
+
+/** Gỡ 1 item khỏi MỌI cache list của namespace (cho delete). */
+export function removeFromListCache<T extends { id: string }>(
+  namespace: string,
+  id: string,
+) {
+  return mutate(
+    (key: unknown) => cacheKeyMatchesPrefix(key, namespace),
+    (cur: ListCache<T> | undefined) =>
+      cur
+        ? {
+            ...cur,
+            data: cur.data.filter((it) => it.id !== id),
+            count: Math.max(0, cur.count - 1),
+          }
+        : cur,
+    { revalidate: false },
+  );
+}
+
 export { useSWR, mutate };

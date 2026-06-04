@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createDress, updateDress, deleteDress, uploadDressImage, deleteDressImage, checkItemCodeExists } from "@/app/actions/dress-mutations";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { cacheKeys, patchListCache, revalidateByPrefixes } from "@/lib/swr";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { DRESS_CATEGORIES, DRESS_CONDITIONS } from "@/lib/validations/dress.schema";
 import { DRESS_CONDITION_MAP, DRESS_CATEGORY_MAP, CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
@@ -129,27 +131,46 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
       return;
     }
     setLoading(true);
-    try {
-      if (editItem) {
-        const result = await updateDress({
-          id: editItem.id,
-          updated_at: editItem.updated_at,
-          data: { ...form, image_url: form.image_url || undefined },
-        });
-        if (!result.success) throw new Error(result.error);
-        toast("Cập nhật thành công", "success");
-      } else {
-        const result = await createDress(form);
-        if (!result.success) throw new Error(result.error);
-        toast("Thêm trang phục thành công", "success");
-      }
+    setPendingUploadUrl(null);
+    if (editItem) {
+      // UPDATE: optimistic patch list-cache + đóng modal NGAY; lỗi → revalidate kéo bản thật.
+      const id = editItem.id;
       onClose();
-      onSaved();
-      setPendingUploadUrl(null);
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Có lỗi xảy ra", "error");
-    } finally {
-      setLoading(false);
+      try {
+        await runOptimisticMutation({
+          apply: () => patchListCache<DressItem>("dresses", id, form as Partial<DressItem>),
+          rollback: () => {
+            void revalidateByPrefixes(cacheKeys.dresses());
+          },
+          action: () =>
+            updateDress({
+              id,
+              updated_at: editItem.updated_at,
+              data: { ...form, image_url: form.image_url || undefined },
+            }),
+          onSuccess: () => {
+            toast("Cập nhật thành công", "success");
+            onSaved();
+          },
+          onError: (e) => toast(e instanceof Error ? e.message : "Có lỗi xảy ra", "error"),
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // CREATE: item_code do server sinh → KHÔNG optimistic; đóng modal ngay + revalidate khi xong.
+      onClose();
+      try {
+        const result = await createDress(form);
+        if (result.success) {
+          toast("Thêm trang phục thành công", "success");
+          onSaved();
+        } else {
+          toast(result.error || "Có lỗi xảy ra", "error");
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   }, [form, editItem, onClose, onSaved, codeError]);
 
@@ -164,15 +185,20 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   // Fix #8: ConfirmDialog handler (thay native confirm)
   const handleDeleteConfirm = useCallback(async () => {
     if (!editItem) return;
+    // DELETE: server có thể XÓA hoặc RETIRE (delete_dress_atomic tùy lịch sử thuê) → kết cục
+    // server-computed → KHÔNG optimistic-remove (tránh "nháy" khi retire). Đóng modal + revalidate (§11).
+    const id = editItem.id;
     setLoading(true);
+    setConfirmOpen(false);
+    onClose();
     try {
-      const result = await deleteDress(editItem.id);
-      if (!result.success) throw new Error(result.error);
-      toast("Đã xóa trang phục", "success");
-      onClose();
-      onSaved();
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : "Có lỗi xảy ra", "error");
+      const result = await deleteDress(id);
+      if (result.success) {
+        toast("Đã xóa trang phục", "success");
+        onSaved();
+      } else {
+        toast(result.error || "Có lỗi xảy ra", "error");
+      }
     } finally {
       setLoading(false);
     }
