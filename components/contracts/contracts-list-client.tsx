@@ -34,6 +34,8 @@ import {
   prefetchContractDetail,
   revalidateContractListCaches,
 } from "@/lib/hooks/use-contract-queries";
+import { preload } from "swr";
+import { getContractNotes } from "@/app/actions/note-actions";
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
@@ -253,8 +255,10 @@ function ContractsListInner({
   const handleHover = useCallback(
     (id: string) => {
       if (!id) return;
-      router.prefetch(`/contracts/${id}`); // Route prefetch
-      prefetchContractDetail(queryClient, id); // ⚡ Data prefetch - warm React Query cache
+      router.prefetch(`/contracts/${id}`); // Route prefetch (cho navigate trang detail)
+      prefetchContractDetail(queryClient, id); // warm detail cache (khi navigate /contracts/[id])
+      prefetchContract(queryClient, id); // ⚡ warm drawerExtra → tabs (checklist/sự kiện đầy đủ) instant khi mở drawer
+      void preload(["contract-notes", id], () => getContractNotes(id)); // ⚡ warm notes → ghi chú instant
     },
     [router, queryClient],
   );
