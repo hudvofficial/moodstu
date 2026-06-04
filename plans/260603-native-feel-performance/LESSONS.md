@@ -45,7 +45,13 @@
 - **Lưu ý chẩn đoán:** automation (synthetic click) KHÔNG reproduce (không có animation/timing như pointer thật) — đừng kết luận "không có bug" chỉ vì automation pass; tin user + sửa nguyên nhân race.
 - **Quy tắc:** navigate-away từ drawer/modal → `push` thẳng, KHÔNG `onClose()` trước push.
 
-### A8. *(chừa sẵn — bổ sung khi code gặp lỗi thật)*
+### A8. Drawer/modal skeleton dù data đã có ở list → seed `placeholderData` *(2026-06-04, user báo)*
+- **Triệu chứng:** contract drawer mở → tabs Sự kiện/Checklist/Nhân sự hiện **skeleton + đợi**, dù list query đã JOIN sẵn events/checklists/work_tasks (data tạo badge "4/5" ngoài list).
+- **Nguyên nhân:** `useContractDrawerExtra` fetch riêng (React Query) → `isLoadingExtra=true` → `OperationsTabs` (drawer-tab-content.tsx:273) hiện skeleton, che mất data fallback đã có (dòng 100-104). Comment file ghi "0ms drawer" nhưng ai đó thêm fetch riêng → phá.
+- **Fix:** truyền list data làm **`placeholderData`** cho `useQuery` → `isLoading=false` → hiện ngay, fetch full ở nền rồi thay. (`use-contract-queries.ts` + `contract-drawer.tsx`)
+- **Quy tắc:** drawer/modal preview có data sẵn ở list query → seed `placeholderData`/`fallbackData`, ĐỪNG fetch+skeleton lại. (Notes vẫn skeleton nếu list KHÔNG JOIN notes — chỉ seed được cái list đã có.)
+
+### A9. *(chừa sẵn — bổ sung khi code gặp lỗi thật)*
 
 ---
 

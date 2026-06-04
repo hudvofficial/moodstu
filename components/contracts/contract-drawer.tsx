@@ -20,7 +20,7 @@ import {
   getStatusLabel,
   CONTRACT_STATUS_MAP,
 } from "@/types/contract-constants";
-import type { ContractStatus } from "@/types/contract";
+import type { ContractStatus, ContractEvent, ContractChecklist, WorkTask, PaymentPlan } from "@/types/contract";
 import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkTask } from "./drawer-tab-content";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
@@ -79,8 +79,22 @@ export function ContractDrawer({
   const router = useRouter();
   const queryClient = useQueryClient();
   const contractId = contract?.id || null;
+  // Seed list data (events/checklists/tasks/payment_plans đã JOIN sẵn ở list query) làm placeholder
+  // → tabs hiện NGAY khi mở drawer, fetch full ở nền (fix skeleton "đợi" dù data đã có).
+  const drawerPlaceholder = useMemo(
+    () =>
+      contract
+        ? {
+            events: (contract.contract_events ?? []) as unknown as ContractEvent[],
+            checklists: (contract.contract_checklists ?? []) as unknown as ContractChecklist[],
+            workTasks: (contract.work_tasks ?? []) as unknown as WorkTask[],
+            paymentPlans: (contract.payment_plans ?? []) as unknown as PaymentPlan[],
+          }
+        : undefined,
+    [contract],
+  );
   const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
-    useContractDrawerExtra(isOpen ? contractId : null);
+    useContractDrawerExtra(isOpen ? contractId : null, drawerPlaceholder);
 
   const handleDrawerRealtime = useCallback(() => {
     if (contractId) {

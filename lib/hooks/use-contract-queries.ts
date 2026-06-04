@@ -283,7 +283,15 @@ export function useContractDetail(
  *
  * Lightweight query (4 queries vs full detail's 6)
  */
-export function useContractDrawerExtra(id: string | null) {
+export function useContractDrawerExtra(
+  id: string | null,
+  placeholderData?: {
+    events: ContractEvent[];
+    checklists: ContractChecklist[];
+    workTasks: WorkTask[];
+    paymentPlans: PaymentPlan[];
+  },
+) {
   const { data, error, isLoading } = useQuery({
     queryKey: id ? contractKeys.drawerExtra(id) : ["null"],
     queryFn: async () => {
@@ -298,6 +306,8 @@ export function useContractDrawerExtra(id: string | null) {
       };
     },
     enabled: !!id,
+    // Hiện NGAY từ list data (placeholder), fetch full ở nền rồi thay → KHÔNG skeleton (đúng "0ms drawer").
+    placeholderData,
     staleTime: 5 * 60 * 1000,
   });
 
