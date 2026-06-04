@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteInventoryItem } from "@/app/actions/inventory-mutations";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { cacheKeys, removeFromListCache } from "@/lib/swr";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeVariant } from "@/components/ui/badge";
@@ -116,15 +118,23 @@ export function InventoryDetailDrawer({
     if (!source) return;
     if (!window.confirm(`Xóa "${source.name}"?`)) return;
 
+    const id = source.id;
     setActionLoading(true);
+    onClose();
     try {
-      const result = await deleteInventoryItem(source.id);
-      if (!result.success) throw new Error(result.error || "Không thể xóa vật tư");
-      toast.success("Đã xóa vật tư");
-      onClose();
-      void refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Lỗi xử lý");
+      // DELETE: soft-delete (server chặn nếu còn tồn/lịch sử) → optimistic remove; lỗi → rollback đưa về.
+      await runOptimisticMutation({
+        apply: () => removeFromListCache<InventoryItem>(cacheKeys.inventory(), id),
+        rollback: () => {
+          void revalidateInventory();
+        },
+        action: () => deleteInventoryItem(id),
+        onSuccess: () => {
+          toast.success("Đã xóa vật tư");
+          void refresh();
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Lỗi xử lý"),
+      });
     } finally {
       setActionLoading(false);
     }

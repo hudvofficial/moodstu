@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { createInventoryItem, updateInventoryItem } from "@/app/actions/inventory-mutations";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { cacheKeys, patchListCache } from "@/lib/swr";
 import {
   INVENTORY_CATEGORIES,
   INVENTORY_UNITS,
@@ -99,41 +101,55 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
     }
 
     setError("");
+    const formData = {
+      item_code: itemCode.trim() || undefined,
+      name: name.trim(),
+      category,
+      unit,
+      min_stock: minStock,
+      purchase_price: purchasePrice,
+      sale_price: salePrice,
+      supplier: supplier.trim() || undefined,
+      image_url: imageUrl.trim() || undefined,
+      notes: notes.trim() || undefined,
+    };
+
+    if (isEdit) {
+      // UPDATE: chỉ field đơn (KHÔNG đụng tồn kho / giá TB) → optimistic patch + đóng modal NGAY.
+      const id = editItem.id;
+      onClose();
+      void runOptimisticMutation({
+        apply: () =>
+          patchListCache<InventoryItem>(cacheKeys.inventory(), id, formData as Partial<InventoryItem>),
+        rollback: () => {
+          void invalidateInventoryAfterWrite(id);
+        },
+        action: () =>
+          updateInventoryItem({ id, updated_at: editItem.updated_at, data: formData }),
+        onSuccess: () => {
+          toast.success("Đã cập nhật vật tư");
+          void invalidateInventoryAfterWrite(id);
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Có lỗi xảy ra"),
+      });
+      return;
+    }
+
+    // CREATE: item_code auto-gen + initial_stock → stock_in_atomic (giá TB) → đóng ngay + revalidate.
+    onClose();
     startTransition(async () => {
-      const formData = {
-        item_code: itemCode.trim() || undefined,
-        name: name.trim(),
-        category,
-        unit,
-        min_stock: minStock,
-        purchase_price: purchasePrice,
-        sale_price: salePrice,
-        supplier: supplier.trim() || undefined,
-        image_url: imageUrl.trim() || undefined,
-        notes: notes.trim() || undefined,
-      };
-
-      const result = isEdit
-        ? await updateInventoryItem({
-            id: editItem.id,
-            updated_at: editItem.updated_at,
-            data: formData,
-          })
-        : await createInventoryItem({
-            ...formData,
-            initial_stock: initialStock,
-            initial_unit_cost: purchasePrice,
-          });
-
+      const result = await createInventoryItem({
+        ...formData,
+        initial_stock: initialStock,
+        initial_unit_cost: purchasePrice,
+      });
       if (result && "success" in result && result.success) {
-        toast.success(isEdit ? "Đã cập nhật vật tư" : "Đã nhập kho vật tư mới");
-        await invalidateInventoryAfterWrite(isEdit ? editItem.id : undefined);
-        onClose();
-        return;
+        toast.success("Đã nhập kho vật tư mới");
+        await invalidateInventoryAfterWrite();
+      } else {
+        const errMsg = result && "error" in result ? result.error : "Có lỗi xảy ra";
+        toast.error(typeof errMsg === "string" ? errMsg : "Có lỗi xảy ra");
       }
-
-      const errMsg = result && "error" in result ? result.error : "Có lỗi xảy ra";
-      setError(typeof errMsg === "string" ? errMsg : "Có lỗi xảy ra");
     });
   };
 
