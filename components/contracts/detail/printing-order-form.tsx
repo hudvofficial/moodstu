@@ -146,24 +146,25 @@ export default function PrintingOrderForm({
       return;
     }
 
+    // Đóng modal NGAY (close + revalidate) — order_code gen server, không đụng totals HĐ.
+    const payload = {
+      contractId,
+      labId,
+      items: validItems,
+      notes: notes.trim() || null,
+      expectedDate: expectedDate || null,
+    };
     setLoading(true);
+    resetForm();
+    onClose();
     try {
-      const result = await createPrintingOrder({
-        contractId,
-        labId,
-        items: validItems,
-        notes: notes.trim() || null,
-        expectedDate: expectedDate || null,
-      });
-
+      const result = await createPrintingOrder(payload);
       if (result.success) {
         toast("Đã tạo đơn in thành công", "success");
         await Promise.all([
           invalidateContractAfterWrite(contractId),
           invalidatePrintingAfterWrite(),
         ]);
-        resetForm();
-        onClose();
       } else {
         toast(result.error || "Lỗi tạo đơn in", "error");
       }

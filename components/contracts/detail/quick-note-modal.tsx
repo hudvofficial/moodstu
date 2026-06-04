@@ -46,17 +46,17 @@ export default function QuickNoteModal({
       return;
     }
 
+    // Đóng modal NGAY (close + revalidate) — note là insert đơn giản, không totals.
+    const text = notes.trim();
     setSubmitting(true);
+    resetForm();
+    onClose();
     try {
-      const result = await addContractNote(contractId, notes.trim());
-
+      const result = await addContractNote(contractId, text);
       if (!result.success) throw new Error(result.error);
-
       toast.success("Đã thêm ghi chú");
       await invalidateContractAfterWrite(contractId);
-      resetForm();
       onSaved();
-      onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm ghi chú");
     } finally {

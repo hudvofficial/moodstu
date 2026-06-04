@@ -65,23 +65,24 @@ export default function AddEventModal({
       return;
     }
 
+    // Đóng modal NGAY (close + revalidate) — event là insert đơn giản, Google-sync chạy nền.
+    const titleText = title.trim();
+    const payload = {
+      contractId,
+      eventType,
+      title: titleText,
+      ...(isOnSet ? { eventDate: date || undefined } : { deadline: date || undefined }),
+      location: location || undefined,
+      notes: notes || undefined,
+    };
     setSubmitting(true);
+    resetForm();
+    onClose();
     try {
-      const result = await addContractEvent({
-        contractId,
-        eventType,
-        title: title.trim(),
-        ...(isOnSet ? { eventDate: date || undefined } : { deadline: date || undefined }),
-        location: location || undefined,
-        notes: notes || undefined,
-      });
-
+      const result = await addContractEvent(payload);
       if (!result.success) throw new Error(result.error);
-
-      toast.success(`Đã thêm sự kiện "${title.trim()}"`);
-      resetForm();
+      toast.success(`Đã thêm sự kiện "${titleText}"`);
       onSaved(result.data as ContractEvent);
-      onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi thêm sự kiện");
     } finally {

@@ -118,26 +118,28 @@ export default function DressReservationForm({
       return;
     }
 
+    // Đóng modal NGAY (close + revalidate). KHÔNG patch số: addon có thể recalc tổng HĐ → revalidate lo.
+    const dressId = selectedId;
+    const payload = {
+      dressId,
+      contractId,
+      isAddon,
+      rentalPrice: price,
+      startDate: reservationStart,
+      endDate: reservationEnd,
+      notes: notes.trim() || undefined,
+    };
     setLoading(true);
+    resetForm();
+    onClose();
     try {
-      const result = await reserveDressForContract({
-        dressId: selectedId,
-        contractId,
-        isAddon,
-        rentalPrice: price,
-        startDate: reservationStart,
-        endDate: reservationEnd,
-        notes: notes.trim() || undefined,
-      });
-
+      const result = await reserveDressForContract(payload);
       if (result.success) {
         toast("Đã đặt trang phục thành công", "success");
         await Promise.all([
           invalidateContractAfterWrite(contractId),
-          invalidateDressAfterWrite(selectedId),
+          invalidateDressAfterWrite(dressId),
         ]);
-        resetForm();
-        onClose();
       } else {
         toast(result.error || "Lỗi đặt trang phục", "error");
       }
