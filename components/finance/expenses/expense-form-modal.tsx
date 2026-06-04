@@ -78,7 +78,6 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
 
     const payload = {
       expense_date: form.expense_date,
@@ -88,19 +87,13 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
       recipient: form.recipient || null,
       description: form.description || null,
     };
+    const isEdit = !!initialData;
+    const editId = initialData?.id;
+    const editUpdatedAt = initialData?.updated_at;
 
-    const result = initialData
-      ? await updateExpense(initialData.id, payload, initialData.updated_at)
-      : await createExpense(payload);
-
-    setSaving(false);
-
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success(initialData ? "Đã cập nhật phiếu chi." : "Đã tạo phiếu chi.");
+    // Đóng modal NGAY (close + revalidate) — phiếu chi là insert/update đơn giản, không totals tiền.
+    // Finance 0 realtime → GIỮ onSaved() revalidate (không bỏ).
+    setSaving(true);
     setForm({
       expense_date: today(),
       payment_method: "tien_mat",
@@ -110,8 +103,21 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
       description: "",
       contract_id: "none",
     });
-    await Promise.resolve(onSaved());
     onClose();
+    try {
+      const result =
+        isEdit && editId
+          ? await updateExpense(editId, payload, editUpdatedAt)
+          : await createExpense(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isEdit ? "Đã cập nhật phiếu chi." : "Đã tạo phiếu chi.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
