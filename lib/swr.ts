@@ -209,4 +209,17 @@ export function removeFromListCache<T extends { id: string }>(
   );
 }
 
+/** Generic optimistic primitive: chạy `updater` trên MỌI cache list của namespace, KHÔNG revalidate.
+ *  Mỗi module tự viết updater theo shape riêng (vd dress {data,count}, customer {customers,total}). */
+export function mutateListCache(
+  namespace: string,
+  updater: (cur: unknown) => unknown,
+) {
+  return mutate(
+    (key: unknown) => cacheKeyMatchesPrefix(key, namespace),
+    updater,
+    { revalidate: false },
+  );
+}
+
 export { useSWR, mutate };

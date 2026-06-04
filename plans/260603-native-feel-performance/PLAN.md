@@ -7,7 +7,8 @@
 ## TIẾN ĐỘ (cập nhật 2026-06-04)
 - ✅ **Phase 0 (Task 0.1)** + **Phase 1 (1.1 blurhash, 1.2 update/delete, 1.3 create)** — code xong, tsc 0 lỗi, **verify runtime chrome-devtools PASS** (create/update/delete mượt, 0 console error, server action 200).
 - ⚙️ **Điều chỉnh khi thực thi:** (a) blurhash backfill dùng **`after()`** (đảm bảo chạy trên serverless) thay vì `.catch()` trần như plan; (b) **DELETE = "đóng + revalidate"** (KHÔNG optimistic-remove) vì `delete_dress_atomic` có thể RETIRE → xem LESSONS A5; (c) **Task 1.4 BỎ** (push back) — sau optimistic, `revalidatePath` chạy nền vô hại + force-dynamic vô hiệu hóa lợi ích nav; bỏ `/dresses/rentals` revalidate sẽ vi phạm nguyên tắc realtime.
-- ⏭️ **Tiếp theo:** Phase 2 (nhân rộng từng module) — bắt đầu CRM-customers.
+- ✅ **Phase 2 — Task 2.1 (CRM-customers)** — verify runtime PASS (create + update optimistic). Thêm primitive generic **`mutateListCache(namespace, updater)`** vì shape list mỗi module khác nhau (dress `{data,count}` vs customer `{customers,total}`) — mỗi module tự viết updater. ⚠️ Customer **chưa có delete UI** (`onDelete` không truyền vào drawer) → chỉ tối ưu create+update.
+- ⏭️ **Tiếp theo:** 2.2 Inventory (⚠️ tồn kho server-computed → create/stock dùng đóng+revalidate) · 2.3 Services+Printing+Productivity · 2.4 Contracts (React Query — `setQueryData`) · 2.5 Leads+Calendar (dnd-kit) · 2.6 Finance (GIỮ revalidate).
 
 ## TỔNG QUAN: 5 phase · 16 task
 

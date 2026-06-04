@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { SOURCE_MAP } from "@/types/crm";
 import type { Customer } from "@/types/crm";
 import { createCustomer, updateCustomer } from "@/app/actions/customer-actions";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { cacheKeys, mutateListCache } from "@/lib/swr";
 
 interface Props {
   isOpen: boolean;
@@ -97,45 +99,83 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const payload: Record<string, unknown> = {
-        full_name: fullName,
-        phone,
-        email: email || undefined,
-        alt_phone: altPhone || undefined,
-        address: address || undefined,
-        gender: gender || undefined,
-        source: source || undefined,
-        notes: notes || undefined,
-        date_of_birth: dateOfBirth || undefined,
-        wedding_date: weddingDate || undefined,
-        bride_name: brideName || undefined,
-        groom_name: groomName || undefined,
-        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-      };
+    const payload: Record<string, unknown> = {
+      full_name: fullName,
+      phone,
+      email: email || undefined,
+      alt_phone: altPhone || undefined,
+      address: address || undefined,
+      gender: gender || undefined,
+      source: source || undefined,
+      notes: notes || undefined,
+      date_of_birth: dateOfBirth || undefined,
+      wedding_date: weddingDate || undefined,
+      bride_name: brideName || undefined,
+      groom_name: groomName || undefined,
+      tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+    };
 
-      if (isEditing && customer) {
-        payload.expectedUpdatedAt = customer.updated_at || undefined;
-        const result = await updateCustomer(customer.id, payload);
-        if (!result.success) throw new Error(result.error);
-      } else {
+    setIsSubmitting(true);
+
+    if (isEditing && customer) {
+      // UPDATE: optimistic patch table + đóng modal NGAY; lỗi → onSaved revalidate kéo bản thật.
+      const id = customer.id;
+      payload.expectedUpdatedAt = customer.updated_at || undefined;
+      const optimistic = {
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        email: email || null,
+        alt_phone: altPhone || null,
+        address: address || null,
+        gender: gender || null,
+        source: source || null,
+        notes: notes || null,
+        bride_name: brideName || null,
+        groom_name: groomName || null,
+        wedding_date: weddingDate || null,
+        date_of_birth: dateOfBirth || null,
+        tags: tags.split(",").map(t => t.trim()).filter(Boolean),
+      } as Partial<Customer>;
+      onClose();
+      try {
+        await runOptimisticMutation({
+          apply: () =>
+            mutateListCache(cacheKeys.customers(), (cur) => {
+              const list = cur as { customers?: Customer[] } | undefined;
+              return list?.customers
+                ? { ...list, customers: list.customers.map((c) => (c.id === id ? { ...c, ...optimistic } : c)) }
+                : cur;
+            }),
+          rollback: () => onSaved?.(),
+          action: () => updateCustomer(id, payload),
+          onSuccess: () => onSaved?.(),
+          onError: (err) => {
+            if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
+          },
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // CREATE: customer_code do server sinh + dedup phone → KHÔNG optimistic; đóng modal ngay + revalidate.
+      onClose();
+      try {
         const result = await createCustomer(payload);
-        if (!result.success) throw new Error(result.error);
+        if (!result.success) {
+          alert(result.error || "Đã xảy ra lỗi khi lưu khách hàng");
+          return;
+        }
         if (result.data.duplicate) {
           alert(`So dien thoai da ton tai trong ho so ${result.data.customer_name || "khach hang"}. Dang mo ho so hien co.`);
-          onClose();
           onSaved?.(result.data.customer_id);
           return;
         }
+        onSaved?.();
+      } catch (err: unknown) {
+        if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
+      } finally {
+        setIsSubmitting(false);
       }
-      
-      onClose();
-      onSaved?.();
-    } catch (err: unknown) {
-      if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
