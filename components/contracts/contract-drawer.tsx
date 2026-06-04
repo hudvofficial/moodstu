@@ -127,7 +127,8 @@ export function ContractDrawer({
     <>
       <Button unstyled
         onClick={() => {
-          onClose();
+          // push trực tiếp, KHÔNG onClose: điều hướng sang route khác tự unmount list+drawer
+          // (gọi onClose trước push gây race nuốt navigation → phải bấm 2 lần).
           router.push(`/contracts/${contractId}/edit`);
         }}
         className="btn-icon"
@@ -161,7 +162,7 @@ export function ContractDrawer({
         }}
         isLoadingExtra={isLoadingExtra}
         onViewDetail={() => {
-          onClose();
+          // push trước, KHÔNG onClose: navigation tự unmount list+drawer (fix "bấm 2 lần mới mở chi tiết").
           router.push(`/contracts/${contractId}`);
         }}
         onHoverDetail={() => {
@@ -171,7 +172,6 @@ export function ContractDrawer({
           }
         }}
         onTrackPayment={() => {
-          onClose();
           router.push(`/contracts/${contractId}#section-payment`);
         }}
       />

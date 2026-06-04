@@ -38,7 +38,14 @@
 - **Fix:** `rm -rf .next` + restart sạch. ⚠️ `TaskStop` KHÔNG kill node con → port 3000 còn bị giữ + khóa `.next`; phải `taskkill //F //PID <pid>` (lấy PID từ `netstat -ano | grep :3000`) trước khi `rm`.
 - **Quy tắc:** TRƯỚC khi verify runtime (nhất là sau khi sửa code/đổi nhánh) → **`rm -rf .next`** để tránh 404 ma + hiểu lầm "code làm sập app". Và đừng vội nhận lỗi logic khi 404 toàn cục — chạy phép thử 2 biến trước.
 
-### A7. *(chừa sẵn — bổ sung khi code gặp lỗi thật)*
+### A7. Navigate từ drawer/modal: KHÔNG `onClose()` TRƯỚC `router.push()` *(2026-06-04, user báo)*
+- **Triệu chứng:** bấm "Chi tiết hợp đồng" trong contract drawer → quay về list, phải bấm **lần 2** mới mở chi tiết. (Cùng pattern: nút Sửa, Theo dõi thanh toán.)
+- **Nguyên nhân:** `onViewDetail/onEdit/onTrackPayment` gọi `onClose()` (set state → unmount drawer) RỒI `router.push()` cùng tick → **race**: drawer unmount nuốt navigation lần 1.
+- **Fix:** bỏ `onClose()`, chỉ `router.push()` — điều hướng sang route khác (`/contracts/[id]`) tự unmount list+drawer. (`contract-drawer.tsx`)
+- **Lưu ý chẩn đoán:** automation (synthetic click) KHÔNG reproduce (không có animation/timing như pointer thật) — đừng kết luận "không có bug" chỉ vì automation pass; tin user + sửa nguyên nhân race.
+- **Quy tắc:** navigate-away từ drawer/modal → `push` thẳng, KHÔNG `onClose()` trước push.
+
+### A8. *(chừa sẵn — bổ sung khi code gặp lỗi thật)*
 
 ---
 
