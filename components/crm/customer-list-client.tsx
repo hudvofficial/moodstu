@@ -4,8 +4,11 @@ import { useCallback, useState, useTransition } from "react";
 import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterX, UserPlus, Users } from "lucide-react";
-import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
-import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
+import { getCustomers, getCustomerStats, deleteCustomer } from "@/app/actions/customer-actions";
+import { cacheKeys, mutateListCache, revalidateByPrefixes, useSWR } from "@/lib/swr";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -49,6 +52,7 @@ export default function CustomerListClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   const search = searchParams.get("search") || undefined;
   const source = searchParams.get("source") || undefined;
@@ -159,6 +163,43 @@ export default function CustomerListClient({
       void revalidateByPrefixes(cacheKeys.customers());
     });
   }, [startTransition]);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      setDeletingCustomer(data.customers.find((c) => c.id === id) || null);
+    },
+    [data.customers],
+  );
+
+  const confirmDelete = useCallback(async () => {
+    const target = deletingCustomer;
+    if (!target) return;
+    setDeletingCustomer(null);
+    // DELETE: customer soft-delete (deleted_at) → mất hẳn khỏi list → optimistic-remove an toàn.
+    await runOptimisticMutation({
+      apply: () =>
+        mutateListCache(cacheKeys.customers(), (cur) => {
+          const list = cur as { customers?: Customer[]; total?: number } | undefined;
+          return list?.customers
+            ? {
+                ...list,
+                customers: list.customers.filter((c) => c.id !== target.id),
+                total: Math.max(0, (list.total ?? 1) - 1),
+              }
+            : cur;
+        }),
+      rollback: () => {
+        void revalidateByPrefixes(cacheKeys.customers());
+      },
+      action: () => deleteCustomer(target.id),
+      onSuccess: () => {
+        toast.success("Đã xóa khách hàng");
+        handleDataChanged();
+      },
+      onError: (e) =>
+        toast.error(e instanceof Error ? e.message : "Lỗi khi xóa khách hàng"),
+    });
+  }, [deletingCustomer, handleDataChanged]);
 
   // Pull-to-refresh
   usePullToRefreshCallback(async () => {
@@ -276,6 +317,16 @@ export default function CustomerListClient({
         isOpen={!!selectedCustomerId}
         onClose={() => setSelectedCustomerId(null)}
         onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deletingCustomer}
+        onClose={() => setDeletingCustomer(null)}
+        onConfirm={confirmDelete}
+        title="Xóa khách hàng"
+        message={`Bạn có chắc muốn xóa "${deletingCustomer?.full_name}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa"
       />
     </>
   );
