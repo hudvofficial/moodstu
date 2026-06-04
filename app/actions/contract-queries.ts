@@ -340,7 +340,7 @@ export async function getContractList(filters: ContractFilters) {
       .filter((id): id is string => typeof id === "string");
 
     if (contractIds.length > 0) {
-      const [tasksResult, checklistsResult] = await Promise.all([
+      const [tasksResult, checklistsResult, notesResult] = await Promise.all([
         supabase
           .from("work_tasks")
           .select("id, contract_id, work_type, status, deadline")
@@ -349,10 +349,19 @@ export async function getContractList(filters: ContractFilters) {
           .from("contract_checklists")
           .select("id, contract_id, event_stage, category, item_name, is_completed, created_at, updated_at")
           .in("contract_id", contractIds),
+        // 10 notes mới nhất/HĐ — đủ cho drawer preview, không xử lý "10 per group" ở fallback (rare path);
+        // limit 200 tổng để giữ payload nhẹ, sort desc theo created_at để lấy notes mới trước.
+        supabase
+          .from("contract_notes")
+          .select("id, contract_id, content, created_by, created_at")
+          .in("contract_id", contractIds)
+          .order("created_at", { ascending: false })
+          .limit(200),
       ]);
 
       assertQueryOk("Loi tai tien do cong viec", tasksResult);
       assertQueryOk("Loi tai checklist hop dong", checklistsResult);
+      assertQueryOk("Loi tai ghi chu hop dong", notesResult);
 
       const tasksByContract = new Map<string, WorkTask[]>();
       for (const task of (tasksResult.data || []) as WorkTask[]) {
@@ -372,6 +381,18 @@ export async function getContractList(filters: ContractFilters) {
         checklistsByContract.set(contractId, list);
       }
 
+      const notesByContract = new Map<string, Array<{ id: string; content: string; created_by: string; created_at: string }>>();
+      for (const note of (notesResult.data || []) as Array<{ id: string; contract_id: string; content: string; created_by: string; created_at: string }>) {
+        const contractId = note.contract_id;
+        if (typeof contractId !== "string") continue;
+        const list = notesByContract.get(contractId) || [];
+        if (list.length < 10) {
+          // Per-HĐ cap = 10 (khớp RPC v2 LIMIT 10).
+          list.push({ id: note.id, content: note.content, created_by: note.created_by, created_at: note.created_at });
+          notesByContract.set(contractId, list);
+        }
+      }
+
       for (const contract of contracts) {
         const contractId = contract.id;
         if (typeof contractId !== "string") continue;
@@ -379,6 +400,8 @@ export async function getContractList(filters: ContractFilters) {
         contract.work_tasks = tasksByContract.get(contractId) || [];
         contract.contract_checklists = checklists;
         contract.checklist_summary = buildChecklistSummary(checklists);
+        (contract as Contract & { contract_notes?: typeof notesByContract extends Map<string, infer V> ? V : never }).contract_notes =
+          notesByContract.get(contractId) || [];
       }
     }
 
