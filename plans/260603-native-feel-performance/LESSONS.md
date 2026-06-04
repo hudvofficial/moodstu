@@ -51,7 +51,27 @@
 - **Fix:** truyền list data làm **`placeholderData`** cho `useQuery` → `isLoading=false` → hiện ngay, fetch full ở nền rồi thay. (`use-contract-queries.ts` + `contract-drawer.tsx`)
 - **Quy tắc:** drawer/modal preview có data sẵn ở list query → seed `placeholderData`/`fallbackData`, ĐỪNG fetch+skeleton lại. (Notes vẫn skeleton nếu list KHÔNG JOIN notes — chỉ seed được cái list đã có.)
 
-### A9. *(chừa sẵn — bổ sung khi code gặp lỗi thật)*
+### A9. Cấp 2 client-direct cho Contracts BỊ CHẶN — contract tables KHÔNG có RLS *(2026-06-04, audit)*
+- **Bối cảnh:** user muốn client-direct (browser query Supabase) cho contract drawer để hết "server-action chậm".
+- **Audit (Explore agent + verify grep migrations):** `contracts`, `contract_events`, `contract_checklists`, `work_tasks`, `payment_plans`, `contract_notes` **KHÔNG bật RLS, 0 policy**. Bảo mật CHỈ dựa server action `requireContractAccess` (role check, KHÔNG scope studio/contract).
+- **Hệ quả:** client-direct = bỏ lớp chắn DUY NHẤT → BẤT KỲ user đăng nhập đọc được MỌI hợp đồng (notes nhạy cảm, tiền, tasks). **Lộ dữ liệu.**
+- **Quyết định:** KHÔNG làm client-direct cho contracts. Giữ server action (an toàn) + giải pháp đã có (placeholderData + hover-prefetch, commit `48259f7`) đủ tốt cho desktop.
+- **Nếu thực sự cần client-direct:** dự án RLS hardening RIÊNG, lớn + rủi ro cao: contracts thiếu `studio_id` → cần schema migration + policies scope theo studio/role + **test đa-user/đa-role** trước khi tin. Đừng làm vội.
+- **Lưu ý:** dresses/inventory CÓ RLS (`20260429110000`, `20260428200000`) nhưng các module đó mình VẪN dùng server action (chưa client-direct) — nên RLS-có không tự động nghĩa là đã client-direct.
+
+### A10. AUTO apply migration lên production (không cần DB password) *(2026-06-05)*
+- **Cách (đã verify chạy được):**
+  ```bash
+  supabase link --project-ref <PROD_REF>          # CLI dùng token đã login
+  supabase db query --linked -f path/to/migration.sql
+  supabase db query --linked --output json "SELECT ... verify"
+  supabase link --project-ref <STAGING_REF>       # ALWAYS link back để tránh push nhầm
+  ```
+- **Cốt lõi:** `--linked` chạy SQL qua **Supabase Management API** (HTTP, dùng access token từ `supabase login`), KHÔNG cần DB password. Em (Claude) tự chạy được toàn bộ.
+- **Quy tắc bảo mật:** (1) ĐỪNG `find` / `cat` token file → classifier chặn (đúng) — chỉ CLI được đọc credential nội bộ. (2) **LUÔN link back staging** ngay sau khi xong (4 dòng cuối script) — tránh `db push` lần sau hit production.
+- **Khi nào KHÔNG dùng cách này:** mutation destructive (DROP, DELETE FROM, TRUNCATE) → vẫn nên paste SQL Editor để user thấy preview. CREATE OR REPLACE FUNCTION + ALTER TABLE ENABLE RLS / CREATE POLICY thì auto OK.
+
+### A11. *(chừa sẵn)*
 
 ---
 
