@@ -252,6 +252,97 @@ export async function getPrintingOrderStats(): Promise<
   });
 }
 
+/**
+ * Bootstrap: gộp orders + stats + labs vào 1 server action (trả thuế auth 1 lần).
+ * Tiết kiệm ~400-700ms trên mobile 4G so với 3 call riêng.
+ */
+export async function getPrintingBootstrap(
+  filters: PrintingFilters = {},
+): Promise<ActionResult<{ orders: PrintingOrdersPage; stats: PrintingStats; labOptions: Array<{ id: string; lab_name: string }> }>> {
+  const parsedFilters = printingFiltersSchema.safeParse(filters);
+  if (!parsedFilters.success) {
+    return { success: false, error: parsedFilters.error.issues[0]?.message || "Bo loc khong hop le" };
+  }
+
+  return withPrintingAccess(async (supabase) => {
+    const f = parsedFilters.data;
+    const page = f.page || 1;
+    const pageSize = f.pageSize || PRINTING_PAGE_SIZE;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    // Build orders query
+    let ordersQuery = supabase
+      .from("printing_orders")
+      .select(buildPrintingSelect(), { count: "estimated" })
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (f.status && f.status !== "all") ordersQuery = ordersQuery.eq("status", f.status);
+    if (f.labId && f.labId !== "all") ordersQuery = ordersQuery.eq("lab_id", f.labId);
+    if (f.paymentStatus && f.paymentStatus !== "all") {
+      if (f.paymentStatus === "da_thanh_toan") {
+        ordersQuery = ordersQuery.or("payment_status.eq.paid,status.in.(hoan_thanh,da_nhan)");
+      } else {
+        ordersQuery = ordersQuery.in("payment_status", ["unpaid", "partial"]).neq("status", "hoan_thanh").neq("status", "da_nhan");
+      }
+    }
+    if (f.search?.trim()) {
+      const escaped = escapeLikePattern(f.search.trim());
+      const { data: mc } = await supabase
+        .from("contracts")
+        .select("id, customers!inner(full_name)")
+        .is("deleted_at", null)
+        .or(`contract_code.ilike.%${escaped}%,customers.full_name.ilike.%${escaped}%`)
+        .limit(100);
+      const cids = mc?.map(c => c.id) || [];
+      ordersQuery = cids.length > 0
+        ? ordersQuery.or(`order_code.ilike.%${escaped}%,contract_id.in.(${cids.join(",")})`)
+        : ordersQuery.ilike("order_code", `%${escaped}%`);
+    }
+    if (f.fromDate) ordersQuery = ordersQuery.gte("order_date", f.fromDate);
+    if (f.toDate) ordersQuery = ordersQuery.lte("order_date", f.toDate);
+
+    // Fire ALL 3 in parallel (1 auth session)
+    const [ordersRes, statsRes, labsRes] = await Promise.all([
+      ordersQuery.range(from, to),
+      supabase.rpc("printing_stats"),
+      supabase.from("labs").select("id, lab_name").eq("status", "active").is("deleted_at", null).order("lab_name"),
+    ]);
+
+    if (ordersRes.error) throw new Error(`Lỗi tải đơn in: ${ordersRes.error.message}`);
+    if (statsRes.error) throw new Error(`Lỗi tải thống kê: ${statsRes.error.message}`);
+    if (labsRes.error) throw new Error(`Lỗi tải labs: ${labsRes.error.message}`);
+
+    const statsRow = Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data;
+    if (!statsRow) throw new Error("Không tải được thống kê");
+
+    return {
+      orders: {
+        orders: (((ordersRes.data ?? []) as unknown) as RawPrintingOrderRow[]).map(mapPrintingOrderRow),
+        total: ordersRes.count || 0,
+        page,
+        pageSize,
+      },
+      stats: {
+        total: Number(statsRow.total ?? 0),
+        choXuLy: Number(statsRow.cho_xu_ly ?? 0),
+        datCoc: Number(statsRow.dat_coc ?? 0),
+        dangIn: Number(statsRow.dang_in ?? 0),
+        daIn: Number(statsRow.da_in ?? 0),
+        daGiao: Number(statsRow.da_giao ?? 0),
+        hoanThanh: Number(statsRow.hoan_thanh ?? 0),
+        huyDon: Number(statsRow.huy_don ?? 0),
+        daNhan: Number(statsRow.da_nhan ?? 0),
+        daHuy: Number(statsRow.da_huy ?? 0),
+        totalCost: Number(statsRow.total_cost ?? 0),
+        unpaidCost: Number(statsRow.unpaid_cost ?? 0),
+      },
+      labOptions: (labsRes.data ?? []) as Array<{ id: string; lab_name: string }>,
+    };
+  });
+}
+
 export async function getPrintingOrderDetail(
   id: string,
 ): Promise<ActionResult<PrintingOrderDetail>> {

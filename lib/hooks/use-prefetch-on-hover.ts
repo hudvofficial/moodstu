@@ -11,6 +11,7 @@ import { getServices } from "@/app/actions/service-queries";
 import { getLeadsBootstrap } from "@/app/actions/lead-actions";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
+import { getPrintingBootstrap } from "@/app/actions/printing-queries";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import type { ContractFilters } from "@/types/contract";
@@ -108,6 +109,17 @@ function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | nu
           data: data ?? [],
           count: count || 0,
         };
+      },
+    };
+  }
+
+  if (route === "/printing") {
+    return {
+      key: [cacheKeys.printingOrders(), {}],
+      fetcher: async () => {
+        const result = await getPrintingBootstrap();
+        if (!result.success) throw new Error(result.error);
+        return result.data;
       },
     };
   }

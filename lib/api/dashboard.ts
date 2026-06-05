@@ -60,7 +60,7 @@ export const DASHBOARD_SERVICES_CACHE_TAG = "dashboard-services";
 export const DASHBOARD_EVENTS_CACHE_TAG = "dashboard-events";
 export const DASHBOARD_PAYMENTS_CACHE_TAG = "dashboard-payments";
 
-const DASHBOARD_CRITICAL_CACHE_SECONDS = 30; // Reduced from 60s for fresher data
+const DASHBOARD_CRITICAL_CACHE_SECONDS = 120; // 2 min — KPIs don't change sub-minute; 30s caused frequent cache-misses on mobile (each miss = full RPC ~200-400ms)
 const DASHBOARD_SECTION_CACHE_SECONDS = 300; // 5 minutes for less critical sections
 const DASHBOARD_LOCAL_UTC_OFFSET = "+07:00";
 const DEFAULT_DASHBOARD_PROFILE_SLOW_MS = 500;
