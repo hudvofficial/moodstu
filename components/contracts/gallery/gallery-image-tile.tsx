@@ -61,7 +61,8 @@ export function GalleryImageTile({
         }
       />
 
-      {/* Actual image - Next.js Image with WebP/AVIF auto-conversion */}
+      {/* Actual image — unoptimized for lh3 (Google CDN already serves WebP + responsive via =sN),
+          so Next.js proxy just adds latency. For non-lh3 URLs, keep Next.js optimization. */}
       <Image
         src={imageSrc}
         alt={image.file_name || "Photo"}
@@ -72,6 +73,7 @@ export function GalleryImageTile({
         placeholder={image.blur_data_url ? "blur" : "empty"}
         blurDataURL={image.blur_data_url || undefined}
         quality={85}
+        unoptimized={/lh3\.googleusercontent\.com/i.test(imageSrc)}
         onLoad={(event) => {
           const img = event.currentTarget as HTMLImageElement;
           if (img.complete && img.naturalWidth > 0) {

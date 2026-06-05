@@ -22,9 +22,9 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   // Network-aware pagination
   const { isSlowNetwork, effectiveType, saveData } = useNetworkQuality();
   const pageSize = useMemo(() => {
-    if (isSlowNetwork || saveData) return 50;   // Load fewer images on slow connections
-    if (effectiveType === "3g") return 100;
-    return 200;  // Full batch on fast connections
+    if (isSlowNetwork || saveData) return 30;   // Aggressive limit on slow connections
+    if (effectiveType === "3g") return 50;
+    return 60;  // First batch nhỏ hơn → render nhanh; load-more khi scroll (infinite scroll có sẵn)
   }, [isSlowNetwork, effectiveType, saveData]);
 
   const [galleries, setGalleries] = useState<GallerySummary[]>([]);

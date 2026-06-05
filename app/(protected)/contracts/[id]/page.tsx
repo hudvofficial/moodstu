@@ -6,10 +6,11 @@ import ContractDetailClient from "@/components/contracts/detail/contract-detail-
 import type { ContractDetailData } from "@/lib/hooks/use-contract-queries";
 
 // ═══════════════════════════════════════════
-// Contract Detail Page — Thin Server Shell
-// Perf: No server-side data fetch — SWR cache provides instant render
-// when navigating from drawer (prefetchContractDetail warm cache).
-// Cold start: skeleton → SWR fetch → render.
+// Contract Detail Page — SSR parallel fetch
+// Perf: fetch contract detail + gallery summaries SONG SONG trên server,
+// truyền initial data → React Query / gallery render ngay, không spinner.
+// Drawer prefetch vẫn warm cache cho contract detail (0ms từ drawer);
+// gallery data được SSR bổ sung (drawer prefetch không cover gallery).
 // ═══════════════════════════════════════════
 
 export default async function ContractDetailPage(props: {
@@ -17,14 +18,24 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  // ⚡ LOẠI BỎ CHẶN LUỒNG SERVER: Không await fetch data ở đây nữa.
-  // Next.js sẽ render ngay lập tức (Thin Server Shell). 
-  // Client Component (SWR/React Query) đã có sẵn cache từ Drawer Prefetch nên sẽ render 0ms native!
-  // Khi Cold Start (vào trực tiếp URL), sẽ hiện Skeleton Loading.
+  // Song song: contract detail + gallery summaries — 1 round-trip server, không chặn nhau.
+  const [detailResult, galleriesResult] = await Promise.all([
+    getContractDetail(id),
+    getGallerySummariesByContract(id),
+  ]);
+
+  const detail = detailResult.success ? (detailResult.data as unknown as ContractDetailData) : null;
+  const galleries = galleriesResult.success ? galleriesResult.data : undefined;
 
   return (
     <ContractDetailClient
       contractId={id}
+      initialContract={detail?.contract}
+      initialPayments={detail?.payments}
+      initialPaymentPlans={detail?.paymentPlans}
+      initialReservations={detail?.reservations}
+      initialPrintOrders={detail?.printOrders}
+      initialGalleries={galleries}
     />
   );
 }
