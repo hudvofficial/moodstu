@@ -335,7 +335,11 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
 }
 
 // ─── processDriveCopyChunk ────────────────────
-// Nhận accessToken trực tiếp (không query DB mỗi chunk)
+// Nhận accessToken trực tiếp (không query DB mỗi chunk).
+// P7: bỏ SELECT+UPDATE gallery_filter_jobs mỗi chunk — không có UI poll progress (verify grep).
+//     Cắt ~100ms/chunk × N chunks = tiết kiệm 1s+ cho 100+ ảnh. Client gọi finalizeDriveCopyJob 1 lần cuối.
+// P8: truyền onTokenExpired callback vào createDriveShortcut. Khi 401 trên Drive API → refresh
+//     token qua getValidGoogleToken (đọc studio_info) → retry. Bảo vệ job dài > token TTL 1h.
 export async function processDriveCopyChunk(
   jobId: string | undefined,
   destFolderId: string,
@@ -344,14 +348,30 @@ export async function processDriveCopyChunk(
 ) {
   return withAuth(async (supabase) => {
     const { createDriveShortcut } = await import("@/lib/google-drive-oauth");
+    const { getValidGoogleToken } = await import("@/lib/google-auth");
 
     let successCount = 0;
     let failedCount = 0;
 
+    // P8: refresh callback — chạy khi createDriveShortcut bắt 401 từ Drive API.
+    // Re-query studio_info + lấy token mới (có thể đã refresh trong DB do request song song khác).
+    const onTokenExpired = async (): Promise<string> => {
+      const { data: studioInfo } = await supabase
+        .from("studio_info")
+        .select("id, google_oauth")
+        .limit(1)
+        .maybeSingle();
+      if (!studioInfo?.google_oauth) {
+        throw new Error("Studio mất Google OAuth — không refresh được token");
+      }
+      const fresh = await getValidGoogleToken(supabase, studioInfo);
+      return fresh.access_token;
+    };
+
     const results = await Promise.allSettled(
       filesChunk.map(async (img) => {
         if (!img.drive_file_id) throw new Error("No drive_file_id");
-        return createDriveShortcut(accessToken, img.drive_file_id, img.name || "Shortcut", destFolderId);
+        return createDriveShortcut(accessToken, img.drive_file_id, img.name || "Shortcut", destFolderId, onTokenExpired);
       })
     );
 
@@ -363,46 +383,54 @@ export async function processDriveCopyChunk(
       } else {
         const errorMsg = res.reason instanceof Error ? res.reason.message : String(res.reason);
         console.error("[processDriveCopyChunk] Failed to copy file:", errorMsg);
-        
+
         if (errorMsg.includes("QUOTA_EXCEEDED")) {
           quotaExceededError = errorMsg;
         }
-        
+
         failedCount++;
       }
     }
-    
+
     // Trả về lỗi fatal ngay lập tức nếu hết dung lượng Drive
     if (quotaExceededError) {
       return { success: false, error: quotaExceededError };
     }
 
-    if (jobId) {
-      const { data: job } = await supabase
-        .from("gallery_filter_jobs")
-        .select("success_count, failed_count, total_count")
-        .eq("id", jobId)
-        .single();
-      
-      if (job) {
-        const newSuccess = (job.success_count || 0) + successCount;
-        const newFailed = (job.failed_count || 0) + failedCount;
-        const newProcessed = newSuccess + newFailed;
-        
-        await supabase
-          .from("gallery_filter_jobs")
-          .update({
-            processed_count: newProcessed,
-            success_count: newSuccess,
-            failed_count: newFailed,
-            status: newProcessed >= (job.total_count || 0) ? (newSuccess > 0 ? "completed" : "failed") : "processing",
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", jobId);
-      }
-    }
-
+    // P7: KHÔNG update gallery_filter_jobs ở đây nữa — client gọi finalizeDriveCopyJob 1 lần cuối.
+    // jobId vẫn nhận để giữ signature ổn định + log nếu cần debug.
     return { success: true, successCount, failedCount };
+  });
+}
+
+// ─── finalizeDriveCopyJob ─────────────────────
+// P7: client gọi 1 lần SAU khi tất cả workers `processDriveCopyChunk` xong.
+// Thay vì SELECT+UPDATE mỗi chunk (N round-trip), chỉ 1 UPDATE cuối → tiết kiệm ~100ms × (N-1) chunk.
+// gallery_filter_jobs vẫn được track đúng status cuối (completed/failed/partial).
+export async function finalizeDriveCopyJob(
+  jobId: string,
+  successCount: number,
+  failedCount: number,
+  totalCount: number,
+) {
+  return withAuth(async (supabase) => {
+    const processed = successCount + failedCount;
+    const status = processed >= totalCount
+      ? (successCount > 0 ? "completed" : "failed")
+      : "failed"; // Client kết thúc sớm (vd QUOTA_EXCEEDED) → mark failed
+
+    await supabase
+      .from("gallery_filter_jobs")
+      .update({
+        processed_count: processed,
+        success_count: successCount,
+        failed_count: failedCount,
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+
+    return { success: true };
   });
 }
 

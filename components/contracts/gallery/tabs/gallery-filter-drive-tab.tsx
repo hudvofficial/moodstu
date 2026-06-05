@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Radio } from "@/components/ui/radio";
-import { initDriveCopyJob, processDriveCopyChunk } from "@/app/actions/gallery-drive-actions";
+import { initDriveCopyJob, processDriveCopyChunk, finalizeDriveCopyJob } from "@/app/actions/gallery-drive-actions";
 import { toast } from "sonner";
 
 interface GalleryFilterDriveTabProps {
@@ -54,35 +54,70 @@ export function GalleryFilterDriveTab({
       
       setDriveProgress({ current: 0, total: filesToCopy.length, failed: 0 });
       setDriveDestUrl(destUrl);
-      
-      const CHUNK_SIZE = 10;
+
+      // P5: chunk 10 → 25 (cắt 60% số round-trip, Drive API per-user quota 100req/100s vẫn an toàn)
+      // P6: worker pool 3 chunks song song (trước: tuần tự 1 chunk/lúc) — atomic counter chunkIndex
+      //     tránh race condition; fatalError sentinel để dừng sớm khi QUOTA_EXCEEDED.
+      const CHUNK_SIZE = 25;
+      const CONCURRENCY = 3;
+
+      const chunks: typeof filesToCopy[] = [];
+      for (let i = 0; i < filesToCopy.length; i += CHUNK_SIZE) {
+        chunks.push(filesToCopy.slice(i, i + CHUNK_SIZE));
+      }
+
       let currentSuccess = 0;
       let currentFailed = 0;
-      
-      for (let i = 0; i < filesToCopy.length; i += CHUNK_SIZE) {
-        const chunk = filesToCopy.slice(i, i + CHUNK_SIZE);
-        const chunkRes = await processDriveCopyChunk(jobId, destFolderId, chunk, accessToken);
-        
-        if (chunkRes.success) {
-          if (chunkRes.data?.error) {
-            toast.error(chunkRes.data.error);
-            setIsCopyingDrive(false);
-            return;
-          }
-          
-          if (chunkRes.data?.success) {
-            currentSuccess += chunkRes.data.successCount ?? 0;
-            currentFailed += chunkRes.data.failedCount ?? 0;
+      let chunkIndex = 0;
+      let fatalError: string | null = null;
+
+      const workers = Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, async () => {
+        while (true) {
+          if (fatalError) return;
+          const myIdx = chunkIndex++;
+          if (myIdx >= chunks.length) return;
+          const chunk = chunks[myIdx];
+
+          const chunkRes = await processDriveCopyChunk(jobId, destFolderId, chunk, accessToken);
+
+          if (chunkRes.success) {
+            if (chunkRes.data?.error) {
+              fatalError = chunkRes.data.error;
+              return;
+            }
+            if (chunkRes.data?.success) {
+              currentSuccess += chunkRes.data.successCount ?? 0;
+              currentFailed += chunkRes.data.failedCount ?? 0;
+            } else {
+              currentFailed += chunk.length;
+            }
           } else {
             currentFailed += chunk.length;
           }
-        } else {
-          currentFailed += chunk.length;
+
+          setDriveProgress({
+            current: currentSuccess + currentFailed,
+            total: filesToCopy.length,
+            failed: currentFailed,
+          });
         }
-        
-        setDriveProgress({ current: currentSuccess + currentFailed, total: filesToCopy.length, failed: currentFailed });
+      });
+
+      await Promise.all(workers);
+
+      // P7: finalize 1 lần — replace N×update mỗi chunk. Mark status đúng (completed/failed/partial).
+      if (jobId) {
+        await finalizeDriveCopyJob(jobId, currentSuccess, currentFailed, filesToCopy.length).catch((err) =>
+          console.error("[finalizeDriveCopyJob] failed:", err)
+        );
       }
-      
+
+      if (fatalError) {
+        toast.error(fatalError);
+        setIsCopyingDrive(false);
+        return;
+      }
+
       toast.success(`Đã copy ${currentSuccess} ảnh lên Drive!`);
     } catch (error: any) {
       toast.error(error.message || "Lỗi không xác định");
