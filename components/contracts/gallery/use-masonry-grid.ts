@@ -187,30 +187,38 @@ export function useMasonryGrid({ groups, hasMoreServer, loadingMore, onLoadMore,
     });
   }, []);
 
-  const handleImageError = useCallback((imageUrl: string, event: React.SyntheticEvent<HTMLImageElement>, fileGroup?: string) => {
+  // Retry level per fileGroup (useRef → không trigger re-render; survive Next.js Image reconcile reset của element.dataset)
+  // 0 = original (lh3 với =sN), 1 = lh3 raw (image_url), 2 = proxy server, 3+ = error final
+  const retryLevelsRef = useRef<Map<string, number>>(new Map());
+
+  const handleImageError = useCallback((
+    imageUrl: string,
+    driveFileId: string | null,
+    event: React.SyntheticEvent<HTMLImageElement>,
+    fileGroup?: string,
+  ) => {
+    if (!fileGroup) return;
     const element = event.currentTarget;
+    const level = retryLevelsRef.current.get(fileGroup) ?? 0;
 
-    // If already using proxy, mark as error (no more fallbacks)
-    if (element.src.includes('/api/drive-download/')) {
-      if (fileGroup) {
-        setErrorGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
-        setLoadedGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
-      }
-      return;
-    }
-
-    // Single fallback: try full image URL
-    if (!element.dataset.retryLevel) {
-      element.dataset.retryLevel = "1";
+    // Level 0 fail (lh3 với =sN) → thử lh3 raw (image_url, không =sN)
+    if (level === 0) {
+      retryLevelsRef.current.set(fileGroup, 1);
       element.src = imageUrl;
       return;
     }
 
-    // Full image failed → mark as error
-    if (fileGroup) {
-      setErrorGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
-      setLoadedGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
+    // Level 1 fail (lh3 raw) → thử proxy server (Drive API alt=media fallback)
+    if (level === 1 && driveFileId) {
+      retryLevelsRef.current.set(fileGroup, 2);
+      element.src = `/api/drive-download/${driveFileId}`;
+      return;
     }
+
+    // Level 2 fail (proxy) hoặc không có driveFileId → mark error
+    retryLevelsRef.current.set(fileGroup, 3);
+    setErrorGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
+    setLoadedGroups((prev) => prev[fileGroup] ? prev : { ...prev, [fileGroup]: true });
   }, []);
 
   return {

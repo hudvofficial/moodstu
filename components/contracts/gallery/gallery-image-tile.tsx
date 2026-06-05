@@ -14,7 +14,7 @@ interface GalleryImageTileProps {
   columnWidth: number;
   fileGroup: string;
   onImageLoad: (fileGroup: string, event: any) => void;
-  onImageError: (imageUrl: string, event: any, fileGroup: string) => void;
+  onImageError: (imageUrl: string, driveFileId: string | null, event: any, fileGroup: string) => void;
   children?: React.ReactNode;
 }
 
@@ -80,7 +80,7 @@ export function GalleryImageTile({
             onImageLoad(fileGroup, event);
           }
         }}
-        onError={(event) => onImageError(image.image_url, event, fileGroup)}
+        onError={(event) => onImageError(image.image_url, image.drive_file_id ?? null, event, fileGroup)}
       />
 
       {/* Error state */}
