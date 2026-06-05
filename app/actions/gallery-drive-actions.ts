@@ -67,9 +67,14 @@ export async function createMultiFolderGalleries(
 
       await supabase.from("gallery_images").insert(imageRows);
 
-      // Background: backfill dimensions for masonry layout
+      // Background: backfill dimensions + blurhash (chạy song song, không block return)
       backfillGalleryDimensions(gallery.id).catch(err =>
         console.error('Failed to backfill dimensions:', err)
+      );
+      import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
+        backfillGalleryBlurhashes(gallery.id).catch(err =>
+          console.error('Failed to backfill blurhash:', err)
+        )
       );
 
       return { galleryId: gallery.id, folderType, totalImages: driveFiles.length };

@@ -106,6 +106,67 @@ export async function updateImageBlurHash(imageId: string, imageUrl: string) {
 }
 
 /**
+ * Backfill BlurHash for gallery — fire-and-forget background sau khi tạo/sync gallery.
+ * Mirror pattern backfillGalleryDimensions: createAdminClient (no withAuth — auth context không cần cho service role),
+ * cap 100 ảnh/lần, rate-limit 150ms để không spam lh3, log progress.
+ * Idempotent: WHERE blur_hash IS NULL → chạy lại an toàn, chỉ xử lý ảnh còn thiếu.
+ */
+export async function backfillGalleryBlurhashes(galleryId: string) {
+  try {
+    const supabase = await createAdminClient();
+
+    const { data: images, error } = await supabase
+      .from('gallery_images')
+      .select('id, image_url, thumbnail_url, file_name')
+      .eq('gallery_id', galleryId)
+      .is('blur_hash', null)
+      .limit(100); // Cap để fit Vercel serverless timeout — gọi lại sau nếu còn
+
+    if (error) {
+      console.error('[backfillGalleryBlurhashes] Fetch error:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    if (!images || images.length === 0) {
+      return { success: true, processed: 0 };
+    }
+
+    console.log(`🎨 Backfilling blurhash for ${images.length} images in gallery ${galleryId}...`);
+
+    let processed = 0;
+    let failed = 0;
+
+    for (const img of images) {
+      try {
+        // Ưu tiên thumbnail_url (nhỏ + nhanh) → fallback image_url
+        const urlToUse = img.thumbnail_url || img.image_url;
+        const { blurHash, dataUrl } = await generateBlurHashFromUrl(urlToUse);
+
+        const { error: updateError } = await supabase
+          .from('gallery_images')
+          .update({ blur_hash: blurHash, blur_data_url: dataUrl })
+          .eq('id', img.id);
+
+        if (updateError) throw updateError;
+        processed++;
+
+        // Rate limit lh3 / Drive — match pattern của backfillGalleryDimensions
+        await new Promise(resolve => setTimeout(resolve, 150));
+      } catch (err) {
+        failed++;
+        console.error(`[backfillGalleryBlurhashes] Failed ${img.file_name}:`, err instanceof Error ? err.message : err);
+      }
+    }
+
+    console.log(`✅ Blurhash backfill done: ${processed} processed, ${failed} failed`);
+    return { success: true, processed, failed, total: images.length };
+  } catch (error) {
+    console.error('[backfillGalleryBlurhashes] Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
  * Batch update BlurHash for multiple images in a gallery
  * Processes images sequentially to avoid rate limiting
  */

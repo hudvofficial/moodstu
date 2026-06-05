@@ -104,6 +104,16 @@ export async function createGallery(
       throw new Error(`Loi luu anh: ${imagesError.message}`);
     }
 
+    // Background: backfill dimensions + blurhash (đã có dimensions ở syncDriveFolder; ở đây tạo mới nên thêm cả 2)
+    backfillGalleryDimensions(gallery.id).catch(err =>
+      console.error("Failed to backfill dimensions:", err)
+    );
+    import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
+      backfillGalleryBlurhashes(gallery.id).catch(err =>
+        console.error("Failed to backfill blurhash:", err)
+      )
+    );
+
     revalidatePath(`/contracts/${contractId}`);
     return { galleryId: gallery.id, accessUrl, totalImages: driveFiles.length };
   });
@@ -352,10 +362,15 @@ export async function syncDriveFolder(galleryId: string) {
         throw new Error(`Loi them anh moi: ${error.message}`);
       }
 
-      // Background: backfill dimensions for new images
+      // Background: backfill dimensions + blurhash for new images
       if (newRows.length > 0) {
         backfillGalleryDimensions(galleryId).catch(err =>
           console.error('Failed to backfill dimensions:', err)
+        );
+        import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
+          backfillGalleryBlurhashes(galleryId).catch(err =>
+            console.error('Failed to backfill blurhash:', err)
+          )
         );
       }
     }

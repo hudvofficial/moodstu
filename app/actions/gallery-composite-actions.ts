@@ -31,20 +31,36 @@ export async function getGalleryDataV2(
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const { data, error } = await supabase.rpc("get_gallery_data_v2", {
+    // Try V3 (V2 + blur fields). Fallback V2 nếu function chưa có trên server.
+    // Cả 2 RPC có shape return identical — chỉ khác fields blur_hash + blur_data_url trên image objects.
+    let rpcName: "get_gallery_data_v3" | "get_gallery_data_v2" = "get_gallery_data_v3";
+    let { data, error } = await supabase.rpc(rpcName, {
       p_gallery_id: galleryId,
       p_limit: pageSize,
       p_offset: page * pageSize,
     });
 
+    // V3 không tồn tại (chưa migrate) → fallback V2
+    if (error && /does not exist|function .* does not exist/i.test(error.message)) {
+      console.warn("[getGalleryDataV2] V3 unavailable, falling back to V2");
+      rpcName = "get_gallery_data_v2";
+      const v2 = await supabase.rpc(rpcName, {
+        p_gallery_id: galleryId,
+        p_limit: pageSize,
+        p_offset: page * pageSize,
+      });
+      data = v2.data;
+      error = v2.error;
+    }
+
     if (error) {
-      console.warn("[getGalleryDataV2] RPC failed, using fallback:", error.message);
-      return null; // Fallback to legacy sequential calls
+      console.warn(`[getGalleryDataV2] ${rpcName} failed, using legacy fallback:`, error.message);
+      return null; // Legacy fallback (Promise.all sequential calls trong use-gallery-data.ts)
     }
 
     if (!data) return null;
 
-    // Parse RPC response
+    // Parse RPC response (shape identical v2/v3 — blur fields chỉ thêm vào image objects, optional)
     const result = data as {
       images: GalleryImage[];
       totalCount: number;
