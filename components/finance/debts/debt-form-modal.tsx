@@ -124,8 +124,7 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
       return;
     }
 
-    setSaving(true);
-    const result = await createDebt({
+    const payload = {
       entity_name: form.entity_name,
       entity_type: form.entity_type as "nha_cung_cap" | "khach_hang" | "nhan_vien" | "khac",
       type: form.type as "Phải thu" | "Phải trả",
@@ -142,17 +141,22 @@ export function DebtFormModal({ isOpen, onClose, onSaved }: DebtFormModalProps) 
           card_id: form.card_id === "none" ? null : form.card_id,
         }
         : {}),
-    });
-    setSaving(false);
+    };
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Đã tạo công nợ.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     resetAndClose();
-    onSaved();
+    try {
+      const result = await createDebt(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Đã tạo công nợ.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cardOptions = [

@@ -42,7 +42,6 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
     const payload = {
       ...form,
       start_date: form.start_date || null,
@@ -50,17 +49,22 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
       description: form.description || null,
       cost_type: form.cost_type || null,
     };
-    const result = item ? await updateFixedCost(item.id, payload) : await createFixedCost(payload);
-    setSaving(false);
+    const editId = item?.id;
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success(item ? "Đã cập nhật chi phí cố định." : "Đã tạo chi phí cố định.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     onClose();
-    onSaved();
+    try {
+      const result = editId ? await updateFixedCost(editId, payload) : await createFixedCost(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(editId ? "Đã cập nhật chi phí cố định." : "Đã tạo chi phí cố định.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

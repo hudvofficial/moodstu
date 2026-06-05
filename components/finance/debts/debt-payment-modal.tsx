@@ -42,16 +42,17 @@ export function DebtPaymentModal({ isOpen, onClose, debt }: DebtPaymentModalProp
       return;
     }
 
+    const debtId = debt.id;
+    const payload = { amount: numAmount, paymentMethod, note };
+
+    // Đóng modal NGAY. payDebt recalc paid/remaining/status + sinh chứng từ thu/chi
+    // → KHÔNG patch optimistic, chỉ mutate + revalidate sau khi xong.
     setLoading(true);
+    onClose();
     try {
-      await payDebt(debt.id, {
-        amount: numAmount,
-        paymentMethod,
-        note,
-      });
+      await payDebt(debtId, payload);
       toast.success("Đã thanh toán công nợ và lưu vào dòng tiền.");
       void mutate(cacheKeys.debts());
-      onClose();
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi thanh toán công nợ");
     } finally {

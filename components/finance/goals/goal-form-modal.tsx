@@ -46,7 +46,6 @@ export function GoalFormModal({ isOpen, goal, cashflow = null, onClose, onSaved 
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
     const payload = {
       name: form.name,
       target_amount: form.target_amount,
@@ -55,21 +54,27 @@ export function GoalFormModal({ isOpen, goal, cashflow = null, onClose, onSaved 
       color: form.color || undefined,
       notes: form.notes || undefined,
     };
+    const editId = goal?.id;
+    const editUpdatedAt = goal?.updated_at || undefined;
 
-    const result = goal
-      ? await updateGoal(goal.id, payload, goal.updated_at || undefined)
-      : await createGoal(payload);
-    setSaving(false);
-
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success(goal ? "Đã cập nhật mục tiêu." : "Đã tạo mục tiêu.");
+    // Đóng modal NGAY (close + revalidate) — mục tiêu là insert/update đơn giản.
+    // Finance 0 realtime → GIỮ onSaved() revalidate.
+    setSaving(true);
     setForm(EMPTY_FORM);
     onClose();
-    onSaved();
+    try {
+      const result = editId
+        ? await updateGoal(editId, payload, editUpdatedAt)
+        : await createGoal(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(editId ? "Đã cập nhật mục tiêu." : "Đã tạo mục tiêu.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

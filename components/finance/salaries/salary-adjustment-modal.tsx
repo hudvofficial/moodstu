@@ -36,24 +36,29 @@ export function SalaryAdjustmentModal({ salary, onClose, onSaved }: SalaryAdjust
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!salary) return;
-    setSaving(true);
-    const result = await addSalaryAdjustment({
+    // salary.id capture vào payload TRƯỚC onClose (đóng modal xoá selection cha).
+    const payload = {
       employee_salary_id: salary.id,
       type: form.type as "bonus" | "penalty",
       amount: form.amount,
       reason: form.reason,
       date: form.date,
-    });
-    setSaving(false);
+    };
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Đã thêm điều chỉnh lương.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     onClose();
-    onSaved();
+    try {
+      const result = await addSalaryAdjustment(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Đã thêm điều chỉnh lương.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

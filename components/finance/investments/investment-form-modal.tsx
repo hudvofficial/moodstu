@@ -99,7 +99,6 @@ export function InvestmentFormModal({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
 
     const payload = {
       name: form.name.trim(),
@@ -115,21 +114,25 @@ export function InvestmentFormModal({
       next_maintenance_date: form.next_maintenance_date || undefined,
       notes: form.notes.trim() || undefined,
     };
+    const editId = item?.id;
+    const editUpdatedAt = item?.updated_at || undefined;
 
-    const result = item
-      ? await updateInvestment(item.id, payload, item.updated_at || undefined)
-      : await createInvestment(payload);
-
-    setSaving(false);
-
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success(item ? "Đã cập nhật tài sản." : "Đã tạo tài sản.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     onClose();
-    onSaved();
+    try {
+      const result = editId
+        ? await updateInvestment(editId, payload, editUpdatedAt)
+        : await createInvestment(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(editId ? "Đã cập nhật tài sản." : "Đã tạo tài sản.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

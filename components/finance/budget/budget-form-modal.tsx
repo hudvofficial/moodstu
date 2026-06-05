@@ -35,25 +35,29 @@ export function BudgetFormModal({ isOpen, onClose, onSaved, month, year }: Budge
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
-    const result = await upsertBudget({
+    const payload = {
       category_name: form.category_name,
       budget_amount: form.budget_amount,
       period_month: month,
       period_year: year,
       notes: form.notes || undefined,
-    });
-    setSaving(false);
+    };
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Đã lưu ngân sách.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     setForm({ category_name: "", budget_amount: 0, notes: "" });
     onClose();
-    onSaved();
+    try {
+      const result = await upsertBudget(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Đã lưu ngân sách.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

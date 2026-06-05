@@ -43,37 +43,45 @@ export function GoalContributionModal({ goal, cashflow = null, onCelebrate, onCl
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!goal) return;
-    setSaving(true);
-    const result = await addContribution(goal.id, amount, notes || undefined);
-    setSaving(false);
-
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Đã ghi nhận khoản góp.");
-
+    // Snapshot trước onClose (đóng modal xoá selection cha; goal là prop đã đóng-băng trong closure).
+    const goalId = goal.id;
+    const contributionAmount = amount;
+    const contributionNotes = notes || undefined;
     const prevProgress = goal.progress_percent || 0;
     const target = goal.target_amount || 0;
     const current = goal.current_amount || 0;
-    if (target > 0 && amount > 0) {
-      const nextProgress = Math.min(100, Math.round(((current + amount) / target) * 100));
-      const milestones: GoalMilestone[] = [25, 50, 75, 100];
-      for (const m of milestones) {
-        if (prevProgress < m && nextProgress >= m) {
-          onCelebrate?.(m);
-          break;
-        }
-      }
-    }
 
-    void mutate(cacheKeys.goalContributions(goal.id));
-
+    // Đóng modal NGAY. addContribution dùng RPC recalc current/progress/status
+    // → KHÔNG patch optimistic; mutate + revalidate sau khi xong.
+    setSaving(true);
     setAmount(0);
     setNotes("");
     onClose();
-    onSaved();
+    try {
+      const result = await addContribution(goalId, contributionAmount, contributionNotes);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Đã ghi nhận khoản góp.");
+
+      if (target > 0 && contributionAmount > 0) {
+        const nextProgress = Math.min(100, Math.round(((current + contributionAmount) / target) * 100));
+        const milestones: GoalMilestone[] = [25, 50, 75, 100];
+        for (const m of milestones) {
+          if (prevProgress < m && nextProgress >= m) {
+            onCelebrate?.(m);
+            break;
+          }
+        }
+      }
+
+      void mutate(cacheKeys.goalContributions(goalId));
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   const palette = goal ? resolveGoalColor(goal.color) : null;

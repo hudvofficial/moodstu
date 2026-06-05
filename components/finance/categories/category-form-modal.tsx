@@ -35,25 +35,29 @@ export function CategoryFormModal({ isOpen, onClose, onSaved, category }: Catego
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
     const payload = {
       name: form.name,
       type: form.type as "thu" | "chi",
       category_code: form.category_code || undefined,
     };
-    const result = category
-      ? await updateFinanceCategory(category.id, payload)
-      : await createFinanceCategory(payload);
-    setSaving(false);
+    const editId = category?.id;
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success(category ? "Đã cập nhật danh mục." : "Đã tạo danh mục.");
+    // Đóng modal NGAY (close + revalidate). Finance 0 realtime → GIỮ onSaved().
+    setSaving(true);
     onClose();
-    onSaved();
+    try {
+      const result = editId
+        ? await updateFinanceCategory(editId, payload)
+        : await createFinanceCategory(payload);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(editId ? "Đã cập nhật danh mục." : "Đã tạo danh mục.");
+      await Promise.resolve(onSaved());
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
