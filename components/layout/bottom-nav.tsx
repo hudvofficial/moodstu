@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MODULES } from "@/lib/navigation";
 import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
-import { Home, MoreHorizontal, X, Loader2 } from "lucide-react";
+import { Home, MoreHorizontal, X } from "lucide-react";
 import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
 import { haptic } from "@/lib/haptic";
 import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
@@ -201,11 +201,9 @@ export function BottomNav({ role, className }: BottomNavProps) {
                   isActive || isPending ? "text-primary" : "text-text-muted hover:text-text-secondary"
                 )}
               >
-                {isPending ? (
-                  <Loader2 className="w-[26px] h-[26px] animate-spin stroke-[2.5px]" />
-                ) : (
-                  <Icon className={cn("w-[26px] h-[26px]", isActive && "stroke-[2.5px]")} />
-                )}
+                {/* Native feel: tab highlight tức thì khi bấm (isPending → text-primary + stroke đậm);
+                    KHÔNG spinner trên icon — thanh progress trên đầu (NextTopLoader, app/layout) lo việc đó. */}
+                <Icon className={cn("w-[26px] h-[26px]", (isActive || isPending) && "stroke-[2.5px]")} />
                 <span className={cn(
                   "text-[11px]",
                   isActive || isPending ? "font-semibold" : "font-medium"
