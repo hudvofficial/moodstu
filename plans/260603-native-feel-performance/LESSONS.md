@@ -77,7 +77,13 @@
 - **Fix:** `REVOKE ALL ON <view> FROM anon, authenticated; GRANT SELECT ON <view> TO authenticated;` (REVOKE trước, GRANT sau). Verify `information_schema.role_table_grants` chỉ còn `authenticated=SELECT`.
 - **Khác với TABLE:** table bật RLS + chỉ policy SELECT → INSERT/UPDATE/DELETE bị RLS-default-deny chặn dù có grant. View KHÔNG có RLS → grant là lớp bảo vệ DUY NHẤT → phải REVOKE thủ công. **Mọi `*_public` view browser-safe đều cần REVOKE ALL + GRANT SELECT.**
 
-### A12. *(chừa sẵn)*
+### A12. RLS policy gọi bảng đã REVOKE → 403 (không phải empty-200); verify bằng request authenticated THẬT *(2026-06-05)*
+- **Lỗi (client-direct network test bắt):** policy `authenticated_read` dùng inline `EXISTS (SELECT 1 FROM employees ...)`. `employees` bị REVOKE khỏi authenticated (server-only) + RLS on → khi browser (authenticated) đọc contract table, subquery `SELECT FROM employees` trong policy lỗi "permission denied for table employees" → **toàn request 403** (KHÔNG phải RLS-filter trả 200+rỗng).
+- **Vì sao lọt:** RLS hardening (20260605000000) chỉ verify bằng `pg_policies` tồn tại — CHƯA test đọc bằng role authenticated thật. Policy fail-closed nên server action (service_role bypass) vẫn chạy → không ai để ý cho tới khi client-direct test network.
+- **Fix:** hàm `public.is_active_employee()` **SECURITY DEFINER STABLE** (chạy quyền owner → đọc employees bất kể grant/RLS của caller), policy `USING (public.is_active_employee())`. Chuẩn Supabase. Reusable cho mọi bảng. employees vẫn khoá (hàm bypass nội bộ, không grant thêm).
+- **Bài học verify:** RLS PHẢI verify bằng **request authenticated thật** (browser network HOẶC `SET ROLE authenticated` + `set_config('request.jwt.claim.sub',...)`), KHÔNG chỉ check policy tồn tại. 403 = grant/subquery-permission; 200+rỗng = RLS-filter; phân biệt rõ khi debug.
+
+### A13. *(chừa sẵn)*
 
 ---
 
