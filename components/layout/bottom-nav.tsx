@@ -118,7 +118,9 @@ export function BottomNav({ role, className }: BottomNavProps) {
   const isKeyboardOpen = useVirtualKeyboard();
 
   // Hide BottomNav during print mode or when virtual keyboard is open
-  if (pathname.includes("/print")) return null;
+  // Ẩn nav khi xem trang IN (vd /contracts/[id]/print, /finance/expenses/[id]/print).
+  // KHÔNG ẩn /printing (quản lý xưởng in) hay /printing/labs.
+  if (pathname.endsWith("/print")) return null;
   if (isKeyboardOpen) return null;
 
   return (
