@@ -173,36 +173,38 @@ export default function LabFormModal({
       return;
     }
 
+    const isEdit = !!lab;
+    const labId = lab?.id;
+    const labPayload = {
+      ...form,
+      lab_name: form.lab_name.trim(),
+      contact_person: form.contact_person.trim() || null,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
+    };
+    const baseline = baselineServices;
+    const nextServices = services;
+
+    // Đóng drawer NGAY (close + revalidate) — createLab sinh id + syncServices fan-out → không patch.
     setLoading(true);
+    onClose();
     try {
-      if (lab) {
-        const result = await updateLab(lab.id, {
-          ...form,
-          lab_name: form.lab_name.trim(),
-          contact_person: form.contact_person.trim() || null,
-          phone: form.phone.trim() || null,
-          address: form.address.trim() || null,
-        });
+      if (isEdit && labId) {
+        const result = await updateLab(labId, labPayload);
 
         if (!result.success) {
           throw new Error(result.error);
         }
 
         await syncServices({
-          labId: lab.id,
-          initialServices: baselineServices,
-          nextServices: services,
+          labId,
+          initialServices: baseline,
+          nextServices,
         });
 
         toast("Cập nhật lab thành công", "success");
       } else {
-        const result = await createLab({
-          ...form,
-          lab_name: form.lab_name.trim(),
-          contact_person: form.contact_person.trim() || null,
-          phone: form.phone.trim() || null,
-          address: form.address.trim() || null,
-        });
+        const result = await createLab(labPayload);
 
         if (!result.success) {
           throw new Error(result.error);
@@ -211,14 +213,13 @@ export default function LabFormModal({
         await syncServices({
           labId: result.data.id,
           initialServices: [],
-          nextServices: services,
+          nextServices,
         });
 
         toast("Tạo lab thành công", "success");
       }
 
       await Promise.resolve(onSaved());
-      onClose();
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể lưu lab",

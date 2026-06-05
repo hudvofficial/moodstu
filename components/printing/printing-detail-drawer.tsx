@@ -266,19 +266,31 @@ export default function PrintingDetailDrawer({
       return;
     }
 
+    const isEdit = !!order;
+    const orderId = order?.id;
+    const orderUpdatedAt = order?.updatedAt || undefined;
+    const orderContractId = order?.contractId;
+    const formContractId = form.contractId;
+    const updatePayload = {
+      labId: form.labId || null,
+      expectedDate: form.expectedDate || null,
+      notes: form.notes.trim() || null,
+      items: validItems,
+    };
+    const createPayload = {
+      contractId: form.contractId,
+      labId: form.labId || null,
+      expectedDate: form.expectedDate || null,
+      notes: form.notes.trim() || null,
+      items: validItems,
+    };
+
+    // Đóng drawer NGAY (close + revalidate) — order_code/totals/tồn kho do RPC server tính → không patch.
     setLoading(true);
+    onClose();
     try {
-      if (order) {
-        const result = await updatePrintingOrder(
-          order.id,
-          {
-            labId: form.labId || null,
-            expectedDate: form.expectedDate || null,
-            notes: form.notes.trim() || null,
-            items: validItems,
-          },
-          order.updatedAt || undefined,
-        );
+      if (isEdit && orderId) {
+        const result = await updatePrintingOrder(orderId, updatePayload, orderUpdatedAt);
 
         if (!result.success) {
           throw new Error(result.error);
@@ -286,13 +298,7 @@ export default function PrintingDetailDrawer({
 
         toast("Cập nhật đơn in thành công", "success");
       } else {
-        const result = await createPrintingOrder({
-          contractId: form.contractId,
-          labId: form.labId || null,
-          expectedDate: form.expectedDate || null,
-          notes: form.notes.trim() || null,
-          items: validItems,
-        });
+        const result = await createPrintingOrder(createPayload);
 
         if (!result.success) {
           throw new Error(result.error);
@@ -303,12 +309,11 @@ export default function PrintingDetailDrawer({
 
       await Promise.all([
         Promise.resolve(onSaved()),
-        invalidatePrintingAfterWrite(order?.id),
-        order?.contractId || form.contractId
-          ? invalidateContractAfterWrite(order?.contractId || form.contractId)
+        invalidatePrintingAfterWrite(orderId),
+        orderContractId || formContractId
+          ? invalidateContractAfterWrite(orderContractId || formContractId)
           : Promise.resolve(),
       ]);
-      onClose();
     } catch (error) {
       toast(
         error instanceof Error ? error.message : "Không thể lưu đơn in",
