@@ -192,32 +192,34 @@ export function EventFormDrawer({
         return;
       }
 
+      const taskUpdates: {
+        deadline?: string;
+        start_date?: string;
+        assigned_to?: string;
+      } = {};
+      const nextTaskDate = formData.event_date.split("T")[0];
+
+      if (event.originalDateField === "start_date") {
+        taskUpdates.start_date = nextTaskDate;
+      } else {
+        taskUpdates.deadline = nextTaskDate;
+      }
+
+      if (isGlobalAdmin && formData.employee_id !== event.employeeId) {
+        taskUpdates.assigned_to = formData.employee_id;
+      }
+      const taskId = event.id;
+
+      // Đóng drawer NGAY; server cập nhật + revalidate qua onSuccess. Lỗi → toast (drawer đã đóng).
+      onOpenChange(false);
       startTransition(async () => {
         try {
-          const taskUpdates: {
-            deadline?: string;
-            start_date?: string;
-            assigned_to?: string;
-          } = {};
-          const nextTaskDate = formData.event_date.split("T")[0];
-
-          if (event.originalDateField === "start_date") {
-            taskUpdates.start_date = nextTaskDate;
-          } else {
-            taskUpdates.deadline = nextTaskDate;
-          }
-
-          if (isGlobalAdmin && formData.employee_id !== event.employeeId) {
-            taskUpdates.assigned_to = formData.employee_id;
-          }
-
-          const res = await updateCalendarTaskDetails(event.id, taskUpdates);
+          const res = await updateCalendarTaskDetails(taskId, taskUpdates);
           if (!res.success) throw new Error(res.error || "Thao tác thất bại.");
           toast.success("Đã cập nhật nhiệm vụ!");
           onSuccess?.();
-          onOpenChange(false);
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
+          toast.error(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
         }
       });
       return;
@@ -246,9 +248,11 @@ export function EventFormDrawer({
        return;
     }
 
+    // Đóng drawer NGAY; server sinh id + Google sync, revalidate qua onSuccess. Lỗi → toast.
+    onOpenChange(false);
     startTransition(async () => {
        try {
-          const res = isEditing 
+          const res = isEditing
             ? await updateCalendarEvent(submitPayload)
             : await createCalendarEvent(submitPayload);
 
@@ -261,9 +265,8 @@ export function EventFormDrawer({
           }
 
           onSuccess?.();
-          onOpenChange(false);
        } catch (err) {
-          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
+          toast.error(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
        }
     });
   };
@@ -271,16 +274,17 @@ export function EventFormDrawer({
   const handleDelete = () => {
      if (!event?.id) return;
      if (!confirm("Bạn có chắc chắn muốn xoá sự kiện này?")) return;
-     setError(null);
+     const eventId = event.id;
+     // Đóng drawer NGAY; revalidate qua onSuccess. Lỗi → toast (drawer đã đóng).
+     onOpenChange(false);
      startTransition(async () => {
        try {
-           const res = await deleteCalendarEvent(event.id);
+           const res = await deleteCalendarEvent(eventId);
            if (!res.success) throw new Error(res.error || "Xoá sự kiện thất bại.");
            toast.success("Đã xoá sự kiện!");
            onSuccess?.();
-           onOpenChange(false);
        } catch (err) {
-          setError(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
+          toast.error(err instanceof Error ? err.message : "Lỗi giao tiếp máy chủ.");
        }
     });
   };
