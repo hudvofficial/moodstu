@@ -18,7 +18,9 @@ export function GalleryFilterDriveTab({
   contractId,
   contractName,
 }: GalleryFilterDriveTabProps) {
-  const [driveFolderName, setDriveFolderName] = useState(`${contractName} Lọc Ảnh`);
+  // Ô trống để user tự đặt tên — server fallback "Selected - <contract_code>" nếu submit empty
+  // (xem initDriveCopyJob ở gallery-drive-actions.ts).
+  const [driveFolderName, setDriveFolderName] = useState("");
   const [isCopyingDrive, setIsCopyingDrive] = useState(false);
   const [driveDestUrl, setDriveDestUrl] = useState<string | null>(null);
   const [driveProgress, setDriveProgress] = useState({ current: 0, total: 0, failed: 0 });
