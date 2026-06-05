@@ -80,6 +80,15 @@ Hiện mở 1 contract drawer = **5 POST server-action** serialized (`getContrac
 
 ---
 
+## ✅ 4.2 STATUS (2026-06-05): DONE + VERIFIED
+Commits: `9faf34b` (employees_public view + allocations RLS), `d1947ce` (is_active_employee SECURITY DEFINER helper — fix 403), `deb12c3` (client-direct code). Verify chrome-devtools: drawer read = GET supabase REST 200 (không server-action), events/checklist/payment/notes render, Nhân sự resolve tên từ employees_public. DB applied prod. **CHƯA deploy Vercel code.**
+
+## ⚠️ 4.3 — Phát hiện posture quan trọng (cập nhật sau 4.2)
+4.2 lộ ra: **contracts tables CÓ sẵn grant authenticated** (default) → chỉ cần fix policy. NHƯNG các module 4.3 KHÁC posture:
+- **dresses / dress_reservations / inventory_items / employees**: ĐÃ bị `REVOKE ALL FROM authenticated` (server-only chủ đích, `20260429110000`/`20260428200000`). Client-direct = phải **GRANT SELECT cho authenticated** = MỞ bảng cho browser (dù RLS gate). Đây là **đổi posture bảo mật**, không phải swap đơn thuần.
+- **customers**: chưa có RLS.
+→ "Làm hết" 4.3 nghĩa là cấp quyền browser đọc dresses/inventory/customers (data tài chính/khách). Cân nhắc: chỉ client-direct module **tần cao + ít nhạy cảm**; giữ server-only cho nhạy cảm (finance/employees). **Cần xác nhận lại với user trước khi grant browser cho từng bảng.**
+
 ## 5. Phase 4.3 — Nhân rộng client-direct (sau khi 4.2 xanh prod)
 
 Mỗi module 1 task, **audit RLS-read TRƯỚC** rồi mới swap fetcher (đừng generalize — A3):
