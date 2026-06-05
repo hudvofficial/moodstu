@@ -71,7 +71,13 @@
 - **Quy tắc bảo mật:** (1) ĐỪNG `find` / `cat` token file → classifier chặn (đúng) — chỉ CLI được đọc credential nội bộ. (2) **LUÔN link back staging** ngay sau khi xong (4 dòng cuối script) — tránh `db push` lần sau hit production.
 - **Khi nào KHÔNG dùng cách này:** mutation destructive (DROP, DELETE FROM, TRUNCATE) → vẫn nên paste SQL Editor để user thấy preview. CREATE OR REPLACE FUNCTION + ALTER TABLE ENABLE RLS / CREATE POLICY thì auto OK.
 
-### A11. *(chừa sẵn)*
+### A11. Supabase default-privileges grant ALL trên VIEW mới → phải REVOKE *(2026-06-05)*
+- **Lỗi (bắt được khi verify):** tạo `employees_public` view + `GRANT SELECT TO authenticated` — nhưng verify thấy authenticated có **ALL** (INSERT/UPDATE/DELETE/TRUNCATE). Supabase set default privileges grant ALL cho anon+authenticated trên mọi object mới trong `public`. `GRANT SELECT` chỉ THÊM, không bỏ cái có sẵn.
+- **Vì sao nguy hiểm:** view đơn (1 bảng, không aggregate) là **auto-updatable**; view chạy quyền owner (security_invoker off) → authenticated UPDATE/DELETE xuyên view = ghi vào bảng employees **bypass RLS**. Lộ ghi data nhạy cảm.
+- **Fix:** `REVOKE ALL ON <view> FROM anon, authenticated; GRANT SELECT ON <view> TO authenticated;` (REVOKE trước, GRANT sau). Verify `information_schema.role_table_grants` chỉ còn `authenticated=SELECT`.
+- **Khác với TABLE:** table bật RLS + chỉ policy SELECT → INSERT/UPDATE/DELETE bị RLS-default-deny chặn dù có grant. View KHÔNG có RLS → grant là lớp bảo vệ DUY NHẤT → phải REVOKE thủ công. **Mọi `*_public` view browser-safe đều cần REVOKE ALL + GRANT SELECT.**
+
+### A12. *(chừa sẵn)*
 
 ---
 

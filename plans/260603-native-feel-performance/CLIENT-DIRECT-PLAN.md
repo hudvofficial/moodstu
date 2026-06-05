@@ -95,10 +95,10 @@ Thứ tự đề xuất: Dresses → Inventory (RLS sẵn) → Customers (cần 
 
 ---
 
-## 6. Quyết định mở (cần anh chốt khi triển khai)
-1. **`employees` cho JOIN browser:** thêm policy authenticated-read toàn bảng, hay tạo **view `employees_public`** (chỉ id/full_name/phone) để không lộ lương qua REST? → Em nghiêng **view** (an toàn hơn).
-2. **`payment_plan_allocations`:** bật RLS+policy (nhất quán) hay chấp nhận ungated?
-3. **Phạm vi 4.3:** làm hết (dresses+inventory+customers+leads) hay chỉ dresses+inventory (RLS sẵn) đợt này?
+## 6. Quyết định đã CHỐT (2026-06-05)
+1. **`employees` JOIN browser → VIEW `employees_public`** (id, full_name, avatar_url, department, position, status). KHÔNG mở RLS bảng employees (tránh lộ lương qua REST; RLS là row-level không che cột). View phơi cột an toàn, grant chỉ `authenticated`. Drawer bỏ FK-embed employees, resolve tên client-side từ view (qua hook `useEmployeesPublic`). View chứa MỌI employee (kể cả inactive/deleted) → không regress tên assignee cũ. **Tái dùng cho 4.3.**
+2. **`payment_plan_allocations` → bật RLS + 2 policy** (service_role ALL + authenticated active-read), nhất quán với 6 bảng contract.
+3. **Phạm vi 4.3 = LÀM HẾT:** dresses → inventory (RLS sẵn) → customers (hardening RLS trước) → leads (audit + hardening nếu thiếu).
 
 ---
 
