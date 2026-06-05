@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { getContractNotes } from "@/app/actions/note-actions";
+import { fetchContractNotesClient } from "@/lib/client-direct/contract-drawer";
 
 /**
  * SWR hook for contract notes.
@@ -22,7 +22,7 @@ export function useContractNotes(
 ) {
   const { data, error, isLoading, mutate } = useSWR(
     contractId ? ["contract-notes", contractId] : null,
-    () => getContractNotes(contractId!),
+    () => fetchContractNotesClient(contractId!),
     {
       revalidateOnFocus: false,
       // fallbackData: instant render from list query, SWR revalidates in background

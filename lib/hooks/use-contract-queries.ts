@@ -33,9 +33,9 @@ import {
   getContractList,
   getContractStats,
   getContractDetail,
-  getContractDrawerExtra,
 } from "@/app/actions/contract-queries";
 import { getActiveEmployees } from "@/app/actions/employee-queries";
+import { fetchContractDrawerExtraClient } from "@/lib/client-direct/contract-drawer";
 
 // ═══════════════════════════════════════════
 // Query Keys Factory (Centralized key management)
@@ -296,8 +296,8 @@ export function useContractDrawerExtra(
     queryKey: id ? contractKeys.drawerExtra(id) : ["null"],
     queryFn: async () => {
       if (!id) return null;
-      const result = await getContractDrawerExtra(id);
-      if (!result.success) throw new Error(result.error);
+      // Cấp 2: client-direct (browser → Supabase, RLS gate). Fetcher throw nếu lỗi.
+      const result = await fetchContractDrawerExtraClient(id);
       return result.data as unknown as {
         events: ContractEvent[];
         checklists: ContractChecklist[];
@@ -571,8 +571,7 @@ export function prefetchContract(queryClient: any, id: string) {
   queryClient.prefetchQuery({
     queryKey: contractKeys.drawerExtra(id),
     queryFn: async () => {
-      const result = await getContractDrawerExtra(id);
-      if (!result.success) throw new Error(result.error);
+      const result = await fetchContractDrawerExtraClient(id);
       return result.data;
     },
     staleTime: 5 * 60 * 1000,
