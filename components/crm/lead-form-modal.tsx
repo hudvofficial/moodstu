@@ -144,19 +144,21 @@ export default function LeadFormModal({ isOpen, onClose, onSaved, initialData }:
     }
     setErrors({});
 
+    // Đóng modal NGAY (close + revalidate) — create sinh lead_id + dup-phone check ở server.
+    if (isEditing && initialData) {
+      payload.expectedUpdatedAt = initialData.updated_at || undefined;
+    } else {
+      payload.status = "moi";
+      payload.contact_date = format(new Date(), "yyyy-MM-dd");
+    }
+    const editId = isEditing && initialData ? initialData.id : null;
     setIsSubmitting(true);
+    onClose();
     try {
-      if (isEditing && initialData) {
-        payload.expectedUpdatedAt = initialData.updated_at || undefined;
-        const result = await updateLead(initialData.id, payload);
-        if (!result.success) throw new Error(result.error);
-      } else {
-        payload.status = "moi";
-        payload.contact_date = format(new Date(), "yyyy-MM-dd");
-        const result = await createLead(payload);
-        if (!result.success) throw new Error(result.error);
-      }
-      onClose();
+      const result = editId
+        ? await updateLead(editId, payload)
+        : await createLead(payload);
+      if (!result.success) throw new Error(result.error);
       onSaved();
     } catch (err: unknown) {
       if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
