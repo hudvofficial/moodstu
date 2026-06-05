@@ -18,6 +18,8 @@ import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { FOLDER_LABELS } from "./gallery-helpers";
 import { useNetworkQuality } from "@/hooks/use-network-quality";
+import type { GallerySummary } from "@/types/gallery";
+import type { GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 
 // ═══════════════════════════════════════════
 // GalleryFullPage — Grid view of all images in a gallery
@@ -28,9 +30,17 @@ interface GalleryFullPageProps {
   contractId: string;
   galleryId: string | null;
   folderType: string | null;
+  initialGalleries?: GallerySummary[];
+  initialGalleryData?: GalleryDataV2Result;
 }
 
-export default function GalleryFullPage({ contractId, galleryId, folderType }: GalleryFullPageProps) {
+export default function GalleryFullPage({
+  contractId,
+  galleryId,
+  folderType,
+  initialGalleries,
+  initialGalleryData,
+}: GalleryFullPageProps) {
   const {
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
     commentCountsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
@@ -43,7 +53,11 @@ export default function GalleryFullPage({ contractId, galleryId, folderType }: G
     setNewAlbumName, setShowAlbumInput,
     handleSort, handleViewMode, handleWatermarkToggle, handleCreateAlbum, handleToggleStar,
     patchGalleryShareDetails,
-  } = useGalleryData(contractId, galleryId, folderType);
+  } = useGalleryData(contractId, galleryId, folderType, {
+    galleries: initialGalleries,
+    galleryData: initialGalleryData,
+    galleryDataFor: galleryId,
+  });
 
   // ── Set header slots for gallery ──
   const setHeaderSlots = useSetHeaderSlots();

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getGallerySummariesByContract } from "@/app/actions/gallery-admin-actions";
 import { toggleImageStar } from "@/app/actions/gallery-selection-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import { getGalleryDataV2, getGalleryMetadataAll } from "@/app/actions/gallery-composite-actions";
+import { getGalleryDataV2, getGalleryMetadataAll, type GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
@@ -18,7 +18,22 @@ import { usePrefetchGallery } from "@/hooks/use-gallery-prefetch";
 // Extracted to keep component under 255 lines
 // ═══════════════════════════════════════════
 
-export function useGalleryData(contractId: string, galleryId: string | null, folderType: string | null) {
+export interface UseGalleryDataInitial {
+  galleries?: GallerySummary[];
+  galleryData?: GalleryDataV2Result;
+  galleryDataFor?: string | null; // galleryId của initialGalleryData (chỉ seed khi match)
+}
+
+export function useGalleryData(
+  contractId: string,
+  galleryId: string | null,
+  folderType: string | null,
+  initial?: UseGalleryDataInitial,
+) {
+  // SSR seed: chỉ áp dụng nếu galleryDataFor khớp galleryId hiện tại (tránh hiển thị nhầm)
+  const seedData = (initial?.galleryData && initial.galleryDataFor === galleryId)
+    ? initial.galleryData
+    : null;
   // Network-aware pagination
   const { isSlowNetwork, effectiveType, saveData } = useNetworkQuality();
   const pageSize = useMemo(() => {
@@ -27,19 +42,31 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     return 60;  // First batch nhỏ hơn → render nhanh; load-more khi scroll (infinite scroll có sẵn)
   }, [isSlowNetwork, effectiveType, saveData]);
 
-  const [galleries, setGalleries] = useState<GallerySummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeGalleryId, setActiveGalleryId] = useState<string | null>(galleryId);
+  const [galleries, setGalleries] = useState<GallerySummary[]>(initial?.galleries ?? []);
+  const [loading, setLoading] = useState(!(initial?.galleries && initial.galleries.length > 0));
+  const [activeGalleryId, setActiveGalleryId] = useState<string | null>(() => {
+    if (galleryId) return galleryId;
+    // Khi page.tsx không có galleryId trong URL nhưng SSR đã trả về summaries, chọn ngay album đầu/match folderType
+    const seedGalleries = initial?.galleries;
+    if (seedGalleries && seedGalleries.length > 0) {
+      if (folderType) {
+        const match = seedGalleries.find((g) => g.folder_type === folderType);
+        return match?.id || seedGalleries[0].id;
+      }
+      return seedGalleries[0].id;
+    }
+    return null;
+  });
   const [fileFilter, setFileFilter] = useState<FileFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     if (typeof window !== "undefined") return (localStorage.getItem("gallery_sort_mode") as SortOption) || "manual";
     return "manual";
   });
-  const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({});
-  const [commentCount, setCommentCount] = useState(0);
-  const [commentCountsPerImage, setCommentCountsPerImage] = useState<Record<string, number>>({});
+  const [reactionCounts, setReactionCounts] = useState<ReactionCounts>(seedData?.reactionCounts ?? {});
+  const [commentCount, setCommentCount] = useState(seedData?.totalCommentCount ?? 0);
+  const [commentCountsPerImage, setCommentCountsPerImage] = useState<Record<string, number>>(seedData?.commentCountsPerImage ?? {});
   const [activeFilter, setActiveFilter] = useState<StatsFilter>("all");
-  const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
+  const [albums, setAlbums] = useState<GalleryAlbum[]>(seedData?.albums ?? []);
   const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== "undefined") return (localStorage.getItem("gallery_view_mode") as "grid" | "list") || "grid";
@@ -53,11 +80,11 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
   });
 
   // ─── Lazy-load pagination state ────────────
-  const [paginatedImages, setPaginatedImages] = useState<GalleryImage[]>([]);
+  const [paginatedImages, setPaginatedImages] = useState<GalleryImage[]>(seedData?.images ?? []);
   const [currentPage, setCurrentPage] = useState(0);
-  const [hasMoreImages, setHasMoreImages] = useState(false);
+  const [hasMoreImages, setHasMoreImages] = useState(seedData?.hasMore ?? false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [totalImageCount, setTotalImageCount] = useState(0);
+  const [totalImageCount, setTotalImageCount] = useState(seedData?.totalCount ?? 0);
 
   // ─── Handlers ───────────────────────────
 
@@ -97,15 +124,33 @@ export function useGalleryData(contractId: string, galleryId: string | null, fol
     setLoading(false);
   }, [contractId, folderType, activeGalleryId]);
 
+  // Skip lần đầu nếu SSR đã trả về summaries — dùng one-shot ref để chỉ skip mount đầu,
+  // các lần contractId đổi sau (không xảy ra trong route hiện tại nhưng phòng) vẫn fetch.
+  const skipFirstGalleriesLoadRef = useRef(!!(initial?.galleries && initial.galleries.length > 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void loadData(); }, [contractId]);
+  useEffect(() => {
+    if (skipFirstGalleriesLoadRef.current) {
+      skipFirstGalleriesLoadRef.current = false;
+      return;
+    }
+    void loadData();
+  }, [contractId]);
 
   // ─── Active gallery ───────────────────────
   const activeGallery = galleries.find((g) => g.id === activeGalleryId);
 
   // ─── Load ALL gallery data when gallery changes (V2: single RPC) ───
+  // Skip lần đầu nếu SSR đã seed data khớp activeGalleryId — tiết kiệm waterfall ~300-500ms.
+  const skipFirstGalleryDataLoadRef = useRef(!!seedData);
   useEffect(() => {
     if (!activeGalleryId) return;
+
+    // One-shot: nếu lần đầu mount và seed khớp galleryId → bỏ qua fetch (đã có data).
+    if (skipFirstGalleryDataLoadRef.current) {
+      skipFirstGalleryDataLoadRef.current = false;
+      return;
+    }
+
     let cancelled = false;
 
     // Reset state
