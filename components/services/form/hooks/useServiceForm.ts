@@ -287,8 +287,9 @@ export function useServiceForm({ initialData, initialBundleItems }: UseServiceFo
       }
 
       toast.success(isEditMode ? "Cập nhật dịch vụ thành công" : "Tạo dịch vụ thành công");
-      await invalidateServiceAfterWrite(result.data?.id);
+      // Điều hướng NGAY; revalidate chạy nền (không chặn nav). /services tự refetch khi SWR cache bị invalidate.
       router.push("/services");
+      void invalidateServiceAfterWrite(result.data?.id);
     } catch (error: unknown) {
       const e = error as Error;
       applyActionError(e.message);
