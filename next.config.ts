@@ -302,6 +302,18 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
         },
       },
+      // 🟢 RULE 6: Google CDN ảnh gallery (lh3) — CacheFirst 30 ngày, max 500 entries.
+      // image_url được build từ drive_file_id (=sN suffix variant); file mới upload tạo file mới
+      // → cùng URL = cùng nội dung, an toàn cache lâu. Lần 2 vào album = instant từ disk cache.
+      {
+        urlPattern: /^https:\/\/lh3\.googleusercontent\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "lh3-images",
+          expiration: { maxEntries: 500, maxAgeSeconds: 30 * 24 * 60 * 60 },
+          cacheableResponse: { statuses: [0, 200] }, // chỉ cache 200 + opaque (CORS) — bỏ 404/403/429
+        },
+      },
     ],
   },
 });
