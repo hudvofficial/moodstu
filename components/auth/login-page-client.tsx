@@ -41,6 +41,10 @@ export default function LoginPageClient() {
     window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   }, []);
 
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
   // 2. Login handler
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -103,7 +107,7 @@ export default function LoginPageClient() {
           <div className="absolute inset-0 bg-linear-to-t from-dark/80 via-dark/20 to-transparent" />
           
           <div className="absolute bottom-16 left-16 text-white max-w-xl animate-in slide-in-from-left duration-700">
-            <h3 className="text-5xl font-light tracking-tight leading-tight whitespace-nowrap">
+            <h3 className="text-4xl xl:text-5xl font-light tracking-tight leading-tight">
               Capturing Timeless Moments With <span className="font-semibold">Mood.</span>
             </h3>
             <div className="mt-6 flex items-center gap-4">
@@ -149,47 +153,49 @@ export default function LoginPageClient() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6" aria-busy={isLoading}>
               <div className="space-y-4">
-                <div className="relative">
-                  <Input
-                    label="Tài khoản"
-                    name="email"
-                    placeholder="Tên đăng nhập hoặc Email"
-                    type="text"
-                    required
-                    disabled={isLoading}
-                    className="pl-11"
-                  />
-                  <Mail className="absolute left-4 top-[38px] w-4 h-4 text-text-muted" />
+                <div>
+                  <label className="label-base">Tài khoản</label>
+                  <div className="relative">
+                    <Input
+                      name="email"
+                      placeholder="Tên đăng nhập hoặc Email"
+                      type="text"
+                      required
+                      disabled={isLoading}
+                      className="pl-11"
+                    />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <div className="flex justify-between items-center px-1 absolute right-0 top-0">
+                <div>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <label className="label-base !mb-0">Mật khẩu</label>
                     <Link
                       href="/forgot-password"
-                      className="text-caption font-bold text-primary/70 hover:text-primary transition-colors"
+                      className="text-caption font-bold text-primary/70 hover:text-primary transition-colors mr-1"
                     >
                       Quên mật khẩu?
                     </Link>
                   </div>
-                  <Input
-                    label="Mật khẩu"
-                    name="password"
-                    placeholder="••••••••"
-                    type={showPassword ? "text" : "password"}
-                    required
-                    disabled={isLoading}
-                    className="pl-11 pr-12"
-                  />
-                  <Lock className="absolute left-4 top-[38px] w-4 h-4 text-text-muted" />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-[38px] !p-0 !h-auto !w-auto text-text-muted hover:text-text-primary hover:bg-transparent transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
+                  <div className="relative">
+                    <Input
+                      name="password"
+                      placeholder="••••••••"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      disabled={isLoading}
+                      className="pl-11 pr-11"
+                    />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
