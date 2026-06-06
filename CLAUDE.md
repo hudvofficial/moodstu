@@ -40,3 +40,4 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - **Finance: GIỮ `revalidatePath`** (0 realtime). Optimistic **KHÔNG patch giá trị server tính lại** (mã tự sinh, recalc totals, tồn kho, status atomic) → "đóng modal + revalidate".
 - **Verify trước deploy:** CSS/layout → render + screenshot chrome-devtools **TRƯỚC** deploy. Deploy: `npx vercel --prod`.
 - **Node:** prepend `C:\Users\Admin\.nodejs\...` vào PATH rồi mới `pnpm`.
+- **Responsive 3-tier** (chốt 2026-06-06, xem `plans/260606-tablet-design-layer/PLAN.md` + `lib/breakpoints.ts`): Phone `<768px` (base) · Tablet `768–1023px` (`md:`) · Desktop `≥1024px` (`lg:`). Layout density (bảng↔card, 1↔2 cột) toggle ở **`md:`**; chrome full-width giữ `lg:`; overlay/modal căn giữa ở `sm:` (640px). Verify mọi đổi responsive @768px + @1023px.

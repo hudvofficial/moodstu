@@ -69,3 +69,39 @@ export function useIsSmallMobile() {
 
   return !!isSmallMobile;
 }
+
+/** 3-tier device classification — xem quy ước ở lib/breakpoints.ts */
+export type DeviceTier = "phone" | "tablet" | "desktop";
+
+/**
+ * Hook: useDeviceTier (3-tier convention 768/1024)
+ * Returns 'phone' (<768px) | 'tablet' (768-1023px) | 'desktop' (>=1024px).
+ *
+ * SSR-safe: trả "desktop" cho tới khi mount (khớp default của useIsMobile=false).
+ * ⚠️ CSS-first: ưu tiên Tailwind md:/lg:; chỉ dùng hook này khi BUỘC swap component bằng JS.
+ * Component swap-by-JS nên gate bằng `mounted` để tránh hydration flash (xem calendar-wrapper).
+ */
+export function useDeviceTier(): DeviceTier {
+  const [tier, setTier] = React.useState<DeviceTier>("desktop");
+
+  React.useEffect(() => {
+    const compute = (): DeviceTier => {
+      const w = window.innerWidth;
+      if (w < BREAKPOINTS.md) return "phone";
+      if (w < BREAKPOINTS.lg) return "tablet";
+      return "desktop";
+    };
+    const onChange = () => setTier(compute());
+    const mqlMd = window.matchMedia(mediaQueries.tabletUp);
+    const mqlLg = window.matchMedia(mediaQueries.desktop);
+    mqlMd.addEventListener("change", onChange);
+    mqlLg.addEventListener("change", onChange);
+    setTier(compute());
+    return () => {
+      mqlMd.removeEventListener("change", onChange);
+      mqlLg.removeEventListener("change", onChange);
+    };
+  }, []);
+
+  return tier;
+}
