@@ -46,6 +46,18 @@
   animation-delay: 420ms;
 }
 
+/* Dashboard bar chart grow-up animation */
+@keyframes dashboard-bar-in {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
 @keyframes stagger-fade-up {
   from {
     opacity: 0;

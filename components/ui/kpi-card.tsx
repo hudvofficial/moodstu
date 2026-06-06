@@ -37,6 +37,7 @@ export function KPICard({
               "shrink-0 text-caption font-bold",
               trendUp ? "text-success" : "text-error",
             )}
+            aria-label={`${trendUp ? "Tăng" : "Giảm"} ${trend}`}
           >
             {`${trendUp ? "↑" : "↓"} ${trend}`}
           </span>

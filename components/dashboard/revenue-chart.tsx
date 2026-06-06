@@ -1,5 +1,7 @@
 "use client";
 
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { SafeResponsiveContainer } from "@/components/ui/safe-responsive-container";
 import { TrendingUp } from "lucide-react";
 import { formatVnd } from "@/lib/utils";
 import type { RevenueChartData } from "@/types/dashboard";
@@ -23,10 +25,12 @@ export function RevenueChart({
   canView,
   periodLabel = "6 tháng gần nhất",
 }: RevenueChartProps) {
-  const max = Math.max(1, ...data.map((item) => item.revenue));
-
   return (
-    <div className="card-base h-full p-5 entrance entrance-3 chart-container">
+    <div
+      className="card-base h-full p-5 entrance entrance-3 chart-container"
+      role="img"
+      aria-label="Biểu đồ doanh thu theo tháng"
+    >
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className="icon-box bg-primary/10">
@@ -42,33 +46,46 @@ export function RevenueChart({
       ) : data.length === 0 || data.every((item) => item.revenue === 0) ? (
         <EmptyState message="Chưa có doanh thu trong kỳ hiển thị." />
       ) : (
-        <div className="flex h-44 gap-3">
-          {data.map((item) => {
-            const height = Math.max(4, (item.revenue / max) * 100);
-            return (
-              <div
-                key={item.month}
-                className="group relative flex flex-1 flex-col items-center justify-end"
-              >
-                <span className="absolute -top-6 z-10 whitespace-nowrap text-caption opacity-0 transition-opacity group-hover:opacity-100">
-                  {formatVnd(item.revenue)}
-                </span>
-
-                <div className="relative flex h-32 w-full items-end">
-                  <div
-                    className="w-full rounded-t-lg bg-primary opacity-45 transition-[opacity] duration-200 hover:opacity-60"
-                    style={{
-                      height: `${height}%`,
-                      animation: 'dashboard-bar-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards',
-                      animationDelay: `${data.indexOf(item) * 50}ms`,
-                    }}
-                  />
-                </div>
-
-                <span className="mt-2 text-caption font-medium">{item.month}</span>
-              </div>
-            );
-          })}
+        <div className="chart-focus-reset h-52 lg:h-64">
+          <SafeResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+              <CartesianGrid stroke="var(--color-border)" vertical={false} />
+              <XAxis
+                dataKey="month"
+                stroke="var(--color-text-muted)"
+                tickLine={false}
+                axisLine={false}
+                fontSize={12}
+              />
+              <YAxis
+                stroke="var(--color-text-muted)"
+                tickLine={false}
+                axisLine={false}
+                fontSize={12}
+                tickFormatter={(value) =>
+                  `${Math.round(Number(value) / 1_000_000)}tr`
+                }
+                width={45}
+              />
+              <Tooltip
+                cursor={{ fill: "var(--color-bg-hover)" }}
+                formatter={(value) => [formatVnd(Number(value)), "Doanh thu"]}
+                contentStyle={{
+                  backgroundColor: "var(--color-bg-card)",
+                  borderColor: "var(--color-border)",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "13px",
+                }}
+              />
+              <Bar
+                dataKey="revenue"
+                fill="var(--color-primary)"
+                radius={[6, 6, 0, 0]}
+                animationDuration={600}
+                animationEasing="ease-out"
+              />
+            </BarChart>
+          </SafeResponsiveContainer>
         </div>
       )}
     </div>

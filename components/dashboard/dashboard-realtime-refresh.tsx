@@ -1,28 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { invalidateDashboardCache } from "@/app/actions/dashboard-cache";
 import { createClient } from "@/lib/supabase/client";
+import type { DashboardVisibility } from "@/types/dashboard";
 
-const DASHBOARD_REALTIME_TABLES = [
-  "contracts",
-  "payments",
-  "receipts",
-  "payment_plans",
-  "contract_events",
-  "schedules",
-  "work_tasks",
-] as const;
+const TABLE_VISIBILITY_MAP: Record<string, keyof DashboardVisibility> = {
+  contracts: "canViewContracts",
+  contract_events: "canViewContracts",
+  payments: "canViewFinancials",
+  receipts: "canViewFinancials",
+  payment_plans: "canViewFinancials",
+  schedules: "canViewCalendar",
+  work_tasks: "canViewCalendar",
+};
 
 const DASHBOARD_REALTIME_DEBOUNCE_MS = 800;
 
-export function DashboardRealtimeRefresh() {
+interface DashboardRealtimeRefreshProps {
+  visibility: DashboardVisibility;
+}
+
+export function DashboardRealtimeRefresh({ visibility }: DashboardRealtimeRefreshProps) {
   const refreshTimerRef = useRef<number | null>(null);
   const pendingRefreshRef = useRef<Promise<void> | null>(null);
   const changedTablesRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
   const flushRefreshRef = useRef<() => void>(() => {});
+
+  // Only subscribe to tables the user has visibility for
+  const subscribedTables = useMemo(() => {
+    return Object.entries(TABLE_VISIBILITY_MAP)
+      .filter(([, visibilityKey]) => visibility[visibilityKey])
+      .map(([table]) => table);
+  }, [visibility]);
 
   const flushRefresh = useCallback(() => {
     if (pendingRefreshRef.current) return;
@@ -75,6 +87,9 @@ export function DashboardRealtimeRefresh() {
   useEffect(() => {
     mountedRef.current = true;
 
+    // No tables to subscribe to
+    if (subscribedTables.length === 0) return;
+
     const supabase = createClient();
     let channel: RealtimeChannel | null = null;
     let disposed = false;
@@ -87,7 +102,7 @@ export function DashboardRealtimeRefresh() {
       if (disposed || !session) return;
 
       channel = supabase.channel("dashboard-realtime");
-      for (const table of DASHBOARD_REALTIME_TABLES) {
+      for (const table of subscribedTables) {
         channel.on(
           "postgres_changes",
           { event: "*", schema: "public", table },
@@ -115,7 +130,7 @@ export function DashboardRealtimeRefresh() {
         void supabase.removeChannel(channel);
       }
     };
-  }, [scheduleRefresh]);
+  }, [scheduleRefresh, subscribedTables]);
 
   return null;
 }

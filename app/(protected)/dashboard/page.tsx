@@ -11,6 +11,7 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { ServicePieChart } from "@/components/dashboard/service-pie-chart";
 import { UpcomingEventsList } from "@/components/dashboard/upcoming-events";
 import { DashboardRealtimeRefresh } from "@/components/dashboard/dashboard-realtime-refresh";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { KPICard } from "@/components/ui/kpi-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { ChartSkeleton } from "@/components/ui/chart-skeleton";
@@ -212,10 +213,15 @@ export default async function DashboardPage() {
   const access = await requireDashboardAccess();
   const { visibility, role } = access;
 
+  const now = new Date();
+  const periodLabel = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+
   return (
     <div className="main-container">
-      <DashboardRealtimeRefresh />
-      
+      <DashboardRealtimeRefresh visibility={visibility} />
+
+      <DashboardHeader periodLabel={periodLabel} />
+
       <QuickAccessGrid role={role} />
 
       <Suspense fallback={<KpiSkeleton />}>
