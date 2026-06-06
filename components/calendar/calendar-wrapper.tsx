@@ -11,7 +11,7 @@ import { MobileMonthGrid } from "./views/mobile-month-grid";
 import { DayDrawer } from "./drawers/day-drawer";
 import { EventFormDrawer } from "./drawers/event-form-drawer";
 import { FAB } from "@/components/ui/fab";
-import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
+import { useIsSmallMobile } from "@/hooks/use-mobile";
 import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
 
@@ -105,8 +105,9 @@ export function CalendarWrapper({
 
   const [mounted, setMounted] = useState(false);
 
-  const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
+  // Tablet (≥640px) cần MonthGrid desktop để hiển thị đủ events/cell.
+  // MobileMonthGrid chỉ dùng cho phone portrait thực sự (<640px) — cell hẹp, tap → drawer.
+  const isSmallMobile = useIsSmallMobile();
 
   // §4.4 Keyboard shortcuts: T=Today, M/W/D=ViewMode, ←→=Navigate, C=Create
   useCalendarKeyboard({
@@ -125,7 +126,7 @@ export function CalendarWrapper({
     fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
   }, []);
 
-  const isSmallScreen = isMobile || isTablet;
+  const isSmallScreen = isSmallMobile;
 
   if (error)
     return (
@@ -184,12 +185,12 @@ export function CalendarWrapper({
           </div>
         )}
 
-        <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="hidden sm:flex flex-col flex-1 min-h-0 overflow-hidden">
           {mounted && !isSmallScreen && renderDesktopView()}
         </div>
 
         <div
-          className="flex lg:hidden flex-col flex-1 min-h-0 overflow-hidden"
+          className="flex sm:hidden flex-col flex-1 min-h-0 overflow-hidden"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
