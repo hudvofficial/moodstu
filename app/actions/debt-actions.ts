@@ -270,7 +270,7 @@ export async function payDebt(
       const { error: eError } = await supabase.from("expenses").insert({
         debt_id: id,
         amount: amount,
-        payment_method: paymentMethod as any,
+        payment_method: paymentMethod,
         category_id: categoryId || null,
         description: note || `Thanh toán nợ: ${debt.entity_name}`,
         expense_date: new Date().toISOString().split("T")[0],

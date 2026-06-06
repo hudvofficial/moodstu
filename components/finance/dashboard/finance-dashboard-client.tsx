@@ -22,6 +22,7 @@ import { FinanceCompactBar } from "@/components/finance/dashboard/finance-compac
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import type { ActionResult } from "@/types/action-result";
+import type { Role } from "@/types/roles";
 import type {
   ContractProfitRow,
   DashboardMetrics,
@@ -52,6 +53,7 @@ const ServiceDonutChart = dynamic(
 interface FinanceDashboardClientProps {
   initialMonth: number;
   initialYear: number;
+  role?: Role;
   initialMetrics?: DashboardMetrics;
   initialRevenue?: RevenueByMonthItem[];
   initialServices?: ServiceDistributionItem[];
@@ -220,7 +222,7 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
         </div>
       </div>
 
-      <FinanceQuickNav />
+      <FinanceQuickNav role={props.role} />
 
       <SmartDashboardBanner />
 

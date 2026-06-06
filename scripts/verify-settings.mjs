@@ -72,7 +72,7 @@ if (!googleRoute.includes("state") || !googleCallback.includes("state")) {
 if (!googleCallback.includes("requireSettingsAdminAccess")) {
   fail("Google OAuth callback must require settings admin access before DB write");
 }
-if (!googleCallback.includes("encryptGoogleCalendarAuth")) {
+if (!googleCallback.includes("encryptGoogleOAuth")) {
   fail("Google OAuth callback must encrypt stored calendar auth");
 }
 if (!settingsMutations.includes("encryptSecret")) {

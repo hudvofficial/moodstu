@@ -19,14 +19,14 @@ export function FinanceFAB() {
     {
       icon: TrendingUp,
       label: "Phiếu thu mới",
-      href: "/finance/receipts/new",
+      href: "/finance/receipts?new=1",
       color: "text-success",
       delay: "delay-150",
     },
     {
       icon: TrendingDown,
       label: "Phiếu chi mới",
-      href: "/finance/expenses/new",
+      href: "/finance/expenses?new=1",
       color: "text-error",
       delay: "delay-100",
     },

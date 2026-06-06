@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { voidContractPayment } from "@/app/actions/payment-actions";
@@ -39,6 +40,7 @@ interface ReceiptsClientProps {
   initialMonth: number;
   initialYear: number;
   initialData?: ReceiptPage;
+  initialStats?: ReceiptStats;
   categories?: FinanceCategory[];
   contracts?: FinanceContractOption[];
   bankInfo?: BankInfo | null;
@@ -52,7 +54,7 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
   return result.data;
 }
 
-export function ReceiptsClient({ initialMonth, initialYear, initialData, categories, contracts, bankInfo }: ReceiptsClientProps) {
+export function ReceiptsClient({ initialMonth, initialYear, initialData, initialStats, categories, contracts, bankInfo }: ReceiptsClientProps) {
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
   const [page, setPage] = useState(1);
@@ -63,6 +65,22 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const [voidReason, setVoidReason] = useState("");
   const [isVoiding, setIsVoiding] = useState(false);
   const [filterType, setFilterType] = useState("all");
+
+  // Auto-open modal when navigated with ?new=1 (from FAB speed-dial)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setEditingReceipt(null);
+      setIsModalOpen(true);
+      // Remove the query param without re-render loop
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("new");
+      const next = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      router.replace(next, { scroll: false });
+    }
+  }, [searchParams, router, pathname]);
 
   const pageSize = 12;
   const typeKey = filterType !== "all" ? `&type=${filterType}` : "";
@@ -92,6 +110,7 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, categor
   const { data: stats } = useSWR<ReceiptStats>(
     statsKey,
     () => requireData(fetchReceiptStats(month, year)),
+    initialStats ? { fallbackData: initialStats } : undefined,
   );
   const { data: categoryData } = useSWR(
     cacheKeys.financeCategories("thu"),

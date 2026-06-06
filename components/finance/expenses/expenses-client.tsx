@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { approveExpense, deleteExpense } from "@/app/actions/expense-actions";
@@ -51,6 +52,21 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, initial
   const [editingExpense, setEditingExpense] = useState<ExpenseListItem | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [viewingExpenseId, setViewingExpenseId] = useState<string | null>(null);
+
+  // Auto-open modal when navigated with ?new=1 (from FAB speed-dial)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setEditingExpense(null);
+      setIsModalOpen(true);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("new");
+      const next = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      router.replace(next, { scroll: false });
+    }
+  }, [searchParams, router, pathname]);
 
   const pageSize = 12;
   const key = cacheKeys.financeExpenses(page, month, year, approval);

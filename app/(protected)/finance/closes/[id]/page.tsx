@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { getCloseDetail } from "@/app/actions/finance-close-actions";
 import { CloseDetailClient } from "@/components/finance/closes/close-detail-client";
+import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 import type { ActionResult, CloseDetailData } from "@/types/finance-operations";
 
 interface CloseDetailPageProps {
@@ -14,6 +16,12 @@ export const metadata = { title: "Chi tiết chốt sổ" };
 export const dynamic = "force-dynamic";
 
 export default async function CloseDetailPage({ params }: CloseDetailPageProps) {
+  const context = await getAuthenticatedUserContext();
+  if (!context) redirect("/login");
+  if (context.shellRole !== "admin" && context.shellRole !== "manager") {
+    redirect("/finance");
+  }
+
   const { id } = await params;
   const detail = await getCloseDetail(id);
   return <CloseDetailClient closeId={id} initialData={unwrap<CloseDetailData | null>(detail, null)} />;

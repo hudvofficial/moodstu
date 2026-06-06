@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { toast } from "@/lib/toast-manager";
 import { Save, Loader2 } from "lucide-react";
 import {
@@ -76,15 +76,23 @@ export default function StudioInfoForm({
       : "Lưu hoặc nhập khóa Gemini để tải danh sách model từ API.",
   );
 
-  useEffect(() => {
+  // Re-sync saved snapshots when the server sends fresh props (e.g. after
+  // revalidation) during render instead of in an effect — avoids the extra
+  // render pass flagged by react-hooks/set-state-in-effect. React's documented
+  // "adjust state during render" pattern (you-might-not-need-an-effect).
+  const [syncedMoodieSettings, setSyncedMoodieSettings] = useState(moodieAiSettings);
+  if (syncedMoodieSettings !== moodieAiSettings) {
+    setSyncedMoodieSettings(moodieAiSettings);
     setSavedMoodieSettings(moodieAiSettings);
     setMoodieGeminiModel(moodieAiSettings.geminiModel);
-  }, [moodieAiSettings]);
+  }
 
-  useEffect(() => {
+  const [syncedStudioInfo, setSyncedStudioInfo] = useState(studioInfo);
+  if (syncedStudioInfo !== studioInfo) {
+    setSyncedStudioInfo(studioInfo);
     setSavedStudioInfo(studioInfo);
     setLogoUrl(studioInfo.logo_url || "");
-  }, [studioInfo]);
+  }
 
   const studioPayload = {
     name: normalizeRequiredText(name),
@@ -266,7 +274,7 @@ export default function StudioInfoForm({
           />
         </div>
 
-        <div className="detail-sidebar">
+        <div className="detail-sidebar flex!">
           <StudioIntegrationCards
             savedStudioInfo={savedStudioInfo}
             savedMoodieSettings={savedMoodieSettings}
@@ -286,27 +294,6 @@ export default function StudioInfoForm({
           />
           {saveButton}
         </div>
-      </div>
-
-      <div className="lg:hidden flex flex-col gap-4">
-        <StudioIntegrationCards
-          savedStudioInfo={savedStudioInfo}
-          savedMoodieSettings={savedMoodieSettings}
-          moodieApiKeyInput={moodieApiKeyInput}
-          setMoodieApiKeyInput={setMoodieApiKeyInput}
-          moodieGeminiModel={moodieGeminiModel}
-          setMoodieGeminiModel={setMoodieGeminiModel}
-          moodieModelOptions={moodieModelOptions}
-          moodieModelSource={moodieModelSource}
-          moodieModelMessage={moodieModelMessage}
-          isLoadingMoodieModels={isLoadingMoodieModels}
-          onRefreshModels={() => void loadMoodieModels(true)}
-          onDisconnect={disconnectGoogleOAuth}
-          onDisconnected={handleDisconnected}
-          onMutateSwr={handleMutateSwr}
-          disabled={isPending}
-        />
-        <div className="flex justify-end">{saveButton}</div>
       </div>
     </div>
   );

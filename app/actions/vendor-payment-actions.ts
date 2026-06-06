@@ -269,12 +269,22 @@ export async function fetchVendorUnpaidTasks(
   });
 }
 
+export interface VendorPaymentHistoryItem {
+  id: string;
+  amount: number;
+  payment_method: string;
+  payment_date: string;
+  note: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
 /**
  * Fetch vendor payment history
  */
 export async function fetchVendorPaymentHistory(
   vendorId: string
-): Promise<ActionResult<any[]>> {
+): Promise<ActionResult<VendorPaymentHistoryItem[]>> {
   if (!vendorId) {
     return {
       success: false,

@@ -2,6 +2,7 @@
 
 import { withFinanceRead } from "@/lib/auth_utils";
 import { asNumber, asString, isMissingRpcError } from "@/lib/finance-utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   getReportRevenueLabel,
   getReportServiceLabel,
@@ -16,6 +17,11 @@ type ContractItemRow = {
   total_amount: number | null;
   is_addon: boolean | null;
 };
+
+type TaskRow = { contract_id: string; cost: number | null };
+type PrintRow = { contract_id: string; total_amount: number | null };
+type ExpenseRow = { contract_id: string | null; amount: number | null; description: string | null };
+type InventoryRow = { contract_id?: string | null; quantity: number | null; unit_cost: number | null; total_cost: number | null; source_type?: string | null };
 
 type ContractRow = {
   id: string;
@@ -52,7 +58,7 @@ function sumProratedSalaries(
     ]),
   );
 
-  return rows.reduce((sum: any, row: any) => {
+  return rows.reduce((sum: number, row: SalaryMonthRow) => {
     const year = row.year || 0;
     const month = row.month || 0;
     const ratio = ratios.get(buildMonthKey(year, month)) || 0;
@@ -185,7 +191,7 @@ export async function getReportsSnapshot(filters: ReportFiltersInput) {
 }
 
 async function calculateFallbackSnapshot(
-  supabase: any,
+  supabase: SupabaseClient,
   range: ReturnType<typeof getReportRange>,
 ): Promise<ReportsSnapshot> {
   const monthSlices = enumerateMonthsInRange(range.startDate, range.endDate);
@@ -266,10 +272,10 @@ async function calculateFallbackSnapshot(
   const contracts = (contractsResult.data || []) as ContractRow[];
   const contractIds = contracts.map((contract) => contract.id);
 
-  const allTasks: any[] = [];
-  const allPrints: any[] = [];
-  const allContractExpenses: any[] = [];
-  const allContractInventory: any[] = [];
+  const allTasks: TaskRow[] = [];
+  const allPrints: PrintRow[] = [];
+  const allContractExpenses: ExpenseRow[] = [];
+  const allContractInventory: InventoryRow[] = [];
 
   if (contractIds.length > 0) {
     const contractIdChunks = [];
@@ -324,21 +330,21 @@ async function calculateFallbackSnapshot(
   const contractInventoryResult = { data: allContractInventory, error: null };
 
   const paymentRevenue = (paymentsResult.data || []).reduce(
-    (sum: any, row: any) => sum + asNumber(row.amount),
+    (sum: number, row: { amount: number | null }) => sum + asNumber(row.amount),
     0,
   );
   const standaloneReceiptRevenue = (receiptsResult.data || []).reduce(
-    (sum: any, row: any) => sum + asNumber(row.receipt_amount),
+    (sum: number, row: { receipt_amount: number | null }) => sum + asNumber(row.receipt_amount),
     0,
   );
   const contractRevenue = contracts.reduce(
-    (sum: any, contract: any) => sum + asNumber(contract.total_amount),
+    (sum: number, contract: ContractRow) => sum + asNumber(contract.total_amount),
     0,
   );
   const cashInflow = paymentRevenue + standaloneReceiptRevenue;
   const reportRevenue = contractRevenue + standaloneReceiptRevenue;
   const totalDiscount = contracts.reduce(
-    (sum: any, contract: any) => sum + asNumber(contract.discount_amount),
+    (sum: number, contract: ContractRow) => sum + asNumber(contract.discount_amount),
     0,
   );
   const completedContracts = contracts.filter((contract) =>
@@ -372,16 +378,16 @@ async function calculateFallbackSnapshot(
       (left, right) => right.revenue - left.revenue || right.value - left.value,
     );
 
-  const taskCost = (tasksResult.data || []).reduce(
-    (sum: any, row: any) => sum + asNumber(row.cost),
+  const taskCost = (tasksResult.data as TaskRow[]).reduce(
+    (sum: number, row: TaskRow) => sum + asNumber(row.cost),
     0,
   );
-  const printCost = (printsResult.data || []).reduce(
-    (sum: any, row: any) => sum + asNumber(row.total_amount),
+  const printCost = (printsResult.data as PrintRow[]).reduce(
+    (sum: number, row: PrintRow) => sum + asNumber(row.total_amount),
     0,
   );
-  const contractExpenseCost = (contractExpensesResult.data || []).reduce(
-    (sum: any, row: any) => {
+  const contractExpenseCost = (contractExpensesResult.data as ExpenseRow[]).reduce(
+    (sum: number, row: ExpenseRow) => {
       return asString(row.description).startsWith("[Auto-Print]")
         ? sum
         : sum + asNumber(row.amount);
@@ -389,32 +395,26 @@ async function calculateFallbackSnapshot(
     0,
   );
   const inventoryCost =
-    (contractInventoryResult.data || []).reduce(
-      (sum: any, row: any) =>
-        sum +
-        asNumber(
-          row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost),
-        ),
+    (contractInventoryResult.data as InventoryRow[]).reduce(
+      (sum: number, row: InventoryRow) =>
+        sum + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)),
       0,
     ) +
     (retailInventoryResult.data || []).reduce(
-      (sum: any, row: any) =>
-        sum +
-        asNumber(
-          row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost),
-        ),
+      (sum: number, row: InventoryRow) =>
+        sum + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)),
       0,
     );
   const directCost = taskCost + printCost + contractExpenseCost + inventoryCost;
 
-  const operatingCost = (operationsResult.data || []).reduce(
-    (sum: any, row: any) => {
+  const operatingCost = (operationsResult.data as ExpenseRow[]).reduce(
+    (sum: number, row: ExpenseRow) => {
       return row.contract_id ? sum : sum + asNumber(row.amount);
     },
     0,
   );
-  const operatingOutflow = (operationsResult.data || []).reduce(
-    (sum: any, row: any) => sum + asNumber(row.amount),
+  const operatingOutflow = (operationsResult.data as ExpenseRow[]).reduce(
+    (sum: number, row: ExpenseRow) => sum + asNumber(row.amount),
     0,
   );
 

@@ -26,6 +26,7 @@ export default async function FinanceDashboardPage() {
     <FinanceDashboardClient
       initialMonth={month}
       initialYear={year}
+      role={context.shellRole}
       // KHÔNG truyền initialMetrics hay bất kỳ Server data nào nữa
       // SWR ở Client sẽ tự động trigger Skeleton và Fetch data tức thì!
     />

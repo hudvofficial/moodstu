@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/types/roles";
 
 type QuickNavTone = "emerald" | "red" | "blue" | "orange" | "indigo" | "neutral" | "teal" | "violet" | "amber";
 
@@ -22,6 +23,12 @@ interface QuickNavItem {
   description: string;
   icon: LucideIcon;
   tone: QuickNavTone;
+  /** Roles that can see this item. Undefined = visible to all finance roles. */
+  roles?: Role[];
+}
+
+interface FinanceQuickNavProps {
+  role?: Role;
 }
 
 const NAV_ITEMS: QuickNavItem[] = [
@@ -34,7 +41,14 @@ const NAV_ITEMS: QuickNavItem[] = [
   { href: "/finance/investments", label: "Tài sản", description: "Đầu tư studio", icon: TrendingUp, tone: "teal" },
   { href: "/finance/goals", label: "Mục tiêu", description: "Kế hoạch tiền", icon: Flag, tone: "violet" },
   { href: "/finance/categories", label: "Danh mục", description: "Nhóm thu chi", icon: Layers, tone: "neutral" },
-  { href: "/finance/closes", label: "Chốt sổ", description: "Khóa kỳ tháng", icon: Lock, tone: "amber" },
+  {
+    href: "/finance/closes",
+    label: "Chốt sổ",
+    description: "Khóa kỳ tháng",
+    icon: Lock,
+    tone: "amber",
+    roles: ["admin", "manager"],
+  },
 ];
 
 const toneClasses: Record<QuickNavTone, { icon: string; text: string; border: string }> = {
@@ -49,11 +63,15 @@ const toneClasses: Record<QuickNavTone, { icon: string; text: string; border: st
   amber: { icon: "bg-warning/10 text-warning", text: "text-warning", border: "hover:border-warning/40" },
 };
 
-export function FinanceQuickNav() {
+export function FinanceQuickNav({ role }: FinanceQuickNavProps) {
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.roles || !role || item.roles.includes(role),
+  );
+
   return (
     <section className="entrance entrance-1">
       <div className="flex w-full gap-3 overflow-x-auto lg:overflow-x-visible pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const tone = toneClasses[item.tone];
           return (

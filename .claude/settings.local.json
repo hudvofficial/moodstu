@@ -5,7 +5,23 @@
       "Bash(npx web-push *)",
       "Bash(npm install *)",
       "Bash(npx supabase *)",
-      "Bash(supabase db *)"
+      "Bash(supabase db *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ls \"C:/Users/Admin/.claude/skills/\" 2>&1 | head -50)",
+      "Bash(mkdir -p \"C:/Users/Admin/.claude/skills/frontend-design\")",
+      "Bash(curl -sSL https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/LICENSE.txt -o \"C:/Users/Admin/.claude/skills/frontend-design/LICENSE.txt\")",
+      "Bash(git clone *)",
+      "Bash(npm --version)",
+      "Bash(pnpm --version)",
+      "Bash(git --version)",
+      "Bash(vercel --version)",
+      "Bash(pnpm exec *)",
+      "Bash(node node_modules/@playwright/test/node_modules/.bin/playwright install chromium)",
+      "Bash(node node_modules/playwright/node_modules/.bin/playwright install chromium)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(node \"C:\\\\Users\\\\Admin\\\\Desktop\\\\Ai\\\\mood saas\\\\mood-studio\\\\node_modules\\\\.pnpm\\\\@playwright+test@1.60.0\\\\node_modules\\\\@playwright\\\\test\\\\cli.js\" install chromium)"
     ]
   }
 }

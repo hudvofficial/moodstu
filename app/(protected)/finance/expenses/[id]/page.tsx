@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 
 export const metadata = { title: "Chi tiết phiếu chi" };
+export const dynamic = "force-dynamic";
 
 export default async function ExpenseDetailPage(props: {
   params: Promise<{ id: string }>;

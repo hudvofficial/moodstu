@@ -1,8 +1,7 @@
 import { fetchLedger } from "@/app/actions/finance-dashboard-queries";
 import { LedgerClient } from "@/components/finance/cashflow/ledger-client";
+import type { ActionResult } from "@/types/action-result";
 import type { LedgerItem, PaginatedResult } from "@/types/finance-dashboard";
-
-type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
 function unwrap<T>(result: ActionResult<T>, fallback: T): T {
   return result.success ? result.data : fallback;

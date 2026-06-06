@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import { getStudioInfo } from "@/app/actions/settings-queries";
 
 export const metadata = { title: "Chi tiết phiếu thu" };
+export const dynamic = "force-dynamic";
 
 function cleanStudioText(value?: string | null) {
   const text = String(value || "").replace(/\s+/g, " ").trim();
