@@ -83,8 +83,8 @@ export function CalendarToolbar({
 
   return (
     <>
-      {/* ── Desktop Toolbar (unchanged) ── */}
-      <div className="hidden lg:flex items-center justify-between gap-3 p-4">
+      {/* ── Desktop Toolbar (≥640px — khớp breakpoint với grid trong calendar-wrapper) ── */}
+      <div className="hidden sm:flex items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
             <CalendarIcon className="w-5 h-5 text-text-muted" />
@@ -172,8 +172,8 @@ export function CalendarToolbar({
         </div>
       </div>
 
-      {/* ── Mobile Toolbar ── */}
-      <div className="flex lg:hidden flex-col gap-2 px-2 py-2 sm:px-3">
+      {/* ── Mobile Toolbar (<640px) ── */}
+      <div className="flex sm:hidden flex-col gap-2 px-2 py-2">
         {/* Row 1: Date nav + Filter icon + CTA icon */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">

@@ -13,9 +13,10 @@
   z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* Mobile: bottom-sheet */
+  justify-content: flex-end; /* Mobile (<640px): bottom-sheet */
 }
-@media (min-width: 1024px) {
+/* Tablet + Desktop (>=640px): centered dialog. iPad không còn dính đáy. */
+@media (min-width: 640px) {
   .modal-overlay {
     justify-content: center;
     align-items: center;
@@ -38,7 +39,8 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   max-height: 98dvh;
 }
-@media (min-width: 1024px) {
+/* Tablet + Desktop (>=640px): bo góc đều + max-height 90vh (dialog, không phải bottom-sheet) */
+@media (min-width: 640px) {
   .modal-card {
     border-radius: var(--radius-lg);
     max-height: 90vh;

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEscape } from "@/hooks/useEscape";
 import { useSwipeDismiss } from "@/hooks/useSwipeDismiss";
+import { useIsSmallMobile } from "@/hooks/use-mobile";
 import { ModalPortal } from "@/components/ui/modal-portal";
 import { Button } from "@/components/ui/button";
 
@@ -116,8 +117,12 @@ export function UnifiedModal({
   // A5: ESC key via reusable hook
   useEscape(handleClose, closeOnEsc && isOpen && !isClosing);
 
-  // B4: Swipe-to-dismiss (mobile)
+  // B4: Swipe-to-dismiss — CHỈ phone (<640px, bottom-sheet). Trên tablet/desktop modal là
+  // dialog căn giữa → kéo header xuống KHÔNG được dismiss (useSwipeDismiss không tự biết width).
+  const isPhone = useIsSmallMobile();
   const { swipeStyle, backdropOpacity, isSwiping, handlers } = useSwipeDismiss(handleClose);
+  // Gate handlers: chỉ gắn khi phone — tránh centered dialog bị nuốt bởi 1 cú vuốt dọc trên iPad.
+  const swipeHandlers = isPhone ? handlers : {};
 
   // A4: Backdrop click
   const handleBackdropClick = React.useCallback(() => {
@@ -128,8 +133,8 @@ export function UnifiedModal({
   const contentAnimation = isSwiping
     ? ""
     : isClosing
-      ? "animate-slide-down lg:animate-modal-out"
-      : "animate-slide-up lg:animate-modal-in";
+      ? "animate-slide-down sm:animate-modal-out"
+      : "animate-slide-up sm:animate-modal-in";
 
   const backdropAnimation = isClosing
     ? "opacity-0 transition-opacity duration-200"
@@ -163,11 +168,11 @@ export function UnifiedModal({
             ...swipeStyle,
           }}
         >
-          {/* B3: Drag handle (mobile only, swipeable) */}
+          {/* B3: Drag handle (phone only <640px, swipeable). Tablet/desktop = centered dialog, ẩn handle. */}
           {showDragHandle && (
             <div
-              className="lg:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
-              {...handlers}
+              className="sm:hidden flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+              {...swipeHandlers}
             >
               <div className={cn("modal-drag-handle", isSwiping && "is-swiping")} />
             </div>
@@ -177,7 +182,7 @@ export function UnifiedModal({
           {(title || showCloseButton) && (
             <div
               className="modal-header"
-              {...(showDragHandle ? handlers : {})}
+              {...(showDragHandle ? swipeHandlers : {})}
             >
               <div className="flex flex-col gap-1">
                 {title && <h3 className="text-h3">{title}</h3>}

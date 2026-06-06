@@ -128,7 +128,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                 : isChatView
                   ? "p-0"
                 : isAppView
-                  ? "px-0 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 max-lg:pb-[calc(var(--bottom-nav-h)+0.25rem+max(0.5rem,env(safe-area-inset-bottom)))] md:px-6 md:pb-6 lg:px-6 lg:pb-6"
+                  ? "px-0 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 max-lg:pb-[calc(var(--bottom-nav-h)+0.25rem+max(0.5rem,env(safe-area-inset-bottom)))] md:px-3 md:pb-6 lg:px-6 lg:pb-6"
                 : isFormPage
                   ? "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 pb-4 lg:px-6 lg:py-6"
                   : isGalleryView
