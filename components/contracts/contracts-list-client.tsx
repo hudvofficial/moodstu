@@ -288,7 +288,7 @@ function ContractsListInner({
         {/* ── Stats + Action (unified container — same pattern as employees) ── */}
         <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
           <CompactStats stats={displayStats} />
-          <div className="hidden lg:flex">
+          <div className="hidden md:flex">
             <Button
               unstyled
               onPointerEnter={() => router.prefetch("/contracts/create")}
@@ -302,13 +302,15 @@ function ContractsListInner({
           </div>
         </div>
 
+        {/* FAB chỉ phone (<768): tablet đã có nút "Tạo hợp đồng" ở trên → tránh nút đôi */}
         <FAB
           onClick={() => router.push("/contracts/create")}
           label="Tạo hợp đồng"
+          wrapperClassName="md:hidden"
         />
 
-        {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
-        <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+        {/* ── PHONE (<768): Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
+        <div className="md:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
           <TabsFilter
             tabs={STATUS_TABS}
             activeTab={filters.status}
@@ -333,8 +335,8 @@ function ContractsListInner({
           />
         </div>
 
-        {/* ── DESKTOP: Tabs + Dropdowns ── */}
-        <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        {/* ── TABLET+DESKTOP (≥768): Tabs + Dropdowns ── */}
+        <div className="hidden md:flex md:items-center md:justify-between gap-3">
           <div className="min-w-0 flex-1">
             <TabsFilter
               tabs={tabsWithCounts}
@@ -358,7 +360,7 @@ function ContractsListInner({
 
         {/* ── Advanced Filters Panel ── */}
         {filters.advanced && (
-          <div className="hidden lg:grid w-full p-4 bg-surface rounded-md grid-cols-4 gap-4 shadow-sm">
+          <div className="hidden md:grid w-full p-4 bg-surface rounded-md grid-cols-2 lg:grid-cols-4 gap-4 shadow-sm">
             <DatePicker
               label="Từ ngày"
               value={localStartDate}

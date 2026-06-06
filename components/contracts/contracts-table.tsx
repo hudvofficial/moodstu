@@ -171,7 +171,8 @@ const DesktopTableRow = memo(function DesktopTableRow({
 
 const DesktopTable = memo(function DesktopTable({ contracts, onView, onHover }: ContractsTableProps) {
   return (
-    <div className="hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
+    // Tablet (md, 768+): hiện bảng dạng block (page tự cuộn). Desktop (lg): flex-fill + sticky scroll.
+    <div className="hidden md:block lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
       <TableWrapper>
         <THead>
           <tr>
@@ -290,7 +291,7 @@ const MobileCardRow = memo(function MobileCardRow({
 
 const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover }: ContractsTableProps) {
   return (
-    <div className="lg:hidden flex flex-col gap-3 pt-1">
+    <div className="md:hidden flex flex-col gap-3 pt-1">
       {contracts.map((c, i) => (
         <MobileCardRow key={getStr(c, "id")} c={c} index={i} onView={onView} onHover={onHover} />
       ))}
