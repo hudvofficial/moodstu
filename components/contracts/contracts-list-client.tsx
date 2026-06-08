@@ -337,7 +337,7 @@ function ContractsListInner({
 
         {/* ── TABLET+DESKTOP (≥768): Tabs + Dropdowns ── */}
         <div className="hidden md:flex md:items-center md:justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <TabsFilter
               tabs={tabsWithCounts}
               activeTab={filters.status}

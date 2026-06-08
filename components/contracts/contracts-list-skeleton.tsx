@@ -57,16 +57,16 @@ export function ContractsListSkeleton() {
             </div>
           ))}
         </div>
-        <Skeleton className="hidden h-10 w-36 rounded-md lg:block" />
+        <Skeleton className="hidden h-10 w-36 rounded-md md:block" />
       </div>
 
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-hidden">
+      <div className="md:hidden flex flex-nowrap items-center gap-2 overflow-hidden">
         {Array.from({ length: 4 }).map((_, index) => (
           <Skeleton key={index} className="h-9 w-24 shrink-0 rounded-full" />
         ))}
       </div>
 
-      <div className="hidden items-center justify-between gap-3 lg:flex">
+      <div className="hidden items-center justify-between gap-3 md:flex">
         <div className="flex min-w-0 flex-1 gap-2">
           {Array.from({ length: 5 }).map((_, index) => (
             <Skeleton key={index} className="h-10 w-32 rounded-full" />
@@ -79,7 +79,7 @@ export function ContractsListSkeleton() {
         </div>
       </div>
 
-      <div className="hidden overflow-hidden rounded-lg border border-border bg-bg-card shadow-xs lg:block">
+      <div className="hidden overflow-hidden rounded-lg border border-border bg-bg-card shadow-xs md:block">
         <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_0.8fr_1.2fr_1fr_0.5fr] gap-4 border-b border-border bg-bg-hover/50 px-4 py-3">
           {Array.from({ length: 9 }).map((_, index) => (
             <Skeleton key={index} className="h-3 w-full" />
@@ -90,7 +90,7 @@ export function ContractsListSkeleton() {
         ))}
       </div>
 
-      <div className="lg:hidden flex flex-col gap-3 pt-1">
+      <div className="md:hidden flex flex-col gap-3 pt-1">
         {Array.from({ length: 5 }).map((_, index) => (
           <ContractCardSkeleton key={index} />
         ))}
