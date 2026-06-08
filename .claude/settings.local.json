@@ -21,7 +21,12 @@
       "Bash(node node_modules/@playwright/test/node_modules/.bin/playwright install chromium)",
       "Bash(node node_modules/playwright/node_modules/.bin/playwright install chromium)",
       "Bash(npx --yes playwright install chromium)",
-      "Bash(node \"C:\\\\Users\\\\Admin\\\\Desktop\\\\Ai\\\\mood saas\\\\mood-studio\\\\node_modules\\\\.pnpm\\\\@playwright+test@1.60.0\\\\node_modules\\\\@playwright\\\\test\\\\cli.js\" install chromium)"
+      "Bash(node \"C:\\\\Users\\\\Admin\\\\Desktop\\\\Ai\\\\mood saas\\\\mood-studio\\\\node_modules\\\\.pnpm\\\\@playwright+test@1.60.0\\\\node_modules\\\\@playwright\\\\test\\\\cli.js\" install chromium)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:coroot.com)",
+      "WebFetch(domain:docs.coroot.com)",
+      "WebSearch",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }

@@ -7,6 +7,30 @@
 const DRIVE_API_URL = "https://www.googleapis.com/drive/v3";
 
 /**
+ * Phân loại lỗi 403 từ Drive API → Error có message rõ ràng cho user.
+ * 3 nguyên nhân hoàn toàn khác nhau, không được gộp chung:
+ *   - API chưa bật (SERVICE_DISABLED) → admin bật Drive API cho project Google Cloud.
+ *   - Hết dung lượng (storageQuotaExceeded) → dọn Drive.
+ *   - Thiếu quyền folder thật → share Editor.
+ * Prefix code giữ nguyên style hiện có để caller detect bằng .includes().
+ */
+function classifyDrive403Error(errorBody: string): Error {
+  if (errorBody.includes("storageQuotaExceeded")) {
+    return new Error("QUOTA_EXCEEDED: Tài khoản Google Drive đã HẾT DUNG LƯỢNG.");
+  }
+  if (errorBody.includes("SERVICE_DISABLED") || errorBody.includes("accessNotConfigured")) {
+    return new Error(
+      "DRIVE_API_DISABLED: Google Drive API chưa được bật trong dự án Google Cloud của tài khoản studio. " +
+      "Vui lòng liên hệ quản trị viên để bật Drive API cho dự án."
+    );
+  }
+  return new Error(
+    "PERMISSION_DENIED: Tài khoản Google chưa có quyền chỉnh sửa trên thư mục Drive này. " +
+    "Vui lòng mở Google Drive → Chuột phải thư mục → Chia sẻ → Cấp quyền \"Người chỉnh sửa\" (Editor) cho tài khoản studio."
+  );
+}
+
+/**
  * Search for an existing folder by name within a parent folder (or root).
  * Returns the folder ID if found, null otherwise.
  */
@@ -67,15 +91,9 @@ export async function createDriveFolder(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    
-    // Phát hiện lỗi quyền cụ thể → message rõ ràng cho user
     if (response.status === 403) {
-      throw new Error(
-        "PERMISSION_DENIED: Tài khoản Google chưa có quyền chỉnh sửa trên thư mục này. " +
-        "Vui lòng mở Google Drive → Chuột phải thư mục → Chia sẻ → Cấp quyền \"Người chỉnh sửa\" (Editor) cho tài khoản studio."
-      );
+      throw classifyDrive403Error(errorBody);
     }
-    
     throw new Error(`Failed to create Drive folder: ${response.status} ${errorBody}`);
   }
 
@@ -139,19 +157,9 @@ export async function createDriveShortcut(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    
-    // Phát hiện lỗi quyền
     if (response.status === 403) {
-      if (errorBody.includes("storageQuotaExceeded")) {
-         // Shortcut hiếm khi dính lỗi này, nhưng cứ bắt cho chắc
-         throw new Error("QUOTA_EXCEEDED: Tài khoản Google Drive đã HẾT DUNG LƯỢNG.");
-      }
-      throw new Error(
-        "PERMISSION_DENIED: Tài khoản Google không có quyền tạo Lối tắt. " +
-        "Vui lòng kiểm tra lại quyền truy cập thư mục."
-      );
+      throw classifyDrive403Error(errorBody);
     }
-    
     throw new Error(`Failed to create Drive shortcut: ${response.status} ${errorBody}`);
   }
 

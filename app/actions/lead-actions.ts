@@ -208,7 +208,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
       next_contact_date: tData.next_contact_date || null,
       assigned_to: tData.assigned_to || null, 
       contact_date: tData.contact_date || format(new Date(), "yyyy-MM-dd"),
-      created_by: userId, 
+      created_by: employee.id,
       deal_value: tData.deal_value || 0, 
       tags: tData.tags || [], 
       score: tData.score || 0,

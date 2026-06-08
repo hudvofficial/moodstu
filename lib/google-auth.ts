@@ -22,7 +22,8 @@ export async function refreshAccessToken(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to refresh google token");
+    const body = await response.text();
+    throw new Error(`Failed to refresh google token: ${response.status} ${body}`);
   }
 
   return response.json();

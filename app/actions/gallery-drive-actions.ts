@@ -299,12 +299,6 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
       destFolderId = await findOrCreateDriveFolder(authData.access_token, finalFolderName, gallery.drive_folder_id);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      
-      // Hiển thị cảnh báo rõ ràng nếu chưa có quyền chỉnh sửa
-      if (msg.includes("PERMISSION_DENIED")) {
-        return { error: "Tài khoản Google chưa có quyền chỉnh sửa trên thư mục Drive này. Vui lòng mở Google Drive → Chuột phải thư mục → Chia sẻ → Cấp quyền \"Người chỉnh sửa\" (Editor) cho tài khoản studio." };
-      }
-      
       return { error: `Lỗi tạo thư mục: ${msg}` };
     }
 
