@@ -1,0 +1,142 @@
+- generic [active] [ref=e1]:
+  - img "Mood Studio" [ref=e4]
+  - generic [ref=e5]:
+    - complementary [ref=e6]:
+      - link "Mood Studio Mood Studio Hệ thống quản lý v2.0.10" [ref=e7] [cursor=pointer]:
+        - /url: /dashboard
+        - img "Mood Studio" [ref=e9]
+        - generic [ref=e10]:
+          - generic [ref=e11]: Mood Studio
+          - generic [ref=e12]: Hệ thống quản lý
+          - generic [ref=e13]: v2.0.10
+      - navigation [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: Hằng ngày
+          - generic [ref=e17]:
+            - link "Hợp đồng" [ref=e18] [cursor=pointer]:
+              - /url: /contracts
+              - img [ref=e19]
+              - generic [ref=e22]: Hợp đồng
+            - link "Lịch" [ref=e23] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e24]
+              - generic [ref=e26]: Lịch
+            - link "CRM" [ref=e27] [cursor=pointer]:
+              - /url: /crm/leads
+              - img [ref=e28]
+              - generic [ref=e33]: CRM
+        - generic [ref=e34]:
+          - generic [ref=e36]: Quản lý
+          - generic [ref=e37]:
+            - link "Tài chính" [ref=e38] [cursor=pointer]:
+              - /url: /finance
+              - img [ref=e39]
+              - generic [ref=e42]: Tài chính
+            - link "Xưởng in (Labs)" [ref=e43] [cursor=pointer]:
+              - /url: /printing
+              - img [ref=e44]
+              - generic [ref=e48]: Xưởng in (Labs)
+            - link "Báo cáo" [ref=e49] [cursor=pointer]:
+              - /url: /reports
+              - img [ref=e50]
+              - generic [ref=e52]: Báo cáo
+            - link "Năng suất ekip" [ref=e53] [cursor=pointer]:
+              - /url: /productivity
+              - img [ref=e54]
+              - generic [ref=e57]: Năng suất ekip
+        - generic [ref=e58]:
+          - generic [ref=e60]: Tài sản
+          - generic [ref=e61]:
+            - link "Dịch vụ" [ref=e62] [cursor=pointer]:
+              - /url: /services
+              - img [ref=e63]
+              - generic [ref=e66]: Dịch vụ
+            - link "Vật tư" [ref=e67] [cursor=pointer]:
+              - /url: /inventory
+              - img [ref=e68]
+              - generic [ref=e72]: Vật tư
+            - link "Váy cưới" [ref=e73] [cursor=pointer]:
+              - /url: /dresses
+              - img [ref=e74]
+              - generic [ref=e76]: Váy cưới
+        - generic [ref=e79]:
+          - link "Nhân viên" [ref=e80] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e81]
+            - generic [ref=e84]: Nhân viên
+          - link "Cài đặt" [ref=e85] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e86]
+            - generic [ref=e89]: Cài đặt
+          - link "Moodie" [ref=e90] [cursor=pointer]:
+            - /url: /moodie
+            - img [ref=e91]
+            - generic [ref=e94]: Moodie
+          - link "Bảng lương" [ref=e95] [cursor=pointer]:
+            - /url: /finance/salaries
+            - img [ref=e96]
+            - generic [ref=e99]: Bảng lương
+          - link "Mục tiêu" [ref=e100] [cursor=pointer]:
+            - /url: /finance/goals
+            - img [ref=e101]
+            - generic [ref=e105]: Mục tiêu
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - generic [ref=e110]: A
+          - generic [ref=e111]:
+            - paragraph [ref=e112]: Admin
+            - paragraph [ref=e113]: Ban lãnh đạo
+        - button "Đăng xuất" [ref=e115] [cursor=pointer]
+      - button [ref=e118] [cursor=pointer]
+    - generic [ref=e120]:
+      - banner [ref=e121]:
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - heading "Lịch làm việc" [level=1] [ref=e124]
+            - paragraph [ref=e125]: Lịch chụp hình, sự kiện và phân công
+          - generic [ref=e126]:
+            - generic [ref=e128]:
+              - img [ref=e129]
+              - textbox "Tìm trong Lịch..." [ref=e133]
+              - generic:
+                - generic: ⌘
+                - generic: K
+            - button "Toggle theme" [ref=e135] [cursor=pointer]:
+              - img [ref=e136]
+            - button "Thông báo" [ref=e144] [cursor=pointer]:
+              - img [ref=e145]
+      - main [ref=e148]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - heading "Tháng 6, 2026" [level=2] [ref=e156]:
+              - img [ref=e157]
+              - text: Tháng 6, 2026
+            - generic [ref=e159]:
+              - button [ref=e160] [cursor=pointer]:
+                - img [ref=e161]
+              - button "Hôm nay" [ref=e163] [cursor=pointer]
+              - button [ref=e164] [cursor=pointer]:
+                - img [ref=e165]
+            - generic [ref=e167]:
+              - button "Tháng" [ref=e168] [cursor=pointer]
+              - button "Tuần" [ref=e169] [cursor=pointer]
+              - button "Ngày" [ref=e170] [cursor=pointer]
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - combobox "Tất cả Trạng thái" [ref=e173] [cursor=pointer]:
+                - generic: Tất cả Trạng thái
+                - img [ref=e174]
+              - combobox [ref=e176]
+              - combobox "Tất cả Nhân sự" [ref=e177] [cursor=pointer]:
+                - generic: Tất cả Nhân sự
+                - img [ref=e178]
+              - combobox [ref=e180]
+            - button "Bộ lọc" [ref=e181] [cursor=pointer]:
+              - img [ref=e182]
+            - button "Âm/Dương" [ref=e183] [cursor=pointer]:
+              - img [ref=e184]
+              - generic [ref=e189]: Âm/Dương
+            - button "Tạo lịch trình" [ref=e190] [cursor=pointer]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e202] [cursor=pointer]:
+    - img [ref=e203]

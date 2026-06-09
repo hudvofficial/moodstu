@@ -231,7 +231,7 @@ export function CalendarWrapper({
         }}
       />
 
-      <FAB onClick={() => openCreateForm(currentDate)} label="Tạo lịch trình" />
+      <FAB onClick={() => openCreateForm(currentDate)} label="Tạo lịch trình" wrapperClassName="lg:flex xl:hidden" />
     </div>
   );
 }

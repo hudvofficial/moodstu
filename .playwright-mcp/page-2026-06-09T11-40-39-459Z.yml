@@ -1,0 +1,63 @@
+- generic [active] [ref=e1]:
+  - img "Mood Studio" [ref=e4]
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e8]:
+        - link "Mood Studio" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+          - img "Mood Studio" [ref=e12]
+        - heading "Lịch làm việc" [level=1] [ref=e14]
+        - generic [ref=e15]:
+          - button "Tìm kiếm" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+          - button "Thông báo" [ref=e23] [cursor=pointer]:
+            - img [ref=e24]
+    - main [ref=e27]:
+      - generic [ref=e31]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - heading "Tháng 6, 2026" [level=2] [ref=e35]:
+              - img [ref=e36]
+              - text: Tháng 6, 2026
+            - generic [ref=e38]:
+              - button [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+              - button "Hôm nay" [ref=e42] [cursor=pointer]
+              - button [ref=e43] [cursor=pointer]:
+                - img [ref=e44]
+            - generic [ref=e46]:
+              - button "Tháng" [ref=e47] [cursor=pointer]
+              - button "Tuần" [ref=e48] [cursor=pointer]
+              - button "Ngày" [ref=e49] [cursor=pointer]
+          - generic [ref=e50]:
+            - button "Bộ lọc" [ref=e51] [cursor=pointer]:
+              - img [ref=e52]
+            - button "Đổi Âm lịch / Dương lịch" [ref=e53] [cursor=pointer]:
+              - img [ref=e54]
+            - button "Tạo lịch trình" [ref=e59] [cursor=pointer]
+        - button "Tạo lịch trình" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+    - navigation [ref=e69]:
+      - generic [ref=e70]:
+        - link "Home" [ref=e71] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e72]
+          - generic [ref=e75]: Home
+        - link "Hợp đồng" [ref=e76] [cursor=pointer]:
+          - /url: /contracts
+          - img [ref=e77]
+          - generic [ref=e80]: Hợp đồng
+        - link "Lịch" [ref=e81] [cursor=pointer]:
+          - /url: /calendar
+          - img [ref=e82]
+          - generic [ref=e84]: Lịch
+        - link "CRM" [ref=e85] [cursor=pointer]:
+          - /url: /crm/leads
+          - img [ref=e86]
+          - generic [ref=e91]: CRM
+        - button "Thêm" [ref=e92] [cursor=pointer]:
+          - img [ref=e93]
+          - generic [ref=e97]: Thêm
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e103] [cursor=pointer]:
+    - img [ref=e104]

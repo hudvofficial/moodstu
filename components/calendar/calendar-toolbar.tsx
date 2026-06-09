@@ -84,92 +84,145 @@ export function CalendarToolbar({
   return (
     <>
       {/* ── Desktop Toolbar (≥640px — khớp breakpoint với grid trong calendar-wrapper) ── */}
-      <div className="hidden sm:flex items-center justify-between gap-3 p-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
-            <CalendarIcon className="w-5 h-5 text-text-muted" />
-            Tháng {month}, {year}
-          </h2>
-          <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 rounded-none shrink-0"
-              style={{ padding: 0 }}
-              onClick={handlePrev}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              className="h-8 px-3 rounded-none font-medium whitespace-nowrap"
-              onClick={handleToday}
-            >
-              Hôm nay
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 rounded-none shrink-0"
-              style={{ padding: 0 }}
-              onClick={handleNext}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="flex items-center rounded-lg shadow-sm bg-bg-card overflow-hidden ml-2">
-            {VIEW_MODE_OPTIONS.map((opt) => (
+      <div className="hidden sm:flex flex-col">
+        <div className="flex items-center justify-between gap-3 p-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
+              <CalendarIcon className="w-5 h-5 text-text-muted" />
+              Tháng {month}, {year}
+            </h2>
+            <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
               <Button
-                key={opt.value}
-                variant={viewMode === opt.value ? "primary" : "ghost"}
+                variant="ghost"
                 size="sm"
-                className="h-8 px-3 rounded-none text-xs font-medium"
-                onClick={() => onViewModeChange(opt.value)}
+                className="h-8 w-8 rounded-none shrink-0"
+                style={{ padding: 0 }}
+                onClick={handlePrev}
               >
-                {opt.label}
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-            ))}
+              <Button
+                variant="ghost"
+                className="h-8 px-3 rounded-none font-medium whitespace-nowrap"
+                onClick={handleToday}
+              >
+                Hôm nay
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-none shrink-0"
+                style={{ padding: 0 }}
+                onClick={handleNext}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex items-center rounded-lg shadow-sm bg-bg-card overflow-hidden ml-2">
+              {VIEW_MODE_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  variant={viewMode === opt.value ? "primary" : "ghost"}
+                  size="sm"
+                  className="h-8 px-3 rounded-none text-xs font-medium"
+                  onClick={() => onViewModeChange(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Inline filters — ultra-wide (≥1536px) only; at 1280px sidebar+toolbar left side leaves ~912px, inline filters overflow */}
+            <div className="hidden 2xl:flex items-center gap-2">
+              <SelectPill
+                value={filters.selectedStatuses[0] || "all"}
+                onChange={(val) =>
+                  filters.setSelectedStatuses(val && val !== "all" ? [val] : [])
+                }
+                placeholder="Tất cả Trạng thái"
+                options={[
+                  { label: "Tất cả Trạng thái", value: "all" },
+                  ...filters.availableStatuses,
+                ]}
+              />
+              <SelectPill
+                value={filters.selectedEmployees[0] || "all"}
+                onChange={(val) =>
+                  filters.setSelectedEmployees(val && val !== "all" ? [val] : [])
+                }
+                placeholder="Tất cả Nhân sự"
+                options={[
+                  { label: "Tất cả Nhân sự", value: "all" },
+                  ...filters.availableEmployees,
+                ]}
+              />
+            </div>
+            {/* Filter toggle — tablet + desktop (<1536px). Wrapper div hides it because .btn overrides 2xl:hidden */}
+            <div className="2xl:hidden">
+              <Button
+                variant="ghost"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className={`w-9 h-9 p-0 rounded-full bg-bg-card shadow-sm border border-border/50 relative ${
+                  hasActiveFilter || showMobileFilters
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "text-text-main"
+                }`}
+                aria-label="Bộ lọc"
+              >
+                <SlidersHorizontal className="w-4 h-4 shrink-0" />
+                {hasActiveFilter && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary" />
+                )}
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => setIsConverterOpen(true)}
+              className="gap-1.5 text-warning hover:bg-warning/10"
+              title="Đổi Âm lịch / Dương lịch"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              <span className="hidden xl:inline">Âm/Dương</span>
+            </Button>
+            {/* Wrapper div because .btn display:inline-flex overrides hidden */}
+            <div className="hidden xl:block">
+              <Button
+                onClick={onNewEvent}
+                className="ml-2 font-medium whitespace-nowrap"
+              >
+                Tạo lịch trình
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <SelectPill
-            value={filters.selectedStatuses[0] || "all"}
-            onChange={(val) =>
-              filters.setSelectedStatuses(val && val !== "all" ? [val] : [])
-            }
-            placeholder="Tất cả Trạng thái"
-            options={[
-              { label: "Tất cả Trạng thái", value: "all" },
-              ...filters.availableStatuses,
-            ]}
-          />
-          <SelectPill
-            value={filters.selectedEmployees[0] || "all"}
-            onChange={(val) =>
-              filters.setSelectedEmployees(val && val !== "all" ? [val] : [])
-            }
-            placeholder="Tất cả Nhân sự"
-            options={[
-              { label: "Tất cả Nhân sự", value: "all" },
-              ...filters.availableEmployees,
-            ]}
-          />
-          <Button
-            variant="ghost"
-            onClick={() => setIsConverterOpen(true)}
-            className="gap-1.5 text-warning hover:bg-warning/10"
-            title="Đổi Âm lịch / Dương lịch"
-          >
-            <RefreshCcw className="w-4 h-4" />
-            Âm/Dương
-          </Button>
-          <Button
-            onClick={onNewEvent}
-            className="ml-2 font-medium whitespace-nowrap"
-          >
-            Tạo lịch trình
-          </Button>
-        </div>
+        {/* Filter dropdown — tablet + desktop (<1536px) */}
+        {showMobileFilters && (
+          <div className="2xl:hidden flex items-center gap-2 px-4 pb-3 animate-fade-in">
+            <SelectPill
+              value={filters.selectedStatuses[0] || "all"}
+              onChange={(val) =>
+                filters.setSelectedStatuses(val && val !== "all" ? [val] : [])
+              }
+              placeholder="Trạng thái"
+              options={[
+                { label: "Tất cả", value: "all" },
+                ...filters.availableStatuses,
+              ]}
+            />
+            <SelectPill
+              value={filters.selectedEmployees[0] || "all"}
+              onChange={(val) =>
+                filters.setSelectedEmployees(val && val !== "all" ? [val] : [])
+              }
+              placeholder="Nhân sự"
+              options={[
+                { label: "Tất cả", value: "all" },
+                ...filters.availableEmployees,
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Mobile Toolbar (<640px) ── */}
