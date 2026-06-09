@@ -6,6 +6,7 @@ import type { ServiceCategory } from "@/types/service";
 import type { ViewMode } from "@/types/service-constants";
 import { cn } from "@/lib/utils";
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface Props {
   categoryId: string;
@@ -34,19 +35,19 @@ function ServiceFiltersInner({
   }, [categories]);
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* ═══ MOBILE: Category pills (1 hàng cuộn ngang) ═══ */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
         <TabsFilter
           tabs={categoryTabs}
           activeTab={categoryId}
           onChange={onCategoryChange}
           variant="pills"
         />
-      </div>
-
-      {/* ═══ DESKTOP: Tabs + ViewToggle + CategoryManager ═══ */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         {/* LEFT: Category tabs */}
         <TabsFilter
           tabs={categoryTabs}
@@ -97,7 +98,8 @@ function ServiceFiltersInner({
           </button>
         </div>
       </div>
-    </div>
+      }
+    />
   );
 }
 

@@ -10,14 +10,14 @@ interface LedgerMobileListProps {
 export function LedgerMobileList({ items }: LedgerMobileListProps) {
   if (items.length === 0) {
     return (
-      <div className="lg:hidden card-base p-5 text-body-sm text-text-muted">
+      <div className="card-base p-5 text-body-sm text-text-muted">
         Chưa có giao dịch trong kỳ này.
       </div>
     );
   }
 
   return (
-    <div className="lg:hidden space-y-3">
+    <div className="space-y-3">
       {items.map((item) => {
         const isIn = item.direction === "in";
         const Icon = isIn ? ArrowDownLeft : ArrowUpRight;

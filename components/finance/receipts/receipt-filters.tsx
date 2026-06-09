@@ -6,6 +6,7 @@
  */
 
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import type { ReceiptStats } from "@/app/actions/finance-operations-queries";
 
 // ─── CONSTANTS ──────────────────────────────────────
@@ -35,25 +36,13 @@ export function ReceiptFilters({ activeType, onTypeChange, stats }: ReceiptFilte
   });
 
   return (
-    <>
-      {/* ── MOBILE: pills scroll ngang ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={RECEIPT_TYPE_TABS}
-          activeTab={activeType}
-          onChange={onTypeChange}
-          variant="pills"
-        />
-      </div>
-
-      {/* ── DESKTOP: segmented control ── */}
-      <div className="hidden lg:block">
-        <TabsFilter
-          tabs={tabsWithCounts}
-          activeTab={activeType}
-          onChange={onTypeChange}
-        />
-      </div>
-    </>
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+          <TabsFilter tabs={RECEIPT_TYPE_TABS} activeTab={activeType} onChange={onTypeChange} variant="pills" />
+        </div>
+      }
+      desktop={<TabsFilter tabs={tabsWithCounts} activeTab={activeType} onChange={onTypeChange} />}
+    />
   );
 }

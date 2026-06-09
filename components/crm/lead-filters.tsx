@@ -6,6 +6,7 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { LEAD_STATUS_MAP, SOURCE_MAP, PIPELINE_STAGES } from "@/types/crm";
 import type { LeadStats } from "@/types/crm";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface Props {
   stats: LeadStats;
@@ -62,9 +63,9 @@ export default function LeadFilters({ stats }: Props) {
   ];
 
   return (
-    <>
-      {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide py-1">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -87,10 +88,10 @@ export default function LeadFilters({ stats }: Props) {
           placeholder="Nhân viên"
           defaultValue="all"
         />
-      </div>
-
-      {/* ── DESKTOP: Tabs left + Dropdowns right ── */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -113,6 +114,7 @@ export default function LeadFilters({ stats }: Props) {
           />
         </div>
       </div>
-    </>
+      }
+    />
   );
 }

@@ -18,7 +18,7 @@ export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTabl
   };
 
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <TR>

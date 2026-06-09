@@ -25,7 +25,7 @@ function ServiceMobileListInner({ services, onQuote, onEdit, onPrefetch }: Props
   }, []);
 
   return (
-    <div className="lg:hidden flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-3 pt-1">
       {services.map((service) => {
         const isExpanded = expandedId === service.id;
         const sections = isExpanded ? parseContentStructure(service.description) : [];

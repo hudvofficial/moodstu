@@ -11,6 +11,7 @@ import { ChevronRight, Package, ArrowDownToLine, ArrowUpFromLine } from "lucide-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { SwipeableCard } from "@/components/ui/swipeable-card";
 import type { SwipeAction } from "@/components/ui/swipeable-card";
@@ -67,7 +68,7 @@ interface InventoryTableProps {
 
 function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: InventoryTableProps) {
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <tr>
@@ -152,7 +153,7 @@ function DesktopTable({ items, onRowClick, onHover, onStockIn, onStockOut }: Inv
 
 function MobileCardList({ items, onRowClick, onHover, onStockIn, onStockOut }: InventoryTableProps) {
   return (
-    <div className="lg:hidden flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-3 pt-1">
       {items.map((item, i) => {
         const status = getStatusDisplay(item);
         const canMoveStock = item.status === "active";
@@ -234,9 +235,9 @@ export function InventoryTable(props: InventoryTableProps) {
     />
   );
   return (
-    <>
-      <DesktopTable {...props} />
-      <MobileCardList {...props} />
-    </>
+    <TierSwitch
+      phone={<MobileCardList {...props} />}
+      desktop={<DesktopTable {...props} />}
+    />
   );
 }

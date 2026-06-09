@@ -1,0 +1,15 @@
+[    3360ms] [INFO] [web-vitals] {id: v4-1780992072093-9724399020292, name: LCP, label: undefined, value: 3736, rating: needs-improvement} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3360ms] [INFO] [web-vitals] {id: v4-1780992072110-1137390031351, name: CLS, label: undefined, value: 0, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3407ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3437ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3454ms] [WARNING] %c%s%c [auth-shell-profile] auth.employeeContext=3218ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3454ms] [WARNING] %c%s%c [auth-shell-profile] auth.context=3288ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3551ms] [INFO] [web-vitals] {id: v4-1780992085754-3069418433222, name: FCP, label: undefined, value: 3404, rating: poor} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3552ms] [WARNING] Image with src "/logo.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3902ms] [INFO] [web-vitals] {id: v4-1780992085754-9568545297269, name: TTFB, label: undefined, value: 3354, rating: poor} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    4071ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    4156ms] [LOG] [Fast Refresh] done in 187ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    7719ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    7824ms] [LOG] [Fast Refresh] done in 206ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   26168ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   26291ms] [LOG] [Fast Refresh] done in 226ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074

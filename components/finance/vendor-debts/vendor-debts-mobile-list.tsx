@@ -20,7 +20,7 @@ export function VendorDebtsMobileList({ items, busyId, onPay }: VendorDebtsMobil
   };
 
   return (
-    <div className="lg:hidden space-y-2">
+    <div className="space-y-2">
       {items.map((item) => {
         const isBusy = busyId === item.vendor_id;
 

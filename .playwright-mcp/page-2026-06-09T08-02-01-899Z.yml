@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - img "Mood Studio" [ref=e4]
+  - generic [ref=e6]:
+    - heading "404" [level=1] [ref=e7]
+    - heading "This page could not be found." [level=2] [ref=e9]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e15] [cursor=pointer]:
+    - img [ref=e16]

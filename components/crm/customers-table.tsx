@@ -4,6 +4,7 @@ import { ChevronRight, FilterX } from "lucide-react";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/ux-states";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { formatDate, getInitials } from "@/lib/utils";
 import type { Customer } from "@/types/crm";
 import { SOURCE_MAP, TAG_PRESETS } from "@/types/crm";
@@ -38,7 +39,7 @@ function getTagStyle(tagLabel: string) {
 
 function DesktopTable({ customers, onView, onHover }: CustomersTableProps) {
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <tr>
@@ -129,7 +130,7 @@ function DesktopTable({ customers, onView, onHover }: CustomersTableProps) {
 
 function MobileCardList({ customers, onView }: CustomersTableProps) {
   return (
-    <div className="lg:hidden flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-3 pt-1">
       {customers.map((c) => (
         <CustomerCard
           key={c.id}
@@ -154,9 +155,9 @@ export function CustomersTable(props: CustomersTableProps) {
     );
   }
   return (
-    <>
-      <DesktopTable {...props} />
-      <MobileCardList {...props} />
-    </>
+    <TierSwitch
+      phone={<MobileCardList {...props} />}
+      desktop={<DesktopTable {...props} />}
+    />
   );
 }

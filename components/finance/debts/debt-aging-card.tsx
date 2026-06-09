@@ -4,6 +4,7 @@ import { AlertTriangle, Clock3, TimerReset } from "lucide-react";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { formatVnd } from "@/components/finance/finance-format";
 import type { DebtStats } from "@/app/actions/finance-operations-queries";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface Props {
   stats: DebtStats;
@@ -52,17 +53,22 @@ export function DebtAgingCard({ stats }: Props) {
         </Badge>
       </div>
 
-      <div className="hidden gap-3 lg:grid lg:grid-cols-3 2xl:grid-cols-5">
-        {items.map((item) => (
-          <AgingBucketCard key={item.label} item={item} total={total} compact={false} />
-        ))}
-      </div>
-
-      <div className="space-y-2 lg:hidden">
-        {items.map((item) => (
-          <AgingBucketCard key={item.label} item={item} total={total} compact />
-        ))}
-      </div>
+      <TierSwitch
+        phone={
+          <div className="space-y-2">
+            {items.map((item) => (
+              <AgingBucketCard key={item.label} item={item} total={total} compact />
+            ))}
+          </div>
+        }
+        desktop={
+          <div className="grid grid-cols-3 2xl:grid-cols-5 gap-3">
+            {items.map((item) => (
+              <AgingBucketCard key={item.label} item={item} total={total} compact={false} />
+            ))}
+          </div>
+        }
+      />
     </div>
   );
 }

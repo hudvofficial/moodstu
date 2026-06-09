@@ -28,6 +28,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/ux-states";
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ReturnModal } from "@/components/dresses/return-modal";
 import { toast } from "@/lib/toast-utils";
@@ -225,52 +226,51 @@ export default function StandaloneRentalsClient({ initialResult }: StandaloneRen
         </div>
       </div>
 
-      {/* 3 ─── Filters + View Toggle (Match Gold Standard dresses-filters) ─── */}
-      <>
-        {/* MOBILE FILTERS */}
-        <div className="lg:hidden flex flex-col gap-3">
-          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+      {/* 3 ─── Filters + View Toggle ─── */}
+      <TierSwitch
+        phone={
+          <div className="flex flex-col gap-3">
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+              <TabsFilter
+                tabs={STATUS_TABS}
+                activeTab={status}
+                onChange={(val) => setFilter("status", val)}
+                variant="pills"
+              />
+            </div>
+            <div className="flex items-center justify-end mt-1">
+              <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1 shrink-0">
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Danh sách" >
+                  <List size={16} />
+                </div>
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`p-1.5 rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Lịch" >
+                  <Calendar size={16} />
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+        desktop={
+          <div className="flex items-center justify-between gap-3">
             <TabsFilter
               tabs={STATUS_TABS}
               activeTab={status}
               onChange={(val) => setFilter("status", val)}
-              variant="pills"
             />
-          </div>
-          <div className="flex items-center justify-end mt-1">
-            {/* View toggle icon only cho mobile */}
-            <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1 shrink-0">
-              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Danh sách" >
-                <List size={16} />
-              </div>
-              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`p-1.5 rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary" : "text-text-secondary hover:text-text-primary"}`} aria-label="Lịch" >
-                <Calendar size={16} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* DESKTOP FILTERS */}
-        <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
-          <TabsFilter
-            tabs={STATUS_TABS}
-            activeTab={status}
-            onChange={(val) => setFilter("status", val)}
-          />
-          <div className="flex items-center justify-end">
-            {/* View toggle text + icon cho desktop */}
-            <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1">
-              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
-                Danh sách
-              </div>
-              <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
-                <Calendar size={14} className="inline mr-1" />
-                Lịch
+            <div className="flex items-center justify-end">
+              <div className="flex items-center bg-bg-hover p-1 rounded-lg gap-1">
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "list"); } }}  onClick={() => setFilter("view", "list")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "list" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
+                  Danh sách
+                </div>
+                <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") { setFilter("view", "calendar"); } }}  onClick={() => setFilter("view", "calendar")}  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${view === "calendar" ? "bg-bg-card shadow-sm text-text-primary font-medium" : "text-text-secondary hover:text-text-primary"}`} >
+                  <Calendar size={14} className="inline mr-1" />
+                  Lịch
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </>
+        }
+      />
 
       {/* 4 ─── Loading ─── */}
       {isLoading && (
@@ -311,9 +311,21 @@ export default function StandaloneRentalsClient({ initialResult }: StandaloneRen
         view === "calendar" ? (
           <CalendarView rentals={rentals} />
         ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden lg:block">
+          <TierSwitch
+            phone={
+              <div className="space-y-2">
+                {rentals.map((r) => (
+                  <RentalCard
+                    key={r.id}
+                    rental={r}
+                    onReturn={setReturnRental}
+                    onStart={handleStart}
+                    onCancel={setCancelId}
+                  />
+                ))}
+              </div>
+            }
+            desktop={
               <TableWrapper>
                 <THead>
                   <tr>
@@ -338,21 +350,8 @@ export default function StandaloneRentalsClient({ initialResult }: StandaloneRen
                   ))}
                 </TBody>
               </TableWrapper>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="lg:hidden space-y-2">
-              {rentals.map((r) => (
-                <RentalCard
-                  key={r.id}
-                  rental={r}
-                  onReturn={setReturnRental}
-                  onStart={handleStart}
-                  onCancel={setCancelId}
-                />
-              ))}
-            </div>
-          </>
+            }
+          />
         )
       )}
 

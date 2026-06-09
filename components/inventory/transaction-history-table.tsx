@@ -13,6 +13,7 @@ import { ChevronRight, History, ArrowDownToLine, ArrowUpFromLine, Printer, Edit2
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { formatCurrency, CURRENCY_SYMBOL, safeFormatDate } from "@/lib/utils";
 import {
@@ -46,7 +47,7 @@ function DesktopTable({ transactions, onRowClick, onHover, onPrint, onEdit, onDe
   const btnStyle = { padding: 0 };
 
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <tr>
@@ -204,7 +205,7 @@ function DesktopTable({ transactions, onRowClick, onHover, onPrint, onEdit, onDe
 
 function MobileCardList({ transactions, onRowClick, onHover }: TransactionHistoryTableProps) {
   return (
-    <div className="lg:hidden flex flex-col gap-3 pt-1">
+    <div className="flex flex-col gap-3 pt-1">
       {transactions.map((txn, i) => {
         const sourceDisplay = getSourceDisplay(txn.source_type);
         const isStockIn = txn.transaction_type === "stock_in";
@@ -281,9 +282,9 @@ export function TransactionHistoryTable(props: TransactionHistoryTableProps) {
     );
   }
   return (
-    <>
-      <DesktopTable {...props} />
-      <MobileCardList {...props} />
-    </>
+    <TierSwitch
+      phone={<MobileCardList {...props} />}
+      desktop={<DesktopTable {...props} />}
+    />
   );
 }

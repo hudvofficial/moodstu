@@ -30,7 +30,7 @@ export default function LabTable({
   onDelete,
 }: Props) {
   return (
-    <TableWrapper containerClassName="hidden lg:block">
+    <TableWrapper>
       <THead>
         <TR className="hover:bg-transparent h-auto">
           <TH>Lab</TH>

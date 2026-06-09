@@ -1,0 +1,59 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - link "Mood Studio" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard
+          - img "Mood Studio" [ref=e10]
+        - heading "Tài chính" [level=1] [ref=e12]
+        - generic [ref=e13]:
+          - button "Tìm kiếm" [ref=e15] [cursor=pointer]:
+            - img [ref=e16]
+          - button "Thông báo" [ref=e21] [cursor=pointer]:
+            - img [ref=e22]
+    - main [ref=e25]:
+      - generic [ref=e28]:
+        - navigation [ref=e29]:
+          - link "Tài chính" [ref=e30] [cursor=pointer]:
+            - /url: /finance
+          - img [ref=e31]
+          - link "Cấu hình" [ref=e33] [cursor=pointer]:
+            - /url: /settings/finance
+          - img [ref=e34]
+          - generic [ref=e36]: Danh mục thu chi
+        - generic [ref=e39]:
+          - img [ref=e41]
+          - generic [ref=e46]:
+            - heading "Danh mục thu chi" [level=1] [ref=e47]
+            - paragraph [ref=e48]: Nguồn phân loại cho phiếu thu, phiếu chi và ngân sách.
+        - button "Thêm danh mục" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+    - navigation [ref=e53]:
+      - generic [ref=e54]:
+        - link "Home" [ref=e55] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e56]
+          - generic [ref=e59]: Home
+        - link "Hợp đồng" [ref=e60] [cursor=pointer]:
+          - /url: /contracts
+          - img [ref=e61]
+          - generic [ref=e64]: Hợp đồng
+        - link "Lịch" [ref=e65] [cursor=pointer]:
+          - /url: /calendar
+          - img [ref=e66]
+          - generic [ref=e68]: Lịch
+        - link "CRM" [ref=e69] [cursor=pointer]:
+          - /url: /crm/leads
+          - img [ref=e70]
+          - generic [ref=e75]: CRM
+        - button "Thêm" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e81]: Thêm
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e87] [cursor=pointer]:
+    - img [ref=e88]
+  - alert [ref=e91]
+  - generic [ref=e92]:
+    - img [ref=e94]
+    - button "Open Tanstack query devtools" [ref=e142] [cursor=pointer]:
+      - img [ref=e143]

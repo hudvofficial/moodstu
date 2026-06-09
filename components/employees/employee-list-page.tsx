@@ -13,6 +13,7 @@ import EmployeeStatsBar from "./employee-stats-bar";
 import EmployeeFilters from "./employee-filters";
 import EmployeeTable from "./employee-table";
 import EmployeeCard from "./employee-card";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import EmployeeFormModal from "./employee-form-modal";
 import EmployeeDetailDrawer from "./employee-detail-drawer";
 
@@ -123,24 +124,30 @@ export default function EmployeeListPage({
         )
       ) : (
         <>
-          <div className="hidden lg:block relative">
-            {isPending && (
-              <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl" />
-            )}
-            <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
-          </div>
-          <div className="lg:hidden space-y-2 relative">
-            {isPending && (
-              <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 rounded-xl" />
-            )}
-            {employees.map((emp) => (
-              <EmployeeCard
-                key={emp.id}
-                employee={emp}
-                onSelect={setSelectedEmployee}
-              />
-            ))}
-          </div>
+          <TierSwitch
+            phone={
+              <div className="space-y-2 relative">
+                {isPending && (
+                  <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 rounded-xl" />
+                )}
+                {employees.map((emp) => (
+                  <EmployeeCard
+                    key={emp.id}
+                    employee={emp}
+                    onSelect={setSelectedEmployee}
+                  />
+                ))}
+              </div>
+            }
+            desktop={
+              <div className="relative">
+                {isPending && (
+                  <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl" />
+                )}
+                <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
+              </div>
+            }
+          />
           <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} className="mt-4" />
           <p className="text-center text-xs text-text-muted mt-1">
             Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} của {total} nhân viên

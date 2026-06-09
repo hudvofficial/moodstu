@@ -20,6 +20,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, DebtListItem, IntegrityReportItem } from "@/types/finance-operations";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import type { PaginatedResult } from "@/types/finance-dashboard";
 import type { DebtStats } from "@/app/actions/finance-operations-queries";
 import type { BankInfo } from "@/types/settings";
@@ -129,33 +130,37 @@ export function DebtsClient({ initialData, initialStats, initialIntegrity, bankI
             <SkeletonCard />
           </div>
         ) : (
-          <>
-            <div className="hidden lg:block card-base">
-              <DebtDesktopTable
-                items={debts}
-                bankInfo={bankInfo}
-                busyId={busyId}
-                onMarkPaid={markPaid}
-                onViewHistory={viewHistory}
-                onDelete={remove}
-              />
-            </div>
-            <div className="lg:hidden">
-              <DebtMobileList
-                items={debts}
-                bankInfo={bankInfo}
-                busyId={busyId}
-                onMarkPaid={markPaid}
-                onViewHistory={viewHistory}
-                onDelete={remove}
-              />
-              {totalPages > 1 && (
-                <div className="mt-4 flex justify-center">
-                  <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-                </div>
-              )}
-            </div>
-          </>
+          <TierSwitch
+            phone={
+              <>
+                <DebtMobileList
+                  items={debts}
+                  bankInfo={bankInfo}
+                  busyId={busyId}
+                  onMarkPaid={markPaid}
+                  onViewHistory={viewHistory}
+                  onDelete={remove}
+                />
+                {totalPages > 1 && (
+                  <div className="mt-4 flex justify-center">
+                    <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+                  </div>
+                )}
+              </>
+            }
+            desktop={
+              <div className="card-base">
+                <DebtDesktopTable
+                  items={debts}
+                  bankInfo={bankInfo}
+                  busyId={busyId}
+                  onMarkPaid={markPaid}
+                  onViewHistory={viewHistory}
+                  onDelete={remove}
+                />
+              </div>
+            }
+          />
         )}
       </section>
 

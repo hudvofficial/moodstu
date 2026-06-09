@@ -50,7 +50,7 @@ function PrintingTableInner({
   const isGrouped = !!groups && groups.length > 0;
 
   return (
-    <TableWrapper containerClassName="hidden lg:block">
+    <TableWrapper>
       <THead>
         <TR className="hover:bg-transparent h-auto">
           <TH>Đơn in</TH>

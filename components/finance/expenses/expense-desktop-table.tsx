@@ -17,7 +17,7 @@ interface ExpenseDesktopTableProps {
 
 export function ExpenseDesktopTable({ items, busyId, onApprove, onDelete, onEdit, onView, onPrint }: ExpenseDesktopTableProps) {
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <TR>

@@ -29,6 +29,7 @@ import { StatsBar } from "@/components/ui/stats-bar";
 import { Button } from "@/components/ui/button";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { fetchLabsList } from "@/app/actions/lab-queries";
 import { toggleLabStatus, deleteLab } from "@/app/actions/lab-mutations";
 import { cacheKeys } from "@/lib/swr";
@@ -435,8 +436,9 @@ function LabListInner({ initialLabs }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+        <TierSwitch
+          phone={
+            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
             <TabsFilter
               tabs={statusTabs}
               activeTab={statusFilter}
@@ -451,9 +453,10 @@ function LabListInner({ initialLabs }: Props) {
               placeholder="Sắp xếp"
               options={SORT_OPTIONS}
             />
-          </div>
-
-          <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+            </div>
+          }
+          desktop={
+            <div className="flex items-center justify-between gap-3">
             <TabsFilter
               tabs={statusTabs}
               activeTab={statusFilter}
@@ -467,8 +470,9 @@ function LabListInner({ initialLabs }: Props) {
               placeholder="Sắp xếp"
               options={SORT_OPTIONS}
             />
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         <FAB onClick={openCreate} label="Thêm lab" />
 

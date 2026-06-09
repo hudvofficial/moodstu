@@ -21,6 +21,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/ux-states";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { formatVnd } from "@/lib/utils";
 
@@ -248,9 +249,16 @@ export default function RentalHistoryClient() {
 
       {/* 7 ─── Desktop Table ─── */}
       {!isLoading && !error && rows.length > 0 && (
-        <>
-          {/* Desktop */}
-          <TableWrapper className="hidden lg:block">
+        <TierSwitch
+          phone={
+            <div className="space-y-2">
+              {rows.map((row) => (
+                <RentalCard key={row.id} row={row} />
+              ))}
+            </div>
+          }
+          desktop={
+            <TableWrapper>
             <THead>
               <tr>
                 <TH>Trang phục</TH>
@@ -266,15 +274,9 @@ export default function RentalHistoryClient() {
                 <RentalRow key={row.id} row={row} />
               ))}
             </TBody>
-          </TableWrapper>
-
-          {/* Mobile cards */}
-          <div className="lg:hidden space-y-2">
-            {rows.map((row) => (
-              <RentalCard key={row.id} row={row} />
-            ))}
-          </div>
-        </>
+            </TableWrapper>
+          }
+        />
       )}
 
       {/* 8 ─── Pagination ─── */}

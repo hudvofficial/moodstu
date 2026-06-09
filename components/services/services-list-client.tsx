@@ -7,6 +7,7 @@ import { getServiceCategories, getServices } from "@/app/actions/service-queries
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { SkeletonTable } from "@/components/ui/skeleton";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { EmptyState } from "@/components/ui/ux-states";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
@@ -252,20 +253,24 @@ export default function ServicesListClient({
           onPrefetch={warmEdit}
         />
       ) : (
-        <>
-          <ServiceTable
-            services={filteredServices}
-            onQuote={handleQuote}
-            onEdit={handleEdit}
-            onPrefetch={warmEdit}
-          />
-          <ServiceMobileList
-            services={filteredServices}
-            onQuote={handleQuote}
-            onEdit={handleEdit}
-            onPrefetch={warmEdit}
-          />
-        </>
+        <TierSwitch
+          phone={
+            <ServiceMobileList
+              services={filteredServices}
+              onQuote={handleQuote}
+              onEdit={handleEdit}
+              onPrefetch={warmEdit}
+            />
+          }
+          desktop={
+            <ServiceTable
+              services={filteredServices}
+              onQuote={handleQuote}
+              onEdit={handleEdit}
+              onPrefetch={warmEdit}
+            />
+          }
+        />
       )}
 
       {services.length < servicesPayload.total && (

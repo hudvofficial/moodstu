@@ -1,0 +1,43 @@
+[    1493ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/login:0
+[    1599ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1709ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1805ms] [INFO] [web-vitals] {id: v4-1780991794811-7896658756445, name: FCP, label: undefined, value: 1480, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1994ms] [INFO] [web-vitals] {id: v4-1780991794811-2702907089403, name: TTFB, label: undefined, value: 1253, rating: needs-improvement} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1998ms] [WARNING] Image with src "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    2186ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    2327ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   23116ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   24823ms] [LOG] [Fast Refresh] done in 1819ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   26915ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[   26916ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  154594ms] [INFO] [web-vitals] {id: v4-1780991794811-6994997013495, name: FID, label: undefined, value: 3, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  154594ms] [INFO] [web-vitals] {id: v4-1780991794811-6790399593748, name: LCP, label: undefined, value: 1480, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  162202ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  163918ms] [LOG] [Fast Refresh] done in 1823ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164778ms] [INFO] [web-vitals] {id: v4-1780991957754-7926776825251, name: FID, label: undefined, value: 3, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164778ms] [INFO] [web-vitals] {id: v4-1780991957755-1826492428893, name: FCP, label: undefined, value: 1480, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164779ms] [INFO] [web-vitals] {id: v4-1780991957755-1583112571370, name: TTFB, label: undefined, value: 1253, rating: needs-improvement} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164793ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164793ms] [LOG] [Fast Refresh] done in 149ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  164803ms] [WARNING] Image with src "/logo.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165011ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165012ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165183ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165190ms] [WARNING] %c%s%c [dashboard-profile] dashboard.revenueChart=702ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165204ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165323ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  165324ms] [WARNING] The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width. @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  166617ms] [WARNING] %c%s%c [dashboard-profile] dashboard.paymentReminders=2081ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[  166665ms] [WARNING] %c%s%c [dashboard-profile] dashboard.upcomingEvents=2143ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074

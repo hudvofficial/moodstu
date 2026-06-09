@@ -3,6 +3,7 @@
 import { Scale } from "lucide-react";
 import { formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
 import type { GoalItem } from "@/types/finance-operations";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 function normalizeStatus(status: string | null | undefined) {
   return (status || "").toLowerCase().trim();
@@ -34,8 +35,9 @@ export function GoalsComparison({ goals, availableForGoals }: GoalsComparisonPro
         </div>
       </div>
 
-      {/* Mobile: stacked items */}
-      <div className="lg:hidden divide-y divide-border/50">
+      <TierSwitch
+        phone={
+          <div className="divide-y divide-border/50">
         {activeGoals.map((goal) => {
           const perGoalGap = goal.monthly_needed !== null ? availableForGoals - goal.monthly_needed : null;
           return (
@@ -65,10 +67,10 @@ export function GoalsComparison({ goals, availableForGoals }: GoalsComparisonPro
             </div>
           );
         })}
-      </div>
-
-      {/* Desktop: table */}
-      <div className="hidden lg:block overflow-x-auto">
+          </div>
+        }
+        desktop={
+          <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-bg-sidebar/40 text-text-muted font-semibold">
@@ -105,7 +107,9 @@ export function GoalsComparison({ goals, availableForGoals }: GoalsComparisonPro
             })}
           </tbody>
         </table>
-      </div>
+          </div>
+        }
+      />
     </div>
   );
 }

@@ -20,7 +20,7 @@ export function VendorCostMobileList({ items }: VendorCostMobileListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3 lg:hidden">
+    <div className="flex flex-col gap-3">
       {items.map((item) => (
         <div
           key={item.vendor_id}

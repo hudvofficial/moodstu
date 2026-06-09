@@ -1,6 +1,7 @@
 "use client";
 
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 export type CloseStatusFilter = "all" | "draft" | "in_progress" | "pending_review" | "locked";
 
@@ -41,23 +42,13 @@ export function CloseFilters({ activeStatus, onStatusChange, counts }: CloseFilt
   }));
 
   return (
-    <>
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={CLOSE_STATUS_TABS}
-          activeTab={activeStatus}
-          onChange={(value) => onStatusChange(value as CloseStatusFilter)}
-          variant="pills"
-        />
-      </div>
-
-      <div className="hidden lg:block">
-        <TabsFilter
-          tabs={tabsWithCounts}
-          activeTab={activeStatus}
-          onChange={(value) => onStatusChange(value as CloseStatusFilter)}
-        />
-      </div>
-    </>
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+          <TabsFilter tabs={CLOSE_STATUS_TABS} activeTab={activeStatus} onChange={(value) => onStatusChange(value as CloseStatusFilter)} variant="pills" />
+        </div>
+      }
+      desktop={<TabsFilter tabs={tabsWithCounts} activeTab={activeStatus} onChange={(value) => onStatusChange(value as CloseStatusFilter)} />}
+    />
   );
 }

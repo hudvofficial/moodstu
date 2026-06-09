@@ -14,7 +14,7 @@ interface ReceiptMobileListProps {
 
 export function ReceiptMobileList({ items, bankInfo, deletingId, onDelete, onEdit }: ReceiptMobileListProps) {
   return (
-    <div className="space-y-3 lg:hidden pb-32">
+    <div className="space-y-3 pb-32">
       {items.length === 0 ? (
         <div className="card-base p-5 text-center text-text-muted">
           Chưa có phiếu thu trong kỳ này.

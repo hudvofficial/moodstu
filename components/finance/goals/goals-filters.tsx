@@ -6,6 +6,7 @@
  */
 
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 const GOAL_STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -27,25 +28,13 @@ export function GoalsFilters({ activeStatus, onStatusChange, counts }: GoalsFilt
   }));
 
   return (
-    <>
-      {/* ——— MOBILE: pills scroll ngang ——— */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={GOAL_STATUS_TABS}
-          activeTab={activeStatus}
-          onChange={onStatusChange}
-          variant="pills"
-        />
-      </div>
-
-      {/* ——— DESKTOP: segmented control ——— */}
-      <div className="hidden lg:block">
-        <TabsFilter
-          tabs={tabsWithCounts}
-          activeTab={activeStatus}
-          onChange={onStatusChange}
-        />
-      </div>
-    </>
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+          <TabsFilter tabs={GOAL_STATUS_TABS} activeTab={activeStatus} onChange={onStatusChange} variant="pills" />
+        </div>
+      }
+      desktop={<TabsFilter tabs={tabsWithCounts} activeTab={activeStatus} onChange={onStatusChange} />}
+    />
   );
 }

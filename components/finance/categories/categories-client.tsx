@@ -14,6 +14,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { FAB } from "@/components/ui/fab";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, FinanceCategory } from "@/types/finance-operations";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface CategoriesClientProps {
   initialData: FinanceCategory[];
@@ -107,81 +108,83 @@ export function CategoriesClient({ initialData }: CategoriesClientProps) {
             <SkeletonTable rows={6} />
           </div>
         ) : (
-          <>
-            {/* Desktop View */}
-            <div className="hidden lg:block card-base overflow-hidden">
-              <TableWrapper>
-                <THead>
-                  <TR>
-                    <TH>Tên</TH>
-                    <TH>Loại</TH>
-                    <TH>Mã</TH>
-                    <TH>Mặc định</TH>
-                    <TH className="text-right">Thao tác</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {categories.map((item) => (
-                    <TR key={item.id}>
-                      <TD className="font-semibold text-text-primary">{item.name}</TD>
-                      <TD>
-                        <Badge variant={item.type === "thu" ? "success" : "error"}>
-                          {item.type === "thu" ? "Thu" : "Chi"}
-                        </Badge>
-                      </TD>
-                      <TD>
-                        <span className="tag-badge">{item.category_code}</span>
-                      </TD>
-                      <TD>{item.is_default ? "Có" : "-"}</TD>
-                      <TD className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(item)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          {!item.is_default && (
-                            <Button type="button" variant="ghost" size="sm" onClick={() => remove(item)} disabled={deletingId === item.id} className="text-error">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
+          <TierSwitch
+            phone={
+              <div className="flex flex-col gap-3">
+                {categories.map((item) => (
+                  <div key={item.id} className="card-base p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between min-w-0 gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-body font-semibold mb-2 truncate">
+                          {item.name}
+                          {item.is_default && <span className="ml-2 text-tiny uppercase font-bold text-text-muted tag-badge">Mặc định</span>}
                         </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </TableWrapper>
-            </div>
-            {/* Mobile View */}
-            <div className="lg:hidden flex flex-col gap-3">
-              {categories.map((item) => (
-                <div key={item.id} className="card-base p-4 flex flex-col gap-3">
-                  <div className="flex items-start justify-between min-w-0 gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-body font-semibold mb-2 truncate">
-                        {item.name}
-                        {item.is_default && <span className="ml-2 text-tiny uppercase font-bold text-text-muted tag-badge">Mặc định</span>}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={item.type === "thu" ? "success" : "error"}>
+                            {item.type === "thu" ? "Thu" : "Chi"}
+                          </Badge>
+                          <span className="tag-badge">{item.category_code}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={item.type === "thu" ? "success" : "error"}>
-                          {item.type === "thu" ? "Thu" : "Chi"}
-                        </Badge>
-                        <span className="tag-badge">{item.category_code}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(item)} className="h-8 w-8 p-0">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      {!item.is_default && (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => remove(item)} disabled={deletingId === item.id} className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10">
-                          <Trash2 className="w-4 h-4" />
+                      <div className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(item)} className="h-8 w-8 p-0">
+                          <Edit className="w-4 h-4" />
                         </Button>
-                      )}
+                        {!item.is_default && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => remove(item)} disabled={deletingId === item.id} className="h-8 w-8 p-0 text-error hover:text-error hover:bg-error/10">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
+                ))}
+              </div>
+            }
+            desktop={
+              <div className="card-base overflow-hidden">
+                <TableWrapper>
+                  <THead>
+                    <TR>
+                      <TH>Tên</TH>
+                      <TH>Loại</TH>
+                      <TH>Mã</TH>
+                      <TH>Mặc định</TH>
+                      <TH className="text-right">Thao tác</TH>
+                    </TR>
+                  </THead>
+                  <TBody>
+                    {categories.map((item) => (
+                      <TR key={item.id}>
+                        <TD className="font-semibold text-text-primary">{item.name}</TD>
+                        <TD>
+                          <Badge variant={item.type === "thu" ? "success" : "error"}>
+                            {item.type === "thu" ? "Thu" : "Chi"}
+                          </Badge>
+                        </TD>
+                        <TD>
+                          <span className="tag-badge">{item.category_code}</span>
+                        </TD>
+                        <TD>{item.is_default ? "Có" : "-"}</TD>
+                        <TD className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(item)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            {!item.is_default && (
+                              <Button type="button" variant="ghost" size="sm" onClick={() => remove(item)} disabled={deletingId === item.id} className="text-error">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </TableWrapper>
+              </div>
+            }
+          />
         )}
       </section>
 

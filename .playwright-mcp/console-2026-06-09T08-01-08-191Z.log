@@ -1,0 +1,15 @@
+[     118ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1225ms] [LOG] [Fast Refresh] done in 1207ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3678ms] [INFO] [web-vitals] {id: v4-1780992029538-2793633281417, name: LCP, label: undefined, value: 1152, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3678ms] [INFO] [web-vitals] {id: v4-1780992029555-1363753833250, name: CLS, label: undefined, value: 0, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3763ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3806ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3816ms] [WARNING] %c%s%c [auth-shell-profile] auth.employeeContext=2357ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3817ms] [WARNING] %c%s%c [auth-shell-profile] auth.context=2431ms background: #e6e6e6;background: light-dark(rgba(0,0,0,0.1), rgba(255,255,255,0.25));color: #000000;color: light-dark(#000000, #ffffff);border-radius: 2px  Server   @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3920ms] [INFO] [web-vitals] {id: v4-1780992072093-2750038047237, name: FCP, label: undefined, value: 3736, rating: poor} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    3922ms] [WARNING] Image with src "/logo.png" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    4530ms] [INFO] [web-vitals] {id: v4-1780992072093-9996380858183, name: TTFB, label: undefined, value: 3671, rating: poor} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    4721ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    4822ms] [LOG] [Fast Refresh] done in 212ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    7671ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    7777ms] [LOG] [Fast Refresh] done in 207ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074

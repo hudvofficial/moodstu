@@ -1,0 +1,8 @@
+[    1272ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3000/login:0
+[    1404ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1522ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1632ms] [INFO] [web-vitals] {id: v4-1780987981059-8077471505828, name: FCP, label: undefined, value: 1388, rating: good} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1646ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1651ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1769ms] [INFO] [web-vitals] {id: v4-1780987981059-1481808680255, name: TTFB, label: undefined, value: 1169, rating: needs-improvement} @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074
+[    1770ms] [WARNING] Image with src "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=2070&auto=format&fit=crop" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes @ http://localhost:3000/_next/static/chunks/0pnd_next_dist_0ys2pp5._.js:1074

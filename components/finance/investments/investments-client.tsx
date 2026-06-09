@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/ui/ux-states";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import type { ActionResult, InvestmentItem } from "@/types/finance-operations";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface InvestmentsClientProps {
   initialData: InvestmentItem[];
@@ -313,7 +314,16 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
         />
       ) : (
         <>
-          <div className="hidden lg:block">
+          <TierSwitch
+            phone={
+              <InvestmentMobileList
+                items={filteredItems}
+                onEdit={handleEdit}
+                onDelete={remove}
+                busyId={busyId}
+              />
+            }
+            desktop={
             <TableWrapper className="w-full min-w-[1360px]" containerClassName="rounded-xl">
               <THead>
                 <TR>
@@ -428,16 +438,8 @@ export function InvestmentsClient({ initialData }: InvestmentsClientProps) {
                 })}
               </TBody>
             </TableWrapper>
-          </div>
-
-          <div className="lg:hidden">
-            <InvestmentMobileList
-              items={filteredItems}
-              onEdit={handleEdit}
-              onDelete={remove}
-              busyId={busyId}
-            />
-          </div>
+            }
+          />
 
           {shouldShowResultMeta ? (
             <p className="text-center text-caption text-text-muted">

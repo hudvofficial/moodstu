@@ -16,7 +16,7 @@ interface ReceiptDesktopTableProps {
 
 export function ReceiptDesktopTable({ items, bankInfo, deletingId, onDelete, onEdit }: ReceiptDesktopTableProps) {
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <TR>

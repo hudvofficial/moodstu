@@ -23,7 +23,7 @@ export function SalaryMobileList({
   onDelete,
 }: SalaryMobileListProps) {
   return (
-    <div className="space-y-3 pb-32 lg:hidden">
+    <div className="space-y-3 pb-32">
       {items.length === 0 ? (
         <div className="card-base p-5 text-center text-text-muted">
           Chưa có dữ liệu lương tháng này.

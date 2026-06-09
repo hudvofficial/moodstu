@@ -5,6 +5,7 @@ import { ProductivityMobileCards } from "@/components/productivity/productivity-
 import { ProductivityOverloadBanner } from "@/components/productivity/productivity-overload-banner";
 import { ProductivityTeamTable } from "@/components/productivity/productivity-team-table";
 import { EmptyState } from "@/components/ui/ux-states";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import type {
   EmployeeProductivity,
   ProductivitySortDirection,
@@ -59,8 +60,15 @@ export function ProductivityTeamView({
           />
         )
       ) : (
-        <>
-          <div className="hidden lg:block">
+        <TierSwitch
+          phone={
+            <ProductivityMobileCards
+              employees={employees}
+              canViewCost={canViewCost}
+              onSelectEmployee={onSelectEmployee}
+            />
+          }
+          desktop={
             <ProductivityTeamTable
               employees={employees}
               canViewCost={canViewCost}
@@ -69,15 +77,8 @@ export function ProductivityTeamView({
               onSortChange={onSortChange}
               onSelectEmployee={onSelectEmployee}
             />
-          </div>
-          <div className="lg:hidden">
-            <ProductivityMobileCards
-              employees={employees}
-              canViewCost={canViewCost}
-              onSelectEmployee={onSelectEmployee}
-            />
-          </div>
-        </>
+          }
+        />
       )}
     </>
   );

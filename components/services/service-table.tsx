@@ -26,7 +26,7 @@ function ServiceTableInner({ services, onQuote, onEdit, onPrefetch }: Props) {
 
 
   return (
-    <div className="hidden lg:block">
+    <div>
       <TableWrapper>
         <THead>
           <tr>

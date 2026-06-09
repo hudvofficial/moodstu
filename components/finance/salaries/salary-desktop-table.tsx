@@ -16,7 +16,7 @@ interface SalaryDesktopTableProps {
 
 export function SalaryDesktopTable({ items, onView, onAdjust, onPay, onPrint, onDelete }: SalaryDesktopTableProps) {
     return (
-        <div className="hidden lg:block">
+        <div>
             <TableWrapper>
                 <THead>
                     <TR>

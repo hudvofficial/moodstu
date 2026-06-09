@@ -31,7 +31,7 @@ export function InvestmentMobileList({
   if (items.length === 0) return null;
 
   return (
-    <div className="space-y-3 lg:hidden">
+    <div className="space-y-3">
       {items.map((item) => {
         const isBusy = busyId === item.id;
         const roi = investmentRoiPercent(item);

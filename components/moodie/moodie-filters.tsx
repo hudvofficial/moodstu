@@ -3,6 +3,7 @@
 import { SearchBar } from "@/components/ui/search-bar";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import type { MoodieConversationScope } from "@/types/moodie";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface MoodieFiltersProps {
   scope: MoodieConversationScope;
@@ -54,37 +55,40 @@ export function MoodieFilters({
       </div>
     </div>
   ) : (
-    <>
-      <div className="hidden items-center justify-between gap-4 lg:flex">
-        <TabsFilter
-          tabs={tabs}
-          activeTab={scope}
-          onChange={(value) => onScopeChange(value as MoodieConversationScope)}
-        />
-        <div className="w-full max-w-sm">
+    <TierSwitch
+      phone={
+        <div className="space-y-3">
+          <div className="overflow-x-auto scrollbar-hide">
+            <TabsFilter
+              tabs={tabs}
+              activeTab={scope}
+              onChange={(value) => onScopeChange(value as MoodieConversationScope)}
+            />
+          </div>
           <SearchBar
             value={search}
             onChange={onSearchChange}
             placeholder={searchPlaceholder}
           />
         </div>
-      </div>
-
-      <div className="space-y-3 lg:hidden">
-        <div className="overflow-x-auto scrollbar-hide">
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-4">
           <TabsFilter
             tabs={tabs}
             activeTab={scope}
             onChange={(value) => onScopeChange(value as MoodieConversationScope)}
           />
+          <div className="w-full max-w-sm">
+            <SearchBar
+              value={search}
+              onChange={onSearchChange}
+              placeholder={searchPlaceholder}
+            />
+          </div>
         </div>
-        <SearchBar
-          value={search}
-          onChange={onSearchChange}
-          placeholder={searchPlaceholder}
-        />
-      </div>
-    </>
+      }
+    />
   );
 
   if (variant === "embedded") return content;

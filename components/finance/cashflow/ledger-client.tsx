@@ -13,6 +13,7 @@ import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import type { LedgerItem, PaginatedResult } from "@/types/finance-dashboard";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 type LedgerType = "all" | "in" | "out";
@@ -102,10 +103,10 @@ export function LedgerClient({ initialMonth, initialYear, initialLedger }: Ledge
             <SkeletonTable rows={6} />
           </div>
         ) : (
-          <>
-            <LedgerDesktopTable items={ledger.items} />
-            <LedgerMobileList items={ledger.items} />
-          </>
+          <TierSwitch
+            phone={<LedgerMobileList items={ledger.items} />}
+            desktop={<LedgerDesktopTable items={ledger.items} />}
+          />
         )}
       </section>
 

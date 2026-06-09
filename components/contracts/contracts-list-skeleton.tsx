@@ -60,6 +60,8 @@ export function ContractsListSkeleton() {
         <Skeleton className="hidden h-10 w-36 rounded-md md:block" />
       </div>
 
+      {/* Skeleton dùng CSS toggle (KHÔNG TierSwitch): phải paint đúng tier ngay frame đầu / SSR,
+          trước hydrate — TierSwitch trả null tới khi mount → flash skeleton nửa vời trên tablet. */}
       <div className="md:hidden flex flex-nowrap items-center gap-2 overflow-hidden">
         {Array.from({ length: 4 }).map((_, index) => (
           <Skeleton key={index} className="h-9 w-24 shrink-0 rounded-full" />

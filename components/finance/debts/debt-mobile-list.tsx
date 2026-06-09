@@ -15,7 +15,7 @@ interface DebtMobileListProps {
 
 export function DebtMobileList({ items, bankInfo, busyId, onMarkPaid, onViewHistory, onDelete }: DebtMobileListProps) {
     return (
-        <div className="space-y-3 lg:hidden pb-32">
+        <div className="space-y-3 pb-32">
             {items.length === 0 ? (
                 <div className="card-base p-5 text-center text-text-muted">
                     Chưa có công nợ.

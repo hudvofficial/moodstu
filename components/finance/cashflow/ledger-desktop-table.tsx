@@ -10,7 +10,7 @@ interface LedgerDesktopTableProps {
 
 export function LedgerDesktopTable({ items }: LedgerDesktopTableProps) {
   return (
-    <TableWrapper containerClassName="hidden lg:block">
+    <TableWrapper>
       <THead>
         <tr>
           <TH>Ngày</TH>

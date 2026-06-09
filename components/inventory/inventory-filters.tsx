@@ -4,6 +4,7 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { INVENTORY_CATEGORY_MAP } from "@/types/inventory-constants";
 import type { InventoryStats } from "@/types/inventory";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -56,8 +57,9 @@ export function InventoryFilters({
   });
 
   return (
-    <>
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={status}
@@ -79,9 +81,10 @@ export function InventoryFilters({
           placeholder="Sắp xếp"
           options={SORT_OPTIONS}
         />
-      </div>
-
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <TabsFilter
           tabs={tabsWithCounts}
           activeTab={status}
@@ -103,7 +106,8 @@ export function InventoryFilters({
             options={SORT_OPTIONS}
           />
         </div>
-      </div>
-    </>
+        </div>
+      }
+    />
   );
 }

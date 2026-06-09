@@ -17,6 +17,7 @@ import { cacheKeys, useSWR } from "@/lib/swr";
 import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/types/action-result";
 import type { ContractProfitRow, PaginatedResult } from "@/types/finance-dashboard";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface ProfitReportTableProps {
   initialData?: PaginatedResult<ContractProfitRow>;
@@ -82,7 +83,7 @@ function ProfitDesktopTable({
   onSelect: (contractId: string) => void;
 }) {
   return (
-    <TableWrapper containerClassName="hidden lg:block">
+    <TableWrapper>
       <THead>
         <TR>
           <TH>Hợp đồng</TH>
@@ -167,7 +168,7 @@ function ProfitMobileList({
   onSelect: (contractId: string) => void;
 }) {
   return (
-    <div className="space-y-3 lg:hidden">
+    <div className="space-y-3">
       {items.length === 0 ? (
         <div className="card-base p-5 text-center text-text-muted">Chưa có hợp đồng nào khớp bộ lọc hiện tại.</div>
       ) : (
@@ -334,10 +335,10 @@ export function ProfitReportTable({
             <SkeletonTable rows={6} />
           </div>
         ) : (
-          <>
-            <ProfitDesktopTable items={data.items} onSelect={setSelectedContractId} />
-            <ProfitMobileList items={data.items} onSelect={setSelectedContractId} />
-          </>
+          <TierSwitch
+            phone={<ProfitMobileList items={data.items} onSelect={setSelectedContractId} />}
+            desktop={<ProfitDesktopTable items={data.items} onSelect={setSelectedContractId} />}
+          />
         )}
 
         <div className="card-base flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">

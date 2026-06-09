@@ -18,6 +18,7 @@ import { ExpenseDetailModal } from "@/components/finance/expenses/expense-detail
 import { ExpenseFormModal } from "@/components/finance/expenses/expense-form-modal";
 import { ExpenseMobileList } from "@/components/finance/expenses/expense-mobile-list";
 import { ExpenseStatsBar } from "@/components/finance/expenses/expense-stats-bar";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { FAB } from "@/components/ui/fab";
@@ -217,26 +218,30 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, initial
             <SkeletonTable rows={6} />
           </div>
         ) : (
-          <>
-            <ExpenseDesktopTable
-              items={expenses.items}
-              busyId={busyId}
-              onApprove={handleApprove}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onView={handleView}
-              onPrint={handlePrint}
-            />
-            <ExpenseMobileList
-              items={expenses.items}
-              busyId={busyId}
-              onApprove={handleApprove}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onView={handleView}
-              onPrint={handlePrint}
-            />
-          </>
+          <TierSwitch
+            phone={
+              <ExpenseMobileList
+                items={expenses.items}
+                busyId={busyId}
+                onApprove={handleApprove}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onView={handleView}
+                onPrint={handlePrint}
+              />
+            }
+            desktop={
+              <ExpenseDesktopTable
+                items={expenses.items}
+                busyId={busyId}
+                onApprove={handleApprove}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onView={handleView}
+                onPrint={handlePrint}
+              />
+            }
+          />
         )}
       </section>
 

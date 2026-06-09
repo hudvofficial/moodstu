@@ -17,6 +17,7 @@ import { SelectPill } from "@/components/ui/select/SelectPill";
 import { DRESS_CATEGORY_MAP } from "@/types/dress-constants";
 import { DRESS_CATEGORIES } from "@/lib/validations/dress.schema";
 import type { DressStats } from "@/types/dress";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 // ── Filter options (static, hoisted) ──────────────────
 
@@ -67,9 +68,9 @@ export default function DressesFilters({ stats }: DressesFiltersProps) {
   ];
 
   return (
-    <>
-      {/* ── MOBILE: Status pills + separator + dropdowns (scroll ngang) ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -91,10 +92,10 @@ export default function DressesFilters({ stats }: DressesFiltersProps) {
           placeholder="Mới nhất"
           defaultValue="newest"
         />
-      </div>
-
-      {/* ── DESKTOP: Tabs left + Dropdowns right (justify-between) ── */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -116,7 +117,8 @@ export default function DressesFilters({ stats }: DressesFiltersProps) {
             defaultValue="newest"
           />
         </div>
-      </div>
-    </>
+        </div>
+      }
+    />
   );
 }

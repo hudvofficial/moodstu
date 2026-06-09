@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useTransition } from "react";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { Button } from "@/components/ui/button";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 // ═══════════════════════════════════════════
 // CustomerFilters — Gold Standard (No inline search)
@@ -61,9 +62,9 @@ export default function CustomerFilters() {
   };
 
   return (
-    <>
-      {/* Mobile: horizontal scroll pills */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide py-1">
         <SelectPill
           options={sourceOptions}
           value={activeSource}
@@ -88,10 +89,10 @@ export default function CustomerFilters() {
             Xóa
           </Button>
         )}
-      </div>
-
-      {/* Desktop: right-aligned filter pills */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <div /> {/* Empty left — filters right-aligned */}
         <div className="flex items-center gap-2">
           <SelectPill
@@ -121,6 +122,7 @@ export default function CustomerFilters() {
           )}
         </div>
       </div>
-    </>
+      }
+    />
   );
 }

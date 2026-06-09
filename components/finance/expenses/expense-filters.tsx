@@ -6,6 +6,7 @@
  */
 
 import { TabsFilter } from "@/components/ui/tabs-filter";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import type { ExpenseStats } from "@/app/actions/finance-operations-queries";
 
 // ─── CONSTANTS ──────────────────────────────────────
@@ -34,25 +35,13 @@ export function ExpenseFilters({ activeApproval, onApprovalChange, stats }: Expe
   });
 
   return (
-    <>
-      {/* ── MOBILE: pills scroll ngang ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={EXPENSE_APPROVAL_TABS}
-          activeTab={activeApproval}
-          onChange={onApprovalChange}
-          variant="pills"
-        />
-      </div>
-
-      {/* ── DESKTOP: segmented control ── */}
-      <div className="hidden lg:block">
-        <TabsFilter
-          tabs={tabsWithCounts}
-          activeTab={activeApproval}
-          onChange={onApprovalChange}
-        />
-      </div>
-    </>
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+          <TabsFilter tabs={EXPENSE_APPROVAL_TABS} activeTab={activeApproval} onChange={onApprovalChange} variant="pills" />
+        </div>
+      }
+      desktop={<TabsFilter tabs={tabsWithCounts} activeTab={activeApproval} onChange={onApprovalChange} />}
+    />
   );
 }

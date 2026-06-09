@@ -24,7 +24,7 @@ export function getDebtBadge(item: DebtListItem): { variant: BadgeVariant; label
 
 export function DebtDesktopTable({ items, bankInfo, busyId, onMarkPaid, onViewHistory, onDelete }: DebtDesktopTableProps) {
     return (
-        <div className="hidden lg:block">
+        <div>
             <TableWrapper>
                 <THead>
                     <TR>

@@ -5,6 +5,7 @@ import { useCallback, useTransition } from "react";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { DEPARTMENT_OPTIONS, ROLE_LABELS } from "@/types/employee-constants";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 // ═══════════════════════════════════════════
 // EmployeeFilters — Gold Standard layout
@@ -69,9 +70,9 @@ export default function EmployeeFilters({ stats }: Props) {
   ];
 
   return (
-    <>
-      {/* ── MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -101,10 +102,10 @@ export default function EmployeeFilters({ stats }: Props) {
           placeholder="Mới nhất"
           defaultValue="newest"
         />
-      </div>
-
-      {/* ── DESKTOP: Tabs left + Dropdowns right ── */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <TabsFilter
           tabs={STATUS_TABS}
           activeTab={currentStatus}
@@ -133,7 +134,8 @@ export default function EmployeeFilters({ stats }: Props) {
             defaultValue="newest"
           />
         </div>
-      </div>
-    </>
+        </div>
+      }
+    />
   );
 }

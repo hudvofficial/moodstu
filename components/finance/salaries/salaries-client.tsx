@@ -23,6 +23,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { FAB } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import { useFinanceFilters } from "@/hooks/use-finance-filters";
@@ -407,24 +408,30 @@ export function SalariesClient({
               </div>
             ) : (
               <>
-                <div className="card-base hidden border-0 bg-transparent shadow-none lg:block">
-                  <SalaryDesktopTable
-                    items={filteredItems}
-                    onView={setViewing}
-                    onAdjust={setAdjusting}
-                    onPay={handlePay}
-                    onPrint={handlePrint}
-                    onDelete={handleDelete}
-                  />
-                </div>
-                <SalaryMobileList
-                  items={filteredItems}
-                  onView={setViewing}
-                  onAdjust={setAdjusting}
-                  onPay={handlePay}
-                  onPrint={handlePrint}
-                  onDelete={handleDelete}
-                  busyId={deletingId}
+                <TierSwitch
+                  phone={
+                    <SalaryMobileList
+                      items={filteredItems}
+                      onView={setViewing}
+                      onAdjust={setAdjusting}
+                      onPay={handlePay}
+                      onPrint={handlePrint}
+                      onDelete={handleDelete}
+                      busyId={deletingId}
+                    />
+                  }
+                  desktop={
+                    <div className="card-base border-0 bg-transparent shadow-none">
+                      <SalaryDesktopTable
+                        items={filteredItems}
+                        onView={setViewing}
+                        onAdjust={setAdjusting}
+                        onPay={handlePay}
+                        onPrint={handlePrint}
+                        onDelete={handleDelete}
+                      />
+                    </div>
+                  }
                 />
                 {shouldShowResultMeta ? (
                   <p className="text-center text-caption text-text-muted">

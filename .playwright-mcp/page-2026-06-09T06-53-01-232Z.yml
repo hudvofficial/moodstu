@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - img "Mood Studio" [ref=e4]
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - banner [ref=e9]:
+        - img "Mood Studio" [ref=e13]
+        - generic [ref=e14]:
+          - heading "Mood Studio" [level=1] [ref=e15]
+          - paragraph [ref=e16]: Hệ thống Quản lý V2
+      - generic [ref=e17]:
+        - heading "Chào mừng trở lại" [level=2] [ref=e18]
+        - paragraph [ref=e19]: Vui lòng đăng nhập để bắt đầu công việc
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e23]: Tài khoản
+            - generic [ref=e24]:
+              - textbox "Tên đăng nhập hoặc Email" [ref=e26]
+              - img [ref=e27]
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - generic [ref=e32]: Mật khẩu
+              - link "Quên mật khẩu?" [ref=e33] [cursor=pointer]:
+                - /url: /forgot-password
+            - generic [ref=e34]:
+              - textbox "••••••••" [ref=e36]
+              - img [ref=e37]
+              - button [ref=e40]:
+                - img [ref=e41]
+        - generic [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]:
+            - checkbox "Ghi nhớ đăng nhập" [checked] [ref=e47]
+            - img
+          - generic [ref=e48]: Ghi nhớ đăng nhập
+        - button "Đăng nhập" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]: Đăng nhập
+        - generic [ref=e55]: Hoặc
+        - button "Đăng nhập bằng Google" [ref=e56] [cursor=pointer]:
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - text: Đăng nhập bằng Google
+    - contentinfo [ref=e64]:
+      - paragraph [ref=e65]:
+        - text: Bạn chưa có quyền truy cập?
+        - link "Liên hệ Quản trị viên" [ref=e66] [cursor=pointer]:
+          - /url: https://zalo.me/0976317031
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e76] [cursor=pointer]:
+    - img [ref=e77]
+  - alert [ref=e80]
+  - generic [ref=e81]:
+    - img [ref=e83]
+    - button "Open Tanstack query devtools" [ref=e131] [cursor=pointer]:
+      - img [ref=e132]

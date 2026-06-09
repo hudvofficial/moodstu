@@ -40,6 +40,7 @@ import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
 import type { ContractListItem } from "@/components/contracts/contract-drawer";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
@@ -309,54 +310,57 @@ function ContractsListInner({
           wrapperClassName="md:hidden"
         />
 
-        {/* ── PHONE (<768): Status pills + Dropdowns (1 hàng cuộn ngang) ── */}
-        <div className="md:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-          <TabsFilter
-            tabs={STATUS_TABS}
-            activeTab={filters.status}
-            onChange={setStatus}
-            variant="pills"
-          />
-          {/* Separator */}
-          <div className="h-5 border-l border-border shrink-0" />
-          <SelectPill
-            value={filters.service}
-            onChange={setService}
-            defaultValue="all"
-            placeholder="Dịch vụ"
-            options={MOBILE_SERVICE_OPTIONS}
-          />
-          <SelectPill
-            value={filters.sort}
-            onChange={setSort}
-            defaultValue="newest"
-            placeholder="Sắp xếp"
-            options={MOBILE_SORT_OPTIONS}
-          />
-        </div>
-
-        {/* ── TABLET+DESKTOP (≥768): Tabs + Dropdowns ── */}
-        <div className="hidden md:flex md:items-center md:justify-between gap-3">
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <TabsFilter
-              tabs={tabsWithCounts}
-              activeTab={filters.status}
-              onChange={setStatus}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <ContractsDropdownFilters
-              time={filters.time}
-              service={filters.service}
-              sort={filters.sort}
-              onTimeChange={setTime}
-              onServiceChange={setService}
-              onSortChange={setSort}
-              onToggleAdvanced={toggleAdvanced}
-              isAdvancedOpen={filters.advanced}
-            />
-          </div>
-        </div>
+        {/* ── Filter bar: phone pills vs tablet+desktop tabs ── */}
+        <TierSwitch
+          phone={
+            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+              <TabsFilter
+                tabs={STATUS_TABS}
+                activeTab={filters.status}
+                onChange={setStatus}
+                variant="pills"
+              />
+              <div className="h-5 border-l border-border shrink-0" />
+              <SelectPill
+                value={filters.service}
+                onChange={setService}
+                defaultValue="all"
+                placeholder="Dịch vụ"
+                options={MOBILE_SERVICE_OPTIONS}
+              />
+              <SelectPill
+                value={filters.sort}
+                onChange={setSort}
+                defaultValue="newest"
+                placeholder="Sắp xếp"
+                options={MOBILE_SORT_OPTIONS}
+              />
+            </div>
+          }
+          desktop={
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <TabsFilter
+                  tabs={tabsWithCounts}
+                  activeTab={filters.status}
+                  onChange={setStatus}
+                />
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <ContractsDropdownFilters
+                  time={filters.time}
+                  service={filters.service}
+                  sort={filters.sort}
+                  onTimeChange={setTime}
+                  onServiceChange={setService}
+                  onSortChange={setSort}
+                  onToggleAdvanced={toggleAdvanced}
+                  isAdvancedOpen={filters.advanced}
+                />
+              </div>
+            </div>
+          }
+        />
 
         {/* ── Advanced Filters Panel ── */}
         {filters.advanced && (

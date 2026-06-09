@@ -28,6 +28,7 @@ import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import { invalidateFinanceAfterWrite } from "@/lib/cache-invalidation";
 import { revalidateContractCaches } from "@/lib/hooks/use-contract-queries";
 import { revalidateInventory } from "@/lib/hooks/use-inventory";
@@ -266,10 +267,10 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, initial
             <SkeletonTable rows={6} />
           </div>
         ) : (
-          <>
-            <ReceiptDesktopTable items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
-            <ReceiptMobileList items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />
-          </>
+          <TierSwitch
+            phone={<ReceiptMobileList items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />}
+            desktop={<ReceiptDesktopTable items={receipts.items} bankInfo={resolvedBankInfo} deletingId={deletingId} onDelete={handleDelete} onEdit={handleEdit} />}
+          />
         )}
       </section>
 

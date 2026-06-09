@@ -9,6 +9,7 @@ import { SelectPill } from "@/components/ui/select/SelectPill";
 import { Pagination } from "@/components/ui/pagination";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ScrollText, Clock, User } from "lucide-react";
+import { TierSwitch } from "@/components/ui/tier-switch";
 import type { BadgeVariant } from "@/components/ui/badge";
 
 /* ═══════════════════════════════════════════
@@ -137,112 +138,109 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
         />
       </div>
 
-      {/* ── Desktop Table (hidden on mobile) ── */}
-      <div className="hidden lg:block">
-        <TableWrapper>
-          <THead>
-            <tr>
-              <TH>Thời gian</TH>
-              <TH>Người thực hiện</TH>
-              <TH>Hành động</TH>
-              <TH>Bảng</TH>
-              <TH>Mô tả</TH>
-              <TH>Loại</TH>
-              <TH>Mức độ</TH>
-            </tr>
-          </THead>
-          <TBody>
+      <TierSwitch
+        phone={
+          <div className="space-y-3">
             {logs.length === 0 ? (
-              <TR>
-                <td colSpan={7} className="px-4 text-center py-12 text-text-muted">
-                  Chưa có nhật ký nào
-                </td>
-              </TR>
+              <div className="card-base py-12 text-center text-text-muted">
+                Chưa có nhật ký nào
+              </div>
             ) : (
               logs.map((log) => (
-                <TR key={log.id}>
-                  <TD className="text-text-secondary text-caption whitespace-nowrap">
-                    <span className="flex items-center gap-1.5">
+                <div key={log.id} className="card-base p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-text-secondary text-caption">
                       <Clock className="w-3.5 h-3.5" />
                       {formatLogTime(log.created_at)}
                     </span>
-                  </TD>
-                  <TD>
-                    <span className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-text-muted shrink-0" />
-                      <span className="text-body-sm truncate max-w-35">
-                        {getEmployeeName(log.employee)}
-                      </span>
+                    <div className="flex items-center gap-1.5">
+                      {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
+                      {log.severity && (
+                        <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
+                          {log.severity}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-text-muted shrink-0" />
+                    <span className="text-body-sm text-text-primary">
+                      {getEmployeeName(log.employee)}
                     </span>
-                  </TD>
-                  <TD className="font-medium text-text-primary">{log.action}</TD>
-                  <TD className="text-text-secondary">{log.table_name || "—"}</TD>
-                  <TD className="text-text-secondary text-caption max-w-50 truncate">
-                    {log.description || "—"}
-                  </TD>
-                  <TD>
-                    {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
-                  </TD>
-                  <TD>
-                    {log.severity && (
-                      <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
-                        {log.severity}
-                      </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-text-primary">{log.action}</span>
+                    {log.table_name && (
+                      <span className="text-text-secondary text-caption">→ {log.table_name}</span>
                     )}
-                  </TD>
-                </TR>
-              ))
-            )}
-          </TBody>
-        </TableWrapper>
-      </div>
-
-      {/* ── Mobile Card List (hidden on desktop) ── */}
-      <div className="lg:hidden space-y-3">
-        {logs.length === 0 ? (
-          <div className="card-base py-12 text-center text-text-muted">
-            Chưa có nhật ký nào
-          </div>
-        ) : (
-          logs.map((log) => (
-            <div key={log.id} className="card-base p-4 space-y-2">
-              {/* Row 1: Time + Badges */}
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-text-secondary text-caption">
-                  <Clock className="w-3.5 h-3.5" />
-                  {formatLogTime(log.created_at)}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
-                  {log.severity && (
-                    <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
-                      {log.severity}
-                    </Badge>
+                  </div>
+                  {log.description && (
+                    <p className="text-text-secondary text-caption line-clamp-2">{log.description}</p>
                   )}
                 </div>
-              </div>
-              {/* Row 2: Employee */}
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-text-muted shrink-0" />
-                <span className="text-body-sm text-text-primary">
-                  {getEmployeeName(log.employee)}
-                </span>
-              </div>
-              {/* Row 3: Action + Table */}
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-text-primary">{log.action}</span>
-                {log.table_name && (
-                  <span className="text-text-secondary text-caption">→ {log.table_name}</span>
-                )}
-              </div>
-              {/* Row 4: Description (if any) */}
-              {log.description && (
-                <p className="text-text-secondary text-caption line-clamp-2">{log.description}</p>
+              ))
+            )}
+          </div>
+        }
+        desktop={
+          <TableWrapper>
+            <THead>
+              <tr>
+                <TH>Thời gian</TH>
+                <TH>Người thực hiện</TH>
+                <TH>Hành động</TH>
+                <TH>Bảng</TH>
+                <TH>Mô tả</TH>
+                <TH>Loại</TH>
+                <TH>Mức độ</TH>
+              </tr>
+            </THead>
+            <TBody>
+              {logs.length === 0 ? (
+                <TR>
+                  <td colSpan={7} className="px-4 text-center py-12 text-text-muted">
+                    Chưa có nhật ký nào
+                  </td>
+                </TR>
+              ) : (
+                logs.map((log) => (
+                  <TR key={log.id}>
+                    <TD className="text-text-secondary text-caption whitespace-nowrap">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatLogTime(log.created_at)}
+                      </span>
+                    </TD>
+                    <TD>
+                      <span className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-text-muted shrink-0" />
+                        <span className="text-body-sm truncate max-w-35">
+                          {getEmployeeName(log.employee)}
+                        </span>
+                      </span>
+                    </TD>
+                    <TD className="font-medium text-text-primary">{log.action}</TD>
+                    <TD className="text-text-secondary">{log.table_name || "—"}</TD>
+                    <TD className="text-text-secondary text-caption max-w-50 truncate">
+                      {log.description || "—"}
+                    </TD>
+                    <TD>
+                      {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
+                    </TD>
+                    <TD>
+                      {log.severity && (
+                        <Badge variant={SEVERITY_VARIANT[log.severity] || "neutral"} dot>
+                          {log.severity}
+                        </Badge>
+                      )}
+                    </TD>
+                  </TR>
+                ))
               )}
-            </div>
-          ))
-        )}
-      </div>
+            </TBody>
+          </TableWrapper>
+        }
+      />
 
       {/* ── Pagination ── */}
       <Pagination

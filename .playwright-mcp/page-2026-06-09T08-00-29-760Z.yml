@@ -1,0 +1,69 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - link "Mood Studio" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard
+          - img "Mood Studio" [ref=e10]
+        - heading "Tài chính" [level=1] [ref=e12]
+        - generic [ref=e13]:
+          - button "Tìm kiếm" [ref=e15] [cursor=pointer]:
+            - img [ref=e16]
+          - button "Thông báo" [ref=e21] [cursor=pointer]:
+            - img [ref=e22]
+    - main [ref=e25]:
+      - generic [ref=e28]:
+        - navigation [ref=e29]:
+          - link "Tài chính" [ref=e30] [cursor=pointer]:
+            - /url: /finance
+          - img [ref=e31]
+          - link "Quản lý Vendor" [ref=e33] [cursor=pointer]:
+            - /url: /finance/vendor-debts
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - img [ref=e40]
+            - generic [ref=e45]: "4"
+            - generic [ref=e46]: Vendors có nợ
+          - generic [ref=e48]:
+            - img [ref=e50]
+            - generic [ref=e52]: 4.300.000 VND
+            - generic [ref=e53]: Tổng công nợ
+          - generic [ref=e55]:
+            - img [ref=e57]
+            - generic [ref=e59]: 0 VND
+            - generic [ref=e60]: Tổng đã thanh toán
+          - generic [ref=e62]:
+            - img [ref=e64]
+            - generic [ref=e66]: "4"
+            - generic [ref=e67]: Vendors quá hạn
+        - button "Thanh toán" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+    - navigation [ref=e73]:
+      - generic [ref=e74]:
+        - link "Home" [ref=e75] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e76]
+          - generic [ref=e79]: Home
+        - link "Hợp đồng" [ref=e80] [cursor=pointer]:
+          - /url: /contracts
+          - img [ref=e81]
+          - generic [ref=e84]: Hợp đồng
+        - link "Lịch" [ref=e85] [cursor=pointer]:
+          - /url: /calendar
+          - img [ref=e86]
+          - generic [ref=e88]: Lịch
+        - link "CRM" [ref=e89] [cursor=pointer]:
+          - /url: /crm/leads
+          - img [ref=e90]
+          - generic [ref=e95]: CRM
+        - button "Thêm" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e101]: Thêm
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e107] [cursor=pointer]:
+    - img [ref=e108]
+  - alert [ref=e111]
+  - generic [ref=e112]:
+    - img [ref=e114]
+    - button "Open Tanstack query devtools" [ref=e162] [cursor=pointer]:
+      - img [ref=e163]

@@ -5,6 +5,7 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Switch } from "@/components/ui/switch";
 import { Layers } from "lucide-react";
 import type { LabOption, PrintingStats } from "@/types/printing";
+import { TierSwitch } from "@/components/ui/tier-switch";
 
 interface Props {
   stats: PrintingStats;
@@ -62,9 +63,9 @@ export default function PrintingFilters({
   ];
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* MOBILE: Status pills + Dropdowns (1 hàng cuộn ngang) */}
-      <div className="lg:hidden flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+    <TierSwitch
+      phone={
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
         <TabsFilter
           tabs={statusTabs}
           activeTab={status}
@@ -103,10 +104,10 @@ export default function PrintingFilters({
             </div>
           </>
         )}
-      </div>
-
-      {/* DESKTOP: Tabs + Dropdowns (no inline search — uses header search) */}
-      <div className="hidden lg:flex lg:items-center lg:justify-between gap-3">
+        </div>
+      }
+      desktop={
+        <div className="flex items-center justify-between gap-3">
         <TabsFilter
           tabs={statusTabs}
           activeTab={status}
@@ -147,7 +148,8 @@ export default function PrintingFilters({
           )}
         </div>
       </div>
-    </div>
+      }
+    />
   );
 }
 

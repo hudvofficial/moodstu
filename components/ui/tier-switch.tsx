@@ -1,0 +1,48 @@
+"use client";
+
+import { type ReactNode, useState, useEffect } from "react";
+import { useDeviceTier } from "@/hooks/use-mobile";
+
+interface TierSwitchProps {
+  /** Content for phone (<768px) */
+  phone: ReactNode;
+  /** Content for tablet (768-1023px). Falls back to `desktop` if omitted. */
+  tablet?: ReactNode;
+  /** Content for desktop (≥1024px) */
+  desktop: ReactNode;
+  /**
+   * SSR / pre-mount fallback. Shown until client JS determines the tier.
+   * Default: `null` (renders nothing — invisible for auth-gated SaaS pages).
+   * Pass a skeleton if above-the-fold content needs instant SSR paint.
+   */
+  fallback?: ReactNode;
+}
+
+/**
+ * Render exactly ONE tier based on viewport width. Zero DOM waste after mount.
+ *
+ * SSR-safe: renders `fallback` (default null) until mount, then the correct tier.
+ * No wrapper divs — children go directly into parent layout (flex/grid safe).
+ *
+ * ```tsx
+ * <TierSwitch
+ *   phone={<MobileCards data={data} />}
+ *   desktop={<DesktopTable data={data} />}
+ * />
+ * // tablet omitted → falls back to desktop (table shows from 768px+)
+ * ```
+ */
+export function TierSwitch({ phone, tablet, desktop, fallback = null }: TierSwitchProps) {
+  const tier = useDeviceTier();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return <>{fallback}</>;
+
+  switch (tier) {
+    case "phone": return <>{phone}</>;
+    case "tablet": return <>{tablet ?? desktop}</>;
+    case "desktop": return <>{desktop}</>;
+  }
+}
