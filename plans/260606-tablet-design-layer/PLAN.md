@@ -1,6 +1,6 @@
 # Kế hoạch: Tablet Design Layer — 3 breakpoint (phone / tablet / desktop)
 
-> **Trạng thái:** Phân tích — chưa code. Chờ user chốt breakpoint cutoffs + scope phase 1.
+> **Trạng thái:** Phase 0+1 DONE (deployed). Phase 2 chờ feedback. Phase 3 DỪNG.
 > **Ngày:** 2026-06-06
 > **Bối cảnh:** Project hiện là layout **nhị phân** `<1024px = phone` / `≥1024px = desktop` (key bằng `lg:` — 526 lần/211 file). Dải iPad 640–1023px bị coi là điện thoại → list/table hiện 1 cột hẹp, trống 2 bên.
 > **Constraint cứng:** Đã RELEASE. Mỗi phase = 1 deploy reversible <2 phút. Verify chrome-devtools @768px + @1023px TRƯỚC prod. Không gộp module.
@@ -99,9 +99,12 @@ Chia **sub-phase per module-group** (KHÔNG gộp):
 
 ---
 
-## 6. Trạng thái
-- [ ] Phase 0 — Foundation. Chờ chốt cutoffs.
-- [ ] Phase 1 — Tables (chip `task_e4b9c456`).
-- [ ] Phase 2 — Detail/2-col.
-- [ ] Phase 3 — Chrome (tùy chọn).
+## 6. Trạng thái (updated 2026-06-09)
+- [x] Phase 0 — Foundation. `useDeviceTier()` + `breakpoints.ts` (commit `2d7026b`).
+- [x] Phase 0.5 — `<TierSwitch>` primitive (JS component, render 1 tier, `tablet ?? desktop` fallback).
+- [x] Phase 1 — Data tables/cards + filters. **56 files, ALL modules.** TierSwitch thay CSS toggle. Verified @375/768/1024px Playwright. Deployed.
+- [ ] Phase 2 — Detail/2-col. Chờ iPad user feedback thực tế trước khi invest.
+- [x] Phase 3 — Chrome. **QUYẾT ĐỊNH DỪNG** — bottom-nav ở tablet hoạt động fine, risk cao, value thấp.
 - [x] Modal + Calendar tablet — DONE (`652fe95`, `ea31640`, prod `51ucwhv7w`).
+
+**Ghi chú:** Phase 1 ban đầu plan dùng CSS (`hidden md:block` / `md:hidden`), thực tế chuyển sang `<TierSwitch>` JS component vì CSS toggle gây bug sync giữa files. Kết quả tốt hơn plan: render đúng 1 tier, không DOM thừa, tablet users thấy desktop table.

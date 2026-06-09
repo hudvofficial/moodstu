@@ -4,7 +4,7 @@
 > **Ngày:** 2026-06-03
 > **Bối cảnh:** Mọi thao tác (chuyển menu, thêm/sửa/xóa) đều "xoay vòng" rồi đợi. `mcoffe` (`C:\Users\Admin\Desktop\Ai\mcoffe`) cùng stack nhưng mượt như native.
 
-## TIẾN ĐỘ (cập nhật 2026-06-04)
+## TIẾN ĐỘ (cập nhật 2026-06-09)
 - ✅ **Phase 0 (Task 0.1)** + **Phase 1 (1.1 blurhash, 1.2 update/delete, 1.3 create)** — code xong, tsc 0 lỗi, **verify runtime chrome-devtools PASS** (create/update/delete mượt, 0 console error, server action 200).
 - ⚙️ **Điều chỉnh khi thực thi:** (a) blurhash backfill dùng **`after()`** (đảm bảo chạy trên serverless) thay vì `.catch()` trần như plan; (b) **DELETE = "đóng + revalidate"** (KHÔNG optimistic-remove) vì `delete_dress_atomic` có thể RETIRE → xem LESSONS A5; (c) **Task 1.4 BỎ** (push back) — sau optimistic, `revalidatePath` chạy nền vô hại + force-dynamic vô hiệu hóa lợi ích nav; bỏ `/dresses/rentals` revalidate sẽ vi phạm nguyên tắc realtime.
 - ✅ **Phase 2 — Task 2.1 (CRM-customers)** — verify runtime PASS (create + update optimistic). Thêm primitive generic **`mutateListCache(namespace, updater)`** vì shape list mỗi module khác nhau (dress `{data,count}` vs customer `{customers,total}`) — mỗi module tự viết updater. **ĐÃ THÊM delete UI cho customer** (wire `onDelete`→drawer + ConfirmDialog + optimistic-remove qua `mutateListCache`; customer soft-delete nên remove an toàn) — verify runtime PASS (create/update/delete đều mượt).
@@ -12,6 +12,8 @@
 - ✅ **Phase 2 — Task 2.4 (Contracts)** — đã rà TOÀN BỘ (Explore agent + verify). Status/checklist/events/note-delete/task **đã optimistic sẵn**; tạo/sửa HĐ = trang riêng (Cấp 2); payment + cancel/delete = cascade/totals → **giữ đợi (đúng)**. Sửa **4 gap** "đóng modal ngay + revalidate": add note (`quick-note-modal`), add event (`add-event-modal`), reserve dress (`dress-reservation-form` — addon totals → KHÔNG patch số), create printing order (`printing-order-form`). Agent over-claim "đổi status đơn in" — thực ra ĐÃ optimistic (`printing-list-page.tsx:194`). Verify: tsc 0 + eslint không thêm lỗi; runtime chưa click-test (contract detail khó automate) → **spot-check**.
 - ✅ **Phase 2 — Task 2.6 (Finance)** — rà toàn bộ finance forms (agent). Finance **0 realtime → GIỮ revalidate**, chỉ "đóng modal ngay". Sửa **expense form** (create/update — cao tần nhất, `expense-form-modal.tsx`): đóng modal ngay + onSaved revalidate. Để đợi (đúng): payment/receipt (inventory+contract), pay-debt/pay-salary/goal-contribution/vendor-payment/monthly-close (totals/RPC/cascade). Form tần thấp khác (goal/budget/fixed-cost/salary-adj delete) = safe-close-instantly nhưng CHƯA làm (tần thấp). Verify: tsc 0, eslint sạch.
 - ⏭️ **Còn lại (giá trị thấp / đặc thù):** finance forms tần thấp · 2.3 Services/Productivity · 2.5 Leads/Calendar (dnd-kit). Cân nhắc DỪNG review/merge.
+- ✅ **Phase 3 — Navigation/toploader** — ĐÃ CÓ SẴN: `nextjs-toploader` v3.9.17 + custom `NavigationProgress` component + bottom-nav instant highlight (không spinner). Không cần thêm gì.
+- ❌ **Phase 4 — Client-direct Cấp 2** — BLOCKED. LESSONS A9: contracts tables KHÔNG có RLS → client-direct = lộ data. Cần schema migration + RLS hardening riêng. Không làm vội.
 
 ## TỔNG QUAN: 5 phase · 16 task
 
