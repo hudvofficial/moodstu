@@ -33,8 +33,8 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const prefetchOnHover = usePrefetchOnHover();
 
-  const filteredMenu = MODULES.filter((item) =>
-    ROLE_PERMISSIONS[role]?.includes(item.id)
+  const filteredMenu = MODULES.filter(
+    (item) => !item.mobileOnly && ROLE_PERMISSIONS[role]?.includes(item.id)
   );
 
   const groups = getMenuGroups();

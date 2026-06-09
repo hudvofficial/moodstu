@@ -35,6 +35,7 @@ export interface ModuleConfig {
   icon: LucideIcon;
   group: MenuGroup;
   matchPrefix?: string;
+  mobileOnly?: boolean;
 }
 
 export const MODULES: ModuleConfig[] = [
@@ -156,6 +157,7 @@ export const MODULES: ModuleConfig[] = [
     href: "/finance/salaries",
     icon: Banknote,
     group: "system",
+    mobileOnly: true,
   },
   {
     id: "goals",
@@ -165,6 +167,7 @@ export const MODULES: ModuleConfig[] = [
     href: "/finance/goals",
     icon: Target,
     group: "system",
+    mobileOnly: true,
   },
 ];
 

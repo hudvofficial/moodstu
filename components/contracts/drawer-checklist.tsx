@@ -38,11 +38,30 @@ function getCatStyle(category: string) {
 
 export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   const queryClient = useQueryClient();
-  const [items, setItems] = useState(initialItems);
+  const [pendingToggles, setPendingToggles] = useState<Map<string, boolean>>(new Map());
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
 
+  const items = useMemo(() => {
+    if (pendingToggles.size === 0) return initialItems;
+    return initialItems.map(item => {
+      const override = pendingToggles.get(item.id);
+      return override !== undefined ? { ...item, is_completed: override } : item;
+    });
+  }, [initialItems, pendingToggles]);
+
   useEffect(() => {
-    setItems(initialItems);
+    setPendingToggles(prev => {
+      if (prev.size === 0) return prev;
+      const next = new Map(prev);
+      let changed = false;
+      for (const [id, value] of prev) {
+        if (initialItems.find(i => i.id === id)?.is_completed === value) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [initialItems]);
 
   const total = items.length;
@@ -74,17 +93,10 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
 
   const handleToggle = useCallback(async (item: ChecklistItem) => {
     const nextCompleted = !item.is_completed;
-    const applyState = (isCompleted: boolean) => {
-      setItems((current) =>
-        current.map((entry) =>
-          entry.id === item.id ? { ...entry, is_completed: isCompleted } : entry,
-        ),
-      );
-    };
 
     await runOptimisticMutation({
-      apply: () => applyState(nextCompleted),
-      rollback: () => applyState(item.is_completed),
+      apply: () => setPendingToggles(prev => new Map(prev).set(item.id, nextCompleted)),
+      rollback: () => setPendingToggles(prev => { const next = new Map(prev); next.delete(item.id); return next; }),
       action: () => toggleChecklist(item.id, nextCompleted),
       onSuccess: (result) => {
         updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);

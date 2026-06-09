@@ -46,11 +46,31 @@ export default function ContractChecklistManager({
   initialChecklists: ChecklistItem[];
 }) {
   const queryClient = useQueryClient();
-  const [items, setItems] = useState(initialChecklists);
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [pendingToggles, setPendingToggles] = useState<Map<string, boolean>>(new Map());
+
+  const items = useMemo(() => {
+    if (pendingToggles.size === 0) return initialChecklists;
+    return initialChecklists.map(item => {
+      const override = pendingToggles.get(item.id);
+      return override !== undefined ? { ...item, is_completed: override } : item;
+    });
+  }, [initialChecklists, pendingToggles]);
+
+  const pendingIds = useMemo(() => new Set(pendingToggles.keys()), [pendingToggles]);
 
   useEffect(() => {
-    setItems(initialChecklists);
+    setPendingToggles(prev => {
+      if (prev.size === 0) return prev;
+      const next = new Map(prev);
+      let changed = false;
+      for (const [id, value] of prev) {
+        if (initialChecklists.find(i => i.id === id)?.is_completed === value) {
+          next.delete(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [initialChecklists]);
 
   const groupedByStage = useMemo(() => {
@@ -86,39 +106,22 @@ export default function ContractChecklistManager({
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const handleToggle = useCallback(async (item: ChecklistItem) => {
-    if (pendingIds.has(item.id)) return;
+    if (pendingToggles.has(item.id)) return;
 
     const nextCompleted = !item.is_completed;
-    const applyState = (isCompleted: boolean) => {
-      setItems((current) =>
-        current.map((entry) =>
-          entry.id === item.id ? { ...entry, is_completed: isCompleted } : entry,
-        ),
-      );
-    };
 
-    setPendingIds((current) => new Set(current).add(item.id));
-
-    try {
-      await runOptimisticMutation({
-        apply: () => applyState(nextCompleted),
-        rollback: () => applyState(item.is_completed),
-        action: () => toggleChecklist(item.id, nextCompleted),
-        onSuccess: (result) => {
-          updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);
-        },
-        onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
-        },
-      });
-    } finally {
-      setPendingIds((current) => {
-        const next = new Set(current);
-        next.delete(item.id);
-        return next;
-      });
-    }
-  }, [pendingIds, queryClient]);
+    await runOptimisticMutation({
+      apply: () => setPendingToggles(prev => new Map(prev).set(item.id, nextCompleted)),
+      rollback: () => setPendingToggles(prev => { const next = new Map(prev); next.delete(item.id); return next; }),
+      action: () => toggleChecklist(item.id, nextCompleted),
+      onSuccess: (result) => {
+        updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");
+      },
+    });
+  }, [pendingToggles, queryClient]);
 
   if (total === 0) {
     return (

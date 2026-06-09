@@ -269,6 +269,7 @@ export function TaskListPanel({
             type="button"
             onClick={() => setIsFormOpen(true)}
             className="w-full flex items-center justify-center gap-1.5 text-sm font-bold text-text-muted hover:text-primary transition-colors py-2.5 border-2 border-dashed border-border hover:border-primary/50 rounded-lg hover:bg-primary/5 outline-none focus-visible:ring-2 focus-visible:ring-primary/20 cursor-pointer"
+            data-testid="add-task-open"
           >
             <Plus size={16} />
             Thêm nhân sự

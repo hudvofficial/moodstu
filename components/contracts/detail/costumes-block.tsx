@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Shirt, CalendarDays } from "lucide-react";
+import { Shirt, CalendarDays, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { DressReservationRow } from "@/types/contract";
 import { formatDate } from "@/lib/utils";
 import StatusSelect, { RESERVATION_STATUS_OPTIONS } from "@/components/ui/status-select";
@@ -19,9 +20,10 @@ interface Props {
   reservations: DressReservationRow[];
   contractId: string;
   onStatusChange?: () => void;
+  onAdd?: () => void;
 }
 
-export default function CostumesBlock({ reservations, contractId, onStatusChange }: Props) {
+export default function CostumesBlock({ reservations, contractId, onStatusChange, onAdd }: Props) {
   const [localReservations, setLocalReservations] = useState(reservations);
 
   // Sync with parent when data refreshes (e.g., Realtime update from another user)
@@ -63,11 +65,19 @@ export default function CostumesBlock({ reservations, contractId, onStatusChange
             Trang phục
           </h3>
         </div>
-        {localReservations.length > 0 && (
-          <span className="text-caption text-text-muted">
-            {localReservations.length} bộ
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {localReservations.length > 0 && (
+            <span className="text-caption text-text-muted">
+              {localReservations.length} bộ
+            </span>
+          )}
+          {onAdd && (
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="!px-2 !py-1 text-caption font-medium text-interactive hover:bg-interactive-light">
+              <Plus size={14} className="mr-0.5" />
+              Thêm
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -77,6 +87,12 @@ export default function CostumesBlock({ reservations, contractId, onStatusChange
           <p className="text-caption text-text-muted">
             Chưa chọn trang phục
           </p>
+          {onAdd && (
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="mt-2 text-caption font-medium text-interactive hover:bg-interactive-light">
+              <Plus size={14} className="mr-1" />
+              Chọn trang phục
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">

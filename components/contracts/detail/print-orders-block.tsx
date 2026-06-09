@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Printer, Calendar } from "lucide-react";
+import { Printer, Calendar, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import type { PrintingOrder } from "@/types/contract";
 import StatusSelect, { PRINT_ORDER_STATUS_OPTIONS } from "@/components/ui/status-select";
@@ -18,9 +19,10 @@ interface Props {
   orders: PrintingOrder[];
   contractId: string;
   onStatusChange?: () => void;
+  onAdd?: () => void;
 }
 
-export default function PrintOrdersBlock({ orders, contractId, onStatusChange }: Props) {
+export default function PrintOrdersBlock({ orders, contractId, onStatusChange, onAdd }: Props) {
   const [localOrders, setLocalOrders] = useState(orders);
 
   // Sync with parent when data refreshes (e.g., Realtime update from another user)
@@ -62,11 +64,19 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange }:
             In ấn
           </h3>
         </div>
-        {localOrders.length > 0 && (
-          <span className="text-caption text-text-muted">
-            {localOrders.length} đơn
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {localOrders.length > 0 && (
+            <span className="text-caption text-text-muted">
+              {localOrders.length} đơn
+            </span>
+          )}
+          {onAdd && (
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="!px-2 !py-1 text-caption font-medium text-interactive hover:bg-interactive-light">
+              <Plus size={14} className="mr-0.5" />
+              Thêm
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -76,6 +86,12 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange }:
           <p className="text-caption text-text-muted">
             Chưa có đơn in ấn
           </p>
+          {onAdd && (
+            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="mt-2 text-caption font-medium text-interactive hover:bg-interactive-light">
+              <Plus size={14} className="mr-1" />
+              Tạo đơn in
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-2.5">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Check, Search, Plus, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Check, Search, Plus, Loader2, Camera, Heart, Layers, Baby, Users, Cake, Sparkles, HeartHandshake, GraduationCap, Video, MoreHorizontal, Flower2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -49,6 +49,21 @@ const EXPORT_OPTIONS: { value: NonNullable<ExportType>; label: string }[] = [
   { value: "xuat_thue", label: "Xuất thuê" },
 ];
 
+const SERVICE_TYPE_CHIP: Record<string, { Icon: typeof Camera; label: string }> = {
+  studio: { Icon: Camera, label: "Studio" },
+  ngay_cuoi: { Icon: Heart, label: "Cưới" },
+  combo: { Icon: Layers, label: "Combo" },
+  baby: { Icon: Baby, label: "Baby" },
+  gia_dinh: { Icon: Users, label: "Family" },
+  sinh_nhat: { Icon: Cake, label: "S.nhật" },
+  bau: { Icon: Flower2, label: "Bầu" },
+  concept: { Icon: Sparkles, label: "Concept" },
+  couple: { Icon: HeartHandshake, label: "Couple" },
+  ky_yeu: { Icon: GraduationCap, label: "Kỷ yếu" },
+  media: { Icon: Video, label: "Media" },
+  khac: { Icon: MoreHorizontal, label: "Khác" },
+};
+
 function getDefaultExportType(itemType: CatalogItemType): ExportType {
   if (itemType === "trang_phuc") return "xuat_thue";
   if (itemType === "san_pham") return "xuat_ban";
@@ -72,6 +87,7 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
   const [searchError, setSearchError] = useState("");
   const [selected, setSelected] = useState<CatalogResult[]>([]);
   const [exportType, setExportType] = useState<ExportType>(getDefaultExportType(itemType));
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   // Edit mode: single item form
   const [editQty, setEditQty] = useState(editingItem?.quantity || 1);
@@ -82,11 +98,22 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
   const debouncedQuery = useDebounce(query, 300);
   const copy = ITEM_COPY[itemType];
 
+  const availableTypes = useMemo(() => {
+    const types = new Set(results.map(r => r.service_type));
+    return Object.keys(SERVICE_TYPE_CHIP).filter(t => types.has(t));
+  }, [results]);
+
+  const filteredResults = useMemo(() => {
+    if (!filterType) return results;
+    return results.filter(r => r.service_type === filterType);
+  }, [results, filterType]);
+
   useEffect(() => {
     setQuery("");
     setResults([]);
     setSelected([]);
     setSearchError("");
+    setFilterType(null);
     setExportType(editingItem?.type === itemType ? editingItem.export_type : getDefaultExportType(itemType));
   }, [editingItem?.export_type, editingItem?.type, itemType]);
 
@@ -232,7 +259,35 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
         />
       </div>
 
-      {!isSearching && !searchError && results.length > 0 && (
+      {/* Service type filter chips */}
+      {availableTypes.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {availableTypes.map((type) => {
+            const chip = SERVICE_TYPE_CHIP[type];
+            if (!chip) return null;
+            const { Icon, label } = chip;
+            const isActive = filterType === type;
+            return (
+              <Button
+                unstyled
+                key={type}
+                type="button"
+                onClick={() => setFilterType(isActive ? null : type)}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-caption font-medium transition-all ${
+                  isActive
+                    ? "bg-interactive text-white shadow-sm"
+                    : "bg-bg-hover text-text-secondary hover:bg-bg-active hover:text-text-primary"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
+      {!isSearching && !searchError && filteredResults.length > 0 && (
         <div className="mb-2 flex items-center justify-between px-1">
           <span className="text-caption font-semibold uppercase tracking-wide text-text-muted">
             Gợi ý có sẵn
@@ -255,7 +310,7 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
         {!isSearching && searchError && (
           <p className="py-4 text-center text-body-sm text-error">{searchError}</p>
         )}
-        {!isSearching && results.map((svc) => {
+        {!isSearching && filteredResults.map((svc) => {
           const isSelected = selected.some((s) => s.id === svc.id && s.source === svc.source);
           const name = svc.item_name || svc.service_name;
           const metaParts = [
@@ -312,7 +367,7 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
             </Button>
           );
         })}
-        {!isSearching && !searchError && results.length === 0 && (
+        {!isSearching && !searchError && filteredResults.length === 0 && (
           <p className="py-4 text-center text-body-sm text-text-muted">{copy.empty}</p>
         )}
       </div>

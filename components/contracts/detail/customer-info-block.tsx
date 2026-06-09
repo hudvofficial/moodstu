@@ -66,10 +66,7 @@ export default function CustomerInfoBlock({
       {/* Customer Profile Link */}
       <Link href={`/crm/customers/${customer.id}`} className="group flex items-start gap-3 mb-4 p-2 -mx-2 rounded-lg hover:bg-bg-hover transition-colors">
         {/* Avatar */}
-        <div
-          className="w-10 h-10 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors
-                     flex items-center justify-center text-body-sm font-bold shrink-0"
-        >
+        <div className="w-10 h-10 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors flex items-center justify-center text-body-sm font-bold shrink-0">
           {initial}
         </div>
         <div className="min-w-0 flex-1">

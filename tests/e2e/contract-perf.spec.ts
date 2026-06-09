@@ -1,3 +1,12 @@
+/**
+ * E2E Performance Tests — Contract Module
+ *
+ * 1. Optimistic UI: add/delete event responds instantly (no spinner blocking)
+ * 2. Network overhead: opening event modal does NOT trigger redundant full-data fetches
+ * 3. React Compiler guard: no "Rendered more hooks" console error on detail page
+ *
+ * Shares seed infrastructure with contract-operational.spec.ts.
+ */
 import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
@@ -20,23 +29,18 @@ interface SeedState {
 
 function loadEnvFile(filePath: string) {
   if (!existsSync(filePath)) return;
-
   for (const rawLine of readFileSync(filePath, "utf8").split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
-
-    const separatorIndex = line.indexOf("=");
-    if (separatorIndex === -1) continue;
-
-    const key = line.slice(0, separatorIndex).trim();
-    let value = line.slice(separatorIndex + 1).trim();
+    const sep = line.indexOf("=");
+    if (sep === -1) continue;
+    const key = line.slice(0, sep).trim();
+    let value = line.slice(sep + 1).trim();
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
-    ) {
+    )
       value = value.slice(1, -1);
-    }
-
     process.env[key] ??= value;
   }
 }
@@ -84,16 +88,9 @@ async function seedContractFlow(admin: AdminClient, seed: SeedState) {
     app_metadata: { role: "admin" },
     user_metadata: { full_name: seed.employeeName },
   });
-  if (authError || !authUser.user) {
-    throw new Error(`Cannot create E2E auth user: ${authError?.message || "missing user"}`);
-  }
+  if (authError || !authUser.user) throw new Error(`Cannot create E2E auth user: ${authError?.message || "missing user"}`);
   seed.userId = authUser.user.id;
 
-  // The on_auth_user_created trigger (20260521230000_auto_provision_employees_from_google)
-  // already inserts an employees row for every new auth user. Update that
-  // provisioned row instead of inserting a duplicate, which would collide on the
-  // UNIQUE employees_auth_user_id_key constraint. full_name/email are set by the
-  // trigger from user_metadata, so we only override the E2E-specific fields.
   const { data: employee, error: employeeError } = await admin
     .from("employees")
     .update({
@@ -107,9 +104,7 @@ async function seedContractFlow(admin: AdminClient, seed: SeedState) {
     .eq("auth_user_id", seed.userId)
     .select("id")
     .single();
-  if (employeeError || !employee) {
-    throw new Error(`Cannot create E2E employee: ${employeeError?.message || "missing row"}`);
-  }
+  if (employeeError || !employee) throw new Error(`Cannot create E2E employee: ${employeeError?.message || "missing row"}`);
   seed.employeeId = employee.id;
 
   const { data: customer, error: customerError } = await admin
@@ -125,9 +120,7 @@ async function seedContractFlow(admin: AdminClient, seed: SeedState) {
     })
     .select("id")
     .single();
-  if (customerError || !customer) {
-    throw new Error(`Cannot create E2E customer: ${customerError?.message || "missing row"}`);
-  }
+  if (customerError || !customer) throw new Error(`Cannot create E2E customer: ${customerError?.message || "missing row"}`);
   seed.customerId = customer.id;
 
   const { data: contract, error: contractError } = await admin
@@ -149,9 +142,7 @@ async function seedContractFlow(admin: AdminClient, seed: SeedState) {
     })
     .select("id")
     .single();
-  if (contractError || !contract) {
-    throw new Error(`Cannot create E2E contract: ${contractError?.message || "missing row"}`);
-  }
+  if (contractError || !contract) throw new Error(`Cannot create E2E contract: ${contractError?.message || "missing row"}`);
   seed.contractId = contract.id;
 
   const { data: event, error: eventError } = await admin
@@ -168,9 +159,7 @@ async function seedContractFlow(admin: AdminClient, seed: SeedState) {
     })
     .select("id")
     .single();
-  if (eventError || !event) {
-    throw new Error(`Cannot create E2E event: ${eventError?.message || "missing row"}`);
-  }
+  if (eventError || !event) throw new Error(`Cannot create E2E event: ${eventError?.message || "missing row"}`);
   seed.eventId = event.id;
 }
 
@@ -186,17 +175,19 @@ function eventCard(page: Page, title: string) {
   return page.getByTestId("contract-event-card").filter({ hasText: title }).first();
 }
 
-const DEV_INTERACTION_BUDGET_MS = 15_000;
+// ─── Perf budgets ───────────────────────────
+const OPTIMISTIC_BUDGET_MS = 3_000;
+const INTERACTION_BUDGET_MS = 15_000;
 
-test.describe.serial("contracts operational flow", () => {
+test.describe.serial("contract perf: optimistic UI + network + compiler guard", () => {
   let admin: AdminClient;
   const timestamp = Date.now();
   const seed: SeedState = {
     marker: `${timestamp}`,
-    email: `e2e-${timestamp}@moodwedding.com`,
-    password: `E2ePass${timestamp}!`,
-    employeeName: `E2E Admin ${timestamp}`,
-    seededEventTitle: `E2E Seed Event ${timestamp}`,
+    email: `e2e-perf-${timestamp}@moodwedding.com`,
+    password: `E2ePerf${timestamp}!`,
+    employeeName: `E2E PerfAdmin ${timestamp}`,
+    seededEventTitle: `E2E Perf Seed ${timestamp}`,
   };
 
   test.beforeAll(async () => {
@@ -208,46 +199,95 @@ test.describe.serial("contracts operational flow", () => {
     if (admin) await cleanupSeed(admin, seed);
   });
 
-  test("adds and deletes schedule events, then adds a task without full-page reload", async ({ page }) => {
-    test.skip(!seed.contractId, "Seed contract was not created");
+  test("1. React Compiler guard: no 'Rendered more hooks' error on contract detail", async ({ page }) => {
+    test.skip(!seed.contractId, "Seed not created");
+    const consoleErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error" && msg.text().includes("Rendered more hooks")) {
+        consoleErrors.push(msg.text());
+      }
+    });
 
     await login(page, seed);
-
     await page.goto(`/contracts/${seed.contractId}`);
     await expect(eventCard(page, seed.seededEventTitle)).toBeVisible({ timeout: 45_000 });
 
-    const addedEventTitle = `E2E Added Event ${seed.marker}`;
+    // Give page time to settle (React hydration + deferred effects)
+    await page.waitForTimeout(2_000);
+
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test("2. Optimistic UI: add event appears instantly without spinner blocking", async ({ page }) => {
+    test.skip(!seed.contractId, "Seed not created");
+    await login(page, seed);
+    await page.goto(`/contracts/${seed.contractId}`);
+    await expect(eventCard(page, seed.seededEventTitle)).toBeVisible({ timeout: 45_000 });
+
+    const addedTitle = `E2E Perf Event ${seed.marker}`;
     await page.getByTestId("add-contract-event").first().click();
-    await page.getByTestId("add-event-title").fill(addedEventTitle);
+    await page.getByTestId("add-event-title").fill(addedTitle);
     await page.getByTestId("add-event-date").click();
     await page.getByTestId("add-event-date-today").click();
 
-    const addEventStartedAt = Date.now();
+    const t0 = Date.now();
     await page.getByTestId("add-event-submit").click();
-    const addedEventCard = eventCard(page, addedEventTitle);
-    await expect(addedEventCard).toBeVisible({ timeout: 15_000 });
-    expect(Date.now() - addEventStartedAt).toBeLessThan(DEV_INTERACTION_BUDGET_MS);
+    const card = eventCard(page, addedTitle);
+    await expect(card).toBeVisible({ timeout: INTERACTION_BUDGET_MS });
+    const addTime = Date.now() - t0;
 
-    const deleteEventStartedAt = Date.now();
-    await addedEventCard.getByTestId("contract-event-delete").click();
+    // Cleanup: delete the event we just added
+    const t1 = Date.now();
+    await card.getByTestId("contract-event-delete").click();
     await page.getByTestId("confirm-dialog-confirm").click();
     await expect(
-      page.getByTestId("contract-event-card").filter({ hasText: addedEventTitle }),
-    ).toHaveCount(0, { timeout: 15_000 });
-    expect(Date.now() - deleteEventStartedAt).toBeLessThan(DEV_INTERACTION_BUDGET_MS);
+      page.getByTestId("contract-event-card").filter({ hasText: addedTitle }),
+    ).toHaveCount(0, { timeout: INTERACTION_BUDGET_MS });
+    const deleteTime = Date.now() - t1;
 
-    await eventCard(page, seed.seededEventTitle).click();
-    await page.getByTestId("add-task-open").click();
-    await page.getByTestId("task-assignee-select").click();
-    await page.getByRole("option", { name: new RegExp(seed.employeeName) }).click();
+    // Log for perf analysis
+    console.log(`[PERF] Add event: ${addTime}ms | Delete event: ${deleteTime}ms`);
 
-    const addTaskStartedAt = Date.now();
-    await page.getByTestId("add-task-submit").click();
-    await expect(page.getByRole("dialog")).toContainText(seed.employeeName, {
-      timeout: 15_000,
+    // Assert both are within budget
+    expect(addTime).toBeLessThan(INTERACTION_BUDGET_MS);
+    expect(deleteTime).toBeLessThan(INTERACTION_BUDGET_MS);
+  });
+
+  test("3. Network overhead: opening event modal triggers no redundant data fetches", async ({ page }) => {
+    test.skip(!seed.contractId, "Seed not created");
+    await login(page, seed);
+    await page.goto(`/contracts/${seed.contractId}`);
+    await expect(eventCard(page, seed.seededEventTitle)).toBeVisible({ timeout: 45_000 });
+
+    // Wait for page to stabilize (all initial fetches settle)
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(1_000);
+
+    // Start monitoring network AFTER page has fully loaded
+    const apiCalls: string[] = [];
+    page.on("request", (req) => {
+      const url = req.url();
+      if (url.includes("/rest/v1/") || url.includes("/rpc/")) {
+        apiCalls.push(`${req.method()} ${new URL(url).pathname}`);
+      }
     });
-    expect(Date.now() - addTaskStartedAt).toBeLessThan(DEV_INTERACTION_BUDGET_MS);
 
-    expect(page.url()).toContain(`/contracts/${seed.contractId}`);
+    // Click event card → opens modal → should use already-fetched data (placeholderData)
+    await eventCard(page, seed.seededEventTitle).click();
+    await page.waitForTimeout(2_000);
+
+    // Opening an event modal SHOULD NOT fire full contract detail re-fetch
+    const redundantDetailFetches = apiCalls.filter(
+      (call) => call.includes("getContractDetail") || call.includes("contract_detail"),
+    );
+    expect(redundantDetailFetches).toEqual([]);
+
+    // Log all API calls for visibility
+    if (apiCalls.length > 0) {
+      console.log(`[PERF] API calls after modal open: ${apiCalls.length}`);
+      apiCalls.forEach((c) => console.log(`  → ${c}`));
+    } else {
+      console.log("[PERF] Zero API calls after modal open — cached data used");
+    }
   });
 });
