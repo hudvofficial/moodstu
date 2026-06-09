@@ -77,6 +77,7 @@ function getEventDateKeys(startValue: string, endValue: string | null) {
 }
 
 export function useCalendarData() {
+  "use no memo"; // Opt out of React Compiler — 19 hooks + conditional SWR keys; companion fix for CalendarWrapper Sentry error (2026-06-09)
   const [currentDate, setCurrentDateState] = useState(parseInitialDate);
   const [viewMode, setViewModeState] = useState<CalendarViewMode>(parseInitialViewMode);
   

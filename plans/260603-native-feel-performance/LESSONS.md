@@ -83,7 +83,14 @@
 - **Fix:** hàm `public.is_active_employee()` **SECURITY DEFINER STABLE** (chạy quyền owner → đọc employees bất kể grant/RLS của caller), policy `USING (public.is_active_employee())`. Chuẩn Supabase. Reusable cho mọi bảng. employees vẫn khoá (hàm bypass nội bộ, không grant thêm).
 - **Bài học verify:** RLS PHẢI verify bằng **request authenticated thật** (browser network HOẶC `SET ROLE authenticated` + `set_config('request.jwt.claim.sub',...)`), KHÔNG chỉ check policy tồn tại. 403 = grant/subquery-permission; 200+rỗng = RLS-filter; phân biệt rõ khi debug.
 
-### A13. *(chừa sẵn)*
+### A13. React Compiler + complex hooks → "Rendered more hooks" in production *(2026-06-09, Sentry)*
+- **Triệu chứng:** Sentry báo `"Rendered more hooks than during the previous render"` trên /calendar (production). Dev không reproduce.
+- **Nguyên nhân:** `reactCompiler: true` (next.config.ts) + CalendarWrapper (13 hooks + `mounted`/`isSmallScreen`/`viewMode` conditional rendering + inline `renderDesktopView()`) + useCalendarData (19 hooks + conditional SWR keys). Compiler thêm `useMemoCache` và restructure code paths → edge case nơi hook count đổi giữa renders.
+- **Audit:** đọc toàn bộ 23 files trong calendar tree — **KHÔNG** file nào có hooks violation ở source. Tất cả hooks đều ở top, trước mọi conditional return.
+- **Fix:** thêm `"use no memo"` directive vào `CalendarWrapper` + `useCalendarData` → React Compiler bỏ qua 2 hàm này, giữ hook ordering nguyên bản.
+- **Quy tắc:** component/hook **phức tạp** (>10 hooks, nhiều conditional render paths, inline function trả JSX động) + Sentry báo hooks error mà source sạch → **`"use no memo"`** để opt-out React Compiler. Kiểm tra: (1) tsc pass, (2) dev server render OK.
+
+### A14. *(chừa sẵn)*
 
 ---
 

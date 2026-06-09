@@ -34,6 +34,7 @@ export function CalendarWrapper({
   userRole = "viewer",
   currentUserId = "",
 }: CalendarWrapperProps) {
+  "use no memo"; // Opt out of React Compiler — complex conditional rendering (mounted/viewMode/isSmallScreen) triggers "Rendered more hooks" in production (Sentry 2026-06-09)
   const {
     currentDate,
     setCurrentDate,
