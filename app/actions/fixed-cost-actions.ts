@@ -74,6 +74,7 @@ export async function updateFixedCost(
     end_date?: string | null;
     description?: string | null;
   },
+  expectedUpdatedAt?: string | null,
 ) {
   return withAdmin(async (supabase) => {
     // W1: Zod partial validation
@@ -84,12 +85,17 @@ export async function updateFixedCost(
 
     const { data: oldData } = await supabase
       .from("fixed_costs")
-      .select("cost_code, cost_name, monthly_amount")
+      .select("cost_code, cost_name, monthly_amount, updated_at")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
 
     if (!oldData) throw new Error("Không tìm thấy chi phí cố định");
+
+    // Optimistic lock (2 lớp như updateReceipt): check app-level + conditional UPDATE
+    if (expectedUpdatedAt && oldData.updated_at && oldData.updated_at !== expectedUpdatedAt) {
+      throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng làm mới trang và thử lại.");
+    }
 
     // W3: Period lock
     await checkPeriodLock(supabase, new Date().toISOString().split("T")[0]);
@@ -99,12 +105,22 @@ export async function updateFixedCost(
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
+    let query = supabase
       .from("fixed_costs")
       .update(updateData)
       .eq("id", id)
       .is("deleted_at", null);
+    if (oldData.updated_at) {
+      query = query.eq("updated_at", oldData.updated_at);
+    } else {
+      query = query.is("updated_at", null);
+    }
+
+    const { data: updatedRows, error } = await query.select("id");
     if (error) throw new Error(`Lỗi cập nhật chi phí cố định: ${error.message}`);
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error("Dữ liệu đã bị thay đổi bởi người khác. Vui lòng làm mới trang và thử lại.");
+    }
 
     await writeAuditLog({
       action: "UPDATE",

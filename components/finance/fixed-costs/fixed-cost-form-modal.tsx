@@ -55,7 +55,9 @@ export function FixedCostFormModal({ isOpen, onClose, onSaved, item }: FixedCost
     setSaving(true);
     onClose();
     try {
-      const result = editId ? await updateFixedCost(editId, payload) : await createFixedCost(payload);
+      const result = editId
+        ? await updateFixedCost(editId, payload, item?.updated_at ?? null)
+        : await createFixedCost(payload);
       if (!result.success) {
         toast.error(result.error);
         return;
