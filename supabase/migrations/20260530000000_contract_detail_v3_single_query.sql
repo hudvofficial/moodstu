@@ -192,7 +192,9 @@ AS $$
         'labs', CASE
           WHEN l.id IS NOT NULL THEN jsonb_build_object(
             'id', l.id,
-            'lab_name', l.lab_name
+            -- App expects labs.name (display name sống ở cột lab_name) — cùng
+            -- bug đã fix ở v2 (20260514084500_fix_contract_detail_v2_rpc_labs).
+            'name', l.lab_name
           )
           ELSE NULL
         END

@@ -50,6 +50,22 @@ export function useRealtimeMulti(
   onBatchChangeRef.current = options.onBatchChange;
 
   useEffect(() => {
+    // Skip empty config: subscribing a channel with zero postgres_changes handlers is
+    // pointless AND harmful — Supabase dedupes channels by topic, so when configs later
+    // go []→[...] the re-created channel resolves to the already-subscribed empty one,
+    // and adding .on() after subscribe() throws "cannot add postgres_changes callbacks
+    // after subscribe()". Not subscribing until there are configs avoids that race.
+    if (configs.length === 0) {
+      setStatus("disconnected");
+      return;
+    }
+
+    // cancelled: setup() là async (await getSession) — remount nhanh (StrictMode,
+    // list↔detail) làm cleanup chạy lúc channel còn null, setup cũ vẫn tiếp tục tạo
+    // + subscribe channel; setup mới xin channel CÙNG topic nhận lại instance đã
+    // subscribe → .on() ném "cannot add postgres_changes after subscribe()".
+    // Check cancelled sau await → setup cũ dừng trước khi tạo channel mồ côi.
+    let cancelled = false;
     let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
     const supabase = createClient();
 
@@ -59,6 +75,8 @@ export function useRealtimeMulti(
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
+      if (cancelled) return;
 
       if (!session) {
         setStatus("disconnected");
@@ -121,9 +139,12 @@ export function useRealtimeMulti(
       });
     };
 
-    setup();
+    // Race còn sót (vd subscribe đúng lúc client teardown) → retry thay vì
+    // unhandledRejection làm bẩn Sentry/dev overlay.
+    setup().catch(() => setStatus("retrying"));
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       payloadQueueRef.current = [];
       if (channel) supabase.removeChannel(channel);

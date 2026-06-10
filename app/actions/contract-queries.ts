@@ -7,7 +7,7 @@
  * Logic: withAuth() -> Supabase -> Result.
  */
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth, withAuthRead } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
 import type {
@@ -171,7 +171,8 @@ async function getContractListFromRpc(
 // ─── getNextContractCode ─────────────────────
 
 export async function getNextContractCode() {
-  return withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead: read-only preview — mã thật vẫn do server sinh lúc submit.
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const year = new Date().getFullYear();
@@ -199,7 +200,9 @@ export async function getNextContractCode() {
 // ─── getContractList ──────────────────────────
 
 export async function getContractList(filters: ContractFilters) {
-  return profileAction("contracts.getContractList", () => withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead: local JWT verify thay vì network getUser() — cùng pattern
+  // getContractDetail. Middleware đã gate mọi request bằng getClaims().
+  return profileAction("contracts.getContractList", () => withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const rpcPayload = await getContractListFromRpc(supabase, filters);
@@ -361,7 +364,8 @@ export async function getContractList(filters: ContractFilters) {
 // ─── getContractStats ────────────────────────
 
 export async function getContractStats() {
-  return profileAction("contracts.getContractStats", () => withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
+  return profileAction("contracts.getContractStats", () => withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: rpcData, error: rpcError } = await supabase
@@ -471,17 +475,22 @@ export async function getContractStats() {
 // ─── getContractDetail ────────────────────────
 
 export async function getContractDetail(id: string) {
-  return profileAction("contracts.getContractDetail", () => withAuth(async (supabase, userId) => {
-    await requireContractAccess(supabase, userId);
-
+  // ⚡ withAuthRead: local JWT verify (getClaims) instead of network getUser() —
+  // cuts a redundant GoTrue round-trip (~200-800ms on mobile) from the detail load.
+  // Authorization still enforced by requireContractAccess (employee/role DB lookup).
+  return profileAction("contracts.getContractDetail", () => withAuthRead(async (supabase, userId) => {
     // ⚡ A/B test: v3 (single-query LATERAL) vs v2 (sequential)
     // Feature flag: NEXT_PUBLIC_RPC_V3=true to enable v3
     const useV3 = process.env.NEXT_PUBLIC_RPC_V3 === "true";
     const rpcFunction = useV3 ? "get_contract_detail_v3" : "get_contract_detail_v2";
 
-    // ⚡ Try RPC first for max performance (single request)
-    const { data: rpcData, error: rpcError } = await supabase
-      .rpc(rpcFunction, { p_contract_id: id });
+    // ⚡ Access-check (1 RTT employees) + RPC chạy song song — cắt 1 RTT nối đuôi.
+    // An toàn cho READ: requireContractAccess throw → Promise.all reject → data
+    // không bao giờ được trả về. KHÔNG áp pattern này cho action ghi.
+    const [, { data: rpcData, error: rpcError }] = await Promise.all([
+      requireContractAccess(supabase, userId),
+      supabase.rpc(rpcFunction, { p_contract_id: id }),
+    ]);
 
     if (!rpcError && rpcData) {
       const data = rpcData as ContractDetailRpcPayload;
@@ -650,7 +659,8 @@ import { unstable_noStore as noStore } from "next/cache";
 
 export async function getContractDrawerExtra(id: string) {
   noStore();
-  return profileAction("contracts.getContractDrawerExtra", () => withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
+  return profileAction("contracts.getContractDrawerExtra", () => withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const [
@@ -708,31 +718,38 @@ export async function getContractDrawerExtra(id: string) {
 // ─── getContractForEdit ──────────────────────
 
 export async function getContractForEdit(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const { data: contract, error } = await supabase
-      .from("contracts")
-      .select(
-        `
+    // ⚡ 2 query độc lập (cùng filter theo contractId) — chạy song song.
+    const [contractResult, paymentsResult] = await Promise.all([
+      supabase
+        .from("contracts")
+        .select(
+          `
         *,
         customers (id, full_name, phone, bride_name, groom_name, bride_phone, bride_height, bride_weight, bride_shoe_size, groom_phone, groom_height, groom_weight, groom_shoe_size, wedding_date, address),
         contract_items (id, type, item_name, service_id, dress_id, export_type, is_addon, addon_category, quantity, unit_price, original_price, discount_amount, total_amount, notes, deleted_at)
       `
-      )
-      .eq("id", contractId)
-      .is("deleted_at", null)
-      .single();
+        )
+        .eq("id", contractId)
+        .is("deleted_at", null)
+        .single(),
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("contract_id", contractId)
+        .is("deleted_at", null),
+    ]);
+
+    const { data: contract, error } = contractResult;
 
     if (error || !contract) {
       throw new Error("Không tìm thấy hợp đồng");
     }
 
-    const { data: payments } = await supabase
-      .from("payments")
-      .select("amount")
-      .eq("contract_id", contractId)
-      .is("deleted_at", null);
+    const { data: payments } = paymentsResult;
 
     const paidAmount = (payments || []).reduce(
       (sum: number, p: { amount: number }) => sum + (p.amount || 0),

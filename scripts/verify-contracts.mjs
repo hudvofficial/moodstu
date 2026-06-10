@@ -69,7 +69,13 @@ async function assertServiceRpcReachable(client, name, args, expectedMessage) {
 }
 
 const contractQueries = read("app/actions/contract-queries.ts");
-const galleryActions = read("app/actions/gallery-actions.ts");
+// Gallery actions đã refactor khỏi gallery-actions.ts — markers bảo mật giờ nằm
+// rải trong 3 file này (gộp lại để check như cũ).
+const galleryActions = [
+  read("app/actions/gallery-core.ts"),
+  read("app/actions/gallery-public-actions.ts"),
+  read("app/actions/gallery-selection-actions.ts"),
+].join("\n");
 const publicGalleryClient = read("components/gallery/public-gallery-client.tsx");
 const passwordGate = read("components/gallery/password-gate.tsx");
 const detailClient = read("components/contracts/detail/contract-detail-client.tsx");

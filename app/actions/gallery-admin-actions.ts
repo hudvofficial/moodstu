@@ -1,6 +1,6 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuth, withAuthRead } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -385,7 +385,8 @@ export async function syncDriveFolder(galleryId: string) {
 }
 
 export async function getGallerySummariesByContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  // ⚡ withAuthRead (read path): local JWT verify, skips redundant network getUser().
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     // ⚡ OPTIMIZED: Single RPC call (4 queries → 1)

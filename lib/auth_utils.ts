@@ -395,6 +395,41 @@ export async function withAuth<T>(
   }
 }
 
+/**
+ * READ-only auth wrapper. Uses getClaimsUser() (local JWT verify via
+ * supabase.auth.getClaims()) instead of getVerifiedUser() (network round-trip to
+ * GoTrue /auth/v1/user). The middleware (lib/supabase/middleware.ts) already gates
+ * EVERY request with getClaims(), so the extra network getUser() is redundant on
+ * read paths and adds ~200-800ms on mobile/cold regions.
+ *
+ * Authorization is still fully enforced: the action's own requireXAccess() does the
+ * employee/role DB lookup by userId. Use ONLY for read actions — keep withAuth for
+ * writes and privileged/bootstrap flows where the full getUser() is warranted.
+ */
+export async function withAuthRead<T>(
+  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+): Promise<ActionResult<T>> {
+  try {
+    const user = await getClaimsUser();
+
+    if (!user) {
+      return { success: false, error: "Chưa đăng nhập" };
+    }
+
+    const adminSupabase = await createAdminClient();
+    const result = await action(adminSupabase, user.id);
+    return { success: true, data: result };
+  } catch (err: unknown) {
+    console.error("[withAuthRead] Error:", err);
+    const message = err instanceof Error
+      ? err.message
+      : (typeof err === "object" && err !== null && "message" in err)
+        ? String((err as { message: unknown }).message)
+        : "Lỗi server";
+    return { success: false, error: message };
+  }
+}
+
 export async function withAdmin<T>(
   action: (supabase: SupabaseClient, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {

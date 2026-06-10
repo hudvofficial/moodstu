@@ -1,16 +1,15 @@
 export const metadata = { title: "Chi tiết hợp đồng" };
 
 import { getContractDetail } from "@/app/actions/contract-queries";
-import { getGallerySummariesByContract } from "@/app/actions/gallery-admin-actions";
 import ContractDetailClient from "@/components/contracts/detail/contract-detail-client";
 import type { ContractDetailData } from "@/lib/hooks/use-contract-queries";
 
 // ═══════════════════════════════════════════
-// Contract Detail Page — SSR parallel fetch
-// Perf: fetch contract detail + gallery summaries SONG SONG trên server,
-// truyền initial data → React Query / gallery render ngay, không spinner.
-// Drawer prefetch vẫn warm cache cho contract detail (0ms từ drawer);
-// gallery data được SSR bổ sung (drawer prefetch không cover gallery).
+// Contract Detail Page — SSR (above-the-fold only)
+// Perf: first paint CHỈ chờ contract detail. Gallery summaries KHÔNG còn chặn
+// render — DriveGalleryBlock (lazy + on-intersection) tự fetch qua useGalleriesQuery
+// khi user cuộn tới, nên bỏ gallery khỏi đường blocking cắt 1 RPC + 1 auth-pass
+// khỏi TTFB. Drawer prefetch vẫn warm cache cho contract detail.
 // ═══════════════════════════════════════════
 
 export default async function ContractDetailPage(props: {
@@ -18,14 +17,8 @@ export default async function ContractDetailPage(props: {
 }) {
   const { id } = await props.params;
 
-  // Song song: contract detail + gallery summaries — 1 round-trip server, không chặn nhau.
-  const [detailResult, galleriesResult] = await Promise.all([
-    getContractDetail(id),
-    getGallerySummariesByContract(id),
-  ]);
-
+  const detailResult = await getContractDetail(id);
   const detail = detailResult.success ? (detailResult.data as unknown as ContractDetailData) : null;
-  const galleries = galleriesResult.success ? galleriesResult.data : undefined;
 
   return (
     <ContractDetailClient
@@ -35,7 +28,6 @@ export default async function ContractDetailPage(props: {
       initialPaymentPlans={detail?.paymentPlans}
       initialReservations={detail?.reservations}
       initialPrintOrders={detail?.printOrders}
-      initialGalleries={galleries}
     />
   );
 }

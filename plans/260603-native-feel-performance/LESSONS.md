@@ -90,7 +90,17 @@
 - **Fix:** thêm `"use no memo"` directive vào `CalendarWrapper` + `useCalendarData` → React Compiler bỏ qua 2 hàm này, giữ hook ordering nguyên bản.
 - **Quy tắc:** component/hook **phức tạp** (>10 hooks, nhiều conditional render paths, inline function trả JSX động) + Sentry báo hooks error mà source sạch → **`"use no memo"`** để opt-out React Compiler. Kiểm tra: (1) tsc pass, (2) dev server render OK.
 
-### A14. *(chừa sẵn)*
+### A14. RPC mới PHẢI so key-shape với v2/fallback trước khi bật — v3 dính lại đúng bug labs.name của v2 *(2026-06-10)*
+- **Lỗi (bắt trước khi bật flag):** `get_contract_detail_v3` (viết 2026-05-30, chưa từng enable) trả `labs.lab_name`, trong khi app đọc `print_orders[].labs.name` — đúng bug đã fix ở v2 (`20260514084500_fix_contract_detail_v2_rpc_labs.sql`) nhưng v3 viết sau lại không kế thừa fix.
+- **Cách bắt:** chạy `scripts/test-rpc-v3.mjs` (deep-compare output v2 vs v3 trên contract thật CÓ printing_orders) TRƯỚC khi set `NEXT_PUBLIC_RPC_V3=true`. Khác biệt chấp nhận được: v3 trả thừa cột audit (`to_jsonb(x.*)` superset) + thiếu `deleted_at` ở items/events (v3 đã filter trong SQL, client không đọc field này từ payload RPC — chỉ đọc từ realtime payload). Khác biệt KHÔNG chấp nhận được: lệch TÊN KEY hoặc lệch GIÁ TRỊ.
+- **Quy tắc:** RPC thay thế (v2→v3...) phải deep-compare output với bản đang chạy trên data thật phủ đủ nhánh (mỗi LEFT JOIN có ít nhất 1 row), và grep các migration `fix_*` của bản cũ để chắc bản mới không tái sinh bug đã fix.
+- **Ghi chú flag:** `NEXT_PUBLIC_*` là build-time — set ở `.env.local` chỉ ảnh hưởng dev; prod cần `vercel env add` + redeploy mới có hiệu lực.
+
+### A15. Publication `supabase_realtime` RỖNG — postgres_changes chưa từng fire cho BẤT KỲ bảng nào *(2026-06-10)*
+- **Phát hiện (khi verify fix race useRealtimeMulti end-to-end):** subscribe SUBSCRIBED thành công nhưng UPDATE bảng `contracts` không sinh event nào. Check `pg_publication_tables WHERE pubname='supabase_realtime'` → **0 bảng**. Tức mọi `useRealtimeMulti`/`useRealtime` trong app từ trước đến nay subscribe "thành công" nhưng KHÔNG BAO GIỜ nhận event — auto-refresh đa-user thực chất chưa từng hoạt động; app sống nhờ revalidate/refetch-on-navigation nên không ai nhận ra.
+- **Fix (contract module):** `20260610010000_realtime_publication_contract_tables.sql` thêm 9 bảng contract (list + detail subscribe) vào publication — CHỈ sau khi verify cả 9 đã bật RLS + policies (bảng không RLS vào publication = anon nghe được event = lộ data). Verify end-to-end: UPDATE contracts → list tự refetch (POST getContractList + getContractStats trong server log).
+- **Hệ quả còn lại:** các module khác (dresses, crm_leads, calendar, inventory...) vẫn 0 realtime. Trước khi thêm bảng nào vào publication → **audit RLS bảng đó trước** (đối chiếu A9/A11/A12).
+- **Quy tắc:** "trang đích có realtime" (checklist §B) phải verify bằng **event thật end-to-end** (đổi DB → thấy refetch), KHÔNG chỉ thấy channel SUBSCRIBED. Subscribe OK ≠ có event.
 
 ---
 
