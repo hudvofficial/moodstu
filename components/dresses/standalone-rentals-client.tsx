@@ -32,7 +32,7 @@ import { TierSwitch } from "@/components/ui/tier-switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ReturnModal } from "@/components/dresses/return-modal";
 import { toast } from "@/lib/toast-utils";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 
 const PAGE_SIZE = 20;
 const REALTIME_REFRESH_DELAY_MS = 600;
@@ -78,8 +78,8 @@ export default function StandaloneRentalsClient({ initialResult }: StandaloneRen
   const page = Number(searchParams.get("page")) || 1;
   const view = searchParams.get("view") || "list";
 
-  // 📡 Realtime — auto-refresh on dress_rentals changes
-  useRealtime("dress_rentals", {
+  // 📡 Realtime — auto-refresh on dress_rentals changes (tín hiệu qua realtime_signals)
+  useRealtimeSignal("dress_rentals", {
     onChange: () => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {

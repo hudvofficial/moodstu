@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/ux-states";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import { invalidateServiceAfterWrite } from "@/lib/cache-invalidation";
 import { calculateServiceStats } from "@/lib/utils/service-utils";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import type { ServiceCategory, ServiceRecord } from "@/types/service";
 import type { ViewMode } from "@/types/service-constants";
 import { CategoryManagerModal } from "./category-manager-modal";
@@ -129,12 +129,12 @@ export default function ServicesListClient({
     void invalidateServiceAfterWrite();
   }, []);
 
-  useRealtime("services", {
+  useRealtimeSignal("services", {
     onChange: refreshServiceCaches,
     debounceMs: 500,
     channelName: "services-list-services",
   });
-  useRealtime("service_categories", {
+  useRealtimeSignal("service_categories", {
     onChange: refreshServiceCaches,
     debounceMs: 500,
     channelName: "services-list-categories",

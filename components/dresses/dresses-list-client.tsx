@@ -7,6 +7,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Shirt, Plus, Loader2, FilterX, ScanLine, CalendarDays } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
 import { DRESS_PAGE_SIZE } from "@/types/dress-constants";
 import type { DressItem, DressFilters, DressStats } from "@/types/dress";
@@ -92,9 +93,11 @@ function DressesListInner({
     }, REALTIME_REFRESH_DELAY_MS);
   }, [mutateStats]);
 
-  useRealtime("dresses", { onChange: refreshDressCaches });
+  // dresses + dress_rentals: authenticated không có grant SELECT → nhận tín hiệu
+  // qua realtime_signals (Signal ≠ Data); dress_reservations đã trong publication.
+  useRealtimeSignal("dresses", { onChange: refreshDressCaches });
   useRealtime("dress_reservations", { onChange: refreshDressCaches });
-  useRealtime("dress_rentals", { onChange: refreshDressCaches });
+  useRealtimeSignal("dress_rentals", { onChange: refreshDressCaches });
 
   // Pull-to-refresh
   usePullToRefreshCallback(async () => {

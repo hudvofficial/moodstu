@@ -1,6 +1,7 @@
 "use client";
 
 import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 
 export function ProductivityRealtimeBindings({
   overviewKey,
@@ -15,9 +16,10 @@ export function ProductivityRealtimeBindings({
     cacheKeys,
     debounceMs: 1000,
   });
-  useRealtime("employees", {
+  // Tín hiệu qua realtime_signals (employees server-only) — signal là INSERT,
+  // không filter op UPDATE được; employees đổi hiếm nên revalidate thừa không đáng kể.
+  useRealtimeSignal("employees", {
     cacheKeys: [overviewKey],
-    eventTypes: ["UPDATE"],
     debounceMs: 2000,
   });
   return null;

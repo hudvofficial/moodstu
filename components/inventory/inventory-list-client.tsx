@@ -155,10 +155,15 @@ function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: 
     void revalidateInventory();
   }, []);
 
+  // Tín hiệu qua realtime_signals (2 bảng nguồn không có grant SELECT cho
+  // authenticated) — vẫn 1 channel duy nhất, lọc theo table_name.
   useRealtimeMulti(
     [
-      { table: "inventory_items" },
-      { table: "inventory_transactions" },
+      {
+        table: "realtime_signals",
+        filter: "table_name=in.(inventory_items,inventory_transactions)",
+        eventTypes: ["INSERT"],
+      },
     ],
     {
       channelName: "inventory-realtime",

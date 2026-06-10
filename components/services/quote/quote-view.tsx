@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Printer, Pencil, Phone, MapPin } from "lucide-react";
 import { getStudioInfo } from "@/app/actions/settings-queries";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { CURRENCY_SYMBOL, formatCurrency } from "@/lib/utils";
@@ -31,9 +31,10 @@ interface Props {
 }
 
 export default function QuoteView({ service, studio }: Props) {
-  useRealtime("studio_info", {
+  // Tín hiệu qua realtime_signals — không filter được op (signal là INSERT),
+  // mọi thay đổi studio_info đều revalidate (bảng 1 row, hành vi tương đương).
+  useRealtimeSignal("studio_info", {
     cacheKeys: [cacheKeys.studioInfo()],
-    eventTypes: ["UPDATE"],
     debounceMs: 120,
   });
 

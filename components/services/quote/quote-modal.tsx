@@ -8,7 +8,7 @@ import { ModalPortal } from "@/components/ui/modal-portal";
 import { parseContentStructure } from "@/lib/utils/service-utils";
 import { CURRENCY_SYMBOL, formatCurrency } from "@/lib/utils";
 import { getStudioInfo } from "@/app/actions/settings-queries";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { cacheKeys, useSWR } from "@/lib/swr";
 import { SERVICE_UNIT_LABELS, ServiceUnit } from "@/types/service-constants";
 import type { ServiceRecord } from "@/types/service";
@@ -43,9 +43,10 @@ interface Props {
 export default function QuoteModal({ service, onClose }: Props) {
   const structure = parseContentStructure(service.description || "");
 
-  useRealtime("studio_info", {
+  // Tín hiệu qua realtime_signals — không filter được op (signal là INSERT),
+  // mọi thay đổi studio_info đều revalidate (bảng 1 row, hành vi tương đương).
+  useRealtimeSignal("studio_info", {
     cacheKeys: [cacheKeys.studioInfo()],
-    eventTypes: ["UPDATE"],
     debounceMs: 120,
   });
 

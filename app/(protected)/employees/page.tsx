@@ -81,7 +81,13 @@ export default async function EmployeesPage({
 
   return (
     <>
-      <RealtimeSync table="employees" prefixes="employees" debounceMs={600} />
+      {/* Tín hiệu qua realtime_signals — employees server-only, không có grant SELECT */}
+      <RealtimeSync
+        table="realtime_signals"
+        filter="table_name=eq.employees"
+        prefixes="employees"
+        debounceMs={600}
+      />
       <EmployeeListPage
         employees={listResult.employees}
         total={listResult.total}

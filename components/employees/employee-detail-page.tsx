@@ -8,7 +8,7 @@ import type { EmployeeDetail, EmployeeRole, SalaryInfo } from "@/types/employee"
 import { ROLE_BADGE_MAP, EMPLOYEE_STATUS_MAP, getRoleLabel } from "@/types/employee-constants";
 import { formatDate, formatPhone, formatVnd, getInitials } from "@/lib/utils";
 import { invalidateEmployeeAfterWrite } from "@/lib/cache-invalidation";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { softDeleteEmployee, restoreEmployee } from "@/app/actions/employee-mutations";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
@@ -43,8 +43,10 @@ export default function EmployeeDetailPage({
     });
   }, [router]);
 
-  useRealtime("employees", {
-    filter: `id=eq.${employee.id}`,
+  // Tín hiệu qua realtime_signals — signal không mang row_id (chủ đích: không lộ
+  // ai/lương đổi), nên refetch khi BẤT KỲ employee nào đổi (hiếm, router.refresh
+  // debounce 500ms — chấp nhận thay vì filter id=eq như postgres_changes cũ).
+  useRealtimeSignal("employees", {
     onChange: refreshEmployee,
     debounceMs: 500,
   });
