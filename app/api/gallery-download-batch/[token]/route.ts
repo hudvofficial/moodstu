@@ -225,6 +225,17 @@ export async function GET(
       return NextResponse.json({ error: "Không có file Drive nào để tải" }, { status: 404 });
     }
 
+    if (searchParams.get("client_zip") === "true") {
+      const zipName = resolvedGallery?.title ? `album-${resolvedGallery.title.replace(/\s+/g, "_")}.zip` : `album-${resolvedGalleryId}.zip`;
+      return NextResponse.json({
+        zipName,
+        images: downloadableImages.map((img) => ({
+          name: img.file_name || `photo_${img.id}.jpg`,
+          url: `/api/gallery-download/${token}/${img.id}` // Use existing proxy or lh3 URL. Wait, if we use lh3 url, it might be blocked by CORS! Let's use the native download endpoint /api/gallery-download which proxies the image.
+        }))
+      });
+    }
+
     if (downloadableImages.length > MAX_ZIP_FILES) {
       return NextResponse.json(
         { error: `Chỉ cho phép tải tối đa ${MAX_ZIP_FILES} ảnh cùng lúc để đảm bảo hiệu năng. Vui lòng chọn ít ảnh hơn.` },

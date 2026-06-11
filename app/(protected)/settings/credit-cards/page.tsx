@@ -4,8 +4,8 @@ import { fetchCreditCards } from "@/app/actions/finance-operations-queries";
 import CreditCardsClient from "@/components/settings/credit-cards/credit-cards-client";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
 
-// Revalidate 30s — thẻ tín dụng cần fresh nhưng không cần force-dynamic
-export const revalidate = 30;
+// 
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Thẻ tín dụng",

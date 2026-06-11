@@ -38,17 +38,57 @@ export default function SelectionSummary({
   const handleBatchDownload = async () => {
     if (downloadableImages.length === 0) return;
 
-    if (downloadableImages.length > 30) {
-      alert(`Chỉ có thể tải tối đa 30 ảnh một lần để đảm bảo chất lượng mạng. Bạn đang chọn ${downloadableImages.length} ảnh. Vui lòng bỏ bớt ảnh và tải làm nhiều lần.`);
+    if (downloadableImages.length > 50) {
+      alert(`Vui lòng tải tối đa 50 ảnh mỗi lần để trình duyệt không bị đứng. Bạn đang chọn ${downloadableImages.length} ảnh.`);
       return;
     }
 
     setDownloading(true);
 
     if (downloadableImages.length > 1) {
-      // Batch ZIP download - works on all platforms via window.location
-      const ids = downloadableImages.map((i) => i.id).join(",");
-      window.location.href = `/api/gallery-download-batch/${accessToken}?ids=${ids}`;
+      try {
+        // Batch ZIP download - Client Side
+        const ids = downloadableImages.map((i) => i.id).join(",");
+        const response = await fetch(`/api/gallery-download-batch/${accessToken}?ids=${ids}&client_zip=true`);
+        if (!response.ok) {
+          const errData = await response.json().catch(() => null);
+          throw new Error(errData?.error || "Lỗi khi lấy thông tin tải ảnh");
+        }
+        
+        const data = await response.json();
+        const { zipName, images } = data;
+
+        // Import dynamically
+        const JSZip = (await import("jszip")).default;
+        const { saveAs } = await import("file-saver");
+        
+        const zip = new JSZip();
+        
+        // Tải ảnh theo batch nhỏ để tránh lag trình duyệt
+        const batchSize = 5;
+        for (let i = 0; i < images.length; i += batchSize) {
+          const batch = images.slice(i, i + batchSize);
+          await Promise.all(batch.map(async (img: any) => {
+            try {
+              const imgRes = await fetch(img.url);
+              if (imgRes.ok) {
+                const blob = await imgRes.blob();
+                zip.file(img.name, blob);
+              }
+            } catch (err) {
+              console.error("Failed to download image:", img.name);
+            }
+          }));
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        saveAs(zipBlob, zipName);
+
+      } catch (err: any) {
+        alert(err.message || "Đã xảy ra lỗi khi tải ảnh. Vui lòng thử lại.");
+      } finally {
+        setDownloading(false);
+      }
     } else {
       // Single file download
       const img = downloadableImages[0];
@@ -83,10 +123,12 @@ export default function SelectionSummary({
       }
     }
 
-    // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
-    setTimeout(() => {
-      setDownloading(false);
-    }, 1500);
+    if (downloadableImages.length <= 1) {
+      // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
+      setTimeout(() => {
+        setDownloading(false);
+      }, 1500);
+    }
   };
 
   return (

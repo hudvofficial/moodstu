@@ -5,8 +5,7 @@ import StudioInfoForm from "@/components/settings/studio-info-form";
 
 export const metadata = { title: "Thông tin studio" };
 
-// Revalidate 60s — studio settings thay đổi ít, không cần force-dynamic
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 /* ═══════════════════════════════════════════
    Studio Settings Page — Admin Only
