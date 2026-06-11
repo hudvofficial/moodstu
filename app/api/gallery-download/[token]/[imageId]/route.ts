@@ -189,72 +189,13 @@ export async function GET(
       }
     }
 
-    // ─── STREAM FILE FROM GOOGLE DRIVE ─────────────────────────────
-    const metaRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${driveFileId}?fields=name,mimeType,size&key=${API_KEY}`,
-      { next: { revalidate: 3600, tags: [`drive-meta-${driveFileId}`] } }
-    );
+    // ─── RETURN DIRECT DOWNLOAD URL ─────────────────────────────
+    // Bypass Vercel stream to save Fast Origin Transfer bandwidth.
+    const url = `https://lh3.googleusercontent.com/d/${driveFileId}=s0`;
 
-    if (!metaRes.ok) {
-      if (metaRes.status === 404) {
-        return NextResponse.json({ error: "File không tồn tại trên Drive" }, { status: 404 });
-      }
-      return NextResponse.json({ error: "Không thể kết nối Google Drive" }, { status: metaRes.status });
-    }
-
-    const meta = await metaRes.json();
-    let downloadRes: Response | null = null;
-
-    // A. Thử tải qua lh3
-    const lh3Url = `https://lh3.googleusercontent.com/d/${driveFileId}=s0`;
-    const lh3Res = await fetch(lh3Url, { redirect: "follow", cache: "no-store" });
-
-    if (lh3Res.ok && lh3Res.body) {
-      const ct = lh3Res.headers.get("content-type") || "";
-      if (ct.startsWith("image/")) {
-        downloadRes = lh3Res;
-      }
-    }
-
-    // B. Fallback qua Drive API
-    if (!downloadRes) {
-      const apiRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${API_KEY}`,
-        { cache: "no-store" }
-      );
-      if (apiRes.ok && apiRes.body) {
-        const ct = apiRes.headers.get("content-type") || "";
-        if (ct.startsWith("image/")) {
-          downloadRes = apiRes;
-        }
-      }
-    }
-
-    if (!downloadRes || !downloadRes.body) {
-      return NextResponse.json(
-        { error: "Không thể tải ảnh. File chưa được chia sẻ công khai." },
-        { status: 403 },
-      );
-    }
-
-    const headers = new Headers();
-    headers.set("Content-Type", meta.mimeType || "image/jpeg");
-    // ?mode=view → inline (iOS Safari long-press "Save Image" to Photos)
-    // default   → attachment (native download for Android/Desktop)
-    const viewMode = request.nextUrl.searchParams.get("mode");
-    const disposition = viewMode === "view" ? "inline" : "attachment";
-    headers.set(
-      "Content-Disposition",
-      `${disposition}; filename="${downloadFileName}"; filename*=UTF-8''${encodeURIComponent(downloadFileName)}`,
-    );
-    if (meta.size) {
-      headers.set("Content-Length", meta.size);
-    }
-    headers.set("Cache-Control", "public, max-age=3600");
-
-    return new NextResponse(downloadRes.body, {
-      status: 200,
-      headers,
+    return NextResponse.json({
+      url,
+      fileName: downloadFileName,
     });
   } catch (err) {
     console.error("[gallery-download] Error:", err);

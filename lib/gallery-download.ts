@@ -139,7 +139,15 @@ async function attemptDownloadViaBlob(
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const blob = await response.blob();
+    const data = await response.json();
+    if (!data.url) throw new Error("No direct URL returned");
+
+    const directResponse = await fetch(data.url);
+    if (!directResponse.ok) {
+      throw new Error(`Drive HTTP ${directResponse.status}`);
+    }
+
+    const blob = await directResponse.blob();
     const objectUrl = URL.createObjectURL(blob);
 
     // Create temporary <a> tag and trigger download
@@ -171,26 +179,29 @@ function attemptDownloadViaIframe(
     try {
       const baseUrl = `/api/gallery-download/${accessToken}/${imageId}`;
 
-      // Hidden iframe method
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.style.position = "absolute";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "none";
-      iframe.src = baseUrl;
-
-      document.body.appendChild(iframe);
-
-      // Wait a bit to ensure download started
-      setTimeout(() => {
-        try {
-          iframe.remove();
-        } catch (cleanupError) {
-          // Ignore cleanup errors
-        }
-        resolve(true);
-      }, 2000);
+      fetch(baseUrl)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.url) throw new Error("No direct URL returned");
+          const iframe = document.createElement("iframe");
+          iframe.style.display = "none";
+          iframe.style.position = "absolute";
+          iframe.style.width = "0";
+          iframe.style.height = "0";
+          iframe.style.border = "none";
+          iframe.src = data.url;
+          document.body.appendChild(iframe);
+          setTimeout(() => {
+            try {
+              iframe.remove();
+            } catch {}
+            resolve(true);
+          }, 2000);
+        })
+        .catch((error) => {
+          console.error("[attemptDownloadViaIframe] Error:", error);
+          resolve(false);
+        });
 
     } catch (error) {
       console.error("[attemptDownloadViaIframe] Error:", error);
@@ -210,16 +221,17 @@ function attemptDownloadViaWindowOpen(
   return new Promise((resolve) => {
     try {
       const url = `/api/gallery-download/${accessToken}/${imageId}`;
-      const newWindow = window.open(url, "_blank", "noopener,noreferrer");
-
-      // If popup was blocked, fail
-      if (!newWindow) {
-        resolve(false);
-        return;
-      }
-
-      // Assume success if window opened
-      resolve(true);
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.url) throw new Error("No direct URL returned");
+          const newWindow = window.open(data.url, "_blank", "noopener,noreferrer");
+          resolve(!!newWindow);
+        })
+        .catch((error) => {
+          console.error("[downloadSingleImage] window.open error:", error);
+          resolve(false);
+        });
 
     } catch (error) {
       console.error("[downloadSingleImage] window.open error:", error);
@@ -264,19 +276,33 @@ export async function downloadBatchAsZip(
   // Build URL
   const baseUrl = `/api/gallery-download-batch/${accessToken}`;
   const url = imageIds && imageIds.length > 0
-    ? `${baseUrl}?ids=${imageIds.join(",")}`
-    : baseUrl;
+    ? `${baseUrl}?ids=${imageIds.join(",")}&client_zip=true`
+    : `${baseUrl}?client_zip=true`;
 
   let lastError: Error | null = null;
 
   // Retry loop
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Trigger download via window.location (most reliable for large files)
-      window.location.href = url;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (!data.images || !Array.isArray(data.images)) throw new Error("Invalid ZIP payload");
 
-      // Wait a bit before considering success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const JSZip = (await import("jszip")).default;
+      const { saveAs } = await import("file-saver");
+      const zip = new JSZip();
+
+      for (const img of data.images) {
+        const imgRes = await fetch(img.url);
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          zip.file(img.name, blob);
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      saveAs(zipBlob, data.zipName || `${displayName}.zip`);
 
       // Assume success (no reliable way to detect native download completion)
       if (showToast && toastId) {

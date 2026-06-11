@@ -127,8 +127,17 @@ export default function ImageViewer({
 
     if (isIOS) {
       const toastId = toast.loading(`Đang chuẩn bị ảnh...`);
-      window.open(`${apiUrl}?mode=view`, "_blank", "noopener,noreferrer");
-      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!data.url) throw new Error("No direct URL returned");
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
+      } catch (error) {
+        console.error("[handleDownload][ios] Error:", error);
+        toast.error("Không chuẩn bị được ảnh tải xuống", { id: toastId });
+      }
       return;
     }
 
@@ -137,7 +146,13 @@ export default function ImageViewer({
       const response = await fetch(apiUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const blob = await response.blob();
+      const data = await response.json();
+      if (!data.url) throw new Error("No direct URL returned");
+
+      const directResponse = await fetch(data.url);
+      if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
+
+      const blob = await directResponse.blob();
       const objectUrl = URL.createObjectURL(blob);
 
       const link = document.createElement("a");
@@ -151,7 +166,13 @@ export default function ImageViewer({
       toast.success(`Đã tải ${downloadFileName}`, { id: toastId });
     } catch (error) {
       console.error("[handleDownload] Error:", error);
-      window.open(apiUrl, "_blank", "noopener,noreferrer");
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (data.url) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        }
+      } catch {}
       toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
     }
   };

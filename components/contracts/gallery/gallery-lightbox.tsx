@@ -124,7 +124,10 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
 
     if (img.drive_file_id) {
       const ok = await downloadSingleFile("admin", img.id, downloadFileName);
-      if (!ok) window.open(`/api/gallery-download/admin/${img.id}`, "_blank", "noopener,noreferrer");
+      if (!ok) {
+        // Fallback: direct Google Drive CDN (bypass Vercel bandwidth)
+        window.open(`https://lh3.googleusercontent.com/d/${img.drive_file_id}=s0`, "_blank", "noopener,noreferrer");
+      }
       return;
     }
 

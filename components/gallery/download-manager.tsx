@@ -44,24 +44,28 @@ async function downloadSingleFile(accessToken: string, imageId: string, fileName
   try {
     const url = `/api/gallery-download/${accessToken}/${imageId}`;
 
-    // Blob method (works on iOS Safari!)
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const blob = await response.blob();
+    // Get direct Drive URL to bypass Vercel bandwidth
+    const data = await response.json();
+    if (!data.url) throw new Error("No URL returned");
+
+    // Fetch blob directly from Google Drive CDN (lh3)
+    const directResponse = await fetch(data.url);
+    if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
+
+    const blob = await directResponse.blob();
     const objectUrl = URL.createObjectURL(blob);
 
-    // Create temporary <a> tag and trigger download
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = fileName;
+    link.download = data.fileName || fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    // Cleanup
     setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
-
     return true;
   } catch (error) {
     console.error("[downloadSingleFile] Error:", error);

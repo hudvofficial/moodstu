@@ -98,14 +98,29 @@ export default function SelectionSummary({
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
       if (isIOS) {
-        window.open(`${url}?mode=view`, "_blank", "noopener,noreferrer");
-        alert('Đã mở ảnh sang tab mới. Vui lòng nhấn giữ ảnh và chọn "Lưu hình ảnh".');
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          if (!data.url) throw new Error("No direct URL returned");
+          window.open(data.url, "_blank", "noopener,noreferrer");
+          alert('Đã mở ảnh sang tab mới. Vui lòng nhấn giữ ảnh và chọn "Lưu hình ảnh".');
+        } catch (error) {
+          console.error("[selection-download][ios] Error:", error);
+          alert("Không chuẩn bị được ảnh tải xuống. Vui lòng thử lại.");
+        }
       } else {
         try {
           const response = await fetch(url);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-          const blob = await response.blob();
+          const data = await response.json();
+          if (!data.url) throw new Error("No direct URL returned");
+
+          const directResponse = await fetch(data.url);
+          if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
+
+          const blob = await directResponse.blob();
           const objectUrl = URL.createObjectURL(blob);
 
           const link = document.createElement("a");
@@ -118,7 +133,11 @@ export default function SelectionSummary({
           setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
         } catch (error) {
           console.error("[selection-download] Error:", error);
-          window.open(url, "_blank", "noopener,noreferrer");
+          try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+          } catch {}
         }
       }
     }
