@@ -15,7 +15,7 @@ import {
   invalidateContractAfterWrite,
   invalidateDressAfterWrite,
 } from "@/lib/cache-invalidation";
-import { toast } from "@/lib/toast-utils";
+import { toastManager as toast } from "@/lib/toast-utils";
 import DatePicker from "@/components/ui/date-picker";
 
 // ═══════════════════════════════════════════
@@ -56,7 +56,6 @@ export default function DressReservationForm({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // Fetch available items on open
   useEffect(() => {
@@ -105,7 +104,7 @@ export default function DressReservationForm({
 
   const handleSubmit = useCallback(async () => {
     if (!selectedId) {
-      toast("Vui lòng chọn trang phục", "warning");
+      toast.warning("Vui lòng chọn trang phục");
       return;
     }
 
@@ -114,11 +113,11 @@ export default function DressReservationForm({
     const reservationEnd = endDate || reservationStart;
 
     if (reservationEnd < reservationStart) {
-      toast("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu", "warning");
+      toast.warning("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
       return;
     }
 
-    // Đóng modal NGAY (close + revalidate). KHÔNG patch số: addon có thể recalc tổng HĐ → revalidate lo.
+    // Đóng modal NGAY (instant close). KHÔNG patch số: addon có thể recalc tổng HĐ → revalidate lo.
     const dressId = selectedId;
     const payload = {
       dressId,
@@ -129,24 +128,22 @@ export default function DressReservationForm({
       endDate: reservationEnd,
       notes: notes.trim() || undefined,
     };
-    setLoading(true);
+    const toastId = toast.loading("Đang đặt trang phục...");
     resetForm();
     onClose();
     try {
       const result = await reserveDressForContract(payload);
       if (result.success) {
-        toast("Đã đặt trang phục thành công", "success");
+        toast.success("Đã đặt trang phục thành công", { id: toastId });
         await Promise.all([
           invalidateContractAfterWrite(contractId),
           invalidateDressAfterWrite(dressId),
         ]);
       } else {
-        toast(result.error || "Lỗi đặt trang phục", "error");
+        toast.error(result.error || "Lỗi đặt trang phục", { id: toastId });
       }
     } catch {
-      toast("Có lỗi xảy ra", "error");
-    } finally {
-      setLoading(false);
+      toast.error("Có lỗi xảy ra", { id: toastId });
     }
   }, [selectedId, rentalPrice, contractId, isAddon, startDate, endDate, notes, resetForm, onClose]);
 
@@ -300,10 +297,10 @@ export default function DressReservationForm({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={!selectedId || loading}
+            disabled={!selectedId}
             className="disabled:opacity-50"
           >
-            {loading ? "Đang xử lý..." : "Đặt trang phục"}
+            Đặt trang phục
           </Button>
         </div>
       </div>

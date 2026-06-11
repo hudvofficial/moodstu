@@ -36,10 +36,13 @@ const prefetchedInventoryDetails = new Set<string>();
 export function useInventory(
   filters: InventoryFilters,
   fallbackData?: { data: InventoryItem[]; count: number },
+  options?: { enabled?: boolean },
 ) {
+  const enabled = options?.enabled !== false;
   const { data, error, isLoading, isValidating } = useSWR(
     // ⚠️ Array key = filters encoded → SWR auto-refetch on filter change
-    [cacheKeys.inventory(), filters],
+    // Skip fetch khi enabled=false (lazy theo tab)
+    enabled ? [cacheKeys.inventory(), filters] : null,
     () => fetchInventoryList(filters),
     {
       keepPreviousData: true,
@@ -61,9 +64,13 @@ export function useInventory(
 
 // ─── STATS ──────────────────────────────────────────────────
 
-export function useInventoryStats(fallbackData?: InventoryStats) {
+export function useInventoryStats(
+  fallbackData?: InventoryStats,
+  options?: { enabled?: boolean },
+) {
+  const enabled = options?.enabled !== false;
   const { data, error, isLoading } = useSWR(
-    cacheKeys.inventoryStats(),
+    enabled ? cacheKeys.inventoryStats() : null,
     () => getInventoryStats(),
     {
       fallbackData,
@@ -83,9 +90,11 @@ export function useInventoryStats(fallbackData?: InventoryStats) {
 export function useTransactionHistory(
   filters: TransactionFilters,
   fallbackData?: { data: InventoryTransaction[]; count: number },
+  options?: { enabled?: boolean },
 ) {
+  const enabled = options?.enabled !== false;
   const { data, error, isLoading, isValidating } = useSWR(
-    [cacheKeys.inventoryTransactions(), filters],
+    enabled ? [cacheKeys.inventoryTransactions(), filters] : null,
     () => fetchTransactionHistory(filters),
     {
       keepPreviousData: true,

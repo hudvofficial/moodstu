@@ -213,14 +213,10 @@ export function TaskListPanel({
         <Button unstyled
           onClick={() => onDelete(task.id)}
           disabled={isDeleting || isOptimistic}
-          className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
+          className="icon-btn h-8 w-8 shrink-0 rounded-full bg-error/10 text-error hover:text-error disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={`Xóa ${mode === "assigned" ? "phân công" : "công việc"} ${workTypeLabel}`}
         >
-          {isDeleting || isOptimistic ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <X size={14} />
-          )}
+          <X size={14} />
         </Button>
       </div>
     );
@@ -458,11 +454,7 @@ export function TaskListPanel({
             data-testid="add-task-submit"
             title="Lưu nhân sự"
           >
-            {submitting ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <UserPlus size={18} />
-            )}
+            <UserPlus size={18} />
           </Button>
         </div>
           </div>

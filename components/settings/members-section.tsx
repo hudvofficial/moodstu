@@ -1,111 +1,78 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, RefreshCw, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthUsers } from "@/app/actions/user-management";
 import type { AuthUserWithEmployee } from "@/app/actions/user-management";
 import MemberCard from "./member-card";
+import { useState } from "react";
 
 const PAGE_SIZE = 25;
+
+// Query key dùng chung — invalidate từ bên ngoài (sau khi link/unlink employee)
+export const AUTH_USERS_QUERY_KEY = ["settings", "auth-users"] as const;
 
 interface MembersSectionProps {
   currentUserEmail: string;
 }
 
-export default function MembersSection({
-  currentUserEmail,
-}: MembersSectionProps) {
-  const [users, setUsers] = useState<AuthUserWithEmployee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+export default function MembersSection({ currentUserEmail }: MembersSectionProps) {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [allUsers, setAllUsers] = useState<AuthUserWithEmployee[]>([]);
   const [hasMore, setHasMore] = useState(false);
 
-  const fetchUsers = useCallback(async (options?: {
-    append?: boolean;
-    page?: number;
-    silent?: boolean;
-  }) => {
-    const targetPage = options?.page ?? 1;
-    if (options?.append) {
-      setLoadingMore(true);
-    } else if (!options?.silent) {
-      setRefreshing(true);
-    }
-
-    const result = await getAuthUsers({ page: targetPage, perPage: PAGE_SIZE });
-    if (result.success && result.data) {
-      setUsers((current) => {
-        if (!options?.append) return result.data.users;
-
-        const existingIds = new Set(current.map((user) => user.auth_id));
-        const nextUsers = result.data.users.filter(
-          (user) => !existingIds.has(user.auth_id),
-        );
-        return [...current, ...nextUsers];
-      });
-      setPage(result.data.page);
+  const { isLoading, isFetching, refetch } = useQuery({
+    queryKey: [...AUTH_USERS_QUERY_KEY, page],
+    queryFn: async () => {
+      const result = await getAuthUsers({ page: 1, perPage: PAGE_SIZE });
+      if (!result.success || !result.data) return [];
+      setAllUsers(result.data.users);
       setHasMore(result.data.hasMore);
-    } else if (!options?.append) {
-      setUsers([]);
-      setHasMore(false);
+      return result.data.users;
+    },
+    // Cache 2 phút — danh sách user không thay đổi liên tục
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const handleRefresh = () => {
+    setPage(1);
+    setAllUsers([]);
+    queryClient.invalidateQueries({ queryKey: AUTH_USERS_QUERY_KEY });
+    void refetch();
+  };
+
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+    const result = await getAuthUsers({ page: nextPage, perPage: PAGE_SIZE });
+    if (result.success && result.data) {
+      const existingIds = new Set(allUsers.map((u) => u.auth_id));
+      const newUsers = result.data.users.filter((u) => !existingIds.has(u.auth_id));
+      setAllUsers((prev) => [...prev, ...newUsers]);
+      setPage(nextPage);
+      setHasMore(result.data.hasMore);
     } else {
       setHasMore(false);
     }
-    setLoading(false);
-    setRefreshing(false);
-    setLoadingMore(false);
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-
-    const loadUsers = async () => {
-      const result = await getAuthUsers({ page: 1, perPage: PAGE_SIZE });
-      if (ignore) return;
-
-      if (result.success && result.data) {
-        setUsers(result.data.users);
-        setPage(result.data.page);
-        setHasMore(result.data.hasMore);
-      } else {
-        setUsers([]);
-        setHasMore(false);
-      }
-      setLoading(false);
-      setRefreshing(false);
-    };
-
-    void loadUsers();
-
-    return () => {
-      ignore = true;
-    };
-  }, [fetchUsers]);
-
-  const handleRefresh = () => {
-    void fetchUsers({ page: 1 });
   };
 
-  const handleLoadMore = () => {
-    if (loadingMore || !hasMore) return;
-    void fetchUsers({ append: true, page: page + 1, silent: true });
-  };
-
-  const danglingCount = users.filter((user) => !user.linked_employee).length;
+  const danglingCount = allUsers.filter((u) => !u.linked_employee).length;
+  const loading = isLoading && allUsers.length === 0;
+  const refreshing = isFetching && allUsers.length > 0;
 
   return (
     <section className="card-base p-4 lg:p-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="section-heading">
           <Users className="w-4 h-4 inline-block mr-1.5 align-middle" />
-          Thành viên ({users.length})
+          Thành viên ({allUsers.length})
         </h3>
         {/* eslint-disable-next-line react/forbid-elements -- compact refresh action */}
         <button
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={isFetching}
           className="icon-btn w-8! h-8!"
           title="Làm mới"
           aria-label="Làm mới danh sách thành viên"
@@ -132,13 +99,13 @@ export default function MembersSection({
             </div>
           ))}
         </div>
-      ) : users.length === 0 ? (
+      ) : allUsers.length === 0 ? (
         <p className="text-sm text-text-muted py-4 text-center">
           Chưa có thành viên nào
         </p>
       ) : (
         <div className="space-y-2">
-          {users.map((user) => (
+          {allUsers.map((user) => (
             <MemberCard
               key={user.auth_id}
               user={user}
@@ -150,11 +117,11 @@ export default function MembersSection({
             /* eslint-disable-next-line react/forbid-elements -- compact pagination action */
             <button
               onClick={handleLoadMore}
-              disabled={loadingMore}
+              disabled={isFetching}
               className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-border-base text-sm font-medium text-text-secondary transition-colors hover:bg-bg-hover disabled:opacity-60"
               type="button"
             >
-              {loadingMore ? (
+              {isFetching ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 <ChevronDown className="h-4 w-4" />

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { AlertTriangle, Plus, Users, FilterX } from "lucide-react";
+import useSWR from "swr";
+import { Plus, Users, FilterX } from "lucide-react";
 import type { EmployeeListItem } from "@/types/employee";
 import { Pagination } from "@/components/ui/pagination";
 import { FAB } from "@/components/ui/fab";
@@ -16,38 +17,70 @@ import EmployeeCard from "./employee-card";
 import { TierSwitch } from "@/components/ui/tier-switch";
 import EmployeeFormModal from "./employee-form-modal";
 import EmployeeDetailDrawer from "./employee-detail-drawer";
+import { cacheKeys } from "@/lib/swr";
+import { getEmployeeList, getEmployeeStats } from "@/app/actions/employee-queries";
 
 // ═══════════════════════════════════════════
 // EmployeeListPage — Client wrapper for /employees
-// Optimized: Removed SWR, using RSC props and useTransition
+// Optimized: Uses SWR with initialData for instant CSR filtering
 // ═══════════════════════════════════════════
 
 interface Props {
-  employees?: EmployeeListItem[];
-  stats?: { total: number; active: number; inactive: number; departments: Record<string, number> };
-  total?: number;
-  page?: number;
-  pageSize?: number;
+  initialList?: { employees: EmployeeListItem[]; total: number; page: number; pageSize: number };
+  initialStats?: { total: number; active: number; inactive: number; departments: Record<string, number> };
   canEdit?: boolean;
 }
 
 const EMPTY_STATS = { total: 0, active: 0, inactive: 0, departments: {} };
 
-export default function EmployeeListPage({
-  employees = [],
-  stats = EMPTY_STATS,
-  total = 0,
-  page = 1,
-  pageSize = 20,
+function EmployeeListPageInner({
+  initialList,
+  initialStats = EMPTY_STATS,
   canEdit = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
 
+  // ── Read filters from URL ──
+  const search = searchParams.get("q") || searchParams.get("search") || undefined;
+  const status = searchParams.get("status") || undefined;
+  const department = searchParams.get("dept") || undefined;
+  const role = searchParams.get("role") || undefined;
+  const sort = searchParams.get("sort") || "newest";
+  const page = Number(searchParams.get("page")) || 1;
+
+  const filters = useMemo(() => ({
+    search, status, department, role, sort, page: String(page)
+  }), [search, status, department, role, sort, page]);
+
+  // SWR — Employee list
+  const { data: listData, isLoading, mutate: mutateList } = useSWR(
+    [cacheKeys.employees(), filters],
+    async () => {
+      const res = await getEmployeeList(filters);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    { keepPreviousData: true, fallbackData: initialList }
+  );
+
+  // SWR — Employee stats
+  const { data: stats, mutate: mutateStats } = useSWR(
+    cacheKeys.employees() + "-stats",
+    async () => {
+      const res = await getEmployeeStats();
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    { keepPreviousData: true, fallbackData: initialStats }
+  );
+
+  const employees = listData?.employees || [];
+  const total = listData?.total || 0;
+  const pageSize = listData?.pageSize || 20;
   const totalPages = Math.ceil(total / pageSize);
 
   // Pagination onChange — update URL param
@@ -56,34 +89,35 @@ export default function EmployeeListPage({
       const params = new URLSearchParams(searchParams.toString());
       if (newPage > 1) params.set("page", String(newPage));
       else params.delete("page");
-      startTransition(() => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
-      });
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
     [router, pathname, searchParams]
   );
 
   // Detect if filters are active (not just default view)
-  const hasFilters = searchParams.get("search") || searchParams.get("dept") ||
-    searchParams.get("role") || searchParams.get("status");
+  const hasFilters = !!(search || department || role || (status && status !== "all"));
 
   const clearFilters = () => {
-    startTransition(() => {
-      router.push(pathname, { scroll: false });
-    });
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("q");
+    params.delete("search");
+    params.delete("status");
+    params.delete("dept");
+    params.delete("role");
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const refreshEmployees = useCallback(() => {
-    startTransition(() => {
-      router.refresh();
-    });
-  }, [router]);
+  const handleSaved = useCallback(() => {
+    mutateList();
+    mutateStats();
+  }, [mutateList, mutateStats]);
 
   return (
     <div className="main-container gap-3!">
       {/* ── Stats + Action ── */}
       <div className="flex items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-xs">
-        <EmployeeStatsBar stats={stats} />
+        <EmployeeStatsBar stats={stats || EMPTY_STATS} />
         {canEdit && (
           <div className="hidden lg:flex">
             <Button unstyled onClick={() => setShowForm(true)} className="btn btn-primary gap-2 shrink-0">
@@ -97,10 +131,10 @@ export default function EmployeeListPage({
       {canEdit && <FAB onClick={() => setShowForm(true)} label="Thêm nhân viên" />}
 
       {/* ── Filters (pass stats for pill counts) ── */}
-      <EmployeeFilters stats={{ total: stats.total, active: stats.active, inactive: stats.inactive }} />
+      <EmployeeFilters stats={stats || EMPTY_STATS} />
 
       {/* ── Employee List ── */}
-      {isPending && employees.length === 0 ? (
+      {isLoading && employees.length === 0 ? (
         <div className="card-base p-5">
           <SkeletonTable rows={6} />
         </div>
@@ -126,10 +160,7 @@ export default function EmployeeListPage({
         <>
           <TierSwitch
             phone={
-              <div className="space-y-2 relative">
-                {isPending && (
-                  <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 rounded-xl" />
-                )}
+              <div className="space-y-2">
                 {employees.map((emp) => (
                   <EmployeeCard
                     key={emp.id}
@@ -140,15 +171,12 @@ export default function EmployeeListPage({
               </div>
             }
             desktop={
-              <div className="relative">
-                {isPending && (
-                  <div className="absolute inset-0 bg-bg-base/30 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-xl" />
-                )}
-                <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
-              </div>
+              <EmployeeTable employees={employees} onSelect={setSelectedEmployee} />
             }
           />
-          <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} className="mt-4" />
+          {totalPages > 1 && (
+            <Pagination page={page || 1} totalPages={totalPages} onChange={handlePageChange} className="mt-4" />
+          )}
           <p className="text-center text-xs text-text-muted mt-1">
             Hiển thị {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} của {total} nhân viên
           </p>
@@ -159,16 +187,24 @@ export default function EmployeeListPage({
       <EmployeeFormModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        onSaved={refreshEmployees}
+        onSaved={handleSaved}
       />
 
       <EmployeeDetailDrawer
         employee={selectedEmployee}
         isOpen={!!selectedEmployee}
         onClose={() => setSelectedEmployee(null)}
-        onChanged={refreshEmployees}
+        onChanged={handleSaved}
         canEdit={canEdit}
       />
     </div>
+  );
+}
+
+export default function EmployeeListPage(props: Props) {
+  return (
+    <Suspense>
+      <EmployeeListPageInner {...props} />
+    </Suspense>
   );
 }

@@ -5,7 +5,7 @@ import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
-import { Shirt, Plus, Loader2, FilterX, ScanLine, CalendarDays } from "lucide-react";
+import { Shirt, Plus, FilterX, ScanLine, CalendarDays } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { fetchDressList, getDressStats } from "@/app/actions/dress-queries";
@@ -71,7 +71,7 @@ function DressesListInner({
 
 
   // SWR — dress list
-  const { data: listData, isLoading, error, mutate: mutateList } = useSWR(
+  const { data: listData, error, mutate: mutateList } = useSWR(
     [cacheKeys.dresses(), filters],
     () => fetchDressList(filters),
     { keepPreviousData: true, fallbackData: initialList }
@@ -198,23 +198,15 @@ function DressesListInner({
       {/* 3 ─── Filters (URL searchParams — Gold Standard) ─── */}
       <DressesFilters stats={stats || { total: 0, available: 0, reserved: 0, rented: 0, maintenance: 0 }} />
 
-      {/* 4 ─── Loading state ─── */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2 text-sm text-text-secondary">Đang tải...</span>
-        </div>
-      )}
-
       {/* 5 ─── Error state ─── */}
-      {error && !isLoading && (
+      {error && dresses.length === 0 && (
         <div className="flex items-center justify-center py-16">
           <p className="error-text">Lỗi tải dữ liệu</p>
         </div>
       )}
 
       {/* 6 ─── Card Grid / Empty States ─── */}
-      {!isLoading && !error && dresses.length === 0 ? (
+      {!error && dresses.length === 0 ? (
         hasFilters ? (
           <EmptyState
             icon={FilterX}
@@ -232,7 +224,7 @@ function DressesListInner({
             onAction={canManageCatalog ? () => openForm() : undefined}
           />
         )
-      ) : !isLoading && !error && (
+      ) : !error && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {dresses.map((dress) => (
             <DressCard

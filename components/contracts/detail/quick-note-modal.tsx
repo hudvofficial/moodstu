@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ export default function QuickNoteModal({
   onSaved,
 }: Props) {
   const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const resetForm = () => {
     setNotes("");
@@ -40,52 +39,41 @@ export default function QuickNoteModal({
   };
 
   const handleSubmit = async () => {
-    if (submitting) return;
     if (!notes.trim()) {
       toast.error("Vui lòng nhập nội dung ghi chú");
       return;
     }
 
-    // Đóng modal NGAY (close + revalidate) — note là insert đơn giản, không totals.
+    // Đóng modal NGAY (instant close) — toast chạy nền
     const text = notes.trim();
-    setSubmitting(true);
+    const toastId = toast.loading("Đang thêm ghi chú...");
     resetForm();
     onClose();
+    
     try {
       const result = await addContractNote(contractId, text);
       if (!result.success) throw new Error(result.error);
-      toast.success("Đã thêm ghi chú");
+      toast.success("Đã thêm ghi chú", { id: toastId });
       await invalidateContractAfterWrite(contractId);
       onSaved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Lỗi thêm ghi chú");
-    } finally {
-      setSubmitting(false);
+      toast.error(err instanceof Error ? err.message : "Lỗi thêm ghi chú", { id: toastId });
     }
   };
 
   // ─── Footer ──────────────────────────────
   const footer = (
     <div className="flex items-center justify-end gap-2 w-full">
-      <Button unstyled onClick={handleClose} className="btn btn-secondary" disabled={submitting}>
+      <Button unstyled onClick={handleClose} className="btn btn-secondary">
         Hủy
       </Button>
       <Button unstyled
         onClick={handleSubmit}
-        disabled={submitting || !notes.trim()}
+        disabled={!notes.trim()}
         className="btn btn-primary"
       >
-        {submitting ? (
-          <>
-            <Loader2 size={14} className="animate-spin" />
-            Đang lưu...
-          </>
-        ) : (
-          <>
-            <Send size={14} />
-            Lưu ghi chú
-          </>
-        )}
+        <Send size={14} />
+        Lưu ghi chú
       </Button>
     </div>
   );

@@ -82,9 +82,9 @@ export default function EmployeeDetailDrawer({
       const result = await softDeleteEmployee(detail.id);
       if (!result.success) throw new Error(result.error || "Lỗi cho nghỉ việc");
       toast.success("Đã cho nghỉ việc");
+      onClose();
       await invalidateEmployeeAfterWrite(detail.id);
       onChanged?.();
-      onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lỗi xử lý");
     } finally {

@@ -36,10 +36,10 @@ export function usePushSubscription(): UsePushSubscriptionResult {
     async function checkSubscription() {
       if (typeof window === "undefined") return;
 
-      const supported = "serviceWorker" in navigator && "PushManager" in window && !!VAPID_PUBLIC_KEY;
-      setIsSupported(supported);
+      const hasSW = "serviceWorker" in navigator && "PushManager" in window && !!VAPID_PUBLIC_KEY;
+      setIsSupported(hasSW);
 
-      if (!supported) {
+      if (!hasSW) {
         setIsLoading(false);
         return;
       }
@@ -47,8 +47,23 @@ export function usePushSubscription(): UsePushSubscriptionResult {
       setPermission(Notification.permission);
 
       try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
+        // Kiểm tra xem có SW nào đã đăng ký chưa (tránh treo khi dev mode tắt SW)
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length === 0) {
+          // Không có SW nào — không hỗ trợ push thực sự (ví dụ: dev mode)
+          setIsSupported(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Chờ SW ready với timeout 5s để tránh treo vô hạn
+        const registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("SW ready timeout")), 5000)
+          ),
+        ]);
+        const subscription = await (registration as ServiceWorkerRegistration).pushManager.getSubscription();
         setIsSubscribed(!!subscription);
       } catch (error) {
         console.error("Error checking push subscription:", error);

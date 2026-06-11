@@ -78,6 +78,7 @@ export default function SettingsView({
           <div className="space-y-1">
             <Link
               href="/settings/studio"
+              prefetch
               className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -90,6 +91,7 @@ export default function SettingsView({
             </Link>
             <Link
               href="/audit-logs"
+              prefetch
               className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -102,6 +104,7 @@ export default function SettingsView({
             </Link>
             <Link
               href="/settings/credit-cards"
+              prefetch
               className="flex items-center justify-between py-3 min-h-11 hover:bg-bg-hover -mx-2 px-2 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">

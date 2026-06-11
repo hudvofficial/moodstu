@@ -15,7 +15,7 @@ import {
   invalidateContractAfterWrite,
   invalidatePrintingAfterWrite,
 } from "@/lib/cache-invalidation";
-import { toast } from "@/lib/toast-utils";
+import { toastManager as toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
 import type { LabService } from "@/types/printing";
@@ -29,7 +29,7 @@ interface Props {
 
 interface PrintItem {
   name: string;
-  quantity: number;
+  quantity: number | "";
   unitPrice: number;
 }
 
@@ -40,7 +40,7 @@ interface LabOption {
 
 const emptyItem = (): PrintItem => ({
   name: "",
-  quantity: 1,
+  quantity: "",
   unitPrice: 0,
 });
 
@@ -72,7 +72,7 @@ export default function PrintingOrderForm({
   const [items, setItems] = useState<PrintItem[]>([emptyItem()]);
   const [notes, setNotes] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
-  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     if (!isOpen) return;
@@ -85,6 +85,7 @@ export default function PrintingOrderForm({
 
   useEffect(() => {
     if (!labId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLabServices([]);
       return;
     }
@@ -124,7 +125,7 @@ export default function PrintingOrderForm({
   }, []);
 
   const totalAmount = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
+    (sum, item) => sum + (item.quantity || 0) * item.unitPrice,
     0,
   );
 
@@ -136,13 +137,15 @@ export default function PrintingOrderForm({
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    const validItems = items.filter((item) => item.name.trim());
+    const validItems = items
+      .filter((item) => item.name.trim())
+      .map((item) => ({ ...item, quantity: item.quantity === "" ? 1 : item.quantity }));
     if (validItems.length === 0) {
-      toast("Vui lòng nhập ít nhất 1 sản phẩm", "warning");
+      toast.warning("Vui lòng nhập ít nhất 1 sản phẩm");
       return;
     }
     if (!labId) {
-      toast("Vui lòng chọn xưởng in", "warning");
+      toast.warning("Vui lòng chọn xưởng in");
       return;
     }
 
@@ -154,24 +157,22 @@ export default function PrintingOrderForm({
       notes: notes.trim() || null,
       expectedDate: expectedDate || null,
     };
-    setLoading(true);
+    const toastId = toast.loading("Đang tạo đơn in...");
     resetForm();
     onClose();
     try {
       const result = await createPrintingOrder(payload);
       if (result.success) {
-        toast("Đã tạo đơn in thành công", "success");
+        toast.success("Đã tạo đơn in thành công", { id: toastId });
         await Promise.all([
           invalidateContractAfterWrite(contractId),
           invalidatePrintingAfterWrite(),
         ]);
       } else {
-        toast(result.error || "Lỗi tạo đơn in", "error");
+        toast.error(result.error || "Lỗi tạo đơn in", { id: toastId });
       }
     } catch {
-      toast("Có lỗi xảy ra", "error");
-    } finally {
-      setLoading(false);
+      toast.error("Có lỗi xảy ra", { id: toastId });
     }
   }, [items, contractId, labId, notes, expectedDate, resetForm, onClose]);
 
@@ -232,7 +233,7 @@ export default function PrintingOrderForm({
 
           <div>
             {items.map((item, index) => {
-              const lineTotal = item.quantity * item.unitPrice;
+              const lineTotal = (item.quantity || 0) * item.unitPrice;
 
               return (
                 <div
@@ -268,15 +269,25 @@ export default function PrintingOrderForm({
                     unstyled
                     withBaseStyles={false}
                     type="number"
-                    value={String(item.quantity)}
-                    onChange={(event) =>
-                      updateItem(
-                        index,
-                        "quantity",
-                        Math.max(1, parseInt(event.target.value) || 1),
-                      )
-                    }
+                    value={item.quantity === "" ? "" : String(item.quantity)}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      if (raw === "") {
+                        updateItem(index, "quantity", "");
+                      } else {
+                        const parsed = parseInt(raw);
+                        if (!isNaN(parsed) && parsed >= 1) {
+                          updateItem(index, "quantity", parsed);
+                        }
+                      }
+                    }}
+                    onBlur={(event) => {
+                      if (event.target.value === "") {
+                        updateItem(index, "quantity", 1);
+                      }
+                    }}
                     min={1}
+                    placeholder="SL"
                     className="input-base h-9 w-full text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
                   />
 
@@ -327,8 +338,8 @@ export default function PrintingOrderForm({
           >
             Đóng
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Đang xử lý..." : "Tạo đơn in"}
+          <Button onClick={handleSubmit}>
+            Tạo đơn in
           </Button>
         </div>
       </div>

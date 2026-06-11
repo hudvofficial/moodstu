@@ -89,11 +89,8 @@ export default async function EmployeesPage({
         debounceMs={600}
       />
       <EmployeeListPage
-        employees={listResult.employees}
-        total={listResult.total}
-        page={listResult.page}
-        pageSize={listResult.pageSize}
-        stats={statsResult}
+        initialList={listResult}
+        initialStats={statsResult}
         canEdit={canEdit}
       />
     </>

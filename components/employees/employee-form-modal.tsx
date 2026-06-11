@@ -104,16 +104,20 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
         };
       }
 
+      // Instant close — đóng modal ngay, chạy server action ngầm
+      onClose();
+
+      const toastId = toast.loading(isEdit ? "Đang cập nhật..." : "Đang thêm nhân viên...");
+
       const result = isEdit
         ? await updateEmployee(editEmployee!.id, payload, editEmployee!.updated_at)
         : await createEmployee(payload);
 
       if (result.success) {
-        toast.success(isEdit ? "Đã cập nhật nhân viên" : "Đã thêm nhân viên");
+        toast.success(isEdit ? "Đã cập nhật nhân viên" : "Đã thêm nhân viên", { id: toastId });
         onSaved();
-        onClose();
       } else {
-        throw new Error(result.error || "Lỗi");
+        toast.error(result.error || "Lỗi lưu nhân viên", { id: toastId });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi lưu nhân viên");

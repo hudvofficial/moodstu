@@ -29,7 +29,8 @@
  */
 
 import { useQueryStates, parseAsString } from "nuqs";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────
 /** Default values config — string values only (URL params are strings) */
@@ -56,6 +57,8 @@ export interface UseListFiltersReturn<T extends FilterDefaults> {
 export function useListFilters<T extends FilterDefaults>(
   defaults: T
 ): UseListFiltersReturn<T> {
+  const pathname = usePathname();
+  const mountedPathRef = useRef(pathname);
   // Build nuqs parsers from defaults (all treated as string URL params)
   const parsers = useMemo(
     () =>
@@ -69,6 +72,10 @@ export function useListFilters<T extends FilterDefaults>(
     [] // defaults object reference should be stable (pass literal)
   );
 
+  useEffect(() => {
+    mountedPathRef.current = pathname;
+  }, [pathname]);
+
   // nuqs useQueryStates — manages all params together, 1 URL push per batch
   const [queryState, setQueryState] = useQueryStates(parsers, {
     // shallow: true → URL changes but does NOT trigger server component re-render
@@ -81,20 +88,34 @@ export function useListFilters<T extends FilterDefaults>(
   // Current params (cast to correct type)
   const params = queryState as FilterParams<T>;
 
+  const safeSetQueryState = useCallback(
+    (updates: Parameters<typeof setQueryState>[0]) => {
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+        if (currentPath !== mountedPathRef.current) {
+          return;
+        }
+      }
+
+      setQueryState(updates);
+    },
+    [setQueryState]
+  );
+
   // Set a single param
   const setParam = useCallback(
     (key: keyof T, value: string) => {
-      setQueryState({ [key]: value } as Partial<typeof queryState>);
+      safeSetQueryState({ [key]: value } as Partial<typeof queryState>);
     },
-    [setQueryState]
+    [safeSetQueryState]
   );
 
   // Set multiple params at once (batched → 1 URL push)
   const setParams = useCallback(
     (updates: Partial<FilterParams<T>>) => {
-      setQueryState(updates as Partial<typeof queryState>);
+      safeSetQueryState(updates as Partial<typeof queryState>);
     },
-    [setQueryState]
+    [safeSetQueryState]
   );
 
   // Reset all to defaults
@@ -103,8 +124,8 @@ export function useListFilters<T extends FilterDefaults>(
     const nulls = Object.fromEntries(
       Object.keys(defaults).map((key) => [key, null])
     );
-    setQueryState(nulls as Parameters<typeof setQueryState>[0]);
-  }, [defaults, setQueryState]);
+    safeSetQueryState(nulls as Parameters<typeof setQueryState>[0]);
+  }, [defaults, safeSetQueryState]);
 
   // Check if any filter is non-default
   const hasActiveFilters = useMemo(

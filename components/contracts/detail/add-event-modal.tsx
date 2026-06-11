@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Loader2 } from "lucide-react";
+import { CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,6 @@ export default function AddEventModal({
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const isOnSet = isOnSetEvent(eventType);
 
@@ -55,7 +54,6 @@ export default function AddEventModal({
   };
 
   const handleSubmit = async () => {
-    if (submitting) return;
     if (!title.trim()) {
       toast.error("Vui lòng nhập tên sự kiện");
       return;
@@ -65,7 +63,7 @@ export default function AddEventModal({
       return;
     }
 
-    // Đóng modal NGAY (close + revalidate) — event là insert đơn giản, Google-sync chạy nền.
+    // Đóng modal NGAY (instant close) — toast chạy nền
     const titleText = title.trim();
     const payload = {
       contractId,
@@ -75,44 +73,35 @@ export default function AddEventModal({
       location: location || undefined,
       notes: notes || undefined,
     };
-    setSubmitting(true);
+    
+    const toastId = toast.loading(`Đang thêm "${titleText}"...`);
     resetForm();
     onClose();
+    
     try {
       const result = await addContractEvent(payload);
       if (!result.success) throw new Error(result.error);
-      toast.success(`Đã thêm sự kiện "${titleText}"`);
+      toast.success(`Đã thêm sự kiện "${titleText}"`, { id: toastId });
       onSaved(result.data as ContractEvent);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Lỗi thêm sự kiện");
-    } finally {
-      setSubmitting(false);
+      toast.error(err instanceof Error ? err.message : "Lỗi thêm sự kiện", { id: toastId });
     }
   };
 
   // ─── Footer ──────────────────────────────
   const footer = (
     <div className="flex items-center justify-end gap-2 w-full">
-      <Button unstyled onClick={onClose} className="btn btn-secondary" disabled={submitting}>
+      <Button unstyled onClick={onClose} className="btn btn-secondary">
         Hủy
       </Button>
       <Button unstyled
         onClick={handleSubmit}
-        disabled={submitting || !title.trim()}
+        disabled={!title.trim()}
         className="btn btn-primary"
         data-testid="add-event-submit"
       >
-        {submitting ? (
-          <>
-            <Loader2 size={14} className="animate-spin" />
-            Đang thêm...
-          </>
-        ) : (
-          <>
-            <CalendarPlus size={14} />
-            Thêm sự kiện
-          </>
-        )}
+        <CalendarPlus size={14} />
+        Thêm sự kiện
       </Button>
     </div>
   );

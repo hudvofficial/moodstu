@@ -14,7 +14,7 @@ import { toast } from "sonner";
  */
 
 import { Suspense, useMemo, useCallback } from "react";
-import { Plus, ArrowDownToLine, ArrowUpFromLine, Loader2, History, Package, ChevronDown, BarChart3, ClipboardCheck } from "lucide-react";
+import { Plus, ArrowDownToLine, ArrowUpFromLine, History, Package, ChevronDown, BarChart3, ClipboardCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 
@@ -130,9 +130,8 @@ function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: 
     total: itemTotal,
     page: itemPage,
     pageSize: itemPageSize,
-    isLoading: itemsLoading,
     error: itemsError,
-  } = useInventory(swrFilters, initialList);
+  } = useInventory(swrFilters, initialList, { enabled: tab === "items" });
 
   // ── SWR: Transaction history ──
   const {
@@ -140,14 +139,12 @@ function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: 
     total: txTotal,
     page: txPage,
     pageSize: txPageSize,
-    isLoading: txLoading,
     error: txError,
-  } = useTransactionHistory(txFilters);
+  } = useTransactionHistory(txFilters, undefined, { enabled: tab === "history" });
 
-  const { stats } = useInventoryStats(initialStats);
+  const { stats } = useInventoryStats(initialStats, { enabled: tab !== "approvals" });
 
   // Computed values based on active tab
-  const isLoading = tab === "history" ? txLoading : itemsLoading;
   const error = tab === "history" ? txError : tab === "items" ? itemsError : null;
 
   // 📡 Realtime — single multi-table channel for both items + transactions
@@ -357,18 +354,8 @@ function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: 
         </div>
       </div>
 
-      {/* ── Loading State ── */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2 text-sm text-text-secondary">
-            Đang tải dữ liệu...
-          </span>
-        </div>
-      )}
-
       {/* ── Error State ── */}
-      {error && !isLoading && (
+      {error && total === 0 && (
         <div className="flex items-center justify-center py-16">
           <p className="error-text">
             Lỗi tải dữ liệu: {error.message}
@@ -379,7 +366,7 @@ function InventoryListInner({ initialList, initialStats, userRole = "viewer" }: 
       {/* ── Content (conditional based on tab) ── */}
       {tab === "approvals" ? (
         <ApprovalRequestsTab userRole={userRole} />
-      ) : !isLoading && !error && (
+      ) : !error && (
         <>
           {tab === "history" ? (
             <TransactionHistoryTable

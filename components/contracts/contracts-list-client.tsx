@@ -388,25 +388,15 @@ function ContractsListInner({
           </div>
         )}
 
-        {/* ── Loading State ── */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <span className="ml-2 text-sm text-text-secondary">
-              Đang tải dữ liệu...
-            </span>
-          </div>
-        )}
-
         {/* ── Error State ── */}
-        {error && !isLoading && (
+        {error && contracts.length === 0 && (
           <div className="flex items-center justify-center py-16">
             <p className="error-text">Lỗi tải dữ liệu: {error.message}</p>
           </div>
         )}
 
         {/* ── Table / Card List ── */}
-        {!isLoading && !error && (
+        {!error && (
           <>
             <ContractsTable
               contracts={contracts}

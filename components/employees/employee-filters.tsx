@@ -70,72 +70,74 @@ export default function EmployeeFilters({ stats }: Props) {
   ];
 
   return (
-    <TierSwitch
-      phone={
-        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
-        <TabsFilter
-          tabs={STATUS_TABS}
-          activeTab={currentStatus}
-          onChange={(value) => updateParam("status", value)}
-          variant="pills"
-        />
-        {/* Separator */}
-        <div className="h-5 border-l border-border shrink-0" />
-        <SelectPill
-          options={DEPT_OPTIONS}
-          value={searchParams.get("dept") || "all"}
-          onChange={(v) => updateParam("dept", v)}
-          placeholder="Phòng ban"
-          defaultValue="all"
-        />
-        <SelectPill
-          options={ROLE_OPTIONS}
-          value={searchParams.get("role") || "all"}
-          onChange={(v) => updateParam("role", v)}
-          placeholder="Vai trò"
-          defaultValue="all"
-        />
-        <SelectPill
-          options={SORT_OPTIONS}
-          value={searchParams.get("sort") || "newest"}
-          onChange={(v) => updateParam("sort", v)}
-          placeholder="Mới nhất"
-          defaultValue="newest"
-        />
-        </div>
-      }
-      desktop={
-        <div className="flex items-center justify-between gap-3">
-        <TabsFilter
-          tabs={STATUS_TABS}
-          activeTab={currentStatus}
-          onChange={(value) => updateParam("status", value)}
-        />
-        <div className="flex items-center gap-2">
-          <SelectPill
-            options={DEPT_OPTIONS}
-            value={searchParams.get("dept") || "all"}
-            onChange={(v) => updateParam("dept", v)}
-            placeholder="Phòng ban"
-            defaultValue="all"
-          />
-          <SelectPill
-            options={ROLE_OPTIONS}
-            value={searchParams.get("role") || "all"}
-            onChange={(v) => updateParam("role", v)}
-            placeholder="Vai trò"
-            defaultValue="all"
-          />
-          <SelectPill
-            options={SORT_OPTIONS}
-            value={searchParams.get("sort") || "newest"}
-            onChange={(v) => updateParam("sort", v)}
-            placeholder="Mới nhất"
-            defaultValue="newest"
-          />
-        </div>
-        </div>
-      }
-    />
+    <div className="flex flex-col gap-3">
+      <TierSwitch
+        phone={
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+            <TabsFilter
+              tabs={STATUS_TABS}
+              activeTab={currentStatus}
+              onChange={(value) => updateParam("status", value)}
+              variant="pills"
+            />
+            {/* Separator */}
+            <div className="h-5 border-l border-border shrink-0" />
+            <SelectPill
+              options={DEPT_OPTIONS}
+              value={searchParams.get("dept") || "all"}
+              onChange={(v) => updateParam("dept", v)}
+              placeholder="Phòng ban"
+              defaultValue="all"
+            />
+            <SelectPill
+              options={ROLE_OPTIONS}
+              value={searchParams.get("role") || "all"}
+              onChange={(v) => updateParam("role", v)}
+              placeholder="Vai trò"
+              defaultValue="all"
+            />
+            <SelectPill
+              options={SORT_OPTIONS}
+              value={searchParams.get("sort") || "newest"}
+              onChange={(v) => updateParam("sort", v)}
+              placeholder="Mới nhất"
+              defaultValue="newest"
+            />
+          </div>
+        }
+        desktop={
+          <div className="flex items-center justify-between gap-3">
+            <TabsFilter
+              tabs={STATUS_TABS}
+              activeTab={currentStatus}
+              onChange={(value) => updateParam("status", value)}
+            />
+            <div className="flex items-center gap-2">
+              <SelectPill
+                options={DEPT_OPTIONS}
+                value={searchParams.get("dept") || "all"}
+                onChange={(v) => updateParam("dept", v)}
+                placeholder="Phòng ban"
+                defaultValue="all"
+              />
+              <SelectPill
+                options={ROLE_OPTIONS}
+                value={searchParams.get("role") || "all"}
+                onChange={(v) => updateParam("role", v)}
+                placeholder="Vai trò"
+                defaultValue="all"
+              />
+              <SelectPill
+                options={SORT_OPTIONS}
+                value={searchParams.get("sort") || "newest"}
+                onChange={(v) => updateParam("sort", v)}
+                placeholder="Mới nhất"
+                defaultValue="newest"
+              />
+            </div>
+          </div>
+        }
+      />
+    </div>
   );
 }
