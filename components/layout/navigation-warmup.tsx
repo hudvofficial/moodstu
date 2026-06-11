@@ -44,6 +44,23 @@ function scheduleIdle(callback: () => void) {
   return () => window.clearTimeout(id);
 }
 
+function shouldSkipWarmup() {
+  const nav = navigator as Navigator & {
+    connection?: {
+      saveData?: boolean;
+      effectiveType?: string;
+    };
+  };
+
+  const connection = nav.connection;
+  if (connection?.saveData) return true;
+
+  const effectiveType = connection?.effectiveType;
+  if (effectiveType === "slow-2g" || effectiveType === "2g") return true;
+
+  return false;
+}
+
 export function NavigationWarmup({ role }: { role: Role }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,6 +79,7 @@ export function NavigationWarmup({ role }: { role: Role }) {
 
   React.useEffect(() => {
     if (hrefs.length === 0) return;
+    if (shouldSkipWarmup()) return;
 
     let cancelled = false;
     let cancelIdle: (() => void) | undefined;
@@ -73,7 +91,7 @@ export function NavigationWarmup({ role }: { role: Role }) {
           const id = window.setTimeout(() => {
             if (!cancelled) {
               router.prefetch(href);
-              if (index < 2) prewarmRouteData(href);
+              if (index === 0) prewarmRouteData(href);
             }
           }, index * 200);
           timeoutIds.push(id);

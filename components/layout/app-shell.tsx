@@ -2,6 +2,7 @@
 /* eslint-disable react/forbid-elements */
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
@@ -13,8 +14,16 @@ import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
-import { NavigationWarmup } from "./navigation-warmup";
-import { NavigationProgress } from "./navigation-progress";
+
+const NavigationWarmup = dynamic(
+  () => import("./navigation-warmup").then((mod) => mod.NavigationWarmup),
+  { ssr: false },
+);
+
+const NavigationProgress = dynamic(
+  () => import("./navigation-progress").then((mod) => mod.NavigationProgress),
+  { ssr: false },
+);
 
 // Routes that hide BOTH Header + BottomNav (currently unused)
 const FULLPAGE_PATTERNS: RegExp[] = [
