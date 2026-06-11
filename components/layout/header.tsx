@@ -139,7 +139,7 @@ export function Header({
       ref={headerRef}
       className={cn(
         // SOLID bg (no transparency/blur) so the iOS safe-area never seams — v1/mcoffe pattern
-        "sticky top-0 z-(--z-header) bg-bg-card print:hidden",
+        "sticky top-0 z-40 bg-bg-card print:hidden",
         "lg:shadow-(--shadow-header)",
         "max-lg:fixed max-lg:inset-x-0 max-lg:pt-[env(safe-area-inset-top)] max-lg:border-b max-lg:border-border",
         className
