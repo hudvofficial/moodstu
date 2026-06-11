@@ -8,7 +8,8 @@
 ## Module Quan Trọng & Các thay đổi gần đây
 - **Module Download ZIP Ảnh (Client-side):** 
   - Vừa được tối ưu hóa để tải và nén ảnh (ZIP) trực tiếp trên Client-side.
-  - Xử lý dứt điểm tình trạng lỗi 500 do nghẽn RAM và hao tổn băng thông (Bandwidth) Server-side trên Vercel. Băng thông hiện tại đã được giảm về gần 0.
+  - Xử lý dứt điểm tình trạng lỗi 500 do nghẽn RAM và hao tổn băng thông (Bandwidth) Server-side trên Vercel. 
+  - Đã **bypass hoàn toàn API Proxy của Vercel**, trình duyệt (JSZip) sẽ tải ảnh trực tiếp từ Google Drive thông qua link gốc `lh3.googleusercontent.com/d/id=s0`. Điều này giúp đưa băng thông Fast Origin Transfer của Vercel về đúng mức 0.
 - **Performance & Analytics:** Đã tích hợp thành công `@vercel/speed-insights` để theo dõi Core Web Vitals của khách hàng (giúp tối ưu tốc độ load ảnh cho người xem Gallery trên mobile/4G).
 
 ## Lưu ý Kỹ thuật (Technical Notes)

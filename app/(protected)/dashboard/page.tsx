@@ -39,6 +39,7 @@ function formatTrend(value: number | null) {
 }
 
 // --- SKELETONS ---
+
 function KpiSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -57,12 +58,56 @@ function ListSkeleton() {
       <SkeletonCard className="h-16 w-full" />
       <SkeletonCard className="h-16 w-full" />
       <SkeletonCard className="h-16 w-full" />
-      <SkeletonCard className="h-16 w-full" />
+    </div>
+  );
+}
+
+/**
+ * Skeleton toàn trang — hiển thị ngay lập tức trong khi DashboardContent
+ * đang chờ requireDashboardAccess() resolve.
+ * Mục đích: loại bỏ hoàn toàn thời gian trắng màn hình (white-screen time)
+ * trước khi server gửi được byte HTML đầu tiên.
+ */
+function DashboardSkeleton() {
+  const now = new Date();
+  const periodLabel = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+
+  return (
+    <div className="main-container">
+      {/* Header hiển thị ngay — không cần auth */}
+      <DashboardHeader periodLabel={periodLabel} />
+
+      {/* Quick Access placeholder */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6 mb-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonCard key={i} className="h-[72px]" />
+        ))}
+      </div>
+
+      {/* KPI row */}
+      <KpiSkeleton />
+
+      {/* Chart row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 mt-4">
+        <div className="lg:col-span-3">
+          <ChartSkeleton height={400} />
+        </div>
+        <div className="lg:col-span-2">
+          <ChartSkeleton height={400} />
+        </div>
+      </div>
+
+      {/* List row */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
+        <ListSkeleton />
+        <ListSkeleton />
+      </div>
     </div>
   );
 }
 
 // --- UI HELPERS ---
+
 function DashboardErrorBanner({ errors }: { errors: string[] }) {
   if (errors.length === 0) return null;
   return (
@@ -89,7 +134,13 @@ function SectionErrorNotice({ errors }: { errors: string[] }) {
   );
 }
 
-function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibility: DashboardVisibility }) {
+function DashboardKpiGrid({
+  kpis,
+  visibility,
+}: {
+  kpis: DashboardKPIs;
+  visibility: DashboardVisibility;
+}) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <KPICard
@@ -98,7 +149,9 @@ function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibilit
         icon={DollarSign}
         iconBg="bg-primary/10"
         iconColor="text-primary"
-        trend={visibility.canViewFinancials ? formatTrend(kpis.revenueChange) : undefined}
+        trend={
+          visibility.canViewFinancials ? formatTrend(kpis.revenueChange) : undefined
+        }
         trendUp={(kpis.revenueChange ?? 0) >= 0}
         href={visibility.canViewFinancials ? "/finance" : undefined}
         className="entrance entrance-1"
@@ -109,7 +162,9 @@ function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibilit
         icon={FileText}
         iconBg="bg-info/10"
         iconColor="text-info"
-        trend={visibility.canViewContracts ? formatTrend(kpis.contractsChange) : undefined}
+        trend={
+          visibility.canViewContracts ? formatTrend(kpis.contractsChange) : undefined
+        }
         trendUp={(kpis.contractsChange ?? 0) >= 0}
         href={visibility.canViewContracts ? "/contracts" : undefined}
         className="entrance entrance-2"
@@ -120,7 +175,9 @@ function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibilit
         icon={AlertTriangle}
         iconBg="bg-warning/10"
         iconColor="text-warning"
-        trend={visibility.canViewFinancials ? formatTrend(kpis.debtChange) : undefined}
+        trend={
+          visibility.canViewFinancials ? formatTrend(kpis.debtChange) : undefined
+        }
         trendUp={(kpis.debtChange ?? 0) >= 0}
         href={visibility.canViewFinancials ? "/finance" : undefined}
         className="entrance entrance-3"
@@ -131,9 +188,13 @@ function DashboardKpiGrid({ kpis, visibility }: { kpis: DashboardKPIs; visibilit
         icon={CheckCircle}
         iconBg="bg-success/10"
         iconColor="text-success"
-        trend={visibility.canViewContracts ? formatTrend(kpis.completedChange) : undefined}
+        trend={
+          visibility.canViewContracts ? formatTrend(kpis.completedChange) : undefined
+        }
         trendUp={(kpis.completedChange ?? 0) >= 0}
-        href={visibility.canViewContracts ? "/contracts?status=hoan_thanh" : undefined}
+        href={
+          visibility.canViewContracts ? "/contracts?status=hoan_thanh" : undefined
+        }
         className="entrance entrance-4"
       />
     </div>
@@ -147,7 +208,10 @@ async function KpiSection() {
   return (
     <>
       <DashboardErrorBanner errors={critical.errors} />
-      <DashboardKpiGrid kpis={critical.kpis} visibility={critical.access.visibility} />
+      <DashboardKpiGrid
+        kpis={critical.kpis}
+        visibility={critical.access.visibility}
+      />
     </>
   );
 }
@@ -166,7 +230,11 @@ async function RevenueSection({ visibility }: { visibility: DashboardVisibility 
   );
 }
 
-async function ServiceBreakdownSection({ visibility }: { visibility: DashboardVisibility }) {
+async function ServiceBreakdownSection({
+  visibility,
+}: {
+  visibility: DashboardVisibility;
+}) {
   const result = await getDashboardServiceBreakdownSection();
   return (
     <>
@@ -206,10 +274,15 @@ async function PaymentsSection({ visibility }: { visibility: DashboardVisibility
   );
 }
 
-// --- MAIN PAGE (THIN SHELL) ---
+// ---------------------------------------------------------------------------
+// DashboardContent — Server Component chứa toàn bộ logic cần requireDashboardAccess().
+// Được bọc trong <Suspense> bên dưới để KHÔNG chặn TTFB của trang.
+// ---------------------------------------------------------------------------
 
-export default async function DashboardPage() {
-  // ⚡ LOẠI BỎ CHẶN LUỒNG: Auth check chạy trong 0ms (Cache cookie). Không gọi DB ở đây.
+async function DashboardContent() {
+  // ⚡ Auth check nằm ở đây — chạy song song với việc React stream skeleton về client.
+  // Vercel edge: trung bình 5-6 giây → người dùng thấy skeleton ngay lập tức
+  // thay vì màn hình trắng.
   const access = await requireDashboardAccess();
   const { visibility, role } = access;
 
@@ -256,5 +329,21 @@ export default async function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DashboardPage — Shell trang (Page Entry Point).
+//
+// ✅ KHÔNG có bất kỳ await nào ở đây.
+// ✅ React có thể gửi ngay <DashboardSkeleton> về client (TTFB ~0ms).
+// ✅ DashboardContent được stream xuống sau khi requireDashboardAccess() resolve.
+// ---------------------------------------------------------------------------
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
   );
 }
