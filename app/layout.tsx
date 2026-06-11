@@ -16,6 +16,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { SplashScreen } from "@/components/layout/splash-screen";
 import { ToasterWrapper } from "@/components/ui/toaster-wrapper";
 import { ViewTransitions } from "next-view-transitions";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = localFont({
   src: "../public/fonts/InterVariable.woff2",
@@ -136,6 +137,7 @@ export default function RootLayout({
                   showSpinner={false}
                   speed={300}
                 />
+                <SpeedInsights />
                 <WebVitalsReporter />
                 <DevServiceWorkerReset />
                 <ServiceWorkerUpdateReload />
