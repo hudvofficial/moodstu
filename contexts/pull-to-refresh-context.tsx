@@ -28,26 +28,29 @@ interface PullToRefreshProviderProps {
 }
 
 export function PullToRefreshProvider({ children, scrollRef, disabled, bottomNavSpacer }: PullToRefreshProviderProps) {
-  const [refreshCallback, setRefreshCallback] = useState<(() => Promise<void>) | null>(null);
+  const refreshCallbackRef = useRef<(() => Promise<void>) | null>(null);
+  const [hasCallback, setHasCallback] = useState(false);
 
   const handleRefresh = useCallback(async () => {
-    if (refreshCallback) {
-      await refreshCallback();
+    if (refreshCallbackRef.current) {
+      await refreshCallbackRef.current();
     }
-  }, [refreshCallback]);
+  }, []);
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh({
     onRefresh: handleRefresh,
     scrollRef,
-    disabled: disabled || !refreshCallback,
+    disabled: disabled || !hasCallback,
   });
 
   const registerRefresh = useCallback((callback: () => Promise<void>) => {
-    setRefreshCallback(() => callback);
+    refreshCallbackRef.current = callback;
+    setHasCallback(true);
   }, []);
 
   const unregisterRefresh = useCallback(() => {
-    setRefreshCallback(null);
+    refreshCallbackRef.current = null;
+    setHasCallback(false);
   }, []);
 
   return (

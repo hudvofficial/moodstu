@@ -1,4 +1,4 @@
-import { getPublicGallery, getPublicGalleryPreview } from "@/app/actions/gallery-public-actions";
+import { getPublicGallery } from "@/app/actions/gallery-public-actions";
 import type { Metadata } from "next";
 import GalleryPageClient from "@/components/gallery/gallery-page-client";
 
@@ -31,15 +31,15 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { accessUrl } = await params;
-  const res = await getPublicGalleryPreview(accessUrl);
+  const res = await getPublicGallery(accessUrl);
 
   if (!res.success) {
     return { title: "Album không tồn tại", robots: { index: false, follow: false } };
   }
 
   const title = res.data.title || "Album ảnh";
-  const imageCount = res.data.imageCount;
-  const description = res.data.ogDescription || (imageCount > 0
+  const imageCount = (res.data as any).imageCount || 0;
+  const description = (res.data as any).ogDescription || (imageCount > 0
     ? `Xem ${imageCount} ảnh trong album "${res.data.title || "Album"}"`
     : `Album ảnh - ${res.data.title || "Mood Studio"}`);
     
@@ -51,7 +51,7 @@ export async function generateMetadata({
     metadataBase: new URL(getAbsoluteMetadataImage("/") || "https://stu.moodwedding.com"),
     robots: { index: true, follow: true },
     openGraph: {
-      title: res.data.ogTitle || title,
+      title: (res.data as any).ogTitle || title,
       description,
       type: "website",
       url: `/gallery/${accessUrl}`,
@@ -59,7 +59,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: res.data.ogTitle || title,
+      title: (res.data as any).ogTitle || title,
       description,
       ...(ogImageUrl ? { images: [`${ogImageUrl}?ext=.png&v=4`] } : {}),
     },

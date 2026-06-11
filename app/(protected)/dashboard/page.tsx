@@ -43,17 +43,17 @@ function formatTrend(value: number | null) {
 function KpiSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <SkeletonCard className="h-[120px]" />
-      <SkeletonCard className="h-[120px]" />
-      <SkeletonCard className="h-[120px]" />
-      <SkeletonCard className="h-[120px]" />
+      <SkeletonCard className="h-24 lg:h-28" />
+      <SkeletonCard className="h-24 lg:h-28" />
+      <SkeletonCard className="h-24 lg:h-28" />
+      <SkeletonCard className="h-24 lg:h-28" />
     </div>
   );
 }
 
 function ListSkeleton() {
   return (
-    <div className="flex flex-col gap-3 p-5 card-base h-[400px]">
+    <div className="flex flex-col gap-3 p-5 card-base h-64">
       <SkeletonCard className="h-6 w-1/3 mb-2" />
       <SkeletonCard className="h-16 w-full" />
       <SkeletonCard className="h-16 w-full" />
@@ -78,8 +78,8 @@ function DashboardSkeleton() {
       <DashboardHeader periodLabel={periodLabel} />
 
       {/* Quick Access placeholder */}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6 mb-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-5 gap-2 sm:gap-3 lg:hidden mb-4">
+        {Array.from({ length: 5 }).map((_, i) => (
           <SkeletonCard key={i} className="h-[72px]" />
         ))}
       </div>
@@ -90,10 +90,10 @@ function DashboardSkeleton() {
       {/* Chart row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 mt-4">
         <div className="lg:col-span-3">
-          <ChartSkeleton height={400} />
+          <ChartSkeleton height={280} />
         </div>
         <div className="lg:col-span-2">
-          <ChartSkeleton height={400} />
+          <ChartSkeleton height={280} />
         </div>
       </div>
 

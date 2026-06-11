@@ -99,7 +99,8 @@ export default function GalleryImageGrid({
                   resolveThumbnailSize(columnWidth),
                   publicMode // Use proxy in public mode for reliability
                 );
-                const eagerLoad = index < Math.max(columnCount * 2, 6);
+                // Reduce eager load to minimum to save LCP bandwidth
+                const eagerLoad = index < Math.max(columnCount, 3);
                 const overlayChipStyle = {
                   backgroundColor: "var(--gallery-admin-overlay-chip)",
                   color: "var(--color-text-primary)",

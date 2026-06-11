@@ -17,7 +17,7 @@ export const IMAGE_COLS =
 
 export const RAW_EXTENSION_VALUES = ["arw", "cr2", "cr3", "nef", "raf", "dng", "rw2", "orf", "pef"];
 
-export const PUBLIC_IMAGE_PAGE_SIZE = 100;
+export const PUBLIC_IMAGE_PAGE_SIZE = 30;
 
 export const SHARE_LINK_CAPABILITIES: GalleryShareCapability[] = ["select", "view", "download"];
 
@@ -773,4 +773,3 @@ export async function prepareGallerySharePayload(
 
   return prepareGalleryShareFallback(supabase, galleryId, userId, profiler);
 }
-

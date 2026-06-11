@@ -36,12 +36,12 @@ function ChartSkeleton({ className }: { className?: string }) {
         <div className="h-5 w-40 bg-bg-hover rounded animate-pulse" />
       </div>
       <div className="flex items-end gap-3 h-44">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {[40, 60, 45, 80, 50, 70].map((h, i) => (
           <div
             key={i}
             className="flex-1 bg-bg-hover rounded-t animate-pulse"
             style={{
-              height: `${30 + Math.random() * 60}%`,
+              height: `${h}%`,
               animationDelay: `${i * 80}ms`,
             }}
           />
@@ -62,7 +62,7 @@ function ListSkeleton({ className }: { className?: string }) {
         <div className="h-4 w-16 bg-bg-hover rounded animate-pulse" />
       </div>
       <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 rounded-lg p-3 bg-bg-base/60">
             <div className="icon-box bg-bg-hover animate-pulse" />
             <div className="flex-1 min-w-0">

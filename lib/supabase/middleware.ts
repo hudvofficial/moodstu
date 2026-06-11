@@ -1,6 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { clearAuthProxyHeaders } from "@/lib/auth-proxy-headers";
+import {
+  clearAuthProxyHeaders,
+  AUTH_PROXY_SOURCE_HEADER,
+  AUTH_PROXY_SUB_HEADER,
+  AUTH_PROXY_EMAIL_HEADER,
+  AUTH_PROXY_ROLE_HEADER,
+  AUTH_PROXY_FULL_NAME_HEADER,
+} from "@/lib/auth-proxy-headers";
 
 const DEFAULT_AUTH_SHELL_PROFILE_SLOW_MS = 700;
 
@@ -98,19 +105,51 @@ export async function updateSession(request: NextRequest) {
   }
 
   let isAuthenticated = false;
+  let claims: Record<string, unknown> | null = null;
 
   const claimsStartedAt = performance.now();
   try {
     const { data, error } = await supabase.auth.getClaims();
-    isAuthenticated = !error && !!data?.claims?.sub;
+    claims = !error && data?.claims?.sub ? data.claims : null;
+    isAuthenticated = !!claims;
   } catch {
     isAuthenticated = false;
+    claims = null;
   } finally {
     logAuthShellTiming(
       "middleware.claims",
       Math.round(performance.now() - claimsStartedAt),
       isAuthenticated ? "authenticated=true" : "authenticated=false",
     );
+  }
+
+  if (claims) {
+    requestHeaders.set(AUTH_PROXY_SOURCE_HEADER, "middleware");
+    requestHeaders.set(AUTH_PROXY_SUB_HEADER, String(claims.sub));
+
+    if (typeof claims.email === "string") {
+      requestHeaders.set(AUTH_PROXY_EMAIL_HEADER, claims.email);
+    }
+
+    const appMetadata = claims.app_metadata && typeof claims.app_metadata === "object"
+      ? (claims.app_metadata as Record<string, unknown>)
+      : {};
+    const userMetadata = claims.user_metadata && typeof claims.user_metadata === "object"
+      ? (claims.user_metadata as Record<string, unknown>)
+      : {};
+
+    const role = typeof appMetadata.role === "string"
+      ? appMetadata.role
+      : typeof userMetadata.role === "string"
+        ? userMetadata.role
+        : null;
+    const fullName = typeof userMetadata.full_name === "string" ? userMetadata.full_name : null;
+
+    if (role) requestHeaders.set(AUTH_PROXY_ROLE_HEADER, role);
+    if (fullName) requestHeaders.set(AUTH_PROXY_FULL_NAME_HEADER, fullName);
+    
+    // Remake response to include newly set headers in downstream requests
+    supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const redirectWithCookies = (targetPathname: string) => {
