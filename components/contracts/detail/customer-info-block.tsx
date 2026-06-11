@@ -80,7 +80,7 @@ export default function CustomerInfoBlock({
       </Link>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-3">
         {/* Phone */}
         <ContactRow icon={<Phone size={14} />} label="Điện thoại">
           {customer.phone ? (

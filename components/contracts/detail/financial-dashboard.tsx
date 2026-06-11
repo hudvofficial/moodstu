@@ -87,20 +87,20 @@ export default function FinancialDashboard({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md bg-bg-hover p-3 inset-success">
-            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="rounded-xl bg-success/10 p-4 inset-success flex flex-col justify-center text-center">
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-success/80">
               Đã thu
             </p>
-            <p className="text-sm font-semibold text-success">
+            <p className="text-body font-bold text-success truncate">
               {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
-          <div className="rounded-md bg-bg-hover p-3 inset-warning">
-            <p className="mb-1 text-tiny font-semibold uppercase tracking-wider text-text-muted">
+          <div className="rounded-xl bg-warning/10 p-4 inset-warning flex flex-col justify-center text-center">
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-interactive/80">
               Còn nợ
             </p>
-            <p className="text-sm font-semibold text-interactive">
+            <p className="text-body font-bold text-interactive truncate">
               {formatCurrency(remainingAmount)} {CURRENCY_SYMBOL}
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function FinancialDashboard({
             unstyled
             type="button"
             onClick={onPaymentClick}
-            className="btn btn-interactive h-12 w-full text-sm"
+            className="btn btn-interactive h-12 w-full mt-4 text-sm font-bold shadow-md active:translate-y-0.5"
           >
             <Banknote size={20} />
             Thu tiền

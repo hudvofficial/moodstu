@@ -33,7 +33,7 @@ export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền"
       <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3 lg:mb-4 px-1 lg:px-0">
         Thao tác nhanh
       </h3>
-      <div className="flex flex-row overflow-x-auto gap-3 pb-2 -mx-2 px-2 lg:-mx-0 lg:px-0 snap-x hide-scrollbar">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-3 mt-4">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           const label = action.key === "payment" ? paymentLabel : action.label;
@@ -41,11 +41,10 @@ export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền"
             <Button unstyled
               key={action.key}
               onClick={() => onAction?.(action.key)}
-              className="group flex-shrink-0 flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-md
-                         bg-bg-card shadow-xs lg:bg-primary/4 lg:hover:bg-primary/8 lg:shadow-none
-                         w-[85px] lg:w-auto lg:flex-1 snap-center
+              className="group flex flex-col items-center justify-center gap-2 py-4 px-2 rounded-xl
+                         bg-bg-hover/50 hover:bg-bg-hover border border-transparent hover:border-border/50
                          transition-all duration-200
-                         active:scale-(--scale-press-sm) active:bg-bg-hover cursor-pointer"
+                         active:scale-(--scale-press-sm) cursor-pointer"
             >
               <div
                 className={`w-(--icon-container-md) h-(--icon-container-md) rounded-lg flex items-center justify-center

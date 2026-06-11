@@ -46,26 +46,28 @@ export function RevenueChart({
       ) : data.length === 0 || data.every((item) => item.revenue === 0) ? (
         <EmptyState message="Chưa có doanh thu trong kỳ hiển thị." />
       ) : (
-        <div className="chart-focus-reset h-52 lg:h-64">
+        <div className="chart-focus-reset h-64 lg:h-72 w-full pb-4">
           <SafeResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+            <BarChart data={data} margin={{ left: -15, right: 10, top: 10, bottom: 0 }}>
               <CartesianGrid stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="month"
                 stroke="var(--color-text-muted)"
                 tickLine={false}
                 axisLine={false}
-                fontSize={12}
+                fontSize={11}
+                tickMargin={8}
               />
               <YAxis
                 stroke="var(--color-text-muted)"
                 tickLine={false}
                 axisLine={false}
-                fontSize={12}
+                fontSize={11}
+                tickMargin={8}
                 tickFormatter={(value) =>
                   `${Math.round(Number(value) / 1_000_000)}tr`
                 }
-                width={45}
+                width={50}
               />
               <Tooltip
                 cursor={{ fill: "var(--color-bg-hover)" }}

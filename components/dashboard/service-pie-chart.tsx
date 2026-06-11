@@ -27,7 +27,7 @@ function ServiceTooltip({ active, payload, showRevenue }: ServiceTooltipProps) {
   if (!active || !item) return null;
 
   return (
-    <div className="card-base min-w-40 p-3 shadow-md">
+    <div className="card-base max-w-[calc(100vw-2rem)] min-w-40 p-3 shadow-md">
       <div className="flex items-center gap-2 mb-2">
         <span
           className="size-3 shrink-0 rounded-full"
@@ -90,8 +90,8 @@ export function ServicePieChart({ data, canView, showRevenue }: ServicePieChartP
       ) : data.length === 0 ? (
         <EmptyState message="Chưa có hợp đồng trong tháng này." />
       ) : (
-        <div className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(100px,140px)]">
-          <div className="h-52 lg:h-56">
+        <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(120px,160px)] lg:grid-cols-[minmax(0,1fr)_minmax(100px,140px)]">
+          <div className="h-56 min-w-0 lg:h-56">
             <SafeResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

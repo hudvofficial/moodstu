@@ -243,15 +243,32 @@ export function MobileLayout({
 
   return (
     <div className="lg:hidden">
-      <div className="flex flex-col gap-4">
-        <div id="section-details">
+      <div className="flex flex-col gap-5">
+        <div id="section-details" className="card-base p-4">
           <SummaryCard
             contract={contract}
             customer={contract.customers || null}
+            embedded
+          />
+          <div className="h-px bg-border/30 my-4" />
+          <CustomerInfoBlock
+            customer={contract.customers || null}
+            notes={contract.notes}
+            embedded
+            brideName={contract.customers?.bride_name}
+            groomName={contract.customers?.groom_name}
+            bridePhone={contract.customers?.bride_phone}
+            groomPhone={contract.customers?.groom_phone}
+            brideHeight={contract.customers?.bride_height}
+            brideWeight={contract.customers?.bride_weight}
+            brideShoeSize={contract.customers?.bride_shoe_size}
+            groomHeight={contract.customers?.groom_height}
+            groomWeight={contract.customers?.groom_weight}
+            groomShoeSize={contract.customers?.groom_shoe_size}
           />
         </div>
 
-        <div data-section-payment className="flex flex-col gap-4">
+        <div data-section-payment className="flex flex-col gap-4 px-1">
           <FinancialDashboard
             totalAmount={contract.total_amount}
             paidAmount={contract.paid_amount}

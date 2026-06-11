@@ -55,7 +55,7 @@ export function UpcomingEventsList({ events, canView }: UpcomingEventsListProps)
           </div>
           <h3 className="text-h3">Lịch sắp tới</h3>
         </div>
-        <Link href="/calendar" className="link-base min-h-11 shrink-0 text-caption">
+        <Link href="/calendar" className="link-base flex items-center justify-center min-h-[44px] min-w-[80px] shrink-0 text-body-sm font-medium">
           Xem tất cả
         </Link>
       </div>

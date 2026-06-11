@@ -36,7 +36,7 @@ export function QuickAccessGrid({ role }: QuickAccessGridProps) {
 
   return (
     <div className="lg:hidden">
-      <div className="grid grid-cols-5 gap-2 md:grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] md:gap-3">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] md:gap-3">
         {modules.map((mod) => {
           const Icon = mod.icon;
           const color = MODULE_COLORS[mod.id] || DEFAULT_COLOR;
@@ -44,7 +44,7 @@ export function QuickAccessGrid({ role }: QuickAccessGridProps) {
             <Link
               key={mod.id}
               href={mod.href}
-              className="flex flex-col items-center gap-1.5 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex flex-col items-center gap-1.5 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary hover:bg-bg-hover active:bg-bg-hover transition-colors"
             >
               <div
                 className={cn(
