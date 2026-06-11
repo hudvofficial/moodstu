@@ -231,7 +231,7 @@ export async function GET(
         zipName,
         images: downloadableImages.map((img) => ({
           name: img.file_name || `photo_${img.id}.jpg`,
-          url: `/api/gallery-download/${token}/${img.id}` // Use existing proxy or lh3 URL. Wait, if we use lh3 url, it might be blocked by CORS! Let's use the native download endpoint /api/gallery-download which proxies the image.
+          url: `https://lh3.googleusercontent.com/d/${img.drive_file_id}=s0` // Fetch DIRECTLY from Google Drive (Original Size) to save Vercel Bandwidth
         }))
       });
     }

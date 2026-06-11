@@ -1,0 +1,18 @@
+# Mood Studio - Long-Term Memory & Context
+
+## Kiến trúc Hệ thống Hiện tại
+- **Framework:** Next.js 16.2.6 (App Router), Tailwind CSS.
+- **Database/Backend:** Supabase.
+- **Deployment:** Vercel (Tài khoản hiện tại: `moodstudio`, Repo: `hudvofficial/moodstu`). Domain chính: `stu.moodwedding.com` (Đã được trỏ DNS qua Vercel CNAME).
+
+## Module Quan Trọng & Các thay đổi gần đây
+- **Module Download ZIP Ảnh (Client-side):** 
+  - Vừa được tối ưu hóa để tải và nén ảnh (ZIP) trực tiếp trên Client-side.
+  - Xử lý dứt điểm tình trạng lỗi 500 do nghẽn RAM và hao tổn băng thông (Bandwidth) Server-side trên Vercel. Băng thông hiện tại đã được giảm về gần 0.
+- **Performance & Analytics:** Đã tích hợp thành công `@vercel/speed-insights` để theo dõi Core Web Vitals của khách hàng (giúp tối ưu tốc độ load ảnh cho người xem Gallery trên mobile/4G).
+
+## Lưu ý Kỹ thuật (Technical Notes)
+- **Vercel Deployment:** 
+  - Vercel đang được liên kết với Github Repo: `hudvofficial/moodstu`.
+  - Để lệnh Auto-Deploy từ GitHub qua Vercel chạy thành công (bypass bảo mật Vercel Team), cấu hình Git local BẮT BUỘC phải sử dụng email `hudvofficial@gmail.com`. (Đã cấu hình).
+  - Sử dụng package manager chuẩn là **NPM**. Đã xóa bỏ toàn bộ file rác `pnpm-lock.yaml` để tránh đụng độ trong quá trình Vercel chạy lệnh `npm install`.
