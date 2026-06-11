@@ -276,6 +276,7 @@ export interface PrintingOrder {
   id: string;
   order_code: string | null;
   status: string | null;
+  payment_status?: string | null;
   total_amount: number | null;
   order_date: string | null;
   expected_date: string | null;

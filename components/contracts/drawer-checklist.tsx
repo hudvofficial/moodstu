@@ -177,9 +177,9 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                         key={item.id}
                         type="button"
                         onClick={() => handleToggle(item)}
-                        className="w-full flex items-center text-left gap-2 px-2 py-1.5 rounded cursor-pointer transition-all duration-200 group active:scale-95 hover:bg-hover/20"
+                        className="w-full flex items-center text-left gap-2 px-2 py-2.5 rounded cursor-pointer transition-colors group active:scale-[0.98] hover:bg-hover/20 min-h-[44px]"
                       >
-                        <div className="shrink-0 transition-transform duration-200 group-active:scale-90">
+                        <div className="shrink-0 transition-transform group-active:scale-90">
                           {item.is_completed ? (
                             <CheckSquare className="w-4 h-4 text-success" />
                           ) : (
@@ -187,7 +187,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
                           )}
                         </div>
                         <span
-                          className={`text-body-sm leading-snug select-none transition-all duration-200 ${
+                          className={`text-body-sm leading-snug select-none transition-opacity ${
                             item.is_completed
                               ? "line-through text-text-muted opacity-70"
                               : "text-text-main"

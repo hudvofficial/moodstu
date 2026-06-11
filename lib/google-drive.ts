@@ -85,6 +85,7 @@ export async function fetchDriveFiles(
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and mimeType contains 'image'`,
       fields: "nextPageToken,files(id,name,mimeType)",
+      orderBy: "createdTime asc",
       key: API_KEY,
       pageSize: "100",
     });

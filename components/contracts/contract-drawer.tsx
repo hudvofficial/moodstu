@@ -25,7 +25,8 @@ import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkT
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
 import { useQueryClient } from "@tanstack/react-query";
-import { prefetchContractDetail, useContractDrawerExtra, contractKeys } from "@/lib/hooks/use-contract-queries";
+import { prefetchContractDetail, useContractDrawerExtra, contractKeys, updateContractListChecklistCache } from "@/lib/hooks/use-contract-queries";
+import type { RealtimePayload } from "@/hooks/use-realtime-multi";
 
 // ─── TYPES ───────────────────────────────────────
 
@@ -96,8 +97,19 @@ export function ContractDrawer({
   const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
     useContractDrawerExtra(isOpen ? contractId : null, drawerPlaceholder);
 
-  const handleDrawerRealtime = useCallback(() => {
+  const handleDrawerRealtime = useCallback((payload: RealtimePayload) => {
     if (contractId) {
+      // Patch checklist real-time without refetching if possible
+      if (payload.table === "contract_checklists" && payload.eventType === "UPDATE") {
+        const row = payload.new;
+        const cid = typeof row.contract_id === "string" ? row.contract_id : contractId;
+        const cidStr = typeof row.id === "string" ? row.id : "";
+        if (cid && cidStr && typeof row.is_completed === "boolean") {
+          updateContractListChecklistCache(queryClient, cid, cidStr, row.is_completed);
+          return; // Skip full invalidate on pure checklist update
+        }
+      }
+      
       void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) });
       void queryClient.invalidateQueries({ queryKey: contractKeys.detail(contractId) });
     }

@@ -8,6 +8,7 @@ export const PRINTING_ORDER_STATUSES = [
   "da_giao",        // Phase 2: After delivery
   "hoan_thanh",     // Phase 2: After final payment (completed)
   "huy_don",        // Phase 2: Cancelled
+  "gap_su_co",      // Phase 3: Issue/blocked — requires reason
   "da_nhan",        // LEGACY: Keep for backward compatibility
   "da_huy",         // LEGACY: Keep for backward compatibility
 ] as const;
@@ -40,6 +41,7 @@ export const PRINTING_STATUS_LABELS: Record<PrintingOrderStatus, string> = {
   da_giao: "Đã giao",
   hoan_thanh: "Hoàn thành",
   huy_don: "Hủy đơn",
+  gap_su_co: "Gặp sự cố",
   da_nhan: "Đã nhận",     // Legacy
   da_huy: "Đã hủy",       // Legacy
 };
@@ -55,6 +57,7 @@ export const PRINTING_STATUS_VARIANTS: Record<
   da_giao: "success",
   hoan_thanh: "success",
   huy_don: "error",
+  gap_su_co: "error",
   da_nhan: "success",     // Legacy
   da_huy: "error",        // Legacy
 };
@@ -121,7 +124,7 @@ export function normalizeLabStatus(
 
 /** Status that means the order is still in-progress (eligible for overdue) */
 export function isPendingPrintStatus(status: PrintingOrderStatus): boolean {
-  return status === "cho_xu_ly" || status === "dat_coc" || status === "dang_in";
+  return status === "cho_xu_ly" || status === "dat_coc" || status === "dang_in" || status === "gap_su_co";
 }
 
 // ─── PAYMENT STATUS MAPPING (DB ↔ UI) ────────────────────

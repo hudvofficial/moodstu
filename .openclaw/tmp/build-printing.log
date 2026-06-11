@@ -1,0 +1,58 @@
+﻿node.exe : npm warn Unknown project config "confirm-module-purge". This will stop working in the next major version of 
+npm. See `npm help npmrc` for supported config options.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> mood-studio-temp@2.0.10 build
+> next build
+
+Warning: Custom Cache-Control headers detected for the following routes:
+  - /_next/static/:path*
+
+Setting a custom Cache-Control header can break Next.js development behavior.
+â–² Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  Â· clientTraceMetadata
+  Â· optimizePackageImports
+  Â· staleTimes
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./app/actions/printing-mutations.ts:249:5
+Expected ',', got 'ident'
+  [90m247 |[0m     }
+  [90m248 |[0m
+[31m[1m>[0m [90m249 |[0m     fireAuditLog({
+  [90m    |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m250 |[0m       action: [32m"UPDATE"[0m,
+  [90m251 |[0m       tableName: [32m"printing_orders"[0m,
+  [90m252 |[0m       recordId: id,
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Server Component:
+    ./app/actions/printing-mutations.ts
+    ./app/actions/printing-actions.ts
+
+  Client Component Browser:
+    ./app/actions/printing-mutations.ts [Client Component Browser]
+    ./components/printing/printing-list-page.tsx [Client Component Browser]
+    ./components/printing/printing-list-page.tsx [Server Component]
+    ./app/(protected)/printing/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/actions/printing-mutations.ts [Client Component SSR]
+    ./components/printing/printing-list-page.tsx [Client Component SSR]
+    ./components/printing/printing-list-page.tsx [Server Component]
+    ./app/(protected)/printing/page.tsx [Server Component]
+
+
+    at <unknown> (./app/actions/printing-mutations.ts:249:5)

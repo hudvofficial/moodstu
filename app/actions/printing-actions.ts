@@ -22,6 +22,7 @@ export async function updatePrintOrderStatus(
   orderId: string,
   status: string,
   contractId: string,
+  reason?: string | null,
 ) {
-  return updatePrintingOrderStatusImpl(orderId, status, contractId);
+  return updatePrintingOrderStatusImpl(orderId, status, contractId, reason);
 }

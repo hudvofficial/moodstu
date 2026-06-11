@@ -83,10 +83,10 @@ export function SelectStatus({
   const isCompact = variant === "compact";
 
   const triggerSizeClass = isCompact
-    ? "text-xs px-2 py-0.5 min-w-0"
+    ? "text-xs px-2 min-h-[44px] sm:min-h-[28px] sm:py-0.5 min-w-0" // Touch target cho mobile
     : size === "sm"
-      ? "text-xs px-2 py-1 min-w-25"
-      : "text-sm px-3 py-1.5 min-w-30";
+      ? "text-xs px-2 min-h-[44px] sm:min-h-[32px] sm:py-1 min-w-25"
+      : "text-sm px-3 min-h-[44px] sm:min-h-[36px] sm:py-1.5 min-w-30";
 
   const dotSizeClass = size === "sm" || isCompact ? "w-1.5 h-1.5" : "w-2 h-2";
 
@@ -95,7 +95,7 @@ export function SelectStatus({
   // Compact: pill style (auto width, no input-base)
   // Default: form style (width 100%, input-base)
   const triggerBaseClass = isCompact
-    ? "flex items-center gap-1.5 cursor-pointer border border-border rounded-full bg-bg-card hover:bg-bg-hover transition-colors h-7 w-auto shrink-0"
+    ? "flex items-center gap-1.5 cursor-pointer border border-border rounded-full bg-bg-card hover:bg-bg-hover transition-colors w-auto shrink-0"
     : "input-base flex items-center gap-1.5 cursor-pointer";
 
   return (

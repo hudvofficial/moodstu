@@ -36,6 +36,7 @@ export const PRINT_ORDER_STATUS_OPTIONS = [
   { value: "da_in",       label: "Đã in",        color: "var(--color-status-primary)" },
   { value: "da_giao",     label: "Đã giao",      color: "var(--color-status-success)" },
   { value: "hoan_thanh",  label: "Hoàn thành",   color: "var(--color-status-success)" },
+  { value: "gap_su_co",   label: "Gặp sự cố",    color: "var(--color-status-error)" },
   { value: "huy_don",     label: "Hủy đơn",      color: "var(--color-status-error)" },
 
   // ─── Legacy (Backward Compatibility) ───

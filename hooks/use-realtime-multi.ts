@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ConnectionStatus, RealtimePayload } from "@/hooks/use-realtime";
 
+export type { RealtimePayload };
+
 export type RealtimeMultiConfig = {
   table: string;
   filter?: string;

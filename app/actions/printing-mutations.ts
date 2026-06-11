@@ -18,17 +18,18 @@ type ActionResult<T = null> =
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   // Workflow statuses (Phase 2)
-  cho_xu_ly: ["dat_coc", "dang_in", "huy_don"],         // Can deposit OR skip to printing OR cancel
-  dat_coc: ["dang_in", "huy_don"],                      // Can start production OR cancel
-  dang_in: ["da_in", "huy_don"],                        // Can complete OR cancel
-  da_in: ["da_giao", "huy_don"],                        // Can deliver OR cancel
-  da_giao: ["hoan_thanh", "huy_don"],                   // Can finalize OR cancel
-  hoan_thanh: [],                                        // Terminal state
-  huy_don: [],                                           // Terminal state (cancelled)
+  cho_xu_ly: ["dat_coc", "dang_in", "huy_don", "gap_su_co"],   // Can deposit OR skip to printing OR cancel OR flag issue
+  dat_coc: ["dang_in", "huy_don", "gap_su_co"],                // Can start production OR cancel OR flag issue
+  dang_in: ["da_in", "huy_don", "gap_su_co"],                  // Can complete OR cancel OR flag issue
+  da_in: ["da_giao", "huy_don", "gap_su_co", "dang_in"],       // Can deliver OR cancel OR flag issue OR rework
+  da_giao: ["hoan_thanh", "huy_don", "gap_su_co"],             // Can finalize OR cancel OR flag issue
+  hoan_thanh: [],                                               // Terminal state
+  huy_don: [],                                                  // Terminal state (cancelled)
+  gap_su_co: ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "huy_don"], // Can resume to any active state or cancel
 
   // Legacy statuses (keep for backward compatibility)
-  da_nhan: [],                                           // Terminal state
-  da_huy: [],                                            // Terminal state (old cancelled)
+  da_nhan: [],                                                  // Terminal state
+  da_huy: [],                                                   // Terminal state (old cancelled)
 };
 
 function calculateTotalAmount(
@@ -147,6 +148,7 @@ export async function updatePrintingOrderStatus(
   id: string,
   newStatus: string,
   _contractId: string,
+  reason?: string | null,
 ): Promise<ActionResult<null>> {
   void _contractId;
 
@@ -154,6 +156,15 @@ export async function updatePrintingOrderStatus(
   if (!parsedStatus.success) {
     return { success: false, error: "Trang thai don in khong hop le" };
   }
+
+  // Statuses that require a reason
+  const REASON_REQUIRED: string[] = ["gap_su_co", "huy_don"];
+  const isRollback = (from: string, to: string) => {
+    const ORDER = ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "hoan_thanh"];
+    const fromIdx = ORDER.indexOf(from);
+    const toIdx = ORDER.indexOf(to);
+    return fromIdx >= 0 && toIdx >= 0 && toIdx < fromIdx;
+  };
 
   return withPrintingAccess(async (supabase, userId) => {
     const { data: current, error: currentError } = await supabase
@@ -174,6 +185,12 @@ export async function updatePrintingOrderStatus(
       return null;
     }
 
+    // Require reason for issue/cancel/rollback transitions
+    const needsReason = REASON_REQUIRED.includes(parsedStatus.data) || isRollback(currentStatus, parsedStatus.data);
+    if (needsReason && (!reason || !reason.trim())) {
+      throw new Error("Vui long nhap ly do khi chuyen trang thai nay");
+    }
+
     const allowedTransitions = VALID_TRANSITIONS[currentStatus] ?? [];
     if (!allowedTransitions.includes(parsedStatus.data)) {
       throw new Error("Khong the chuyen don in sang trang thai nay");
@@ -185,6 +202,18 @@ export async function updatePrintingOrderStatus(
       updated_at: now,
       updated_by: userId,
     };
+
+    // Issue tracking metadata
+    if (parsedStatus.data === "gap_su_co") {
+      updateData.issue_reason = reason?.trim() || null;
+      updateData.issue_reported_at = now;
+      updateData.issue_reported_by = userId;
+    } else if (currentStatus === "gap_su_co") {
+      // Clearing issue when resuming from gap_su_co
+      updateData.issue_reason = null;
+      updateData.issue_reported_at = null;
+      updateData.issue_reported_by = null;
+    }
 
     if (parsedStatus.data === "da_nhan" && !current.received_date) {
       updateData.received_date = now;
@@ -198,6 +227,23 @@ export async function updatePrintingOrderStatus(
     if (error) {
       throw new Error(`Khong the cap nhat trang thai: ${error.message}`);
     }
+
+    // Write status history for velocity analytics & audit trail
+    await supabase
+      .from("printing_order_status_history")
+      .insert({
+        order_id: id,
+        from_status: currentStatus,
+        to_status: parsedStatus.data,
+        changed_by: userId,
+        changed_at: now,
+        reason: reason?.trim() || null,
+        source: "manual",
+      })
+      .then(({ error: histErr }) => {
+        // Non-blocking: log but don't fail the status update
+        if (histErr) console.error("[printing] Failed to write status history:", histErr.message);
+      });
 
     fireAuditLog({
       action: "UPDATE",

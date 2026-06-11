@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Printer, Calendar, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { UnifiedModal } from "@/components/ui/unified-modal";
 import { formatDate } from "@/lib/utils";
 import type { PrintingOrder } from "@/types/contract";
 import StatusSelect, { PRINT_ORDER_STATUS_OPTIONS } from "@/components/ui/status-select";
@@ -22,18 +25,35 @@ interface Props {
   onAdd?: () => void;
 }
 
+const STATUS_ORDER = ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "hoan_thanh"];
+
+function isRollback(from: string | null | undefined, to: string) {
+  const fromIndex = STATUS_ORDER.indexOf(from || "cho_xu_ly");
+  const toIndex = STATUS_ORDER.indexOf(to);
+  return fromIndex >= 0 && toIndex >= 0 && toIndex < fromIndex;
+}
+
+function requiresReason(from: string | null | undefined, to: string) {
+  return to === "gap_su_co" || to === "huy_don" || isRollback(from, to);
+}
+
+interface PendingStatusChange {
+  orderId: string;
+  previous: string;
+  next: string;
+}
+
 export default function PrintOrdersBlock({ orders, contractId, onStatusChange, onAdd }: Props) {
   const [localOrders, setLocalOrders] = useState(orders);
+  const [pendingChange, setPendingChange] = useState<PendingStatusChange | null>(null);
+  const [statusReason, setStatusReason] = useState("");
 
   // Sync with parent when data refreshes (e.g., Realtime update from another user)
   if (orders !== localOrders && orders.length !== localOrders.length) {
     setLocalOrders(orders);
   }
 
-  const handleStatusUpdate = (orderId: string, newStatus: string) => {
-    const previous = localOrders.find(o => o.id === orderId)?.status;
-    if (!previous || previous === newStatus) return;
-
+  const applyStatusUpdate = async (orderId: string, newStatus: string, previous: string, reason?: string) => {
     // 1. Optimistic update — instant UI
     setLocalOrders(prev =>
       prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
@@ -43,15 +63,40 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange, o
     onStatusChange?.();
 
     // 3. Fire-and-forget — rollback on error
-    updatePrintOrderStatus(orderId, newStatus, contractId).then(result => {
-      if (!result.success) {
-        // Rollback
-        setLocalOrders(prev =>
-          prev.map(o => o.id === orderId ? { ...o, status: previous } : o)
-        );
-        toast(result.error || "Lỗi cập nhật", "error");
-      }
-    });
+    const result = await updatePrintOrderStatus(orderId, newStatus, contractId, reason);
+    if (!result.success) {
+      setLocalOrders(prev =>
+        prev.map(o => o.id === orderId ? { ...o, status: previous } : o)
+      );
+      toast(result.error || "Lỗi cập nhật", "error");
+    }
+  };
+
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    const previous = localOrders.find(o => o.id === orderId)?.status;
+    if (!previous || previous === newStatus) return;
+
+    if (requiresReason(previous, newStatus)) {
+      setPendingChange({ orderId, previous, next: newStatus });
+      setStatusReason("");
+      return;
+    }
+
+    await applyStatusUpdate(orderId, newStatus, previous);
+  };
+
+  const confirmPendingChange = async () => {
+    if (!pendingChange) return;
+    const reason = statusReason.trim();
+    if (!reason) {
+      toast("Vui lòng nhập lý do", "warning");
+      return;
+    }
+
+    const change = pendingChange;
+    setPendingChange(null);
+    setStatusReason("");
+    await applyStatusUpdate(change.orderId, change.next, change.previous, reason);
   };
 
   return (
@@ -102,14 +147,21 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange, o
                 className="p-2.5 rounded-md bg-bg-hover"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <p className="text-body-sm font-semibold text-text-primary truncate">
-                    {order.order_code || "Đơn in"}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="text-body-sm font-semibold text-text-primary truncate">
+                      {order.order_code || "Đơn in"}
+                    </p>
+                    {(order.status === "dat_coc" || order.payment_status === "partial" || order.payment_status === "paid") && (
+                      <Badge variant="success" className="mt-1 text-[10px]">
+                        Đã cọc
+                      </Badge>
+                    )}
+                  </div>
                   <StatusSelect
                     current={order.status || "cho_xu_ly"}
                     options={[...PRINT_ORDER_STATUS_OPTIONS]}
                     variant="compact"
-                    onUpdate={async (newStatus) => handleStatusUpdate(order.id, newStatus)}
+                    onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)}
                   />
                 </div>
 
@@ -129,6 +181,42 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange, o
           })}
         </div>
       )}
+
+      <UnifiedModal
+        isOpen={!!pendingChange}
+        onClose={() => {
+          setPendingChange(null);
+          setStatusReason("");
+        }}
+        title="Nhập lý do thay đổi trạng thái"
+        description="Bắt buộc khi báo sự cố, hủy đơn hoặc chuyển lùi quy trình."
+        size="md"
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setPendingChange(null);
+                setStatusReason("");
+              }}
+            >
+              Hủy
+            </Button>
+            <Button type="button" onClick={confirmPendingChange}>
+              Xác nhận
+            </Button>
+          </div>
+        )}
+      >
+        <Textarea
+          value={statusReason}
+          onChange={(event) => setStatusReason(event.target.value)}
+          placeholder="VD: In sai màu, khách đổi yêu cầu, thao tác nhầm cần quay lại..."
+          rows={4}
+          autoFocus
+        />
+      </UnifiedModal>
     </div>
   );
 }
