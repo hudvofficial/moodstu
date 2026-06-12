@@ -93,10 +93,10 @@ export const cacheKeys = {
 
   // Team & Calendar
   team: () => "team",
-  calendar: (month?: number, year?: number) =>
-    month && year ? `calendar:${month}:${year}` : "calendar",
-  calendarGoogle: (month?: number, year?: number) =>
-    month && year ? `calendar-google:${month}:${year}` : "calendar-google",
+  calendar: (month?: number, year?: number, view?: string) =>
+    month && year ? `calendar:${month}:${year}${view ? `:${view}` : ""}` : "calendar",
+  calendarGoogle: (month?: number, year?: number, view?: string) =>
+    month && year ? `calendar-google:${month}:${year}${view ? `:${view}` : ""}` : "calendar-google",
   jobs: () => "jobs",
   productivity: (period: string, viewMode: string) =>
     `productivity:${viewMode}:${period}`,

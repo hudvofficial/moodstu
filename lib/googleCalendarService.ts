@@ -245,6 +245,10 @@ export async function deleteGoogleCalendarEvent(eventId: string) {
       },
     });
 
+    if (res.status === 404 || res.status === 410) {
+      return true;
+    }
+
     // Google returns 204 No Content on success
     if (!res.ok && res.status !== 204) {
       let msg = "Google Calendar delete failed";

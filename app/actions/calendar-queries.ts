@@ -12,6 +12,7 @@ import { generateCalendarGroupKey, getEventColorToken } from "@/lib/utils/calend
 import { getGoogleCalendarEvents, GOOGLE_COLORS } from "@/lib/googleCalendarService";
 import { getWorkTypeLabel } from "@/types/contract-constants";
 import type { WorkType } from "@/types/contract";
+import type { CalendarViewMode } from "@/types/calendar.types";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
@@ -115,17 +116,18 @@ function combineDateTime(dateValue: string, timeValue: string) {
   return `${dateValue}T${timeValue}`;
 }
 
-function getCalendarWindow(month: number, year: number) {
+function getCalendarWindow(month: number, year: number, viewMode: CalendarViewMode = "month") {
   const normalizedMonth = Math.min(12, Math.max(1, Math.trunc(month)));
   const normalizedYear = Math.trunc(year);
-  const startY = normalizedMonth <= 1 ? normalizedYear - 1 : normalizedYear;
-  const startM = normalizedMonth <= 1 ? 12 : normalizedMonth - 1;
-  const endY = normalizedMonth >= 12 ? normalizedYear + 1 : normalizedYear;
-  const endM = normalizedMonth >= 12 ? 1 : normalizedMonth + 1;
-  const endExclusive = new Date(endY, endM - 1, 11);
+
+  // Month/week grids render boundary days from adjacent months; fetch a wider
+  // overlap window so cross-month and multi-day events do not disappear.
+  const paddingMonths = viewMode === "day" ? 1 : 2;
+  const start = new Date(normalizedYear, normalizedMonth - 1 - paddingMonths, 1);
+  const endExclusive = new Date(normalizedYear, normalizedMonth + paddingMonths, 1);
 
   return {
-    startDate: `${startY}-${String(startM).padStart(2, "0")}-20`,
+    startDate: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`,
     endExclusiveDate: `${endExclusive.getFullYear()}-${String(endExclusive.getMonth() + 1).padStart(2, "0")}-${String(endExclusive.getDate()).padStart(2, "0")}`,
   };
 }
@@ -269,8 +271,9 @@ async function fetchCalendarEventsFallback(
   access: CalendarAccessContext,
   month: number,
   year: number,
+  viewMode: CalendarViewMode = "month",
 ): Promise<UnifiedCalendarEvent[]> {
-  const { startDate, endExclusiveDate } = getCalendarWindow(month, year);
+  const { startDate, endExclusiveDate } = getCalendarWindow(month, year, viewMode);
   const result: UnifiedCalendarEvent[] = [];
 
   const schedulesResult = await supabase
@@ -279,7 +282,7 @@ async function fetchCalendarEventsFallback(
       id, event_type, event_date, end_date, employee_id,
       contract_id, status, google_event_id, color_id, location, notes
     `)
-    .gte("event_date", startDate)
+    .or(`event_date.gte.${startDate},end_date.gte.${startDate}`)
     .lt("event_date", endExclusiveDate);
 
   if (schedulesResult.error) {
@@ -299,6 +302,7 @@ async function fetchCalendarEventsRpc(
   access: CalendarAccessContext,
   month: number,
   year: number,
+  viewMode: CalendarViewMode = "month",
 ): Promise<UnifiedCalendarEvent[]> {
   const { data, error } = await profileCalendarSection("calendar.events.rpc", () =>
     Promise.resolve(
@@ -310,7 +314,7 @@ async function fetchCalendarEventsRpc(
   );
 
   if (error && isMissingRpcError(error)) {
-    return fetchCalendarEventsFallback(supabase, access, month, year);
+    return fetchCalendarEventsFallback(supabase, access, month, year, viewMode);
   }
   if (error) throw new Error(`Lỗi tải lịch tháng: ${error.message}`);
 
@@ -322,20 +326,22 @@ async function fetchCalendarEventsRpc(
 export async function fetchCalendarEvents(
   month: number,
   year: number,
+  viewMode: CalendarViewMode = "month",
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
   return withAuth(async (supabase, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu lịch studio");
-    return fetchCalendarEventsRpc(supabase, access, month, year);
+    return fetchCalendarEventsFallback(supabase, access, month, year, viewMode);
   });
 }
 
 export async function fetchCalendarGoogleEvents(
   month: number,
   year: number,
+  viewMode: CalendarViewMode = "month",
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
   return withAuth(async (supabase, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu Google Calendar");
-    const { startDate, endExclusiveDate } = getCalendarWindow(month, year);
+    const { startDate, endExclusiveDate } = getCalendarWindow(month, year, viewMode);
 
     const { data: linkedSchedules, error: linkedError } = await profileCalendarSection(
       "calendar.google.linkedIds",

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, isSameMonth } from "date-fns";
 import { type UnifiedCalendarEvent } from "@/types/calendar.types";
-import { buildWeekEventSegments } from "@/lib/utils/calendar-utils";
+import { buildWeekEventSegments, type WeekEventSegment } from "@/lib/utils/calendar-utils";
 import { Button } from "@/components/ui/button";
 import { DroppableDay } from "./droppable-day";
 import { DraggableEvent } from "./draggable-event";
@@ -23,6 +23,7 @@ interface MonthWeekRowProps {
   days: Date[];
   currentDate: Date;
   events: UnifiedCalendarEvent[];
+  precomputedSegments?: WeekEventSegment[];
   onEventClick?: (event: UnifiedCalendarEvent) => void;
   onDateClick?: (date: Date) => void;
 }
@@ -31,6 +32,7 @@ export function MonthWeekRow({
   days,
   currentDate,
   events,
+  precomputedSegments,
   onEventClick,
   onDateClick,
 }: MonthWeekRowProps) {
@@ -67,8 +69,9 @@ export function MonthWeekRow({
 
   const segments = useMemo(() => {
     if (days.length === 0) return [];
+    if (precomputedSegments) return precomputedSegments;
     return buildWeekEventSegments(events, days[0], days[days.length - 1]);
-  }, [days, events]);
+  }, [days, events, precomputedSegments]);
 
   const visibleLaneLimit = useMemo(() => {
     const eventAreaHeight = Math.max(0, rowSize.height - dayHeaderOffset - eventLayerBottom);

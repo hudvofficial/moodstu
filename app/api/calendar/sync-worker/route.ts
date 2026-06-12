@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const { data: { user } } = await authSupabase.auth.getUser();
   const authHeader = request.headers.get("Authorization");
-  const isCron = authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
+  const isCron = Boolean(process.env.CRON_SECRET) && authHeader === `Bearer ${process.env.CRON_SECRET}`;
 
   if (!user && !isCron) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,16 +58,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "Queue is empty" });
     }
 
-    const results = [];
-
-    for (const record of queue) {
+    const settled = await Promise.allSettled(queue.map(async (record) => {
       try {
         if (record.action === "DELETE") {
           if (record.google_event_id) {
             await deleteGoogleCalendarEvent(record.google_event_id);
           }
           await supabase.from("google_sync_queue").delete().eq("id", record.id);
-          results.push({ id: record.id, status: "deleted" });
+          return { id: record.id, status: "deleted" };
         } else if (record.action === "CREATE") {
           const payload = record.payload as any;
           const googleEvent = await createGoogleCalendarEvent(payload);
@@ -83,7 +81,7 @@ export async function POST(request: Request) {
             }
             // Remove from queue
             await supabase.from("google_sync_queue").delete().eq("id", record.id);
-            results.push({ id: record.id, status: "synced (created)" });
+            return { id: record.id, status: "synced (created)" };
           } else {
             throw new Error("No Google Event ID returned");
           }
@@ -93,8 +91,9 @@ export async function POST(request: Request) {
             await updateGoogleCalendarEvent(record.google_event_id, payload);
           }
           await supabase.from("google_sync_queue").delete().eq("id", record.id);
-          results.push({ id: record.id, status: "synced (updated)" });
+          return { id: record.id, status: "synced (updated)" };
         }
+        return { id: record.id, status: "skipped", error: `Unknown action: ${record.action}` };
       } catch (err) {
         console.error(`Lỗi xử lý queue ${record.id}:`, err);
         // Tăng attempt và set failed
@@ -106,9 +105,15 @@ export async function POST(request: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", record.id);
-        results.push({ id: record.id, status: "failed", error: String(err) });
+        return { id: record.id, status: "failed", error: String(err) };
       }
-    }
+    }));
+
+    const results = settled.map((item) =>
+      item.status === "fulfilled"
+        ? item.value
+        : { id: "unknown", status: "failed", error: String(item.reason) },
+    );
 
     return NextResponse.json({ success: true, processed: results.length, results });
   } catch (err) {

@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarEventCard } from "../calendar-event-card";
 import { Plus, FileText, X } from "lucide-react";
+import { eventOccursOnDate } from "@/lib/utils/calendar-utils";
+import { getLunarDaySummary } from "@/lib/lunar-calendar";
 
 interface DayDrawerProps {
   date: Date | null;
@@ -18,9 +20,10 @@ interface DayDrawerProps {
 
 export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }: DayDrawerProps) {
   const dateIso = date ? format(date, "yyyy-MM-dd") : "";
-  const eventsForDay = date ? events.filter(e => e.start.split("T")[0] === dateIso) : [];
+  const eventsForDay = date ? events.filter((e) => eventOccursOnDate(e, dateIso)) : [];
   const dayName = date ? format(date, "EEEE", { locale: vi }) : "";
   const formattedDate = date ? format(date, "dd/MM/yyyy") : "";
+  const lunar = date ? getLunarDaySummary(date) : null;
   const eventCount = eventsForDay.length;
 
   return (
@@ -30,6 +33,29 @@ export function DayDrawer({ date, events, onClose, onEventClick, onCreateEvent }
       title={`${dayName}, ${formattedDate} — ${eventCount} sự kiện`}
     >
       <div className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        {lunar && (
+          <div className="rounded-xl border border-border bg-bg-card p-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">Âm lịch</div>
+                <div className="mt-1 text-lg font-bold text-text-main">
+                  {lunar.lunarDay}/{lunar.lunarMonth}/{lunar.lunarYear}{lunar.leap ? " nhuận" : ""}
+                </div>
+              </div>
+              <div className="text-right text-xs text-text-muted">
+                <div>Ngày {lunar.canChiDay}</div>
+                <div>Tháng {lunar.canChiMonth}</div>
+                <div>Năm {lunar.canChiYear}</div>
+              </div>
+            </div>
+            {lunar.auspiciousHours.length > 0 && (
+              <div className="mt-2 text-xs text-text-muted">
+                <span className="font-semibold text-text-secondary">Giờ hoàng đạo: </span>
+                {lunar.auspiciousHours.map((hour) => hour.label).join(", ")}
+              </div>
+            )}
+          </div>
+        )}
         {eventCount === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
             <div className="w-12 h-12 rounded-full bg-bg-input flex items-center justify-center">

@@ -49,6 +49,8 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
     return Array.from(new Map(Array.from(eventsByDate.values()).flat().map(e => [e.id, e])).values());
   }, [eventsByDate]);
 
+  const eventById = useMemo(() => new Map(allEvents.map((event) => [event.id, event])), [allEvents]);
+
   const gridSlots = useMemo(() => {
     if (daysInWeek.length === 0) return {};
     return buildGridSlots(allEvents, daysInWeek[0], daysInWeek[daysInWeek.length - 1]);
@@ -60,7 +62,7 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const ev = Array.from(eventsByDate.values()).flat().find(e => e.id === active.id);
+    const ev = eventById.get(String(active.id));
     if (ev) {
       setActiveEvent(ev);
       if (active.rect.current.initial) {
@@ -80,8 +82,7 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
     
     const eventId = String(active.id);
     const newDateIso = String(over.id);
-    const allEvents = Array.from(eventsByDate.values()).flat();
-    const ev = allEvents.find(e => e.id === eventId);
+    const ev = eventById.get(eventId);
     if (!ev) return;
     
     const oldDateStr = ev.start.split("T")[0];

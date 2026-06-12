@@ -54,6 +54,15 @@ export function CalendarWrapper({
   // Swipe navigation for mobile
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const lastSyncAt = useRef(0);
+
+  const triggerCalendarSync = useCallback(() => {
+    if (!filters.isGoogleConnected) return;
+    const now = Date.now();
+    if (now - lastSyncAt.current < 5000) return;
+    lastSyncAt.current = now;
+    fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
+  }, [filters.isGoogleConnected]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -123,9 +132,8 @@ export function CalendarWrapper({
     // eslint-disable-next-line
     setMounted(true);
     
-    // Trigger background sync when calendar is opened
-    fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
-  }, []);
+    triggerCalendarSync();
+  }, [triggerCalendarSync]);
 
   const isSmallScreen = isSmallMobile;
 
@@ -227,7 +235,7 @@ export function CalendarWrapper({
         isGoogleConnected={filters.isGoogleConnected}
         onSuccess={() => {
           mutate();
-          fetch("/api/calendar/sync-worker", { method: "POST" }).catch(() => {});
+          triggerCalendarSync();
         }}
       />
 

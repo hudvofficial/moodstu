@@ -119,6 +119,11 @@ function getInclusiveEventRange(event: UnifiedCalendarEvent) {
   };
 }
 
+export function eventOccursOnDate(event: UnifiedCalendarEvent, dateIso: string) {
+  const { startIso, endIso } = getInclusiveEventRange(event);
+  return startIso <= dateIso && endIso >= dateIso;
+}
+
 export function buildWeekEventSegments(
   events: UnifiedCalendarEvent[],
   weekStartDate: Date,
@@ -308,4 +313,3 @@ export function buildGridSlots(
 
   return result;
 }
-

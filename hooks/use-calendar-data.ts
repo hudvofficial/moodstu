@@ -7,38 +7,25 @@ import {
   checkGoogleCalendarStatus,
 } from "@/app/actions/calendar-queries";
 import { useRealtime } from "@/hooks/use-realtime";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CALENDAR_STATUS_ORDER, getCalendarStatusLabel } from "@/lib/utils/calendar-utils";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
 const CALENDAR_VIEW_MODES: CalendarViewMode[] = ["month", "week", "day"];
 
-function parseInitialDate() {
-  if (typeof window === "undefined") return new Date();
-
-  const dateParam = new URL(window.location.href).searchParams.get("date");
+function parseInitialDate(searchParams: URLSearchParams) {
+  const dateParam = searchParams.get("date");
   if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return new Date();
 
   const parsed = new Date(`${dateParam}T00:00:00`);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-function parseInitialViewMode(): CalendarViewMode {
-  if (typeof window === "undefined") return "month";
-
-  const viewParam = new URL(window.location.href).searchParams.get("view");
+function parseInitialViewMode(searchParams: URLSearchParams): CalendarViewMode {
+  const viewParam = searchParams.get("view");
   return CALENDAR_VIEW_MODES.includes(viewParam as CalendarViewMode)
     ? (viewParam as CalendarViewMode)
     : "month";
-}
-
-function syncCalendarUrl(date: Date, viewMode?: CalendarViewMode) {
-  if (typeof window === "undefined") return;
-
-  const url = new URL(window.location.href);
-  const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  url.searchParams.set("date", dateKey);
-  if (viewMode) url.searchParams.set("view", viewMode);
-  window.history.replaceState({}, "", url.toString());
 }
 
 function toDateKey(date: Date) {
@@ -78,8 +65,11 @@ function getEventDateKeys(startValue: string, endValue: string | null) {
 
 export function useCalendarData() {
   "use no memo"; // Opt out of React Compiler — 19 hooks + conditional SWR keys; companion fix for CalendarWrapper Sentry error (2026-06-09)
-  const [currentDate, setCurrentDateState] = useState(parseInitialDate);
-  const [viewMode, setViewModeState] = useState<CalendarViewMode>(parseInitialViewMode);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [currentDate, setCurrentDateState] = useState(() => parseInitialDate(searchParams));
+  const [viewMode, setViewModeState] = useState<CalendarViewMode>(() => parseInitialViewMode(searchParams));
   
   // Advanced Filter state
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -89,8 +79,8 @@ export function useCalendarData() {
   const year = currentDate.getFullYear();
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(
-    cacheKeys.calendar(month, year),
-    () => fetchCalendarEvents(month, year)
+    cacheKeys.calendar(month, year, viewMode),
+    () => fetchCalendarEvents(month, year, viewMode)
   );
 
   const { data: employeesData } = useSWR(
@@ -111,19 +101,15 @@ export function useCalendarData() {
   );
 
   const { data: googleData, mutate: mutateGoogle } = useSWR(
-    isGoogleConnected ? cacheKeys.calendarGoogle(month, year) : null,
+    isGoogleConnected ? cacheKeys.calendarGoogle(month, year, viewMode) : null,
     async () => {
-      const res = await fetchCalendarGoogleEvents(month, year);
+      const res = await fetchCalendarGoogleEvents(month, year, viewMode);
       return res.success ? res.data : [];
     },
   );
 
   useRealtime("schedules", {
-    cacheKeys: [cacheKeys.calendar(month, year)],
-    debounceMs: 750,
-  });
-  useRealtime("work_tasks", {
-    cacheKeys: [cacheKeys.calendar(month, year)],
+    cacheKeys: [cacheKeys.calendar(month, year, viewMode)],
     debounceMs: 750,
   });
 
@@ -149,6 +135,9 @@ export function useCalendarData() {
         return event;
       })
       .filter(event => {
+        // Chỉ hiển thị lịch chính (schedules)
+        if (event.source !== "schedule" && event.source !== "google") return false;
+
         // Lọc nhân viên
         if (selectedEmployees.length > 0) {
           if (!event.employeeId || !selectedEmployees.includes(event.employeeId)) return false;
@@ -204,10 +193,15 @@ export function useCalendarData() {
     }));
   }, [rawEvents]);
 
+  const buildCalendarUrl = useCallback((date: Date, mode: CalendarViewMode) => {
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return `${pathname}?date=${dateKey}&view=${mode}`;
+  }, [pathname]);
+
   const handleSetCurrentDate = useCallback((date: Date) => {
     setCurrentDateState(date);
-    syncCalendarUrl(date, viewMode);
-  }, [viewMode]);
+    router.replace(buildCalendarUrl(date, viewMode), { scroll: false });
+  }, [router, viewMode, buildCalendarUrl]);
 
   const availableEmployees = useMemo(() => {
     return (employeesData || []).map((e: { id: string; full_name: string }) => ({
@@ -219,8 +213,8 @@ export function useCalendarData() {
   // §1.4 — URL sync for viewMode
   const handleSetViewMode = useCallback((mode: CalendarViewMode) => {
     setViewModeState(mode);
-    syncCalendarUrl(currentDate, mode);
-  }, [currentDate]);
+    router.replace(buildCalendarUrl(currentDate, mode), { scroll: false });
+  }, [router, currentDate, buildCalendarUrl]);
 
   return {
     currentDate,

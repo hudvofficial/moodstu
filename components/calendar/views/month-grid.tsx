@@ -24,6 +24,7 @@ import { UnifiedCalendarEvent } from "@/types/calendar.types";
 import { updateDragDropDate } from "@/app/actions/calendar-mutations";
 import { DraggableEvent } from "./draggable-event";
 import { MonthWeekRow } from "./month-week-row";
+import { buildWeekEventSegments } from "@/lib/utils/calendar-utils";
 
 interface MonthGridProps {
   currentDate: Date;
@@ -62,6 +63,16 @@ export function MonthGrid({
     }
     return weeks;
   }, [daysInGrid]);
+
+  // Mảng segments cache lại cho toàn bộ grid, tránh tính lại n lần trong mỗi hàng.
+  const weekSegments = useMemo(() => {
+    return new Map(
+      weeksInGrid.map((week) => [
+        format(week[0], "yyyy-MM-dd"),
+        buildWeekEventSegments(events, week[0], week[week.length - 1]),
+      ]),
+    );
+  }, [events, weeksInGrid]);
 
   // Yêu cầu kéo giãn 5px mới tính là drag
   const sensors = useSensors(
@@ -166,16 +177,19 @@ export function MonthGrid({
           <div
             className="absolute inset-0 flex flex-col overflow-y-auto overflow-x-hidden"
           >
-            {weeksInGrid.map((week) => (
+            {weeksInGrid.map((week) => {
+              const weekKey = format(week[0], "yyyy-MM-dd");
+              return (
               <MonthWeekRow
-                key={format(week[0], "yyyy-MM-dd")}
+                key={weekKey}
                 days={week}
                 currentDate={currentDate}
                 events={events}
+                precomputedSegments={weekSegments.get(weekKey)}
                 onEventClick={onEventClick}
                 onDateClick={onDateClick}
               />
-            ))}
+            );})}
           </div>
         </div>
       </div>

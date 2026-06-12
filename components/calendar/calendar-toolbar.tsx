@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { SelectPill } from "@/components/ui/select";
 import SolarLunarConverter from "./solar-lunar-converter";
+import { CalendarMonthYearPicker } from "./calendar-month-year-picker";
 import type { CalendarViewMode } from "@/types/calendar.types";
 
 interface CalendarToolbarProps {
@@ -45,6 +46,7 @@ export function CalendarToolbar({
   const year = currentDate.getFullYear();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
+  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
 
   const hasActiveFilter =
     filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
@@ -87,10 +89,15 @@ export function CalendarToolbar({
       <div className="hidden sm:flex flex-col">
         <div className="flex items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => setIsMonthYearPickerOpen(true)}
+              className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap rounded-lg px-2 py-1 -ml-2 hover:bg-bg-hover focus:outline-none focus:ring-2 focus:ring-primary/30"
+              aria-label="Chọn tháng và năm"
+            >
               <CalendarIcon className="w-5 h-5 text-text-muted" />
               Tháng {month}, {year}
-            </h2>
+            </button>
             <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
               <Button
                 variant="ghost"
@@ -242,7 +249,8 @@ export function CalendarToolbar({
             <Button
               variant="ghost"
               className="text-base font-bold px-2 py-1 rounded-lg"
-              onClick={handleToday}
+              onClick={() => setIsMonthYearPickerOpen(true)}
+              aria-label="Chọn tháng và năm"
             >
               T{month}, {year}
             </Button>
@@ -345,6 +353,14 @@ export function CalendarToolbar({
       <SolarLunarConverter
         isOpen={isConverterOpen}
         onClose={() => setIsConverterOpen(false)}
+        onNavigateDate={onDateChange}
+      />
+      <CalendarMonthYearPicker
+        open={isMonthYearPickerOpen}
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onOpenChange={setIsMonthYearPickerOpen}
+        onSelectDate={onDateChange}
       />
     </>
   );
