@@ -6,9 +6,6 @@
 - **Deployment:** Vercel (Tài khoản hiện tại: `moodstudio`, Repo: `hudvofficial/moodstu`). Domain chính: `stu.moodwedding.com` (Đã được trỏ DNS qua Vercel CNAME).
 
 ## Module Quan Trọng & Các thay đổi gần đây
-- **Module Calendar & Lịch Trình:**
-  - Cập nhật logic đồng bộ hóa Lịch (Calendar Sync Worker) và Google Calendar Service.
-  - Tối ưu hóa UI/UX các thành phần Calendar (tháng, tuần, các Drawer hiển thị ngày, và kéo thả sự kiện - draggable events).
 - **Module Download ZIP Ảnh (Client-side):** 
   - Vừa được tối ưu hóa để tải và nén ảnh (ZIP) trực tiếp trên Client-side.
   - Xử lý dứt điểm tình trạng lỗi 500 do nghẽn RAM và hao tổn băng thông (Bandwidth) Server-side trên Vercel. 
@@ -18,5 +15,6 @@
 ## Lưu ý Kỹ thuật (Technical Notes)
 - **Vercel Deployment:** 
   - Vercel đang được liên kết với Github Repo: `hudvofficial/moodstu`.
+  - **LƯU Ý QUAN TRỌNG:** KHÔNG bao giờ chạy lệnh deploy thủ công (`npx vercel --prod`) sau khi đã `git push` code lên nhánh `main`. Vì Vercel đã tích hợp tự động với GitHub, chỉ cần `git push` là đủ, nếu chạy thêm lệnh sẽ làm trùng lặp tiến trình deploy (bị x2 bản build).
   - Để lệnh Auto-Deploy từ GitHub qua Vercel chạy thành công (bypass bảo mật Vercel Team), cấu hình Git local BẮT BUỘC phải sử dụng email `hudvofficial@gmail.com`. (Đã cấu hình).
   - Sử dụng package manager chuẩn là **NPM**. Đã xóa bỏ toàn bộ file rác `pnpm-lock.yaml` để tránh đụng độ trong quá trình Vercel chạy lệnh `npm install`.
