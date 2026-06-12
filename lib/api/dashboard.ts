@@ -426,11 +426,10 @@ async function queryKpis(
     })
     .single();
 
-  if (error && isMissingRpcError(error)) {
+  if (error) {
+    console.warn("[RPC Fallback] dashboard_kpis error:", error);
     return queryKpisFallback(supabase, visibility);
   }
-
-  assertQueryOk("Lỗi tải KPI dashboard", error);
 
   return mapDashboardKpisFromAggregate(
     (data || null) as DashboardCriticalKpiRpcRow | null,
@@ -519,11 +518,10 @@ async function queryRevenueChart(
     p_months: DASHBOARD_CHART_MONTHS,
   });
 
-  if (error && isMissingRpcError(error)) {
+  if (error) {
+    console.warn("[RPC Fallback] dashboard_revenue_chart error:", error);
     return queryRevenueChartFallback(supabase, visibility);
   }
-
-  assertQueryOk("Loi tai bieu do doanh thu", error);
   return mapDashboardRevenueChartFromAggregate(
     (data || []) as DashboardRevenueChartRpcRow[],
   );
@@ -624,11 +622,10 @@ async function queryServiceBreakdown(
     p_can_view_financials: visibility.canViewFinancials,
   });
 
-  if (error && isMissingRpcError(error)) {
+  if (error) {
+    console.warn("[RPC Fallback] dashboard_service_breakdown error:", error);
     return queryServiceBreakdownFallback(supabase, visibility);
   }
-
-  assertQueryOk("Loi tai phan bo dich vu", error);
   return mapDashboardServiceBreakdownFromAggregate(
     (data || []) as DashboardServiceBreakdownRpcRow[],
     visibility,
