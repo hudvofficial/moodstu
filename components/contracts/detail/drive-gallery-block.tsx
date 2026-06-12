@@ -155,8 +155,9 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
           <FolderOpen size={16} className="text-primary" />
           <h3 className="text-body-sm font-bold text-text-primary">Quản lý File ảnh & Drive</h3>
         </div>
-        <div className="py-4 flex justify-center">
-          <Loader2 size={20} className="text-text-muted animate-spin" />
+        <div className="space-y-3 mt-4">
+          <div className="h-[72px] w-full rounded-xl bg-bg-muted animate-pulse" />
+          <div className="h-[72px] w-full rounded-xl bg-bg-muted animate-pulse" />
         </div>
       </div>
     );
