@@ -1,12 +1,16 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function proxy(request: NextRequest) {
-  return updateSession(request);
+export async function middleware(request: NextRequest) {
+  // Refresh Supabase session cookies & inject role claims on every navigation
+  return await updateSession(request);
 }
 
 export const config = {
   matcher: [
+    // Match all request paths except static assets, image optimization,
+    // service-worker scripts, and monitoring endpoints.
+    //
     // NOTE: every service-worker script the Workbox SW importScripts() must be
     // excluded here. If auth middleware intercepts one, it returns login HTML,
     // importScripts() parses HTML as JS and throws, and the new SW fails to
