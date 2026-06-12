@@ -64,7 +64,7 @@ export default function CustomerInfoBlock({
       </div>
 
       {/* Customer Profile Link */}
-      <Link href={`/crm/customers/${customer.id}`} className="group flex items-start gap-3 mb-4 p-2 -mx-2 rounded-lg hover:bg-bg-hover transition-colors">
+      <Link href={`/crm/customers/${customer.id}`} className="group flex items-start gap-3 mb-4 p-2 -mx-2 rounded-lg hover:bg-bg-hover transition-colors cursor-pointer">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors flex items-center justify-center text-body-sm font-bold shrink-0">
           {initial}
@@ -86,7 +86,7 @@ export default function CustomerInfoBlock({
           {customer.phone ? (
             <a
               href={`tel:${customer.phone}`}
-              className="text-body-sm font-semibold text-primary hover:underline"
+              className="text-body-sm font-semibold text-primary transition-colors hover:text-primary-hover hover:underline cursor-pointer"
             >
               {customer.phone}
             </a>
@@ -100,7 +100,7 @@ export default function CustomerInfoBlock({
           <ContactRow icon={<Phone size={14} />} label="SĐT phụ">
             <a
               href={`tel:${customer.alt_phone}`}
-              className="text-body-sm text-text-primary"
+              className="text-body-sm text-text-primary transition-colors hover:text-primary hover:underline cursor-pointer"
             >
               {customer.alt_phone}
             </a>
@@ -112,7 +112,7 @@ export default function CustomerInfoBlock({
           <ContactRow icon={<Mail size={14} />} label="Email">
             <a
               href={`mailto:${customer.email}`}
-              className="text-body-sm text-text-primary hover:text-primary truncate"
+              className="text-body-sm text-text-primary transition-colors hover:text-primary hover:underline truncate cursor-pointer"
             >
               {customer.email}
             </a>
@@ -142,7 +142,7 @@ export default function CustomerInfoBlock({
               {buildPersonStr(brideName, brideHeight, brideWeight, brideShoeSize)}
             </p>
             {bridePhone && (
-              <a href={`tel:${bridePhone}`} className="text-body-sm text-primary hover:underline">
+              <a href={`tel:${bridePhone}`} className="text-body-sm text-primary transition-colors hover:text-primary-hover hover:underline cursor-pointer">
                 {bridePhone}
               </a>
             )}
@@ -155,7 +155,7 @@ export default function CustomerInfoBlock({
               {buildPersonStr(groomName, groomHeight, groomWeight, groomShoeSize)}
             </p>
             {groomPhone && (
-              <a href={`tel:${groomPhone}`} className="text-body-sm text-primary hover:underline">
+              <a href={`tel:${groomPhone}`} className="text-body-sm text-primary transition-colors hover:text-primary-hover hover:underline cursor-pointer">
                 {groomPhone}
               </a>
             )}

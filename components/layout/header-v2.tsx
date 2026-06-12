@@ -66,8 +66,17 @@ export function Header({
   const [searchTerm, setSearchTerm] = React.useState(searchParams.get('q') || "");
   const searchRef = React.useRef<HTMLInputElement>(null);
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestPathnameRef = React.useRef(pathname);
 
   const searchPlaceholder = `Tìm trong ${currentModule.shortLabel || currentModule.label}...`;
+
+  React.useEffect(() => {
+    latestPathnameRef.current = pathname;
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+  }, [pathname]);
 
   React.useEffect(() => {
     if (isSearchVisible && searchRef.current) searchRef.current.focus();
@@ -84,26 +93,36 @@ export function Header({
   const handleSearchChange = React.useCallback((value: string) => {
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const scheduledPath = latestPathnameRef.current;
     debounceRef.current = setTimeout(() => {
-      const currentPath = window.location.pathname;
+      debounceRef.current = null;
+
+      if (window.location.pathname !== scheduledPath) return;
+
       const params = new URLSearchParams(window.location.search);
       if (value.trim()) {
         params.set('q', value.trim());
       } else {
         params.delete('q');
       }
-      router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
+      router.replace(params.toString() ? `${scheduledPath}?${params.toString()}` : scheduledPath, { scroll: false });
     }, 300);
   }, [router]);
 
   const handleClearSearch = React.useCallback(() => {
     setSearchTerm("");
     setIsSearchVisible(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const params = new URLSearchParams(searchParams.toString());
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    const currentPath = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
     params.delete('q');
-    router.replace(params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname, { scroll: false });
-  }, [router, searchParams]);
+    router.replace(params.toString() ? `${currentPath}?${params.toString()}` : currentPath, { scroll: false });
+  }, [router]);
 
   // Calculate transform: pull-to-refresh takes priority, then hide/show via CSS var
   const getTransform = () => {

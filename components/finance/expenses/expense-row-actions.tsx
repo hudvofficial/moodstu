@@ -69,14 +69,14 @@ export function ExpenseRowActions({
           <Button
             type="button"
             variant="ghost"
-            className={`btn-icon ${busyId === item.id || isAuto
+            className={`btn-icon ${busyId === item.id
                 ? "text-text-muted opacity-50"
                 : "text-interactive hover:bg-interactive/10 hover:text-interactive-hover"
               }`}
             style={btnStyle}
             onClick={() => onApprove(item.id)}
-            disabled={busyId === item.id || isAuto}
-            title={isAuto ? "Chứng từ tự động" : "Duyệt chi"}
+            disabled={busyId === item.id}
+            title="Duyệt chi"
           >
             <Check style={iconStyle} strokeWidth={strokeWg} />
           </Button>

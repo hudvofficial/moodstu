@@ -49,6 +49,7 @@ const eslintConfig = defineConfig([
     "public/swe-worker-*.js",
     "public/swe-worker-*.js.map",
     "tmp/**",
+    ".openclaw/**",
     "*.js",
     "test-query-*.mjs",
     "scripts/**",

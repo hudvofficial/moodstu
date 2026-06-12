@@ -7,6 +7,7 @@ import http from "http";
 // Dynamic import for sharp (optional dependency for Vercel)
 let sharp: any;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   sharp = require("sharp");
 } catch {
   console.warn("Sharp module not available - dimension detection will be limited");

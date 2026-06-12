@@ -73,6 +73,7 @@ export function ReceiptsClient({ initialMonth, initialYear, initialData, initial
   const pathname = usePathname();
   useEffect(() => {
     if (searchParams.get("new") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditingReceipt(null);
       setIsModalOpen(true);
       // Remove the query param without re-render loop

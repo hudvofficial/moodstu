@@ -127,7 +127,6 @@ export function useGalleryData(
   // Skip lần đầu nếu SSR đã trả về summaries — dùng one-shot ref để chỉ skip mount đầu,
   // các lần contractId đổi sau (không xảy ra trong route hiện tại nhưng phòng) vẫn fetch.
   const skipFirstGalleriesLoadRef = useRef(!!(initial?.galleries && initial.galleries.length > 0));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (skipFirstGalleriesLoadRef.current) {
       skipFirstGalleriesLoadRef.current = false;

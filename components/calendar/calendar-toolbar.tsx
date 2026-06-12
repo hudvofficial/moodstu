@@ -89,15 +89,16 @@ export function CalendarToolbar({
       <div className="hidden sm:flex flex-col">
         <div className="flex items-center justify-between gap-3 p-4">
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setIsMonthYearPickerOpen(true)}
               className="text-xl font-bold flex items-center gap-2 shrink-0 whitespace-nowrap rounded-lg px-2 py-1 -ml-2 hover:bg-bg-hover focus:outline-none focus:ring-2 focus:ring-primary/30"
               aria-label="Chọn tháng và năm"
             >
               <CalendarIcon className="w-5 h-5 text-text-muted" />
               Tháng {month}, {year}
-            </button>
+            </Button>
             <div className="flex items-center ml-2 rounded-lg shadow-sm bg-bg-card overflow-hidden">
               <Button
                 variant="ghost"

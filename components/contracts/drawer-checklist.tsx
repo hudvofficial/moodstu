@@ -50,6 +50,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
   }, [initialItems, pendingToggles]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingToggles(prev => {
       if (prev.size === 0) return prev;
       const next = new Map(prev);

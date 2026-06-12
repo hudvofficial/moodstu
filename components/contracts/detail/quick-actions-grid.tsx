@@ -33,7 +33,7 @@ export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền"
       <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3 lg:mb-4 px-1 lg:px-0">
         Thao tác nhanh
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-3 mt-3 lg:mt-4">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           const label = action.key === "payment" ? paymentLabel : action.label;
@@ -41,20 +41,21 @@ export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền"
             <Button unstyled
               key={action.key}
               onClick={() => onAction?.(action.key)}
-              className="group flex flex-col items-center justify-center gap-2 py-4 px-2 rounded-xl
+              className="group flex min-w-0 flex-col items-center justify-center gap-1 sm:gap-1.5 md:gap-2
+                         rounded-xl px-1 py-2 sm:px-2 sm:py-3 lg:py-4
                          bg-bg-hover/50 hover:bg-bg-hover border border-transparent hover:border-border/50
                          transition-all duration-200
                          active:scale-(--scale-press-sm) cursor-pointer"
             >
               <div
-                className={`w-(--icon-container-md) h-(--icon-container-md) rounded-lg flex items-center justify-center
+                className={`flex h-8 w-8 items-center justify-center rounded-lg sm:h-10 sm:w-10 md:h-(--icon-container-md) md:w-(--icon-container-md)
                             ${action.bg} ${action.hoverBg}
                             lg:group-hover:scale-110 lg:group-hover:shadow-sm
                             transition-all duration-200`}
               >
-                <Icon size={22} className={action.text} />
+                <Icon size={20} className={action.text} />
               </div>
-              <span className="text-caption font-medium text-text-secondary group-hover:text-text-primary transition-colors text-center w-full truncate px-1">
+              <span className="w-full truncate px-0.5 text-center text-tiny font-medium text-text-secondary transition-colors group-hover:text-text-primary sm:text-caption">
                 {label}
               </span>
             </Button>

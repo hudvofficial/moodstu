@@ -48,16 +48,19 @@ export function ExpenseMobileSwipeCard({
   // Right actions (swipe left to reveal)
   const rightActions: SwipeAction[] = [];
 
-  if (!item.approved_by && !isAuto) {
-    rightActions.push({
-      id: "edit",
-      label: "Sửa",
-      icon: <Edit3 className="w-5 h-5 mb-1" />,
-      className: "bg-warning text-text-inverse",
-      onClick: () => {
-        if (!isBusy) onEdit(item);
-      },
-    });
+  if (!item.approved_by) {
+    if (!isAuto) {
+      rightActions.push({
+        id: "edit",
+        label: "Sửa",
+        icon: <Edit3 className="w-5 h-5 mb-1" />,
+        className: "bg-warning text-text-inverse",
+        onClick: () => {
+          if (!isBusy) onEdit(item);
+        },
+      });
+    }
+
     rightActions.push({
       id: "approve",
       label: "Duyệt",
@@ -67,15 +70,18 @@ export function ExpenseMobileSwipeCard({
         if (!isBusy) onApprove(item.id);
       },
     });
-    rightActions.push({
-      id: "delete",
-      label: "Xóa",
-      icon: <Trash2 className="w-5 h-5 mb-1" />,
-      className: "bg-error text-text-inverse",
-      onClick: () => {
-        if (!isBusy) onDelete(item.id);
-      },
-    });
+
+    if (!isAuto) {
+      rightActions.push({
+        id: "delete",
+        label: "Xóa",
+        icon: <Trash2 className="w-5 h-5 mb-1" />,
+        className: "bg-error text-text-inverse",
+        onClick: () => {
+          if (!isBusy) onDelete(item.id);
+        },
+      });
+    }
   }
 
   return (

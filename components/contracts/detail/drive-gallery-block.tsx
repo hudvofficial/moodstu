@@ -166,14 +166,14 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
   return (
     <div className="card-base p-4 lg:p-5 entrance entrance-3">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <FolderOpen size={16} className="text-primary" />
-          <h3 className="text-body-sm font-bold text-text-primary">Quản lý File ảnh & Drive</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <FolderOpen size={16} className="text-primary shrink-0" />
+          <h3 className="text-body-sm font-bold text-text-primary truncate">Quản lý File ảnh & Drive</h3>
         </div>
-        <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId })} className="btn-ghost" style={{ padding: "4px 10px", fontSize: "var(--font-size-caption)" }}>
+        <Button unstyled onClick={() => openModal("DRIVE_LINK", { contractId })} className="btn-ghost px-2.5 py-1 text-caption shrink-0">
           <Plus size={14} />
-          <span>{hasGalleries ? "Thêm link" : "Gán Link Drive"}</span>
+          <span>{hasGalleries ? "Thêm link" : "Gán Link"}</span>
         </Button>
       </div>
 
@@ -198,7 +198,7 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
             // ── Inline edit mode ──
             if (isEditing) {
               return (
-                <div key={g.id} className="flex flex-col gap-2 py-2 px-3 rounded-lg" style={{ background: "var(--color-bg-secondary)" }}>
+                <div key={g.id} className="flex flex-col gap-2 py-2 px-3 rounded-lg bg-bg-hover">
                   <div className="flex items-center gap-2">
                     <span className="text-body-sm">{info.icon}</span>
                     <span className="text-body-sm font-medium text-text-primary">{info.label}</span>
@@ -206,17 +206,17 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
                   <div className="flex items-center gap-2">
                     <Input
                       type="url"
-                      className="flex-1"
+                      className="flex-1 min-w-0"
                       placeholder="Dán link Google Drive folder..."
                       value={editUrl}
                       onChange={(e: any) => setEditUrl(e.target.value)}
                       onKeyDown={(e: any) => e.key === "Enter" && void handleSaveEdit(g.id)}
                       autoFocus
                     />
-                    <Button unstyled onClick={() => void handleSaveEdit(g.id)} disabled={isSaving} className="btn-icon" style={{ width: 28, height: 28, color: "var(--color-success)" }} title="Lưu">
+                    <Button unstyled onClick={() => void handleSaveEdit(g.id)} disabled={isSaving} className="btn-icon w-7 h-7 text-success shrink-0" title="Lưu">
                       {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                     </Button>
-                    <Button unstyled onClick={handleCancelEdit} disabled={isSaving} className="btn-icon" style={{ width: 28, height: 28 }} title="Huỷ">
+                    <Button unstyled onClick={handleCancelEdit} disabled={isSaving} className="btn-icon w-7 h-7 shrink-0" title="Huỷ">
                       <X size={14} />
                     </Button>
                   </div>
@@ -226,46 +226,42 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
 
             // ── Normal view ──
             return (
-              <div key={g.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 py-3 px-3 rounded-lg cursor-pointer hover:opacity-80 transition-opacity" style={{ background: "var(--color-bg-secondary)" }} onClick={() => router.push(`/contracts/${contractId}/gallery?galleryId=${g.id}`)}>
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div key={g.id} className="group flex flex-col gap-2 p-3 rounded-lg bg-bg-hover cursor-pointer transition-colors hover:bg-bg-hover/80" onClick={() => router.push(`/contracts/${contractId}/gallery?galleryId=${g.id}`)}>
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-black/5 dark:bg-white/5">
                     <span className="text-body-sm">{info.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-body-sm font-medium text-text-primary block truncate">{info.label}</span>
-                    <span className="text-caption text-text-muted">{g.imageCount} ảnh{g.selectedCount > 0 ? ` · ❤️ ${g.selectedCount}` : ""}</span>
+                    <span className="text-caption text-text-muted block truncate">{g.imageCount} ảnh{g.selectedCount > 0 ? ` · ❤️ ${g.selectedCount}` : ""}</span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 justify-end shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/40 mt-1 sm:mt-0">
+                <div className="flex flex-wrap items-center justify-end gap-1 pt-2 border-t border-border/40">
                   {/* Share indicator + button */}
                   <Button unstyled
                     onClick={(e) => { e.stopPropagation(); handleShare(g); }}
-                    className="btn-icon relative"
-                    style={{ width: 32, height: 32 }}
+                    className="btn-icon relative w-8 h-8"
                     title={g.status === "shared" ? "Đã chia sẻ — bấm để xem link" : "Chia sẻ album"}
                   >
                     <Share2 size={16} />
                     {g.status === "shared" && (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
-                        style={{ background: "var(--color-success)" }}
-                      />
+                      <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-success ring-2 ring-bg-hover" />
                     )}
                   </Button>
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon" style={{ width: 32, height: 32 }} title="Đồng bộ lại">
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleSync(g.id); }} disabled={isSyncing} className="btn-icon w-8 h-8" title="Đồng bộ lại">
                     <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
                   </Button>
                   {g.drive_folder_url && (
-                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex items-center justify-center" style={{ width: 32, height: 32 }} title="Mở Drive" onClick={(e) => e.stopPropagation()}>
+                    <a href={g.drive_folder_url} target="_blank" rel="noopener noreferrer" className="btn-icon flex items-center justify-center w-8 h-8" title="Mở Drive" onClick={(e) => e.stopPropagation()}>
                       <ExternalLink size={16} />
                     </a>
                   )}
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); handleStartEdit(g); }} className="btn-icon" style={{ width: 32, height: 32 }} title="Sửa link Drive">
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); handleStartEdit(g); }} className="btn-icon w-8 h-8" title="Sửa link Drive">
                     <Pencil size={16} />
                   </Button>
-                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleDelete(g); }} className="btn-icon hover:bg-error/10 hover:text-error transition-colors" style={{ width: 32, height: 32, color: "var(--color-error)" }} title="Xoá gallery">
+                  <Button unstyled onClick={(e) => { e.stopPropagation(); void handleDelete(g); }} className="btn-icon w-8 h-8 hover:bg-error/10 hover:text-error transition-colors text-error" title="Xoá gallery">
                     <Trash2 size={16} />
                   </Button>
                 </div>
@@ -277,20 +273,20 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
 
       {/* ── Stats & Progress ── */}
       {hasGalleries && (
-        <div className="mt-3 pt-3 space-y-2" style={{ borderTop: "1px solid var(--color-border)" }}>
+        <div className="mt-4 pt-3 space-y-2 border-t border-border">
           {/* Total images */}
-          <div className="flex items-center justify-between">
-            <span className="text-caption text-text-muted">Tổng ảnh</span>
-            <span className="text-caption font-medium text-text-primary">{totalImages}</span>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-caption text-text-muted whitespace-nowrap">Tổng ảnh</span>
+            <span className="text-caption font-medium text-text-primary text-right">{totalImages}</span>
           </div>
 
           {/* Delivery date */}
           {deliveryDate && (
-            <div className="flex items-center justify-between">
-              <span className="text-caption text-text-muted flex items-center gap-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-caption text-text-muted flex items-center gap-1.5 whitespace-nowrap">
                 <Calendar size={14} /> Ngày trả file
               </span>
-              <span className="text-caption font-medium text-text-primary">
+              <span className="text-caption font-medium text-text-primary text-right">
                 {new Date(deliveryDate).toLocaleDateString("vi-VN")}
               </span>
             </div>
@@ -298,20 +294,17 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
 
           {/* Retouch progress */}
           {progress.selectedCount > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-caption text-text-muted">Tiến độ sửa ảnh</span>
-                <span className="text-caption font-medium text-text-primary">
+            <div className="pt-1">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <span className="text-caption text-text-muted whitespace-nowrap">Tiến độ sửa ảnh</span>
+                <span className="text-caption font-medium text-text-primary text-right">
                   {progress.editedCount}/{progress.selectedCount} ({progress.progress}%)
                 </span>
               </div>
-              <div className="w-full h-1.5 rounded-full" style={{ background: "var(--color-bg-tertiary)" }}>
+              <div className="w-full h-1.5 rounded-full bg-bg-muted">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.min(progress.progress, 100)}%`,
-                    background: progress.progress >= 100 ? "var(--color-success)" : "var(--color-primary)",
-                  }}
+                  className={`h-full rounded-full transition-all duration-500 ${progress.progress >= 100 ? "bg-success" : "bg-primary"}`}
+                  style={{ width: `${Math.min(progress.progress, 100)}%` }}
                 />
               </div>
             </div>

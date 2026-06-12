@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -22,9 +23,9 @@ export default function ExpenseDetailError({ error, reset }: ErrorProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={reset} className="btn-secondary">
+          <Button type="button" onClick={reset} variant="secondary">
             Thử lại
-          </button>
+          </Button>
           <Link href="/finance/expenses" className="btn-primary">
             Về Phiếu chi
           </Link>

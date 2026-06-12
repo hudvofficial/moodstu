@@ -59,6 +59,7 @@ export default function ContractChecklistManager({
   const pendingIds = useMemo(() => new Set(pendingToggles.keys()), [pendingToggles]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingToggles(prev => {
       if (prev.size === 0) return prev;
       const next = new Map(prev);
@@ -97,6 +98,7 @@ export default function ContractChecklistManager({
 
   useEffect(() => {
     if (!activeStage || !stages.includes(activeStage)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveStage(defaultStage);
     }
   }, [activeStage, defaultStage, stages]);
@@ -166,12 +168,12 @@ export default function ContractChecklistManager({
                 unstyled
                 key={stage}
                 onClick={() => setActiveStage(stage)}
-                className={`flex-1 py-2 px-3 rounded-md text-caption font-bold transition-all ${
+                className={`flex-1 py-2 px-3 rounded-md text-caption font-bold transition-all cursor-pointer ${
                   isActive
                     ? "bg-bg-card text-text-main shadow-sm"
                     : progress.pct === 100
-                      ? "text-success/60 hover:text-success"
-                      : "text-text-muted hover:text-text-secondary"
+                      ? "text-success/60 hover:bg-bg-card/60 hover:text-success"
+                      : "text-text-muted hover:bg-bg-card/60 hover:text-text-secondary"
                 }`}
               >
                 <div className="truncate">{getEventTypeLabel(stage as EventType)}</div>
@@ -217,15 +219,15 @@ export default function ContractChecklistManager({
             <Button
               unstyled
               onClick={() => setActiveStage(activeStage === stage ? null : stage)}
-              className="w-full flex items-center justify-between py-2 text-left"
+              className="group w-full flex items-center justify-between rounded-md px-2 py-2 -mx-2 text-left transition-colors hover:bg-bg-hover cursor-pointer"
             >
-              <span className="text-caption font-bold text-text-secondary">
+              <span className="text-caption font-bold text-text-secondary transition-colors group-hover:text-text-primary">
                 {getEventTypeLabel(stage as EventType)}
               </span>
               {activeStage === stage ? (
-                <ChevronUp size={14} className="text-text-muted" />
+                <ChevronUp size={14} className="text-text-muted transition-colors group-hover:text-text-primary" />
               ) : (
-                <ChevronDown size={14} className="text-text-muted" />
+                <ChevronDown size={14} className="text-text-muted transition-colors group-hover:text-text-primary" />
               )}
             </Button>
 

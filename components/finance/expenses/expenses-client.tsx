@@ -60,8 +60,10 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, initial
   const pathname = usePathname();
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setEditingExpense(null);
-      setIsModalOpen(true);
+      queueMicrotask(() => {
+        setEditingExpense(null);
+        setIsModalOpen(true);
+      });
       const params = new URLSearchParams(searchParams.toString());
       params.delete("new");
       const next = params.toString() ? `${pathname}?${params.toString()}` : pathname;
@@ -72,6 +74,7 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, initial
   const pageSize = 12;
   const key = cacheKeys.financeExpenses(page, month, year, approval);
   const statsKey = cacheKeys.financeExpenseStats(month, year);
+  const isInitialQuery = page === 1 && month === initialMonth && year === initialYear && approval === "all";
   const { monthOptions, yearOptions } = useFinanceFilters(initialYear);
 
   const handleMonthChange = useCallback((value: string) => {
@@ -90,60 +93,155 @@ export function ExpensesClient({ initialMonth, initialYear, initialData, initial
   const { data, error, isLoading } = useSWR(
     key,
     () => requireData(fetchExpenses({ page, pageSize, month, year, approval })),
-    initialData ? { fallbackData: initialData } : undefined,
+    {
+      keepPreviousData: true,
+      revalidateOnMount: !initialData || !isInitialQuery,
+      ...(initialData && isInitialQuery ? { fallbackData: initialData } : {}),
+    },
   );
 
   const { data: stats } = useSWR<ExpenseStats>(
     statsKey,
     () => requireData(fetchExpenseStats(month, year)),
-    initialStats ? { fallbackData: initialStats } : undefined,
+    {
+      keepPreviousData: true,
+      revalidateOnMount: !initialStats || month !== initialMonth || year !== initialYear,
+      ...(initialStats && month === initialMonth && year === initialYear ? { fallbackData: initialStats } : {}),
+    },
   );
   const { data: categoryData } = useSWR(
     cacheKeys.financeCategories("chi"),
     () => requireData(fetchFinanceCategories("chi")),
-    categories ? { fallbackData: categories } : undefined,
+    {
+      keepPreviousData: true,
+      revalidateOnMount: !categories,
+      ...(categories ? { fallbackData: categories } : {}),
+    },
   );
 
   useEffect(() => {
     if (error) toast.error(error.message || "Không tải được phiếu chi.");
   }, [error]);
 
-  const expenses = data || initialData || { items: [], total: 0, page: 1, pageSize };
+  const expenses = data || (isInitialQuery ? initialData : undefined) || { items: [], total: 0, page: 1, pageSize };
   const totalPages = Math.max(1, Math.ceil(expenses.total / expenses.pageSize));
 
-  const refresh = async () => {
+  const revalidateRelatedFinanceViews = useCallback(async () => {
     await Promise.all([
-      mutate(key),
       mutate(statsKey),
       mutate(cacheKeys.financeDashboard(month, year)),
       mutate(cacheKeys.financeLedger(1, month, year, "all")),
       invalidateFinanceAfterWrite({ month, year }),
     ]);
-  };
+  }, [month, statsKey, year]);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      mutate(key),
+      revalidateRelatedFinanceViews(),
+    ]);
+  }, [key, revalidateRelatedFinanceViews]);
 
   const handleApprove = async (id: string) => {
+    const optimisticUpdatedAt = new Date().toISOString();
+
     setBusyId(id);
+    await Promise.all([
+      mutate<ExpensePage>(
+        key,
+        (current) => {
+          if (!current?.items.some((item) => item.id === id)) return current;
+
+          if (approval === "pending") {
+            return {
+              ...current,
+              items: current.items.filter((item) => item.id !== id),
+              total: Math.max(0, current.total - 1),
+            };
+          }
+
+          return {
+            ...current,
+            items: current.items.map((item) =>
+              item.id === id
+                ? { ...item, approved_by: item.approved_by || "optimistic", updated_at: optimisticUpdatedAt }
+                : item,
+            ),
+          };
+        },
+        { revalidate: false },
+      ),
+      mutate<ExpenseStats>(
+        statsKey,
+        (current) =>
+          current
+            ? {
+                ...current,
+                approvedCount: current.approvedCount + 1,
+                pendingCount: Math.max(0, current.pendingCount - 1),
+              }
+            : current,
+        { revalidate: false },
+      ),
+    ]);
+
     const result = await approveExpense(id);
     setBusyId(null);
     if (!result.success) {
       toast.error(result.error);
+      await Promise.all([mutate(key), mutate(statsKey)]);
       return;
     }
+
     toast.success("Đã duyệt phiếu chi.");
-    await refresh();
+    void Promise.all([mutate(key), revalidateRelatedFinanceViews()]);
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Xóa phiếu chi này?")) return;
+
+    const deletedExpense = expenses.items.find((item) => item.id === id);
+
     setBusyId(id);
+    await Promise.all([
+      mutate<ExpensePage>(
+        key,
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.filter((item) => item.id !== id),
+                total: Math.max(0, current.total - 1),
+              }
+            : current,
+        { revalidate: false },
+      ),
+      mutate<ExpenseStats>(
+        statsKey,
+        (current) =>
+          current && deletedExpense
+            ? {
+                ...current,
+                totalExpenses: Math.max(0, current.totalExpenses - 1),
+                totalAmount: Math.max(0, current.totalAmount - deletedExpense.amount),
+                pendingCount: deletedExpense.approved_by ? current.pendingCount : Math.max(0, current.pendingCount - 1),
+                approvedCount: deletedExpense.approved_by ? Math.max(0, current.approvedCount - 1) : current.approvedCount,
+              }
+            : current,
+        { revalidate: false },
+      ),
+    ]);
+
     const result = await deleteExpense(id);
     setBusyId(null);
     if (!result.success) {
       toast.error(result.error);
+      await Promise.all([mutate(key), mutate(statsKey)]);
       return;
     }
+
     toast.success("Đã xóa phiếu chi.");
-    await refresh();
+    void Promise.all([mutate(key), revalidateRelatedFinanceViews()]);
   };
 
   const handleEdit = (item: ExpenseListItem) => {

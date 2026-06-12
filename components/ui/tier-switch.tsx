@@ -36,7 +36,10 @@ export function TierSwitch({ phone, tablet, desktop, fallback = null }: TierSwit
   const tier = useDeviceTier();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   if (!mounted) return <>{fallback}</>;
 

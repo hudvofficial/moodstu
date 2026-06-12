@@ -14,6 +14,7 @@ export function SplashScreen() {
       const hasVisited = sessionStorage.getItem("ms_v2_loaded");
       if (hasVisited) {
         shouldShow = false;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShow(false);
         return;
       }

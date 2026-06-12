@@ -188,13 +188,15 @@ export default function LoginPageClient() {
                       className="pl-11 pr-11"
                     />
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text-primary transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-text-muted hover:text-text-primary"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

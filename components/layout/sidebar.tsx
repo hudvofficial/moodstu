@@ -181,14 +181,15 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
       </div>
 
       {/* Collapse Toggle Button (Desktop Only) */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-12 w-6 h-6 rounded-full bg-white border border-border/60 shadow-md flex items-center justify-center text-text-secondary hover:text-dark hover:bg-bg-hover hover:scale-105 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+        className="absolute -right-3 top-12 w-6 h-6 p-0 rounded-full bg-white border border-border/60 shadow-md flex items-center justify-center text-text-secondary hover:text-dark hover:bg-bg-hover hover:scale-105 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
         aria-label={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
       >
         {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
+      </Button>
     </aside>
   );
 }

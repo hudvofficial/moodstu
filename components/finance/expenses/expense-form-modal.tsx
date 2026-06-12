@@ -39,7 +39,6 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm({
           expense_date: initialData.expense_date,
           payment_method: initialData.payment_method,

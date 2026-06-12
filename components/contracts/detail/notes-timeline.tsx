@@ -122,15 +122,15 @@ export default function NotesTimeline({ contractId }: Props) {
       {/* Header — click to expand */}
       <Button unstyled
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center justify-between w-full"
+        className="group flex w-full items-center justify-between rounded-lg px-2 py-1.5 -mx-2 transition-colors hover:bg-bg-hover cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <MessageSquare size={16} className="text-primary" />
-          <h3 className="text-body-sm font-bold text-text-primary">
+          <MessageSquare size={16} className="text-primary transition-transform duration-200 group-hover:scale-105" />
+          <h3 className="text-body-sm font-bold text-text-primary transition-colors group-hover:text-primary">
             Ghi chú
           </h3>
         </div>
-        <span className="text-caption text-text-muted">
+        <span className="text-caption text-text-muted transition-colors group-hover:text-text-primary">
           {expanded ? "Thu gọn ▲" : `${notes.length > 0 ? notes.length + " ghi chú" : "Mở rộng"} ▼`}
         </span>
       </Button>

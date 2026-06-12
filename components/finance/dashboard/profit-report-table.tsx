@@ -10,7 +10,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import DatePicker from "@/components/ui/date-picker";
 import { Pagination } from "@/components/ui/pagination";
-import { SelectPill } from "@/components/ui/select/SelectPill";
+import { SelectForm } from "@/components/ui/select";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { cacheKeys, useSWR } from "@/lib/swr";
@@ -83,7 +83,7 @@ function ProfitDesktopTable({
   onSelect: (contractId: string) => void;
 }) {
   return (
-    <TableWrapper>
+    <TableWrapper containerClassName="rounded-none border-0 bg-transparent shadow-none">
       <THead>
         <TR>
           <TH>Hợp đồng</TH>
@@ -289,63 +289,81 @@ export function ProfitReportTable({
 
   return (
     <>
-      <div className="space-y-3">
-        <div className="card-base p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="icon-box bg-primary/10">
-                  <ReceiptText className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
+      <div className="card-base overflow-hidden">
+        <div className="bg-gradient-to-br from-bg-card via-bg-card to-primary/5 p-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/10">
+                <ReceiptText className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-h3">Lợi nhuận theo hợp đồng</h3>
-                  <p className="text-caption text-text-muted">Đọc theo cùng một semantic doanh thu, chi phí và biên lợi nhuận.</p>
+                  <Badge variant="primary">{data.total} hợp đồng</Badge>
                 </div>
+                <p className="mt-1 text-caption text-text-muted">
+                  Theo dõi doanh thu, chi phí, biên lợi nhuận và tình trạng thu tiền trong một bảng duy nhất.
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Badge variant="primary">{data.total} hợp đồng</Badge>
-              {fromDate && toDate && (
-                <Badge variant="info">
-                  <span className="inline-flex items-center gap-1">
-                    <CalendarRange className="h-3.5 w-3.5" />
-                    {fromDate} đến {toDate}
-                  </span>
-                </Badge>
-              )}
-            </div>
-          </div>
+            <div className="flex w-full flex-col gap-3 xl:w-auto xl:items-end">
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center xl:w-auto">
+                <div className="w-full sm:w-44">
+                  <SelectForm
+                    value={status}
+                    onChange={handleStatusChange}
+                    options={STATUS_OPTIONS}
+                    placeholder="Trạng thái"
+                  />
+                </div>
+                <div className="w-full sm:w-40">
+                  <DatePicker value={fromDate} onChange={handleFromDateChange} placeholder="Từ ngày" className="w-full" />
+                </div>
+                <div className="w-full sm:w-40">
+                  <DatePicker value={toDate} onChange={handleToDateChange} placeholder="Đến ngày" className="w-full" />
+                </div>
+              </div>
 
-          <div className="mt-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
-            <SelectPill
-              value={status}
-              onChange={handleStatusChange}
-              options={STATUS_OPTIONS}
-              placeholder="Trạng thái"
-              defaultValue="all"
-            />
-            <DatePicker value={fromDate} onChange={handleFromDateChange} placeholder="Từ ngày" className="w-full lg:w-40" />
-            <DatePicker value={toDate} onChange={handleToDateChange} placeholder="Đến ngày" className="w-full lg:w-40" />
+              <div className="flex min-h-5 flex-wrap items-center gap-2 text-caption text-text-muted">
+                <span>
+                  Hiển thị {data.items.length}/{data.total} hợp đồng
+                </span>
+                {fromDate && toDate && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 font-semibold text-info">
+                    <CalendarRange className="h-3.5 w-3.5" />
+                    {fromDate} → {toDate}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {report.isLoading && data.items.length === 0 ? (
-          <div className="card-base p-4">
-            <SkeletonTable rows={6} />
-          </div>
-        ) : (
-          <TierSwitch
-            phone={<ProfitMobileList items={data.items} onSelect={setSelectedContractId} />}
-            desktop={<ProfitDesktopTable items={data.items} onSelect={setSelectedContractId} />}
-          />
-        )}
+        <div className="border-t border-border/60">
+          {report.isLoading && data.items.length === 0 ? (
+            <div className="p-4">
+              <SkeletonTable rows={6} />
+            </div>
+          ) : (
+            <>
+              <TierSwitch
+                phone={
+                  <div className="p-3 lg:p-4">
+                    <ProfitMobileList items={data.items} onSelect={setSelectedContractId} />
+                  </div>
+                }
+                desktop={<ProfitDesktopTable items={data.items} onSelect={setSelectedContractId} />}
+              />
 
-        <div className="card-base flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-body-sm text-text-secondary">
-            Trang {data.page} / {totalPages} · {data.items.length} / {data.total} hợp đồng
-          </p>
-          <Pagination page={data.page} totalPages={totalPages} onChange={setPage} />
+              <div className="border-t border-border/60 px-4 py-3 lg:flex lg:items-center lg:justify-between">
+                <p className="text-body-sm text-text-secondary">
+                  Trang {data.page} / {totalPages} · {data.items.length} / {data.total} hợp đồng
+                </p>
+                <Pagination page={data.page} totalPages={totalPages} onChange={setPage} />
+              </div>
+            </>
+          )}
         </div>
       </div>
 

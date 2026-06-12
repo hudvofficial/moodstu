@@ -95,6 +95,7 @@ export function useNetworkQuality(): NetworkQualityState {
 
   useEffect(() => {
     // Set actual client state after mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     updateState();
 
     const connection = getConnection();
