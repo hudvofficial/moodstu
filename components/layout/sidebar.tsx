@@ -62,7 +62,8 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
       {/* Logo Section — Click → Dashboard */}
       <Link
         href="/dashboard"
-        prefetch
+        prefetch={false}
+        onPointerEnter={() => prefetchOnHover("/dashboard")}
         className="p-4 flex items-center gap-3 overflow-hidden text-nowrap group hover:opacity-90 transition-opacity"
       >
         {/* Logo icon — V1 style: bo vuông nhẹ, nền primary, logo trắng */}
@@ -115,7 +116,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
                     <Link
                       key={item.id}
                       href={item.href}
-                      prefetch
+                      prefetch={false}
                       onPointerEnter={() => prefetchOnHover(item.href)}
                       aria-current={isActive ? "page" : undefined}
                       className={cn(

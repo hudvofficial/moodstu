@@ -83,10 +83,6 @@ export function Header({
   }, [isSearchVisible]);
 
   React.useEffect(() => {
-    setSearchTerm(searchParams.get('q') || "");
-  }, [searchParams]);
-
-  React.useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, []);
 

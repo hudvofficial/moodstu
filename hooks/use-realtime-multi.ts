@@ -37,7 +37,9 @@ export function useRealtimeMulti(
   configs: RealtimeMultiConfig[],
   options: RealtimeMultiOptions,
 ) {
-  const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [status, setStatus] = useState<ConnectionStatus>(() =>
+    configs.length > 0 ? "connecting" : "disconnected",
+  );
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const payloadQueueRef = useRef<RealtimePayload[]>([]);
   const onChangeRef = useRef<RealtimeMultiOptions["onChange"]>(options.onChange);
@@ -48,8 +50,10 @@ export function useRealtimeMulti(
   const channelName = options.channelName || `realtime-multi-${configsKey}`;
   const debounceMs = options.debounceMs ?? 300;
 
-  onChangeRef.current = options.onChange;
-  onBatchChangeRef.current = options.onBatchChange;
+  useEffect(() => {
+    onChangeRef.current = options.onChange;
+    onBatchChangeRef.current = options.onBatchChange;
+  }, [options.onBatchChange, options.onChange]);
 
   useEffect(() => {
     // Skip empty config: subscribing a channel with zero postgres_changes handlers is
@@ -58,7 +62,6 @@ export function useRealtimeMulti(
     // and adding .on() after subscribe() throws "cannot add postgres_changes callbacks
     // after subscribe()". Not subscribing until there are configs avoids that race.
     if (configs.length === 0) {
-      setStatus("disconnected");
       return;
     }
 
@@ -71,8 +74,6 @@ export function useRealtimeMulti(
     let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
     const supabase = createClient();
 
-    setStatus("connecting");
-
     const setup = async () => {
       const {
         data: { session },
@@ -81,7 +82,7 @@ export function useRealtimeMulti(
       if (cancelled) return;
 
       if (!session) {
-        setStatus("disconnected");
+        setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
         return;
       }
 
@@ -132,11 +133,11 @@ export function useRealtimeMulti(
 
       channel.subscribe((channelStatus: string) => {
         if (channelStatus === "SUBSCRIBED") {
-          setStatus("connected");
+          setStatus((prev) => (prev === "connected" ? prev : "connected"));
         } else if (channelStatus === "CHANNEL_ERROR" || channelStatus === "TIMED_OUT") {
-          setStatus("retrying");
+          setStatus((prev) => (prev === "retrying" ? prev : "retrying"));
         } else if (channelStatus === "CLOSED") {
-          setStatus("disconnected");
+          setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
         }
       });
     };
@@ -150,10 +151,10 @@ export function useRealtimeMulti(
       if (debounceRef.current) clearTimeout(debounceRef.current);
       payloadQueueRef.current = [];
       if (channel) supabase.removeChannel(channel);
-      setStatus("disconnected");
+      setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelName, configsKey, debounceMs]);
 
-  return { status };
+  return { status: configs.length === 0 ? "disconnected" : status };
 }

@@ -40,7 +40,7 @@ export function useRealtime(
   cacheKeysOrOptions?: string[] | RealtimeOptions,
 ) {
   const router = useRouter();
-  const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [status, setStatus] = useState<ConnectionStatus>(() => "connecting");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onChangeRef = useRef<RealtimeOptions["onChange"]>(undefined);
   const cacheKeysRef = useRef<RealtimeOptions["cacheKeys"]>(undefined);
@@ -77,20 +77,23 @@ export function useRealtime(
 
   const eventTypesKey = useMemo(() => eventTypes.join(","), [eventTypes]);
 
-  onChangeRef.current = options.onChange;
-  cacheKeysRef.current = keys;
-  prefixesRef.current = options.prefixes;
+  useEffect(() => {
+    onChangeRef.current = options.onChange;
+    cacheKeysRef.current = keys;
+    prefixesRef.current = options.prefixes;
+  }, [keys, options.onChange, options.prefixes]);
 
   useEffect(() => {
     let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
     const supabase = createClient();
-
-    setStatus("connecting");
+    let cancelled = false;
 
     const setup = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+
       if (!session) {
-        setStatus("disconnected");
+        setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
         return;
       }
 
@@ -146,26 +149,27 @@ export function useRealtime(
 
       channel.subscribe((channelStatus: string) => {
         if (channelStatus === "SUBSCRIBED") {
-          setStatus("connected");
+          setStatus((prev) => (prev === "connected" ? prev : "connected"));
         } else if (channelStatus === "CHANNEL_ERROR") {
-          setStatus("retrying");
+          setStatus((prev) => (prev === "retrying" ? prev : "retrying"));
         } else if (channelStatus === "TIMED_OUT") {
-          setStatus("retrying");
+          setStatus((prev) => (prev === "retrying" ? prev : "retrying"));
         } else if (channelStatus === "CLOSED") {
-          setStatus("disconnected");
+          setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
         }
       });
     };
 
-    setup();
+    setup().catch(() => setStatus("retrying"));
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (channel) supabase.removeChannel(channel);
-      setStatus("disconnected");
+      setStatus((prev) => (prev === "disconnected" ? prev : "disconnected"));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableName, filter, schema, debounceMs, eventTypesKey, channelName]);
+  }, [tableName, filter, schema, debounceMs, eventTypesKey, channelName, router]);
 
   return { status };
 }

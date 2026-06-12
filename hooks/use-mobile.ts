@@ -3,6 +3,20 @@
 import * as React from "react";
 import { BREAKPOINTS, mediaQueries } from "@/lib/breakpoints";
 
+function subscribeToQuery(query: string, onStoreChange: () => void) {
+  const mql = window.matchMedia(query);
+  mql.addEventListener("change", onStoreChange);
+  return () => mql.removeEventListener("change", onStoreChange);
+}
+
+function useMediaQueryValue(query: string, getValue: () => boolean) {
+  return React.useSyncExternalStore(
+    (onStoreChange) => subscribeToQuery(query, onStoreChange),
+    getValue,
+    () => false,
+  );
+}
+
 /**
  * Hook: useIsMobile
  * Returns true when viewport width < 1024px (Tailwind lg: breakpoint)
@@ -11,19 +25,10 @@ import { BREAKPOINTS, mediaQueries } from "@/lib/breakpoints";
  * Use for: Showing/hiding mobile-specific UI, bottom nav, mobile header behavior
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(mediaQueries.belowDesktop);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < BREAKPOINTS.lg);
-    };
-    mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < BREAKPOINTS.lg);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return !!isMobile;
+  return useMediaQueryValue(
+    mediaQueries.belowDesktop,
+    () => window.innerWidth < BREAKPOINTS.lg,
+  );
 }
 
 /**
@@ -33,19 +38,10 @@ export function useIsMobile() {
  * Use for: Tablet-specific layouts, compact sidebars
  */
 export function useIsTablet() {
-  const [isTablet, setIsTablet] = React.useState<boolean | undefined>(undefined);
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(mediaQueries.tablet);
-    const onChange = () => {
-      setIsTablet(window.innerWidth >= BREAKPOINTS.sm && window.innerWidth < BREAKPOINTS.lg);
-    };
-    mql.addEventListener("change", onChange);
-    setIsTablet(window.innerWidth >= BREAKPOINTS.sm && window.innerWidth < BREAKPOINTS.lg);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return !!isTablet;
+  return useMediaQueryValue(
+    mediaQueries.tablet,
+    () => window.innerWidth >= BREAKPOINTS.sm && window.innerWidth < BREAKPOINTS.lg,
+  );
 }
 
 /**
@@ -55,19 +51,10 @@ export function useIsTablet() {
  * Use for: Extra compact layouts, very small screen optimizations
  */
 export function useIsSmallMobile() {
-  const [isSmallMobile, setIsSmallMobile] = React.useState<boolean | undefined>(undefined);
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(mediaQueries.mobile);
-    const onChange = () => {
-      setIsSmallMobile(window.innerWidth < BREAKPOINTS.sm);
-    };
-    mql.addEventListener("change", onChange);
-    setIsSmallMobile(window.innerWidth < BREAKPOINTS.sm);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return !!isSmallMobile;
+  return useMediaQueryValue(
+    mediaQueries.mobile,
+    () => window.innerWidth < BREAKPOINTS.sm,
+  );
 }
 
 /** 3-tier device classification — xem quy ước ở lib/breakpoints.ts */
@@ -82,26 +69,23 @@ export type DeviceTier = "phone" | "tablet" | "desktop";
  * Component swap-by-JS nên gate bằng `mounted` để tránh hydration flash (xem calendar-wrapper).
  */
 export function useDeviceTier(): DeviceTier {
-  const [tier, setTier] = React.useState<DeviceTier>("desktop");
-
-  React.useEffect(() => {
-    const compute = (): DeviceTier => {
+  return React.useSyncExternalStore(
+    (onStoreChange) => {
+      const mqlMd = window.matchMedia(mediaQueries.tabletUp);
+      const mqlLg = window.matchMedia(mediaQueries.desktop);
+      mqlMd.addEventListener("change", onStoreChange);
+      mqlLg.addEventListener("change", onStoreChange);
+      return () => {
+        mqlMd.removeEventListener("change", onStoreChange);
+        mqlLg.removeEventListener("change", onStoreChange);
+      };
+    },
+    () => {
       const w = window.innerWidth;
       if (w < BREAKPOINTS.md) return "phone";
       if (w < BREAKPOINTS.lg) return "tablet";
       return "desktop";
-    };
-    const onChange = () => setTier(compute());
-    const mqlMd = window.matchMedia(mediaQueries.tabletUp);
-    const mqlLg = window.matchMedia(mediaQueries.desktop);
-    mqlMd.addEventListener("change", onChange);
-    mqlLg.addEventListener("change", onChange);
-    setTier(compute());
-    return () => {
-      mqlMd.removeEventListener("change", onChange);
-      mqlLg.removeEventListener("change", onChange);
-    };
-  }, []);
-
-  return tier;
+    },
+    () => "desktop",
+  );
 }
