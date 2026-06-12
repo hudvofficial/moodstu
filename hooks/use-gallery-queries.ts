@@ -41,7 +41,7 @@ export const galleryKeys = {
  * - Background revalidation on stale data
  * - Optimistic updates from mutations
  */
-export function useGalleriesQuery(contractId: string) {
+export function useGalleriesQuery(contractId: string, initialData?: any[]) {
   return useQuery({
     queryKey: galleryKeys.list(contractId),
     queryFn: async () => {
@@ -51,6 +51,7 @@ export function useGalleriesQuery(contractId: string) {
       }
       return result.data || [];
     },
+    initialData,
     // Override default staleTime for galleries (they change frequently)
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

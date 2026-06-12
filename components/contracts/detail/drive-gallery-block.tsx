@@ -61,15 +61,10 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
   const [editUrl, setEditUrl] = useState("");
 
   // ─── Hydrate React Query cache with SSR data ────────────
-  useEffect(() => {
-    if (initialGalleries && initialGalleries.length > 0) {
-      // Hydrate gallery list cache
-      queryClient.setQueryData(galleryKeys.list(contractId), initialGalleries);
-    }
-  }, [contractId, initialGalleries, queryClient]);
+  // We pass initialGalleries directly to the hook to prevent loading spinner flickers
 
   // ─── React Query Hooks (Auto-caching, optimistic updates) ────────────
-  const { data: galleries = [], isLoading, isFetching } = useGalleriesQuery(contractId);
+  const { data: galleries = [], isLoading, isFetching } = useGalleriesQuery(contractId, initialGalleries);
   const { data: progress = { selectedCount: 0, editedCount: 0, progress: 0 } } = useRetouchProgressQuery(contractId);
   const { data: deliveryDate = null } = useDeliveryDateQuery(contractId);
 
