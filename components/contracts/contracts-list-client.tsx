@@ -198,9 +198,9 @@ function ContractsListInner({
   });
 
   const displayStats = stats ?? DEFAULT_STATS;
-  const showInitialSkeleton =
-    (isLoading && contracts.length === 0) ||
-    (statsLoading && !stats && contracts.length === 0);
+  // Chỉ hiện skeleton toàn trang khi ĐANG tải list hợp đồng LẦN ĐẦU
+  // Không bao giờ bắt người dùng chờ Stats (statsLoading)
+  const showInitialSkeleton = isLoading && contracts.length === 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const visibleStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const visibleEnd = total === 0 ? 0 : Math.min(page * pageSize, total);
@@ -246,11 +246,16 @@ function ContractsListInner({
         router.prefetch(`/contracts/${id}/edit`);
       }
 
+      // Warm the detail caches on click too (hover does not fire reliably on touch/mobile).
+      prefetchContractDetail(queryClient, id);
+      prefetchContract(queryClient, id);
+      void preload(["contract-notes", id], () => fetchContractNotesClient(id));
+
       // Build ContractListItem from Record — drawer sections lazy-loaded by useContractDrawerExtra
       setSelectedContractFallback(toContractListItem(contractRecord));
       setSelectedContractId(id);
     },
-    [router],
+    [queryClient, router],
   );
 
   const handleHover = useCallback(

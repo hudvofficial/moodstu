@@ -398,8 +398,10 @@ export async function getContractStats() {
       } satisfies ContractStats;
     }
 
-    if (rpcError && !isMissingRpcError(rpcError)) {
-      throw new Error(`Loi tai thong ke hop dong: ${rpcError.message}`);
+    // Nếu RPC lỗi (do đổi schema, thiếu function, runtime SQL lỗi...), ta in log cảnh báo 
+    // và chạy ngay xuống fallback để không bao giờ quăng lỗi cứng về cho UI
+    if (rpcError) {
+      console.warn("[getContractStats] RPC contract_stats error, falling back:", rpcError.message);
     }
 
     // Try simple fallback RPC (single scan, no revenue/outstanding)
