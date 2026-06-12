@@ -94,7 +94,7 @@ export function Header({
         params.delete('q');
       }
       router.replace(params.toString() ? `${currentPath}?${params.toString()}` : currentPath, { scroll: false });
-    }, 300);
+    }, 150);
   }, [router]);
 
   const handleClearSearch = React.useCallback(() => {

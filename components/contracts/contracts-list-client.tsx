@@ -170,7 +170,7 @@ function ContractsListInner({
   );
   const initialDataForCurrentFilters =
     initialFiltersKey === currentFiltersKey ? initialData : undefined;
-  const { contracts, total, page, pageSize, isLoading, error } = useContracts(
+  const { contracts, total, page, pageSize, isLoading, isFetching, error } = useContracts(
     swrFilters,
     initialDataForCurrentFilters,
   );
@@ -397,7 +397,7 @@ function ContractsListInner({
 
         {/* ── Table / Card List ── */}
         {!error && (
-          <>
+          <div className={isFetching ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}>
             <ContractsTable
               contracts={contracts}
               onView={handleView}
@@ -417,7 +417,7 @@ function ContractsListInner({
                 Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
               </p>
             </div>
-          </>
+          </div>
         )}
       </div>
 

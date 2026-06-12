@@ -167,7 +167,7 @@ export function useContracts(
 ) {
   const queryClient = useQueryClient();
 
-  const { data, error, isLoading } = useQuery({
+  const { data, error, isLoading, isFetching } = useQuery({
     queryKey: contractKeys.list(filters),
     queryFn: async () => {
       const result = await getContractList(filters);
@@ -198,6 +198,7 @@ export function useContracts(
     page: data?.page || 1,
     pageSize: data?.pageSize || 20,
     isLoading,
+    isFetching,
     error,
     mutate: () => queryClient.invalidateQueries({ queryKey: contractKeys.list(filters) }),
   };
