@@ -247,7 +247,7 @@ export function DriveLinkModalContent({ contractId, onClose }: DriveLinkModalCon
 
       {/* Action buttons */}
       <div className="flex gap-3 justify-end pt-4 border-t border-border">
-        <Button type="button" unstyled onClick={onClose} className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-bg-muted" disabled={createMutation.isPending}>
+        <Button type="button" unstyled onClick={onClose} className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-bg-muted cursor-pointer" disabled={createMutation.isPending}>
           Hủy bỏ
         </Button>
         <Button
@@ -255,7 +255,7 @@ export function DriveLinkModalContent({ contractId, onClose }: DriveLinkModalCon
           unstyled
           onClick={handleSubmit}
           disabled={createMutation.isPending}
-          className="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 disabled:opacity-50"
+          className="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {createMutation.isPending ? (
             <div className="flex items-center gap-2">
