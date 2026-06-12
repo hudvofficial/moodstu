@@ -246,10 +246,11 @@ export default function ContractDetailClient({
     );
   }, [patchChecklistRealtimePayload, patchEventRealtimePayload, patchTaskRealtimePayload]);
 
-  const refreshContractCaches = useCallback((payload?: RealtimePayload) => {
+  const refreshContractCaches = useCallback((payload?: RealtimePayload, force = false) => {
     if (payload && patchContractRealtimePayload(payload)) return;
 
-    if (Date.now() < muteRealtimeUntilRef.current) return;
+    // Only suppress realtime echo refreshes; direct user-save refreshes must always run.
+    if (!force && Date.now() < muteRealtimeUntilRef.current) return;
 
     const now = Date.now();
 
@@ -658,7 +659,7 @@ export default function ContractDetailClient({
     printOrders,
     activeEmployees,
     initialGalleries, // SSR gallery data
-    refreshContract: refreshContractCaches,
+    refreshContract: () => refreshContractCaches(undefined, true),
     onTaskStatusChange: applyTaskStatusOptimistic,
     onEventDeleted: applyEventDeletedOptimistic,
     onPaymentClick: () => openPaymentForm(),
@@ -757,7 +758,7 @@ export default function ContractDetailClient({
           isOpen={showNoteModal}
           contractId={contract.id}
           onClose={() => setShowNoteModal(false)}
-          onSaved={refreshContractCaches}
+          onSaved={() => refreshContractCaches(undefined, true)}
         />
       )}
     </div>
