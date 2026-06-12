@@ -170,9 +170,9 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
           <form action={logout}>
             <Button
               type="submit"
-              variant="ghost"
+              unstyled
               onClick={() => void clearSWRPersistCache()}
-              className="w-8 h-8 rounded-sm text-text-muted hover:bg-error/5 hover:text-error transition-all group"
+              className="w-8 h-8 flex items-center justify-center p-0 rounded-sm text-text-muted hover:bg-error/5 hover:text-error transition-all group"
               title="Đăng xuất"
             >
               <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform" />
@@ -184,9 +184,9 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
       {/* Collapse Toggle Button (Desktop Only) */}
       <Button
         type="button"
-        variant="ghost"
+        unstyled
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-12 w-6 h-6 p-0 rounded-full bg-white border border-border/60 shadow-md flex items-center justify-center text-text-secondary hover:text-dark hover:bg-bg-hover hover:scale-105 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
+        className="absolute -right-3 top-12 w-6 h-6 p-0 rounded-full bg-primary border border-primary/30 shadow-md flex items-center justify-center text-white hover:bg-primary/90 hover:scale-110 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         aria-label={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
       >
         {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}

@@ -9,6 +9,7 @@ import PaymentReceiptsCard from "./payment-receipts-card";
 import WorkflowStepper from "./workflow-stepper";
 import QuickActionsGrid from "./quick-actions-grid";
 import MobileTabNav from "./mobile-tab-nav";
+import DriveGalleryBlock from "./drive-gallery-block";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { LazyLoad } from "@/components/ui/lazy-load";
 import type {
@@ -22,11 +23,6 @@ import type {
 import type { ActiveEmployee } from "@/types/employee";
 
 const CostumesBlock = dynamic(() => import("./costumes-block"), {
-  ssr: false,
-  loading: () => <SkeletonCard className="h-64" />,
-});
-
-const DriveGalleryBlock = dynamic(() => import("./drive-gallery-block"), {
   ssr: false,
   loading: () => <SkeletonCard className="h-64" />,
 });
