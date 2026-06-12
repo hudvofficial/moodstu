@@ -40,7 +40,10 @@ export function ShareGalleryModalContent({
   const hasMinimumData = Boolean(galleryId);
 
   // Derive whether share data already exists from props
-  const hasExistingShare = status === "shared" && initialShareLinks.length > 0;
+  // If we have an accessUrl and status is shared, it's already published.
+  // (We don't strict-require initialShareLinks.length > 0 here because some RPC queries
+  // might omit the share_links array but still return the access_url).
+  const hasExistingShare = status === "shared" && Boolean(accessUrl);
   const derivedAccessUrl = accessUrl 
     || (hasExistingShare ? (customSlug || initialShareLinks.find(l => l.capability === "select")?.slug || "") : "");
 
@@ -151,7 +154,7 @@ export function ShareGalleryModalContent({
   useEffect(() => {
     if (!safeGalleryId) return;
     // Skip API call if share links already exist (album was shared before)
-    if (hasExistingShare || (localAccessUrl && shareLinks.length > 0)) {
+    if (hasExistingShare || Boolean(localAccessUrl)) {
       setIsPreparing(false);
       return;
     }
