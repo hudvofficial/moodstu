@@ -6,6 +6,9 @@
 - **Deployment:** Vercel (Tài khoản hiện tại: `moodstudio`, Repo: `hudvofficial/moodstu`). Domain chính: `stu.moodwedding.com` (Đã được trỏ DNS qua Vercel CNAME).
 
 ## Module Quan Trọng & Các thay đổi gần đây
+- **Module Calendar & Lịch Trình:**
+  - Cập nhật logic đồng bộ hóa Lịch (Calendar Sync Worker) và Google Calendar Service.
+  - Tối ưu hóa UI/UX các thành phần Calendar (tháng, tuần, các Drawer hiển thị ngày, và kéo thả sự kiện - draggable events).
 - **Module Download ZIP Ảnh (Client-side):** 
   - Vừa được tối ưu hóa để tải và nén ảnh (ZIP) trực tiếp trên Client-side.
   - Xử lý dứt điểm tình trạng lỗi 500 do nghẽn RAM và hao tổn băng thông (Bandwidth) Server-side trên Vercel. 
