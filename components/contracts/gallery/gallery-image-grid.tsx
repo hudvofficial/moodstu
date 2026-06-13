@@ -93,11 +93,13 @@ export default function GalleryImageGrid({
                 const imageAspectRatio = aspectRatios[group.fileGroup] || DEFAULT_ASPECT_RATIO;
                 const imageLoaded = loadedGroups[group.fileGroup] === true;
                 const isError = errorGroups[group.fileGroup] === true;
+                // Admin + public both load the lh3 sized URL directly (tile marks lh3 unoptimized).
+                // Do NOT route public through the /api/drive-download proxy: it 302-redirects to lh3,
+                // and Next.js /_next/image cannot optimize a redirect → 400 on every tile (broken gallery).
                 const imageSrc = getResponsiveThumbnailUrl(
                   image.thumbnail_url,
                   image.image_url,
                   resolveThumbnailSize(columnWidth),
-                  publicMode // Use proxy in public mode for reliability
                 );
                 // Reduce eager load to minimum to save LCP bandwidth
                 const eagerLoad = index < Math.max(columnCount, 3);

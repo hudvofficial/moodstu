@@ -105,7 +105,7 @@ export function DraggableEvent({
           </div>
         )}
         {isExternalGoogleEvent && !continuesPrior && (
-          <span className={`shrink-0 rounded-sm bg-white/20 font-bold leading-none text-white ${dense ? "px-[3px] py-px text-[9px]" : "px-1 text-tiny"}`}>
+          <span className={`shrink-0 rounded-sm bg-white/20 font-bold leading-none text-white ${dense ? "px-[3px] py-px text-micro" : "px-1 text-tiny"}`}>
             G
           </span>
         )}

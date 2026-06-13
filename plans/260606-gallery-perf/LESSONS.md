@@ -55,6 +55,14 @@
 - Nguyên nhân: `createDriveShortcut` ([google-drive-oauth.ts:135](../../lib/google-drive-oauth.ts)) chỉ retry 401 NẾU có `onTokenExpired` callback. `processDriveCopyChunk` ([gallery-drive-actions.ts:340](../../app/actions/gallery-drive-actions.ts)) gọi mà KHÔNG truyền callback → token expired = fail không retry.
 - Quy tắc: mọi external API call có long-running chunks → phải có refresh callback path.
 
+### B7. Proxy redirect + Next.js `<Image>` optimize = 400 (link khách vỡ toàn bộ, admin OK)
+- Triệu chứng (2026-06-13): link gửi khách `/gallery/[accessUrl]` hiện "Lỗi nguồn Drive" cho **mọi** ảnh; link admin `/contracts/[id]/gallery` vẫn OK.
+- Nguyên nhân: commit `52ce880` thêm arg `publicMode` vào `getResponsiveThumbnailUrl` ([gallery-image-grid.tsx](../../components/contracts/gallery/gallery-image-grid.tsx)) → public dùng `useProxy=true` → `src = /api/drive-download/{fileId}`. URL này KHÔNG khớp regex lh3 nên tile KHÔNG set `unoptimized` → Next.js bọc qua `/_next/image`. Optimizer fetch proxy → proxy **302 redirect** sang lh3 → **Next.js Image Optimizer không optimize được response redirect → trả 400** cho mọi tile. Admin (`useProxy=false`) dùng lh3 `=s{N}` trực tiếp + `unoptimized=true` → không qua optimizer → OK.
+- Retry chain (B2) KHÔNG cứu được: Next Image reconcile reset `element.src` về `/_next/image` → kẹt 400.
+- Đo ground-truth (playwright, prod): `lh3/d/{id}=s800` → 200 ✅; `/api/drive-download/{id}` (img trực tiếp) → 200 ✅; `/_next/image?url=/api/drive-download/{id}` → **400** ❌. Ảnh Drive ĐÃ public — không phải lỗi quyền.
+- Fix: bỏ arg proxy ở public → cả 2 mode dùng lh3 sized trực tiếp (chỉ đổi nhánh public, admin bất biến). Verified local: 200/200 ảnh → lh3 direct, 0 broken.
+- Quy tắc: **KHÔNG bao giờ đưa endpoint redirect vào Next.js `<Image>` optimized.** Hoặc point thẳng URL CDN cuối (lh3 `=s{N}`), hoặc set `unoptimized`. Proxy `/api/drive-download` chỉ hợp cho `<img>` trực tiếp / download, không cho `<Image>`.
+
 ---
 
 ## C. Cơ chế

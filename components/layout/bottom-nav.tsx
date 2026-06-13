@@ -211,7 +211,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
                     KHÔNG spinner trên icon — thanh progress trên đầu (NextTopLoader, app/layout) lo việc đó. */}
                 <Icon className={cn("w-[26px] h-[26px]", (isActive || isPending) && "stroke-[2.5px]")} />
                 <span className={cn(
-                  "text-[11px]",
+                  "text-caption",
                   isActive || isPending ? "font-semibold" : "font-medium"
                 )}>
                   {('shortLabel' in item && item.shortLabel) || item.label}
@@ -244,7 +244,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
               <MoreHorizontal className={cn("w-[26px] h-[26px]", moreActive && "stroke-[2.5px]")} />
             )}
             <span className={cn(
-              "text-[11px]",
+              "text-caption",
               showMore || moreActive ? "font-semibold" : "font-medium"
             )}>
               Thêm

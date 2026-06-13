@@ -152,7 +152,7 @@ export default function PrintOrdersBlock({ orders, contractId, onStatusChange, o
                       {order.order_code || "Đơn in"}
                     </p>
                     {(order.status === "dat_coc" || order.payment_status === "partial" || order.payment_status === "paid") && (
-                      <Badge variant="success" className="mt-1 text-[10px]">
+                      <Badge variant="success" className="mt-1 text-micro">
                         Đã cọc
                       </Badge>
                     )}

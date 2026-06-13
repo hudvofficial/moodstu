@@ -244,7 +244,7 @@ export default function ImageViewer({
                 }}
                 aria-label="Chọn ảnh"
               >
-                <Heart size={14} className={img.is_selected ? "fill-[#ff3b30] text-[#ff3b30]" : ""} />
+                <Heart size={14} className={img.is_selected ? "fill-[#ff3b30] text-error" : ""} />
                 <span className="hidden sm:inline">
                   {img.is_selected ? "Đã chọn" : "Chọn ảnh"}
                 </span>
