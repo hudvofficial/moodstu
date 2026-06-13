@@ -82,9 +82,13 @@ export function Header({
     if (isSearchVisible && searchRef.current) searchRef.current.focus();
   }, [isSearchVisible]);
 
-  React.useEffect(() => {
+  // Sync local state when URL params change externally (e.g. back/forward).
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevSearchParams, setPrevSearchParams] = React.useState(searchParams);
+  if (searchParams !== prevSearchParams) {
+    setPrevSearchParams(searchParams);
     setSearchTerm(searchParams.get('q') || "");
-  }, [searchParams]);
+  }
 
   React.useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };

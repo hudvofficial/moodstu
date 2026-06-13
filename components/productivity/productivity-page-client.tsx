@@ -104,7 +104,7 @@ export default function ProductivityPageClient({
       initialPayload?.initialDetail
         ? { success: true, data: initialPayload.initialDetail }
         : undefined,
-    [initialPayload?.initialDetail],
+    [initialPayload],
   );
 
   const detailFallback =
@@ -171,7 +171,7 @@ export default function ProductivityPageClient({
     });
 
     return sortEmployees(result, sortKey, sortDirection);
-  }, [searchQuery, overview?.employees, sortDirection, sortKey, workloadFilter, roleFilter]);
+  }, [searchQuery, overview, sortDirection, sortKey, workloadFilter, roleFilter]);
 
   const overviewErrorMessage = overviewResult && !overviewResult.success
     ? overviewResult.error : overviewError?.message;

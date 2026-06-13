@@ -34,8 +34,11 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync state when gallery changes
-  useEffect(() => {
+  // Sync settings state when the modal opens or the gallery changes. Adjust state
+  // during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; gallery: typeof gallery } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.gallery !== gallery) {
+    setPrevReset({ open: isOpen, gallery });
     if (isOpen) {
       setTitle(gallery.title || "");
       setCustomSlug(gallery.custom_slug || "");
@@ -50,7 +53,7 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
       setHasSelectionLimit(!!gallery.selection_limit && gallery.selection_limit > 0);
       setSelectionLimit(gallery.selection_limit || 0);
     }
-  }, [isOpen, gallery]);
+  }
 
   const handleCopyDriveLink = () => {
     if (gallery.drive_folder_url) {

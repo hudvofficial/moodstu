@@ -64,10 +64,13 @@ export function Header({ className, leftSlot: leftSlotProp, titleOverride: title
     if (isSearchVisible && searchRef.current) searchRef.current.focus();
   }, [isSearchVisible]);
 
-  // Sync local state when URL params change externally (e.g. back/forward)
-  React.useEffect(() => {
+  // Sync local state when URL params change externally (e.g. back/forward).
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevSearchParams, setPrevSearchParams] = React.useState(searchParams);
+  if (searchParams !== prevSearchParams) {
+    setPrevSearchParams(searchParams);
     setSearchTerm(searchParams.get('q') || "");
-  }, [searchParams]);
+  }
 
   // Cleanup debounce on unmount
   React.useEffect(() => {

@@ -53,7 +53,11 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
     { label: "Khác", value: "other" }
   ];
 
-  useEffect(() => {
+  // Reset form fields when the modal opens or the target customer changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; customer: typeof customer } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.customer !== customer) {
+    setPrevReset({ open: isOpen, customer });
     if (isOpen) {
       if (customer) {
         setFullName(customer.full_name || "");
@@ -86,7 +90,7 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
         setGroomName("");
       }
     }
-  }, [isOpen, customer]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

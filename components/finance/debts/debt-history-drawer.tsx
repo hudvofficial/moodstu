@@ -37,6 +37,10 @@ export function DebtHistoryDrawer({ isOpen, onClose, debt }: DebtHistoryDrawerPr
 
   useEffect(() => {
     if (isOpen && debt) {
+      // loadHistory triggers an async fetch (sets loading, then awaits); the
+      // setState here is a load trigger, not a synchronous cascading render, so
+      // the set-state-in-effect rule is a false positive for this case.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadHistory();
     }
   }, [isOpen, debt, loadHistory]);

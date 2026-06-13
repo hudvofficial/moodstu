@@ -66,14 +66,21 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isSettingCover, setIsSettingCover] = useState(false);
 
-  useEffect(() => {
+  // Sync index when the initial index prop changes. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const [prevInitialIdx, setPrevInitialIdx] = useState(initialIdx);
+  if (initialIdx !== prevInitialIdx) {
+    setPrevInitialIdx(initialIdx);
     setCurrentIdx(initialIdx);
-  }, [initialIdx]);
+  }
 
-  // Clamp index if the images list changes while lightbox is open
-  useEffect(() => {
+  // Clamp index if the images list changes while lightbox is open. Adjust state
+  // during render instead of in an effect to avoid a cascading render.
+  const [prevImagesLength, setPrevImagesLength] = useState(images.length);
+  if (images.length !== prevImagesLength) {
+    setPrevImagesLength(images.length);
     setCurrentIdx((idx) => Math.min(Math.max(idx, 0), Math.max(images.length - 1, 0)));
-  }, [images.length]);
+  }
 
   const img = images[currentIdx];
 

@@ -247,9 +247,11 @@ function ContractStatusBadge({
     });
   };
 
-  useEffect(() => {
+  const [prevCurrentStatus, setPrevCurrentStatus] = useState(currentStatus);
+  if (currentStatus !== prevCurrentStatus) {
+    setPrevCurrentStatus(currentStatus);
     setOptimisticStatus(currentStatus);
-  }, [currentStatus]);
+  }
 
   if (!contractId) {
     return (

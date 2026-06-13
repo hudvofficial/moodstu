@@ -48,6 +48,7 @@ export function SplashScreen() {
       className={fadeOut ? "fade-out" : ""}
       suppressHydrationWarning
     >
+      {/* eslint-disable-next-line @next/next/no-img-element -- splash renders before hydration; a raw <img> avoids next/image indirection that would delay the logo */}
       <img src="/logo.png" alt="Mood Studio" width={80} height={80} />
     </div>
   );

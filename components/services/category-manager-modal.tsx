@@ -32,9 +32,13 @@ export function CategoryManagerModal({
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
 
-  useEffect(() => {
+  // Sync local categories when the prop changes. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const [prevCategories, setPrevCategories] = useState(categories);
+  if (categories !== prevCategories) {
+    setPrevCategories(categories);
     setLocalCategories(categories);
-  }, [categories]);
+  }
 
   const resetForm = () => {
     setEditingId(null);

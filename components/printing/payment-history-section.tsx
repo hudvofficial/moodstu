@@ -67,6 +67,9 @@ export function PaymentHistorySection({
 
   useEffect(() => {
     if (isExpanded && payments.length === 0) {
+      // loadPaymentHistory triggers an async fetch; the setState inside it is a
+      // load trigger, not a synchronous cascading render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadPaymentHistory();
     }
   }, [isExpanded, loadPaymentHistory, payments.length]);

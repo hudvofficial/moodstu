@@ -155,6 +155,9 @@ export function ShareGalleryModalContent({
     if (!safeGalleryId) return;
     // Skip API call if share links already exist (album was shared before)
     if (hasExistingShare || Boolean(localAccessUrl)) {
+      // Share-prepare effect: this setState short-circuits the async share API
+      // call; it is a load-skip, not a synchronous cascading render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsPreparing(false);
       return;
     }

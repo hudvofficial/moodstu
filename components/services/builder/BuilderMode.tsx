@@ -51,33 +51,27 @@ export default function BuilderMode({
     [items, rules]
   );
 
-  // Sync relations from props with stability check
-  useEffect(() => {
+  // Sync relations from props with stability check. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const relationsKey = JSON.stringify(preFetchedRelations);
+  const [prevRelationsKey, setPrevRelationsKey] = useState(relationsKey);
+  if (relationsKey !== prevRelationsKey) {
+    setPrevRelationsKey(relationsKey);
     if (preFetchedRelations && preFetchedRelations.length > 0) {
-      setRelations((prev) => {
-        const isSame =
-          prev.length === preFetchedRelations.length &&
-          prev.every((r, i) => r.id === preFetchedRelations[i].id);
-        return isSame ? prev : preFetchedRelations;
-      });
+      setRelations(preFetchedRelations);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(preFetchedRelations)]);
+  }
 
-  // Sync items if initialItems changes externally
-  useEffect(() => {
+  // Sync items if initialItems changes externally. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const itemsKey = JSON.stringify(initialItems);
+  const [prevItemsKey, setPrevItemsKey] = useState(itemsKey);
+  if (itemsKey !== prevItemsKey) {
+    setPrevItemsKey(itemsKey);
     if (initialItems && initialItems.length > 0) {
-      setItems((prev) => {
-        const isSame =
-          prev.length === initialItems.length &&
-          prev.every((item, i) => item.id === initialItems[i].id);
-        if (isSame) return prev;
-        
-        return initialItems;
-      });
+      setItems(initialItems);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(initialItems)]);
+  }
 
   const handleAddItem = (service: ServiceRecord) => {
     const existing = items.find((i) => i.service_id === service.id);

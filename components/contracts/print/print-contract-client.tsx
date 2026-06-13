@@ -35,6 +35,9 @@ export default function PrintContractClient({
 
   useEffect(() => {
     const sourceLogo = studio.logo_url || DEFAULT_LOGO_URL;
+    // Resets the logo before re-tinting it via the async canvas pipeline below;
+    // part of an image-processing effect, not a synchronous cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLogoUrl(sourceLogo);
 
     if (!studio.logo_url) return;

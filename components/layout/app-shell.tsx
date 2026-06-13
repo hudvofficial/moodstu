@@ -76,10 +76,13 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   // Ref to the main scroll container — shared via context
   const mainRef = React.useRef<HTMLElement>(null);
 
-  // Close mobile menu on route change or screen resize
-  React.useEffect(() => {
+  // Close mobile menu when leaving the mobile breakpoint. Adjust state during
+  // render instead of in an effect to avoid a cascading render.
+  const [prevIsMobile, setPrevIsMobile] = React.useState(isMobile);
+  if (isMobile !== prevIsMobile) {
+    setPrevIsMobile(isMobile);
     if (!isMobile) setIsMobileMenuOpen(false);
-  }, [isMobile]);
+  }
 
   return (
     <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>

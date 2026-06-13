@@ -65,12 +65,15 @@ export function ReturnModal({ isOpen, onClose, rental, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // W1: Reset form khi reopen
-  useEffect(() => {
+  // W1: Reset form khi reopen. Adjust state during render instead of in an effect
+  // to avoid a cascading render.
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
     if (isOpen) {
       setForm(getInitial());
     }
-  }, [isOpen]);
+  }
 
   const update = useCallback((field: keyof FormState, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));

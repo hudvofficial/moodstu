@@ -64,12 +64,15 @@ export function RentalModal({ isOpen, onClose, dress, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(() => getInitial(dress));
   const [saving, setSaving] = useState(false);
 
-  // W1: Reset form khi reopen hoặc đổi dress (clone dress-form-modal.tsx pattern)
-  useEffect(() => {
+  // W1: Reset form khi reopen hoặc đổi dress. Adjust state during render instead
+  // of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; dress: typeof dress } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.dress !== dress) {
+    setPrevReset({ open: isOpen, dress });
     if (isOpen) {
       setForm(getInitial(dress));
     }
-  }, [isOpen, dress]);
+  }
 
   const update = useCallback((field: keyof FormState, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));

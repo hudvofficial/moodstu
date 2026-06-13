@@ -172,13 +172,13 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
 
   const internalReason = () => reason.trim();
 
-  useEffect(() => {
-    if (!activeItem) {
-      setSaleUnitPrice(0);
-      return;
-    }
-    setSaleUnitPrice(activeItem.sale_price || 0);
-  }, [activeItem]);
+  // Sync sale price when the active item changes. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const [prevActiveItem, setPrevActiveItem] = useState(activeItem);
+  if (activeItem !== prevActiveItem) {
+    setPrevActiveItem(activeItem);
+    setSaleUnitPrice(activeItem?.sale_price || 0);
+  }
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {

@@ -147,16 +147,26 @@ export default function PrintingDetailDrawer({
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
 
+  // Reset form when the drawer opens or the target order changes. Adjust state
+  // during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; order: typeof order } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.order !== order) {
+    setPrevReset({ open: isOpen, order });
+    if (isOpen) {
+      setForm(getInitialForm(order));
+      setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
+      setConfirmDeleteOpen(false);
+      setShowDepositModal(false);
+      setShowFinalPaymentModal(false);
+      setShowCancelModal(false);
+    }
+  }
+
+  // Fetch payment summary + inventory items when the drawer opens. These stay in
+  // an effect because they are async data fetches, not synchronous state resets.
   useEffect(() => {
     if (!isOpen) return;
-    setForm(getInitialForm(order));
-    setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
-    setConfirmDeleteOpen(false);
-    setShowDepositModal(false);
-    setShowFinalPaymentModal(false);
-    setShowCancelModal(false);
 
-    // Fetch payment summary for order
     if (order) {
       getOrderPaymentSummary(order.id)
         .then((result) => {
@@ -169,7 +179,6 @@ export default function PrintingDetailDrawer({
         });
     }
 
-    // Fetch inventory items for linking
     fetchInventoryPickerItems({ activeOnly: true, limit: 100 })
       .then((result) => {
         setInventoryItems(result.items);

@@ -96,8 +96,6 @@ export function usePrefetchGallery(
     debounceMs,
   ]);
 
-  return {
-    prefetchedPages: Array.from(prefetchedPages.current),
-    isPrefetching: isPrefetching.current,
-  };
+  // Silent side-effect hook: do not read ref.current during render.
+  return;
 }

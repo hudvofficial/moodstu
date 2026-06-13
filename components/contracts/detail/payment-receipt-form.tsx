@@ -224,34 +224,47 @@ export default function PaymentReceiptForm({
     }
   }, [applyTarget, finalPlan, remainingAmount]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  // Reset payment fields and select a default target when the modal opens (or its
+  // plan inputs change). Adjust state during render instead of in an effect to
+  // avoid a cascading render.
+  const [prevTargetDeps, setPrevTargetDeps] = useState<{
+    open: boolean;
+    applyTarget: typeof applyTarget;
+    collectablePlans: typeof collectablePlans;
+    initialPlanId: typeof initialPlanId;
+    isFullyPaid: boolean;
+    nextPlan: typeof nextPlan;
+  } | null>(null);
+  if (
+    !prevTargetDeps ||
+    prevTargetDeps.open !== isOpen ||
+    prevTargetDeps.applyTarget !== applyTarget ||
+    prevTargetDeps.collectablePlans !== collectablePlans ||
+    prevTargetDeps.initialPlanId !== initialPlanId ||
+    prevTargetDeps.isFullyPaid !== isFullyPaid ||
+    prevTargetDeps.nextPlan !== nextPlan
+  ) {
+    setPrevTargetDeps({ open: isOpen, applyTarget, collectablePlans, initialPlanId, isFullyPaid, nextPlan });
+    if (isOpen) {
+      setPaymentDate(getTodayInTimeZone());
+      setMethod("tien_mat");
+      setNotes("");
 
-    setPaymentDate(getTodayInTimeZone());
-    setMethod("tien_mat");
-    setNotes("");
+      const initialPlan = initialPlanId
+        ? collectablePlans.find((plan) => plan.id === initialPlanId)
+        : null;
 
-    if (isFullyPaid) {
-      applyTarget(ADJUSTMENT_TARGET);
-      return;
+      if (isFullyPaid) {
+        applyTarget(ADJUSTMENT_TARGET);
+      } else if (initialPlan) {
+        applyTarget(planOptionValue(initialPlan.id));
+      } else if (nextPlan) {
+        applyTarget(planOptionValue(nextPlan.id));
+      } else {
+        applyTarget(OUTSIDE_TARGET);
+      }
     }
-
-    const initialPlan = initialPlanId
-      ? collectablePlans.find((plan) => plan.id === initialPlanId)
-      : null;
-
-    if (initialPlan) {
-      applyTarget(planOptionValue(initialPlan.id));
-      return;
-    }
-
-    if (nextPlan) {
-      applyTarget(planOptionValue(nextPlan.id));
-      return;
-    }
-
-    applyTarget(OUTSIDE_TARGET);
-  }, [applyTarget, collectablePlans, initialPlanId, isFullyPaid, isOpen, nextPlan]);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -266,11 +279,25 @@ export default function PaymentReceiptForm({
       });
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const preferred = findCategory(categories, categoryIntent);
-    setCategoryId(preferred?.id || categories[0]?.id || null);
-  }, [categories, categoryIntent, isOpen]);
+  // Pick the preferred category once categories load. Adjust state during render
+  // instead of in an effect to avoid a cascading render.
+  const [prevCatDeps, setPrevCatDeps] = useState<{
+    categories: typeof categories;
+    intent: typeof categoryIntent;
+    open: boolean;
+  } | null>(null);
+  if (
+    !prevCatDeps ||
+    prevCatDeps.categories !== categories ||
+    prevCatDeps.intent !== categoryIntent ||
+    prevCatDeps.open !== isOpen
+  ) {
+    setPrevCatDeps({ categories, intent: categoryIntent, open: isOpen });
+    if (isOpen) {
+      const preferred = findCategory(categories, categoryIntent);
+      setCategoryId(preferred?.id || categories[0]?.id || null);
+    }
+  }
 
   const handleClose = useCallback(() => {
     resetForm();
@@ -375,6 +402,7 @@ export default function PaymentReceiptForm({
     method,
     notes,
     onClose,
+    onSuccess,
     paymentDate,
     remainingAmount,
     resetForm,

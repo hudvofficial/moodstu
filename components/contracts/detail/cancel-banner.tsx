@@ -98,6 +98,9 @@ export default function CancelBanner({ contractId, paidAmount, notes, updatedAt 
   useEffect(() => {
     if (!showRefund) return;
 
+    // Fetch trigger: this setState precedes an async fetch, not a synchronous
+    // cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoadingSummary(true);
     void getContractRefundSummary(contractId)
       .then((result) => {

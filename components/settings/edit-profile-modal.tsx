@@ -62,8 +62,13 @@ export default function EditProfileModal({
     };
   }, [avatarPreview]);
 
-  // Reset form state when modal opens with latest profile data
-  useEffect(() => {
+  // Reset form state when the modal opens with latest profile data. Adjust state
+  // during render instead of in an effect to avoid a cascading render. The
+  // object-URL cleanup effect above revokes the previous avatarPreview when it
+  // changes, so we just clear it here.
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
     if (isOpen) {
       setName(profile.full_name || "");
       setPhone(profile.phone || "");
@@ -71,11 +76,9 @@ export default function EditProfileModal({
       setDepartment(profile.department || "");
       setPosition(profile.position || "");
       setAvatarFile(null);
-      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
       setAvatarPreview(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reset on open
-  }, [isOpen]);
+  }
 
   function handleSave() {
     if (!name.trim()) {

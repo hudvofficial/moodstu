@@ -77,32 +77,36 @@ export function ReceiptFormModal({
   const isSale = form.receipt_type === "sale_receipt";
   const isContractReceipt = ["contract_payment", "contract_deposit"].includes(form.receipt_type);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  // Reset form when the modal opens or the target receipt changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; data: typeof initialData } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.data !== initialData) {
+    setPrevReset({ open: isOpen, data: initialData });
+    if (isOpen) {
+      // Normalize legacy system values that might be in DB
+      let rt = initialData?.receipt_type || "other_income";
+      if (rt === "Thanh toán hợp đồng" || rt === "Hợp đồng") rt = "contract_payment";
+      if (rt === "Cọc hợp đồng") rt = "contract_deposit";
+      if (rt === "Thu nhập khác" || rt === "Thu khác" || rt === "Khác") rt = "other_income";
+      if (rt === "Bán vật tư" || rt === "Bán lẻ") rt = "sale_receipt";
 
-    // Normalize legacy system values that might be in DB
-    let rt = initialData?.receipt_type || "other_income";
-    if (rt === "Thanh toán hợp đồng" || rt === "Hợp đồng") rt = "contract_payment";
-    if (rt === "Cọc hợp đồng") rt = "contract_deposit";
-    if (rt === "Thu nhập khác" || rt === "Thu khác" || rt === "Khác") rt = "other_income";
-    if (rt === "Bán vật tư" || rt === "Bán lẻ") rt = "sale_receipt";
+      let pt = initialData?.payment_type || "tien_mat";
+      if (pt === "Tiền mặt") pt = "tien_mat";
+      if (pt === "Chuyển khoản") pt = "chuyen_khoan";
+      if (pt === "Quẹt thẻ" || pt === "card") pt = "chuyen_khoan"; // alias card to chuyen_khoan
 
-    let pt = initialData?.payment_type || "tien_mat";
-    if (pt === "Tiền mặt") pt = "tien_mat";
-    if (pt === "Chuyển khoản") pt = "chuyen_khoan";
-    if (pt === "Quẹt thẻ" || pt === "card") pt = "chuyen_khoan"; // alias card to chuyen_khoan
-
-    setForm(initialData ? {
-      receipt_date: initialData.receipt_date || today(),
-      receipt_type: rt,
-      payment_type: pt,
-      contract_id: initialData.contract_id || "",
-      category_id: initialData.category_id || "",
-      receipt_amount: initialData.receipt_amount || 0,
-      notes: initialData.notes || "",
-    } : emptyForm());
-    setSaleItems([]);
-  }, [isOpen, initialData]);
+      setForm(initialData ? {
+        receipt_date: initialData.receipt_date || today(),
+        receipt_type: rt,
+        payment_type: pt,
+        contract_id: initialData.contract_id || "",
+        category_id: initialData.category_id || "",
+        receipt_amount: initialData.receipt_amount || 0,
+        notes: initialData.notes || "",
+      } : emptyForm());
+      setSaleItems([]);
+    }
+  }
 
   const categoryOptions = useMemo(
     () => categories.filter((item) => item.type === "thu").map((item) => ({ value: item.id, label: item.name })),

@@ -43,7 +43,9 @@ export default function EmployeeNotes({ employeeId, initialNotes }: Props) {
 
   // Ref to hold the latest notes for cleanup access
   const notesRef = useRef(notes);
-  notesRef.current = notes;
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
 
   // Debounced auto-save
   useEffect(() => {

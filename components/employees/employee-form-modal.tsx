@@ -51,13 +51,16 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
   const [showSalary, setShowSalary] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset form when modal opens
-  useEffect(() => {
+  // Reset form when the modal opens or the target employee changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; emp: typeof editEmployee } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.emp !== editEmployee) {
+    setPrevReset({ open: isOpen, emp: editEmployee });
     if (isOpen) {
       setForm(editEmployee ? employeeToForm(editEmployee) : DEFAULT_FORM_DATA);
       setShowSalary(false);
     }
-  }, [isOpen, editEmployee]);
+  }
 
   const setField = (key: keyof EmployeeFormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));

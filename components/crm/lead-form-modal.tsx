@@ -72,7 +72,11 @@ export default function LeadFormModal({ isOpen, onClose, onSaved, initialData }:
     value: key,
   }));
 
-  useEffect(() => {
+  // Reset form fields when the modal opens or the target lead changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; data: typeof initialData } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.data !== initialData) {
+    setPrevReset({ open: isOpen, data: initialData });
     if (isOpen) {
       if (initialData) {
         setContactName(initialData.contact_name);
@@ -108,7 +112,7 @@ export default function LeadFormModal({ isOpen, onClose, onSaved, initialData }:
         setErrors({});
       }
     }
-  }, [isOpen, initialData]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -147,9 +147,11 @@ function ContractStatusBadge({ contractId, currentStatus }: { contractId: string
   const queryClient = useQueryClient();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
 
-  useEffect(() => {
+  const [prevCurrentStatus, setPrevCurrentStatus] = useState(currentStatus);
+  if (currentStatus !== prevCurrentStatus) {
+    setPrevCurrentStatus(currentStatus);
     setOptimisticStatus(currentStatus);
-  }, [currentStatus]);
+  }
 
   const options = Object.entries(CONTRACT_STATUS_MAP).map(([val, info]) => {
     let color = "#cbd5e1"; // default neutral

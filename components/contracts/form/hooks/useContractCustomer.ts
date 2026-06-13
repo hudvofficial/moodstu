@@ -60,6 +60,10 @@ export function useContractCustomer() {
     searchRequestId.current = requestId;
 
     if (query.length < MIN_SEARCH_LENGTH) {
+      // Search effect: these synchronous resets clear stale results when the
+      // query is too short; they are part of a debounced search, not a
+      // cascading render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchResults([]);
       setSearchError("");
       setIsSearching(false);
@@ -111,17 +115,18 @@ export function useContractCustomer() {
     };
   }, [debouncedQuery]);
 
-  useEffect(() => {
+  // Show/hide the results dropdown based on query length. Adjust state during
+  // render instead of in an effect to avoid a cascading render.
+  const [prevDropdownDeps, setPrevDropdownDeps] = useState<{ query: string; selected: typeof selectedCustomer } | null>(null);
+  if (!prevDropdownDeps || prevDropdownDeps.query !== searchQuery || prevDropdownDeps.selected !== selectedCustomer) {
+    setPrevDropdownDeps({ query: searchQuery, selected: selectedCustomer });
     const normalized = searchQuery.trim();
     if (normalized.length >= MIN_SEARCH_LENGTH && !selectedCustomer) {
       setShowDropdown(true);
-      return;
-    }
-
-    if (normalized.length < MIN_SEARCH_LENGTH) {
+    } else if (normalized.length < MIN_SEARCH_LENGTH) {
       setShowDropdown(false);
     }
-  }, [searchQuery, selectedCustomer]);
+  }
 
   const reopenSearchDropdown = useCallback(() => {
     if (searchQuery.trim().length >= MIN_SEARCH_LENGTH && !selectedCustomer) {

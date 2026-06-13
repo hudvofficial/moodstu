@@ -138,8 +138,14 @@ async function cleanupSeed(admin: AdminClient, seed: SeedState) {
     await admin.from("contracts").delete().eq("id", seed.contractId);
   }
   if (seed.customerId) await admin.from("customers").delete().eq("id", seed.customerId);
-  if (seed.employeeId) await admin.from("employees").delete().eq("id", seed.employeeId);
-  if (seed.userId) await admin.auth.admin.deleteUser(seed.userId);
+  if (seed.userId) {
+    // Delete by auth_user_id, not seed.employeeId: the on_auth_user_created
+    // trigger provisions an employees row as soon as the auth user exists, so a
+    // seed that aborts before employeeId is captured still leaves that row
+    // behind (FK to auth users does not cascade). auth_user_id always covers it.
+    await admin.from("employees").delete().eq("auth_user_id", seed.userId);
+    await admin.auth.admin.deleteUser(seed.userId);
+  }
 }
 
 async function login(page: Page, seed: SeedState) {

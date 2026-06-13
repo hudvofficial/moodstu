@@ -25,6 +25,9 @@ export default function ComponentSelector({
 
   // Fetch Services on Cat change
   useEffect(() => {
+    // Fetch trigger: this setState precedes an async fetch on category change,
+    // not a synchronous cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     startTransition(async () => {
       try {

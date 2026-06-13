@@ -133,6 +133,7 @@ export function useGalleryData(
       return;
     }
     void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: refetch only when contractId changes (skip-first handled above)
   }, [contractId]);
 
   // ─── Active gallery ───────────────────────
@@ -215,6 +216,7 @@ export function useGalleryData(
 
     void loadGalleryData();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: reload only when the active gallery changes
   }, [activeGalleryId]);
 
   const loadMoreImages = useCallback(async () => {
@@ -257,7 +259,7 @@ export function useGalleryData(
       setCurrentPage(nextPage);
     }
     setLoadingMore(false);
-  }, [activeGalleryId, loadingMore, hasMoreImages, paginatedImages, pageSize]);
+  }, [activeGalleryId, loadingMore, hasMoreImages, paginatedImages, pageSize, totalImageCount]);
 
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
@@ -298,7 +300,7 @@ export function useGalleryData(
   }, [activeGalleryId, paginatedImages.length, groupedImages.length, totalImageCount, hasMoreImages, loadingMore, fileFilter, activeFilter, activeAlbumId]);
 
   // ─── Smart Prefetch (Phase 2) ──────────────
-  const { prefetchedPages } = usePrefetchGallery(
+  usePrefetchGallery(
     activeGalleryId,
     paginatedImages.length,
     totalImageCount,

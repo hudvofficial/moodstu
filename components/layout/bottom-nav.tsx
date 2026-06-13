@@ -101,9 +101,13 @@ export function BottomNav({ role, className }: BottomNavProps) {
     [markPending],
   );
 
-  React.useEffect(() => {
+  // Clear the pending nav highlight when the route changes. Adjust state during
+  // render instead of in an effect to avoid a cascading render.
+  const [prevPathname, setPrevPathname] = React.useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setPendingHref(null);
-  }, [pathname]);
+  }
 
   React.useEffect(() => {
     if (!showMore) return;

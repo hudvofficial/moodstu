@@ -91,29 +91,33 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
 
   // ── [V1 PORT + IMPROVEMENT] Auto-fill couple fields from selected customer ──
   // V1 only filled on create. V2 fills on BOTH select existing + create new.
-  useEffect(() => {
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevSelectedCustomer, setPrevSelectedCustomer] = useState(customer.selectedCustomer);
+  if (customer.selectedCustomer !== prevSelectedCustomer) {
+    setPrevSelectedCustomer(customer.selectedCustomer);
     const c = customer.selectedCustomer;
-    if (!c) return;
-    setFormData((prev) => ({
-      ...prev,
-      customer_id: c.id,
-      bride_name: c.bride_name || prev.bride_name,
-      groom_name: c.groom_name || prev.groom_name,
-      bride_phone: c.bride_phone || prev.bride_phone,
-      bride_height: c.bride_height?.toString() || prev.bride_height,
-      bride_weight: c.bride_weight?.toString() || prev.bride_weight,
-      bride_shoe_size: c.bride_shoe_size?.toString() || prev.bride_shoe_size,
-      groom_phone: c.groom_phone || prev.groom_phone,
-      groom_height: c.groom_height?.toString() || prev.groom_height,
-      groom_weight: c.groom_weight?.toString() || prev.groom_weight,
-      groom_shoe_size: c.groom_shoe_size?.toString() || prev.groom_shoe_size,
-    }));
-    if (c.wedding_date) {
-      setWeddingDate(c.wedding_date);
-    } else {
-      setWeddingDate("");
+    if (c) {
+      setFormData((prev) => ({
+        ...prev,
+        customer_id: c.id,
+        bride_name: c.bride_name || prev.bride_name,
+        groom_name: c.groom_name || prev.groom_name,
+        bride_phone: c.bride_phone || prev.bride_phone,
+        bride_height: c.bride_height?.toString() || prev.bride_height,
+        bride_weight: c.bride_weight?.toString() || prev.bride_weight,
+        bride_shoe_size: c.bride_shoe_size?.toString() || prev.bride_shoe_size,
+        groom_phone: c.groom_phone || prev.groom_phone,
+        groom_height: c.groom_height?.toString() || prev.groom_height,
+        groom_weight: c.groom_weight?.toString() || prev.groom_weight,
+        groom_shoe_size: c.groom_shoe_size?.toString() || prev.groom_shoe_size,
+      }));
+      if (c.wedding_date) {
+        setWeddingDate(c.wedding_date);
+      } else {
+        setWeddingDate("");
+      }
     }
-  }, [customer.selectedCustomer]);
+  }
 
   // ── Prefill from URL (Create Mode) ──
   useEffect(() => {

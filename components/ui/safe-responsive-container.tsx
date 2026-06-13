@@ -21,8 +21,7 @@ export function SafeResponsiveContainer({
     const container = containerRef.current;
     if (!container) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
+        setIsMounted(true);
 
     return () => {
       setIsMounted(false);

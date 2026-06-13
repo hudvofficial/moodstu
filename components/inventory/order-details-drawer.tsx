@@ -56,6 +56,9 @@ export function OrderDetailsDrawer({
 
   useEffect(() => {
     if (showAddForm && items.length === 0) {
+      // Fetch trigger: this setState precedes an async fetch, not a synchronous
+      // cascading render, so the set-state-in-effect rule is a false positive.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoadingItems(true);
       fetchInventoryForSale().then((data) => {
         setItems(data);

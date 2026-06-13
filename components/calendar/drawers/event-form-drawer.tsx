@@ -131,7 +131,28 @@ export function EventFormDrawer({
     notes: "",
   });
 
-  useEffect(() => {
+  // Reset form when the drawer opens or its inputs change. Adjust state during
+  // render instead of in an effect to avoid a cascading render.
+  const [prevDeps, setPrevDeps] = useState<{
+    open: boolean;
+    isEditing: boolean;
+    event: typeof event;
+    defaultDate: typeof defaultDate;
+    isGlobalAdmin: boolean;
+    currentUserId: typeof currentUserId;
+    source: typeof source;
+  } | null>(null);
+  if (
+    !prevDeps ||
+    prevDeps.open !== open ||
+    prevDeps.isEditing !== isEditing ||
+    prevDeps.event !== event ||
+    prevDeps.defaultDate !== defaultDate ||
+    prevDeps.isGlobalAdmin !== isGlobalAdmin ||
+    prevDeps.currentUserId !== currentUserId ||
+    prevDeps.source !== source
+  ) {
+    setPrevDeps({ open, isEditing, event, defaultDate, isGlobalAdmin, currentUserId, source });
     if (open) {
       if (isEditing && event) {
          setFormData({
@@ -174,7 +195,7 @@ export function EventFormDrawer({
       }
       setError(null);
     }
-  }, [open, isEditing, event, defaultDate, isGlobalAdmin, currentUserId, source]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -108,14 +108,29 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
     return results.filter(r => r.service_type === filterType);
   }, [results, filterType]);
 
-  useEffect(() => {
+  // Reset search state when the editing target or item type changes. Adjust
+  // state during render instead of in an effect to avoid a cascading render.
+  const editingExportType = editingItem?.export_type;
+  const editingItemType = editingItem?.type;
+  const [prevItemDeps, setPrevItemDeps] = useState<{
+    exportType: typeof editingExportType;
+    type: typeof editingItemType;
+    itemType: typeof itemType;
+  } | null>(null);
+  if (
+    !prevItemDeps ||
+    prevItemDeps.exportType !== editingExportType ||
+    prevItemDeps.type !== editingItemType ||
+    prevItemDeps.itemType !== itemType
+  ) {
+    setPrevItemDeps({ exportType: editingExportType, type: editingItemType, itemType });
     setQuery("");
     setResults([]);
     setSelected([]);
     setSearchError("");
     setFilterType(null);
     setExportType(editingItem?.type === itemType ? editingItem.export_type : getDefaultExportType(itemType));
-  }, [editingItem?.export_type, editingItem?.type, itemType]);
+  }
 
   // Search V2 catalog by selected business item type.
   useEffect(() => {
@@ -124,6 +139,10 @@ export function ServiceItemForm({ itemType, isEditing, editingItem, onAdd, onEdi
     let cancelled = false;
     const cached = getCachedCatalogItems(itemType, debouncedQuery);
     if (cached) {
+      // Search effect: synchronous setState from a cache hit, immediately
+      // followed by an async fetch path; this is a load trigger, not a
+      // cascading render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults(cached);
       setIsSearching(false);
       setSearchError("");

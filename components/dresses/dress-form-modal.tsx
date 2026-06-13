@@ -91,13 +91,17 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   const [codeError, setCodeError] = useState<string | null>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Reset form when the modal opens or the target item changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; item: typeof editItem } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.item !== editItem) {
+    setPrevReset({ open: isOpen, item: editItem });
     if (isOpen) {
       setForm(getInitial(editItem));
       setPendingUploadUrl(null);
       setCodeError(null);
     }
-  }, [isOpen, editItem]);
+  }
 
   const update = useCallback((partial: Partial<FormState>) => {
     setForm((p) => {
@@ -119,7 +123,7 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
       if (res.success && res.data?.exists) setCodeError("Mã này đã tồn tại!");
       else setCodeError(null);
     } catch { setCodeError(null); }
-  }, [editItem?.id]);
+  }, [editItem]);
 
   const handleSubmit = useCallback(async () => {
     if (!form.name.trim()) {

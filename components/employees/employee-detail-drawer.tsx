@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import { Loader2, Pencil, RotateCcw, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { getEmployeeById } from "@/app/actions/employee-queries";
@@ -40,15 +40,14 @@ export default function EmployeeDetailDrawer({
   onChanged,
   canEdit = false,
 }: EmployeeDetailDrawerProps) {
-  // Cache the last employee to prevent layout jump during exit animation
-  const prevEmployee = useRef<EmployeeListItem | null>(null);
-  useEffect(() => {
-    if (employee) {
-      prevEmployee.current = employee;
-    }
-  }, [employee]);
-
-  const activeEmployee = employee || prevEmployee.current;
+  // Cache the last employee to prevent layout jump during exit animation.
+  // Adjust state during render (React's sanctioned alternative to reading a ref
+  // during render): keep showing the previous employee while the drawer plays
+  // its close animation and `employee` is briefly null.
+  const [activeEmployee, setActiveEmployee] = useState<EmployeeListItem | null>(employee);
+  if (employee && employee !== activeEmployee) {
+    setActiveEmployee(employee);
+  }
 
   // Use SWR for robust fetching and caching
   const { data: detail, isValidating, mutate } = useSWR(

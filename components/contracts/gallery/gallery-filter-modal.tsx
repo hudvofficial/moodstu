@@ -32,11 +32,15 @@ export default function GalleryFilterModal({
 }: GalleryFilterModalProps) {
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
 
-  useEffect(() => {
+  // Reset active tab when the modal opens or the default changes. Adjust state
+  // during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; tab: typeof defaultTab } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.tab !== defaultTab) {
+    setPrevReset({ open: isOpen, tab: defaultTab });
     if (isOpen) {
       setActiveTab(defaultTab);
     }
-  }, [isOpen, defaultTab]);
+  }
 
   const [sourceHandle, setSourceHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [destHandle, setDestHandle] = useState<FileSystemDirectoryHandle | null>(null);

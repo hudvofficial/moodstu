@@ -87,9 +87,12 @@ export default function EventTaskModal({
   // Conflicts
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
 
-  // Form ref for closure-safe reads (W3 fix)
+  // Form ref for closure-safe reads (W3 fix). Update in an effect rather than
+  // assigning during render — refs must not be written during render.
   const formRef = useRef(form);
-  formRef.current = form;
+  useEffect(() => {
+    formRef.current = form;
+  });
 
   // Track if initial prefetch has been used
   const usedPrefetchRef = useRef(false);
@@ -143,13 +146,18 @@ export default function EventTaskModal({
   }, [event.id, prefetchedTasks, prefetchedEmployees]);
 
   useEffect(() => {
+    // loadData triggers an async fetch; the setState inside it is a load
+    // trigger, not a synchronous cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, event.id]);
 
-  useEffect(() => {
+  const [prevEventIdForDeleting, setPrevEventIdForDeleting] = useState(event.id);
+  if (event.id !== prevEventIdForDeleting) {
+    setPrevEventIdForDeleting(event.id);
     setDeletingTaskIds(new Set());
-  }, [event.id]);
+  }
 
   // Check time overlap for on-set assignments.
   const doConflictCheck = useCallback(

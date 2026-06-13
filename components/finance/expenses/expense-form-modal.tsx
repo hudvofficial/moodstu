@@ -36,7 +36,11 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
     contract_id: "",
   });
 
-  useEffect(() => {
+  // Reset form when the modal opens or the target expense changes.
+  // Adjust state during render instead of in an effect to avoid a cascading render.
+  const [prevReset, setPrevReset] = useState<{ open: boolean; data: typeof initialData } | null>(null);
+  if (!prevReset || prevReset.open !== isOpen || prevReset.data !== initialData) {
+    setPrevReset({ open: isOpen, data: initialData });
     if (isOpen) {
       if (initialData) {
         setForm({
@@ -61,7 +65,7 @@ export function ExpenseFormModal({ isOpen, onClose, onSaved, categories, initial
         });
       }
     }
-  }, [isOpen, initialData]);
+  }
 
   const categoryOptions = useMemo(
     () => categories.filter((item) => item.type === "chi").map((item) => ({ value: item.id, label: item.name })),

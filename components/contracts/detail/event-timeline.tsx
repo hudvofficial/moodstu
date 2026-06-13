@@ -133,15 +133,19 @@ export default function EventTimeline({
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // Sync modalEvent with incoming events prop (so Date Picker reflects SWR refetch)
-  useEffect(() => {
+  // Sync modalEvent with incoming events prop (so Date Picker reflects SWR
+  // refetch). Adjust state during render instead of in an effect to avoid a
+  // cascading render.
+  const [prevEvents, setPrevEvents] = useState(events);
+  if (events !== prevEvents) {
+    setPrevEvents(events);
     if (modalEvent) {
       const updated = events.find((e) => e.id === modalEvent.id);
       if (updated && JSON.stringify(updated) !== JSON.stringify(modalEvent)) {
         setModalEvent(updated);
       }
     }
-  }, [events, modalEvent]);
+  }
 
   // Sort by sort_order (V1 business logic), fallback to date
   const sorted = [...events].sort((a, b) => {

@@ -112,7 +112,7 @@ export function InventoryDetailDrawer({
     await revalidateInventory();
     if (source?.id) await revalidateInventoryDetail(source.id);
     onChanged?.();
-  }, [onChanged, source?.id]);
+  }, [onChanged, source]);
 
   const handleDelete = async () => {
     if (!source) return;
