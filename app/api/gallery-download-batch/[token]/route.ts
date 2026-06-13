@@ -9,42 +9,22 @@ import {
   getGalleryAccessVersion,
   getGalleryCapability,
 } from "@/lib/gallery-access";
-import JSZip from "jszip";
 
 /**
- * Gated Batch Gallery Download Route (ZIP)
+ * Gated Batch Gallery Download Route
  * GET /api/gallery-download-batch/[token]
+ *
+ * Returns the list of authorized image names + direct lh3 URLs as JSON.
+ * The browser fetches each file straight from Google and zips client-side
+ * (see SelectionSummary / lib/gallery-download). We NEVER buffer/stream the
+ * image bytes through this function — doing so burns Fast Origin/Data
+ * Transfer on Vercel (the bug that crashed prod). This route only gates
+ * access; the bytes never touch Vercel.
  *
  * Query params:
  * - ids: comma-separated list of image IDs (e.g. ?ids=id1,id2)
  * - galleryId: (Required only for admin token when no ids or to verify ownership)
  */
-
-const MAX_ZIP_FILES = 30; // Giới hạn số lượng file để tránh quá tải RAM/Timeout
-
-async function fetchDriveFileBuffer(fileId: string, apiKey: string): Promise<Buffer | null> {
-  try {
-    // lh3 URL
-    const lh3Url = `https://lh3.googleusercontent.com/d/${fileId}=s0`;
-    const lh3Res = await fetch(lh3Url, { redirect: "follow" });
-    if (lh3Res.ok) {
-      const ab = await lh3Res.arrayBuffer();
-      return Buffer.from(ab);
-    }
-
-    // Drive alt=media
-    const apiRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`,
-    );
-    if (apiRes.ok) {
-      const ab = await apiRes.arrayBuffer();
-      return Buffer.from(ab);
-    }
-  } catch (err) {
-    console.error(`[fetchDriveFileBuffer] Error for file ${fileId}:`, err);
-  }
-  return null;
-}
 
 export async function GET(
   request: NextRequest,
@@ -59,11 +39,6 @@ export async function GET(
 
   if (token !== "admin" && !token) {
     return NextResponse.json({ error: "Token không hợp lệ" }, { status: 400 });
-  }
-
-  const API_KEY = process.env.GOOGLE_DRIVE_API_KEY;
-  if (!API_KEY) {
-    return NextResponse.json({ error: "Drive API chưa cấu hình" }, { status: 500 });
   }
 
   const adminSupabase = await createAdminClient();
@@ -225,53 +200,18 @@ export async function GET(
       return NextResponse.json({ error: "Không có file Drive nào để tải" }, { status: 404 });
     }
 
-    if (searchParams.get("client_zip") === "true") {
-      const zipName = resolvedGallery?.title ? `album-${resolvedGallery.title.replace(/\s+/g, "_")}.zip` : `album-${resolvedGalleryId}.zip`;
-      return NextResponse.json({
-        zipName,
-        images: downloadableImages.map((img) => ({
-          name: img.file_name || `photo_${img.id}.jpg`,
-          url: `https://lh3.googleusercontent.com/d/${img.drive_file_id}=s0` // Fetch DIRECTLY from Google Drive (Original Size) to save Vercel Bandwidth
-        }))
-      });
-    }
+    // Return direct lh3 URLs only — the browser zips client-side. Image bytes
+    // are fetched straight from Google's CDN, never streamed through Vercel.
+    const zipName = resolvedGallery?.title
+      ? `album-${resolvedGallery.title.replace(/\s+/g, "_")}.zip`
+      : `album-${resolvedGalleryId}.zip`;
 
-    if (downloadableImages.length > MAX_ZIP_FILES) {
-      return NextResponse.json(
-        { error: `Chỉ cho phép tải tối đa ${MAX_ZIP_FILES} ảnh cùng lúc để đảm bảo hiệu năng. Vui lòng chọn ít ảnh hơn.` },
-        { status: 400 },
-      );
-    }
-
-    // ─── DOWNLOAD AND COMPRESS ──────────────────────────────────────
-    const zip = new JSZip();
-    const batchSize = 5;
-
-    for (let i = 0; i < downloadableImages.length; i += batchSize) {
-      const currentBatch = downloadableImages.slice(i, i + batchSize);
-      const downloadPromises = currentBatch.map(async (img) => {
-        const buffer = await fetchDriveFileBuffer(img.drive_file_id!, API_KEY);
-        if (buffer) {
-          const name = img.file_name || `photo_${img.id}.jpg`;
-          zip.file(name, buffer);
-        }
-      });
-      await Promise.all(downloadPromises);
-    }
-
-    const zipBuffer = await zip.generateAsync({ type: "blob" });
-
-    const headers = new Headers();
-    headers.set("Content-Type", "application/zip");
-    const zipName = resolvedGallery?.title ? `album-${resolvedGallery.title.replace(/\s+/g, "_")}.zip` : `album-${resolvedGalleryId}.zip`;
-    headers.set(
-      "Content-Disposition",
-      `attachment; filename="${zipName}"; filename*=UTF-8''${encodeURIComponent(zipName)}`,
-    );
-
-    return new NextResponse(zipBuffer, {
-      status: 200,
-      headers,
+    return NextResponse.json({
+      zipName,
+      images: downloadableImages.map((img) => ({
+        name: img.file_name || `photo_${img.id}.jpg`,
+        url: `https://lh3.googleusercontent.com/d/${img.drive_file_id}=s0`,
+      })),
     });
   } catch (err) {
     console.error("[gallery-download-batch] Error:", err);

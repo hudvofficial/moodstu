@@ -63,6 +63,12 @@
 - Fix: bỏ arg proxy ở public → cả 2 mode dùng lh3 sized trực tiếp (chỉ đổi nhánh public, admin bất biến). Verified local: 200/200 ảnh → lh3 direct, 0 broken.
 - Quy tắc: **KHÔNG bao giờ đưa endpoint redirect vào Next.js `<Image>` optimized.** Hoặc point thẳng URL CDN cuối (lh3 `=s{N}`), hoặc set `unoptimized`. Proxy `/api/drive-download` chỉ hợp cho `<img>` trực tiếp / download, không cho `<Image>`.
 
+### B8. KHÔNG buffer/stream byte media qua serverless — đốt Origin/Data Transfer
+- Bối cảnh (2026-06-13, audit sau B7): [gallery-download-batch](../../app/api/gallery-download-batch/[token]/route.ts) từng có nhánh server-zip `fetchDriveFileBuffer` → `fetch(lh3 =s0).arrayBuffer()` → JSZip trên Vercel → `new NextResponse(zipBuffer)`. Mỗi lượt kéo tới 30 ảnh full-res (~300-450MB) QUA Vercel = đốt Fast Origin + Data Transfer.
+- Chưa nổ vì mọi caller (SelectionSummary, lib/gallery-download) đều gọi `?client_zip=true` → nhận JSON URL lh3, browser tự zip. Nhưng là mìn ngầm (ai gọi trực tiếp / code sau quên param → nổ).
+- Fix: route LUÔN trả JSON `{name, url lh3 =s0}`, bỏ JSZip server + fetchDriveFileBuffer + check API_KEY (không cần nữa). Bytes tải thẳng Google → browser.
+- Quy tắc: route/server action chỉ **gate quyền rồi trả URL** — KHÔNG `arrayBuffer()/blob()/new Response(buffer)` cho media. Cùng gốc với B7: byte ảnh phải CDN→browser, không chạm Vercel. (Tải 1 ảnh `gallery-download/[imageId]` đã đúng — trả JSON `{url}`.)
+
 ---
 
 ## C. Cơ chế
