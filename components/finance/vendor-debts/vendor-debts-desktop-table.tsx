@@ -2,15 +2,16 @@ import { Button } from "@/components/ui/button";
 import { formatVnd } from "@/components/finance/finance-format";
 import { TableWrapper, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { Banknote } from "lucide-react";
+import { Banknote, History } from "lucide-react";
 import type { VendorDebtItem } from "@/types/vendor";
 
 interface VendorDebtsDesktopTableProps {
   items: VendorDebtItem[];
   onPay: (item: VendorDebtItem) => void;
+  onHistory: (item: VendorDebtItem) => void;
 }
 
-export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTableProps) {
+export function VendorDebtsDesktopTable({ items, onPay, onHistory }: VendorDebtsDesktopTableProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     const date = new Date(dateStr);
@@ -63,7 +64,18 @@ export function VendorDebtsDesktopTable({ items, onPay }: VendorDebtsDesktopTabl
                 <span className="text-caption text-text-muted">{formatDate(item.last_payment_date)}</span>
               </TD>
               <TD className="text-right">
-                <div className="flex items-center justify-end pr-2 opacity-80 hover:opacity-100 transition-opacity">
+                <div className="flex items-center justify-end pr-2 gap-1 opacity-80 hover:opacity-100 transition-opacity">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onHistory(item)}
+                    title="Lịch sử thanh toán"
+                    className="btn-icon text-text-muted hover:text-text-primary hover:bg-bg-hover"
+                    style={{ padding: 0 }}
+                    aria-label="Lịch sử thanh toán"
+                  >
+                    <History style={{ width: 20, height: 20 }} strokeWidth={1.75} />
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"

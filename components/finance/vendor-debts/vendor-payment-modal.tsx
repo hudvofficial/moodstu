@@ -185,6 +185,11 @@ export function VendorPaymentModal({
       return;
     }
 
+    if (amount > totalDebt) {
+      toast.error("Số tiền vượt quá công nợ hiện tại");
+      return;
+    }
+
     // Prepare allocations
     const allocations =
       selectionMode === "fifo"
@@ -433,7 +438,7 @@ export function VendorPaymentModal({
           <Button variant="ghost" onClick={onClose} disabled={isPending} className="flex-1">
             Hủy
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || amount <= 0 || isLoading} className="flex-1">
+          <Button onClick={handleSubmit} disabled={isPending || amount <= 0 || isLoading || amount > totalDebt} className="flex-1">
             {isPending ? "Đang xử lý..." : "Thanh toán"}
           </Button>
         </div>

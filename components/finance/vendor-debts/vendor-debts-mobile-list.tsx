@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Phone } from "lucide-react";
+import { DollarSign, Phone, History } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
 import { SwipeableCard, type SwipeAction } from "@/components/ui/swipeable-card";
 import { cn } from "@/lib/utils";
@@ -10,9 +10,10 @@ interface VendorDebtsMobileListProps {
   items: VendorDebtItem[];
   busyId: string | null;
   onPay: (item: VendorDebtItem) => void;
+  onHistory: (item: VendorDebtItem) => void;
 }
 
-export function VendorDebtsMobileList({ items, busyId, onPay }: VendorDebtsMobileListProps) {
+export function VendorDebtsMobileList({ items, busyId, onPay, onHistory }: VendorDebtsMobileListProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     const date = new Date(dateStr);
@@ -26,6 +27,15 @@ export function VendorDebtsMobileList({ items, busyId, onPay }: VendorDebtsMobil
 
         const rightActions: SwipeAction[] = [
           {
+            id: "history",
+            label: "Lịch sử",
+            icon: <History className="mb-1 h-5 w-5" />,
+            className: "bg-blue-500 text-white",
+            onClick: () => {
+              if (!isBusy) onHistory(item);
+            },
+          },
+          {
             id: "pay",
             label: "Thanh toán",
             icon: <DollarSign className="mb-1 h-5 w-5" />,
@@ -37,7 +47,7 @@ export function VendorDebtsMobileList({ items, busyId, onPay }: VendorDebtsMobil
         ];
 
         return (
-          <SwipeableCard key={item.vendor_id} rightActions={rightActions} actionWidth={72}>
+          <SwipeableCard key={item.vendor_id} rightActions={rightActions} actionWidth={144}>
             <article
               className={cn(
                 "card-base space-y-3 p-4",

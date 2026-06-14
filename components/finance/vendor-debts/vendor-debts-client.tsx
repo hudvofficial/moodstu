@@ -10,6 +10,7 @@ import { VendorCostsStatsBar } from "./vendor-costs-stats-bar";
 import { VendorDebtsDesktopTable } from "./vendor-debts-desktop-table";
 import { VendorDebtsMobileList } from "./vendor-debts-mobile-list";
 import { VendorPaymentModal } from "./vendor-payment-modal";
+import { VendorPaymentHistoryDrawer } from "./vendor-payment-history-drawer";
 import { VendorCostDesktopTable } from "@/components/finance/salaries/vendor-cost-desktop-table";
 import { VendorCostMobileList } from "@/components/finance/salaries/vendor-cost-mobile-list";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -40,6 +41,7 @@ async function requireData<T>(promise: Promise<ActionResult<T>>): Promise<T> {
 export function VendorDebtsClient({ initialData }: VendorDebtsClientProps) {
   const [activeTab, setActiveTab] = useState<"debts" | "costs">("debts");
   const [payingVendor, setPayingVendor] = useState<VendorDebtItem | null>(null);
+  const [historyVendor, setHistoryVendor] = useState<VendorDebtItem | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -73,6 +75,10 @@ export function VendorDebtsClient({ initialData }: VendorDebtsClientProps) {
 
   const handlePay = useCallback((item: VendorDebtItem) => {
     setPayingVendor(item);
+  }, []);
+
+  const handleHistory = useCallback((item: VendorDebtItem) => {
+    setHistoryVendor(item);
   }, []);
 
   const handlePaymentSuccess = useCallback(async () => {
@@ -215,14 +221,14 @@ export function VendorDebtsClient({ initialData }: VendorDebtsClientProps) {
                     <Skeleton className="h-32 w-full" />
                   </div>
                 ) : (
-                  <VendorDebtsMobileList items={debts} busyId={busyId} onPay={handlePay} />
+                  <VendorDebtsMobileList items={debts} busyId={busyId} onPay={handlePay} onHistory={handleHistory} />
                 )
               }
               desktop={
                 isLoading && debts.length === 0 ? (
                   <Skeleton className="h-96 w-full" />
                 ) : (
-                  <VendorDebtsDesktopTable items={debts} onPay={handlePay} />
+                  <VendorDebtsDesktopTable items={debts} onPay={handlePay} onHistory={handleHistory} />
                 )
               }
             />
@@ -273,6 +279,16 @@ export function VendorDebtsClient({ initialData }: VendorDebtsClientProps) {
         vendorId={payingVendor?.vendor_id}
         vendorName={payingVendor?.vendor_name}
         onSuccess={handlePaymentSuccess}
+      />
+
+      <VendorPaymentHistoryDrawer
+        open={!!historyVendor}
+        onOpenChange={(open) => {
+          if (!open) setHistoryVendor(null);
+        }}
+        vendorId={historyVendor?.vendor_id ?? null}
+        vendorName={historyVendor?.vendor_name ?? ""}
+        onVoidSuccess={handlePaymentSuccess}
       />
 
       {/* FAB for mobile */}

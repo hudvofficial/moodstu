@@ -265,6 +265,10 @@ export interface VendorPaymentHistoryItem {
   created_by: string | null;
 }
 
+const voidVendorPaymentSchema = z.object({
+  payment_id: z.string().uuid("Payment ID không hợp lệ"),
+});
+
 /**
  * Fetch vendor payment history
  */
@@ -308,11 +312,14 @@ export async function fetchVendorPaymentHistory(
  * Void/Hard delete a vendor payment
  */
 export async function voidVendorPayment(
-  paymentId: string
-): Promise<ActionResult<{ success: true }>> {
-  if (!paymentId) {
-    return { success: false, error: "Payment ID không được để trống" };
+  rawData: unknown
+): Promise<ActionResult<{ payment_id: string }>> {
+  const parsed = voidVendorPaymentSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" };
   }
+
+  const { payment_id } = parsed.data;
 
   return withAdmin(async (supabase, userId) => {
     // Fetch payment to check date for period lock and vendor name for audit
@@ -323,13 +330,18 @@ export async function voidVendorPayment(
         amount, 
         payment_date, 
         vendor_id,
+        deleted_at,
         vendors(full_name)
       `)
-      .eq("id", paymentId)
+      .eq("id", payment_id)
       .single();
 
     if (fetchError || !payment) {
       throw new Error("Không tìm thấy thông tin thanh toán");
+    }
+
+    if (payment.deleted_at) {
+      throw new Error("Thanh toán đã bị hủy trước đó");
     }
 
     // Check period lock
@@ -339,7 +351,7 @@ export async function voidVendorPayment(
     const { error: deleteError } = await supabase
       .from("vendor_payments")
       .delete()
-      .eq("id", paymentId);
+      .eq("id", payment_id);
 
     if (deleteError) {
       throw new Error(`Không thể xóa thanh toán: ${deleteError.message}`);
@@ -352,7 +364,7 @@ export async function voidVendorPayment(
     await writeAuditLog({
       action: "DELETE",
       tableName: "vendor_payments",
-      recordId: paymentId,
+      recordId: payment_id,
       description: `Hủy thanh toán ${payment.amount.toLocaleString()}đ cho vendor ${vendorName}`,
     });
 
@@ -361,6 +373,6 @@ export async function voidVendorPayment(
     revalidatePath("/finance/salaries");
     revalidatePath("/finance/dashboard");
 
-    return { success: true, data: { success: true } };
+    return { payment_id };
   });
 }
