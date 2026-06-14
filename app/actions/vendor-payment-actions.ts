@@ -303,3 +303,63 @@ export async function fetchVendorPaymentHistory(
     return data || [];
   });
 }
+
+/**
+ * Void/Hard delete a vendor payment
+ */
+export async function voidVendorPayment(
+  paymentId: string
+): Promise<ActionResult<{ success: true }>> {
+  if (!paymentId) {
+    return { success: false, error: "Payment ID không được để trống" };
+  }
+
+  return withAdmin(async (supabase, userId) => {
+    // Fetch payment to check date for period lock and vendor name for audit
+    const { data: payment, error: fetchError } = await supabase
+      .from("vendor_payments")
+      .select(`
+        id, 
+        amount, 
+        payment_date, 
+        vendor_id,
+        vendors(full_name)
+      `)
+      .eq("id", paymentId)
+      .single();
+
+    if (fetchError || !payment) {
+      throw new Error("Không tìm thấy thông tin thanh toán");
+    }
+
+    // Check period lock
+    await checkPeriodLock(supabase, payment.payment_date);
+
+    // Hard delete payment (allocations cascade)
+    const { error: deleteError } = await supabase
+      .from("vendor_payments")
+      .delete()
+      .eq("id", paymentId);
+
+    if (deleteError) {
+      throw new Error(`Không thể xóa thanh toán: ${deleteError.message}`);
+    }
+
+    // Audit log
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vendorName = (payment.vendors as any)?.full_name || "Unknown Vendor";
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "vendor_payments",
+      recordId: paymentId,
+      description: `Hủy thanh toán ${payment.amount.toLocaleString()}đ cho vendor ${vendorName}`,
+    });
+
+    // Revalidate paths
+    revalidatePath("/finance/vendor-debts");
+    revalidatePath("/finance/salaries");
+    revalidatePath("/finance/dashboard");
+
+    return { success: true, data: { success: true } };
+  });
+}
