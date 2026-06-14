@@ -346,8 +346,9 @@ export async function voidVendorPayment(
     }
 
     // Audit log
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const vendorName = (payment.vendors as any)?.full_name || "Unknown Vendor";
+    const vendorName = payment.vendors && typeof payment.vendors === 'object' && 'full_name' in payment.vendors 
+      ? (payment.vendors as { full_name: string }).full_name 
+      : "Unknown Vendor";
     await writeAuditLog({
       action: "DELETE",
       tableName: "vendor_payments",
