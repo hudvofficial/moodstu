@@ -213,14 +213,12 @@ export function VendorsAdminClient({ initialVendors }: Props) {
                 onChange={setMergeSourceId}
                 options={vendors.map(v => ({ value: v.id, label: `${v.full_name}${v.phone ? ` - ${v.phone}` : ""}` }))}
                 placeholder="Chọn bản cần gộp/xóa"
-                searchable={true}
               />
               <SelectForm
                 value={mergeTargetId}
                 onChange={setMergeTargetId}
                 options={vendors.map(v => ({ value: v.id, label: `${v.full_name}${v.phone ? ` - ${v.phone}` : ""}` }))}
                 placeholder="Chọn bản giữ lại"
-                searchable={true}
               />
               <Button unstyled type="button" onClick={handleMerge} disabled={isPending} className="btn btn-secondary w-full">
                 <Merge size={16} />
