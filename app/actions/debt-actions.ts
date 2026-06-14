@@ -223,9 +223,12 @@ export async function payDebt(
 
     if (!debt) throw new Error("Không tìm thấy công nợ.");
 
+    // Period lock: thanh toán sinh phiếu thu/chi ghi ngày hôm nay
+    await checkPeriodLock(supabase, new Date().toISOString().split("T")[0]);
+
     const currentPaid = Number(debt.paid_amount) || 0;
     const totalAmount = Number(debt.amount) || 0;
-    
+
     // 2. Calculate new balances
     const newPaidAmount = currentPaid + amount;
     const newRemaining = Math.max(0, totalAmount - newPaidAmount);

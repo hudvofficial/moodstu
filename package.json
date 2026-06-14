@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "jest",
     "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
+    "test:integration": "jest tests/integration --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "migrate": "node scripts/migrate-direct.mjs",

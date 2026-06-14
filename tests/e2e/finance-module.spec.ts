@@ -312,7 +312,23 @@ test.describe.serial("finance module e2e", () => {
 
     await login(page, seed);
 
-    const routes = ["/finance", "/finance/receipts", "/finance/expenses", "/finance/closes"];
+    const routes = [
+      "/finance",
+      "/finance/dashboard",
+      "/finance/receipts",
+      "/finance/expenses",
+      "/finance/closes",
+      "/finance/budget",
+      "/finance/categories",
+      "/finance/debts",
+      "/finance/goals",
+      "/finance/cashflow",
+      "/finance/investments",
+      "/finance/salaries",
+      "/finance/fixed-costs",
+      "/finance/lab-debts",
+      "/finance/vendor-debts",
+    ];
     for (const route of routes) {
       await page.goto(route);
       await waitForIdle(page);
@@ -323,5 +339,179 @@ test.describe.serial("finance module e2e", () => {
       console.warn("Console errors found:", consoleErrors);
     }
     expect(consoleErrors.length).toBeLessThanOrEqual(2);
+  });
+
+  // ── 9. Dashboard Page ──
+  test("dashboard page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/dashboard");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/dashboard");
+    await expect(page.getByText(/Dashboard|Tổng quan/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 10. Budget Page ──
+  test("budget page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/budget");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/budget");
+    await expect(page.getByText(/Ngân sách/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 11. Categories Page ──
+  test("categories page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/categories");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/categories");
+    await expect(page.getByText(/Danh mục/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 12. Debts Page ──
+  test("debts page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/debts");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/debts");
+    await expect(page.getByText(/Công nợ/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 13. Goals Page ──
+  test("goals page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/goals");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/goals");
+    await expect(page.getByText(/Mục tiêu/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 14. Cashflow Page ──
+  test("cashflow page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/cashflow");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/cashflow");
+    await expect(page.getByText(/Sổ cái|Sổ quỹ|Dòng tiền/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 15. Investments Page ──
+  test("investments page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/investments");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/investments");
+    await expect(page.getByText(/Tài sản|Đầu tư/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 16. Salaries Page ──
+  test("salaries page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/salaries");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/salaries");
+    await expect(page.getByText(/Bảng lương|Lương/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 17. Fixed Costs Page ──
+  test("fixed-costs page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/fixed-costs");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/fixed-costs");
+    await expect(page.getByText(/Chi phí cố định/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 18. Lab Debts Page ──
+  test("lab-debts page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/lab-debts");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/lab-debts");
+    await expect(page.getByText(/Công nợ|Lab/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 19. Vendor Debts Page ──
+  test("vendor-debts page loads", async ({ page }) => {
+    await login(page, seed);
+    await page.goto("/finance/vendor-debts");
+    await waitForIdle(page);
+    expect(page.url()).toContain("/finance/vendor-debts");
+    await expect(page.getByText(/Vendor|Nhà cung cấp/i).first()).toBeVisible({ timeout: 15_000 });
+    await assertNoErrorOverlay(page);
+  });
+
+  // ── 20. Responsive: Tablet 768px ──
+  test.describe("responsive: tablet 768px", () => {
+    test.use({ viewport: { width: 768, height: 1024 } });
+
+    test("finance dashboard renders at tablet", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
+
+    test("finance/receipts renders at tablet", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance/receipts");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
+
+    test("finance/expenses renders at tablet", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance/expenses");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
+  });
+
+  // ── 21. Responsive: Phone 375px ──
+  test.describe("responsive: phone 375px", () => {
+    test.use({ viewport: { width: 375, height: 812 } });
+
+    test("finance dashboard renders at phone", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
+
+    test("finance/receipts renders at phone", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance/receipts");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
+
+    test("finance/expenses renders at phone", async ({ page }) => {
+      await login(page, seed);
+      await page.goto("/finance/expenses");
+      await waitForIdle(page);
+      await assertNoErrorOverlay(page);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+    });
   });
 });
