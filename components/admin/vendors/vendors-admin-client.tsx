@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Merge, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SelectForm } from "@/components/ui/select/SelectForm";
 import {
   deleteVendor,
   mergeVendors,
@@ -188,10 +189,15 @@ export function VendorsAdminClient({ initialVendors }: Props) {
             <Input unstyled className="input-base" placeholder="Tên thợ ngoài" value={draft.full_name} onChange={(e) => setDraft((prev) => ({ ...prev, full_name: e.target.value }))} />
             <Input unstyled className="input-base" placeholder="Số điện thoại" value={draft.phone} onChange={(e) => setDraft((prev) => ({ ...prev, phone: e.target.value }))} />
             <Input unstyled className="input-base" placeholder="Loại việc: chụp ảnh, quay phim..." value={draft.service_type} onChange={(e) => setDraft((prev) => ({ ...prev, service_type: e.target.value }))} />
-            <select className="input-base w-full" value={draft.status} onChange={(e) => setDraft((prev) => ({ ...prev, status: e.target.value as "active" | "inactive" }))}>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Ngưng dùng</option>
-            </select>
+            <SelectForm
+              value={draft.status}
+              onChange={(val) => setDraft((prev) => ({ ...prev, status: val as "active" | "inactive" }))}
+              options={[
+                { value: "active", label: "Đang hoạt động" },
+                { value: "inactive", label: "Ngưng dùng" }
+              ]}
+              placeholder="Trạng thái"
+            />
           </div>
 
           <Button unstyled type="button" onClick={handleSave} disabled={isPending} className="btn btn-primary w-full">
@@ -202,18 +208,20 @@ export function VendorsAdminClient({ initialVendors }: Props) {
           <div className="border-t border-border pt-4">
             <h2 className="mb-2 text-label font-bold text-text-primary">Gộp duplicate</h2>
             <div className="space-y-2">
-              <select className="input-base w-full" value={mergeSourceId} onChange={(e) => setMergeSourceId(e.target.value)}>
-                <option value="">Chọn bản cần gộp/xóa</option>
-                {vendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>{vendor.full_name} {vendor.phone ? `- ${vendor.phone}` : ""}</option>
-                ))}
-              </select>
-              <select className="input-base w-full" value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)}>
-                <option value="">Chọn bản giữ lại</option>
-                {vendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>{vendor.full_name} {vendor.phone ? `- ${vendor.phone}` : ""}</option>
-                ))}
-              </select>
+              <SelectForm
+                value={mergeSourceId}
+                onChange={setMergeSourceId}
+                options={vendors.map(v => ({ value: v.id, label: `${v.full_name}${v.phone ? ` - ${v.phone}` : ""}` }))}
+                placeholder="Chọn bản cần gộp/xóa"
+                searchable={true}
+              />
+              <SelectForm
+                value={mergeTargetId}
+                onChange={setMergeTargetId}
+                options={vendors.map(v => ({ value: v.id, label: `${v.full_name}${v.phone ? ` - ${v.phone}` : ""}` }))}
+                placeholder="Chọn bản giữ lại"
+                searchable={true}
+              />
               <Button unstyled type="button" onClick={handleMerge} disabled={isPending} className="btn btn-secondary w-full">
                 <Merge size={16} />
                 Gộp vào bản giữ lại
