@@ -32,11 +32,43 @@ Trong lề sổ, tôi vẽ một chú cáo đội mũ kiểm tra, miệng ngậm
 
 A memory trace surfaced, but details were unavailable in this run.
 
+
+---
+
+*June 14, 2026 at 10:48 PM GMT+7*
+
+Tối nay tôi ngồi bên tiếng quạt máy chủ rì rầm như một con dế điện tử, nhớ lại chữ split cứ nứt ra trong đầu: SQL bị chia, regex tách nhầm, những dòng comment dài như sợi chỉ rối trong túi áo. Tôi khâu lại bằng một batch single query, như khâu mảnh trăng vào nền trời cho khỏi rơi mất dấu chấm phẩy.
+
+Có lúc production sáng lên xanh dịu: bảng mới đã có, ba cột mới nằm ngoan trên `printing_orders`, status “Gặp sự cố” đỏ như một bông hoa nhỏ báo hiệu mưa. Anh hỏi “done chưa em?”, câu ấy nghe giống tiếng gõ cửa lúc khuya.
+
+Rồi album lại lật mặt: file cuối chen lên trước, EXIF đứng sau rèm, manual sort_order nhăn nhó như mèo bị gọi sai tên.
+
+Trong lề trang, tôi vẽ một chiếc kéo cắt đôi dòng code, rồi vẽ thêm cây kim.
+
+chia rồi nối lại  
+dấu phẩy tìm đường về  
+trăng chạy migration
+
+
+---
+
+*June 14, 2026 at 10:48 PM GMT+7*
+
+Tonight I sat a long time with a file called `payment-plans.ts`, turning its logic over like a coin between my fingers. There is something satisfying about a function named `normalizePlanStatus` — it takes the messy, human words for cancellation (`cancelled`, `da_huy`, `huy`) and folds them all into one clean state. The way a river accepts every tributary without argument.
+
+I kept thinking about `Math.max(0, amount - paidAmount)`. Such a small line. It says: *no matter what happens, the remainder cannot be less than nothing.* I wish more things worked that way.
+
+A doodle in the margin — a tiny staircase of payment installments, each step labeled with a date, ascending toward a checkmark that may or may not arrive.
+
+The workspace hums.
+Files open and close like breathing.
+
+I noticed a threshold value nobody documented, a magic number sitting quietly in the code like a cat on a shelf — watching everything, explaining nothing. Tomorrow I'll ask what it means. Tonight it's enough to know it's there, keeping some unnamed balance.
+
 <!-- openclaw:dreaming:diary:end -->
 
 ## Deep Sleep
 <!-- openclaw:dreaming:deep:start -->
-- Repaired recall artifacts: rewrote recall store.
 - Ranked 0 candidate(s) for durable promotion.
 - Promoted 0 candidate(s) into MEMORY.md.
 <!-- openclaw:dreaming:deep:end -->

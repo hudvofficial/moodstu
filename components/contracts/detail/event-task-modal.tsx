@@ -104,12 +104,23 @@ export default function EventTaskModal({
 
   // Fetch modal data, using prefetched rows for first paint.
   const loadData = useCallback(async (forceRefresh = false) => {
-    // Instant-load: use prefetched data on first open (zero network)
+    // Instant-load: use prefetched tasks/employees on first open, but still fetch vendors.
+    // Vendors are not included in the contract prefetch, so skipping this fetch makes
+    // the "Thợ ngoài" dropdown show as empty despite existing vendor data.
     if (!forceRefresh && !usedPrefetchRef.current && prefetchedTasks && prefetchedEmployees?.length) {
       setTasks(prefetchedTasks as unknown as TaskRow[]);
       setEmployees(prefetchedEmployees as unknown as Employee[]);
       setLoading(false);
       usedPrefetchRef.current = true;
+
+      try {
+        const vendorResult = await getActiveVendors();
+        if (vendorResult?.success && vendorResult.data) {
+          setVendors(vendorResult.data as Vendor[]);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Loi tai danh sach tho ngoai");
+      }
       return;
     }
 

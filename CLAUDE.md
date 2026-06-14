@@ -31,6 +31,16 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - Success criteria dự án này = **`verify:<module>` pass + chrome-devtools render OK + đo Network cải thiện**. KHÔNG cứng nhắc unit-test-first — UI/perf verify bằng render + đo, không phải unit test.
 - Logic/data thuần → jest/playwright khi phù hợp.
 - Task nhiều bước → nêu plan ngắn: `[bước] → verify: [check]`.
+- **Debugging:** dùng `.claude/skills/systematic-debugging.md` — 4 phase bắt buộc, KHÔNG được đoán fix trước khi trace root cause.
+- **Claim "done":** dùng `.claude/skills/verification-before-completion.md` — chạy verify rồi mới được nói "xong". Không "should work".
+
+## 5. Plan Quality *(extract từ superpowers/writing-plans)*
+*Plan rõ = execute đúng. Plan mơ hồ = chạy sai hướng.*
+- **Bite-sized tasks:** mỗi bước 2–5 phút, 1 action rõ ràng (không gộp).
+- **Exact paths:** mọi bước phải có file path cụ thể + code thực tế nếu là code step.
+- **No placeholders:** cấm "TBD", "TODO", "implement later", "add appropriate error handling", "similar to Task N". Mỗi bước phải đủ thông tin để execute mà không cần đoán.
+- **Self-review trước khi trình user:** (1) spec coverage — mỗi yêu cầu có task? (2) placeholder scan — có pattern cấm không? (3) type consistency — tên hàm/type ở task sau match task trước? Sai → fix inline.
+- **Test gate trước merge/deploy:** verify pass (render/Network/build) → rồi mới merge hoặc `npx vercel --prod`. Không merge code chưa verify.
 
 ---
 
@@ -38,6 +48,6 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - **Sáng kiến perf đang chạy:** `plans/260603-native-feel-performance/PLAN.md`. **Đọc `plans/260603-native-feel-performance/LESSONS.md` trước mỗi task** (nhật ký lỗi + checklist).
 - **Tách module, không liên đới** — 1 task / 1 module; file shared (`lib/swr.ts`, `bottom-nav.tsx`, `server-cache-invalidation.ts`) chỉ **additive** hoặc verify đa module.
 - **Finance: GIỮ `revalidatePath`** (FinanceRealtimeRefresh chỉ là chuông báo READ additive — số luôn từ server, xem LESSONS A17). Optimistic **KHÔNG patch giá trị server tính lại** (mã tự sinh, recalc totals, tồn kho, status atomic) → "đóng modal + revalidate".
-- **Verify trước deploy:** CSS/layout → render + screenshot chrome-devtools **TRƯỚC** deploy. Deploy: `npx vercel --prod`.
+- **Verify trước deploy:** CSS/layout → render + screenshot chrome-devtools **TRƯỚC** deploy. **Deploy = `git push origin main`** (Vercel auto-deploy nhánh main); KHÔNG dùng `npx vercel --prod` (CLI chưa auth, không có `VERCEL_TOKEN`).
 - **Node:** prepend `C:\Users\Admin\.nodejs\...` vào PATH rồi mới `pnpm`.
 - **Responsive 3-tier** (chốt 2026-06-06, xem `plans/260606-tablet-design-layer/PLAN.md` + `lib/breakpoints.ts`): Phone `<768px` (base) · Tablet `768–1023px` (`md:`) · Desktop `≥1024px` (`lg:`). Layout density (bảng↔card, 1↔2 cột) toggle ở **`md:`**; chrome full-width giữ `lg:`; overlay/modal căn giữa ở `sm:` (640px). Verify mọi đổi responsive @768px + @1023px.
