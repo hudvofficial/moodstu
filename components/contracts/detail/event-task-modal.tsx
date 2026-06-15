@@ -48,8 +48,11 @@ interface Props {
   contractId: string;
   prefetchedTasks?: WorkTask[];
   prefetchedEmployees?: ActiveEmployee[];
+  prefetchedVendors?: Vendor[];
   onClose: () => void;
   onSaved: () => void;
+  onTaskAdded?: (task: WorkTask) => void;
+  onTaskDeleted?: (taskId: string, eventId: string) => void;
   onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
 }
 
@@ -59,8 +62,11 @@ export default function EventTaskModal({
   contractId,
   prefetchedTasks,
   prefetchedEmployees,
+  prefetchedVendors,
   onClose,
   onSaved,
+  onTaskAdded,
+  onTaskDeleted,
   onTaskStatusChange,
 }: Props) {
   const isOnSet = isOnSetEvent(event.event_type);
@@ -86,6 +92,10 @@ export default function EventTaskModal({
 
   // Conflicts
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
+  const conflictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conflictReqIdRef = useRef(0);
+
+  useEffect(() => () => { if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current); }, []);
 
   // Form ref for closure-safe reads (W3 fix). Update in an effect rather than
   // assigning during render — refs must not be written during render.
@@ -104,22 +114,28 @@ export default function EventTaskModal({
 
   // Fetch modal data, using prefetched rows for first paint.
   const loadData = useCallback(async (forceRefresh = false) => {
-    // Instant-load: use prefetched tasks/employees on first open, but still fetch vendors.
-    // Vendors are not included in the contract prefetch, so skipping this fetch makes
-    // the "Thợ ngoài" dropdown show as empty despite existing vendor data.
-    if (!forceRefresh && !usedPrefetchRef.current && prefetchedTasks && prefetchedEmployees?.length) {
+    // Có prefetchedTasks → hiện task ngay, không refetch task; chỉ fetch phần còn thiếu (employees/vendors).
+    if (!forceRefresh && !usedPrefetchRef.current && prefetchedTasks) {
       setTasks(prefetchedTasks as unknown as TaskRow[]);
-      setEmployees(prefetchedEmployees as unknown as Employee[]);
+      if (prefetchedEmployees?.length) setEmployees(prefetchedEmployees as unknown as Employee[]);
       setLoading(false);
       usedPrefetchRef.current = true;
 
-      try {
-        const vendorResult = await getActiveVendors();
-        if (vendorResult?.success && vendorResult.data) {
-          setVendors(vendorResult.data as Vendor[]);
+      const needEmployees = !prefetchedEmployees?.length;
+      const needVendors = !prefetchedVendors?.length;
+      if (needEmployees || needVendors) {
+        try {
+          const [empResult, vendorResult] = await Promise.all([
+            needEmployees ? getActiveEmployees() : Promise.resolve({ success: true as const, data: prefetchedEmployees }),
+            needVendors ? getActiveVendors() : Promise.resolve({ success: true as const, data: prefetchedVendors }),
+          ]);
+          if (empResult?.success && empResult.data) setEmployees(empResult.data as unknown as Employee[]);
+          if (vendorResult?.success && vendorResult.data) setVendors(vendorResult.data as Vendor[]);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Loi tai du lieu");
         }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Loi tai danh sach tho ngoai");
+      } else if (prefetchedVendors?.length) {
+        setVendors(prefetchedVendors as Vendor[]);
       }
       return;
     }
@@ -131,7 +147,9 @@ export default function EventTaskModal({
         prefetchedEmployees?.length
           ? Promise.resolve({ success: true as const, data: prefetchedEmployees })
           : getActiveEmployees(),
-        getActiveVendors(),
+        prefetchedVendors?.length
+          ? Promise.resolve({ success: true as const, data: prefetchedVendors })
+          : getActiveVendors(),
       ]);
       if (!taskResult.success) {
         throw new Error(taskResult.error || "Loi tai danh sach task");
@@ -154,7 +172,7 @@ export default function EventTaskModal({
       setLoading(false);
     }
     usedPrefetchRef.current = true;
-  }, [event.id, prefetchedTasks, prefetchedEmployees]);
+  }, [event.id, prefetchedTasks, prefetchedEmployees, prefetchedVendors]);
 
   useEffect(() => {
     // loadData triggers an async fetch; the setState inside it is a load
@@ -170,28 +188,28 @@ export default function EventTaskModal({
     setDeletingTaskIds(new Set());
   }
 
-  // Check time overlap for on-set assignments.
+  // Debounce overlap checks to avoid one server action per keystroke.
   const doConflictCheck = useCallback(
-    async (empId: string, startT: string, endT: string) => {
+    (empId: string, startT: string, endT: string) => {
+      if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
       if (!isOnSet || !empId || !startT || !endT || !event.event_date) {
         setConflicts([]);
         return;
       }
-      try {
-        const result = await checkEmployeeTimeOverlap(
-          empId,
-          event.event_date,
-          startT,
-          endT
-        );
-        if (result.success && result.data?.hasConflict) {
-          setConflicts(result.data.conflicts as ConflictItem[]);
-        } else {
-          setConflicts([]);
+      const reqId = ++conflictReqIdRef.current;
+      conflictTimerRef.current = setTimeout(async () => {
+        try {
+          const result = await checkEmployeeTimeOverlap(empId, event.event_date!, startT, endT);
+          if (reqId !== conflictReqIdRef.current) return;
+          if (result.success && result.data?.hasConflict) {
+            setConflicts(result.data.conflicts as ConflictItem[]);
+          } else {
+            setConflicts([]);
+          }
+        } catch {
+          if (reqId === conflictReqIdRef.current) setConflicts([]);
         }
-      } catch {
-        setConflicts([]);
-      }
+      }, 300);
     },
     [isOnSet, event.event_date]
   );
@@ -229,6 +247,7 @@ export default function EventTaskModal({
   // Add task.
   const handleAdd = async () => {
     if (submitting) return;
+    if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
     if (!form.assigned_to && !form.vendor_id) {
       toast.error("Chọn nhân sự trước");
       return;
@@ -291,7 +310,8 @@ export default function EventTaskModal({
       toast.success("Đã thêm nhân sự!");
       setForm((prev) => ({ ...prev, assigned_to: "", vendor_id: "", cost: 0 }));
       setConflicts([]);
-      onSaved();
+      if (onTaskAdded && result.data) onTaskAdded(result.data as unknown as WorkTask);
+      else onSaved();
     } catch (err) {
       setTasks(previousTasks);
       toast.error(err instanceof Error ? err.message : "Lỗi thêm task");
@@ -312,7 +332,8 @@ export default function EventTaskModal({
       const result = await deleteTask(taskId, event.id);
       if (!result.success) throw new Error(result.error);
       toast.success("Đã xóa nhân sự");
-      onSaved();
+      if (onTaskDeleted) onTaskDeleted(taskId, event.id);
+      else onSaved();
     } catch (err) {
       setTasks(previousTasks);
       toast.error(err instanceof Error ? err.message : "Lỗi xóa nhân sự");

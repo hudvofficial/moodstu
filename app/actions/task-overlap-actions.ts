@@ -1,6 +1,6 @@
 "use server";
 
-import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import { requireContractAccess, withAuthRead } from "@/lib/auth_utils";
 import { logConflict, logError } from "@/lib/audit";
 
 // ═══════════════════════════════════════════
@@ -15,7 +15,7 @@ import { logConflict, logError } from "@/lib/audit";
 export async function checkEmployeeTimeOverlap(
   employeeId: string, eventDate: string, targetStartTime: string, targetEndTime: string, excludeTaskId?: string
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     let query = supabase
@@ -48,7 +48,7 @@ export async function checkEmployeeTimeOverlap(
 export async function checkEmployeeDeadlineOverlap(
   employeeId: string, targetDeadline: string, ignoreTaskId?: string, ignoreContractId?: string
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const deadlineDate = targetDeadline.split("T")[0];

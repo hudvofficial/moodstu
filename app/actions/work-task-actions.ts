@@ -4,6 +4,7 @@ import {
   requireContractAccess,
   requireContractWriteAccess,
   withAuth,
+  withAuthRead,
 } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
 import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
@@ -86,7 +87,7 @@ async function assertTaskBelongsToEvent(
 // ═══════════════════════════════════════════
 
 export async function getTasksByEvent(eventId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase

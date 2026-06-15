@@ -13,6 +13,7 @@ import {
   updateContractListChecklistCache,
   useContractDetail,
   useActiveEmployees,
+  useActiveVendors,
   contractKeys,
 } from "@/lib/hooks/use-contract-queries";
 import ContractDetailLoading from "@/app/(protected)/contracts/[id]/loading";
@@ -119,6 +120,7 @@ export default function ContractDetailClient({
 
   // Client-side employees (cached 2 min)
   const activeEmployees = useActiveEmployees();
+  const activeVendors = useActiveVendors();
 
   const refreshCooldownUntilRef = useRef(0);
   const refreshSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -331,6 +333,39 @@ export default function ContractDetailClient({
   const headerContractId = contract?.id;
   const headerContractCode = contract?.contract_code;
   const headerCustomerName = contract?.customers?.full_name || "KhĂ¡ch hĂ ng";
+
+  const applyTaskAddedOptimistic = useCallback((task: WorkTask) => {
+    if (!task?.id || !task.event_id) { void revalidateContractDetailCaches(queryClient, id); return; }
+    muteRealtimeEcho();
+    updateContractDetailOptimistic((current: any) => {
+      const base = current ?? renderedDetailRef.current;
+      if (!base.contract) return current;
+      const tasks = base.contract.work_tasks || [];
+      const nextTasks = tasks.some((t: WorkTask) => t.id === task.id)
+        ? tasks.map((t: WorkTask) => (t.id === task.id ? { ...t, ...task } : t))
+        : [...tasks, task];
+      const nextEvents = (base.contract.contract_events || []).map((event: ContractEvent) =>
+        event.id === task.event_id && event.status !== "da_huy" && event.status !== "dang_lam"
+          ? { ...event, status: "dang_lam" } : event);
+      return { ...base, contract: { ...base.contract, work_tasks: nextTasks, contract_events: nextEvents } };
+    });
+  }, [id, muteRealtimeEcho, queryClient, updateContractDetailOptimistic]);
+
+  const applyTaskDeletedOptimistic = useCallback((taskId: string, eventId: string) => {
+    muteRealtimeEcho();
+    updateContractDetailOptimistic((current: any) => {
+      const base = current ?? renderedDetailRef.current;
+      if (!base.contract) return current;
+      const nextTasks = (base.contract.work_tasks || []).filter((t: WorkTask) => t.id !== taskId);
+      const eventTasks = nextTasks.filter((t: WorkTask) => t.event_id === eventId);
+      const allDone = eventTasks.length > 0 && eventTasks.every((t: WorkTask) => t.status === "hoan_thanh");
+      const anyInProgress = eventTasks.some((t: WorkTask) => t.status === "dang_lam");
+      const nextEventStatus: TaskStatus = allDone ? "hoan_thanh" : anyInProgress ? "dang_lam" : "chua_lam";
+      const nextEvents = (base.contract.contract_events || []).map((event: ContractEvent) =>
+        event.id === eventId && event.status !== "da_huy" ? { ...event, status: nextEventStatus } : event);
+      return { ...base, contract: { ...base.contract, work_tasks: nextTasks, contract_events: nextEvents } };
+    });
+  }, [muteRealtimeEcho, updateContractDetailOptimistic]);
 
   const applyTaskStatusOptimistic = useCallback(
     (taskId: string, eventId: string, nextStatus: TaskStatus) => {
@@ -658,8 +693,11 @@ export default function ContractDetailClient({
     reservations,
     printOrders,
     activeEmployees,
+    activeVendors,
     initialGalleries, // SSR gallery data
     refreshContract: () => refreshContractCaches(undefined, true),
+    onTaskAdded: applyTaskAddedOptimistic,
+    onTaskDeleted: applyTaskDeletedOptimistic,
     onTaskStatusChange: applyTaskStatusOptimistic,
     onEventDeleted: applyEventDeletedOptimistic,
     onPaymentClick: () => openPaymentForm(),

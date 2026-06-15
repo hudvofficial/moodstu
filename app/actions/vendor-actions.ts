@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { withAuth, withAdmin } from "@/lib/auth_utils";
+import { withAuth, withAdmin, withAuthRead } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import type { Vendor } from "@/types/vendor";
 
@@ -37,7 +37,7 @@ function normalizeName(name: string) {
 }
 
 export async function getActiveVendors() {
-  return withAuth(async (supabase) => {
+  return withAuthRead(async (supabase) => {
     const { data, error } = await supabase
       .from("vendors")
       .select("id, full_name, phone, service_type, status")

@@ -21,6 +21,7 @@ import DatePicker from "@/components/ui/date-picker";
 import EventTaskModal from "@/components/contracts/detail/event-task-modal";
 import type { ContractEvent, WorkTask, EventType, TaskStatus } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
+import type { Vendor } from "@/types/vendor";
 
 // ═══════════════════════════════════════════
 // EventTimeline — V2 Horizontal Grid Cards
@@ -33,7 +34,10 @@ interface Props {
   events: ContractEvent[];
   tasks: WorkTask[];
   activeEmployees?: ActiveEmployee[];
+  activeVendors?: Vendor[];
   onRefresh?: () => void;
+  onTaskAdded?: (task: WorkTask) => void;
+  onTaskDeleted?: (taskId: string, eventId: string) => void;
   onTaskStatusChange?: (taskId: string, eventId: string, status: TaskStatus) => void;
   onAddEvent?: () => void;
   onEventDeleted?: (eventId: string) => void;
@@ -119,7 +123,10 @@ export default function EventTimeline({
   events,
   tasks,
   activeEmployees,
+  activeVendors,
   onRefresh,
+  onTaskAdded,
+  onTaskDeleted,
   onTaskStatusChange,
   onAddEvent,
   onEventDeleted,
@@ -437,8 +444,11 @@ export default function EventTimeline({
           contractId={modalEvent.contract_id}
           prefetchedTasks={tasks.filter(t => t.event_id === modalEvent.id)}
           prefetchedEmployees={activeEmployees}
+          prefetchedVendors={activeVendors}
           onClose={() => setModalEvent(null)}
           onSaved={() => onRefresh?.()}
+          onTaskAdded={onTaskAdded}
+          onTaskDeleted={onTaskDeleted}
           onTaskStatusChange={onTaskStatusChange}
         />
       )}

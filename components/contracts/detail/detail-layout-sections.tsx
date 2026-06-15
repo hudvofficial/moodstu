@@ -19,8 +19,10 @@ import type {
   DressReservationRow,
   PrintingOrder,
   TaskStatus,
+  WorkTask,
 } from "@/types/contract";
 import type { ActiveEmployee } from "@/types/employee";
+import type { Vendor } from "@/types/vendor";
 
 const CostumesBlock = dynamic(() => import("./costumes-block"), {
   ssr: false,
@@ -60,8 +62,11 @@ interface LayoutProps {
   reservations: DressReservationRow[];
   printOrders: PrintingOrder[];
   activeEmployees?: ActiveEmployee[];
+  activeVendors?: Vendor[];
   initialGalleries?: any[]; // SSR gallery data
   refreshContract: () => void;
+  onTaskAdded?: (task: WorkTask) => void;
+  onTaskDeleted?: (taskId: string, eventId: string) => void;
   onTaskStatusChange: (taskId: string, eventId: string, status: TaskStatus) => void;
   onEventDeleted: (eventId: string) => void;
   onPaymentClick: () => void;
@@ -79,8 +84,11 @@ export function DesktopLayout({
   reservations,
   printOrders,
   activeEmployees,
+  activeVendors,
   initialGalleries,
   refreshContract,
+  onTaskAdded,
+  onTaskDeleted,
   onTaskStatusChange,
   onEventDeleted,
   onPaymentClick,
@@ -133,7 +141,10 @@ export function DesktopLayout({
             events={contract.contract_events || []}
             tasks={contract.work_tasks || []}
             activeEmployees={activeEmployees}
+            activeVendors={activeVendors}
             onRefresh={refreshContract}
+            onTaskAdded={onTaskAdded}
+            onTaskDeleted={onTaskDeleted}
             onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
             onEventDeleted={onEventDeleted}
@@ -216,8 +227,11 @@ export function MobileLayout({
   reservations,
   printOrders,
   activeEmployees,
+  activeVendors,
   initialGalleries,
   refreshContract,
+  onTaskAdded,
+  onTaskDeleted,
   onTaskStatusChange,
   onEventDeleted,
   onPaymentClick,
@@ -309,7 +323,10 @@ export function MobileLayout({
             events={contract.contract_events || []}
             tasks={contract.work_tasks || []}
             activeEmployees={activeEmployees}
+            activeVendors={activeVendors}
             onRefresh={refreshContract}
+            onTaskAdded={onTaskAdded}
+            onTaskDeleted={onTaskDeleted}
             onTaskStatusChange={onTaskStatusChange}
             onAddEvent={onAddEvent}
             onEventDeleted={onEventDeleted}

@@ -35,7 +35,9 @@ import {
   getContractDetail,
 } from "@/app/actions/contract-queries";
 import { getActiveEmployees } from "@/app/actions/employee-queries";
+import { getActiveVendors } from "@/app/actions/vendor-actions";
 import { fetchContractDrawerExtraClient } from "@/lib/client-direct/contract-drawer";
+import type { Vendor } from "@/types/vendor";
 
 // ═══════════════════════════════════════════
 // Query Keys Factory (Centralized key management)
@@ -51,6 +53,7 @@ export const contractKeys = {
   drawerExtras: () => [...contractKeys.all, "drawer-extra"] as const,
   drawerExtra: (id: string) => [...contractKeys.drawerExtras(), id] as const,
   employees: () => ["active-employees"] as const,
+  vendors: () => ["active-vendors"] as const,
 };
 
 // ═══════════════════════════════════════════
@@ -338,6 +341,21 @@ export function useActiveEmployees() {
   });
 
   return (data || []) as ActiveEmployee[];
+}
+
+/** Fetch active vendors (for "Thợ ngoài" assignment dropdown) */
+export function useActiveVendors() {
+  const { data } = useQuery({
+    queryKey: contractKeys.vendors(),
+    queryFn: async () => {
+      const result = await getActiveVendors();
+      if (!result.success) return [];
+      return result.data as Vendor[];
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+  return (data || []) as Vendor[];
 }
 
 // ═══════════════════════════════════════════
