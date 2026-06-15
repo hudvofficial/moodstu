@@ -18,9 +18,10 @@
  * touched. The longest single test run is ~3 min (test.setTimeout), far under
  * STALE_MS, so the bound is safe.
  *
- * Scope: employees + auth users only — the rows that pollute personnel pickers.
- * Orphan E2E contracts/customers (named `E2E Customer ${marker}`) are a separate
- * leak handled by each spec's own cleanupSeed and are intentionally NOT swept here.
+ * Scope: employees + auth users (pollute personnel pickers) AND stale E2E
+ * contracts/customers (contract_code LIKE 'E2E-%'; customer_code LIKE 'E2E-%' or
+ * full_name LIKE 'E2E%') that leak into the contracts list when a spec's afterAll
+ * cleanupSeed didn't run. All deletions are time-bounded by STALE_MS.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -32,9 +33,10 @@ function isE2EEmail(email: string) {
 }
 
 /**
- * Delete stale E2E employee rows (department='E2E') and their matching auth
- * users from previous, un-cleaned runs. Best-effort: never throws, so a sweep
- * failure can't block the test that called it.
+ * Delete stale E2E leftovers from previous, un-cleaned runs: employee rows
+ * (department='E2E') + their auth users, plus E2E contracts (with child rows)
+ * and E2E customers. Best-effort: never throws, so a sweep failure can't block
+ * the test that called it.
  */
 export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
   const cutoffIso = new Date(Date.now() - STALE_MS).toISOString();
@@ -75,6 +77,43 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
     for (const id of staleAuthIds) {
       await admin.auth.admin.deleteUser(id).catch(() => {});
     }
+  } catch {
+    // Best-effort: a sweep failure must not fail the suite that depends on it.
+  }
+
+  // 3) Stale E2E contracts + their child rows + linked/orphan E2E customers.
+  //    These leak into the contracts list when a spec's afterAll cleanupSeed
+  //    didn't run. Separate try so it's independent of the employee/auth sweep.
+  try {
+    const { data: staleContracts } = await admin
+      .from("contracts")
+      .select("id")
+      .like("contract_code", "E2E-%")
+      .lt("created_at", cutoffIso);
+
+    if (staleContracts?.length) {
+      const contractIds = staleContracts.map((row) => row.id as string);
+      // No ON DELETE CASCADE relied upon — remove children before the contract.
+      for (const table of [
+        "work_tasks",
+        "contract_events",
+        "payments",
+        "payment_plans",
+        "contract_checklists",
+        "contract_notes",
+        "printing_orders",
+        "contract_items",
+        "dress_reservations",
+      ]) {
+        await admin.from(table).delete().in("contract_id", contractIds);
+      }
+      await admin.from("contracts").delete().in("id", contractIds);
+    }
+
+    // Customers AFTER contracts (FK). Time-bounded → a fresh concurrent seed,
+    // whose customer is seconds old, is never touched.
+    await admin.from("customers").delete().like("customer_code", "E2E-%").lt("created_at", cutoffIso);
+    await admin.from("customers").delete().like("full_name", "E2E%").lt("created_at", cutoffIso);
   } catch {
     // Best-effort: a sweep failure must not fail the suite that depends on it.
   }
