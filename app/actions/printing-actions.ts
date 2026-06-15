@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { withPrintingAccess } from "@/lib/auth_utils";
 import { getLabOptions as getLabOptionsImpl, getLabServices as getLabServicesImpl } from "./lab-queries";
 import {
   createPrintingOrder as createPrintingOrderImpl,
@@ -25,4 +27,36 @@ export async function updatePrintOrderStatus(
   reason?: string | null,
 ) {
   return updatePrintingOrderStatusImpl(orderId, status, contractId, reason);
+}
+
+export async function updatePrintOrderFileUrl(orderId: string, fileUrl: string | null, contractId: string) {
+  // Validate URL scheme if present
+  if (fileUrl) {
+    try {
+      const url = new URL(fileUrl);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return { success: false, error: "Đường dẫn không hợp lệ (chỉ hỗ trợ http/https)" };
+      }
+    } catch {
+      return { success: false, error: "Đường dẫn không hợp lệ" };
+    }
+  }
+
+  return withPrintingAccess(async (supabase) => {
+    const { data, error } = await supabase
+      .from("printing_orders")
+      .update({ print_file_url: fileUrl?.trim() || null })
+      .eq("id", orderId)
+      .eq("contract_id", contractId)
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: error?.message || "Không thể lưu hoặc không có quyền" };
+    }
+
+    revalidatePath(`/contracts/${contractId}`);
+    revalidatePath("/printing");
+    return { success: true };
+  });
 }
