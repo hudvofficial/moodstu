@@ -30,6 +30,7 @@ export type ServiceType =
   | "couple"
   | "ky_yeu"
   | "media"
+  | "outsource"
   | "khac";
 
 // ─── PAYMENT STATUS (match DB payment_status_enum) ───────

@@ -5108,6 +5108,7 @@ export type Database = {
         | "couple"
         | "ky_yeu"
         | "media"
+        | "outsource"
         | "khac"
       severity_enum: "INFO" | "WARNING" | "ERROR" | "CRITICAL"
       transaction_type_enum: "hop_dong" | "hoa_don"
@@ -5303,6 +5304,7 @@ export const Constants = {
         "couple",
         "ky_yeu",
         "media",
+        "outsource",
         "khac",
       ],
       severity_enum: ["INFO", "WARNING", "ERROR", "CRITICAL"],

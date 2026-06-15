@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Check, Search, Plus, Loader2, Camera, Heart, Layers, Baby, Users, Cake, Sparkles, HeartHandshake, GraduationCap, Video, MoreHorizontal, Flower2 } from "lucide-react";
+import { Check, Search, Plus, Loader2, Camera, Heart, Layers, Baby, Users, Cake, Sparkles, HeartHandshake, GraduationCap, Video, MoreHorizontal, Flower2, Scissors } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -61,6 +61,7 @@ const SERVICE_TYPE_CHIP: Record<string, { Icon: typeof Camera; label: string }> 
   couple: { Icon: HeartHandshake, label: "Couple" },
   ky_yeu: { Icon: GraduationCap, label: "Kỷ yếu" },
   media: { Icon: Video, label: "Media" },
+  outsource: { Icon: Scissors, label: "Outsource" },
   khac: { Icon: MoreHorizontal, label: "Khác" },
 };
 

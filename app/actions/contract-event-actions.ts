@@ -84,6 +84,7 @@ function fallbackEventTemplates(serviceType: ServiceType): EventTemplateRow[] {
     couple: "Couple",
     ky_yeu: "Kỷ yếu",
     media: "Media",
+    outsource: "Gia công",
     khac: "Dự án",
   };
 
@@ -93,6 +94,13 @@ function fallbackEventTemplates(serviceType: ServiceType): EventTemplateRow[] {
       { event_type: "ngay_to_chuc", event_name: label, default_days_offset: 0, sort_order: 1 },
       { event_type: "hau_ky", event_name: `Hậu kỳ ${label}`, default_days_offset: 5, sort_order: 2 },
       { event_type: "giao_san_pham", event_name: "Giao sản phẩm", default_days_offset: 10, sort_order: 3 },
+    ];
+  }
+
+  if (serviceType === "outsource") {
+    return [
+      { event_type: "hau_ky", event_name: "Hậu kỳ (Gia công)", default_days_offset: 0, sort_order: 1 },
+      { event_type: "giao_san_pham", event_name: "Giao sản phẩm", default_days_offset: 3, sort_order: 2 },
     ];
   }
 

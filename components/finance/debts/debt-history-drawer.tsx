@@ -47,7 +47,7 @@ export function DebtHistoryDrawer({ isOpen, onClose, debt }: DebtHistoryDrawerPr
 
   if (!debt) return null;
 
-  const isReceivable = debt.type === "receivable" || debt.type === "Phải thu";
+  const isReceivable = debt?.type === "receivable" || debt?.type === "Phải thu";
 
   return (
     <Drawer

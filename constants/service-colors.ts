@@ -22,6 +22,7 @@ export const SERVICE_TYPE_COLORS: Record<string, { bg: string; text: string }> =
   couple:    { bg: "bg-rose-100",   text: "text-rose-600" },
   ky_yeu:    { bg: "bg-cyan-100",   text: "text-cyan-600" },
   media:     { bg: "bg-amber-100",  text: "text-amber-600" },
+  outsource: { bg: "bg-slate-100",  text: "text-slate-600" },
   khac:      { bg: "bg-amber-100",  text: "text-amber-600" },
 };
 
@@ -46,6 +47,7 @@ const SERVICE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   couple:    { bg: "bg-rose-50",    text: "text-rose-600" },
   ky_yeu:    { bg: "bg-cyan-50",    text: "text-cyan-600" },
   media:     { bg: "bg-amber-50",   text: "text-amber-600" },
+  outsource: { bg: "bg-slate-50",   text: "text-slate-600" },
   khac:      { bg: "bg-amber-50",   text: "text-amber-600" },
 };
 

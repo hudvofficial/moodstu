@@ -35,6 +35,7 @@ export const serviceTypeSchema = z.enum([
   "couple",
   "ky_yeu",
   "media",
+  "outsource",
   "khac",
 ]);
 

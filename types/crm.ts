@@ -190,6 +190,7 @@ export const TAG_PRESETS = [
   { label: "Wedding", color: "bg-pink-100 text-pink-700 border-pink-200" },
   { label: "Baby", color: "bg-sky-100 text-sky-700 border-sky-200" },
   { label: "Corporate", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+  { label: "Đối tác", color: "bg-slate-100 text-slate-700 border-slate-200" },
   { label: "Follow-up", color: "bg-orange-100 text-orange-700 border-orange-200" },
   { label: "Hot Lead", color: "bg-rose-100 text-rose-700 border-rose-200" },
 ] as const;

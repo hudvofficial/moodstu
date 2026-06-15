@@ -57,6 +57,7 @@ export const SERVICE_TYPE_MAP: Record<
   couple: { label: "Couple", icon: "HeartHandshake" },
   ky_yeu: { label: "Kỷ yếu", icon: "GraduationCap" },
   media: { label: "Media", icon: "Film" },
+  outsource: { label: "Outsource (Gia công)", icon: "Scissors" },
   khac: { label: "Khác", icon: "MoreHorizontal" },
 };
 

@@ -10,6 +10,7 @@ export const SERVICE_TYPES = [
   "couple",
   "ky_yeu",
   "media",
+  "outsource",
   "khac",
 ] as const;
 
@@ -27,6 +28,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   couple: "Couple",
   ky_yeu: "Kỷ yếu",
   media: "Media / Video",
+  outsource: "Outsource (Gia công)",
   khac: "Khác",
 };
 

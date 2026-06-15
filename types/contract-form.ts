@@ -155,6 +155,8 @@ export function workDateLabel(serviceType: ServiceType): string {
     case "media":
     case "khac":
       return "Ngày thực hiện";
+    case "outsource":
+      return "Ngày nhận source";
     default:
       return "Ngày chụp";
   }
@@ -174,6 +176,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   couple: "Couple",
   ky_yeu: "Kỷ yếu",
   media: "Media",
+  outsource: "Outsource (Gia công)",
   khac: "Khác",
 };
 
@@ -199,6 +202,6 @@ export const SERVICE_TYPE_GROUPS: ServiceTypeGroup[] = [
   {
     groupName: "Media",
     color: "sky",
-    types: ["media", "khac"],
+    types: ["media", "outsource", "khac"],
   },
 ];
