@@ -9,6 +9,7 @@
 // Re-export Customer from CRM (SSOT — avoid duplicate)
 import type { Customer } from "./crm";
 export type { Customer } from "./crm";
+import type { PrintingItem } from "./printing";
 
 // ─── CONTRACT STATUS (match DB contract_status_enum) ─────
 export type ContractStatus =
@@ -279,6 +280,8 @@ export interface PrintingOrder {
   status: string | null;
   payment_status?: string | null;
   total_amount: number | null;
+  items: PrintingItem[] | null;
+  print_file_url: string | null;
   order_date: string | null;
   expected_date: string | null;
   received_date: string | null;

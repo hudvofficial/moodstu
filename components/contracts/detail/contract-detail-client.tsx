@@ -773,6 +773,10 @@ export default function ContractDetailClient({
           onClose={() => setShowPrintForm(false)}
           contractId={contract.id}
           contractCode={contract.contract_code}
+          onSuccess={() => {
+            muteRealtimeEcho();
+            void revalidateContractDetailCaches(queryClient, id);
+          }}
         />
       )}
       {showCostumeForm && (

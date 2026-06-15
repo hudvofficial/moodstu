@@ -3470,6 +3470,7 @@ export type Database = {
           total_amount: number | null
           updated_at: string | null
           updated_by: string | null
+          print_file_url: string | null
         }
         Insert: {
           contract_id?: string | null
@@ -3490,6 +3491,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          print_file_url?: string | null
         }
         Update: {
           contract_id?: string | null
@@ -3510,6 +3512,7 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          print_file_url?: string | null
         }
         Relationships: [
           {

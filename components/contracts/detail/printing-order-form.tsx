@@ -11,10 +11,7 @@ import {
   fetchLabServices,
   getLabs,
 } from "@/app/actions/printing-actions";
-import {
-  invalidateContractAfterWrite,
-  invalidatePrintingAfterWrite,
-} from "@/lib/cache-invalidation";
+import { invalidatePrintingAfterWrite } from "@/lib/cache-invalidation";
 import { toastManager as toast } from "@/lib/toast-utils";
 import { SimpleSelect } from "@/components/ui/simple-select";
 import DatePicker from "@/components/ui/date-picker";
@@ -25,6 +22,7 @@ interface Props {
   onClose: () => void;
   contractId: string;
   contractCode: string;
+  onSuccess?: () => void;
 }
 
 interface PrintItem {
@@ -65,6 +63,7 @@ export default function PrintingOrderForm({
   onClose,
   contractId,
   contractCode,
+  onSuccess,
 }: Props) {
   const [labId, setLabId] = useState<string | null>(null);
   const [labs, setLabs] = useState<LabOption[]>([]);
@@ -157,24 +156,23 @@ export default function PrintingOrderForm({
       notes: notes.trim() || null,
       expectedDate: expectedDate || null,
     };
-    const toastId = toast.loading("Đang tạo đơn in...");
+    const toastId = "create-print-order";
+    toast.loading("Đang tạo đơn in...", { id: toastId });
     resetForm();
     onClose();
     try {
       const result = await createPrintingOrder(payload);
       if (result.success) {
         toast.success("Đã tạo đơn in thành công", { id: toastId });
-        await Promise.all([
-          invalidateContractAfterWrite(contractId),
-          invalidatePrintingAfterWrite(),
-        ]);
+        onSuccess?.();
+        void invalidatePrintingAfterWrite();
       } else {
         toast.error(result.error || "Lỗi tạo đơn in", { id: toastId });
       }
     } catch {
       toast.error("Có lỗi xảy ra", { id: toastId });
     }
-  }, [items, contractId, labId, notes, expectedDate, resetForm, onClose]);
+  }, [items, contractId, labId, notes, expectedDate, resetForm, onClose, onSuccess]);
 
   return (
     <UnifiedModal

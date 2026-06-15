@@ -1,0 +1,1 @@
+ALTER TABLE printing_orders ADD COLUMN IF NOT EXISTS print_file_url text;

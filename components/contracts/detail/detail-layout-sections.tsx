@@ -167,7 +167,15 @@ export function DesktopLayout({
           <CostumesBlock reservations={reservations} contractId={contract.id} onStatusChange={onMuteRealtime} onAdd={() => onQuickAction("costume")} />
 
           {/* In ấn */}
-          <PrintOrdersBlock orders={printOrders} contractId={contract.id} onStatusChange={onMuteRealtime} onAdd={() => onQuickAction("print")} />
+          <PrintOrdersBlock
+            orders={printOrders}
+            contractId={contract.id}
+            customerName={contract.customers?.full_name}
+            contractCode={contract.contract_code}
+            remainingAmount={contract.remaining_amount}
+            onStatusChange={onMuteRealtime}
+            onAdd={() => onQuickAction("print")}
+          />
         </div>
 
         {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
@@ -362,7 +370,15 @@ export function MobileLayout({
         <CostumesBlock reservations={reservations} contractId={contract.id} onStatusChange={onMuteRealtime} onAdd={() => onQuickAction("costume")} />
 
         <div id="section-print">
-          <PrintOrdersBlock orders={printOrders} contractId={contract.id} onStatusChange={onMuteRealtime} onAdd={() => onQuickAction("print")} />
+          <PrintOrdersBlock
+            orders={printOrders}
+            contractId={contract.id}
+            customerName={contract.customers?.full_name}
+            contractCode={contract.contract_code}
+            remainingAmount={contract.remaining_amount}
+            onStatusChange={onMuteRealtime}
+            onAdd={() => onQuickAction("print")}
+          />
         </div>
       </div>
     </div>

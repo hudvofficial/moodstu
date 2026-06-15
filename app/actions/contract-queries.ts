@@ -611,7 +611,7 @@ export async function getContractDetail(id: string) {
       supabase
         .from("printing_orders")
         .select(
-          `id, order_code, status, total_amount, order_date, expected_date, received_date, notes, labs (id, name:lab_name)`
+          `id, order_code, status, payment_status, total_amount, items, print_file_url, order_date, expected_date, received_date, notes, labs (id, name:lab_name)`
         )
         .eq("contract_id", id)
         .order("created_at", { ascending: false }),
@@ -647,11 +647,24 @@ export async function getContractDetail(id: string) {
     contractData.work_tasks = (workTasksResult.data || []) as unknown as WorkTask[];
     contractData.contract_checklists = (checklistsResult.data || []) as unknown as ContractChecklist[];
 
+    // Parse items to handle legacy unit_price vs unitPrice
+    const parsedPrintOrders = (printOrdersResult.data || []).map((po: any) => {
+      let parsedItems: any[] = [];
+      if (Array.isArray(po.items)) {
+        parsedItems = po.items.map((it: any) => ({
+          name: it.name || "",
+          quantity: it.quantity || 1,
+          unitPrice: it.unitPrice ?? it.unit_price ?? 0,
+        }));
+      }
+      return { ...po, items: parsedItems };
+    });
+
     return {
       contract: contractData,
       payments: paymentsResult.data || [],
       reservations: reservationsResult.data || [],
-      printOrders: printOrdersResult.data || [],
+      printOrders: parsedPrintOrders,
       paymentPlans: mapPaymentPlans(paymentPlansResult.data || []),
     };
   }));
