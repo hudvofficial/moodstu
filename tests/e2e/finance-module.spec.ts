@@ -10,6 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { sweepStaleE2EOrphans } from "./e2e-sweep";
 
 type AdminClient = SupabaseClient;
 
@@ -145,6 +146,7 @@ test.describe.serial("finance module e2e", () => {
 
   test.beforeAll(async () => {
     admin = createAdminSupabase();
+    await sweepStaleE2EOrphans(admin);
     await seedUser(admin, seed);
   });
 

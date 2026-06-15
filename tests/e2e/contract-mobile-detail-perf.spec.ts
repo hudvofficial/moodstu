@@ -18,6 +18,7 @@ import { expect, test, type Page, type CDPSession } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { sweepStaleE2EOrphans } from "./e2e-sweep";
 
 type AdminClient = SupabaseClient;
 
@@ -244,6 +245,7 @@ test.describe.serial("contract mobile drawer→detail perf", () => {
 
   test.beforeAll(async () => {
     admin = createAdminSupabase();
+    await sweepStaleE2EOrphans(admin);
     await seedUser(admin, seed);
   });
 
