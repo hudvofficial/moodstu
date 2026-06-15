@@ -254,6 +254,7 @@ export default function EventTaskModal({
     }
 
     const previousTasks = tasks;
+    const previousForm = form;
     const selectedEmployee = employees.find((emp) => emp.id === form.assigned_to);
     const selectedVendor = vendors.find((v) => v.id === form.vendor_id);
     const optimisticId = `optimistic-${event.id}-${Date.now()}`;
@@ -277,6 +278,10 @@ export default function EventTaskModal({
 
     setSubmitting(true);
     setTasks((prev) => [...prev, optimisticTask]);
+    // Optimistic form reset: form sẵn sàng cho người kế tiếp ngay, không chờ server.
+    // form.* trong payload addTask bên dưới vẫn đọc giá trị cũ (const closure không đổi khi setForm).
+    setForm((prev) => ({ ...prev, assigned_to: "", vendor_id: "", cost: 0 }));
+    setConflicts([]);
 
     try {
       const result = await addTask({
@@ -308,12 +313,11 @@ export default function EventTaskModal({
         ),
       );
       toast.success("Đã thêm nhân sự!");
-      setForm((prev) => ({ ...prev, assigned_to: "", vendor_id: "", cost: 0 }));
-      setConflicts([]);
       if (onTaskAdded && result.data) onTaskAdded(result.data as unknown as WorkTask);
       else onSaved();
     } catch (err) {
       setTasks(previousTasks);
+      setForm(previousForm);
       toast.error(err instanceof Error ? err.message : "Lỗi thêm task");
     } finally {
       setSubmitting(false);
