@@ -96,6 +96,9 @@ interface FormState {
   items: EditablePrintingItem[];
 }
 
+// Radix Select forbids an item value of "" — use a sentinel for the "no link" option.
+const NO_INVENTORY_LINK = "__none__";
+
 function buildTempId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -198,13 +201,15 @@ export default function PrintingDetailDrawer({
 
   const contractOptions = useMemo(() => {
     if (order) {
-      return [
-        {
-          id: order.contractId || "",
-          contract_code: order.contractCode,
-          customer_name: order.customerName,
-        },
-      ];
+      return order.contractId
+        ? [
+            {
+              id: order.contractId,
+              contract_code: order.contractCode,
+              customer_name: order.customerName,
+            },
+          ]
+        : [];
     }
 
     if (contractOptionsResult?.success) {
@@ -556,19 +561,20 @@ export default function PrintingDetailDrawer({
                     {/* Optional inventory item link */}
                     <SelectForm
                       label="Liên kết vật tư (tùy chọn)"
-                      value={item.item_id || ""}
+                      value={item.item_id || NO_INVENTORY_LINK}
                       onChange={(value) => {
-                        updateItem(item.tempId, "item_id", value || "");
+                        const itemId = value === NO_INVENTORY_LINK ? "" : value;
+                        updateItem(item.tempId, "item_id", itemId);
                         // Auto-fill name from selected item
-                        if (value) {
-                          const selected = inventoryItems.find((i) => i.id === value);
+                        if (itemId) {
+                          const selected = inventoryItems.find((i) => i.id === itemId);
                           if (selected && !item.name) {
                             updateItem(item.tempId, "name", selected.name);
                           }
                         }
                       }}
                       options={[
-                        { value: "", label: "-- Không liên kết --" },
+                        { value: NO_INVENTORY_LINK, label: "-- Không liên kết --" },
                         ...inventoryItems.map((i) => ({
                           value: i.id,
                           label: `${i.item_code} - ${i.name}`,
