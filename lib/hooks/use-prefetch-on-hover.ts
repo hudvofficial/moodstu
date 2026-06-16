@@ -12,6 +12,7 @@ import { getLeadsBootstrap } from "@/app/actions/lead-actions";
 import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
 import { getPrintingBootstrap } from "@/app/actions/printing-queries";
+import { debugPrefetch } from "@/lib/navigation-data-prefetch";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import type { ContractFilters } from "@/types/contract";
@@ -227,15 +228,16 @@ export function usePrefetchOnHover() {
       // Skip prefetch on slow networks to save bandwidth
       if (isSlowNetwork) return;
 
-      router.prefetch(route);
       if (prefetchedRef.current.has(route)) return;
+      prefetchedRef.current.add(route);
+
+      debugPrefetch("sidebar-hover", route);
+      router.prefetch(route);
 
       const configOrConfigs = getPrefetchConfig(route);
       if (!configOrConfigs) return;
 
-      prefetchedRef.current.add(route);
       const configs = Array.isArray(configOrConfigs) ? configOrConfigs : [configOrConfigs];
-
       configs.forEach((config) => {
         void mutate(config.key, config.fetcher(), { revalidate: false }).catch(() => {
           prefetchedRef.current.delete(route);

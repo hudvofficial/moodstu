@@ -84,9 +84,12 @@ export function AppShell({ children, role, userName }: AppShellProps) {
     if (!isMobile) setIsMobileMenuOpen(false);
   }
 
+  // Speculative cross-route warmup off by default; bật qua env để A/B (intent-based prefetch lo phần còn lại).
+  const enableNavigationWarmup = process.env.NEXT_PUBLIC_ENABLE_NAVIGATION_WARMUP === "true";
+
   return (
     <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
-      <NavigationWarmup role={role} />
+      {enableNavigationWarmup && <NavigationWarmup role={role} />}
       <NavigationProgress />
 
       {/* 1. Sidebar (Desktop & Tablet) */}

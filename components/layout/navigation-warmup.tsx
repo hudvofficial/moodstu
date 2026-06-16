@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MODULES } from "@/lib/navigation";
 import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
-import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
+import { prewarmRouteData, debugPrefetch } from "@/lib/navigation-data-prefetch";
 
 const WARMUP_ORDER = [
   "/dashboard",
@@ -90,6 +90,7 @@ export function NavigationWarmup({ role }: { role: Role }) {
         hrefs.slice(0, 4).forEach((href, index) => {
           const id = window.setTimeout(() => {
             if (!cancelled) {
+              debugPrefetch("navigation-warmup", href);
               router.prefetch(href);
               if (index === 0) prewarmRouteData(href);
             }

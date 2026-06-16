@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { MODULES } from "@/lib/navigation";
 import { ROLE_PERMISSIONS, type Role } from "@/types/roles";
 import { Home, MoreHorizontal, X } from "lucide-react";
-import { prewarmRouteData } from "@/lib/navigation-data-prefetch";
+import { prewarmRouteData, debugPrefetch } from "@/lib/navigation-data-prefetch";
 import { haptic } from "@/lib/haptic";
 import { useVirtualKeyboard } from "@/hooks/use-virtual-keyboard";
 
@@ -68,6 +68,7 @@ export function BottomNav({ role, className }: BottomNavProps) {
   const warmRoute = React.useCallback(
     (href: string) => {
       if (pathname === href || pathname.startsWith(`${href}/`)) return;
+      debugPrefetch("bottom-nav-intent", href);
       router.prefetch(href);
       prewarmRouteData(href);
     },
@@ -151,7 +152,8 @@ export function BottomNav({ role, className }: BottomNavProps) {
                 <Link
                   key={item.id}
                   href={item.href}
-                  prefetch
+                  prefetch={false}
+                  onTouchStart={() => warmRoute(item.href)}
                   onPointerEnter={() => warmRoute(item.href)}
                   onFocus={() => warmRoute(item.href)}
                   onClick={() => {
@@ -197,7 +199,8 @@ export function BottomNav({ role, className }: BottomNavProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                prefetch
+                prefetch={false}
+                onTouchStart={() => warmRoute(item.href)}
                 onPointerEnter={() => warmRoute(item.href)}
                 onFocus={() => warmRoute(item.href)}
                 onClick={(e) => handleNavClick(e, item.href, isActive)}
