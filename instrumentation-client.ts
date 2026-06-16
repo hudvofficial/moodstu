@@ -20,6 +20,9 @@ Sentry.init({
   ignoreErrors: [
     // Browser extensions
     "ResizeObserver loop",
+    // next-view-transitions: view transition aborted (slow DOM update / tab hidden).
+    // Benign — navigation still applies, only the animation is skipped.
+    "Transition was aborted because of timeout",
     // Network errors (normal)
     "Failed to fetch",
     "Load failed",
