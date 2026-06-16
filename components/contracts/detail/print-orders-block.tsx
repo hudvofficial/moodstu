@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Calendar, Plus, Copy, Link2, ExternalLink, Pencil } from "lucide-react";
+import { Printer, Calendar, Plus, Copy, Link2, ExternalLink, Pencil, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -189,146 +189,275 @@ export default function PrintOrdersBlock({
   };
 
   return (
-    <div className="card-base p-4 lg:p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Printer size={16} className="text-primary" />
-          <h3 className="text-body-sm font-bold text-text-primary">In ấn</h3>
+    <div className="card-base overflow-hidden border border-border/60 bg-gradient-to-b from-white to-bg-subtle/40 p-0 shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 lg:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Printer size={16} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-body-sm font-bold text-text-primary">In ấn</h3>
+            {localOrders.length > 0 && (
+              <p className="text-micro text-text-muted">
+                {localOrders.length} đơn đang theo dõi
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {localOrders.length > 0 && <span className="text-caption text-text-muted">{localOrders.length} đơn</span>}
+        <div className="flex shrink-0 items-center gap-2">
+          {localOrders.length > 0 && (
+            <span className="rounded-full bg-bg-hover px-2.5 py-1 text-micro font-semibold text-text-muted">
+              {localOrders.length} đơn
+            </span>
+          )}
           {onAdd && (
-            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="!px-2 !py-1 text-caption font-medium text-interactive hover:bg-interactive-light">
-              <Plus size={14} className="mr-0.5" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onAdd}
+              className="!px-2.5 !py-1.5 text-caption font-semibold text-interactive hover:bg-interactive-light"
+            >
+              <Plus size={14} className="mr-1" />
               Thêm
             </Button>
           )}
         </div>
       </div>
 
-      {localOrders.length === 0 ? (
-        <div className="py-6 text-center">
-          <Printer size={28} className="text-text-muted/40 mx-auto mb-2" />
-          <p className="text-caption text-text-muted">Chưa có đơn in ấn</p>
-          {onAdd && (
-            <Button type="button" variant="ghost" size="sm" onClick={onAdd} className="mt-2 text-caption font-medium text-interactive hover:bg-interactive-light">
-              <Plus size={14} className="mr-1" />
-              Tạo đơn in
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {localOrders.map((order) => {
-            const labPay = labPaymentBadge(order.payment_status);
-            const items = order.items || [];
-            const expanded = expandedOrders.has(order.id);
-            const shownItems = expanded ? items : items.slice(0, 3);
+      <div className="p-4 lg:p-5">
+        {localOrders.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/70 bg-bg-hover/40 px-4 py-8 text-center">
+            <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-text-muted shadow-sm">
+              <Printer size={22} />
+            </span>
+            <p className="text-body-sm font-semibold text-text-primary">Chưa có đơn in ấn</p>
+            <p className="mt-1 text-caption text-text-muted">Tạo đơn in để theo dõi lab, file và tiến độ sản xuất.</p>
+            {onAdd && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onAdd}
+                className="mt-3 text-caption font-semibold text-interactive hover:bg-interactive-light"
+              >
+                <Plus size={14} className="mr-1" />
+                Tạo đơn in
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {localOrders.map((order) => {
+              const labPay = labPaymentBadge(order.payment_status);
+              const items = order.items || [];
+              const expanded = expandedOrders.has(order.id);
+              const isLate = order.expected_date && new Date(order.expected_date) < new Date() && !["da_giao", "hoan_thanh", "huy_don"].includes(order.status || "");
+              const isMissingFile = !order.print_file_url && !["da_giao", "hoan_thanh", "huy_don"].includes(order.status || "");
+              const hasNoItems = items.length === 0;
 
-            return (
-              <div key={order.id} className="p-2.5 rounded-md bg-bg-hover">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-body-sm font-semibold text-text-primary truncate">{order.order_code || "Đơn in"}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyForLab(order)}
-                        className="h-auto shrink-0 px-1 py-1 text-text-muted hover:text-interactive"
-                        aria-label="Copy gửi Lab"
-                        title="Copy gửi Lab"
-                      >
-                        <Copy size={13} />
-                      </Button>
-                    </div>
-                    <Badge variant={labPay.variant} className="mt-1 text-micro">
-                      {labPay.label}
-                    </Badge>
-                  </div>
-                  <StatusSelect
-                    current={order.status || "cho_xu_ly"}
-                    options={[...PRINT_ORDER_STATUS_OPTIONS]}
-                    variant="compact"
-                    onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)}
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 text-caption text-text-muted">
-                  {order.labs?.name && <span>Lab: {order.labs.name}</span>}
-                  {order.expected_date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar size={10} />
-                      {formatDate(order.expected_date)}
-                    </span>
-                  )}
-                </div>
-
-                {items.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {shownItems.map((item, index) => (
-                      <div key={`${item.item_id || item.name}-${index}`} className="flex items-center justify-between gap-2 text-caption">
-                        <span className="text-text-primary truncate">
-                          {item.name} <span className="text-text-muted">×{item.quantity}</span>
-                        </span>
-                        <span className="text-text-muted tabular-nums shrink-0">{formatVnd((item.quantity || 0) * (item.unitPrice || 0))}đ</span>
+              return (
+                <div
+                  key={order.id}
+                  className={`group rounded-xl border bg-white/80 shadow-sm transition-all duration-200 ${
+                    expanded ? "border-primary/30 ring-1 ring-primary/10" : "border-border/60 hover:border-primary/20 hover:shadow-md"
+                  }`}
+                >
+                  {/* HEADER AREA - ALWAYS VISIBLE */}
+                  <div 
+                    className="flex cursor-pointer items-start justify-between gap-3 p-3.5"
+                    onClick={() => toggleExpanded(order.id)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-body-sm font-bold text-text-primary">{order.order_code || "Đơn in"}</p>
+                        
+                        {/* Status Summary & Warnings */}
+                        <div className="flex items-center gap-1.5">
+                          {isLate && (
+                            <span className="flex items-center gap-1 rounded bg-error-light px-1.5 py-0.5 text-micro font-semibold text-error-dark" title="Quá hạn giao">
+                              <AlertCircle size={10} /> Quá hạn
+                            </span>
+                          )}
+                          {isMissingFile && (
+                            <span className="flex items-center gap-1 rounded bg-warning-light px-1.5 py-0.5 text-micro font-semibold text-warning-dark" title="Thiếu file in">
+                              Thiếu file
+                            </span>
+                          )}
+                          {hasNoItems && (
+                            <span className="flex items-center gap-1 rounded bg-bg-hover px-1.5 py-0.5 text-micro font-medium text-text-muted">
+                              Rỗng
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                    {items.length > 3 && (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => toggleExpanded(order.id)} className="h-auto px-0 py-0 text-micro text-interactive hover:underline">
-                        {expanded ? "Thu gọn" : `Xem thêm ${items.length - 3} mục`}
-                      </Button>
-                    )}
-                  </div>
-                )}
 
-                {typeof order.total_amount === "number" && order.total_amount > 0 && (
-                  <div className="mt-2 flex items-center justify-between border-t border-border/40 pt-1.5">
-                    <span className="text-micro text-text-muted uppercase tracking-wide">Tổng</span>
-                    <span className="text-body-sm font-bold text-text-primary tabular-nums">{formatVnd(order.total_amount)}đ</span>
-                  </div>
-                )}
+                      {/* Summary Text (Visible when collapsed) */}
+                      {!expanded && (
+                        <p className="mt-1 truncate text-caption text-text-muted">
+                          {items.length > 0 ? (
+                            <span className="font-medium text-text-primary">{items.length} SP</span>
+                          ) : (
+                            "Chưa có SP"
+                          )}
+                          {typeof order.total_amount === "number" && order.total_amount > 0 && ` • ${formatVnd(order.total_amount)}đ`}
+                          {order.expected_date && ` • Hẹn ${formatDate(order.expected_date)}`}
+                          {order.labs?.name && ` • ${order.labs.name}`}
+                        </p>
+                      )}
 
-                <div className="mt-2">
-                  {editingFile === order.id ? (
-                    <div className="flex items-center gap-1.5">
-                      <Input
-                        value={fileInput}
-                        onChange={(event) => setFileInput(event.target.value)}
-                        placeholder="Dán link file in (https://...)"
-                        className="h-8 text-caption"
-                        autoFocus
-                      />
-                      <Button type="button" size="sm" onClick={() => saveFileUrl(order.id)} className="!px-2 !py-1 text-caption">
-                        Lưu
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setEditingFile(null)} className="!px-2 !py-1 text-caption">
-                        Hủy
-                      </Button>
+                      {/* Detail Badges (Visible when expanded) */}
+                      {expanded && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <Badge variant={labPay.variant} className="text-micro">
+                            {labPay.label}
+                          </Badge>
+                          {order.labs?.name && (
+                            <span className="rounded-full bg-bg-hover px-2 py-0.5 text-micro font-medium text-text-muted">
+                              Lab: {order.labs.name}
+                            </span>
+                          )}
+                          {order.expected_date && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-bg-hover px-2 py-0.5 text-micro font-medium text-text-muted">
+                              <Calendar size={10} />
+                              {formatDate(order.expected_date)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ) : order.print_file_url ? (
-                    <div className="flex items-center gap-2 text-caption">
-                      <a href={order.print_file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-interactive hover:underline truncate">
-                        <ExternalLink size={12} className="shrink-0" />
-                        File in
-                      </a>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => startEditFile(order)} className="h-auto px-1 py-1 text-text-muted hover:text-interactive" aria-label="Sửa link file">
-                        <Pencil size={12} />
-                      </Button>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <StatusSelect
+                          current={order.status || "cho_xu_ly"}
+                          options={[...PRINT_ORDER_STATUS_OPTIONS]}
+                          variant="compact"
+                          onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)}
+                        />
+                      </div>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full text-text-muted hover:bg-bg-hover">
+                        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
                     </div>
-                  ) : (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => startEditFile(order)} className="flex h-auto items-center gap-1 px-0 py-0 text-micro text-interactive hover:underline">
-                      <Link2 size={12} />
-                      Thêm link file
-                    </Button>
+                  </div>
+
+                  {/* EXPANDABLE CONTENT */}
+                  {expanded && (
+                    <div className="border-t border-border/50 p-3.5 pt-2">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-micro font-bold uppercase tracking-wide text-text-muted">Danh sách sản phẩm</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyForLab(order)}
+                          className="h-auto px-2 py-1 text-micro font-medium text-interactive hover:bg-interactive-light"
+                        >
+                          <Copy size={12} className="mr-1" /> Copy gửi Lab
+                        </Button>
+                      </div>
+                      
+                      <div className="rounded-lg border border-border/40 bg-bg-hover/30 p-2.5">
+                        {items.length > 0 ? (
+                          <div className="space-y-2">
+                            {items.map((item, index) => (
+                              <div key={`${item.item_id || item.name}-${index}`} className="flex items-start justify-between gap-3 text-caption">
+                                <div className="flex min-w-0 items-start gap-2">
+                                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted/40" />
+                                  <div className="min-w-0 leading-tight">
+                                    <span className="text-text-primary break-words font-medium">
+                                      {item.name || "Sản phẩm không tên"}
+                                    </span>
+                                    <span className="ml-1.5 inline-block text-text-muted">
+                                      SL: {item.quantity || 1}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="shrink-0 tabular-nums text-text-muted">
+                                  {formatVnd((item.quantity || 1) * (item.unitPrice || 0))}đ
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-2 text-center text-caption italic text-text-muted">
+                            Đơn chưa cập nhật chi tiết sản phẩm.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          {editingFile === order.id ? (
+                            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                              <Input
+                                value={fileInput}
+                                onChange={(event) => setFileInput(event.target.value)}
+                                placeholder="Dán link file in (https://...)"
+                                className="h-8 min-w-[240px] text-caption"
+                                autoFocus
+                              />
+                              <div className="flex items-center gap-1.5">
+                                <Button type="button" size="sm" onClick={() => saveFileUrl(order.id)} className="!px-2.5 !py-1 text-caption">
+                                  Lưu
+                                </Button>
+                                <Button type="button" size="sm" variant="ghost" onClick={() => setEditingFile(null)} className="!px-2.5 !py-1 text-caption">
+                                  Hủy
+                                </Button>
+                              </div>
+                            </div>
+                          ) : order.print_file_url ? (
+                            <div className="flex min-w-0 items-center gap-2 text-caption">
+                              <a
+                                href={order.print_file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex min-w-0 items-center gap-1 rounded-full bg-interactive-light px-2.5 py-1 font-semibold text-interactive hover:underline"
+                              >
+                                <ExternalLink size={12} className="shrink-0" />
+                                <span className="truncate">File in</span>
+                              </a>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditFile(order)}
+                                className="h-7 w-7 rounded-full p-0 text-text-muted hover:bg-bg-hover hover:text-interactive"
+                                aria-label="Sửa link file"
+                              >
+                                <Pencil size={12} />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEditFile(order)}
+                              className="flex h-auto items-center gap-1 rounded-full px-2.5 py-1 text-micro font-semibold text-warning-dark bg-warning-light hover:bg-warning-light/80"
+                            >
+                              <AlertCircle size={12} />
+                              Cập nhật file in
+                            </Button>
+                          )}
+                        </div>
+
+                        {typeof order.total_amount === "number" && order.total_amount > 0 && (
+                          <div className="flex items-center justify-between gap-3 rounded-lg bg-bg-hover/50 px-3 py-1.5 sm:block sm:bg-transparent sm:p-0 sm:text-right">
+                            <span className="text-micro font-bold uppercase tracking-wide text-text-muted sm:hidden">Tổng tiền</span>
+                            <span className="block text-body-sm font-bold tabular-nums text-text-primary sm:text-body-md">{formatVnd(order.total_amount)}đ</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <UnifiedModal
         isOpen={!!pendingChange}

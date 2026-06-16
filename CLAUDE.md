@@ -4,6 +4,14 @@ Nguyên tắc hành vi + ràng buộc dự án. **Đọc trước khi code.**
 Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multica-ai/andrej-karpathy-skills.
 **Tradeoff:** thiên về *cẩn trọng hơn tốc độ* cho việc non-trivial. Typo/one-liner hiển nhiên → dùng judgment.
 
+## 0. Phân công vai trò (Orchestration)
+*Main agent điều phối, KHÔNG tự code. Phân tích → plan → giao `coder` → nghiệm thu qua `reviewer`.*
+- **Main agent (mình):** chỉ **phân tích task + lên plan**; **KHÔNG trực tiếp viết/sửa code ứng dụng**.
+- Plan xong → **giao task xuống `coder`** (`.claude/agents/coder.md`) để thực thi.
+- `coder` báo done → **đẩy xuống `reviewer`** (`.claude/agents/reviewer.md`) để soi.
+- `reviewer` phán **CẦN SỬA** → trả lại `coder` fix; lặp coder↔reviewer tới khi **ĐẠT**.
+- Phạm vi "code" = implement/sửa source ứng dụng (việc của `coder`). Main agent VẪN làm: viết plan/docs, sửa config (CLAUDE.md, agent định nghĩa), chạy verify/git, phân tích — đó không phải "code".
+
 ## 1. Think Before Coding
 *Đừng giả định. Đừng giấu chỗ bối rối. Nêu tradeoff.*
 - Nêu giả định rõ ràng; chưa chắc → **hỏi**, đừng đoán.
