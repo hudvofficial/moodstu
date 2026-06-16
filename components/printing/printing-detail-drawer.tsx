@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { ArrowRight, Plus, Trash2, WalletCards } from "lucide-react";
+import { ArrowRight, Plus, Trash2, WalletCards, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -31,7 +31,6 @@ import { CancelOrderModal } from "@/components/printing/cancel-order-modal";
 import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
 import { PaymentHistorySection } from "@/components/printing/payment-history-section";
 import {
-  recordDepositPayment,
   startProduction,
   completeProduction,
 } from "@/app/actions/printing-workflow-mutations";
@@ -62,7 +61,7 @@ interface Props {
 interface NextStepAction {
   label: string;
   nextStatus: PrintingOrderStatus;
-  action?: 'deposit' | 'start_production' | 'complete_production' | 'mark_delivered' | 'final_payment' | 'default';
+  action?: "deposit" | "start_production" | "complete_production" | "mark_delivered" | "final_payment" | "default";
 }
 
 function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
@@ -77,7 +76,7 @@ function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
       return { label: "Đã giao khách", nextStatus: "da_giao" as PrintingOrderStatus, action: "mark_delivered" };
     case "da_giao":
       return { label: "Thu tất toán", nextStatus: "hoan_thanh" as PrintingOrderStatus, action: "final_payment" };
-    case "da_nhan": // Legacy status
+    case "da_nhan":
       return null;
     default:
       return null;
@@ -96,7 +95,6 @@ interface FormState {
   items: EditablePrintingItem[];
 }
 
-// Radix Select forbids an item value of "" — use a sentinel for the "no link" option.
 const NO_INVENTORY_LINK = "__none__";
 
 function buildTempId() {
@@ -127,7 +125,7 @@ function getInitialForm(order: PrintingOrderRow | null): FormState {
 }
 
 function formatCurrency(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)}d`;
+  return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 }
 
 export default function PrintingDetailDrawer({
@@ -150,8 +148,6 @@ export default function PrintingDetailDrawer({
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
 
-  // Reset form when the drawer opens or the target order changes. Adjust state
-  // during render instead of in an effect to avoid a cascading render.
   const [prevReset, setPrevReset] = useState<{ open: boolean; order: typeof order } | null>(null);
   if (!prevReset || prevReset.open !== isOpen || prevReset.order !== order) {
     setPrevReset({ open: isOpen, order });
@@ -165,8 +161,6 @@ export default function PrintingDetailDrawer({
     }
   }
 
-  // Fetch payment summary + inventory items when the drawer opens. These stay in
-  // an effect because they are async data fetches, not synchronous state resets.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -177,21 +171,15 @@ export default function PrintingDetailDrawer({
             setPaymentSummary({ remaining: result.data.remaining });
           }
         })
-        .catch(() => {
-          // Silently fail, not critical
-        });
+        .catch(() => {});
     }
 
     fetchInventoryPickerItems({ activeOnly: true, limit: 100 })
       .then((result) => {
         setInventoryItems(result.items);
       })
-      .catch(() => {
-        // Silently fail, not critical
-      });
+      .catch(() => {});
   }, [isOpen, order]);
-
-  const selectableLabs = labs;
 
   const { data: contractOptionsResult } = useSWR<ActionResult<ContractOption[]>>(
     isOpen && !order ? ["printing-contract-options", debouncedContractSearch] : null,
@@ -219,7 +207,7 @@ export default function PrintingDetailDrawer({
     return [];
   }, [contractOptionsResult, order]);
 
-  const labOptions = selectableLabs.map((lab) => ({
+  const labOptions = labs.map((lab) => ({
     value: lab.id,
     label: lab.lab_name,
   }));
@@ -263,7 +251,7 @@ export default function PrintingDetailDrawer({
   const handleSubmit = async () => {
     const validItems = form.items
       .map((item) => ({
-        item_id: item.item_id || undefined,  // Include item_id if set (for inventory linking)
+        item_id: item.item_id || undefined,
         name: item.name.trim(),
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
@@ -299,25 +287,16 @@ export default function PrintingDetailDrawer({
       items: validItems,
     };
 
-    // Đóng drawer NGAY (close + revalidate) — order_code/totals/tồn kho do RPC server tính → không patch.
     setLoading(true);
     onClose();
     try {
       if (isEdit && orderId) {
         const result = await updatePrintingOrder(orderId, updatePayload, orderUpdatedAt);
-
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-
+        if (!result.success) throw new Error(result.error);
         toast("Cập nhật đơn in thành công", "success");
       } else {
         const result = await createPrintingOrder(createPayload);
-
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-
+        if (!result.success) throw new Error(result.error);
         toast("Tạo đơn in thành công", "success");
       }
 
@@ -343,15 +322,11 @@ export default function PrintingDetailDrawer({
   const handleNextStep = async () => {
     if (!order || !nextStepAction) return;
 
-    // Handle different actions based on the action type
     switch (nextStepAction.action) {
       case "deposit":
-        // Open deposit modal
         setShowDepositModal(true);
         break;
-
       case "start_production":
-        // Reserve inventory
         setLoading(true);
         try {
           await startProduction({ orderId: order.id });
@@ -363,9 +338,7 @@ export default function PrintingDetailDrawer({
           setLoading(false);
         }
         break;
-
       case "complete_production":
-        // Stock out inventory
         setLoading(true);
         try {
           await completeProduction({ orderId: order.id });
@@ -377,15 +350,11 @@ export default function PrintingDetailDrawer({
           setLoading(false);
         }
         break;
-
       case "final_payment":
-        // Open final payment modal
         setShowFinalPaymentModal(true);
         break;
-
       case "mark_delivered":
       case "default":
-        // Use onStatusChange callback for other status changes
         if (onStatusChange) {
           setLoading(true);
           try {
@@ -409,9 +378,7 @@ export default function PrintingDetailDrawer({
     setLoading(true);
     try {
       const result = await deletePrintingOrder(order.id);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+      if (!result.success) throw new Error(result.error);
 
       toast("Đã xóa đơn in", "success");
       await Promise.all([
@@ -432,20 +399,46 @@ export default function PrintingDetailDrawer({
 
   return (
     <>
-      <Drawer
-        isOpen={isOpen}
-        onClose={onClose}
-        title={order ? `Chi tiết lệnh in` : "Tạo đơn in mới"}
-        titleBadge={
-          order ? (
-            <Badge variant={PRINTING_STATUS_VARIANTS[order.status]}>
-              {PRINTING_STATUS_LABELS[order.status]}
-            </Badge>
-          ) : undefined
-        }
-      >
-        <div className="flex flex-col min-h-full">
-          <div className="flex-1 space-y-5">
+      {/* Cố ý tắt header gốc của Drawer bằng hideHeader và custom UI */}
+      <Drawer isOpen={isOpen} onClose={onClose} size="lg">
+        {/* Force custom wrapper vì Drawer của shadcn sẽ append header */}
+        <div className="flex min-h-full flex-col pb-28 pt-1" style={{ marginTop: "-48px" }}>
+          
+          <div className="mb-6 flex items-start justify-between border-b border-border/60 pb-4 pt-10">
+            <div className="min-w-0 pr-4">
+              <h2 className="mb-1.5 flex items-center gap-2 text-xl font-semibold text-text-main">
+                {order ? "Chi tiết lệnh in" : "Tạo đơn in mới"}
+                {order && (
+                  <Badge variant={PRINTING_STATUS_VARIANTS[order.status]} className="shrink-0 text-xs font-medium tracking-wide shadow-sm">
+                    {PRINTING_STATUS_LABELS[order.status]}
+                  </Badge>
+                )}
+              </h2>
+              {order && (
+                <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+                  <span className="flex items-center gap-1.5 font-medium text-text-secondary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                    {order.orderCode}
+                  </span>
+                  <span className="text-border">•</span>
+                  <span>{order.contractCode}</span>
+                  <span className="text-border">•</span>
+                  <span className="font-medium text-text-secondary">{order.customerName}</span>
+                </p>
+              )}
+            </div>
+            <Button
+              unstyled
+              type="button"
+              onClick={onClose}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-hover hover:text-text-main"
+              aria-label="Đóng"
+            >
+              <X className="size-[18px]" />
+            </Button>
+          </div>
+
+          <div className="flex-1 space-y-7">
             {!order && (
               <div>
                 <label className="label-base">Tìm hợp đồng</label>
@@ -458,187 +451,187 @@ export default function PrintingDetailDrawer({
               </div>
             )}
 
-            {order && (
-              <div className="p-4 bg-bg-hover rounded-xl mb-4 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Mã lệnh in</p>
-                  <p className="text-h3">{order.orderCode}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wider">Khách hàng</p>
-                  <p className="font-medium text-text-main">{order.customerName}</p>
+            <section className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-text-main">
+                  <span className="h-4 w-1 rounded-full bg-primary/35" />
+                  Thông tin điều phối
+                </h3>
+                <div className="hidden rounded-xl bg-bg-hover px-4 py-2 text-right sm:block">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Tổng tạm tính</p>
+                  <p className="text-lg font-bold text-text-main">{formatCurrency(totalAmount)}</p>
                 </div>
               </div>
-            )}
 
-            <div className="form-grid-2col">
-              <SelectForm
-                label="Hợp đồng"
-                value={form.contractId}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, contractId: value }))
-                }
-                options={contractOptions.map((contract) => ({
-                  value: contract.id,
-                  label: `${contract.contract_code} - ${contract.customer_name}`,
-                }))}
-                placeholder="Chọn hợp đồng"
-                disabled={!!order}
-              />
-
-              <div className="space-y-2">
+              <div className="form-grid-2col gap-x-6 gap-y-5">
                 <SelectForm
-                  label="Lab"
-                  value={form.labId}
+                  label="Hợp đồng"
+                  value={form.contractId}
                   onChange={(value) =>
-                    setForm((prev) => ({ ...prev, labId: value }))
+                    setForm((prev) => ({ ...prev, contractId: value }))
                   }
-                  options={labOptions}
-                  placeholder="Chọn lab"
+                  options={contractOptions.map((contract) => ({
+                    value: contract.id,
+                    label: `${contract.contract_code} - ${contract.customer_name}`,
+                  }))}
+                  placeholder="Chọn hợp đồng"
+                  disabled={!!order}
                 />
+
+                <div className="space-y-2">
+                  <SelectForm
+                    label="Lab"
+                    value={form.labId}
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, labId: value }))
+                    }
+                    options={labOptions}
+                    placeholder="Chọn lab"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, labId: "" }))}
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-0 px-0 py-0 text-xs text-text-muted hover:text-text-main"
+                  >
+                    Bỏ chọn lab
+                  </Button>
+                </div>
+
+                <DatePicker
+                  label="Ngày dự kiến nhận"
+                  value={form.expectedDate}
+                  onChange={(value) =>
+                    setForm((prev) => ({ ...prev, expectedDate: value }))
+                  }
+                />
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-text-main">
+                  <span className="h-4 w-1 rounded-full bg-primary/35" />
+                  Danh sách hạng mục
+                </h3>
                 <Button
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, labId: "" }))}
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-text-muted hover:text-text-main px-0!"
+                  onClick={addItem}
+                  className="font-medium text-primary hover:bg-primary/10 hover:text-primary"
                 >
-                  Bỏ chọn lab
-                </Button>
-              </div>
-            </div>
-
-            <div className="form-grid-2col">
-              <DatePicker
-                value={form.expectedDate}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, expectedDate: value }))
-                }
-                label="Ngày dự kiến nhận"
-              />
-
-              <div className="rounded-xl bg-bg-hover p-4 flex items-end">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-text-muted">
-                    Tổng chi phí tạm tính
-                  </p>
-                  <p className="text-h2 text-text-main">
-                    {formatCurrency(totalAmount)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mt-4 border-t border-border pt-5">
-                <h4 className="section-heading">Hạng mục in</h4>
-                <Button onClick={addItem} variant="outline" size="sm" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  <span>Thêm hạng mục</span>
+                  <Plus className="mr-1.5 size-4" />
+                  Thêm hạng mục
                 </Button>
               </div>
 
-              {form.items.map((item, index) => (
-                <div key={item.tempId} className="rounded-xl bg-bg-hover shadow-sm p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-text-main">
-                      Hạng mục {index + 1}
-                    </p>
-                    {form.items.length > 1 && (
-                      <Button
-                        type="button"
-                        onClick={() => removeItem(item.tempId)}
-                        variant="ghost"
-                        className="icon-btn rounded-md text-error"
-                        aria-label="Xóa hạng mục"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
+              <div className="space-y-4">
+                {form.items.map((item, index) => (
+                  <div
+                    key={item.tempId}
+                    className="group relative space-y-4 rounded-2xl border border-border/70 bg-white p-5 shadow-sm transition-all hover:border-border hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-text-main">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-bg-hover text-xs text-text-secondary">
+                          {index + 1}
+                        </span>
+                        <span className="truncate">{item.name || "Hạng mục mới"}</span>
+                      </h4>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="font-semibold text-primary">
+                          {formatCurrency(Number(item.quantity || 0) * Number(item.unitPrice || 0))}
+                        </span>
+                        {form.items.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.tempId)}
+                            className="min-h-0 px-2 py-2 text-text-muted opacity-100 hover:bg-error/10 hover:text-error sm:opacity-0 sm:group-hover:opacity-100"
+                            aria-label="Xóa hạng mục"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="border-t border-border/50 pt-3 space-y-3">
-                    {/* Optional inventory item link */}
-                    <SelectForm
-                      label="Liên kết vật tư (tùy chọn)"
-                      value={item.item_id || NO_INVENTORY_LINK}
-                      onChange={(value) => {
-                        const itemId = value === NO_INVENTORY_LINK ? "" : value;
-                        updateItem(item.tempId, "item_id", itemId);
-                        // Auto-fill name from selected item
-                        if (itemId) {
-                          const selected = inventoryItems.find((i) => i.id === itemId);
-                          if (selected && !item.name) {
-                            updateItem(item.tempId, "name", selected.name);
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-4">
+                        <SelectForm
+                          label="Liên kết vật tư (tùy chọn)"
+                          value={item.item_id || NO_INVENTORY_LINK}
+                          onChange={(value) => {
+                            const itemId = value === NO_INVENTORY_LINK ? "" : value;
+                            updateItem(item.tempId, "item_id", itemId);
+                            if (itemId) {
+                              const selected = inventoryItems.find((i) => i.id === itemId);
+                              if (selected && !item.name) {
+                                updateItem(item.tempId, "name", selected.name);
+                              }
+                            }
+                          }}
+                          options={[
+                            { value: NO_INVENTORY_LINK, label: "-- Không liên kết --" },
+                            ...inventoryItems.map((i) => ({
+                              value: i.id,
+                              label: `${i.item_code} - ${i.name}`,
+                            })),
+                          ]}
+                          placeholder="Chọn vật tư để liên kết"
+                        />
+                        <Input
+                          label="Tên sản phẩm"
+                          value={item.name}
+                          onChange={(event) => updateItem(item.tempId, "name", event.target.value)}
+                          placeholder="Ví dụ: Album 20x30"
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 self-end">
+                        <Input
+                          label="Số lượng"
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(event) =>
+                            updateItem(
+                              item.tempId,
+                              "quantity",
+                              Number(event.target.value || 1),
+                            )
                           }
-                        }
-                      }}
-                      options={[
-                        { value: NO_INVENTORY_LINK, label: "-- Không liên kết --" },
-                        ...inventoryItems.map((i) => ({
-                          value: i.id,
-                          label: `${i.item_code} - ${i.name}`,
-                        })),
-                      ]}
-                      placeholder="Chọn vật tư để liên kết"
-                    />
-
-                    <div>
-                      <label className="label-base">Tên sản phẩm</label>
-                      <Input
-                        value={item.name}
-                        onChange={(event) =>
-                          updateItem(item.tempId, "name", event.target.value)
-                        }
-                        placeholder="Ví dụ: Album 20x30"
-                        className="w-full"
-                      />
+                          className="w-full"
+                        />
+                        <CurrencyInput
+                          label="Đơn giá"
+                          value={item.unitPrice}
+                          onChange={(value) => updateItem(item.tempId, "unitPrice", value)}
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            </section>
 
-                  <div className="form-grid-2col">
-                    <div>
-                      <label className="label-base">Số lượng</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        onChange={(event) =>
-                          updateItem(
-                            item.tempId,
-                            "quantity",
-                            Number(event.target.value || 1),
-                          )
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                    <CurrencyInput
-                      label="Đơn giá"
-                      value={item.unitPrice}
-                      onChange={(value) =>
-                        updateItem(item.tempId, "unitPrice", value)
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-border pt-5">
-              <label className="label-base">Ghi chú thêm</label>
+            <div>
+              <label className="mb-1.5 block px-1 text-sm font-medium text-text-main">Ghi chú thêm</label>
               <Textarea
                 value={form.notes}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, notes: event.target.value }))
                 }
-                rows={3}
-                placeholder="Thông tin bổ sung cho đơn in"
-                className="w-full resize-none"
+                rows={2}
+                placeholder="Yêu cầu riêng, thông báo cho lab..."
+                className="w-full resize-none bg-white"
               />
             </div>
 
-            {/* Payment History Section - Only show for existing orders */}
             {order && (
               <div className="border-t border-border pt-5">
                 <PaymentHistorySection orderId={order.id} />
@@ -646,62 +639,78 @@ export default function PrintingDetailDrawer({
             )}
           </div>
 
-          <div className="sticky -bottom-6 lg:-bottom-6 -mx-5 lg:-mx-6 -mb-6 mt-6 px-5 lg:px-6 py-4 bg-bg-base/95 backdrop-blur-md border-t border-border flex flex-wrap items-center justify-between gap-3 z-10 shrink-0">
-            {order ? (
+          <div className="sticky -bottom-6 -mx-6 -mb-6 mt-6 border-t border-border bg-bg-base/95 px-6 py-4 shadow-[0_-8px_28px_-18px_rgba(61,43,31,0.35)] backdrop-blur-md">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => setConfirmDeleteOpen(true)}
-                  variant="danger"
-                  disabled={loading}
-                >
-                  Xóa
-                </Button>
-                {order.status !== "hoan_thanh" && order.status !== "huy_don" && (
-                  <Button
-                    onClick={() => setShowCancelModal(true)}
-                    variant="outline"
-                    disabled={loading}
-                    className="text-warning border-warning hover:bg-warning/10"
-                  >
-                    Hủy đơn
-                  </Button>
+                {order ? (
+                  <>
+                    <Button
+                      onClick={() => setConfirmDeleteOpen(true)}
+                      variant="ghost"
+                      disabled={loading}
+                      className="text-error hover:bg-error/10 hover:text-error"
+                      aria-label="Xóa đơn in"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                    {order.status !== "hoan_thanh" && order.status !== "huy_don" && (
+                      <Button
+                        onClick={() => setShowCancelModal(true)}
+                        variant="outline"
+                        disabled={loading}
+                        className="border-warning text-warning hover:bg-warning/10"
+                      >
+                        Hủy đơn
+                      </Button>
+                    )}
+                    {order.labId && (
+                      <Button
+                        onClick={() => setShowLabPaymentModal(true)}
+                        variant="outline"
+                        disabled={loading}
+                        className="gap-2"
+                      >
+                        <WalletCards className="size-4" />
+                        <span className="hidden sm:inline">Thanh toán lab</span>
+                        <span className="sm:hidden">Lab</span>
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div />
                 )}
-                {order.labId && (
+              </div>
+
+              <div className="flex items-center justify-end gap-2 sm:ml-auto">
+                <div className="mr-2 hidden flex-col items-end sm:flex">
+                  <span className="text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-text-muted">Tổng chi phí</span>
+                  <span className="text-lg font-bold leading-tight text-text-main">{formatCurrency(totalAmount)}</span>
+                  {paymentSummary && paymentSummary.remaining > 0 && (
+                    <span className="text-[11px] font-medium text-warning">Còn lại {formatCurrency(paymentSummary.remaining)}</span>
+                  )}
+                </div>
+                <Button onClick={onClose} variant="ghost" disabled={loading} className="hidden sm:inline-flex">
+                  Đóng
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  loading={loading}
+                  variant={nextStepAction && onStatusChange ? "outline" : "primary"}
+                  className={nextStepAction && onStatusChange ? "border-primary/25 text-primary hover:bg-primary/10" : undefined}
+                >
+                  {loading ? "Đang xử lý..." : order ? "Lưu thay đổi" : "Tạo đơn in"}
+                </Button>
+                {nextStepAction && onStatusChange && (
                   <Button
-                    onClick={() => setShowLabPaymentModal(true)}
-                    variant="outline"
-                    disabled={loading}
-                    className="gap-2"
+                    onClick={handleNextStep}
+                    loading={loading}
+                    className="gap-2 shadow-sm"
                   >
-                    <WalletCards className="w-4 h-4" />
-                    Thanh toán lab
+                    {nextStepAction.label}
+                    <ArrowRight className="size-4" />
                   </Button>
                 )}
               </div>
-            ) : (
-              <div />
-            )}
-            <div className="flex items-center gap-2 ml-auto">
-              <Button onClick={onClose} variant="ghost" disabled={loading}>
-                Đóng
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading}
-                variant={nextStepAction && onStatusChange ? "outline" : "primary"}
-              >
-                {loading ? "Đang xử lý..." : order ? "Lưu thay đổi" : "Tạo đơn in"}
-              </Button>
-              {nextStepAction && onStatusChange && (
-                <Button
-                  onClick={handleNextStep}
-                  disabled={loading}
-                  className="gap-2"
-                >
-                  {nextStepAction.label}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -714,6 +723,8 @@ export default function PrintingDetailDrawer({
         title="Xóa đơn in"
         message={`Bạn chắc chắn muốn xóa "${order?.orderCode || ""}"?`}
         confirmLabel="Xóa"
+        cancelLabel="Đóng"
+        variant="danger"
       />
 
       {order && (
@@ -722,9 +733,12 @@ export default function PrintingDetailDrawer({
             isOpen={showDepositModal}
             onClose={() => setShowDepositModal(false)}
             order={order}
-            onSuccess={async () => {
+            onPaid={async () => {
               await onSaved();
-              setShowDepositModal(false);
+              const result = await getOrderPaymentSummary(order.id);
+              if (result.success) {
+                setPaymentSummary({ remaining: result.data.remaining });
+              }
             }}
           />
 
@@ -732,10 +746,12 @@ export default function PrintingDetailDrawer({
             isOpen={showFinalPaymentModal}
             onClose={() => setShowFinalPaymentModal(false)}
             order={order}
-            remainingAmount={paymentSummary?.remaining || 0}
-            onSuccess={async () => {
+            onPaid={async () => {
               await onSaved();
-              setShowFinalPaymentModal(false);
+              const result = await getOrderPaymentSummary(order.id);
+              if (result.success) {
+                setPaymentSummary({ remaining: result.data.remaining });
+              }
             }}
           />
 
@@ -743,25 +759,15 @@ export default function PrintingDetailDrawer({
             isOpen={showCancelModal}
             onClose={() => setShowCancelModal(false)}
             order={order}
-            onSuccess={async () => {
-              await onSaved();
-              setShowCancelModal(false);
-              onClose(); // Close the drawer after cancelling
-            }}
+            onCancelled={onSaved}
           />
 
-          {order.labId && (
-            <LabPaymentModal
-              isOpen={showLabPaymentModal}
-              onClose={() => setShowLabPaymentModal(false)}
-              labId={order.labId}
-              labName={order.labName || undefined}
-              onSuccess={async () => {
-                await onSaved();
-                setShowLabPaymentModal(false);
-              }}
-            />
-          )}
+          <LabPaymentModal
+            isOpen={showLabPaymentModal}
+            onClose={() => setShowLabPaymentModal(false)}
+            order={order}
+            onPaid={onSaved}
+          />
         </>
       )}
     </>
