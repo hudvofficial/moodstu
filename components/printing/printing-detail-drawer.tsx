@@ -640,76 +640,87 @@ export default function PrintingDetailDrawer({
           </div>
 
           <div className="sticky -bottom-6 -mx-6 -mb-6 mt-6 border-t border-border bg-bg-base/95 px-6 py-4 shadow-[0_-8px_28px_-18px_rgba(61,43,31,0.35)] backdrop-blur-md">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                {order ? (
-                  <>
-                    <Button
-                      onClick={() => setConfirmDeleteOpen(true)}
-                      variant="ghost"
-                      disabled={loading}
-                      className="text-error hover:bg-error/10 hover:text-error"
-                      aria-label="Xóa đơn in"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                    {order.status !== "hoan_thanh" && order.status !== "huy_don" && (
-                      <Button
-                        onClick={() => setShowCancelModal(true)}
-                        variant="outline"
-                        disabled={loading}
-                        className="border-warning text-warning hover:bg-warning/10"
-                      >
-                        Hủy đơn
-                      </Button>
-                    )}
-                    {order.labId && (
-                      <Button
-                        onClick={() => setShowLabPaymentModal(true)}
-                        variant="outline"
-                        disabled={loading}
-                        className="gap-2"
-                      >
-                        <WalletCards className="size-4" />
-                        <span className="hidden sm:inline">Thanh toán lab</span>
-                        <span className="sm:hidden">Lab</span>
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <div />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-sm">
+                <div>
+                  <p className="text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-text-muted">
+                    Tổng chi phí tạm tính
+                  </p>
+                  <p className="mt-1 text-2xl font-bold leading-tight text-text-main">
+                    {formatCurrency(totalAmount)}
+                  </p>
+                </div>
+                {paymentSummary && paymentSummary.remaining > 0 && (
+                  <div className="rounded-xl bg-warning/10 px-3 py-2 text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-warning">Còn lại</p>
+                    <p className="text-sm font-bold text-warning">{formatCurrency(paymentSummary.remaining)}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 sm:ml-auto">
-                <div className="mr-2 hidden flex-col items-end sm:flex">
-                  <span className="text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-text-muted">Tổng chi phí</span>
-                  <span className="text-lg font-bold leading-tight text-text-main">{formatCurrency(totalAmount)}</span>
-                  {paymentSummary && paymentSummary.remaining > 0 && (
-                    <span className="text-[11px] font-medium text-warning">Còn lại {formatCurrency(paymentSummary.remaining)}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  {order ? (
+                    <>
+                      <Button
+                        onClick={() => setConfirmDeleteOpen(true)}
+                        variant="outline"
+                        disabled={loading}
+                        className="shrink-0 whitespace-nowrap border-error/25 text-error hover:bg-error/10 hover:text-error"
+                      >
+                        <Trash2 className="mr-1.5 size-4" />
+                        Xóa
+                      </Button>
+                      {order.status !== "hoan_thanh" && order.status !== "huy_don" && (
+                        <Button
+                          onClick={() => setShowCancelModal(true)}
+                          variant="outline"
+                          disabled={loading}
+                          className="shrink-0 whitespace-nowrap border-warning/35 text-warning hover:bg-warning/10"
+                        >
+                          Hủy đơn
+                        </Button>
+                      )}
+                      {order.labId && (
+                        <Button
+                          onClick={() => setShowLabPaymentModal(true)}
+                          variant="outline"
+                          disabled={loading}
+                          className="shrink-0 whitespace-nowrap gap-2"
+                        >
+                          <WalletCards className="size-4" />
+                          Thanh toán lab
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <div />
                   )}
                 </div>
-                <Button onClick={onClose} variant="ghost" disabled={loading} className="hidden sm:inline-flex">
-                  Đóng
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  loading={loading}
-                  variant={nextStepAction && onStatusChange ? "outline" : "primary"}
-                  className={nextStepAction && onStatusChange ? "border-primary/25 text-primary hover:bg-primary/10" : undefined}
-                >
-                  {loading ? "Đang xử lý..." : order ? "Lưu thay đổi" : "Tạo đơn in"}
-                </Button>
-                {nextStepAction && onStatusChange && (
-                  <Button
-                    onClick={handleNextStep}
-                    loading={loading}
-                    className="gap-2 shadow-sm"
-                  >
-                    {nextStepAction.label}
-                    <ArrowRight className="size-4" />
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button onClick={onClose} variant="ghost" disabled={loading} className="shrink-0 whitespace-nowrap">
+                    Đóng
                   </Button>
-                )}
+                  <Button
+                    onClick={handleSubmit}
+                    loading={loading}
+                    variant={nextStepAction && onStatusChange ? "outline" : "primary"}
+                    className={nextStepAction && onStatusChange ? "shrink-0 whitespace-nowrap border-primary/25 text-primary hover:bg-primary/10" : "shrink-0 whitespace-nowrap"}
+                  >
+                    {loading ? "Đang xử lý..." : order ? "Lưu thay đổi" : "Tạo đơn in"}
+                  </Button>
+                  {nextStepAction && onStatusChange && (
+                    <Button
+                      onClick={handleNextStep}
+                      loading={loading}
+                      className="shrink-0 whitespace-nowrap gap-2 px-6 shadow-sm"
+                    >
+                      {nextStepAction.label}
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
