@@ -116,10 +116,10 @@ class ToastManager {
       description: options?.description,
     });
 
-    // Store for potential update
-    if (options?.id) {
-      this.loadingToasts.set(String(options.id), toastId);
-    }
+    // Always register so loading → success/error updates THIS toast instead of
+    // orphaning it. Supports both `toast.loading(msg, { id })` and the documented
+    // `const id = toast.loading(msg); toast.success(msg, { id })` flow.
+    this.loadingToasts.set(String(options?.id ?? toastId), toastId);
 
     return toastId;
   }
