@@ -43,6 +43,8 @@ export const mediaQueries = {
   tablet: `(min-width: ${BREAKPOINTS.sm}px) and (max-width: ${BREAKPOINTS.lg - 1}px)`,
   /** Desktop: 1024px+ */
   desktop: `(min-width: ${BREAKPOINTS.lg}px)`,
+  /** Large desktop: 1280px+ — use for dense operational views that need more canvas than iPad landscape */
+  largeDesktop: `(min-width: ${BREAKPOINTS.xl}px)`,
   /** Mobile + Tablet: max-width 1023px (before lg:) — drives legacy useIsMobile */
   belowDesktop: `(max-width: ${BREAKPOINTS.lg - 1}px)`,
   // ─── 3-tier convention (768/1024) ───

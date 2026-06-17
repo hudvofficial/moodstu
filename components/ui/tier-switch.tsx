@@ -1,15 +1,16 @@
 "use client";
 
 import { type ReactNode, useState, useEffect } from "react";
-import { useDeviceTier } from "@/hooks/use-mobile";
+import { type DesktopBreakpoint, useDeviceTier } from "@/hooks/use-mobile";
 
 interface TierSwitchProps {
   /** Content for phone (<768px) */
   phone: ReactNode;
   /** Content for tablet (768-1023px). Falls back to `desktop` if omitted. */
   tablet?: ReactNode;
-  /** Content for desktop (≥1024px) */
+  /** Content for desktop (default ≥1024px; use desktopAt="xl" for dense operational tablet-wide views) */
   desktop: ReactNode;
+  desktopAt?: DesktopBreakpoint;
   /**
    * SSR / pre-mount fallback. Shown until client JS determines the tier.
    * Default: `null` (renders nothing — invisible for auth-gated SaaS pages).
@@ -32,8 +33,8 @@ interface TierSwitchProps {
  * // tablet omitted → falls back to desktop (table shows from 768px+)
  * ```
  */
-export function TierSwitch({ phone, tablet, desktop, fallback = null }: TierSwitchProps) {
-  const tier = useDeviceTier();
+export function TierSwitch({ phone, tablet, desktop, desktopAt = "lg", fallback = null }: TierSwitchProps) {
+  const tier = useDeviceTier(desktopAt);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

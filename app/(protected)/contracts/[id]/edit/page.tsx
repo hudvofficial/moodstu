@@ -11,6 +11,6 @@ interface PageProps {
 
 export default async function EditContractPage({ params }: PageProps) {
   const { id } = await params;
-  return <ContractForm mode="edit" contractId={id} />;
+  return <div className="max-w-5xl mx-auto"><ContractForm mode="edit" contractId={id} /></div>;
 }
 
