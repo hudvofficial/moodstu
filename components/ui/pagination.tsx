@@ -9,9 +9,10 @@ interface PaginationProps {
   totalPages: number;
   onChange: (page: number) => void;
   className?: string;
+  compact?: boolean;
 }
 
-export function Pagination({ page, totalPages, onChange, className }: PaginationProps) {
+export function Pagination({ page, totalPages, onChange, className, compact = false }: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const pages = getVisiblePages(page, totalPages);
@@ -21,9 +22,9 @@ export function Pagination({ page, totalPages, onChange, className }: Pagination
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className="btn btn-ghost p-2 disabled:opacity-30"
+        className={cn("btn btn-ghost disabled:opacity-30 flex items-center justify-center", compact ? "size-8 p-1" : "p-2")}
       >
-        <ChevronLeft className="w-4 h-4" />
+        <ChevronLeft className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
       </button>
 
       {pages.map((p, i) =>
@@ -34,7 +35,8 @@ export function Pagination({ page, totalPages, onChange, className }: Pagination
             key={p}
             onClick={() => onChange(p as number)}
             className={cn(
-              "min-w-9 h-9 rounded-md text-sm font-semibold transition-all",
+              "rounded-md font-semibold transition-all flex items-center justify-center",
+              compact ? "min-w-8 h-8 text-xs" : "min-w-9 h-9 text-sm",
               page === p
                 ? "bg-primary text-white shadow-sm"
                 : "text-text-secondary hover:bg-bg-hover"
@@ -48,9 +50,9 @@ export function Pagination({ page, totalPages, onChange, className }: Pagination
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className="btn btn-ghost p-2 disabled:opacity-30"
+        className={cn("btn btn-ghost disabled:opacity-30 flex items-center justify-center", compact ? "size-8 p-1" : "p-2")}
       >
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
       </button>
     </div>
   );

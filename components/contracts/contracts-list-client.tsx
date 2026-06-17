@@ -469,17 +469,16 @@ function ContractsListInner({
             />
 
             {/* ── Pagination + Footer ── */}
-            <div className="mt-4 rounded-xl border border-border bg-surface px-4 py-3 lg:mt-3 lg:shrink-0">
-              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <p className="text-sm text-text-muted">
-                  Hiển thị <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span> của <span className="font-medium text-text-main">{total}</span> hợp đồng
-                </p>
-                <Pagination
-                  page={page}
-                  totalPages={totalPages}
-                  onChange={setPage}
-                />
-              </div>
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-3 px-1 pb-1 pt-2 max-xl:text-xs">
+              <p className="text-xs text-text-muted md:text-sm">
+                <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span>/<span className="font-medium text-text-main">{total}</span> hợp đồng
+              </p>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={setPage}
+                compact
+              />
             </div>
           </div>
         )}

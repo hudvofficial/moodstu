@@ -135,20 +135,20 @@ const TabletTableRow = memo(function TabletTableRow({
           />
         </div>
       </TD>
-      <TD className="w-[104px] py-4 px-2">
-        <div className="max-w-[96px]">
+      <TD className="w-[92px] py-3 px-1.5">
+        <div className="max-w-[86px] scale-[0.92] origin-left">
           <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
         </div>
       </TD>
-      <TD className="w-[120px] py-4 px-2">
-        <div className="max-w-[112px] truncate">
+      <TD className="w-[104px] py-3 px-1.5">
+        <div className="max-w-[96px] truncate [&_.badge]:px-2 [&_.badge]:py-1 [&_.badge]:text-[10px]">
           <Badge variant={getStatusVariant(status)} dot>
             {getStatusLabel(status)}
           </Badge>
         </div>
       </TD>
-      <TD className="sticky right-0 z-10 w-[80px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-4 px-3 text-right border-l border-border">
-        <div className="inline-flex size-9 items-center justify-center rounded-lg bg-bg-card text-text-secondary shadow-xs transition-all group-hover:bg-primary group-hover:text-white group-hover:shadow-sm">
+      <TD className="sticky right-0 z-10 w-[56px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-3 px-2 text-center border-l border-border">
+        <div className="inline-flex size-8 items-center justify-center rounded-md bg-bg-card text-text-secondary shadow-xs transition-all group-hover:bg-primary group-hover:text-white group-hover:shadow-sm">
           <ChevronRight className="size-4" />
         </div>
       </TD>
@@ -170,16 +170,16 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   );
 
   return (
-    <TableWrapper className="min-w-[860px] table-fixed" containerClassName="rounded-xl">
+    <TableWrapper className="min-w-[820px] table-fixed" containerClassName="rounded-xl">
         <THead>
           <tr>
             <TH className="sticky left-0 z-20 w-[124px] bg-bg-sidebar border-r border-border px-3">Mã HĐ</TH>
             <TH className="w-[176px] px-3">Khách hàng / Ngày ký</TH>
             <TH className="w-[148px] px-3 text-right">Tổng cộng / Còn nợ</TH>
             <TH className="w-[96px] px-2 text-center">Thông tin</TH>
-            <TH className="w-[104px] px-2">Tiến độ</TH>
-            <TH className="w-[120px] px-2">Trạng thái</TH>
-            <TH className="sticky right-0 z-20 w-[80px] bg-bg-sidebar text-center border-l border-border px-3">Thao tác</TH>
+            <TH className="w-[92px] px-1.5">Tiến độ</TH>
+            <TH className="w-[104px] px-1.5">Trạng thái</TH>
+            <TH className="sticky right-0 z-20 w-[56px] bg-bg-sidebar text-center border-l border-border px-2">Đi</TH>
           </tr>
         </THead>
         <TBody>
