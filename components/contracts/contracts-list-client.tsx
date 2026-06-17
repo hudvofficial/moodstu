@@ -15,7 +15,7 @@ import {
 } from "react";
 import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
 import dynamic from "next/dynamic";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { FAB } from "@/components/ui/fab";
@@ -83,6 +83,13 @@ const MOBILE_SERVICE_OPTIONS = [
     value,
     label,
   })),
+];
+
+const TABLET_TIME_OPTIONS = [
+  { value: "all", label: "Tháng" },
+  { value: "this_month", label: "Tháng này" },
+  { value: "last_month", label: "Tháng trước" },
+  { value: "this_year", label: "Năm nay" },
 ];
 
 const MOBILE_SORT_OPTIONS = [
@@ -342,6 +349,50 @@ function ContractsListInner({
               />
             </div>
           }
+          tablet={
+            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide">
+              <TabsFilter
+                tabs={tabsWithCounts}
+                activeTab={filters.status}
+                onChange={setStatus}
+                variant="pills"
+              />
+              <div className="h-5 border-l border-border shrink-0" />
+              <SelectPill
+                value={filters.time}
+                onChange={setTime}
+                defaultValue="all"
+                placeholder="Tháng"
+                options={TABLET_TIME_OPTIONS}
+              />
+              <SelectPill
+                value={filters.service}
+                onChange={setService}
+                defaultValue="all"
+                placeholder="Dịch vụ"
+                options={MOBILE_SERVICE_OPTIONS}
+              />
+              <SelectPill
+                value={filters.sort}
+                onChange={setSort}
+                defaultValue="newest"
+                placeholder="Sắp xếp"
+                options={MOBILE_SORT_OPTIONS}
+              />
+              <Button
+                unstyled
+                onClick={toggleAdvanced}
+                aria-label="Lọc nâng cao"
+                className={`flex size-9 shrink-0 items-center justify-center rounded-md transition-colors ${
+                  filters.advanced
+                    ? "text-primary bg-primary/10 shadow-sm"
+                    : "text-primary bg-primary/5 hover:bg-primary/10 shadow-xs"
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </Button>
+            </div>
+          }
           desktop={
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1 overflow-hidden">
@@ -402,7 +453,13 @@ function ContractsListInner({
 
         {/* ── Table / Card List ── */}
         {!error && (
-          <div className={isFetching ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}>
+          <div
+            className={
+              isFetching
+                ? "opacity-50 pointer-events-none transition-opacity duration-200 lg:flex lg:flex-1 lg:min-h-0 lg:flex-col"
+                : "transition-opacity duration-200 lg:flex lg:flex-1 lg:min-h-0 lg:flex-col"
+            }
+          >
             <ContractsTable
               contracts={contracts}
               onView={handleView}
@@ -411,16 +468,18 @@ function ContractsListInner({
               onHover={handleHover}
             />
 
-            {/* ── Pagination + Footer (luôn ở dưới đáy) ── */}
-            <div className="mt-4 lg:mt-auto lg:shrink-0 lg:pt-3">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onChange={setPage}
-              />
-              <p className="text-center text-xs text-text-muted mt-3">
-                Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
-              </p>
+            {/* ── Pagination + Footer ── */}
+            <div className="mt-4 rounded-xl border border-border bg-surface px-4 py-3 lg:mt-3 lg:shrink-0">
+              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <p className="text-sm text-text-muted">
+                  Hiển thị <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span> của <span className="font-medium text-text-main">{total}</span> hợp đồng
+                </p>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onChange={setPage}
+                />
+              </div>
             </div>
           </div>
         )}

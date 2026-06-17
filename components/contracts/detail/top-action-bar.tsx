@@ -138,10 +138,8 @@ export default function TopActionBar({
 
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { updateContractStatus } from "@/app/actions/contract-mutations";
 import { SelectStatus } from "@/components/ui/select/SelectStatus";
-import { updateContractStatusCache } from "@/lib/hooks/use-contract-queries";
+import { handleContractStatusUpdate } from "@/lib/contracts/update-contract-status-ui";
 
 function ContractStatusBadge({ contractId, currentStatus }: { contractId: string; currentStatus: ContractStatus }) {
   const queryClient = useQueryClient();
@@ -172,16 +170,13 @@ function ContractStatusBadge({ contractId, currentStatus }: { contractId: string
       options={options}
       variant="compact"
       onUpdate={async (newStatus) => {
-        try {
-          setOptimisticStatus(newStatus as ContractStatus);
-          await updateContractStatus(contractId, newStatus as ContractStatus);
-          updateContractStatusCache(queryClient, contractId, newStatus as ContractStatus);
-          toast.success("Đã cập nhật trạng thái hợp đồng");
-        } catch (error: any) {
-          setOptimisticStatus(currentStatus);
-          toast.error(error.message || "Lỗi khi cập nhật trạng thái");
-          throw error;
-        }
+        setOptimisticStatus(newStatus as ContractStatus);
+        await handleContractStatusUpdate({
+          contractId,
+          newStatus: newStatus as ContractStatus,
+          queryClient,
+          onFailure: () => setOptimisticStatus(currentStatus),
+        });
       }}
     />
   );
