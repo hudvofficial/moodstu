@@ -402,7 +402,13 @@ function ContractsListInner({
 
         {/* ── Table / Card List ── */}
         {!error && (
-          <div className={isFetching ? "opacity-50 pointer-events-none transition-opacity duration-200" : "transition-opacity duration-200"}>
+          <div
+            className={
+              isFetching
+                ? "opacity-50 pointer-events-none transition-opacity duration-200 lg:flex lg:flex-1 lg:min-h-0 lg:flex-col"
+                : "transition-opacity duration-200 lg:flex lg:flex-1 lg:min-h-0 lg:flex-col"
+            }
+          >
             <ContractsTable
               contracts={contracts}
               onView={handleView}
@@ -411,16 +417,18 @@ function ContractsListInner({
               onHover={handleHover}
             />
 
-            {/* ── Pagination + Footer (luôn ở dưới đáy) ── */}
-            <div className="mt-4 lg:mt-auto lg:shrink-0 lg:pt-3">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onChange={setPage}
-              />
-              <p className="text-center text-xs text-text-muted mt-3">
-                Hiển thị {visibleStart}–{visibleEnd} của {total} hợp đồng
-              </p>
+            {/* ── Pagination + Footer ── */}
+            <div className="mt-4 rounded-xl border border-border bg-surface px-4 py-3 lg:mt-3 lg:shrink-0">
+              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+                <p className="text-sm text-text-muted">
+                  Hiển thị <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span> của <span className="font-medium text-text-main">{total}</span> hợp đồng
+                </p>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onChange={setPage}
+                />
+              </div>
             </div>
           </div>
         )}

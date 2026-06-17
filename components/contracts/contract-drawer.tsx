@@ -208,11 +208,9 @@ export function ContractDrawer({
 // ─── STATUS UPDATER ──────────────────────────────
 
 import { useState } from "react";
-import { toast } from "sonner";
-import { updateContractStatus } from "@/app/actions/contract-mutations";
 import { SelectStatus } from "@/components/ui/select/SelectStatus";
-import { updateContractStatusCache } from "@/lib/hooks/use-contract-queries";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { handleContractStatusUpdate } from "@/lib/contracts/update-contract-status-ui";
 
 function ContractStatusBadge({
   contractId,
@@ -302,18 +300,13 @@ function ContractStatusBadge({
             }
           }
 
-          try {
-            setOptimisticStatus(newStatus as ContractStatus);
-            await updateContractStatus(contractId, newStatus as ContractStatus);
-            updateContractStatusCache(queryClient, contractId, newStatus as ContractStatus);
-            toast.success("Đã cập nhật trạng thái hợp đồng");
-          } catch (error: any) {
-            setOptimisticStatus(currentStatus);
-            if (error.message !== "USER_CANCELLED") {
-              toast.error(error.message || "Lỗi khi cập nhật trạng thái");
-            }
-            throw error; // Re-throw to reset SelectStatus
-          }
+          setOptimisticStatus(newStatus as ContractStatus);
+          await handleContractStatusUpdate({
+            contractId,
+            newStatus: newStatus as ContractStatus,
+            queryClient,
+            onFailure: () => setOptimisticStatus(currentStatus),
+          });
         }}
       />
       <ConfirmDialog
