@@ -6,6 +6,7 @@ import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
+import { ContractsTabletTable } from "./contracts-tablet-table";
 import { TierSwitch } from "@/components/ui/tier-switch";
 import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
 import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
@@ -313,6 +314,7 @@ export const ContractsTable = memo(function ContractsTable(props: ContractsTable
   return (
     <TierSwitch
       phone={<MobileCardList {...props} />}
+      tablet={<ContractsTabletTable {...props} />}
       desktop={<DesktopTable {...props} />}
     />
   );

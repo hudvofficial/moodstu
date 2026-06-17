@@ -80,7 +80,7 @@ export function Drawer({
   const resolvedWidth = width || (size === "lg" ? "600px" : "480px");
 
   const getActivePanel = useCallback(() => {
-    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
       return desktopPanelRef.current;
     }
     return mobilePanelRef.current;
@@ -160,8 +160,8 @@ export function Drawer({
             trapFocus(e.currentTarget, e.shiftKey, () => e.preventDefault());
           }
         }}
-        className="hidden lg:flex flex-col fixed right-0 top-0 h-full bg-bg-base shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
-        style={{ width: resolvedWidth, outline: "none" }}
+        className="hidden md:flex flex-col fixed right-0 top-0 h-full bg-bg-base shadow-md rounded-l-2xl z-10 animate-slide-in-right outline-none"
+        style={{ width: resolvedWidth, maxWidth: "90vw", outline: "none" }}
       >
         {/* Header */}
         {title && (
@@ -200,7 +200,7 @@ export function Drawer({
             trapFocus(e.currentTarget, e.shiftKey, () => e.preventDefault());
           }
         }}
-        className="lg:hidden flex flex-col fixed bottom-0 left-0 right-0 bg-bg-base shadow-md rounded-t-2xl z-10 animate-slide-in-up outline-none"
+        className="md:hidden flex flex-col fixed bottom-0 left-0 right-0 bg-bg-base shadow-md rounded-t-2xl z-10 animate-slide-in-up outline-none"
         style={{ height: "85vh", outline: "none" }}
         tabIndex={-1}
       >
