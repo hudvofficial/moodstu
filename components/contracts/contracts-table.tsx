@@ -316,6 +316,7 @@ export const ContractsTable = memo(function ContractsTable(props: ContractsTable
       phone={<MobileCardList {...props} />}
       tablet={<ContractsTabletTable {...props} />}
       desktop={<DesktopTable {...props} />}
+      desktopAt="xl"
     />
   );
 });

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { BREAKPOINTS, mediaQueries } from "@/lib/breakpoints";
 
+export type DesktopBreakpoint = "lg" | "xl";
+
 function subscribeToQuery(query: string, onStoreChange: () => void) {
   const mql = window.matchMedia(query);
   mql.addEventListener("change", onStoreChange);
@@ -68,22 +70,25 @@ export type DeviceTier = "phone" | "tablet" | "desktop";
  * ⚠️ CSS-first: ưu tiên Tailwind md:/lg:; chỉ dùng hook này khi BUỘC swap component bằng JS.
  * Component swap-by-JS nên gate bằng `mounted` để tránh hydration flash (xem calendar-wrapper).
  */
-export function useDeviceTier(): DeviceTier {
+export function useDeviceTier(desktopAt: DesktopBreakpoint = "lg"): DeviceTier {
   return React.useSyncExternalStore(
     (onStoreChange) => {
       const mqlMd = window.matchMedia(mediaQueries.tabletUp);
-      const mqlLg = window.matchMedia(mediaQueries.desktop);
+      const mqlDesktop = window.matchMedia(
+        desktopAt === "xl" ? mediaQueries.largeDesktop : mediaQueries.desktop,
+      );
       mqlMd.addEventListener("change", onStoreChange);
-      mqlLg.addEventListener("change", onStoreChange);
+      mqlDesktop.addEventListener("change", onStoreChange);
       return () => {
         mqlMd.removeEventListener("change", onStoreChange);
-        mqlLg.removeEventListener("change", onStoreChange);
+        mqlDesktop.removeEventListener("change", onStoreChange);
       };
     },
     () => {
       const w = window.innerWidth;
+      const desktopCutoff = desktopAt === "xl" ? BREAKPOINTS.xl : BREAKPOINTS.lg;
       if (w < BREAKPOINTS.md) return "phone";
-      if (w < BREAKPOINTS.lg) return "tablet";
+      if (w < desktopCutoff) return "tablet";
       return "desktop";
     },
     () => "desktop",

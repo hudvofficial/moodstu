@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { BottomNav } from "./bottom-nav";
-import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
+import { useDeviceTier, useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Role } from "@/types/roles";
 import { X } from "lucide-react";
@@ -63,7 +63,8 @@ interface AppShellProps {
 export function AppShell({ children, role, userName }: AppShellProps) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
+  const operationalTier = useDeviceTier("xl");
+  const isTabletChrome = operationalTier === "tablet";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   // Fullpage mode: hide Header + BottomNav, form handles its own chrome
@@ -97,9 +98,10 @@ export function AppShell({ children, role, userName }: AppShellProps) {
         <Sidebar 
           role={role}
           userName={userName}
+          forcedCollapsed={isTabletChrome}
           className={cn(
             "hidden lg:flex",
-            isTablet && "w-20"
+            isTabletChrome && "w-20"
           )} 
         />
       )}

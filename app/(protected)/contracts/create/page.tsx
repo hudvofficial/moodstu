@@ -6,6 +6,6 @@ export const metadata = {
 };
 
 export default function CreateContractPage() {
-  return <ContractForm mode="create" />;
+  return <div className="max-w-5xl mx-auto"><ContractForm mode="create" /></div>;
 }
 

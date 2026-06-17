@@ -26,11 +26,13 @@ interface SidebarProps {
   role: Role;
   userName?: string;
   className?: string;
+  forcedCollapsed?: boolean;
 }
 
-export function Sidebar({ role, userName, className }: SidebarProps) {
+export function Sidebar({ role, userName, className, forcedCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const effectiveCollapsed = forcedCollapsed || isCollapsed;
   const prefetchOnHover = usePrefetchOnHover();
 
   const filteredMenu = MODULES.filter(
@@ -52,11 +54,11 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
     <aside
       className={cn(
         "relative flex h-full min-h-0 flex-col bg-bg-card shadow-(--shadow-sidebar) transition-[width] duration-300 ease-in-out z-50",
-        isCollapsed ? "w-20" : "w-64",
+        effectiveCollapsed ? "w-20" : "w-64",
         className
       )}
       style={{
-        willChange: isCollapsed !== undefined ? 'width' : 'auto',
+        willChange: 'width',
       }}
     >
       {/* Logo Section — Click → Dashboard */}
@@ -76,7 +78,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
             className="object-contain w-full h-full brightness-0 invert"
           />
         </div>
-        {!isCollapsed && (
+        {!effectiveCollapsed && (
           <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
             <span className="font-bold text-dark tracking-tight leading-none text-lg">Mood Studio</span>
             <span className="text-micro font-bold text-text-muted uppercase tracking-[0.15em] mt-1">Hệ thống quản lý</span>
@@ -98,7 +100,7 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
                 <div className="mt-1 pt-2 border-t border-border/60 mx-2" />
               )}
               {/* Group label — only for groups with non-empty label */}
-              {GROUP_LABELS[groupKey] && !isCollapsed && (
+              {GROUP_LABELS[groupKey] && !effectiveCollapsed && (
                 <div className="px-3 py-1.5 mb-1">
                   <span className="text-tiny font-bold text-text-muted uppercase tracking-[0.15em]">
                     {GROUP_LABELS[groupKey]}
@@ -130,13 +132,13 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
                       }}
                     >
                       <Icon className={cn("w-5 h-5 shrink-0", isActive ? "text-primary" : "text-text-muted group-hover:text-primary transition-colors")} />
-                      {!isCollapsed && (
+                      {!effectiveCollapsed && (
                         <span className="text-sm font-semibold tracking-tight animate-in fade-in slide-in-from-left-2 duration-300">
                           {item.shortLabel || item.label}
                         </span>
                       )}
                       {/* Tooltip for collapsed state */}
-                      {isCollapsed && (
+                      {effectiveCollapsed && (
                         <div className="absolute left-14 invisible group-hover:visible bg-dark text-white text-tiny px-2 py-1 rounded-sm whitespace-nowrap z-50 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity delay-500">
                           {item.shortLabel || item.label}
                         </div>
@@ -152,13 +154,13 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
 
       {/* Footer — User Profile + Logout (V1 style) */}
       <div className="border-t border-border p-3">
-        <div className={cn("flex items-center", isCollapsed ? "flex-col gap-3" : "justify-between gap-2")}>
+        <div className={cn("flex items-center", effectiveCollapsed ? "flex-col gap-3" : "justify-between gap-2")}>
           {/* User Info */}
-          <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-2.5 overflow-hidden")}>
+          <div className={cn("flex items-center", effectiveCollapsed ? "justify-center" : "gap-2.5 overflow-hidden")}>
             <div className="w-9 h-9 shrink-0 rounded-full bg-bg-hover border border-border flex items-center justify-center">
               <span className="text-sm font-bold text-text-muted">{userName?.charAt(0)?.toUpperCase() || "?"}</span>
             </div>
-            {!isCollapsed && (
+            {!effectiveCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-dark truncate leading-tight">{userName || "User"}</p>
                 <p className="text-tiny text-text-muted font-semibold uppercase tracking-wide leading-tight mt-0.5">{ROLE_LABELS[role]}</p>
@@ -186,10 +188,10 @@ export function Sidebar({ role, userName, className }: SidebarProps) {
         type="button"
         unstyled
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-12 w-6 h-6 p-0 rounded-full bg-primary border border-primary/30 shadow-md flex items-center justify-center text-white hover:bg-primary/90 hover:scale-110 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        aria-label={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
+        className="absolute -right-3 top-12 w-6 h-6 p-0 rounded-full bg-primary border border-primary/30 shadow-md flex items-center justify-center text-white hover:bg-primary/90 hover:scale-110 transition-all z-30 hidden lg:flex cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-0" disabled={forcedCollapsed}
+        aria-label={effectiveCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
       >
-        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        {effectiveCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </Button>
     </aside>
   );

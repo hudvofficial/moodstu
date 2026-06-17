@@ -84,9 +84,8 @@ export default function TopActionBar({
             )}
           </div>
 
-          {/* Right: action buttons — Stitch: outline style */}
-          <div className="flex items-center gap-2">
-            {/* Sửa */}
+          {/* Right: desktop actions full, tablet actions compact */}
+          <div className="hidden xl:flex items-center gap-2">
             {!isCancelled && (
               <Link
                 href={`/contracts/${contractId}/edit`}
@@ -96,8 +95,6 @@ export default function TopActionBar({
                 <span>Sửa</span>
               </Link>
             )}
-
-            {/* In hợp đồng */}
             <Link
               href={`/contracts/${contractId}/print`}
               target="_blank"
@@ -107,8 +104,6 @@ export default function TopActionBar({
               <Printer size={14} />
               <span>In hợp đồng</span>
             </Link>
-
-            {/* Xuất file PDF */}
             <Link
               href={`/contracts/${contractId}/print?isExportMode=true`}
               target="_blank"
@@ -118,8 +113,6 @@ export default function TopActionBar({
               <Download size={14} />
               <span>Xuất file</span>
             </Link>
-
-            {/* Actions menu */}
             <ContractActionsMenu
               contractId={contractId}
               contractCode={contractCode}
@@ -127,6 +120,46 @@ export default function TopActionBar({
               hasReceipts={hasReceipts}
               isCancelled={isCancelled}
             />
+          </div>
+
+          <div className="flex items-center gap-2 xl:hidden">
+            {!isCancelled && (
+              <Link
+                href={`/contracts/${contractId}/edit`}
+                className="btn btn-outline"
+                aria-label="Sửa hợp đồng"
+              >
+                <Pencil size={14} />
+                <span className="max-md:hidden">Sửa</span>
+              </Link>
+            )}
+            <Link
+              href={`/contracts/${contractId}/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline"
+              aria-label="In hợp đồng"
+            >
+              <Printer size={14} />
+              <span className="max-md:hidden">In</span>
+            </Link>
+            <Link
+              href={`/contracts/${contractId}/print?isExportMode=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline"
+              aria-label="Xuất file"
+            >
+              <Download size={14} />
+              <span className="max-md:hidden">Xuất</span>
+            </Link>
+            <ContractActionsMenu
+            contractId={contractId}
+            contractCode={contractCode}
+            customerName={customerName}
+            hasReceipts={hasReceipts}
+            isCancelled={isCancelled}
+          />
           </div>
         </div>
       </header>

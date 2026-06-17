@@ -708,7 +708,7 @@ export default function ContractDetailClient({
   };
 
   return (
-    <div className="main-container max-lg:pb-24">
+    <div className="main-container max-lg:pb-24 max-w-7xl mx-auto">
       <TopActionBar
         contractId={contract.id}
         contractCode={contract.contract_code}
