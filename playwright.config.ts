@@ -55,6 +55,24 @@ export default defineConfig({
         viewport: { width: 1366, height: 768 },
       },
     },
+    {
+      name: "iPad A16 Portrait",
+      retries: 1,
+      use: {
+        ...devices["iPad (gen 7) landscape"],
+        viewport: { width: 820, height: 1180 },
+        deviceScaleFactor: 2,
+      },
+    },
+    {
+      name: "iPad A16 Landscape",
+      retries: 1,
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1024, height: 1366 },
+        deviceScaleFactor: 2,
+      },
+    },
   ],
   webServer: shouldStartWebServer
     ? {
