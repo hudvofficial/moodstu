@@ -4,27 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, useEffect, type ReactNode } from "react";
 import { setGlobalQueryClient } from "@/lib/query-client-instance";
-
-const DEFAULT_STALE_TIME = 5 * 60 * 1000;
-const DEFAULT_GC_TIME = 10 * 60 * 1000;
+import { globalQueryDefaults } from "@/lib/query-config";
 
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: {
-        staleTime: DEFAULT_STALE_TIME,
-        gcTime: DEFAULT_GC_TIME,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        retry: (failureCount, error) => {
-          if (error instanceof Error && 'status' in error) {
-            const status = (error as any).status;
-            if (status >= 400 && status < 500) return false;
-          }
-          return failureCount < 2;
-        },
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      },
+      queries: globalQueryDefaults,
       mutations: {
         retry: false,
         networkMode: "online",

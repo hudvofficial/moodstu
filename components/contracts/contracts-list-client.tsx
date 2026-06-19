@@ -8,8 +8,10 @@
  */
 
 import {
+  memo,
   Suspense,
   useCallback,
+  useDeferredValue,
   useMemo,
   useState,
 } from "react";
@@ -141,7 +143,7 @@ function toContractListItem(contractRecord: Contract): ContractListItem {
   };
 }
 
-function ContractsListInner({
+const ContractsListInner = memo(function ContractsListInner({
   initialData,
   initialFilters,
   initialStats,
@@ -166,7 +168,8 @@ function ContractsListInner({
 
   // ── SWR: Real data from Server Actions ──
   // Cast: ContractFilterState uses `string`, ContractFilters uses typed enums
-  const swrFilters = filters as unknown as ContractFilters;
+  const deferredFilters = useDeferredValue(filters);
+  const swrFilters = deferredFilters as unknown as ContractFilters;
   const initialFiltersKey = useMemo(
     () => initialFilters ? JSON.stringify(initialFilters) : null,
     [initialFilters],
@@ -469,7 +472,7 @@ function ContractsListInner({
             />
 
             {/* ── Pagination + Footer ── */}
-            <div className="mt-2 flex shrink-0 items-center justify-between gap-3 px-1 pb-1 pt-2 max-xl:text-xs">
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-3 px-1 max-xl:text-xs max-xl:h-9">
               <p className="text-xs text-text-muted md:text-sm">
                 <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span>/<span className="font-medium text-text-main">{total}</span> hợp đồng
               </p>
@@ -495,7 +498,7 @@ function ContractsListInner({
       />
     </>
   );
-}
+});
 
 // ─── MAIN EXPORT ─────────────────────────────────
 

@@ -490,16 +490,18 @@ export default function ContractDetailClient({
   const detailRealtimeConfigs = useMemo(
     () => {
       if (!enableRealtime) return [];
+      // 🎯 Optimized: 4 channels instead of 9 — reduce realtime overhead
+      //   contracts        → required (detail header)
+      //   contract_events  → timeline / activity log
+      //   work_tasks       → tasks tab (critical)
+      //   payments         → merged (payments + payment_plans)
+      //   ❌ dress_reservations, printing_orders: use stale-while-revalidate
+      //   ❌ contract_checklists, contract_notes: refresh on tab switch
       return [
         { table: "contracts", filter: `id=eq.${id}` },
-        { table: "payments", filter: `contract_id=eq.${id}` },
-        { table: "contract_checklists", filter: `contract_id=eq.${id}` },
-        { table: "contract_notes", filter: `contract_id=eq.${id}` },
         { table: "contract_events", filter: `contract_id=eq.${id}` },
         { table: "work_tasks", filter: `contract_id=eq.${id}` },
-        { table: "payment_plans", filter: `contract_id=eq.${id}` },
-        { table: "dress_reservations", filter: `contract_id=eq.${id}` },
-        { table: "printing_orders", filter: `contract_id=eq.${id}` },
+        { table: "payments", filter: `contract_id=eq.${id}` },
       ];
     },
     [id, enableRealtime],
@@ -656,9 +658,8 @@ export default function ContractDetailClient({
 
   // Loading/error guards — placed after all hooks to satisfy React's Rules of Hooks.
   if (!contract && contractError) {
-    const message = contractError instanceof Error
-      ? contractError.message
-      : "Không tìm thấy hoặc không thể tải hợp đồng.";
+    console.error("[ContractDetail] Failed to load contract:", contractError);
+    const message = "Không thể tải hợp đồng. Vui lòng thử lại.";
 
     return (
       <div className="main-container max-w-2xl">

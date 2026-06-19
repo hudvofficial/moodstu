@@ -130,6 +130,30 @@ function attachChecklistSummaryFromArray(contract: Contract) {
   };
 }
 
+function normalizePrintOrders(orders: unknown[]): PrintingOrder[] {
+  return (orders || []).map((po: any) => {
+    let rawItems = po?.items;
+    if (typeof rawItems === "string") {
+      try {
+        rawItems = JSON.parse(rawItems);
+      } catch {
+        rawItems = [];
+      }
+    }
+
+    const parsedItems = Array.isArray(rawItems)
+      ? rawItems.map((it: any) => ({
+          item_id: it.item_id ?? it.id,
+          name: it.name || it.item_name || "",
+          quantity: it.quantity || 1,
+          unitPrice: it.unitPrice ?? it.unit_price ?? 0,
+        }))
+      : [];
+
+    return { ...po, items: parsedItems } as PrintingOrder;
+  });
+}
+
 async function getContractListFromRpc(
   supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
   filters: ContractFilters,
@@ -494,178 +518,33 @@ export async function getContractDetail(id: string) {
       supabase.rpc(rpcFunction, { p_contract_id: id }),
     ]);
 
-    if (!rpcError && rpcData) {
-      const data = rpcData as ContractDetailRpcPayload;
-      // ⚡ RPC now includes vendors join - no extra query needed!
+    if (rpcError) {
+      console.error(`[contracts.getContractDetail] RPC failed:`, rpcError);
+      throw new Error(`Không thể tải hợp đồng. RPC không khả dụng.`);
+    }
+    if (!rpcData) {
+      throw new Error(`RPC returned null for contract ${id}`);
+    }
+    const data = rpcData as ContractDetailRpcPayload;
+    // ⚡ RPC now includes vendors join - no extra query needed!
 
-      if (data.contract) {
-        const contractData = {
-          ...data.contract,
-          contract_events: data.events || [],
-          work_tasks: data.work_tasks || [],
-          contract_checklists: data.checklists || [],
-        };
-
-        return {
-          contract: contractData,
-          payments: data.payments || [],
-          reservations: data.reservations || [],
-          printOrders: data.print_orders || [],
-          paymentPlans: mapPaymentPlans(data.payment_plans || []),
-        };
-      }
+    if (!data.contract) {
+      throw new Error(`RPC returned empty contract data for contract ${id}`);
     }
 
-    console.warn(`[contracts.getContractDetail] ${rpcFunction} unavailable; using 8-query fallback`, {
-      contractId: id,
-      rpcVersion: useV3 ? "v3" : "v2",
-      error: rpcError?.message || "RPC returned invalid data",
-    });
-
-    // ⚡ Fallback: Single-pass operational detail queries fire simultaneously.
-    const [
-      contractResult,
-      eventsResult,
-      workTasksResult,
-      checklistsResult,
-      paymentsResult,
-      reservationsResult,
-      printOrdersResult,
-      paymentPlansResult,
-    ] = await Promise.all([
-      // 1) Contract + embedded FK joins
-      supabase
-        .from("contracts")
-        .select(
-          `id, contract_code, customer_id, service_type,
-           transaction_type, contract_date, work_date, delivery_date,
-           total_amount, discount_amount, paid_amount,
-           remaining_amount, status, payment_status,
-           description, notes, cancel_reason, updated_at, created_at,
-           customers (
-             id, customer_code, full_name, phone, alt_phone,
-             email, address, wedding_date, notes,
-             bride_name, groom_name, bride_phone, groom_phone,
-             bride_height, bride_weight, bride_shoe_size,
-             groom_height, groom_weight, groom_shoe_size
-           ),
-           contract_items (
-             id, type, item_name, service_id, export_type,
-             quantity, unit_price, original_price,
-             discount_amount, total_amount, is_addon,
-             addon_category, dress_id, notes, deleted_at
-           )`
-        )
-        .eq("id", id)
-        .is("deleted_at", null)
-        .single(),
-      // 2) Events
-      supabase
-        .from("contract_events")
-        .select(
-          `id, contract_id, event_type, title, event_date, end_date,
-           location, status, notes, sort_order, deadline,
-           start_time, end_time, is_manual_date, phase,
-           sync_to_google, google_event_id, google_sync_status,
-           google_sync_error, google_synced_at, deleted_at`
-        )
-        .eq("contract_id", id)
-        .is("deleted_at", null)
-        .order("sort_order", { ascending: true }),
-      // 3) Work tasks
-      supabase
-        .from("work_tasks")
-        .select(
-          `id, event_id, contract_id, work_type, assigned_to, vendor_id, status, deadline,
-           start_date, start_time, end_time, completion_date, cost, notes,
-           employees:assigned_to(id, full_name, avatar_url, department),
-           vendors:vendor_id(id, full_name, phone)`
-        )
-        .eq("contract_id", id)
-        .order("deadline", { ascending: true }),
-      // 4) Checklists
-      supabase
-        .from("contract_checklists")
-        .select("id, event_stage, category, item_name, is_completed, created_at, updated_at")
-        .eq("contract_id", id)
-        .order("created_at", { ascending: true }),
-      // 5) Payments
-      supabase
-        .from("payments")
-        .select(
-          "id, receipt_code, amount, payment_method, payment_date, payment_stage, notes, created_by, created_at"
-        )
-        .eq("contract_id", id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(30),
-      // 6) Dress reservations
-      supabase
-        .from("dress_reservations")
-        .select(
-          `id, status, start_date, end_date, notes, dresses (id, name, item_code, category, size, color, image_url)`
-        )
-        .eq("contract_id", id)
-        .order("created_at", { ascending: false }),
-      // 7) Printing orders
-      supabase
-        .from("printing_orders")
-        .select(
-          `id, order_code, status, payment_status, total_amount, items, print_file_url, order_date, expected_date, received_date, notes, labs (id, name:lab_name)`
-        )
-        .eq("contract_id", id)
-        .order("created_at", { ascending: false }),
-      // 8) Payment plans
-      supabase
-        .from("payment_plans")
-        .select(
-          "id, contract_id, stage_name, stage_key, sort_order, amount, due_date, status, receipt_id, created_at, payment_plan_allocations(id, contract_id, payment_plan_id, payment_id, amount, created_at, created_by)"
-        )
-        .eq("contract_id", id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true }),
-    ]);
-
-    const { data, error } = contractResult;
-    if (error) throw error;
-    assertQueryOk("Loi tai lich trinh hop dong", eventsResult);
-    assertQueryOk("Loi tai phan cong hop dong", workTasksResult);
-    assertQueryOk("Loi tai checklist hop dong", checklistsResult);
-    if (!data) throw new Error("Không tìm thấy hợp đồng");
-    assertQueryOk("Lỗi tải thanh toán hợp đồng", paymentsResult);
-    assertQueryOk("Lỗi tải lịch đặt trang phục", reservationsResult);
-    assertQueryOk("Lỗi tải đơn in", printOrdersResult);
-    assertQueryOk("Lỗi tải kế hoạch thanh toán", paymentPlansResult);
-
-    const contractData = data as unknown as Contract;
-
-    const activeItems = (contractData.contract_items || []).filter(
-      (i: any) => !i.deleted_at
-    );
-    contractData.contract_items = activeItems;
-    contractData.contract_events = (eventsResult.data || []) as unknown as ContractEvent[];
-    contractData.work_tasks = (workTasksResult.data || []) as unknown as WorkTask[];
-    contractData.contract_checklists = (checklistsResult.data || []) as unknown as ContractChecklist[];
-
-    // Parse items to handle legacy unit_price vs unitPrice
-    const parsedPrintOrders = (printOrdersResult.data || []).map((po: any) => {
-      let parsedItems: any[] = [];
-      if (Array.isArray(po.items)) {
-        parsedItems = po.items.map((it: any) => ({
-          name: it.name || "",
-          quantity: it.quantity || 1,
-          unitPrice: it.unitPrice ?? it.unit_price ?? 0,
-        }));
-      }
-      return { ...po, items: parsedItems };
-    });
+    const contractData = {
+      ...data.contract,
+      contract_events: data.events || [],
+      work_tasks: data.work_tasks || [],
+      contract_checklists: data.checklists || [],
+    };
 
     return {
       contract: contractData,
-      payments: paymentsResult.data || [],
-      reservations: reservationsResult.data || [],
-      printOrders: parsedPrintOrders,
-      paymentPlans: mapPaymentPlans(paymentPlansResult.data || []),
+      payments: data.payments || [],
+      reservations: data.reservations || [],
+      printOrders: normalizePrintOrders(data.print_orders || []),
+      paymentPlans: mapPaymentPlans(data.payment_plans || []),
     };
   }));
 }

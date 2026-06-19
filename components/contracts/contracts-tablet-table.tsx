@@ -66,7 +66,7 @@ function getChecklistSummary(obj: unknown): ContractChecklistSummary | null {
   return {
     total,
     done,
-    missing: Math.min(total, Math.max(0, Number(summary.missing) || total - done)),
+    missing: Math.min(total, Math.max(0, Number(summary.missing) ?? (total - done))),
   };
 }
 
@@ -96,12 +96,14 @@ const TabletTableRow = memo(function TabletTableRow({
     <TR
       onClick={() => onView(c)}
       onMouseEnter={() => onHover?.(id)}
+      onPointerDown={() => onHover?.(id)}
       className={`h-16 group cursor-pointer ${isCancelled ? "opacity-50" : ""}`}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 64px" }}
     >
       <TD className="sticky left-0 z-10 w-[124px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-4 px-3 font-semibold text-text-main border-r border-border">
         <span className="block truncate">{getStr(c, "contract_code")}</span>
       </TD>
-      <TD className="w-[176px] py-4 px-3">
+      <TD className="w-[220px] py-4 px-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${serviceBadge.bg} ${serviceBadge.text}`}>
             {getInitials(customerName)}
@@ -119,7 +121,7 @@ const TabletTableRow = memo(function TabletTableRow({
           </div>
         </div>
       </TD>
-      <TD className="w-[148px] py-4 px-3 text-right">
+      <TD className="w-[170px] py-4 px-3 text-right">
         <div className="truncate font-semibold text-text-main">{fmt(getNum(c, "total_amount"))}</div>
         {remainingAmount > 0 ? (
           <div className="mt-1 truncate text-xs font-semibold text-error">Nợ {fmt(remainingAmount)}</div>
@@ -127,34 +129,54 @@ const TabletTableRow = memo(function TabletTableRow({
           <div className="mt-1 text-xs font-semibold text-success">Đầy đủ</div>
         )}
       </TD>
-      <TD className="w-[96px] py-4 px-2 text-center">
-        <div className="flex justify-center">
-          <MissingInfoBadge
-            summary={getChecklistSummary(c)}
-            items={getArr(c, "contract_checklists") as ContractChecklistForBadge[]}
-          />
-        </div>
+      <TD className="w-[238px] py-3 px-3">
+        <TabletStatusCell contract={c} status={status} />
       </TD>
-      <TD className="w-[92px] py-3 px-1.5">
-        <div className="max-w-[86px] scale-[0.92] origin-left">
-          <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
-        </div>
-      </TD>
-      <TD className="w-[104px] py-3 px-1.5">
-        <div className="max-w-[96px] truncate [&_.badge]:px-2 [&_.badge]:py-1 [&_.badge]:text-[10px]">
-          <Badge variant={getStatusVariant(status)} dot>
-            {getStatusLabel(status)}
-          </Badge>
-        </div>
-      </TD>
-      <TD className="sticky right-0 z-10 w-[56px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-3 px-2 text-center border-l border-border">
+      <TD className="sticky right-0 z-10 w-[48px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-3 px-2 text-center border-l border-border">
         <div className="inline-flex size-8 items-center justify-center rounded-md bg-bg-card text-text-secondary shadow-xs transition-all group-hover:bg-primary group-hover:text-white group-hover:shadow-sm">
           <ChevronRight className="size-4" />
         </div>
       </TD>
     </TR>
   );
-}, (prev, next) => prev.c === next.c);
+}, (prev, next) =>
+  prev.c.id === next.c.id &&
+  prev.c.status === next.c.status &&
+  prev.c.total_amount === next.c.total_amount &&
+  prev.c.remaining_amount === next.c.remaining_amount &&
+  prev.c.paid_amount === next.c.paid_amount &&
+  prev.c.contract_code === next.c.contract_code &&
+  prev.c.contract_date === next.c.contract_date &&
+  prev.c.service_type === next.c.service_type &&
+  prev.c.customers?.full_name === next.c.customers?.full_name
+);
+
+function TabletStatusCell({
+  contract,
+  status,
+}: {
+  contract: Contract;
+  status: ContractStatus;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="shrink-0">
+        <MissingInfoBadge
+          summary={getChecklistSummary(contract)}
+          items={getArr(contract, "contract_checklists") as ContractChecklistForBadge[]}
+        />
+      </div>
+      <div className="min-w-0 flex-1 overflow-hidden [&>div]:min-w-0">
+        <ProgressBadge tasks={getArr(contract, "work_tasks") as ProgressTask[]} />
+      </div>
+      <div className="shrink-0 max-w-[82px] truncate [&_.badge]:px-2 [&_.badge]:py-1 [&_.badge]:text-tiny">
+        <Badge variant={getStatusVariant(status)} dot>
+          {getStatusLabel(status)}
+        </Badge>
+      </div>
+    </div>
+  );
+}
 
 export const ContractsTabletTable = memo(function ContractsTabletTable({
   contracts,
@@ -170,16 +192,14 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   );
 
   return (
-    <TableWrapper className="min-w-[820px] table-fixed" containerClassName="rounded-xl">
+    <TableWrapper className="min-w-[800px] table-fixed" containerClassName="rounded-xl">
         <THead>
           <tr>
             <TH className="sticky left-0 z-20 w-[124px] bg-bg-sidebar border-r border-border px-3">Mã HĐ</TH>
-            <TH className="w-[176px] px-3">Khách hàng / Ngày ký</TH>
-            <TH className="w-[148px] px-3 text-right">Tổng cộng / Còn nợ</TH>
-            <TH className="w-[96px] px-2 text-center">Thông tin</TH>
-            <TH className="w-[92px] px-1.5">Tiến độ</TH>
-            <TH className="w-[104px] px-1.5">Trạng thái</TH>
-            <TH className="sticky right-0 z-20 w-[56px] bg-bg-sidebar text-center border-l border-border px-2">Đi</TH>
+            <TH className="w-[220px] px-3">Khách hàng / Ngày ký</TH>
+            <TH className="w-[170px] px-3 text-right">Tổng cộng / Còn nợ</TH>
+            <TH className="w-[238px] px-3">Tình trạng</TH>
+            <TH className="sticky right-0 z-20 w-[48px] bg-bg-sidebar text-center border-l border-border px-2">Đi</TH>
           </tr>
         </THead>
         <TBody>

@@ -84,7 +84,7 @@ function getChecklistSummary(
   return {
     total,
     done,
-    missing: Math.min(total, Math.max(0, Number(summary.missing) || total - done)),
+    missing: Math.min(total, Math.max(0, Number(summary.missing) ?? (total - done))),
   };
 }
 
@@ -111,6 +111,7 @@ const DesktopTableRow = memo(function DesktopTableRow({
     <TR
       onClick={() => onView(c)}
       onMouseEnter={() => onHover?.(id)}
+      onPointerDown={() => onHover?.(id)}
       className={isCancelled ? "opacity-50" : ""}
     >
       <TD>
@@ -169,7 +170,17 @@ const DesktopTableRow = memo(function DesktopTableRow({
       </TD>
     </TR>
   );
-}, (prev, next) => prev.c === next.c);
+}, (prev, next) =>
+  prev.c.id === next.c.id &&
+  prev.c.status === next.c.status &&
+  prev.c.total_amount === next.c.total_amount &&
+  prev.c.remaining_amount === next.c.remaining_amount &&
+  prev.c.paid_amount === next.c.paid_amount &&
+  prev.c.contract_code === next.c.contract_code &&
+  prev.c.contract_date === next.c.contract_date &&
+  prev.c.service_type === next.c.service_type &&
+  prev.c.customers?.full_name === next.c.customers?.full_name
+);
 
 const DesktopTable = memo(function DesktopTable({ contracts, onView, onHover }: ContractsTableProps) {
   return (
@@ -229,6 +240,7 @@ const MobileCardRow = memo(function MobileCardRow({
     <Button unstyled
       onClick={() => onView(c)}
       onPointerEnter={() => onHover?.(id)}
+      onPointerDown={() => onHover?.(id)}
       onFocus={() => onHover?.(id)}
       className={`card-base p-4 text-left transition-all active:scale-[0.99] entrance entrance-${Math.min(i + 1, 5)} ${isCancelled ? "opacity-50" : ""}`}
     >
@@ -289,7 +301,17 @@ const MobileCardRow = memo(function MobileCardRow({
       </div>
     </Button>
   );
-}, (prev, next) => prev.c === next.c);
+}, (prev, next) =>
+  prev.c.id === next.c.id &&
+  prev.c.status === next.c.status &&
+  prev.c.total_amount === next.c.total_amount &&
+  prev.c.remaining_amount === next.c.remaining_amount &&
+  prev.c.paid_amount === next.c.paid_amount &&
+  prev.c.contract_code === next.c.contract_code &&
+  prev.c.contract_date === next.c.contract_date &&
+  prev.c.service_type === next.c.service_type &&
+  prev.c.customers?.full_name === next.c.customers?.full_name
+);
 
 const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover }: ContractsTableProps) {
   return (

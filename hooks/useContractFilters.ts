@@ -14,7 +14,7 @@
  * ═══════════════════════════════════════════════════════════
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useListFilters } from "./useListFilters";
 
 // ── Filter state type (same as before) ───────────────────────
@@ -51,7 +51,7 @@ export function useContractFilters() {
   );
 
   // ── Computed (typed) filters — same shape as before ─────────
-  const filters = {
+  const filters = useMemo(() => ({
     status: params.status,
     search: params.q || params.search,
     time: params.time,
@@ -61,7 +61,18 @@ export function useContractFilters() {
     endDate: params.endDate,
     advanced: params.advanced === "true",
     page: Math.max(1, Number(params.page) || 1),
-  };
+  }), [
+    params.status,
+    params.q,
+    params.search,
+    params.time,
+    params.service,
+    params.sort,
+    params.startDate,
+    params.endDate,
+    params.advanced,
+    params.page,
+  ]);
 
   // ── Setters (same API as before) ─────────────────────────────
   const setStatus = useCallback(

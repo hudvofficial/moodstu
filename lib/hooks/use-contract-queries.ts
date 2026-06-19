@@ -14,6 +14,7 @@
 
 import { useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { createQueryOptions } from "@/lib/query-config";
 import type {
   ContractFilters,
   ContractStats,
@@ -183,9 +184,8 @@ export function useContracts(
       };
     },
     initialData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    placeholderData: (previousData) => previousData, // Keep previous data while loading (like SWR keepPreviousData)
+    placeholderData: (previousData) => previousData,
+    ...createQueryOptions("contracts"),
   });
 
   // Seed cache with initialData if provided (matches SWR behavior)
@@ -219,8 +219,7 @@ export function useContractStats(initialData?: ContractStats) {
       return result.data as ContractStats;
     },
     initialData,
-    staleTime: 5 * 60 * 1000, // 5 minutes (stats change slowly)
-    gcTime: 10 * 60 * 1000,
+    ...createQueryOptions("contracts"),
   });
 
   return {
@@ -258,9 +257,8 @@ export function useContractDetail(
     },
     enabled: !!id,
     initialData,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
     placeholderData: (previousData) => previousData,
+    ...createQueryOptions("contracts"),
   });
 
   // Seed cache with initialData if provided
@@ -312,7 +310,7 @@ export function useContractDrawerExtra(
     enabled: !!id,
     // Hiện NGAY từ list data (placeholder), fetch full ở nền rồi thay → KHÔNG skeleton (đúng "0ms drawer").
     placeholderData,
-    staleTime: 5 * 60 * 1000,
+    ...createQueryOptions("contracts"),
   });
 
   return {
@@ -588,12 +586,12 @@ export function prefetchContract(queryClient: any, id: string) {
   prefetchedDrawerExtras.add(id);
 
   queryClient.prefetchQuery({
+    ...createQueryOptions("contracts"),
     queryKey: contractKeys.drawerExtra(id),
     queryFn: async () => {
       const result = await fetchContractDrawerExtraClient(id);
       return result.data;
     },
-    staleTime: 5 * 60 * 1000,
   }).catch(() => {
     prefetchedDrawerExtras.delete(id);
   });
@@ -607,13 +605,13 @@ export function prefetchContractDetail(queryClient: any, id: string) {
   prefetchedContractDetails.add(id);
 
   queryClient.prefetchQuery({
+    ...createQueryOptions("contracts"),
     queryKey: contractKeys.detail(id),
     queryFn: async () => {
       const result = await getContractDetail(id);
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    staleTime: 5 * 60 * 1000,
   }).catch(() => {
     prefetchedContractDetails.delete(id);
   });
