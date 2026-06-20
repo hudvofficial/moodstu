@@ -7,6 +7,7 @@ interface TableWrapperProps {
   children: React.ReactNode;
   className?: string;
   containerClassName?: string;
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -16,14 +17,15 @@ interface TableWrapperProps {
 export function TableWrapper({
   children,
   className,
-  containerClassName
+  containerClassName,
+  scrollRef,
 }: TableWrapperProps) {
   return (
     <div className={cn(
       "card-base overflow-x-auto lg:flex lg:flex-col lg:flex-1 lg:min-h-0",
       containerClassName
     )}>
-      <div className="overflow-x-auto scrollbar-hide lg:overflow-y-auto lg:flex-1 lg:min-h-0">
+      <div ref={scrollRef} className="overflow-x-auto scrollbar-hide lg:overflow-y-auto lg:flex-1 lg:min-h-0">
         <table className={cn("w-full border-collapse text-left", className)}>
           {children}
         </table>

@@ -662,7 +662,7 @@ export default function ContractDetailClient({
     const message = "Không thể tải hợp đồng. Vui lòng thử lại.";
 
     return (
-      <div className="main-container max-w-2xl">
+      <div className="mx-auto w-full max-w-2xl px-4 md:px-6">
         <div className="card-base p-6 text-center space-y-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger">
             <AlertTriangle className="h-6 w-6" />
@@ -709,7 +709,14 @@ export default function ContractDetailClient({
   };
 
   return (
-    <div className="main-container max-lg:pb-24 max-w-7xl mx-auto">
+    // CONTAINER WIDTH (3-tier alignment - 20/06/2026):
+    //   phone (<768):              full
+    //   tablet 768-1023:           max-w-2xl + px-6
+    //   desktop 1024-1279:         max-w-5xl
+    //   large desktop 1280-1535:   max-w-7xl
+    //   ultra-wide >=1536:         max-w-[110rem]
+    // Shared with EDIT/CREATE via `.detail-shell-page`.
+    <div className="detail-shell-page flex flex-col gap-4 lg:gap-6 max-lg:pb-24">
       <TopActionBar
         contractId={contract.id}
         contractCode={contract.contract_code}

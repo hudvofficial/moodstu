@@ -6,6 +6,7 @@ export const metadata = {
 };
 
 export default function CreateContractPage() {
-  return <div className="max-w-5xl mx-auto"><ContractForm mode="create" /></div>;
+  // FullpageFormShell owns the responsive 3-tier container.
+  // Avoid a second max-width wrapper; it squeezes desktop sidebar layouts.
+  return <ContractForm mode="create" />;
 }
-

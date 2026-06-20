@@ -12,6 +12,7 @@ import MobileTabNav from "./mobile-tab-nav";
 import DriveGalleryBlock from "./drive-gallery-block";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { LazyLoad } from "@/components/ui/lazy-load";
+import { TwoColumnGrid } from "@/components/layout/fullpage-form-shell";
 import type {
   Contract,
   Payment,
@@ -108,111 +109,110 @@ export function DesktopLayout({
         contract={contract}
         events={contract.contract_events || []}
       />
-      <div className="detail-grid mt-6">
-        {/* LEFT COLUMN (67%) — Info + Events + Actions */}
-        <div className="detail-main">
-          {/* Thông tin hợp đồng (Stitch: merged info card) */}
-          <div className="card-base p-6">
-            <SummaryCard
-              contract={contract}
-              customer={contract.customers || null}
-              embedded
-            />
-            <div className="h-px bg-border/30 my-4" />
-            <CustomerInfoBlock
-              customer={contract.customers || null}
-              notes={contract.notes}
-              embedded
-              brideName={contract.customers?.bride_name}
-              groomName={contract.customers?.groom_name}
-              bridePhone={contract.customers?.bride_phone}
-              groomPhone={contract.customers?.groom_phone}
-              brideHeight={contract.customers?.bride_height}
-              brideWeight={contract.customers?.bride_weight}
-              brideShoeSize={contract.customers?.bride_shoe_size}
-              groomHeight={contract.customers?.groom_height}
-              groomWeight={contract.customers?.groom_weight}
-              groomShoeSize={contract.customers?.groom_shoe_size}
-            />
-          </div>
+      <TwoColumnGrid
+        className="mt-6"
+        rightPanel={
+          <>
+            <div className="pb-6">
+              <div data-section-payment className="flex flex-col gap-6">
+                <FinancialDashboard
+                  totalAmount={contract.total_amount}
+                  paidAmount={contract.paid_amount}
+                  remainingAmount={contract.remaining_amount}
+                  onPaymentClick={onPaymentClick}
+                  subtotal={contract.total_amount + (contract.discount_amount || 0)}
+                  discountAmount={contract.discount_amount}
+                  estimatedProfit={estimatedProfit}
+                  hrCost={hrCost > 0 ? hrCost : undefined}
+                  printingCost={printingCost > 0 ? printingCost : undefined}
+                />
 
-          {/* Lịch trình chi tiết */}
-          <EventTimeline
-            events={contract.contract_events || []}
-            tasks={contract.work_tasks || []}
-            activeEmployees={activeEmployees}
-            activeVendors={activeVendors}
-            onRefresh={refreshContract}
-            onTaskAdded={onTaskAdded}
-            onTaskDeleted={onTaskDeleted}
-            onTaskStatusChange={onTaskStatusChange}
-            onAddEvent={onAddEvent}
-            onEventDeleted={onEventDeleted}
-          />
+                <PaymentPlanCard
+                  paymentPlans={paymentPlans}
+                  onCollectPlan={(planId) => onCollectPlan?.(planId)}
+                />
 
-          {/* Thao tác nhanh */}
-          <QuickActionsGrid
-            onAction={onQuickAction}
-            paymentLabel={contract.remaining_amount > 0 ? "Thu tiền" : "Phát sinh"}
-          />
+                <PaymentReceiptsCard payments={payments} />
+              </div>
+            </div>
 
-          {/* Service Details */}
-          <ServiceDetailsBlock
-            items={contract.contract_items || []}
-            totalAmount={contract.total_amount}
-            discountAmount={contract.discount_amount}
-          />
+            <div id="section-drive">
+              <LazyLoad fallback={<SkeletonCard className="h-64" />}>
+                <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+              </LazyLoad>
+            </div>
 
-          {/* Trang phục */}
-          <CostumesBlock reservations={reservations} contractId={contract.id} onStatusChange={onMuteRealtime} onAdd={() => onQuickAction("costume")} />
-
-          {/* In ấn */}
-          <PrintOrdersBlock
-            orders={printOrders}
-            contractId={contract.id}
-            customerName={contract.customers?.full_name}
-            contractCode={contract.contract_code}
-            remainingAmount={contract.remaining_amount}
-            onStatusChange={onMuteRealtime}
-            onAdd={() => onQuickAction("print")}
-          />
-        </div>
-
-        {/* RIGHT COLUMN (33%) — Finance + Sidebar */}
-        <div className="detail-sidebar">
-          <div data-section-payment className="flex flex-col gap-6">
-            <FinancialDashboard
-              totalAmount={contract.total_amount}
-              paidAmount={contract.paid_amount}
-              remainingAmount={contract.remaining_amount}
-              onPaymentClick={onPaymentClick}
-              subtotal={contract.total_amount + (contract.discount_amount || 0)}
-              discountAmount={contract.discount_amount}
-              estimatedProfit={estimatedProfit}
-              hrCost={hrCost > 0 ? hrCost : undefined}
-              printingCost={printingCost > 0 ? printingCost : undefined}
-            />
-
-            <PaymentPlanCard
-              paymentPlans={paymentPlans}
-              onCollectPlan={(planId) => onCollectPlan?.(planId)}
-            />
-
-            <PaymentReceiptsCard payments={payments} />
-          </div>
-
-          {/* ⚡ Lazy load gallery when scrolled into view */}
-          <div id="section-drive">
             <LazyLoad fallback={<SkeletonCard className="h-64" />}>
-              <DriveGalleryBlock contractId={contract.id} initialGalleries={initialGalleries} />
+              <NotesTimeline contractId={contract.id} />
             </LazyLoad>
-          </div>
-
-          <LazyLoad fallback={<SkeletonCard className="h-64" />}>
-            <NotesTimeline contractId={contract.id} />
-          </LazyLoad>
+          </>
+        }
+      >
+        <div className="card-base p-6">
+          <SummaryCard
+            contract={contract}
+            customer={contract.customers || null}
+            embedded
+          />
+          <div className="h-px bg-border/30 my-4" />
+          <CustomerInfoBlock
+            customer={contract.customers || null}
+            notes={contract.notes}
+            embedded
+            brideName={contract.customers?.bride_name}
+            groomName={contract.customers?.groom_name}
+            bridePhone={contract.customers?.bride_phone}
+            groomPhone={contract.customers?.groom_phone}
+            brideHeight={contract.customers?.bride_height}
+            brideWeight={contract.customers?.bride_weight}
+            brideShoeSize={contract.customers?.bride_shoe_size}
+            groomHeight={contract.customers?.groom_height}
+            groomWeight={contract.customers?.groom_weight}
+            groomShoeSize={contract.customers?.groom_shoe_size}
+          />
         </div>
-      </div>
+
+        <EventTimeline
+          events={contract.contract_events || []}
+          tasks={contract.work_tasks || []}
+          activeEmployees={activeEmployees}
+          activeVendors={activeVendors}
+          onRefresh={refreshContract}
+          onTaskAdded={onTaskAdded}
+          onTaskDeleted={onTaskDeleted}
+          onTaskStatusChange={onTaskStatusChange}
+          onAddEvent={onAddEvent}
+          onEventDeleted={onEventDeleted}
+        />
+
+        <QuickActionsGrid
+          onAction={onQuickAction}
+          paymentLabel={contract.remaining_amount > 0 ? "Thu tiền" : "Phát sinh"}
+        />
+
+        <ServiceDetailsBlock
+          items={contract.contract_items || []}
+          totalAmount={contract.total_amount}
+          discountAmount={contract.discount_amount}
+        />
+
+        <CostumesBlock
+          reservations={reservations}
+          contractId={contract.id}
+          onStatusChange={onMuteRealtime}
+          onAdd={() => onQuickAction("costume")}
+        />
+
+        <PrintOrdersBlock
+          orders={printOrders}
+          contractId={contract.id}
+          customerName={contract.customers?.full_name}
+          contractCode={contract.contract_code}
+          remainingAmount={contract.remaining_amount}
+          onStatusChange={onMuteRealtime}
+          onAdd={() => onQuickAction("print")}
+        />
+      </TwoColumnGrid>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ResponsiveContainer as RechartsResponsiveContainer } from "recharts";
 
 interface SafeResponsiveContainerProps {
@@ -14,22 +14,21 @@ export function SafeResponsiveContainer({
   height = "100%",
   children,
 }: SafeResponsiveContainerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-        setIsMounted(true);
+    // Defer setState to avoid synchronous call within effect body
+    const frameId = window.requestAnimationFrame(() => {
+      setIsMounted(true);
+    });
 
     return () => {
-      setIsMounted(false);
+      window.cancelAnimationFrame(frameId);
     };
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width, height }}>
+    <div style={{ width, height }}>
       {isMounted && (
         <RechartsResponsiveContainer width="100%" height="100%">
           {children}

@@ -1,6 +1,7 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef, useState, useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronRight, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -98,7 +99,6 @@ const TabletTableRow = memo(function TabletTableRow({
       onMouseEnter={() => onHover?.(id)}
       onPointerDown={() => onHover?.(id)}
       className={`h-16 group cursor-pointer ${isCancelled ? "opacity-50" : ""}`}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 64px" }}
     >
       <TD className="sticky left-0 z-10 w-[124px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-4 px-3 font-semibold text-text-main border-r border-border">
         <span className="block truncate">{getStr(c, "contract_code")}</span>
@@ -183,6 +183,30 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   onView,
   onHover,
 }: ContractsTabletTableProps) {
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Ref được gắn sau khi component mount
+    if (tableContainerRef.current) {
+      setMounted(true);
+    }
+  }, []);
+
+  const virtualizer = useVirtualizer({
+    count: contracts.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 64,
+    overscan: 5,
+  });
+
+  // KEY: force re-measure khi mounted
+  useEffect(() => {
+    if (mounted) {
+      virtualizer.measure();
+    }
+  }, [mounted]);
+
   if (contracts.length === 0) return (
     <EmptyState
       icon={FileText}
@@ -191,8 +215,14 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
     />
   );
 
+  const items = virtualizer.getVirtualItems();
+
   return (
-    <TableWrapper className="min-w-[800px] table-fixed" containerClassName="rounded-xl">
+    <TableWrapper
+      scrollRef={tableContainerRef}
+      className="min-w-[800px] table-fixed"
+      containerClassName="rounded-xl"
+    >
         <THead>
           <tr>
             <TH className="sticky left-0 z-20 w-[124px] bg-bg-sidebar border-r border-border px-3">Mã HĐ</TH>
@@ -203,14 +233,14 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
           </tr>
         </THead>
         <TBody>
-          {contracts.map((contract) => (
-            <TabletTableRow
-              key={getStr(contract, "id")}
-              c={contract}
-              onView={onView}
-              onHover={onHover}
-            />
-          ))}
+          {items[0]?.start > 0 && <tr><td style={{ height: items[0].start }} /></tr>}
+          {items.map((virtualRow) => {
+            const contract = contracts[virtualRow.index];
+            return <TabletTableRow key={virtualRow.key} c={contract} onView={onView} onHover={onHover} />;
+          })}
+          {items[items.length - 1]?.end < virtualizer.getTotalSize() && (
+            <tr><td style={{ height: virtualizer.getTotalSize() - (items[items.length - 1]?.end ?? 0) }} /></tr>
+          )}
         </TBody>
       </TableWrapper>
   );

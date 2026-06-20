@@ -73,20 +73,93 @@
   gap: var(--spacing-lg, 24px);
 }
 
-/* Desktop: grid 12 cột (≥1024px) */
+/* Desktop (1024-1279px): 10-col grid, 6/4 ratio - khop voi form shell lg: */
 @media (min-width: 1024px) {
   .detail-grid {
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: var(--spacing-lg, 24px);
   }
   .detail-main {
-    grid-column: span 8 / span 8;
+    grid-column: span 6 / span 6;
   }
   .detail-sidebar {
     display: flex;
     grid-column: span 4 / span 4;
   }
 }
+
+/* Large desktop (1280px+): 12-col grid, 8/4 ratio - khop voi form shell xl: */
+@media (min-width: 1280px) {
+  .detail-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--spacing-xl, 32px);
+  }
+  .detail-main {
+    grid-column: span 8 / span 8;
+  }
+}
+
+/* ══════════════════════════════════════
+   2b. DETAIL SHELL PAGE (3-tier)
+   Wrapper chung cho DETAIL / EDIT / CREATE forms
+   Max-width theo 3-tier: full / 672 / 1024 / 1280 / 1760
+   Mobile-first: full-width; tablet (>=768) tro len thi center + cap width
+   ══════════════════════════════════════ */
+
+.detail-shell-page {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Tablet (768-1023px): 1-col form - cap 672px cho readability */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .detail-shell-page {
+    max-width: 42rem; /* 672px */
+    padding-left: var(--spacing-lg, 1.5rem);
+    padding-right: var(--spacing-lg, 1.5rem);
+  }
+}
+
+/* Desktop (1024-1279px): 2-col layout - cap 1024px */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .detail-shell-page {
+    max-width: 64rem; /* 1024px */
+  }
+}
+
+/* Large desktop (1280-1535px): cap 1280px */
+@media (min-width: 1280px) and (max-width: 1535.98px) {
+  .detail-shell-page {
+    max-width: 80rem; /* 1280px */
+  }
+}
+
+/* Ultra-wide (>=1536px): cap 1760px */
+@media (min-width: 1536px) {
+  .detail-shell-page {
+    max-width: 110rem; /* 1760px */
+  }
+}
+
+/* ══════════════════════════════════════
+   2c. DETAIL SIDEBAR STICKY (3-tier)
+   Modifier class để pin sidebar khi scroll content dài.
+   Offset bằng header-desktop-h để không che bởi header.
+   Chỉ apply ở ≥1024px (desktop) — mobile/tablet thì sidebar 1-col.
+   ══════════════════════════════════════ */
+
+@media (min-width: 1024px) {
+  .detail-sidebar-sticky {
+    position: sticky;
+    top: var(--header-desktop-h, 4rem);
+    align-self: start;
+    /* Smooth scroll theo header offset */
+    transition: top 200ms ease-out;
+  }
+}
+
 
 /* ══════════════════════════════════════
    3. INTERACTION STATES

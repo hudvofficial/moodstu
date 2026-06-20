@@ -37,22 +37,23 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
         <h3 className="form-section-heading">
           4. Tổng kết tài chính
         </h3>
-        {/* Financial rows — right-aligned per Stitch */}
+        {/* Financial rows — right-aligned, all values use whitespace-nowrap + tabular-nums
+            để số tiền dài (vd "8.900.000 VND") không bị wrap khi sidebar thu hẹp. */}
         <div className="space-y-4">
         {/* Subtotal */}
-        <div className="flex items-center justify-between">
-          <span className="text-body-sm text-text-secondary">Tạm tính</span>
-          <span className="text-body-sm font-medium text-text-primary">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-body-sm text-text-secondary shrink-0">Tạm tính</span>
+          <span className="text-body-sm font-medium text-text-primary whitespace-nowrap tabular-nums">
             {formatCurrency(subtotal)} {CURRENCY_SYMBOL}
           </span>
         </div>
 
         {/* Discount with VND/% toggle */}
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-body-sm text-text-secondary">Giảm giá</span>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+            <span className="text-body-sm text-text-secondary shrink-0">Giảm giá</span>
             {/* Toggle VND / % */}
-            <div className="flex overflow-hidden rounded-md bg-neutral-100 p-0.5">
+            <div className="flex overflow-hidden rounded-md bg-neutral-100 p-0.5 shrink-0">
               <Button unstyled
                 type="button"
                 onClick={() => { setDiscountType("fixed"); updateDiscount(0); }}
@@ -77,13 +78,13 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
               </Button>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <span className="text-body-sm text-text-muted">−</span>
             {discountType === "fixed" ? (
               <CurrencyInput
                 value={discount}
                 onChange={updateDiscount}
-                className="w-40 py-1"
+                className="w-32 py-1"
               />
             ) : (
               <>
@@ -94,7 +95,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
                   value={discount || ""}
                   onChange={(e) => updateDiscount(Number(e.target.value) || 0)}
                   placeholder="0"
-                  className="input-base w-32 px-2 py-1 text-right"
+                  className="input-base w-24 px-2 py-1 text-right"
                 />
                 <span className="text-body-sm text-text-muted">%</span>
               </>
@@ -105,7 +106,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
         {/* Show actual discount amount when using % */}
         {discountType === "percent" && discount > 0 && (
           <div className="mt-1 text-right">
-            <span className="text-caption text-text-muted">
+            <span className="text-caption text-text-muted whitespace-nowrap tabular-nums">
               = {formatCurrency(discountAmount)} {CURRENCY_SYMBOL}
             </span>
           </div>
@@ -115,9 +116,9 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
         <div className="my-2 h-px bg-border/30" />
 
         {/* Total — emphasized */}
-        <div className="flex items-center justify-between">
-          <span className="text-body font-bold text-text-primary">Tổng thanh toán</span>
-          <span className="text-amount text-interactive">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-body font-bold text-text-primary shrink-0">Tổng thanh toán</span>
+          <span className="text-amount text-interactive whitespace-nowrap tabular-nums">
             {formatCurrency(totalAmount)} {CURRENCY_SYMBOL}
           </span>
         </div>
@@ -126,10 +127,10 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
         {(isEditMode || paidAmount > 0) && (
           <div className="mt-3 space-y-2">
             <Row label="Đã thanh toán" value={paidAmount} className="text-success" />
-            <div className="flex items-center justify-between">
-              <span className="text-body-sm font-medium text-text-secondary">Còn lại</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-body-sm font-medium text-text-secondary shrink-0">Còn lại</span>
               <span
-                className={`text-body-sm font-bold ${
+                className={`text-body-sm font-bold whitespace-nowrap tabular-nums ${
                   remainingAmount <= 0 ? "text-success" : "text-warning"
                 }`}
               >
@@ -138,7 +139,7 @@ export function ContractFinancialSummary({ financials, isEditMode }: Props) {
             </div>
           </div>
         )}
-        </div>{/* close max-w-sm */}
+        </div>{/* close financial rows */}
       </div>
     </section>
   );
@@ -155,9 +156,9 @@ function Row({
   className?: string;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-body-sm text-text-secondary">{label}</span>
-      <span className={`text-body-sm font-medium text-text-primary ${className}`}>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-body-sm text-text-secondary shrink-0">{label}</span>
+      <span className={`text-body-sm font-medium text-text-primary whitespace-nowrap tabular-nums ${className}`}>
         {formatCurrency(value)} {CURRENCY_SYMBOL}
       </span>
     </div>

@@ -409,7 +409,7 @@ export default function PrintingDetailDrawer({
               <h2 className="mb-1.5 flex flex-wrap items-center gap-2 text-xl font-semibold text-text-main">
                 {order ? "Chi tiết lệnh in" : "Tạo đơn in mới"}
                 {order && (
-                  <Badge variant={PRINTING_STATUS_VARIANTS[order.status]} className="shrink-0 text-[11px] font-bold uppercase tracking-wide shadow-sm">
+                  <Badge variant={PRINTING_STATUS_VARIANTS[order.status]} className="shrink-0 text-xs font-bold uppercase tracking-wide shadow-sm">
                     {PRINTING_STATUS_LABELS[order.status]}
                   </Badge>
                 )}
@@ -451,7 +451,7 @@ export default function PrintingDetailDrawer({
               </div>
             )}
 
-            <section className="rounded-2xl border border-border/70 bg-white p-5 shadow-[0_8px_28px_-18px_rgba(61,43,31,0.45)]">
+            <section className="rounded-2xl border border-border/70 bg-white p-5 shadow-lg">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-text-main">
                   <span className="h-4 w-1 rounded-full bg-primary/35" />
@@ -527,11 +527,11 @@ export default function PrintingDetailDrawer({
                 {form.items.map((item, index) => (
                   <div
                     key={item.tempId}
-                    className="group relative space-y-4 rounded-2xl border border-border/70 bg-white p-5 shadow-[0_8px_28px_-20px_rgba(61,43,31,0.45)] transition-all hover:border-primary/25 hover:shadow-md"
+                    className="group relative space-y-4 rounded-2xl border border-border/70 bg-white p-5 shadow-lg transition-all hover:border-primary/25 hover:shadow-md"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h4 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-text-main">
-                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#eee6dc] text-xs font-bold text-text-secondary">
+                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-text-secondary">
                           {index + 1}
                         </span>
                         <span className="truncate">{item.name || "Hạng mục mới"}</span>
@@ -635,11 +635,11 @@ export default function PrintingDetailDrawer({
             )}
           </div>
 
-          <div className="sticky -bottom-6 -mx-6 -mb-6 mt-6 border-t border-border bg-bg-base/95 px-6 py-4 shadow-[0_-8px_28px_-18px_rgba(61,43,31,0.35)] backdrop-blur-md">
+          <div className="sticky -bottom-6 -mx-6 -mb-6 mt-6 border-t border-border bg-bg-base/95 px-6 py-4 shadow-lg backdrop-blur-md">
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-[0_8px_28px_-18px_rgba(61,43,31,0.45)]">
+              <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-lg">
                 <div>
-                  <p className="text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-text-muted">
+                  <p className="text-xs font-bold uppercase leading-none tracking-wider text-text-muted">
                     Tổng chi phí tạm tính
                   </p>
                   <p className="mt-1 text-2xl font-bold leading-tight text-text-main">
@@ -648,7 +648,7 @@ export default function PrintingDetailDrawer({
                 </div>
                 {paymentSummary && paymentSummary.remaining > 0 && (
                   <div className="rounded-2xl bg-warning/10 px-3 py-2 text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-warning">Còn lại</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-warning">Còn lại</p>
                     <p className="text-sm font-bold text-warning">{formatCurrency(paymentSummary.remaining)}</p>
                   </div>
                 )}

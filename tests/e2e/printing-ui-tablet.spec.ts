@@ -135,19 +135,37 @@ async function seedUser(admin: AdminClient, seed: SeedState) {
     is_manual_date: true,
   });
 
-  await admin.from("printing_orders").insert({
-    contract_id: seed.contractId,
-    order_code: `PO-${seed.marker.slice(-6)}`,
-    status: "cho_xu_ly",
-    payment_status: "unpaid",
-    total_amount: 362500,
-    expected_date: "2026-07-08",
-    items: [
-      { name: "Album 20x30", quantity: 1, unitPrice: 250000 },
-      { name: "Ảnh cổng 60x90", quantity: 1, unitPrice: 112500 },
-    ],
-    notes: "Đơn test iPad UI",
+  const { data: printingData, error: printingError } = await admin.rpc("create_printing_order_atomic", {
+    p_order: {
+      contractId: seed.contractId,
+      labId: null,
+      items: [
+        { name: "Album 20x30", quantity: 1, unitPrice: 250000 },
+        { name: "Ảnh cổng 60x90", quantity: 1, unitPrice: 112500 },
+      ],
+      notes: "Đơn test iPad UI",
+      expectedDate: "2026-07-08",
+    },
+    p_actor_id: seed.userId,
   });
+
+  if (printingError) {
+    throw new Error(`printing order: ${printingError.message}`);
+  }
+
+  // Verify items were persisted correctly
+  const orderId = (printingData as any)?.order_id;
+  if (orderId) {
+    const { data: verifyOrder } = await admin
+      .from("printing_orders")
+      .select("id, items")
+      .eq("id", orderId)
+      .single();
+    
+    if (!verifyOrder?.items || (Array.isArray(verifyOrder.items) && verifyOrder.items.length === 0)) {
+      throw new Error(`Items not persisted: ${JSON.stringify(verifyOrder)}`);
+    }
+  }
 }
 
 async function cleanupSeed(admin: AdminClient, seed: SeedState) {

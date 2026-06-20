@@ -34,12 +34,28 @@ export function useScrollDirection({
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
+    let visibilityFrameId: number | null = null;
+    
+    // Defer setState to avoid synchronous call within effect body
+    const syncVisibility = (nextVisible: boolean) => {
+      if (visibilityFrameId !== null) {
+        window.cancelAnimationFrame(visibilityFrameId);
+      }
+
+      visibilityFrameId = window.requestAnimationFrame(() => {
+        setIsVisible(nextVisible);
+        visibilityFrameId = null;
+      });
+    };
+
     // Reset layout on route change or when disabled
     if (disabled || !headerRef?.current) {
       document.documentElement.style.setProperty('--header-translate-y', '0px');
       document.documentElement.style.setProperty('--header-transition', 'transform 0.3s ease-out');
-      setIsVisible(true);
-      return;
+      syncVisibility(true);
+      return () => {
+        if (visibilityFrameId !== null) window.cancelAnimationFrame(visibilityFrameId);
+      };
     }
 
     const header = headerRef.current;
@@ -58,7 +74,7 @@ export function useScrollDirection({
     // Reset initial state
     document.documentElement.style.setProperty('--header-translate-y', '0px');
     document.documentElement.style.setProperty('--header-transition', 'none');
-    setIsVisible(true);
+    syncVisibility(true);
 
     const handleTouchStart = () => { isTouchDown = true; };
     const handleTouchEnd = () => {
@@ -81,10 +97,10 @@ export function useScrollDirection({
         document.documentElement.style.setProperty('--header-transition', 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)');
         document.documentElement.style.setProperty('--header-translate-y', `${currentTranslateY}px`);
         
-        setIsVisible(!shouldHide);
+        syncVisibility(!shouldHide);
       } else {
         // We are already at a boundary, just ensure state is sync
-        setIsVisible(currentTranslateY === 0);
+        syncVisibility(currentTranslateY === 0);
       }
     };
 
@@ -142,6 +158,7 @@ export function useScrollDirection({
       target.removeEventListener("touchstart", handleTouchStart);
       target.removeEventListener("touchend", handleTouchEnd);
       if (scrollTimeout) clearTimeout(scrollTimeout);
+      if (visibilityFrameId !== null) window.cancelAnimationFrame(visibilityFrameId);
     };
   }, [threshold, containerRef, headerRef, resetKey, disabled]);
 
