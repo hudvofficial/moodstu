@@ -95,6 +95,10 @@ export async function updateSession(request: NextRequest) {
     "/icon.png",
     "/apple-icon.png",
     "/icons/",
+    // DEV-only E2E helper — allows Playwright tests to mint a session
+    // via /api/e2e/login without first authenticating through /login.
+    // Production builds get a 404 from the route itself (see route.ts).
+    "/api/e2e/",
   ];
   const pathname = request.nextUrl.pathname;
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));

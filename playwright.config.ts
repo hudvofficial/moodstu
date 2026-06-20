@@ -27,7 +27,7 @@ function loadEnvFile(filePath: string) {
 
 loadEnvFile(path.join(process.cwd(), ".env.local"));
 
-const defaultBaseURL = "http://127.0.0.1:3100";
+const defaultBaseURL = "http://127.0.0.1:3000";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || defaultBaseURL;
 const shouldStartWebServer =
   process.env.PLAYWRIGHT_SKIP_WEB_SERVER !== "1" &&
@@ -35,6 +35,8 @@ const shouldStartWebServer =
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./playwright/global-setup.ts",
+  globalTeardown: "./playwright/global-teardown.ts",
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
@@ -60,7 +62,7 @@ export default defineConfig({
       retries: 1,
       use: {
         ...devices["iPad (gen 7) landscape"],
-        viewport: { width: 820, height: 1180 },
+        viewport: { width: 768, height: 1180 },
         deviceScaleFactor: 2,
       },
     },
