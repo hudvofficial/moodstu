@@ -70,28 +70,69 @@ export async function toggleImageSelection(
   }
 }
 
-export async function toggleImageStar(imageId: string, starred: boolean) {
+export async function toggleImageStar(
+  imageId: string,
+  starred: boolean,
+  accessUrl?: string,
+  accessToken?: string,
+) {
   try {
-    const supabase = await createAdminClient();
+    if (!imageId || !isValidUUID(imageId)) {
+      return { success: false as const, error: "ID anh khong hop le." };
+    }
 
-    const { error } = await supabase
-      .from("gallery_images")
-      .update({
-        is_starred: starred,
-        starred_at: starred ? new Date().toISOString() : null,
-      })
-      .eq("id", imageId);
+    // Public token path: client thong qua gallery share link
+    if (accessUrl || accessToken) {
+      const supabase = await createAdminClient();
+      await requirePublicGalleryImageAccess(
+        supabase,
+        accessUrl || "",
+        accessToken || "",
+        imageId,
+      );
+      const { error } = await supabase
+        .from("gallery_images")
+        .update({
+          is_starred: starred,
+          starred_at: starred ? new Date().toISOString() : null,
+        })
+        .eq("id", imageId);
 
-    if (error) {
-      console.error("toggleImageStar update error:", error);
-      return { success: false, error: "Khong the cap nhat trang thai anh." };
+      if (error) {
+        console.error("toggleImageStar update error:", error);
+        return { success: false as const, error: "Khong the cap nhat trang thai anh." };
+      }
+
+      return { success: true as const };
+    }
+
+    // Admin path: phai co contract access moi duoc star
+    const result = await withAuth(async (supabase, userId) => {
+      await requireContractAccess(supabase, userId);
+      const { error } = await supabase
+        .from("gallery_images")
+        .update({
+          is_starred: starred,
+          starred_at: starred ? new Date().toISOString() : null,
+        })
+        .eq("id", imageId);
+
+      if (error) {
+        throw new Error(`Loi cap nhat: ${error.message}`);
+      }
+
+      return null;
+    });
+
+    if (!result.success) {
+      return { success: false as const, error: result.error };
     }
 
     revalidatePath("/admin/contracts/[id]", "page");
-    return { success: true };
+    return { success: true as const };
   } catch (error) {
     console.error("toggleImageStar exception:", error);
-    return { success: false, error: "Da co loi xay ra." };
+    return { success: false as const, error: "Da co loi xay ra." };
   }
 }
 
@@ -141,7 +182,8 @@ export async function updateGalleryImageNote(
   imageId: string,
   note: string,
 ) {
-  const sanitizedNote = note ? note.trim().slice(0, MAX_NOTE_LENGTH) : null;
+  const trimmed = note?.trim();
+  const sanitizedNote = trimmed ? trimmed.slice(0, MAX_NOTE_LENGTH) : null;
   const { error } = await supabase
     .from("gallery_images")
     .update({ client_note: sanitizedNote })

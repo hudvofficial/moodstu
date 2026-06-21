@@ -6,6 +6,17 @@ import { TOAST_MESSAGES } from "@/lib/toast-messages";
 // Shared between admin and customer downloads
 // ═══════════════════════════════════════════
 
+// iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
+// Used to pick the iOS-friendly download path BEFORE async work,
+// because iOS Safari user-gesture token expires after ~1s.
+const detectIOS = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+};
+
 export interface DownloadOptions {
   /**
    * Maximum number of retry attempts (default: 3)
@@ -65,13 +76,45 @@ export async function downloadSingleImage(
     toastId = toast.loading(TOAST_MESSAGES.GALLERY.DOWNLOAD_START);
   }
 
+  // ─── iOS Safari path (MUST run BEFORE any heavy async) ────────────────
+  // iOS Safari user-gesture token expires ~1s. The blob path (below) does
+  // 4 sequential awaits before link.click() → token gone → iOS blocks it.
+  // Workaround: open the direct Drive URL in a new tab using window.open()
+  // after only ONE await (the JSON lookup). The user can then long-press
+  // the image → "Lưu hình ảnh" to save to Photos.
+  if (detectIOS()) {
+    try {
+      const lookupUrl = `/api/gallery-download/${accessToken}/${imageId}`;
+      const response = await fetch(lookupUrl);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) {
+          // window.open() với "noopener,noreferrer" LUÔN trả null theo HTML spec,
+          // nên không thể check newWindow để coi là fail. Tab vẫn mở → return true.
+          window.open(data.url, "_blank", "noopener,noreferrer");
+          if (showToast && toastId) {
+            toast.success(
+              successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName),
+              { id: toastId }
+            );
+          }
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error("[downloadSingleImage][ios] Error:", error);
+      // Fall through to retry loop below
+    }
+    // If iOS path failed, fall through to retry loop
+  }
+
   let lastError: Error | null = null;
 
   // Retry loop
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Try blob method first (works on iOS Safari!)
-      const success = await attemptDownloadViaBlob(accessToken, imageId);
+      const success = await attemptDownloadViaBlob(accessToken, imageId, fileName);
 
       if (success) {
         // Success!
@@ -101,7 +144,7 @@ export async function downloadSingleImage(
 
   // All retries failed - try fallback method
   try {
-    const fallbackSuccess = await attemptDownloadViaWindowOpen(accessToken, imageId);
+    const fallbackSuccess = await attemptDownloadViaWindowOpen(accessToken, imageId, fileName);
     if (fallbackSuccess) {
       if (showToast && toastId) {
         toast.success(successMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_SUCCESS(fileName), { id: toastId });
@@ -126,10 +169,15 @@ export async function downloadSingleImage(
 /**
  * Attempt download using blob + <a> tag method
  * This works reliably on iOS Safari (same as admin method)
+ *
+ * NOTE: iOS Safari user-gesture token expires ~1s. We still keep this path
+ * for non-iOS / fallback; on iOS we use a separate synchronous path
+ * (see downloadSingleImage → detectIOS branch).
  */
 async function attemptDownloadViaBlob(
   accessToken: string,
-  imageId: string
+  imageId: string,
+  fileName?: string
 ): Promise<boolean> {
   try {
     const url = `/api/gallery-download/${accessToken}/${imageId}`;
@@ -153,7 +201,9 @@ async function attemptDownloadViaBlob(
     // Create temporary <a> tag and trigger download
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = ""; // Filename from Content-Disposition header
+    // Use provided fileName so iOS/Android show correct name; fall back to ""
+    // (server Content-Disposition header still controls final name if blank)
+    link.download = fileName || "";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -213,30 +263,27 @@ function attemptDownloadViaIframe(
 /**
  * Fallback download method using window.open
  * Opens download in new tab/window
+ *
+ * NOTE: window.open() called after an `await` is always blocked by the
+ * browser's popup blocker (gesture token already spent). The iOS path is
+ * handled separately at the top of downloadSingleImage via a dedicated
+ * branch. For non-iOS we rely on the blob download path above, so this
+ * fallback now short-circuits to `false` and lets the caller surface
+ * the proper error toast.
  */
 function attemptDownloadViaWindowOpen(
   accessToken: string,
-  imageId: string
+  imageId: string,
+  fileName?: string
 ): Promise<boolean> {
   return new Promise((resolve) => {
-    try {
-      const url = `/api/gallery-download/${accessToken}/${imageId}`;
-      fetch(url)
-        .then((res) => res.json())
-        .then((data) => {
-          if (!data.url) throw new Error("No direct URL returned");
-          const newWindow = window.open(data.url, "_blank", "noopener,noreferrer");
-          resolve(!!newWindow);
-        })
-        .catch((error) => {
-          console.error("[downloadSingleImage] window.open error:", error);
-          resolve(false);
-        });
-
-    } catch (error) {
-      console.error("[downloadSingleImage] window.open error:", error);
-      resolve(false);
-    }
+    // Intentionally a no-op: see note above.
+    // `fileName` and `accessToken`/`imageId` are kept in the signature
+    // for API stability and to avoid breaking any future call site.
+    void accessToken;
+    void imageId;
+    void fileName;
+    resolve(false);
   });
 }
 

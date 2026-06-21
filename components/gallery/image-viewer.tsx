@@ -1,11 +1,13 @@
 "use client";
 
-import type { MouseEvent, TouchEvent } from "react";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Download, Heart, X } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { ChevronLeft, ChevronRight, Download, Heart, X, CircleCheck, Printer, MessageSquare } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
+import { MAX_NOTE_LENGTH } from "@/types/gallery";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { downloadSingleImage } from "@/lib/gallery-download";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider (Public)
@@ -18,7 +20,13 @@ interface ImageViewerProps {
   onClose: () => void;
   onIndexChange: (index: number) => void;
   onToggleStar: (imageId: string) => void;
-  onSaveNote: (imageId: string, note: string) => void;
+  onToggleReaction?: (imageId: string) => void;
+  isReacted?: boolean;
+  onSaveNote?: (imageId: string, note: string) => void;
+  /**
+   * Pre-fill note hiện tại của ảnh. Nếu không truyền thì fallback về `img.client_note`.
+   */
+  clientNote?: string | null;
   mode?: "select" | "view";
   accessToken?: string;
   totalImagesCount?: number;
@@ -48,17 +56,44 @@ function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?
   return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w` };
 }
 
+// iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
+// Local copy từ lib/gallery-download.ts pattern — chỉ check tại runtime
+// trong handleLongPress, không lưu vào state để tránh hydration mismatch.
+function detectIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export default function ImageViewer({
   images,
   currentIndex,
   onClose,
   onIndexChange,
   onToggleStar,
+  onToggleReaction,
+  isReacted = false,
+  onSaveNote,
+  clientNote,
   mode = "select",
   accessToken = "admin",
   totalImagesCount,
 }: ImageViewerProps) {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [longPressActive, setLongPressActive] = useState(false);
+
+  // ── Note panel state ──────────────────────────────────────────────────────
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState<string>("");
+  const [savingNote, setSavingNote] = useState(false);
+  const [currentNote, setCurrentNote] = useState<string | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editingImageIdRef = useRef<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartTimeRef = useRef<number>(0);
 
   const currentIdx = currentIndex;
   const setCurrentIdx = onIndexChange;
@@ -76,7 +111,7 @@ export default function ImageViewer({
     } catch {}
   }
 
-  const showDownloadButton = img?.drive_file_id && (accessToken === "admin" || clientCapability !== "view");
+  const showDownloadButton = Boolean(img?.drive_file_id && (accessToken === "admin" || clientCapability !== "view"));
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -107,88 +142,169 @@ export default function ImageViewer({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (noteOpen) {
+          setNoteOpen(false);
+        } else {
+          onClose();
+        }
+      }
       if (e.key === "ArrowLeft") setCurrentIdx(Math.max(0, currentIdx - 1));
       if (e.key === "ArrowRight") setCurrentIdx(Math.min(images.length - 1, currentIdx + 1));
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIdx, images.length, onClose, setCurrentIdx]);
+  }, [currentIdx, images.length, onClose, setCurrentIdx, noteOpen]);
+
+  // ── Sync noteText khi user chuyển ảnh ─────────────────────────────────────
+  // Chỉ sync khi image ID thay đổi (không phải khi server note thay đổi)
+  // để tránh ghi đè typing của user.
+  // Đây là use case hợp lệ: image thay đổi từ prop bên ngoài, cần sync local state.
+  useEffect(() => {
+    if (!img) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNoteText("");
+      setCurrentNote(null);
+      editingImageIdRef.current = null;
+      return;
+    }
+    if (img.id !== editingImageIdRef.current) {
+      const initialNote = clientNote ?? img.client_note ?? "";
+      setNoteText(initialNote);
+      setCurrentNote(initialNote || null);
+      editingImageIdRef.current = img.id;
+    }
+  }, [img?.id, img?.client_note, clientNote, img]);
+
+  // ── Auto-save note với debounce 800ms ─────────────────────────────────────
+  // QUAN TRỌNG: cleanup clearTimeout để tránh memory leak / state update
+  // sau khi component unmount (đóng lightbox nhanh).
+  useEffect(() => {
+    if (!onSaveNote) return;
+    const editingId = editingImageIdRef.current;
+    if (!editingId) return;
+    const initialNote = clientNote ?? img?.client_note ?? "";
+    if (noteText === initialNote) return; // Không có thay đổi
+
+    const timer = setTimeout(() => {
+      // Double-check: component có thể đã unmount trong lúc chờ timeout
+      if (!editingImageIdRef.current) return;
+      setSavingNote(true);
+      Promise.resolve()
+        .then(() => onSaveNote(editingId, noteText))
+        .then(() => {
+          // Chỉ hiển thị toast nếu vẫn đang ở cùng ảnh
+          if (editingImageIdRef.current === editingId) {
+            setCurrentNote(noteText.trim() ? noteText : null);
+            toast.success("Đã lưu ghi chú");
+          }
+        })
+        .catch((err: unknown) => {
+          console.error("[image-viewer] save note error:", err);
+          toast.error("Không thể lưu ghi chú");
+        })
+        .finally(() => setSavingNote(false));
+    }, 800);
+
+    debounceTimerRef.current = timer;
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    };
+  }, [noteText, onSaveNote, clientNote, img?.client_note, img]);
+
+  // Cleanup final khi unmount: clear timer & reset editing ref
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      editingImageIdRef.current = null;
+    };
+  }, []);
 
   if (!img) return null;
 
   const downloadFileName = img.file_name || "photo.jpg";
-  const apiUrl = `/api/gallery-download/${accessToken}/${img.id}`;
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
-
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-      const toastId = toast.loading(`Đang chuẩn bị ảnh...`);
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (!data.url) throw new Error("No direct URL returned");
-        window.open(data.url, "_blank", "noopener,noreferrer");
-        toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
-      } catch (error) {
-        console.error("[handleDownload][ios] Error:", error);
-        toast.error("Không chuẩn bị được ảnh tải xuống", { id: toastId });
-      }
-      return;
-    }
-
-    const toastId = toast.loading(`Đang tải ${downloadFileName}...`);
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-      if (!data.url) throw new Error("No direct URL returned");
-
-      const directResponse = await fetch(data.url);
-      if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
-
-      const blob = await directResponse.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = downloadFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
-      toast.success(`Đã tải ${downloadFileName}`, { id: toastId });
-    } catch (error) {
-      console.error("[handleDownload] Error:", error);
-      try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        if (data.url) {
-          window.open(data.url, "_blank", "noopener,noreferrer");
-        }
-      } catch {}
-      toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', { id: toastId, duration: 5000 });
-    }
+    // Dùng downloadSingleImage lib: blob + retry + iOS Safari support (xem lib/gallery-download.ts).
+    await downloadSingleImage(accessToken, img.id, downloadFileName);
   };
+
+  // Long-press ≥500ms không di chuyển → trigger download.
+  // iOS Safari TỰ hiện contextmenu "Lưu ảnh" sau ~500ms giữ tay, nên ở đây ta
+  // skip hoàn toàn (return early) để không override native UX. Non-iOS giữ nguyên.
+  const handleLongPress = useCallback(() => {
+    // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
+    // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
+    if (!showDownloadButton || !img) return;
+    // iOS detection: native contextmenu đã xử lý "Lưu ảnh" rồi → skip override
+    const isIOS = typeof navigator !== "undefined" && (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+    if (isIOS) return; // iOS native contextmenu tự xử lý "Lưu ảnh" rồi, không cần override
+    // Visual feedback: scale 0.98 ngay, reset sau 300ms
+    setLongPressActive(true);
+    setTimeout(() => setLongPressActive(false), 300);
+    // Haptic feedback (best-effort)
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(50);
+      } catch {
+        // ignore: vibration API có thể throw trên một số trình duyệt
+      }
+    }
+    // Fire download (không await để không block UI)
+    void downloadSingleImage(accessToken, img.id, downloadFileName);
+  }, [showDownloadButton, img, accessToken, downloadFileName]);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
     const x = e.touches[0]?.clientX;
+    const y = e.touches[0]?.clientY;
     if (typeof x === "number") setTouchStartX(x);
+    if (typeof y === "number") setTouchStartY(y);
+    touchStartTimeRef.current = Date.now();
+
+    // Clear any pending long-press timer
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    // Set long-press timer (500ms) — nếu user giữ tay ≥500ms không di chuyển → trigger download
+    longPressTimerRef.current = setTimeout(() => {
+      handleLongPress();
+      longPressTimerRef.current = null;
+    }, 500);
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLImageElement>) => {
+    // Clear long-press timer (đã trigger hoặc user nhả tay sớm)
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
     if (touchStartX === null) return;
     const x = e.changedTouches[0]?.clientX;
+    const elapsed = Date.now() - touchStartTimeRef.current;
     setTouchStartX(null);
+    setTouchStartY(null);
     if (typeof x !== "number") return;
 
     const diff = touchStartX - x;
+    // Long-press đã trigger ở timer → return để KHÔNG xử lý swipe
+    if (elapsed >= 500 && Math.abs(diff) < 10) return;
+    // Swipe ngang ngắn → bỏ qua
     if (Math.abs(diff) < 50) return;
 
     if (diff > 0) {
@@ -196,6 +312,62 @@ export default function ImageViewer({
     } else {
       setCurrentIdx(Math.max(0, currentIdx - 1));
     }
+  };
+
+  // Cancel long-press nếu touch bị hủy (VD: alert xuất hiện)
+  const handleTouchCancel = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  const isViewOnly = mode === "view";
+  const noteIsActive = Boolean(currentNote?.trim());
+  const actionButtonStyle: React.CSSProperties = {
+    width: 44,
+    height: 44,
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.70)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
+    border: "none",
+  };
+
+  const handleSaveNoteNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onSaveNote) {
+      setNoteOpen(false);
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    const editingId = editingImageIdRef.current ?? img.id;
+    setSavingNote(true);
+    void Promise.resolve()
+      .then(() => onSaveNote(editingId, noteText))
+      .then(() => {
+        if (editingImageIdRef.current === editingId) {
+          setCurrentNote(noteText.trim() ? noteText : null);
+          toast.success("Đã lưu ghi chú");
+        }
+        setNoteOpen(false);
+      })
+      .catch((err: unknown) => {
+        console.error("[image-viewer] save note error:", err);
+        toast.error("Không thể lưu ghi chú");
+      })
+      .finally(() => setSavingNote(false));
   };
 
   return (
@@ -229,27 +401,8 @@ export default function ImageViewer({
             </span>
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex justify-end items-center gap-3">
-            {mode === "select" && (
-              <Button
-                unstyled
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onToggleStar(img.id); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-all"
-                style={{
-                  borderRadius: "var(--radius-md)",
-                  background: img.is_selected ? "rgba(255, 59, 48, 0.2)" : "rgba(255,255,255,0.1)",
-                  color: img.is_selected ? "#ff3b30" : "rgba(255,255,255,0.85)",
-                }}
-                aria-label="Chọn ảnh"
-              >
-                <Heart size={14} className={img.is_selected ? "fill-[#ff3b30] text-error" : ""} />
-                <span className="hidden sm:inline">
-                  {img.is_selected ? "Đã chọn" : "Chọn ảnh"}
-                </span>
-              </Button>
-            )}
+          {/* Right: Close */}
+          <div className="flex justify-end items-center">
             <Button
               unstyled
               type="button"
@@ -324,50 +477,226 @@ export default function ImageViewer({
         srcSet={srcSet}
         sizes="(max-width: 768px) 100vw, 95vw"
         alt={img.file_name || "Photo"}
-        className="max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw]"
+        className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{ borderRadius: "var(--radius-lg)" }}
         decoding="async"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       />
 
-      {/* Bottom bar */}
+      {noteOpen && onSaveNote && !isViewOnly && (
+        <div
+          className="absolute bottom-24 left-1/2 z-30 w-[min(320px,90vw)] -translate-x-1/2 p-4 shadow-2xl"
+          style={{
+            background: "rgba(255,248,220,0.97)",
+            borderRadius: "var(--radius-xl, 16px)",
+            color: "rgba(30, 25, 15, 0.92)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Ghi chú cho ảnh</h2>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNoteOpen(false);
+              }}
+              className="inline-flex items-center justify-center"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "rgba(0,0,0,0.06)",
+                color: "rgba(30,25,15,0.75)",
+                border: "none",
+                cursor: "pointer",
+              }}
+              aria-label="Đóng ghi chú"
+              title="Đóng"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <Textarea
+            unstyled
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value.slice(0, MAX_NOTE_LENGTH))}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="Nhập ghi chú..."
+            maxLength={MAX_NOTE_LENGTH}
+            rows={4}
+            autoFocus
+            className="w-full resize-none rounded-md text-base outline-none"
+            style={{
+              fontSize: "16px",
+              lineHeight: 1.5,
+              background: "rgba(255,255,255,0.65)",
+              border: "1px solid rgba(120, 90, 30, 0.18)",
+              color: "rgba(30,25,15,0.92)",
+              padding: "10px 12px",
+            }}
+            aria-label="Nội dung ghi chú"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span
+              className={`text-caption font-medium ${
+                noteText.length >= MAX_NOTE_LENGTH ? "text-red-500" : "text-black/45"
+              }`}
+            >
+              {noteText.length}/{MAX_NOTE_LENGTH}
+              {savingNote ? " · đang lưu..." : ""}
+            </span>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNoteOpen(false);
+              }}
+              className="px-3 py-2 text-sm font-semibold"
+              style={{
+                borderRadius: "var(--radius-md)",
+                background: "transparent",
+                color: "rgba(30,25,15,0.68)",
+                border: "1px solid rgba(30,25,15,0.14)",
+                cursor: "pointer",
+              }}
+            >
+              Huỷ
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveNoteNow}
+              className="px-3 py-2 text-sm font-semibold"
+              style={{
+                borderRadius: "var(--radius-md)",
+                background: "#fbbf24",
+                color: "rgba(30,25,15,0.95)",
+                border: "1px solid rgba(180, 83, 9, 0.18)",
+                cursor: "pointer",
+                boxShadow: "0 8px 18px rgba(251,191,36,0.28)",
+              }}
+            >
+              Lưu ghi chú
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom action bar */}
       <div
         className="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/70 to-transparent"
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-center justify-between gap-3 px-4 pt-3"
+          className="flex flex-col items-center gap-3 px-4 pt-4"
           style={{
             paddingBottom: "calc(var(--spacing-base) + env(safe-area-inset-bottom))",
             paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
             paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
           }}
         >
-          <div className="flex items-center">
+          <div className="flex items-center justify-center gap-3">
+            {!isViewOnly && (
+              <>
+                {/* CircleCheck — chọn ảnh (is_selected) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStar(img.id);
+                  }}
+                  style={{
+                    ...actionButtonStyle,
+                    background: img.is_selected ? "rgba(34,197,94,0.22)" : actionButtonStyle.background,
+                    color: img.is_selected ? "#22c55e" : actionButtonStyle.color,
+                  }}
+                  aria-label={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
+                  title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
+                >
+                  <CircleCheck size={20} fill={img.is_selected ? "#22c55e" : "none"} />
+                </button>
+
+                {/* Heart — reaction độc lập (isReacted) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleReaction?.(img.id);
+                  }}
+                  style={{
+                    ...actionButtonStyle,
+                    background: isReacted ? "rgba(255,59,48,0.22)" : actionButtonStyle.background,
+                    color: isReacted ? "#ff3b30" : actionButtonStyle.color,
+                    boxShadow: isReacted ? "0 0 14px rgba(255,59,48,0.35)" : undefined,
+                    opacity: onToggleReaction ? 1 : 0.4,
+                    cursor: onToggleReaction ? "pointer" : "default",
+                  }}
+                  aria-label={isReacted ? "Bỏ yêu thích" : "Yêu thích"}
+                  title={isReacted ? "Bỏ yêu thích" : "Yêu thích"}
+                  aria-disabled={!onToggleReaction}
+                >
+                  <Heart size={20} className={isReacted ? "fill-[#ff3b30] text-[#ff3b30]" : ""} />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                ...actionButtonStyle,
+                opacity: 0.5,
+              }}
+              aria-label="In ảnh"
+              title="In ảnh"
+            >
+              <Printer size={20} />
+            </button>
+            {!isViewOnly && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSaveNote) setNoteOpen(true);
+                }}
+                style={{
+                  ...actionButtonStyle,
+                  background: noteIsActive ? "rgba(251,191,36,0.20)" : actionButtonStyle.background,
+                  color: noteIsActive ? "#fbbf24" : actionButtonStyle.color,
+                  cursor: onSaveNote ? "pointer" : "default",
+                  opacity: onSaveNote ? 1 : 0.3,
+                }}
+                aria-label={noteIsActive ? "Sửa ghi chú" : "Thêm ghi chú"}
+                title={noteIsActive ? "Sửa ghi chú" : "Thêm ghi chú"}
+                aria-disabled={!onSaveNote}
+              >
+                <MessageSquare size={20} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={showDownloadButton ? handleDownload : (e) => e.stopPropagation()}
+              style={{
+                ...actionButtonStyle,
+                cursor: showDownloadButton ? "pointer" : "default",
+                opacity: showDownloadButton ? 1 : 0.3,
+              }}
+              aria-label="Tải xuống"
+              title="Tải xuống"
+              aria-disabled={!showDownloadButton}
+            >
+              <Download size={20} />
+            </button>
+          </div>
+          <div className="flex w-full items-center justify-start">
             <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
               {currentIdx + 1} / {totalImagesCount || images.length}
             </span>
           </div>
-          {showDownloadButton && (
-            <Button
-              unstyled
-              type="button"
-              onClick={handleDownload}
-              className="inline-flex items-center gap-2 px-3 py-2"
-              style={{
-                borderRadius: "var(--radius-md)",
-                background: "rgba(255,255,255,0.10)",
-                color: "rgba(255,255,255,0.90)",
-              }}
-              aria-label="Tải xuống"
-              title="Tải xuống"
-            >
-              <Download size={16} />
-              <span className="text-caption font-semibold">Tải xuống</span>
-            </Button>
-          )}
         </div>
       </div>
     </div>

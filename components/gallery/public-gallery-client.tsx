@@ -213,6 +213,24 @@ export default function PublicGalleryClient({
 
 
 
+  // ─── Toggle reaction (Heart) — local optimistic state ────
+  const [reactedImageIds, setReactedImageIds] = useState<Set<string>>(new Set());
+
+  const handleToggleReaction = useCallback(
+    async (imageId: string) => {
+      const clientId = getClientId();
+      // Optimistic local toggle
+      setReactedImageIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(imageId)) { next.delete(imageId); } else { next.add(imageId); }
+        return next;
+      });
+      // Server call — correct param order: (imageId, galleryId, reactionType, clientIdentifier)
+      await toggleReaction(imageId, gallery.id, "heart", clientId);
+    },
+    [gallery.id, getClientId],
+  );
+
   // ─── Save note ─────────────────────────────
   const handleSaveNote = useCallback(
     async (imageId: string, note: string) => {
@@ -300,6 +318,7 @@ export default function PublicGalleryClient({
           loadingMore={loadingMoreImages}
           hasMore={hasMoreImages}
           publicMode={true}
+          showClientNote={!isViewOnly}
         />
       </div>
 
@@ -311,6 +330,8 @@ export default function PublicGalleryClient({
           onClose={() => setViewerIndex(null)}
           onIndexChange={setViewerIndex}
           onToggleStar={(id: string) => handleToggleStar(id)}
+          onToggleReaction={handleToggleReaction}
+          isReacted={Boolean(reactedImageIds.has(displayImages[viewerIndex]?.id))}
           onSaveNote={handleSaveNote}
           mode={mode}
           accessToken={accessToken}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ImageIcon, ImageOff, Star } from "lucide-react";
+import { Heart, ImageIcon, ImageOff, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
@@ -17,6 +17,8 @@ interface GalleryImageGridProps {
   loadingMore?: boolean;
   hasMore?: boolean;
   publicMode?: boolean;
+  /** Hiển thị client_note dưới tile (chỉ khi publicMode + truthy). Mặc định: false. */
+  showClientNote?: boolean;
 }
 
 const MIN_THUMBNAIL_SIZE = 400;
@@ -42,6 +44,7 @@ export default function GalleryImageGrid({
   loadingMore,
   hasMore: hasMoreServer,
   publicMode,
+  showClientNote = false,
 }: GalleryImageGridProps) {
   const {
     masonryRef,
@@ -204,6 +207,16 @@ export default function GalleryImageGrid({
                         </div>
                       ) : null}
 
+                      {publicMode && image.client_note && (
+                        <div
+                          className="absolute left-2 bottom-2 z-20 flex h-7 w-7 items-center justify-center rounded-full"
+                          style={overlayChipStyle}
+                          title="Có ghi chú"
+                        >
+                          <MessageSquare size={13} className="text-primary" />
+                        </div>
+                      )}
+
                       {!publicMode && (showFileBadge || image.is_selected) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {image.is_selected && (
@@ -227,6 +240,21 @@ export default function GalleryImageGrid({
                       >
                         <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
+
+                      {/* Note preview — CHỈ hiển thị khi publicMode + showClientNote + client_note truthy */}
+                      {publicMode && showClientNote && image.client_note && (
+                        <div
+                          className="pointer-events-none absolute bottom-0 right-12 left-0 z-20 px-3 pb-2 pt-6"
+                          style={{
+                            background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.7) 100%)",
+                          }}
+                          title={image.client_note}
+                        >
+                          <p className="line-clamp-1 text-xs font-medium text-white/70">
+                            {image.client_note}
+                          </p>
+                        </div>
+                      )}
                     </GalleryImageTile>
                   </div>
                 );

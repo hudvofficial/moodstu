@@ -2,7 +2,8 @@
 /* eslint-disable react/forbid-elements */
 
 import { useState } from "react";
-import { Star, Download, Loader2 } from "lucide-react";
+import { Star, Download, Loader2, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 
 // ═══════════════════════════════════════════
 // SelectionSummary — Fixed bottom bar + batch download
@@ -13,6 +14,12 @@ interface SelectedImage {
   id: string;
   drive_file_id: string | null;
   file_name: string | null;
+  client_note?: string | null;
+}
+
+interface BatchImage {
+  url: string;
+  name: string;
 }
 
 interface SelectionSummaryProps {
@@ -33,42 +40,57 @@ export default function SelectionSummary({
   if (selectedCount === 0) return null;
 
   const downloadableImages = selectedImages.filter((i) => i.drive_file_id);
+  const notedCount = selectedImages.filter((i) => i.client_note?.trim()).length;
+
+  // iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
+  const detectIOS = (): boolean => {
+    if (typeof navigator === "undefined") return false;
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  };
 
   // Download logic — native download
   const handleBatchDownload = async () => {
     if (downloadableImages.length === 0) return;
 
     if (downloadableImages.length > 50) {
-      alert(`Vui lòng tải tối đa 50 ảnh mỗi lần để trình duyệt không bị đứng. Bạn đang chọn ${downloadableImages.length} ảnh.`);
+      toast.error(`Vui lòng tải tối đa 50 ảnh mỗi lần. Bạn đang chọn ${downloadableImages.length} ảnh.`);
       return;
     }
 
     setDownloading(true);
+    const isIOS = detectIOS();
 
     if (downloadableImages.length > 1) {
+      // ─── Batch ZIP download (giữ nguyên JSZip) ────────────────────────
+      const progressToastId = toast.loading(
+        `Đang tải 0/${downloadableImages.length} ảnh...`,
+      );
       try {
-        // Batch ZIP download - Client Side
         const ids = downloadableImages.map((i) => i.id).join(",");
         const response = await fetch(`/api/gallery-download-batch/${accessToken}?ids=${ids}&client_zip=true`);
         if (!response.ok) {
           const errData = await response.json().catch(() => null);
           throw new Error(errData?.error || "Lỗi khi lấy thông tin tải ảnh");
         }
-        
-        const data = await response.json();
+
+        const data: { zipName: string; images: BatchImage[] } = await response.json();
         const { zipName, images } = data;
 
-        // Import dynamically
         const JSZip = (await import("jszip")).default;
         const { saveAs } = await import("file-saver");
-        
+
         const zip = new JSZip();
-        
+        const total = images.length;
+        let completed = 0;
+
         // Tải ảnh theo batch nhỏ để tránh lag trình duyệt
         const batchSize = 5;
         for (let i = 0; i < images.length; i += batchSize) {
           const batch = images.slice(i, i + batchSize);
-          await Promise.all(batch.map(async (img: any) => {
+          await Promise.all(batch.map(async (img: BatchImage) => {
             try {
               const imgRes = await fetch(img.url);
               if (imgRes.ok) {
@@ -76,77 +98,86 @@ export default function SelectionSummary({
                 zip.file(img.name, blob);
               }
             } catch (err) {
-              console.error("Failed to download image:", img.name);
+              console.error("[selection-download] Failed to download image:", img.name, err);
+            } finally {
+              completed += 1;
+              toast.loading(`Đang tải ${completed}/${total} ảnh...`, { id: progressToastId });
             }
           }));
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob" });
         saveAs(zipBlob, zipName);
-
-      } catch (err: any) {
-        alert(err.message || "Đã xảy ra lỗi khi tải ảnh. Vui lòng thử lại.");
+        toast.success(`Đã tải xong ${total} ảnh`, { id: progressToastId });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải ảnh. Vui lòng thử lại.";
+        console.error("[selection-download] Error:", err);
+        toast.error(message, { id: progressToastId });
       } finally {
         setDownloading(false);
       }
     } else {
-      // Single file download
+      // ─── Single file download ─────────────────────────────────────────
       const img = downloadableImages[0];
       const url = `/api/gallery-download/${accessToken}/${img.id}`;
       const fileName = img.file_name || "photo.jpg";
 
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
       if (isIOS) {
+        const toastId = toast.loading("Đang chuẩn bị ảnh...");
         try {
           const response = await fetch(url);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const data = await response.json();
           if (!data.url) throw new Error("No direct URL returned");
           window.open(data.url, "_blank", "noopener,noreferrer");
-          alert('Đã mở ảnh sang tab mới. Vui lòng nhấn giữ ảnh và chọn "Lưu hình ảnh".');
+          toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', {
+            id: toastId,
+            duration: 5000,
+          });
         } catch (error) {
           console.error("[selection-download][ios] Error:", error);
-          alert("Không chuẩn bị được ảnh tải xuống. Vui lòng thử lại.");
+          toast.error("Không chuẩn bị được ảnh tải xuống. Vui lòng thử lại.", { id: toastId });
+        } finally {
+          setDownloading(false);
         }
-      } else {
+        return;
+      }
+
+      // Non-iOS: dùng blob download để tránh popup bị chặn
+      const toastId = toast.loading(`Đang tải ${fileName}...`);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.url) throw new Error("No direct URL returned");
+
+        const directResponse = await fetch(data.url);
+        if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
+
+        const blob = await directResponse.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+        toast.success(`Đã tải ${fileName}`, { id: toastId });
+      } catch (error) {
+        console.error("[selection-download] Error:", error);
         try {
           const response = await fetch(url);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
           const data = await response.json();
-          if (!data.url) throw new Error("No direct URL returned");
-
-          const directResponse = await fetch(data.url);
-          if (!directResponse.ok) throw new Error(`Drive HTTP ${directResponse.status}`);
-
-          const blob = await directResponse.blob();
-          const objectUrl = URL.createObjectURL(blob);
-
-          const link = document.createElement("a");
-          link.href = objectUrl;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
-        } catch (error) {
-          console.error("[selection-download] Error:", error);
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
-          } catch {}
-        }
-      }
-    }
-
-    if (downloadableImages.length <= 1) {
-      // Tắt trạng thái loading sau 1.5s vì Native Download tự chạy ngầm
-      setTimeout(() => {
+          if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+        } catch {}
+        toast.error("Không thể tải ảnh. Vui lòng thử lại.", { id: toastId });
+      } finally {
         setDownloading(false);
-      }, 1500);
+      }
     }
   };
 
@@ -163,6 +194,12 @@ export default function SelectionSummary({
           <span className="text-xs text-text-muted">
             / {totalCount}
           </span>
+          {notedCount > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <MessageSquare size={12} />
+              {notedCount}
+            </span>
+          )}
         </div>
 
         {/* Batch download button */}
