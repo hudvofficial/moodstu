@@ -56,17 +56,14 @@ export function CustomerFormModal({ isOpen, onClose, onCreated, showCoupleFields
   const [phoneDupWarning, setPhoneDupWarning] = useState("");
   const phoneDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset form when the modal opens or the initial name changes. Adjust state
-  // during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; name: typeof initialName } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.name !== initialName) {
-    setPrevReset({ open: isOpen, name: initialName });
-    if (isOpen) {
-      setForm({ full_name: initialName, phone: "" });
-      setError("");
-      setPhoneDupWarning("");
-    }
-  }
+  // Reset form when the modal opens or the initial name changes. Depend only
+  // on `initialName` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({ full_name: initialName, phone: "" });
+    setError("");
+    setPhoneDupWarning("");
+  }, [isOpen, initialName]);
 
   const updateField = useCallback(
     <K extends keyof CustomerFormData>(field: K, value: CustomerFormData[K]) => {

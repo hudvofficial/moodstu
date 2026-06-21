@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SelectForm } from "@/components/ui/select";
 import DatePicker from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { SOURCE_MAP } from "@/types/crm";
 import type { Customer } from "@/types/crm";
@@ -54,52 +55,49 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
   ];
 
   // Reset form fields when the modal opens or the target customer changes.
-  // Adjust state during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; customer: typeof customer } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.customer !== customer) {
-    setPrevReset({ open: isOpen, customer });
-    if (isOpen) {
-      if (customer) {
-        setFullName(customer.full_name || "");
-        setPhone(customer.phone || "");
-        setEmail(customer.email || "");
-        setAltPhone(customer.alt_phone || "");
-        setAddress(customer.address || "");
-        setGender(customer.gender || "");
-        setSource(customer.source || "");
-        setTags(customer.tags?.join(", ") || "");
-        setNotes(customer.notes || "");
-        
-        setDateOfBirth(customer.date_of_birth ? customer.date_of_birth.split("T")[0] : "");
-        setWeddingDate(customer.wedding_date ? customer.wedding_date.split("T")[0] : "");
-        setBrideName(customer.bride_name || "");
-        setGroomName(customer.groom_name || "");
-      } else {
-        setFullName("");
-        setPhone("");
-        setEmail("");
-        setAltPhone("");
-        setAddress("");
-        setGender("");
-        setSource("");
-        setTags("");
-        setNotes("");
-        setDateOfBirth("");
-        setWeddingDate("");
-        setBrideName("");
-        setGroomName("");
-      }
+  // Depend only on `customer?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (customer) {
+      setFullName(customer.full_name || "");
+      setPhone(customer.phone || "");
+      setEmail(customer.email || "");
+      setAltPhone(customer.alt_phone || "");
+      setAddress(customer.address || "");
+      setGender(customer.gender || "");
+      setSource(customer.source || "");
+      setTags(customer.tags?.join(", ") || "");
+      setNotes(customer.notes || "");
+
+      setDateOfBirth(customer.date_of_birth ? customer.date_of_birth.split("T")[0] : "");
+      setWeddingDate(customer.wedding_date ? customer.wedding_date.split("T")[0] : "");
+      setBrideName(customer.bride_name || "");
+      setGroomName(customer.groom_name || "");
+    } else {
+      setFullName("");
+      setPhone("");
+      setEmail("");
+      setAltPhone("");
+      setAddress("");
+      setGender("");
+      setSource("");
+      setTags("");
+      setNotes("");
+      setDateOfBirth("");
+      setWeddingDate("");
+      setBrideName("");
+      setGroomName("");
     }
-  }
+  }, [isOpen, customer?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      alert("Vui lòng nhập Tên khách hàng");
+      toast.error("Vui lòng nhập Tên khách hàng");
       return;
     }
     if (!phone.trim()) {
-      alert("Vui lòng nhập Số điện thoại");
+      toast.error("Vui lòng nhập Số điện thoại");
       return;
     }
 
@@ -119,10 +117,9 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
       tags: tags.split(",").map(t => t.trim()).filter(Boolean),
     };
 
-    setIsSubmitting(true);
-
     if (isEditing && customer) {
-      // UPDATE: optimistic patch table + đóng modal NGAY; lỗi → onSaved revalidate kéo bản thật.
+      // UPDATE: optimistic patch table NGAY (apply). Đóng modal SAU khi action hoàn tất
+      // để tránh race condition khi user mở modal khác ngay (isSubmitting=true kẹt).
       const id = customer.id;
       payload.expectedUpdatedAt = customer.updated_at || undefined;
       const optimistic = {
@@ -140,8 +137,8 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
         date_of_birth: dateOfBirth || null,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       } as Partial<Customer>;
-      onClose();
       try {
+        setIsSubmitting(true);
         await runOptimisticMutation({
           apply: () =>
             mutateListCache(cacheKeys.customers(), (cur) => {
@@ -152,31 +149,39 @@ export default function CustomerFormModal({ isOpen, onClose, onSaved, customer }
             }),
           rollback: () => onSaved?.(),
           action: () => updateCustomer(id, payload),
-          onSuccess: () => onSaved?.(),
+          onSuccess: () => {
+            // optimistic update đã apply; onSaved/onClose chạy sau khi await resolve
+          },
           onError: (err) => {
-            if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
+            if (err instanceof Error) toast.error(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
           },
         });
+        onSaved?.();
+        onClose();
+      } catch (err: unknown) {
+        if (err instanceof Error) toast.error(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      // CREATE: customer_code do server sinh + dedup phone → KHÔNG optimistic; đóng modal ngay + revalidate.
-      onClose();
+      // CREATE: customer_code do server sinh + dedup phone → KHÔNG optimistic; chờ action xong mới đóng modal.
+      // Trường hợp duplicate → không đóng modal, parent tự navigate sang KH hiện có.
       try {
+        setIsSubmitting(true);
         const result = await createCustomer(payload);
         if (!result.success) {
-          alert(result.error || "Đã xảy ra lỗi khi lưu khách hàng");
+          toast.error(result.error || "Đã xảy ra lỗi khi lưu khách hàng");
           return;
         }
         if (result.data.duplicate) {
-          alert(`So dien thoai da ton tai trong ho so ${result.data.customer_name || "khach hang"}. Dang mo ho so hien co.`);
+          toast.error(`So dien thoai da ton tai trong ho so ${result.data.customer_name || "khach hang"}. Dang mo ho so hien co.`);
           onSaved?.(result.data.customer_id);
-          return;
+          return; // parent sẽ xử lý mở KH hiện có, không đóng modal
         }
         onSaved?.();
+        onClose();
       } catch (err: unknown) {
-        if (err instanceof Error) alert(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
+        if (err instanceof Error) toast.error(err.message || "Đã xảy ra lỗi khi lưu khách hàng");
       } finally {
         setIsSubmitting(false);
       }

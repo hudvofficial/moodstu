@@ -91,17 +91,14 @@ export default function DressFormModal({ isOpen, onClose, editItem, onSaved }: P
   const [codeError, setCodeError] = useState<string | null>(null);
   const qrContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset form when the modal opens or the target item changes.
-  // Adjust state during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; item: typeof editItem } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.item !== editItem) {
-    setPrevReset({ open: isOpen, item: editItem });
-    if (isOpen) {
-      setForm(getInitial(editItem));
-      setPendingUploadUrl(null);
-      setCodeError(null);
-    }
-  }
+  // Reset form when the modal opens or the target item changes. Depend only
+  // on `editItem?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm(getInitial(editItem));
+    setPendingUploadUrl(null);
+    setCodeError(null);
+  }, [isOpen, editItem?.id]);
 
   const update = useCallback((partial: Partial<FormState>) => {
     setForm((p) => {

@@ -40,19 +40,16 @@ export default function CreditCardFormModal({
     initialData?.credit_limit ?? null,
   );
 
-  // Reset form when the modal opens or the target card changes. Adjust state
-  // during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; data: typeof initialData } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.data !== initialData) {
-    setPrevReset({ open: isOpen, data: initialData });
-    if (isOpen) {
-      setBankName(initialData?.bank_name || "");
-      setLast4(initialData?.last_4 || "");
-      setStatementDay(initialData?.statement_day || 10);
-      setDueDay(initialData?.due_day || 25);
-      setCreditLimit(initialData?.credit_limit ?? null);
-    }
-  }
+  // Reset form when the modal opens or the target card changes. Depend only on
+  // `initialData?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setBankName(initialData?.bank_name || "");
+    setLast4(initialData?.last_4 || "");
+    setStatementDay(initialData?.statement_day || 10);
+    setDueDay(initialData?.due_day || 25);
+    setCreditLimit(initialData?.credit_limit ?? null);
+  }, [isOpen, initialData?.id]);
 
   const clampDay = (val: string | number) => {
     if (!val && val !== 0) return "";

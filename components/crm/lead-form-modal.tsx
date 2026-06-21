@@ -73,46 +73,43 @@ export default function LeadFormModal({ isOpen, onClose, onSaved, initialData }:
   }));
 
   // Reset form fields when the modal opens or the target lead changes.
-  // Adjust state during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; data: typeof initialData } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.data !== initialData) {
-    setPrevReset({ open: isOpen, data: initialData });
-    if (isOpen) {
-      if (initialData) {
-        setContactName(initialData.contact_name);
-        setPhone(initialData.phone || "");
-        setEmail(initialData.email || "");
-        setSocialLink(initialData.social_link || "");
-        setSource(initialData.source || "");
-        setNeeds(initialData.needs || "");
-        setAddress(initialData.address || "");
-        setPotential(initialData.potential || "");
-        setNotes(initialData.notes || "");
-        setDealValue(initialData.deal_value || 0);
-        setScore(initialData.score || 0);
-        setNextContactDate(initialData.next_contact_date || "");
-        setAssignedTo(initialData.assigned_to || "");
-        setTagsArray(initialData.tags || []);
-        setErrors({});
-      } else {
-        setContactName("");
-        setPhone("");
-        setEmail("");
-        setSocialLink("");
-        setSource("");
-        setNeeds("");
-        setAddress("");
-        setPotential("");
-        setNotes("");
-        setDealValue(0);
-        setScore(0);
-        setNextContactDate("");
-        setAssignedTo("");
-        setTagsArray([]);
-        setErrors({});
-      }
+  // Depend only on `initialData?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialData) {
+      setContactName(initialData.contact_name);
+      setPhone(initialData.phone || "");
+      setEmail(initialData.email || "");
+      setSocialLink(initialData.social_link || "");
+      setSource(initialData.source || "");
+      setNeeds(initialData.needs || "");
+      setAddress(initialData.address || "");
+      setPotential(initialData.potential || "");
+      setNotes(initialData.notes || "");
+      setDealValue(initialData.deal_value || 0);
+      setScore(initialData.score || 0);
+      setNextContactDate(initialData.next_contact_date || "");
+      setAssignedTo(initialData.assigned_to || "");
+      setTagsArray(initialData.tags || []);
+      setErrors({});
+    } else {
+      setContactName("");
+      setPhone("");
+      setEmail("");
+      setSocialLink("");
+      setSource("");
+      setNeeds("");
+      setAddress("");
+      setPotential("");
+      setNotes("");
+      setDealValue(0);
+      setScore(0);
+      setNextContactDate("");
+      setAssignedTo("");
+      setTagsArray([]);
+      setErrors({});
     }
-  }
+  }, [isOpen, initialData?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

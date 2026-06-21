@@ -34,26 +34,23 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync settings state when the modal opens or the gallery changes. Adjust state
-  // during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; gallery: typeof gallery } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.gallery !== gallery) {
-    setPrevReset({ open: isOpen, gallery });
-    if (isOpen) {
-      setTitle(gallery.title || "");
-      setCustomSlug(gallery.custom_slug || "");
-      setClientName(gallery.client_name || "");
-      setTags(gallery.tags || []);
-      setAllowComments(gallery.allow_comments ?? true);
-      setEnableWatermark(gallery.enable_watermark ?? false);
-      setShowNamecard(gallery.show_namecard ?? true);
-      setAllowDownload(gallery.allow_download ?? false);
-      setIsProtectPassword(!!gallery.password_hash || !!gallery.password);
-      setPassword(""); // reset password input on open
-      setHasSelectionLimit(!!gallery.selection_limit && gallery.selection_limit > 0);
-      setSelectionLimit(gallery.selection_limit || 0);
-    }
-  }
+  // Sync settings state when the modal opens or the gallery changes. Depend
+  // only on `gallery?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setTitle(gallery.title || "");
+    setCustomSlug(gallery.custom_slug || "");
+    setClientName(gallery.client_name || "");
+    setTags(gallery.tags || []);
+    setAllowComments(gallery.allow_comments ?? true);
+    setEnableWatermark(gallery.enable_watermark ?? false);
+    setShowNamecard(gallery.show_namecard ?? true);
+    setAllowDownload(gallery.allow_download ?? false);
+    setIsProtectPassword(!!gallery.password_hash || !!gallery.password);
+    setPassword(""); // reset password input on open
+    setHasSelectionLimit(!!gallery.selection_limit && gallery.selection_limit > 0);
+    setSelectionLimit(gallery.selection_limit || 0);
+  }, [isOpen, gallery?.id]);
 
   const handleCopyDriveLink = () => {
     if (gallery.drive_folder_url) {

@@ -26,7 +26,12 @@ export default function CustomerFilters() {
       } else {
         params.delete(key);
       }
-      params.set("page", "1");
+      // ⭐ Reset về page 1 khi filter thay đổi.
+      // Tránh hiển thị sai toán học kiểu "41–50 của 5" khi filter mới
+      // có ít kết quả hơn nhưng URL vẫn giữ ?page=5.
+      // Áp dụng cho MỌI filter (search, source, tags) — search
+      // được handle ở Global Header nhưng dùng cùng pattern.
+      params.delete("page");
       startTransition(() => {
         router.push(`?${params.toString()}`);
       });

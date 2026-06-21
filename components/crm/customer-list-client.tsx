@@ -51,7 +51,7 @@ export default function CustomerListClient({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   const search = searchParams.get("search") || undefined;
@@ -113,11 +113,15 @@ export default function CustomerListClient({
   const totalPages = data.totalPages || 1;
   const pageSize = data.pageSize || 10;
 
+  // Pagination range — clamp về total để tránh hiển thị "Hiển thị 21–30 của 5"
+  // khi user ở page > totalPages do filter thay đổi mà page chưa reset.
+  const displayStart = data.total > 0 ? Math.min((currentPage - 1) * pageSize + 1, data.total) : 0;
+  const displayEnd = data.total > 0 ? Math.min(currentPage * pageSize, data.total) : 0;
+
   // Xác định trạng thái loading (chưa có data + đang fetch)
   const isDataLoading = listQuery.isLoading || (!listQuery.data && !listQuery.error && initialData.customers.length === 0);
 
   const selectedCustomer = data.customers.find(c => c.id === selectedCustomerId) || null;
-  const editingCustomer = data.customers.find(c => c.id === editingCustomerId) || null;
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -133,7 +137,7 @@ export default function CustomerListClient({
   );
 
   const handleOpenCreate = () => {
-    setEditingCustomerId(null);
+    setEditingCustomer(null);
     setIsModalOpen(true);
   };
 
@@ -141,8 +145,10 @@ export default function CustomerListClient({
     setSelectedCustomerId(customer.id);
   };
 
-  const handleEdit = (id: string) => {
-    setEditingCustomerId(id);
+  // Nhận full customer object thay vì chỉ id → tránh mở modal ở CREATE mode
+  // khi KH đang ở page khác (data.customers.find() trả null).
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
     setIsModalOpen(true);
   };
 
@@ -292,8 +298,8 @@ export default function CustomerListClient({
                 />
               </div>
               <p className="mt-1 text-center text-xs text-text-muted">
-                Hiển thị {(currentPage - 1) * pageSize + 1}–
-                {Math.min(currentPage * pageSize, data.total)} của{" "}
+                Hiển thị {displayStart}–
+                {displayEnd} của{" "}
                 {data.total} khách hàng
               </p>
             </div>
@@ -306,7 +312,7 @@ export default function CustomerListClient({
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingCustomerId(null);
+          setEditingCustomer(null);
         }}
         onSaved={handleDataChanged}
         customer={editingCustomer}

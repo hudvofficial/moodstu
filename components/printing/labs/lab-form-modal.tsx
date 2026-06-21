@@ -136,19 +136,16 @@ export default function LabFormModal({
   const [loading, setLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  // Reset form when the modal opens or the target lab changes. Adjust state
-  // during render instead of in an effect to avoid a cascading render.
-  const [prevReset, setPrevReset] = useState<{ open: boolean; lab: typeof lab } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.lab !== lab) {
-    setPrevReset({ open: isOpen, lab });
-    if (isOpen) {
-      setForm(getInitialForm(lab));
-      const nextServices = getInitialServices(lab);
-      setServices(nextServices);
-      setBaselineServices(nextServices);
-      setConfirmDeleteOpen(false);
-    }
-  }
+  // Reset form when the modal opens or the target lab changes. Depend only on
+  // `lab?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm(getInitialForm(lab));
+    const nextServices = getInitialServices(lab);
+    setServices(nextServices);
+    setBaselineServices(nextServices);
+    setConfirmDeleteOpen(false);
+  }, [isOpen, lab?.id]);
 
   useEffect(() => {
     if (!isOpen || !lab) return;

@@ -48,6 +48,10 @@ function escapeSearch(s: string): string {
   return s.replace(/[%_\\]/g, (c) => `\\${c}`);
 }
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-().]/g, "").replace(/^\+84/, "0");
+}
+
 // ----------------------------------------------------
 // GET CUSTOMERS (Paginated + Search)
 // ----------------------------------------------------
@@ -126,10 +130,11 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
     
     const tData = parsed.data;
+    const normalizedPhone = tData.phone ? normalizePhone(tData.phone) : null;
 
     // Phone dedup guard: never overwrite an existing profile from a create flow.
-    if (tData.phone?.trim()) {
-      const { data: existingByPhone, error: existingByPhoneError } = await supabase.from("customers").select("id, full_name, phone").eq("phone", tData.phone.trim()).is("deleted_at", null).limit(1).maybeSingle();
+    if (normalizedPhone) {
+      const { data: existingByPhone, error: existingByPhoneError } = await supabase.from("customers").select("id, full_name, phone").eq("phone", normalizedPhone).is("deleted_at", null).limit(1).maybeSingle();
       if (existingByPhoneError) throw existingByPhoneError;
       if (existingByPhone) {
         return {
@@ -141,12 +146,12 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
     }
 
     const { data: seqResult } = await supabase.rpc("nextval_customer_code");
-    const code = seqResult ? `KH-${String(seqResult).padStart(3, "0")}` : `KH-${Date.now().toString().slice(-3)}`;
+    const code = seqResult ? `KH-${String(seqResult).padStart(3, "0")}` : `KH-${Math.random().toString(36).slice(-4).toUpperCase()}`;
 
     const insertData = {
       customer_code: code, 
       full_name: tData.full_name.trim(), 
-      phone: tData.phone?.trim() || null,
+      phone: normalizedPhone || null,
       alt_phone: tData.alt_phone?.trim() || null, 
       email: tData.email?.trim() || null, 
       address: tData.address?.trim() || null,
@@ -162,6 +167,24 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
     };
 
     const { data: customer, error } = await supabase.from("customers").insert(insertData).select("id").single();
+    if (error?.code === "23505" && normalizedPhone) {
+      const { data: existing, error: existingError } = await supabase
+        .from("customers")
+        .select("id, full_name")
+        .eq("phone", normalizedPhone)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      if (existing) {
+        return {
+          customer_id: existing.id,
+          duplicate: true,
+          customer_name: existing.full_name,
+        };
+      }
+    }
     if (error) throw error;
 
     await writeAuditLog({
@@ -173,7 +196,9 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
       newData: insertData,
     });
 
-    revalidatePath("/crm/customers");
+    revalidatePath("/crm/customers", "layout");
+    revalidatePath("/crm");
+    revalidatePath("/contracts", "layout");
     return { customer_id: customer.id };
   });
 }
@@ -225,7 +250,10 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
       newData: updateData,
     });
 
-    revalidatePath("/crm/customers");
+    revalidatePath("/crm/customers", "layout");
+    revalidatePath("/crm");
+    revalidatePath("/contracts", "layout");
+    revalidatePath(`/crm/customers/${tData.id}`);
     return null;
   });
 }
@@ -263,7 +291,9 @@ export async function deleteCustomer(id: string): Promise<ActionResult<null>> {
       newData: updateData,
     });
 
-    revalidatePath("/crm/customers");
+    revalidatePath("/crm/customers", "layout");
+    revalidatePath("/crm");
+    revalidatePath("/contracts", "layout");
     return null;
   });
 }
@@ -317,6 +347,3 @@ export async function searchCustomers(query: string): Promise<ActionResult<unkno
     return data || [];
   });
 }
-
-
-

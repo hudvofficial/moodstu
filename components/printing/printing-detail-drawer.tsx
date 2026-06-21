@@ -148,18 +148,17 @@ export default function PrintingDetailDrawer({
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
 
-  const [prevReset, setPrevReset] = useState<{ open: boolean; order: typeof order } | null>(null);
-  if (!prevReset || prevReset.open !== isOpen || prevReset.order !== order) {
-    setPrevReset({ open: isOpen, order });
-    if (isOpen) {
-      setForm(getInitialForm(order));
-      setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
-      setConfirmDeleteOpen(false);
-      setShowDepositModal(false);
-      setShowFinalPaymentModal(false);
-      setShowCancelModal(false);
-    }
-  }
+  // Reset form when the drawer opens or the target order changes. Depend only
+  // on `order?.id` (primitive) to avoid resetting on every realtime update.
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm(getInitialForm(order));
+    setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
+    setConfirmDeleteOpen(false);
+    setShowDepositModal(false);
+    setShowFinalPaymentModal(false);
+    setShowCancelModal(false);
+  }, [isOpen, order?.id]);
 
   useEffect(() => {
     if (!isOpen) return;

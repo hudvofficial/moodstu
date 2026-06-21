@@ -13,9 +13,8 @@ import CustomerCard from "@/components/crm/customer-card";
 interface CustomersTableProps {
   customers: Customer[];
   onView: (customer: Customer) => void;
-  onEdit?: (id: string) => void;
+  onEdit?: (customer: Customer) => void;
   onDelete?: (id: string) => void;
-  onHover?: (id: string) => void;
 }
 
 // ─── HELPERS ─────────────────────────────────────
@@ -37,7 +36,7 @@ function getTagStyle(tagLabel: string) {
 
 // ─── DESKTOP TABLE ───────────────────────────────
 
-function DesktopTable({ customers, onView, onHover }: CustomersTableProps) {
+function DesktopTable({ customers, onView }: CustomersTableProps) {
   return (
     <div>
       <TableWrapper>
@@ -59,7 +58,6 @@ function DesktopTable({ customers, onView, onHover }: CustomersTableProps) {
               <TR
                 key={c.id}
                 onClick={() => onView(c)}
-                onMouseEnter={() => onHover?.(c.id)}
               >
                 <TD>
                   <span className="font-semibold text-text-main">

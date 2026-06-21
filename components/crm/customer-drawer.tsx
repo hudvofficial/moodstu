@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Pencil, Trash2, Phone, Mail, Calendar, MapPin, 
-  User, Copy, MessageCircle, AlertTriangle, 
+import {
+  Pencil, Trash2, Phone, Mail, Calendar, MapPin,
+  User, Copy, MessageCircle, AlertTriangle,
   Clock, CheckCircle2, FileText, Send, Heart
 } from "lucide-react";
 import { Drawer } from "@/components/ui/drawer";
@@ -15,12 +15,13 @@ import type { Customer } from "@/types/crm";
 import { SOURCE_MAP } from "@/types/crm";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
 
 interface CustomerDrawerProps {
   customer: Customer | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (id: string) => void;
+  onEdit?: (customer: Customer) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -60,7 +61,9 @@ export function CustomerDrawer({
       await updateCustomer(customer.id, { notes: updatedNotes });
       toast.success("Đã lưu ghi chú");
       setNoteInput("");
-      router.refresh();
+      // SWR revalidate thay vì router.refresh() để tránh re-render toàn trang
+      // và đồng bộ với pattern của customer-list-client (mutateListCache).
+      void revalidateByPrefixes(cacheKeys.customers());
     } catch (e: any) {
       toast.error(e.message || "Lỗi khi lưu ghi chú");
     } finally {
@@ -84,7 +87,7 @@ export function CustomerDrawer({
           unstyled
           onClick={() => {
             onClose();
-            onEdit(customer.id);
+            onEdit(customer);
           }}
           className="btn-icon"
           title="Sửa khách hàng"
