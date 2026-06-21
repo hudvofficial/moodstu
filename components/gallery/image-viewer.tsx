@@ -234,8 +234,29 @@ export default function ImageViewer({
 
   const downloadFileName = img.file_name || "photo.jpg";
 
-  const handleDownload = async (e: React.MouseEvent) => {
+  const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    if (!showDownloadButton) return;
+
+    if (detectIOS()) {
+      const tab = window.open("", "_blank");
+      try {
+        const response = await fetch(`/api/gallery-download/${accessToken}/${img.id}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (tab && data.url) {
+          tab.location.href = data.url;
+        } else if (tab) {
+          tab.close();
+        }
+      } catch (error) {
+        console.error("[image-viewer][ios-download] Error:", error);
+        tab?.close();
+      }
+      return;
+    }
+
     // Dùng downloadSingleImage lib: blob + retry + iOS Safari support (xem lib/gallery-download.ts).
     await downloadSingleImage(accessToken, img.id, downloadFileName);
   };
@@ -478,7 +499,10 @@ export default function ImageViewer({
         sizes="(max-width: 768px) 100vw, 95vw"
         alt={img.file_name || "Photo"}
         className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
-        style={{ borderRadius: "var(--radius-lg)" }}
+        style={{
+          borderRadius: "var(--radius-lg)",
+          WebkitTouchCallout: showDownloadButton ? "default" : "none",
+        }}
         decoding="async"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
@@ -600,6 +624,11 @@ export default function ImageViewer({
             paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
           }}
         >
+          <div className="flex w-full items-center justify-start">
+            <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
+              {currentIdx + 1} / {totalImagesCount || images.length}
+            </span>
+          </div>
           <div className="flex items-center justify-center gap-3">
             {!isViewOnly && (
               <>
@@ -691,11 +720,6 @@ export default function ImageViewer({
             >
               <Download size={20} />
             </button>
-          </div>
-          <div className="flex w-full items-center justify-start">
-            <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
-              {currentIdx + 1} / {totalImagesCount || images.length}
-            </span>
           </div>
         </div>
       </div>
