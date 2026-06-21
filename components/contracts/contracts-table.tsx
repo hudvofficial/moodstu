@@ -10,6 +10,7 @@ import { ContractsTabletTable } from "./contracts-tablet-table";
 import { TierSwitch } from "@/components/ui/tier-switch";
 import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
 import { getServiceColor, getServiceBadgeColor } from "@/constants/service-colors";
+import { Pagination } from "@/components/ui/pagination";
 import {
   CONTRACT_STATUS_MAP,
   getServiceLabel,
@@ -40,6 +41,33 @@ function getStatusVariant(status: ContractStatus): "info" | "warning" | "success
   return CONTRACT_STATUS_MAP[status]?.variant || "info";
 }
 
+function getUrgencyInfo(dateStr: string | null): { text: string; className: string } | null {
+  if (!dateStr) return null;
+  const eventDate = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  eventDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { text: "Đã qua", className: "text-text-muted line-through" };
+  if (diffDays <= 7) return { text: `⚡ ${diffDays} ngày`, className: "text-error font-bold" };
+  if (diffDays <= 30) return { text: `${diffDays} ngày`, className: "text-warning" };
+  return { text: `${diffDays} ngày`, className: "text-success" };
+}
+
+function getFutureOnSetCount(c: Contract): number {
+  const events = getArr(c, "contract_events");
+  const today0 = new Date();
+  today0.setHours(0, 0, 0, 0);
+  return events.filter((e: any) => {
+    if (!e?.event_date) return false;
+    if (e.event_type !== "ngay_chup" && e.event_type !== "ngay_to_chuc") return false;
+    const d = new Date(e.event_date);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() >= today0.getTime();
+  }).length;
+}
+
+
 // ─── PROPS ────────────────────────────────────────
 
 interface ContractsTableProps {
@@ -48,6 +76,13 @@ interface ContractsTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onHover?: (id: string) => void;
+  // Pagination props
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  total?: number;
+  visibleStart?: number;
+  visibleEnd?: number;
 }
 
 type ProgressTask = {
@@ -135,6 +170,30 @@ const DesktopTableRow = memo(function DesktopTableRow({
       <TD className="text-text-secondary">
         {fmtDate(getStr(c, "contract_date") || null)}
       </TD>
+      <TD>
+        {(() => {
+          const nextDate = getStr(c, "next_event_date") || null;
+          const urgency = getUrgencyInfo(nextDate);
+          const futureOnSetCount = getFutureOnSetCount(c);
+          return (
+            <div className="flex flex-col gap-0.5">
+              {urgency ? (
+                <span className={`text-sm ${urgency.className}`}>
+                  {urgency.text}
+                </span>
+              ) : (
+                <span className="text-sm text-text-muted">—</span>
+              )}
+              {futureOnSetCount >= 2 && (
+                <span className="text-tiny text-text-muted">
+                  +{futureOnSetCount - 1} buổi nữa
+                </span>
+              )}
+            </div>
+          );
+        })()}
+      </TD>
+
       <TD className="text-right font-semibold text-text-main">
         {fmt(getNum(c, "total_amount"))}
       </TD>
@@ -179,19 +238,49 @@ const DesktopTableRow = memo(function DesktopTableRow({
   prev.c.contract_code === next.c.contract_code &&
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
-  prev.c.customers?.full_name === next.c.customers?.full_name
+  prev.c.customers?.full_name === next.c.customers?.full_name &&
+  (prev.c as any).next_event_date === (next.c as any).next_event_date
 );
 
-const DesktopTable = memo(function DesktopTable({ contracts, onView, onHover }: ContractsTableProps) {
+const DesktopTable = memo(function DesktopTable({
+  contracts,
+  onView,
+  onHover,
+  page,
+  totalPages,
+  onPageChange,
+  total,
+  visibleStart,
+  visibleEnd,
+}: ContractsTableProps) {
   return (
     // Tablet (md, 768+): hiện bảng dạng block (page tự cuộn). Desktop (lg): flex-fill + sticky scroll.
     <div className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
-      <TableWrapper>
+      <TableWrapper
+        footer={
+          totalPages !== undefined && totalPages > 1 && onPageChange ? (
+            <div className="bg-bg-card border-t border-border px-5 py-3.5 flex items-center justify-between shrink-0">
+              <p className="text-xs text-text-muted md:text-sm italic">
+                <span className="font-semibold italic text-primary">{visibleStart}-{visibleEnd}</span>
+                <span className="text-text-muted"> / {total} hợp đồng</span>
+              </p>
+              <Pagination
+                page={page || 1}
+                totalPages={totalPages}
+                onChange={onPageChange}
+                compact
+                variant="footer"
+              />
+            </div>
+          ) : null
+        }
+      >
         <THead>
           <tr>
             <TH>Mã HĐ</TH>
             <TH>Khách hàng</TH>
             <TH>Ngày ký</TH>
+            <TH>Sự kiện</TH>
             <TH className="text-right">Tổng cộng</TH>
             <TH className="text-right">Còn nợ</TH>
             <TH className="text-center">Thông tin</TH>
@@ -270,7 +359,24 @@ const MobileCardRow = memo(function MobileCardRow({
         </span>
       </div>
 
-      {/* Row 3.5: Task Progress */}
+      {/* Row 3.5: Event Date (most important on mobile) */}
+      {(() => {
+        const nextDate = getStr(c, "next_event_date") || null;
+        const urgency = getUrgencyInfo(nextDate);
+        if (!urgency) return null;
+        return (
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-base font-bold text-text-main">
+              📅 {fmtDate(nextDate)}
+            </span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${urgency.className}`}>
+              {urgency.text}
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* Row 3.75: Task Progress */}
       <div className="mb-3">
         <ProgressBadge tasks={getArr(c, "work_tasks") as ProgressTask[]} />
       </div>
@@ -310,7 +416,8 @@ const MobileCardRow = memo(function MobileCardRow({
   prev.c.contract_code === next.c.contract_code &&
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
-  prev.c.customers?.full_name === next.c.customers?.full_name
+  prev.c.customers?.full_name === next.c.customers?.full_name &&
+  (prev.c as any).next_event_date === (next.c as any).next_event_date
 );
 
 const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover }: ContractsTableProps) {

@@ -163,26 +163,26 @@ async function installNavigationMonitor(page: Page) {
     const origPush = history.pushState.bind(history);
     const origReplace = history.replaceState.bind(history);
 
-    history.pushState = function (...args: any[]) {
+    history.pushState = function (data: any, unused: string, url?: string | URL | null) {
       (window as any).__navLog.push({
         type: "pushState",
-        url: args[2],
+        url,
         from: window.location.pathname,
         time: Date.now(),
         stack: new Error().stack?.split("\n").slice(1, 5).join(" | "),
       });
-      return origPush(...args);
+      return origPush(data, unused, url);
     };
 
-    history.replaceState = function (...args: any[]) {
+    history.replaceState = function (data: any, unused: string, url?: string | URL | null) {
       (window as any).__navLog.push({
         type: "replaceState",
-        url: args[2],
+        url,
         from: window.location.pathname,
         time: Date.now(),
         stack: new Error().stack?.split("\n").slice(1, 5).join(" | "),
       });
-      return origReplace(...args);
+      return origReplace(data, unused, url);
     };
 
     window.addEventListener("popstate", () => {

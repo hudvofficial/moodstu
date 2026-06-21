@@ -11,6 +11,7 @@ import ProgressBadge from "@/components/contracts/progress-badge";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import { getServiceBadgeColor } from "@/constants/service-colors";
 import { formatCurrency, formatDate, getInitials, CURRENCY_SYMBOL } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 import {
   CONTRACT_STATUS_MAP,
   getServiceLabel,
@@ -22,6 +23,13 @@ interface ContractsTabletTableProps {
   contracts: Contract[];
   onView: (contract: Contract) => void;
   onHover?: (id: string) => void;
+  // Pagination props
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  total?: number;
+  visibleStart?: number;
+  visibleEnd?: number;
 }
 
 type ProgressTask = {
@@ -182,6 +190,12 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   contracts,
   onView,
   onHover,
+  page,
+  totalPages,
+  onPageChange,
+  total,
+  visibleStart,
+  visibleEnd,
 }: ContractsTabletTableProps) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -222,6 +236,23 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
       scrollRef={tableContainerRef}
       className="min-w-[800px] table-fixed"
       containerClassName="rounded-xl"
+      footer={
+        totalPages !== undefined && totalPages > 1 && onPageChange ? (
+          <div className="bg-bg-card border-t border-border px-5 py-3.5 flex items-center justify-between shrink-0">
+            <p className="text-xs text-text-muted md:text-sm italic">
+              <span className="font-semibold italic text-primary">{visibleStart}-{visibleEnd}</span>
+              <span className="text-text-muted"> / {total} hợp đồng</span>
+            </p>
+            <Pagination
+              page={page || 1}
+              totalPages={totalPages}
+              onChange={onPageChange}
+              compact
+              variant="footer"
+            />
+          </div>
+        ) : null
+      }
     >
         <THead>
           <tr>

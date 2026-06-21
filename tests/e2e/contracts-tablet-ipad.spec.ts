@@ -267,10 +267,11 @@ async function seedTwentyContracts(admin: AdminClient, seed: SeedState, simpleCo
     .select("id")
     .single();
   if (extraCustErr || !extraCust) throw new Error(`bulk customer: ${extraCustErr?.message || "missing row"}`);
-  seed.extraCustomerId = extraCust.id;
+  const extraCustomerId = extraCust.id;
+  seed.extraCustomerId = extraCustomerId;
 
   // 3. N simple contracts
-  seed.extraContractIds = await seedSimpleContracts(admin, seed.extraCustomerId, simpleCount, seed.marker);
+  seed.extraContractIds = await seedSimpleContracts(admin, extraCustomerId, simpleCount, seed.marker);
 }
 
 /**

@@ -469,18 +469,26 @@ const ContractsListInner = memo(function ContractsListInner({
               onEdit={handleEdit}
               onDelete={handleDelete}
               onHover={handleHover}
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              total={total}
+              visibleStart={visibleStart}
+              visibleEnd={visibleEnd}
             />
 
-            {/* ── Pagination + Footer ── */}
-            <div className="mt-2 flex shrink-0 items-center justify-between gap-3 px-1 max-xl:text-xs max-xl:h-9">
+            {/* ── Mobile-Only Pagination + Footer (rời rạc, vì mobile dùng card base) ── */}
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-3 px-1 text-xs h-9 md:hidden">
               <p className="text-xs text-text-muted md:text-sm">
-                <span className="font-medium text-text-main">{visibleStart}–{visibleEnd}</span>/<span className="font-medium text-text-main">{total}</span> hợp đồng
+                <span className="font-semibold italic text-primary">{visibleStart}-{visibleEnd}</span>
+                <span className="text-text-muted"> / {total} hợp đồng</span>
               </p>
               <Pagination
                 page={page}
                 totalPages={totalPages}
                 onChange={setPage}
                 compact
+                variant="footer"
               />
             </div>
           </div>

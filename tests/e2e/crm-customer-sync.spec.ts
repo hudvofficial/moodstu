@@ -184,7 +184,7 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
         status: "active",
         notes: seed.marker,
       })
-      .select("id")
+      .select("id, phone")
       .single();
     if (customerError || !customer) {
       throw new Error(`Cannot seed Test 1 customer: ${customerError?.message || "missing row"}`);
@@ -208,7 +208,7 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
         remaining_amount: 1_000_000,
         notes: seed.marker,
       })
-      .select("id")
+      .select("id, contract_code")
       .single();
     if (contractError || !contract) {
       throw new Error(`Cannot seed Test 1 contract: ${contractError?.message || "missing row"}`);
@@ -258,7 +258,7 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
     // Wait for the SWR-backed list to hydrate (initial server data already
     // includes the freshly-edited customer, but the page also kicks off a
     // client refetch — wait for the search input to be interactive).
-const searchInput = page.getByPlaceholder(/tìm|tim|search/i).first();
+    const searchInput = page.getByPlaceholder(/tìm|tim|search/i).first();
     await expect(searchInput).toBeVisible({ timeout: 30_000 });
 
     await searchInput.fill(newName);
@@ -278,6 +278,8 @@ const searchInput = page.getByPlaceholder(/tìm|tim|search/i).first();
       .single();
     expect(reread?.full_name).toBe(newName);
   });
+
+  // ────────────────────────────────────────────────────────────────
   // Test 2: Create customer via UI with a unique phone — happy path.
   // ────────────────────────────────────────────────────────────────
   test("2. Creating a customer with a unique phone succeeds via the UI form modal", async ({
@@ -400,7 +402,20 @@ const searchInput = page.getByPlaceholder(/tìm|tim|search/i).first();
     // ── Step 4: Customer B was NOT inserted — modal stays open so the user
     //            can correct the input. Close it manually for cleanliness.
     await expect(dialog).toBeVisible();
-// ────────────────────────────────────────────────────────────────
+
+    const { data: dupes } = await admin
+      .from("customers")
+      .select("id, full_name")
+      .eq("phone", dupPhone);
+    // Exactly the one we seeded, never two.
+    expect(dupes?.length).toBe(1);
+    expect(dupes?.[0]?.full_name).toBe(customerA);
+
+    await dialog.getByRole("button", { name: /Hủy|Huy/i }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+  });
+
+  // ────────────────────────────────────────────────────────────────
   // Test 4: Changing a filter resets the page to 1.
   //
   // We seed 25 customers with the same source so pageSize=10 yields 3 pages.
@@ -466,36 +481,3 @@ const searchInput = page.getByPlaceholder(/tìm|tim|search/i).first();
     await expect(page.getByRole("button", { name: "3", exact: true })).toHaveCount(0);
   });
 });
-    const { data: dupes } = await admin
-      .from("customers")
-      .select("id, full_name")
-      .eq("phone", dupPhone);
-    // Exactly the one we seeded, never two.
-    expect(dupes?.length).toBe(1);
-    expect(dupes?.[0]?.full_name).toBe(customerA);
-
-    await dialog.getByRole("button", { name: /Hủy|Huy/i }).click();
-    await expect(dialog).toBeHidden({ timeout: 10_000 });
-  });
-
-    await searchInput.fill(newName);
-    await page.waitForTimeout(800); // debounce + ilike roundtrip
-
-    // The new name should appear in the table; the old name should not.
-    await expect(page.getByText(newName, { exact: false }).first()).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByText(initialName, { exact: false })).toHaveCount(0);
-
-    // Belt-and-braces: re-read the DB to assert the row was actually updated.
-    const { data: reread } = await admin
-      .from("customers")
-      .select("full_name")
-      .eq("id", seed.customerId)
-      .single();
-    expect(reread?.full_name).toBe(newName);
-  });
-  await page.locator('input[name="password"]').fill(seed.password);
-  await page.locator('button[type="submit"]').click();
-  await page.waitForURL(/\/dashboard$/, { timeout: 45_000 });
-}

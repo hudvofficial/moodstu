@@ -8,6 +8,7 @@ interface TableWrapperProps {
   className?: string;
   containerClassName?: string;
   scrollRef?: React.RefObject<HTMLDivElement | null>;
+  footer?: React.ReactNode;
 }
 
 /**
@@ -19,10 +20,11 @@ export function TableWrapper({
   className,
   containerClassName,
   scrollRef,
+  footer,
 }: TableWrapperProps) {
   return (
     <div className={cn(
-      "card-base overflow-x-auto lg:flex lg:flex-col lg:flex-1 lg:min-h-0",
+      "card-base overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-h-0",
       containerClassName
     )}>
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide lg:overflow-y-auto lg:flex-1 lg:min-h-0">
@@ -30,6 +32,7 @@ export function TableWrapper({
           {children}
         </table>
       </div>
+      {footer}
     </div>
   );
 }

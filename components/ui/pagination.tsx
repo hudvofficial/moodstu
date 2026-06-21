@@ -10,21 +10,77 @@ interface PaginationProps {
   onChange: (page: number) => void;
   className?: string;
   compact?: boolean;
+  /**
+   * Visual variant.
+   * - "default" (default): generic ghost/page-number style. Used by most pages.
+   * - "footer": table-footer look — subtle white bg + light border per button,
+   *              active filled with warm earth brown. Designed for the
+   *              contracts table footer; safe to reuse elsewhere.
+   */
+  variant?: "default" | "footer";
 }
 
-export function Pagination({ page, totalPages, onChange, className, compact = false }: PaginationProps) {
+export function Pagination({
+  page,
+  totalPages,
+  onChange,
+  className,
+  compact = false,
+  variant = "default",
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const pages = getVisiblePages(page, totalPages);
+  const isFooter = variant === "footer";
+
+  // ── Shared class fragments per variant ──
+  const sizeCls = compact ? "min-w-8 h-8 text-xs" : "min-w-9 h-9 text-sm";
+  const arrowSizeCls = compact ? "size-8 p-1" : "p-2";
+  const arrowIconCls = compact ? "w-3.5 h-3.5" : "w-4 h-4";
+
+  const arrowCls = isFooter
+    ? // footer: subtle rounded buttons (white bg + light border)
+      cn(
+        "rounded-md border border-border bg-bg-card text-text-primary",
+        "hover:bg-bg-hover disabled:opacity-30",
+        "flex items-center justify-center transition-colors",
+        arrowSizeCls,
+      )
+    : // default: existing ghost behavior
+      cn(
+        "btn btn-ghost disabled:opacity-30 flex items-center justify-center",
+        arrowSizeCls,
+      );
+
+  const pageBtnCls = (isActive: boolean) =>
+    isFooter
+      ? cn(
+          "rounded-md font-semibold transition-colors flex items-center justify-center",
+          sizeCls,
+          isActive
+            ? // footer active: dark earth brown filled
+              "bg-primary-dark text-white border border-primary-dark shadow-sm"
+            : // footer inactive: white bg + light border
+              "bg-bg-card border border-border text-text-primary hover:bg-bg-hover",
+        )
+      : cn(
+          // default: existing behavior — unchanged
+          "rounded-md font-semibold transition-all flex items-center justify-center",
+          sizeCls,
+          isActive
+            ? "bg-primary text-white shadow-sm"
+            : "text-text-secondary hover:bg-bg-hover",
+        );
 
   return (
     <div className={cn("flex items-center justify-center gap-1", className)}>
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        className={cn("btn btn-ghost disabled:opacity-30 flex items-center justify-center", compact ? "size-8 p-1" : "p-2")}
+        aria-label="Trang trước"
+        className={arrowCls}
       >
-        <ChevronLeft className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
+        <ChevronLeft className={arrowIconCls} />
       </button>
 
       {pages.map((p, i) =>
@@ -34,13 +90,9 @@ export function Pagination({ page, totalPages, onChange, className, compact = fa
           <button
             key={p}
             onClick={() => onChange(p as number)}
-            className={cn(
-              "rounded-md font-semibold transition-all flex items-center justify-center",
-              compact ? "min-w-8 h-8 text-xs" : "min-w-9 h-9 text-sm",
-              page === p
-                ? "bg-primary text-white shadow-sm"
-                : "text-text-secondary hover:bg-bg-hover"
-            )}
+            aria-current={page === p ? "page" : undefined}
+            aria-label={`Trang ${p}`}
+            className={pageBtnCls(page === p)}
           >
             {p}
           </button>
@@ -50,9 +102,10 @@ export function Pagination({ page, totalPages, onChange, className, compact = fa
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        className={cn("btn btn-ghost disabled:opacity-30 flex items-center justify-center", compact ? "size-8 p-1" : "p-2")}
+        aria-label="Trang sau"
+        className={arrowCls}
       >
-        <ChevronRight className={compact ? "w-3.5 h-3.5" : "w-4 h-4"} />
+        <ChevronRight className={arrowIconCls} />
       </button>
     </div>
   );
