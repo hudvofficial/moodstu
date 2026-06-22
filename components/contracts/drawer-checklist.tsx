@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
-import { updateContractListChecklistCache } from "@/lib/hooks/use-contract-queries";
+import { updateContractListChecklistCache, contractKeys } from "@/lib/hooks/use-contract-queries";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
       action: () => toggleChecklist(item.id, nextCompleted),
       onSuccess: (result) => {
         updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);
+        void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(result.data.contract_id) });
       },
       onError: (error) => {
         toast.error(error instanceof Error ? error.message : "Lỗi cập nhật checklist");

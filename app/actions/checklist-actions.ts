@@ -43,6 +43,7 @@ export async function toggleChecklist(id: string, is_completed: boolean) {
     if (error) throw new Error(`Lỗi cập nhật checklist: ${error.message}`);
     if (!data) throw new Error("Không tìm thấy checklist item");
 
+    revalidatePath(`/contracts/${data.contract_id}`);
     return data;
   });
 }
