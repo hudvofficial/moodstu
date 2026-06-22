@@ -205,6 +205,7 @@ export function DrawerContent({
 
       {/* ── Section: Operations Tabs ── */}
       <OperationsTabs
+        contractId={c.id}
         events={events}
         checklists={checklists}
         workTasks={workTasks}
@@ -236,11 +237,13 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 function OperationsTabs({
+  contractId,
   events,
   checklists,
   workTasks,
   isLoading,
 }: {
+  contractId?: string;
   events: DrawerEvent[];
   checklists: DrawerChecklist[];
   workTasks: DrawerWorkTask[];
@@ -281,7 +284,10 @@ function OperationsTabs({
             <DrawerEventTimeline events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]} />
           )}
           {activeTab === "checklist" && (
-            <DrawerChecklist items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} />
+            <DrawerChecklist 
+              contractId={contractId}
+              items={checklists as unknown as React.ComponentProps<typeof DrawerChecklist>["items"]} 
+            />
           )}
           {activeTab === "staff" && (
             <DrawerAssignments 

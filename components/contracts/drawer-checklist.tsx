@@ -18,6 +18,7 @@ interface ChecklistItem {
 }
 
 interface DrawerChecklistProps {
+  contractId?: string;
   items: ChecklistItem[];
 }
 
@@ -36,7 +37,7 @@ function getCatStyle(category: string) {
     : { bg: "bg-bg-hover", text: "text-text-secondary" };
 }
 
-export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
+export function DrawerChecklist({ contractId, items: initialItems }: DrawerChecklistProps) {
   const queryClient = useQueryClient();
   const [pendingToggles, setPendingToggles] = useState<Map<string, boolean>>(new Map());
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
@@ -94,7 +95,7 @@ export function DrawerChecklist({ items: initialItems }: DrawerChecklistProps) {
 
   const handleToggle = useCallback(async (item: ChecklistItem) => {
     const nextCompleted = !item.is_completed;
-    const itemContractId = (item as ChecklistItem & { contract_id?: string }).contract_id;
+    const itemContractId = contractId; // truyền từ DrawerContent để list cache update ngay, không đợi realtime/server
 
     await runOptimisticMutation({
       apply: () => {

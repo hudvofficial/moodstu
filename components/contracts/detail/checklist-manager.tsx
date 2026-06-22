@@ -41,8 +41,10 @@ function getStageProgress(cats: Record<string, ChecklistItem[]>) {
 }
 
 export default function ContractChecklistManager({
+  contractId,
   initialChecklists = [],
 }: {
+  contractId?: string;
   initialChecklists: ChecklistItem[];
 }) {
   const queryClient = useQueryClient();
@@ -111,7 +113,7 @@ export default function ContractChecklistManager({
     if (pendingToggles.has(item.id)) return;
 
     const nextCompleted = !item.is_completed;
-    const itemContractId = (item as ChecklistItem & { contract_id?: string }).contract_id;
+    const itemContractId = contractId;
 
     await runOptimisticMutation({
       apply: () => {
