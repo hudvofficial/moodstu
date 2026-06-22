@@ -111,13 +111,23 @@ export default function ContractChecklistManager({
     if (pendingToggles.has(item.id)) return;
 
     const nextCompleted = !item.is_completed;
+    const itemContractId = (item as ChecklistItem & { contract_id?: string }).contract_id;
 
     await runOptimisticMutation({
-      apply: () => setPendingToggles(prev => new Map(prev).set(item.id, nextCompleted)),
-      rollback: () => setPendingToggles(prev => { const next = new Map(prev); next.delete(item.id); return next; }),
+      apply: () => {
+        setPendingToggles(prev => new Map(prev).set(item.id, nextCompleted));
+        if (itemContractId) {
+          updateContractListChecklistCache(queryClient, itemContractId, item.id, nextCompleted);
+        }
+      },
+      rollback: () => {
+        setPendingToggles(prev => { const next = new Map(prev); next.delete(item.id); return next; });
+        if (itemContractId) {
+          updateContractListChecklistCache(queryClient, itemContractId, item.id, item.is_completed);
+        }
+      },
       action: () => toggleChecklist(item.id, nextCompleted),
       onSuccess: (result) => {
-        updateContractListChecklistCache(queryClient, result.data.contract_id, item.id, nextCompleted);
         void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(result.data.contract_id) });
       },
       onError: (error) => {
