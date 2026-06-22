@@ -499,12 +499,13 @@ export default function ContractDetailClient({
       //   ❌ contract_checklists, contract_notes: refresh on tab switch
       return [
         { table: "contracts", filter: `id=eq.${id}` },
+        { table: "customers", filter: contract?.customers?.id ? `id=eq.${contract.customers.id}` : "" },
         { table: "contract_events", filter: `contract_id=eq.${id}` },
         { table: "work_tasks", filter: `contract_id=eq.${id}` },
         { table: "payments", filter: `contract_id=eq.${id}` },
       ];
     },
-    [id, enableRealtime],
+    [id, contract?.customers?.id, enableRealtime],
   );
 
   useRealtimeMulti(detailRealtimeConfigs, {

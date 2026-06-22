@@ -197,7 +197,10 @@ const ContractsListInner = memo(function ContractsListInner({
   }, [queryClient]);
 
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(
-    () => [{ table: "contracts" }],
+    () => [
+      { table: "contracts" },
+      { table: "customers" },
+    ],
     [],
   );
 
