@@ -192,7 +192,17 @@ const ContractsListInner = memo(function ContractsListInner({
   }, [queryClient]);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
-  const handleContractRealtime = useCallback(() => {
+  const handleContractRealtime = useCallback((payload?: RealtimePayload) => {
+    // Nếu payload là checklit update, ta tự patch local cache siêu tốc thay vì gọi refetch
+    if (payload?.table === "contract_checklists" && payload.eventType === "UPDATE") {
+      const row = payload.new;
+      if (row.contract_id && row.id && typeof row.is_completed === "boolean") {
+        import("@/lib/hooks/use-contract-queries").then(m => 
+          m.updateContractListChecklistCache(queryClient, row.contract_id as string, row.id as string, row.is_completed as boolean)
+        );
+        return; // Skip refetching whole list
+      }
+    }
     void revalidateContractListCaches(queryClient);
   }, [queryClient]);
 
@@ -200,6 +210,7 @@ const ContractsListInner = memo(function ContractsListInner({
     () => [
       { table: "contracts" },
       { table: "customers" },
+      { table: "contract_checklists", eventTypes: ["UPDATE"] },
     ],
     [],
   );
