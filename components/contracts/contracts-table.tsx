@@ -119,7 +119,7 @@ function getChecklistSummary(
   return {
     total,
     done,
-    missing: Math.min(total, Math.max(0, Number(summary.missing) ?? (total - done))),
+    missing: Math.max(0, total - done), // Force canonical missing instead of trusting RPC missing
   };
 }
 
@@ -239,6 +239,8 @@ const DesktopTableRow = memo(function DesktopTableRow({
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
   prev.c.customers?.full_name === next.c.customers?.full_name &&
+  JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
+  JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
   (prev.c as any).next_event_date === (next.c as any).next_event_date
 );
 
@@ -417,6 +419,8 @@ const MobileCardRow = memo(function MobileCardRow({
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
   prev.c.customers?.full_name === next.c.customers?.full_name &&
+  JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
+  JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
   (prev.c as any).next_event_date === (next.c as any).next_event_date
 );
 

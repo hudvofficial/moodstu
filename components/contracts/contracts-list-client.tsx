@@ -35,6 +35,7 @@ import {
   prefetchContract,
   prefetchContractDetail,
   revalidateContractListCaches,
+  updateContractListChecklistCache,
 } from "@/lib/hooks/use-contract-queries";
 import { preload } from "swr";
 import { fetchContractNotesClient } from "@/lib/client-direct/contract-drawer";
@@ -197,9 +198,7 @@ const ContractsListInner = memo(function ContractsListInner({
     if (payload?.table === "contract_checklists" && payload.eventType === "UPDATE") {
       const row = payload.new;
       if (row.contract_id && row.id && typeof row.is_completed === "boolean") {
-        import("@/lib/hooks/use-contract-queries").then(m => 
-          m.updateContractListChecklistCache(queryClient, row.contract_id as string, row.id as string, row.is_completed as boolean)
-        );
+        updateContractListChecklistCache(queryClient, row.contract_id as string, row.id as string, row.is_completed as boolean);
         return; // Skip refetching whole list
       }
     }

@@ -63,10 +63,10 @@ function getArr(obj: unknown, key: string): unknown[] {
   const val = (obj as Record<string, unknown>)[key];
   return Array.isArray(val) ? val : [];
 }
-
-function getChecklistSummary(obj: unknown): ContractChecklistSummary | null {
-  if (!obj || typeof obj !== "object") return null;
-  const value = (obj as Record<string, unknown>).checklist_summary;
+function getChecklistSummary(
+  obj: any,
+): ContractChecklistSummary | null {
+  const value = obj.checklist_summary;
   if (!value || typeof value !== "object") return null;
 
   const summary = value as Record<string, unknown>;
@@ -75,7 +75,7 @@ function getChecklistSummary(obj: unknown): ContractChecklistSummary | null {
   return {
     total,
     done,
-    missing: Math.min(total, Math.max(0, Number(summary.missing) ?? (total - done))),
+    missing: Math.max(0, total - done), // Force canonical missing instead of trusting RPC missing
   };
 }
 
@@ -156,7 +156,10 @@ const TabletTableRow = memo(function TabletTableRow({
   prev.c.contract_code === next.c.contract_code &&
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
-  prev.c.customers?.full_name === next.c.customers?.full_name
+  prev.c.customers?.full_name === next.c.customers?.full_name &&
+  JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
+  JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
+  (prev.c as any).next_event_date === (next.c as any).next_event_date
 );
 
 function TabletStatusCell({
