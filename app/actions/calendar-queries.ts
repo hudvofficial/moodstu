@@ -276,7 +276,7 @@ async function fetchCalendarEventsFallback(
   const { startDate, endExclusiveDate } = getCalendarWindow(month, year, viewMode);
   const result: UnifiedCalendarEvent[] = [];
 
-  const schedulesResult = await supabase
+  let schedulesQuery = supabase
     .from("schedules")
     .select(`
       id, event_type, event_date, end_date, employee_id,
@@ -284,6 +284,13 @@ async function fetchCalendarEventsFallback(
     `)
     .or(`event_date.gte.${startDate},end_date.gte.${startDate}`)
     .lt("event_date", endExclusiveDate);
+
+  // Non-admin/manager users only see their own schedules
+  if (!access.isGlobalAdmin) {
+    schedulesQuery = schedulesQuery.eq("employee_id", access.employeeId);
+  }
+
+  const schedulesResult = await schedulesQuery;
 
   if (schedulesResult.error) {
     console.error("[fetchCalendarEvents] Schedules Error:", schedulesResult.error);
@@ -330,7 +337,12 @@ export async function fetchCalendarEvents(
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
   return withAuth(async (supabase, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu lịch studio");
-    return fetchCalendarEventsFallback(supabase, access, month, year, viewMode);
+    try {
+      return await fetchCalendarEventsRpc(supabase, access, month, year, viewMode);
+    } catch (error) {
+      console.warn("[fetchCalendarEvents] RPC failed; using fallback query", error);
+      return fetchCalendarEventsFallback(supabase, access, month, year, viewMode);
+    }
   });
 }
 

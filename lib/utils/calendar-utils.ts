@@ -108,6 +108,9 @@ function getInclusiveEventRange(event: UnifiedCalendarEvent) {
   if (event.end) {
     if (event.source === "google" && event.allDay) {
       endIso = formatFns(addDays(parseISO(event.end.split("T")[0]), -1), "yyyy-MM-dd");
+    } else if (event.source !== "google" && !event.end.includes("T")) {
+      // Internal date-only events are exclusive in DB, make them inclusive for UI rendering
+      endIso = formatFns(addDays(parseISO(event.end.split("T")[0]), -1), "yyyy-MM-dd");
     } else {
       endIso = event.end.split("T")[0];
     }

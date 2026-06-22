@@ -26,6 +26,7 @@ interface CalendarToolbarProps {
     availableStatuses: { label: string; value: string }[];
   };
   onNewEvent: () => void;
+  isMobileMonthOnly?: boolean;
 }
 
 const VIEW_MODE_OPTIONS: { label: string; value: CalendarViewMode }[] = [
@@ -41,6 +42,7 @@ export function CalendarToolbar({
   onViewModeChange,
   filters,
   onNewEvent,
+  isMobileMonthOnly = false,
 }: CalendarToolbarProps) {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
@@ -50,6 +52,9 @@ export function CalendarToolbar({
 
   const hasActiveFilter =
     filters.selectedStatuses.length > 0 || filters.selectedEmployees.length > 0;
+  const mobileViewModeOptions = isMobileMonthOnly
+    ? VIEW_MODE_OPTIONS.filter((opt) => opt.value === "month")
+    : VIEW_MODE_OPTIONS;
 
   const handlePrev = () => {
     if (viewMode === "month") {
@@ -306,7 +311,7 @@ export function CalendarToolbar({
           >
             Hôm nay
           </Button>
-          {VIEW_MODE_OPTIONS.map((opt) => (
+          {mobileViewModeOptions.map((opt) => (
             <Button
               key={opt.value}
               variant={viewMode === opt.value ? "primary" : "ghost"}

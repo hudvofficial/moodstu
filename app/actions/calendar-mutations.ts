@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { withAuth } from "@/lib/auth_utils";
 import {
   requireCalendarAccess,
@@ -13,6 +14,15 @@ import { z } from "zod";
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+const GOOGLE_SYNC_TIME_ZONE = "Asia/Ho_Chi_Minh";
+
+type GoogleSyncQueueEntry = {
+  schedule_id: string;
+  google_event_id?: string | null;
+  action: "CREATE" | "UPDATE" | "DELETE";
+  payload: Record<string, unknown>;
+};
 
 const isoDateSchema = z
   .string()
@@ -66,6 +76,15 @@ function shiftEndDateByStoredDuration(
   );
 }
 
+function toGoogleLocalDateTime(value: string) {
+  const normalized = value.trim().replace(" ", "T");
+  const match = normalized.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(?::\d{2})?)/);
+  if (!match) return normalized;
+
+  const [, date, time] = match;
+  return `${date}T${time.length === 5 ? `${time}:00` : time}`;
+}
+
 function buildGoogleEventDates(startValue: string, endValue?: string | null) {
   if (isDateOnly(startValue)) {
     const endDate = endValue && isDateOnly(endValue) ? endValue : startValue;
@@ -76,9 +95,26 @@ function buildGoogleEventDates(startValue: string, endValue?: string | null) {
   }
 
   return {
-    start: { dateTime: new Date(startValue).toISOString() },
-    end: { dateTime: new Date(endValue || startValue).toISOString() },
+    start: {
+      dateTime: toGoogleLocalDateTime(startValue),
+      timeZone: GOOGLE_SYNC_TIME_ZONE,
+    },
+    end: {
+      dateTime: toGoogleLocalDateTime(endValue || startValue),
+      timeZone: GOOGLE_SYNC_TIME_ZONE,
+    },
   };
+}
+
+async function enqueueGoogleSync(
+  supabase: SupabaseClient,
+  entry: GoogleSyncQueueEntry,
+) {
+  const { error } = await supabase.from("google_sync_queue").insert(entry);
+  if (!error) return undefined;
+
+  console.error("[calendar] google_sync_queue insert failed:", error);
+  return `Google Calendar sync was not queued: ${error.message}`;
 }
 
 function revalidateCalendar() {
@@ -120,7 +156,7 @@ export async function updateDragDropDate(
 
       if (oldRecord.google_event_id) {
         const googleDates = buildGoogleEventDates(updates.event_date, updates.end_date);
-        await supabase.from("google_sync_queue").insert({
+        const syncWarning = await enqueueGoogleSync(supabase, {
           schedule_id: parsed.eventId,
           google_event_id: oldRecord.google_event_id,
           action: "UPDATE",
@@ -129,6 +165,9 @@ export async function updateDragDropDate(
             end: googleDates.end,
           }
         });
+        if (syncWarning) {
+          console.error(`Calendar date was updated, but ${syncWarning}`);
+        }
       }
 
       revalidateCalendar();
@@ -222,7 +261,7 @@ export async function createCalendarEvent(
 
     if (parsed.sync_to_google) {
       const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-      await supabase.from("google_sync_queue").insert({
+      warningMsg = await enqueueGoogleSync(supabase, {
         schedule_id: data.id,
         action: "CREATE",
         payload: {
@@ -270,7 +309,7 @@ export async function updateCalendarEvent(
 
     if (oldRecord.google_event_id) {
       const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-      await supabase.from("google_sync_queue").insert({
+      warningMsg = await enqueueGoogleSync(supabase, {
         schedule_id: parsed.eventId,
         google_event_id: oldRecord.google_event_id,
         action: "UPDATE",
@@ -284,7 +323,7 @@ export async function updateCalendarEvent(
       });
     } else if (parsed.sync_to_google) {
       const googleDates = buildGoogleEventDates(parsed.event_date, parsed.end_date);
-      await supabase.from("google_sync_queue").insert({
+      warningMsg = await enqueueGoogleSync(supabase, {
         schedule_id: parsed.eventId,
         action: "CREATE",
         payload: {
@@ -309,15 +348,7 @@ export async function deleteCalendarEvent(
     const validEventId = z.string().trim().min(1, "Thiếu ID sự kiện").parse(eventId);
     const access = await requireCalendarAccess(supabase, userId, "thao tác dữ liệu lịch");
     const oldRecord = await requireCalendarScheduleEditable(supabase, access, validEventId);
-
-    if (oldRecord.google_event_id) {
-      await supabase.from("google_sync_queue").insert({
-        schedule_id: validEventId,
-        google_event_id: oldRecord.google_event_id,
-        action: "DELETE",
-        payload: {}
-      });
-    }
+    let warningMsg: string | undefined;
 
     const { error } = await supabase
       .from("schedules")
@@ -326,7 +357,19 @@ export async function deleteCalendarEvent(
 
     if (error) throw new Error(`Xóa sự kiện thất bại: ${error.message}`);
 
+    if (oldRecord.google_event_id) {
+      warningMsg = await enqueueGoogleSync(supabase, {
+        schedule_id: validEventId,
+        google_event_id: oldRecord.google_event_id,
+        action: "DELETE",
+        payload: {}
+      });
+      if (warningMsg) {
+        console.error(`Calendar deleted locally, but Google Sync warning: ${warningMsg}`);
+      }
+    }
+
     revalidateCalendar();
-    return { success: true };
+    return { success: true, warning: warningMsg };
   });
 }

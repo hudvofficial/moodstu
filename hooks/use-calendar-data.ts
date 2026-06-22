@@ -113,6 +113,11 @@ export function useCalendarData() {
     debounceMs: 750,
   });
 
+  useRealtime("google_sync_queue", {
+    cacheKeys: [cacheKeys.calendarGoogle(month, year)],
+    debounceMs: 750,
+  });
+
   const rawEvents = useMemo(() => {
     const internalEvents = data?.success ? data.data : [];
     return [...internalEvents, ...(googleData || [])];

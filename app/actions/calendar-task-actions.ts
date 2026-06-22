@@ -14,6 +14,24 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+type CalendarConflict = { id: string; title: string; start: string };
+
+type ScheduleConflictRow = {
+  id: string;
+  event_type: string | null;
+  event_date: string;
+  end_date: string | null;
+};
+
+type TaskConflictRow = {
+  id: string;
+  work_type: string | null;
+  deadline: string | null;
+  start_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+};
+
 const isoDateSchema = z
   .string()
   .trim()
@@ -30,6 +48,95 @@ function addOneDay(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const date = new Date(year, month - 1, day + 1);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function parseLocalDateTime(value: string) {
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return new Date(value);
+
+  if (!timePart) return new Date(year, month - 1, day);
+
+  const [hour = "0", minute = "0", second = "0"] = timePart.split(":");
+  return new Date(year, month - 1, day, Number(hour), Number(minute), Number(second));
+}
+
+function toIsoMinute(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function addOneDayDate(date: Date) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return next;
+}
+
+function addOneMinuteDate(date: Date) {
+  return new Date(date.getTime() + 60_000);
+}
+
+function buildAvailabilityInterval(startValue: string, endValue?: string | null) {
+  const startDateKey = toDateKey(startValue);
+  const hasExplicitEnd = Boolean(endValue);
+  const start = hasExplicitEnd && startValue.includes("T")
+    ? parseLocalDateTime(startValue)
+    : parseLocalDateTime(startDateKey);
+  const parsedEnd = endValue
+    ? parseLocalDateTime(endValue)
+    : addOneDayDate(start);
+  const end = parsedEnd > start ? parsedEnd : addOneMinuteDate(start);
+
+  return {
+    start,
+    end,
+    startIso: toIsoMinute(start),
+    endIso: toIsoMinute(end),
+    startDay: startDateKey,
+    endDay: addOneDay(toDateKey(toIsoMinute(end))),
+  };
+}
+
+function buildStoredInterval(startValue: string, endValue: string | null) {
+  const start = parseLocalDateTime(startValue);
+  const parsedEnd = endValue
+    ? parseLocalDateTime(endValue)
+    : startValue.includes("T")
+      ? addOneMinuteDate(start)
+      : addOneDayDate(start);
+
+  return {
+    start,
+    end: parsedEnd > start ? parsedEnd : addOneMinuteDate(start),
+  };
+}
+
+function buildTaskInterval(task: TaskConflictRow) {
+  const dateKey = task.deadline || task.start_date;
+  if (!dateKey) return null;
+
+  if (task.start_time) {
+    const start = parseLocalDateTime(`${dateKey}T${task.start_time}`);
+    const parsedEnd = task.end_time
+      ? parseLocalDateTime(`${dateKey}T${task.end_time}`)
+      : addOneMinuteDate(start);
+    return {
+      start,
+      end: parsedEnd > start ? parsedEnd : addOneMinuteDate(start),
+    };
+  }
+
+  const start = parseLocalDateTime(dateKey);
+  return {
+    start,
+    end: addOneDayDate(start),
+  };
+}
+
+function intervalsOverlap(
+  left: { start: Date; end: Date },
+  right: { start: Date; end: Date },
+) {
+  return left.start < right.end && right.start < left.end;
 }
 
 function revalidateCalendarAndProductivity() {
@@ -65,31 +172,35 @@ export async function assignCalendarTask(
 export async function checkEmployeeAvailability(
   employeeId: string,
   dateIso: string,
-): Promise<ActionResult<{ hasConflict: boolean; conflicts: { id: string; title: string; start: string }[] }>> {
+  endDateIso?: string | null,
+  excludeCurrentId?: string,
+): Promise<ActionResult<{ hasConflict: boolean; conflicts: CalendarConflict[] }>> {
   return withAuth(async (supabase, userId) => {
     const parsed = z.object({
       employeeId: z.string().trim().min(1, "Thiếu ID nhân sự"),
       dateIso: isoDateSchema,
-    }).parse({ employeeId, dateIso });
+      endDateIso: isoDateSchema.nullable().optional(),
+      excludeCurrentId: z.string().trim().min(1).optional(),
+    }).parse({ employeeId, dateIso, endDateIso, excludeCurrentId });
 
     const access = await requireCalendarAccess(supabase, userId, "truy cập lịch");
     await requireCalendarTargetEmployee(supabase, access, parsed.employeeId);
 
-    const dayStart = toDateKey(parsed.dateIso);
-    const dayEnd = addOneDay(dayStart);
+    const targetInterval = buildAvailabilityInterval(parsed.dateIso, parsed.endDateIso);
 
     const [schedulesResult, tasksResult] = await Promise.all([
       supabase
         .from("schedules")
-        .select("id, event_type, event_date")
+        .select("id, event_type, event_date, end_date")
         .eq("employee_id", parsed.employeeId)
-        .gte("event_date", dayStart)
-        .lt("event_date", dayEnd),
+        .or(
+          `and(event_date.lt.${targetInterval.endIso},end_date.gte.${targetInterval.startDay}),and(event_date.gte.${targetInterval.startDay},event_date.lt.${targetInterval.endIso},end_date.is.null)`,
+        ),
       supabase
         .from("work_tasks")
-        .select("id, work_type, deadline, start_date")
+        .select("id, work_type, deadline, start_date, start_time, end_time")
         .eq("assigned_to", parsed.employeeId)
-        .or(`and(deadline.gte.${dayStart},deadline.lt.${dayEnd}),and(deadline.is.null,start_date.gte.${dayStart},start_date.lt.${dayEnd})`),
+        .or(`and(deadline.gte.${targetInterval.startDay},deadline.lt.${targetInterval.endDay}),and(deadline.is.null,start_date.gte.${targetInterval.startDay},start_date.lt.${targetInterval.endDay})`),
     ]);
 
     if (schedulesResult.error) {
@@ -99,22 +210,34 @@ export async function checkEmployeeAvailability(
       throw new Error(`Lỗi kiểm tra nhiệm vụ: ${tasksResult.error.message}`);
     }
 
-    const conflicts = [
-      ...(schedulesResult.data || []).map((schedule) => ({
-        id: schedule.id,
-        title: schedule.event_type || "Sự kiện",
-        start: schedule.event_date,
-      })),
-      ...(tasksResult.data || []).map((task) => ({
-        id: task.id,
-        title: task.work_type || "Nhiệm vụ",
-        start: task.deadline || task.start_date || parsed.dateIso,
-      })),
+    const overlapConflicts: CalendarConflict[] = [
+      ...((schedulesResult.data || []) as ScheduleConflictRow[])
+        .filter((schedule) => schedule.id !== parsed.excludeCurrentId)
+        .filter((schedule) => intervalsOverlap(
+          targetInterval,
+          buildStoredInterval(schedule.event_date, schedule.end_date),
+        ))
+        .map((schedule) => ({
+          id: schedule.id,
+          title: schedule.event_type || "Sự kiện",
+          start: schedule.event_date,
+        })),
+      ...((tasksResult.data || []) as TaskConflictRow[])
+        .filter((task) => task.id !== parsed.excludeCurrentId)
+        .filter((task) => {
+          const taskInterval = buildTaskInterval(task);
+          return taskInterval ? intervalsOverlap(targetInterval, taskInterval) : false;
+        })
+        .map((task) => ({
+          id: task.id,
+          title: task.work_type || "Nhiệm vụ",
+          start: task.deadline || task.start_date || parsed.dateIso,
+        })),
     ];
 
     return {
-      hasConflict: conflicts.length > 0,
-      conflicts,
+      hasConflict: overlapConflicts.length > 0,
+      conflicts: overlapConflicts,
     };
   });
 }

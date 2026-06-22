@@ -12,7 +12,7 @@ import { DayDrawer } from "./drawers/day-drawer";
 import { EventFormDrawer } from "./drawers/event-form-drawer";
 import { FAB } from "@/components/ui/fab";
 import { useIsSmallMobile } from "@/hooks/use-mobile";
-import { UnifiedCalendarEvent } from "@/types/calendar.types";
+import { CalendarViewMode, UnifiedCalendarEvent } from "@/types/calendar.types";
 import { Role } from "@/types/roles";
 
 interface CalendarWrapperProps {
@@ -118,13 +118,26 @@ export function CalendarWrapper({
   // Tablet (≥640px) cần MonthGrid desktop để hiển thị đủ events/cell.
   // MobileMonthGrid chỉ dùng cho phone portrait thực sự (<640px) — cell hẹp, tap → drawer.
   const isSmallMobile = useIsSmallMobile();
+  const isSmallScreen = isSmallMobile;
+
+  const handleViewModeChange = useCallback(
+    (mode: CalendarViewMode) => {
+      if (isSmallScreen && mode !== "month") {
+        setViewMode("month");
+        return;
+      }
+
+      setViewMode(mode);
+    },
+    [isSmallScreen, setViewMode],
+  );
 
   // §4.4 Keyboard shortcuts: T=Today, M/W/D=ViewMode, ←→=Navigate, C=Create
   useCalendarKeyboard({
     currentDate,
     viewMode,
     onDateChange: setCurrentDate,
-    onViewModeChange: setViewMode,
+    onViewModeChange: handleViewModeChange,
     onCreateEvent: () => openCreateForm(currentDate),
   });
 
@@ -135,7 +148,11 @@ export function CalendarWrapper({
     triggerCalendarSync();
   }, [triggerCalendarSync]);
 
-  const isSmallScreen = isSmallMobile;
+  useEffect(() => {
+    if (mounted && isSmallScreen && viewMode !== "month") {
+      setViewMode("month");
+    }
+  }, [mounted, isSmallScreen, viewMode, setViewMode]);
 
   if (error)
     return (
@@ -183,9 +200,10 @@ export function CalendarWrapper({
         currentDate={currentDate}
         onDateChange={setCurrentDate}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         filters={filters}
         onNewEvent={() => openCreateForm(currentDate)}
+        isMobileMonthOnly={isSmallScreen}
       />
       <div className="flex-1 overflow-hidden relative flex flex-col min-h-0">
         {(!mounted || isLoading) && (
