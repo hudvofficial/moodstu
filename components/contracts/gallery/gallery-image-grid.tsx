@@ -116,6 +116,7 @@ export default function GalleryImageGrid({
                 const showFileBadge = hasBoth || group.hasRaw;
                 const fileBadgeLabel = hasBoth ? "RAW+JPG" : "RAW";
                 const isAdmin = !publicMode;
+                const groupHeartCount = group.images.reduce((sum, groupImage) => sum + (reactionCounts?.[groupImage.id]?.hearts || 0), 0);
 
                 return (
                   <div
@@ -217,11 +218,17 @@ export default function GalleryImageGrid({
                         </div>
                       )}
 
-                      {!publicMode && (showFileBadge || image.is_selected) && (
+                      {!publicMode && (showFileBadge || image.is_selected || groupHeartCount > 0) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {image.is_selected && (
                             <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="Khách chọn">
                               <Heart size={12} className="fill-error text-error" />
+                            </span>
+                          )}
+                          {groupHeartCount > 0 && (
+                            <span className="flex h-5 items-center gap-1 rounded-full px-2 text-tiny font-semibold" style={overlayChipStyle} title="Khách thả tim">
+                              <Heart size={11} className="fill-error text-error" />
+                              {groupHeartCount}
                             </span>
                           )}
                           {showFileBadge && (

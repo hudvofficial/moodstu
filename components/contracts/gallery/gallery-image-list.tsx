@@ -65,7 +65,7 @@ export default function GalleryImageList({
 
         {groups.map((group, index) => {
           const image = group.displayImage;
-          const hearts = reactionCounts?.[image.id]?.hearts || 0;
+          const hearts = group.images.reduce((sum, groupImage) => sum + (reactionCounts?.[groupImage.id]?.hearts || 0), 0);
           const fileType = group.hasRaw && group.hasJpg ? "RAW+JPG" : group.hasRaw ? "RAW" : "JPG";
           const dateLabel = image.created_at
             ? new Date(image.created_at).toLocaleDateString("vi-VN", {
@@ -179,9 +179,14 @@ export default function GalleryImageList({
               <span className="text-caption text-text-muted">{dateLabel}</span>
 
               <div className="flex items-center justify-center">
-                {image.is_selected && (
-                  <Heart size={14} className="fill-error text-error" />
-                )}
+                {hearts > 0 ? (
+                  <span className="inline-flex items-center gap-1 text-caption font-semibold text-error" title="Khách thả tim">
+                    <Heart size={14} className="fill-error text-error" />
+                    {hearts}
+                  </span>
+                ) : image.is_selected ? (
+                  <Heart size={14} className="fill-error text-error" title="Khách chọn" />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-center gap-1">

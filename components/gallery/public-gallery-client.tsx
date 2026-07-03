@@ -1,14 +1,14 @@
 "use client";
 /* eslint-disable */
 
-import { useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats } from "@/app/actions/gallery-public-actions";
 import { toggleImageSelection, updateClientNote } from "@/app/actions/gallery-selection-actions";
-import { getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import { getClientReactions, getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
 import ImageViewer from "./image-viewer";
@@ -81,9 +81,21 @@ export default function PublicGalleryClient({
   }, []);
 
   // SWR: Reaction Counts
-  const { data: reactionCounts = {} } = useSWR<ReactionCounts>(
+  const { data: reactionCounts = {}, mutate: mutateReactionCounts } = useSWR<ReactionCounts>(
     gallery.id ? `gallery-reactions-${gallery.id}` : null,
     () => getReactionCounts(gallery.id),
+    { fallbackData: {} }
+  );
+
+  const [clientId, setClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setClientId(getClientId());
+  }, [getClientId]);
+
+  const { data: clientReactions = {}, mutate: mutateClientReactions } = useSWR<Record<string, { heart: boolean; star: boolean }>>(
+    gallery.id && clientId ? `gallery-client-reactions-${gallery.id}-${clientId}` : null,
+    () => getClientReactions(gallery.id, clientId || "guest"),
     { fallbackData: {} }
   );
 
@@ -213,25 +225,49 @@ export default function PublicGalleryClient({
 
 
 
-  // ─── Toggle reaction (Heart) — local optimistic state ────
-  const [reactedImageIds, setReactedImageIds] = useState<Set<string>>(new Set());
+  // ─── Toggle reaction (Heart) — persisted + optimistic SWR state ────
+  const reactedImageIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const [imageId, reaction] of Object.entries(clientReactions)) {
+      if (reaction?.heart) ids.add(imageId);
+    }
+    return ids;
+  }, [clientReactions]);
 
   const handleToggleReaction = useCallback(
     async (imageId: string) => {
-      const clientId = getClientId();
-      // Optimistic local toggle
-      setReactedImageIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(imageId)) { next.delete(imageId); } else { next.add(imageId); }
-        return next;
-      });
-      // Server call — correct param order: (imageId, galleryId, reactionType, clientIdentifier)
-      await toggleReaction(imageId, gallery.id, "heart", clientId);
+      const hadHeart = Boolean(clientReactions[imageId]?.heart);
+      const optimisticClientReactions = {
+        ...clientReactions,
+        [imageId]: {
+          heart: !hadHeart,
+          star: clientReactions[imageId]?.star || false,
+        },
+      };
+      const optimisticReactionCounts = {
+        ...reactionCounts,
+        [imageId]: {
+          hearts: Math.max(0, (reactionCounts[imageId]?.hearts || 0) + (hadHeart ? -1 : 1)),
+          stars: reactionCounts[imageId]?.stars || 0,
+        },
+      };
+
+      mutateClientReactions(optimisticClientReactions, false);
+      mutateReactionCounts(optimisticReactionCounts, false);
+
+      const res = await toggleReaction(imageId, gallery.id, "heart", clientId || "guest");
+      if (!res.success) {
+        mutateClientReactions(clientReactions, false);
+        mutateReactionCounts(reactionCounts, false);
+        return;
+      }
+
+      mutateClientReactions();
+      mutateReactionCounts();
     },
-    [gallery.id, getClientId],
+    [clientId, clientReactions, gallery.id, mutateClientReactions, mutateReactionCounts, reactionCounts],
   );
 
-  // ─── Save note ─────────────────────────────
   const handleSaveNote = useCallback(
     async (imageId: string, note: string) => {
       const previousNote = images.find((i) => i.id === imageId)?.client_note || null;
@@ -280,7 +316,7 @@ export default function PublicGalleryClient({
           </div>
           <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
             <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
-            <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {selectedCount}</span>
+            <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {totalLikes}</span>
           </div>
         </div>
         
