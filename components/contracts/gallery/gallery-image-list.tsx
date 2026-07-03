@@ -185,7 +185,9 @@ export default function GalleryImageList({
                     {hearts}
                   </span>
                 ) : image.is_selected ? (
-                  <Heart size={14} className="fill-error text-error" title="Khách chọn" />
+                  <span className="inline-flex items-center" title="Khách chọn">
+                    <Heart size={14} className="fill-error text-error" />
+                  </span>
                 ) : null}
               </div>
 
