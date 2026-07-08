@@ -189,10 +189,10 @@ export default function GalleryToolbar({
     {
       icon: Heart,
       label: "khách chọn",
-      value: String(selectedCount),
+      value: String(totalHearts),
       tone: "error",
-      active: activeFilter === "selected",
-      onClick: () => onSetActiveFilter(activeFilter === "selected" ? "all" : "selected"),
+      active: activeFilter === "hearted",
+      onClick: () => onSetActiveFilter(activeFilter === "hearted" ? "all" : "hearted"),
     },
     {
       icon: MessageCircle,
@@ -202,7 +202,7 @@ export default function GalleryToolbar({
       active: activeFilter === "commented",
       onClick: () => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented"),
     },
-  ]), [activeFilter, commentCount, onSetActiveFilter, selectedCount, starredCount, totalImageCount, images.length]);
+  ]), [activeFilter, commentCount, onSetActiveFilter, starredCount, totalHearts, totalImageCount, images.length]);
 
   const galleryTabs = useMemo(
     () => galleries.map((gallery) => ({

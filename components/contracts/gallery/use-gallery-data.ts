@@ -329,13 +329,13 @@ export function useGalleryData(
     }
 
     if (activeFilter === "starred") {
-      filtered = filtered.filter((g) => g.displayImage.is_starred);
+      filtered = filtered.filter((g) => g.images.some((img) => img.is_starred));
     } else if (activeFilter === "selected") {
-      filtered = filtered.filter((g) => g.displayImage.is_selected);
+      filtered = filtered.filter((g) => g.images.some((img) => img.is_selected));
     } else if (activeFilter === "hearted") {
-      filtered = filtered.filter((g) => (reactionCounts[g.displayImage.id]?.hearts || 0) > 0);
+      filtered = filtered.filter((g) => g.images.some((img) => (reactionCounts[img.id]?.hearts || 0) > 0));
     } else if (activeFilter === "commented") {
-      filtered = filtered.filter((g) => (commentCountsPerImage[g.displayImage.id] || 0) > 0);
+      filtered = filtered.filter((g) => g.images.some((img) => (commentCountsPerImage[img.id] || 0) > 0));
     }
 
     console.log(`[useGalleryData] ✅ FILTER DONE: ${groupedImages.length} → ${filtered.length} (dropped ${groupedImages.length - filtered.length})`);
