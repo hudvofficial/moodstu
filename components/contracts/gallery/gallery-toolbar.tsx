@@ -284,7 +284,6 @@ export default function GalleryToolbar({
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
                 onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
                 onOpenList={onOpenListModal}
-                disableFilter={selectedCount === 0}
               />
             </div>
           </div>
@@ -326,7 +325,6 @@ export default function GalleryToolbar({
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
                 onOpenFilterLocal={onOpenFilterModal ? () => onOpenFilterModal("local") : undefined}
                 onOpenList={onOpenListModal}
-                disableFilter={selectedCount === 0}
               />
             </div>
           </div>
