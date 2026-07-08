@@ -71,8 +71,7 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
         show_namecard: showNamecard,
         allow_download: allowDownload,
         selection_limit: hasSelectionLimit ? selectionLimit : null,
-        // password can be handled via separate API or within the same save if the backend supports it.
-        password: isProtectPassword && password ? password : null, 
+        password: !isProtectPassword ? null : password.trim() ? password.trim() : undefined,
       });
       onClose();
     } catch (error) {

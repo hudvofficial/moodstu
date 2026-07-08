@@ -55,7 +55,7 @@ export async function createGallery(
         .from("galleries")
         .select("*", { count: "exact", head: true })
         .eq("custom_slug", finalSlug);
-      if (count && count > 0) throw new Error("Tên miền này đã được sử dụng. Vui lòng chọn tên khác.");
+      if (count && count > 0) throw new Error("TĂªn miá»n nĂ y Ä‘Ă£ Ä‘Æ°á»£c sá»­ dá»¥ng. Vui lĂ²ng chá»n tĂªn khĂ¡c.");
     }
 
     const accessUrl = generateAccessUrl();
@@ -104,7 +104,7 @@ export async function createGallery(
       throw new Error(`Loi luu anh: ${imagesError.message}`);
     }
 
-    // Background: backfill dimensions + blurhash (đã có dimensions ở syncDriveFolder; ở đây tạo mới nên thêm cả 2)
+    // Background: backfill dimensions + blurhash (Ä‘Ă£ cĂ³ dimensions á»Ÿ syncDriveFolder; á»Ÿ Ä‘Ă¢y táº¡o má»›i nĂªn thĂªm cáº£ 2)
     backfillGalleryDimensions(gallery.id).catch(err =>
       console.error("Failed to backfill dimensions:", err)
     );
@@ -163,12 +163,10 @@ export async function updateGallerySettings(
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // Sanitize custom_slug: lowercase, trim, replace spaces
     const slug = settings.custom_slug
       ? settings.custom_slug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "")
       : null;
 
-    // Build DB update payload (only non-undefined fields)
     const updatePayload: Record<string, unknown> = {};
     if (settings.title !== undefined) updatePayload.title = settings.title;
     if (settings.custom_slug !== undefined) updatePayload.custom_slug = slug || null;
@@ -180,33 +178,34 @@ export async function updateGallerySettings(
     if (settings.allow_download !== undefined) updatePayload.allow_download = settings.allow_download;
     if (settings.selection_limit !== undefined) updatePayload.selection_limit = settings.selection_limit;
 
-    // Handle password separately (hash it if provided)
-    if (settings.password) {
-      // Store password as-is for now (hashing can be done by existing setGalleryPassword flow)
-      updatePayload.password = settings.password;
-    }
+    if (Object.keys(updatePayload).length > 0) {
+      const { error } = await supabase
+        .from("galleries")
+        .update(updatePayload)
+        .eq("id", galleryId);
 
-    if (Object.keys(updatePayload).length === 0) {
-      return { success: true as const };
-    }
-
-    const { error } = await supabase
-      .from("galleries")
-      .update(updatePayload)
-      .eq("id", galleryId);
-
-    if (error) {
-      // Check for unique constraint violation on custom_slug
-      if (error.code === "23505") {
-        throw new Error("Tên miền album này đã được sử dụng. Vui lòng chọn tên khác.");
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error("Ten mien album nay da duoc su dung. Vui long chon ten khac.");
+        }
+        throw new Error(`Loi cap nhat cai dat: ${error.message}`);
       }
-      throw new Error(`Loi cap nhat cai dat: ${error.message}`);
+    }
+
+    if (settings.password !== undefined) {
+      const { error: passwordError } = await supabase.rpc("set_gallery_password", {
+        p_gallery_id: galleryId,
+        p_password: settings.password?.trim() || null,
+      });
+
+      if (passwordError) {
+        throw new Error(`Loi cap nhat mat khau: ${passwordError.message}`);
+      }
     }
 
     return { success: true as const };
   });
 }
-
 export async function setGalleryPassword(
   galleryId: string,
   password: string | null,
@@ -385,11 +384,11 @@ export async function syncDriveFolder(galleryId: string) {
 }
 
 export async function getGallerySummariesByContract(contractId: string) {
-  // ⚡ withAuthRead (read path): local JWT verify, skips redundant network getUser().
+  // â¡ withAuthRead (read path): local JWT verify, skips redundant network getUser().
   return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // ⚡ OPTIMIZED: Single RPC call (4 queries → 1)
+    // â¡ OPTIMIZED: Single RPC call (4 queries â†’ 1)
     const startTime = performance.now();
     const { data, error } = await supabase.rpc("get_gallery_summaries_by_contract", {
       p_contract_id: contractId

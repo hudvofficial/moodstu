@@ -1,6 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
+import { isValidUUID } from "@/types/gallery";
+import { requirePublicGalleryImageAccess } from "./gallery-core";
 
 // ═══════════════════════════════════════════
 // Gallery Reaction & Comment Server Actions
@@ -32,10 +34,31 @@ export async function toggleReaction(
   imageId: string,
   galleryId: string,
   reactionType: ReactionType,
-  clientIdentifier: string
+  clientIdentifier: string,
+  accessUrl?: string,
+  accessToken?: string,
 ) {
   try {
+    if (!imageId || !isValidUUID(imageId) || !galleryId || !isValidUUID(galleryId)) {
+      return { success: false, action: "error" as const, error: "Invalid image or gallery id" };
+    }
+
+    if (!accessUrl?.trim() || !accessToken?.trim()) {
+      return { success: false, action: "error" as const, error: "Gallery access proof required" };
+    }
+
     const supabase = await createAdminClient();
+
+    const { gallery } = await requirePublicGalleryImageAccess(
+      supabase,
+      accessUrl.trim(),
+      accessToken.trim(),
+      imageId,
+    );
+
+    if (gallery.id !== galleryId) {
+      return { success: false, action: "error" as const, error: "Image does not belong to gallery" };
+    }
 
     // Check if reaction exists
     const { data: existing } = await supabase
@@ -67,7 +90,7 @@ export async function toggleReaction(
     }
   } catch (error) {
     console.error("toggleReaction error:", error);
-    return { success: false, action: "error" as const };
+    return { success: false, action: "error" as const, error: "Unable to update reaction" };
   }
 }
 

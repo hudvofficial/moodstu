@@ -255,7 +255,7 @@ export default function PublicGalleryClient({
       mutateClientReactions(optimisticClientReactions, false);
       mutateReactionCounts(optimisticReactionCounts, false);
 
-      const res = await toggleReaction(imageId, gallery.id, "heart", clientId || "guest");
+      const res = await toggleReaction(imageId, gallery.id, "heart", clientId || "guest", accessUrl, accessToken);
       if (!res.success) {
         mutateClientReactions(clientReactions, false);
         mutateReactionCounts(reactionCounts, false);
@@ -265,7 +265,7 @@ export default function PublicGalleryClient({
       mutateClientReactions();
       mutateReactionCounts();
     },
-    [clientId, clientReactions, gallery.id, mutateClientReactions, mutateReactionCounts, reactionCounts],
+    [accessToken, accessUrl, clientId, clientReactions, gallery.id, mutateClientReactions, mutateReactionCounts, reactionCounts],
   );
 
   const handleSaveNote = useCallback(
