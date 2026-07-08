@@ -98,6 +98,36 @@ export async function getAllSelectedImagesForAction(galleryId: string) {
   });
 }
 
+/** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh được khách thả tim */
+export async function getAllHeartedImagesForAction(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+
+    const [allImages, reactionsResult] = await Promise.all([
+      getCachedGalleryImages(galleryId),
+      supabase
+        .from("gallery_reactions")
+        .select("image_id")
+        .eq("gallery_id", galleryId)
+        .eq("reaction_type", "heart"),
+    ]);
+
+    if (reactionsResult.error) {
+      throw new Error(`Lỗi tải danh sách ảnh tim: ${reactionsResult.error.message}`);
+    }
+
+    const heartedIds = new Set((reactionsResult.data || []).map((row) => row.image_id));
+
+    return allImages
+      .filter((img) => heartedIds.has(img.id))
+      .map((img) => ({
+        id: img.id,
+        file_name: img.file_name,
+        drive_file_id: img.drive_file_id,
+      }));
+  });
+}
+
 /** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh (Bỏ qua pagination) */
 export async function getAllImagesForAction(galleryId: string) {
   return withAuth(async (supabase, userId) => {
@@ -112,4 +142,3 @@ export async function getAllImagesForAction(galleryId: string) {
     }));
   });
 }
-

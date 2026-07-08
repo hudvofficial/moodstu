@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
@@ -21,10 +21,10 @@ import { useNetworkQuality } from "@/hooks/use-network-quality";
 import type { GallerySummary } from "@/types/gallery";
 import type { GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 
-// ═══════════════════════════════════════════
-// GalleryFullPage — Grid view of all images in a gallery
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// GalleryFullPage â€” Grid view of all images in a gallery
 // Responsive: 3 cols desktop, 2 cols mobile
-// ═══════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 interface GalleryFullPageProps {
   contractId: string;
@@ -48,7 +48,7 @@ export default function GalleryFullPage({
     rawCount, jpgCount, selectedCount, starredCount, hasPassword, totalHearts,
     allDownloadFiles, selectedDownloadFiles, totalImageCount,
     hasMoreImages, loadingMore, loadMoreImages,
-    fetchAllSelectedDownloadFiles, fetchAllDownloadFiles,
+    fetchAllSelectedDownloadFiles, fetchAllHeartedDownloadFiles, fetchAllDownloadFiles,
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
     handleSort, handleViewMode, handleWatermarkToggle, handleCreateAlbum, handleToggleStar,
@@ -59,7 +59,7 @@ export default function GalleryFullPage({
     galleryDataFor: galleryId,
   });
 
-  // ── Set header slots for gallery ──
+  // â”€â”€ Set header slots for gallery â”€â”€
   const setHeaderSlots = useSetHeaderSlots();
   const galleryTitle = activeGallery
     ? (FOLDER_LABELS[activeGallery.folder_type || ""] || activeGallery.title || "Gallery")
@@ -102,15 +102,15 @@ export default function GalleryFullPage({
     if (tab) setFilterTab(tab);
     setIsFilterModalOpen(true);
     
-    // Fetch full list of selected jpgs directly from DB to bypass pagination limits
+    // Fetch full list of hearted JPGs directly from DB to bypass pagination limits
     try {
-      const files = await fetchAllSelectedDownloadFiles();
+      const files = await fetchAllHeartedDownloadFiles();
       const jpgNames = files
         .filter((f: { fileName: string }) => f.fileName && /\.(jpe?g)$/i.test(f.fileName))
         .map((f: { fileName: string }) => f.fileName);
       setFullSelectedJpgNames(jpgNames);
     } catch (e) {
-      console.error("Lỗi lấy danh sách JPG", e);
+      console.error("L?i l?y danh sách JPG tim", e);
     }
   };
 
@@ -138,13 +138,13 @@ export default function GalleryFullPage({
 
   return (
     <div className="min-h-screen bg-bg-base">
-      {/* ── Sticky Header Block ── */}
+      {/* â”€â”€ Sticky Header Block â”€â”€ */}
       <GalleryToolbar
         contractId={contractId}
         galleryTitle={galleryTitle}
         breadcrumbItems={[
-          { label: "Hợp đồng", href: "/contracts" },
-          { label: "Chi tiết", href: `/contracts/${contractId}` },
+          { label: "Há»£p Ä‘á»“ng", href: "/contracts" },
+          { label: "Chi tiáº¿t", href: `/contracts/${contractId}` },
           { label: galleryTitle },
         ]}
         galleries={galleries}
@@ -207,7 +207,7 @@ export default function GalleryFullPage({
         commentCountsPerImage={commentCountsPerImage}
       />
 
-      {/* ── Settings Modal ── */}
+      {/* â”€â”€ Settings Modal â”€â”€ */}
       {activeGallery && (
         <GallerySettingsModal
           isOpen={isSettingsOpen}
@@ -216,15 +216,15 @@ export default function GalleryFullPage({
           onSave={async (settings) => {
             const result = await updateGallerySettings(activeGallery.id, settings as GallerySettingsPayload);
             if (!result.success) {
-              throw new Error(result.error || "Lỗi cập nhật cài đặt");
+              throw new Error(result.error || "Lá»—i cáº­p nháº­t cĂ i Ä‘áº·t");
             }
-            toast.success("Đã lưu cài đặt album");
+            toast.success("ÄĂ£ lÆ°u cĂ i Ä‘áº·t album");
           }}
         />
       )}
 
 
-      {/* ── Image Grid or List ── */}
+      {/* â”€â”€ Image Grid or List â”€â”€ */}
       {viewMode === "list" ? (
         <GalleryImageList
           groups={filteredGroups}
@@ -248,7 +248,7 @@ export default function GalleryFullPage({
         />
       )}
 
-      {/* ── Lightbox ── */}
+      {/* â”€â”€ Lightbox â”€â”€ */}
       {lightboxIdx !== null && displayImages[lightboxIdx] && (
         <GalleryLightbox
           images={displayImages}

@@ -437,6 +437,14 @@ export function useGalleryData(
     return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
   }, [activeGalleryId]);
 
+  const fetchAllHeartedDownloadFiles = useCallback(async () => {
+    if (!activeGalleryId) return [];
+    const { getAllHeartedImagesForAction } = await import("@/app/actions/gallery-image-helpers");
+    const res = await getAllHeartedImagesForAction(activeGalleryId);
+    if (!res.success || !res.data) return [];
+    return res.data.filter((i: any) => i.drive_file_id).map((i: any) => ({ imageId: i.id, fileName: i.file_name || "photo" }));
+  }, [activeGalleryId]);
+
   const fetchAllDownloadFiles = useCallback(async () => {
     if (!activeGalleryId) return [];
     const { getAllImagesForAction } = await import("@/app/actions/gallery-image-helpers");
@@ -457,7 +465,7 @@ export function useGalleryData(
     // Pagination
     hasMoreImages, loadingMore, loadMoreImages,
     // Fetchers
-    fetchAllSelectedDownloadFiles, fetchAllDownloadFiles,
+    fetchAllSelectedDownloadFiles, fetchAllHeartedDownloadFiles, fetchAllDownloadFiles,
     // Setters
     setActiveGalleryId, setFileFilter, setActiveFilter, setActiveAlbumId,
     setNewAlbumName, setShowAlbumInput,
