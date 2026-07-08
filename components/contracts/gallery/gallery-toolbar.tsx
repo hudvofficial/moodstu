@@ -43,10 +43,10 @@ const ALL_ALBUMS_TAB = "__all_albums__";
 
 // â”€â”€â”€ Gallery Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  draft: { label: "Báº£n nhĂ¡p", className: "bg-bg-hover text-text-muted" },
-  shared: { label: "ÄĂ£ chia sáº»", className: "bg-success/10 text-success" },
-  locked: { label: "ÄĂ£ khoĂ¡", className: "bg-warning/10 text-warning" },
-  delivered: { label: "ÄĂ£ bĂ n giao", className: "bg-info/10 text-info" },
+  draft: { label: "Bản nháp", className: "bg-bg-hover text-text-muted" },
+  shared: { label: "Đã chia sẻ", className: "bg-success/10 text-success" },
+  locked: { label: "Đã khoá", className: "bg-warning/10 text-warning" },
+  delivered: { label: "Đã bàn giao", className: "bg-info/10 text-info" },
 };
 
 function GalleryStatusBadge({ status, accessUrl }: { status: string; accessUrl?: string | null }) {
@@ -173,7 +173,7 @@ export default function GalleryToolbar({
   const statsItems = useMemo<StatItem[]>(() => ([
     {
       icon: Camera,
-      label: "áº£nh",
+      label: "ảnh",
       value: String(totalImageCount || images.length),
       tone: "primary",
       onClick: () => onSetActiveFilter("all"),
@@ -215,7 +215,7 @@ export default function GalleryToolbar({
 
   const fileTabs = useMemo(
     () => [
-      { label: "Táº¥t cáº£", value: "all", count: groupedImages.length },
+      { label: "Tất cả", value: "all", count: groupedImages.length },
       { label: "JPG", value: "jpg", count: jpgCount },
       { label: "RAW", value: "raw", count: rawCount },
     ],
@@ -224,7 +224,7 @@ export default function GalleryToolbar({
 
   const albumTabs = useMemo(
     () => [
-      { label: "Táº¥t cáº£", value: ALL_ALBUMS_TAB },
+      { label: "Tất cả", value: ALL_ALBUMS_TAB },
       ...albums.map((album) => ({
         label: album.title,
         value: album.id,
@@ -278,7 +278,7 @@ export default function GalleryToolbar({
               <GalleryMoreMenu
                 downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
                 fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
-                downloadLabel={selectedCount > 0 ? `Táº£i ${selectedCount} Ä‘Ă£ chá»n` : "Táº£i táº¥t cáº£"}
+                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
                 onOpenShare={onOpenShare}
                 onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
@@ -312,14 +312,14 @@ export default function GalleryToolbar({
             <div className="shrink-0 flex items-center justify-end gap-2 overflow-visible lg:flex">
               <GallerySortDropdown value={sortBy} onChange={onSort} />
               <ViewModeToggle viewMode={viewMode} onChange={onViewMode} />
-              <ActionButton onClick={onWatermarkToggle} title={watermarkOn ? "Táº¯t watermark" : "Báº­t watermark"}>
+              <ActionButton onClick={onWatermarkToggle} title={watermarkOn ? "Tắt watermark" : "Bật watermark"}>
                 {watermarkOn ? <EyeOff size={15} /> : <Eye size={15} />}
                 <span>WM</span>
               </ActionButton>
               <GalleryMoreMenu
                 downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
                 fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
-                downloadLabel={selectedCount > 0 ? `Táº£i ${selectedCount} Ä‘Ă£ chá»n` : "Táº£i táº¥t cáº£"}
+                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
                 onOpenShare={onOpenShare}
                 onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
@@ -368,7 +368,7 @@ export default function GalleryToolbar({
           )}
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-caption text-text-muted font-medium ml-1">{totalImageCount || images.length} má»¥c</span>
+            <span className="text-caption text-text-muted font-medium ml-1">{totalImageCount || images.length} mục</span>
             <GallerySortDropdown value={sortBy} onChange={onSort} />
           </div>
         </div>

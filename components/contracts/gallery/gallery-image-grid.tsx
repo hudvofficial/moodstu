@@ -221,7 +221,7 @@ export default function GalleryImageGrid({
                         <div
                           className="absolute left-2 bottom-2 z-20 flex h-7 w-7 items-center justify-center rounded-full"
                           style={overlayChipStyle}
-                          title="CĂ³ ghi chĂº"
+                          title="Có ghi chú"
                         >
                           <MessageSquare size={13} className="text-primary" />
                         </div>
@@ -230,12 +230,12 @@ export default function GalleryImageGrid({
                       {!publicMode && (showFileBadge || image.is_selected || groupHeartCount > 0) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {image.is_selected && (
-                            <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="KhĂ¡ch chá»n">
+                            <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="Khách chọn">
                               <Heart size={12} className="fill-error text-error" />
                             </span>
                           )}
                           {groupHeartCount > 0 && (
-                            <span className="flex h-5 items-center gap-1 rounded-full px-2 text-tiny font-semibold" style={overlayChipStyle} title="KhĂ¡ch tháº£ tim">
+                            <span className="flex h-5 items-center gap-1 rounded-full px-2 text-tiny font-semibold" style={overlayChipStyle} title="Khách thả tim">
                               <Heart size={11} className="fill-error text-error" />
                               {groupHeartCount}
                             </span>
@@ -289,7 +289,7 @@ export default function GalleryImageGrid({
         <div className="py-6 text-center">
           <div className="flex items-center justify-center gap-2">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-            <p className="text-caption text-text-muted">Äang táº£i thĂªm áº£nh...</p>
+              <p className="text-caption text-text-muted">Đang tải thêm ảnh...</p>
           </div>
         </div>
       )}
