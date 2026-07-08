@@ -41,12 +41,12 @@ export async function createGallery(
 
     const folderId = parseDriveFolderUrl(driveUrl);
     if (!folderId) {
-      throw new Error("Link khong hop le. Hay dan link folder Google Drive.");
+      throw new Error("Link không hợp lệ. Hãy dán link folder Google Drive.");
     }
 
     const driveFiles = await fetchDriveFiles(folderId);
     if (driveFiles.length === 0) {
-      throw new Error("Folder nay chua co anh nao.");
+      throw new Error("Folder này chưa có ảnh nào.");
     }
 
     const finalSlug = settings?.custom_slug?.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-") || null;
@@ -55,7 +55,7 @@ export async function createGallery(
         .from("galleries")
         .select("*", { count: "exact", head: true })
         .eq("custom_slug", finalSlug);
-      if (count && count > 0) throw new Error("TĂªn miá»n nĂ y Ä‘Ă£ Ä‘Æ°á»£c sá»­ dá»¥ng. Vui lĂ²ng chá»n tĂªn khĂ¡c.");
+      if (count && count > 0) throw new Error("Tên miền này đã được sử dụng. Vui lòng chọn tên khác.");
     }
 
     const accessUrl = generateAccessUrl();
@@ -82,7 +82,7 @@ export async function createGallery(
       .single();
 
     if (galleryError || !gallery) {
-      throw new Error(`Loi tao gallery: ${galleryError?.message || "Unknown"}`);
+      throw new Error(`Lỗi tạo gallery: ${galleryError?.message || "Unknown"}`);
     }
 
     const imageRows = driveFiles.map((file, index) => ({
@@ -101,10 +101,10 @@ export async function createGallery(
 
     if (imagesError) {
       await supabase.from("galleries").delete().eq("id", gallery.id);
-      throw new Error(`Loi luu anh: ${imagesError.message}`);
+      throw new Error(`Lỗi lưu ảnh: ${imagesError.message}`);
     }
 
-    // Background: backfill dimensions + blurhash (Ä‘Ă£ cĂ³ dimensions á»Ÿ syncDriveFolder; á»Ÿ Ä‘Ă¢y táº¡o má»›i nĂªn thĂªm cáº£ 2)
+    // Background: backfill dimensions + blurhash for newly-created gallery images.
     backfillGalleryDimensions(gallery.id).catch(err =>
       console.error("Failed to backfill dimensions:", err)
     );
@@ -130,7 +130,7 @@ export async function deleteGallery(galleryId: string) {
       .single();
 
     if (galleryError || !gallery) {
-      throw new Error(`Loi tim gallery: ${galleryError?.message || "Unknown"}`);
+      throw new Error(`Lỗi tìm gallery: ${galleryError?.message || "Unknown"}`);
     }
 
     const { error: imageDeleteError } = await supabase
@@ -139,7 +139,7 @@ export async function deleteGallery(galleryId: string) {
       .eq("gallery_id", galleryId);
 
     if (imageDeleteError) {
-      throw new Error(`Loi xoa anh gallery: ${imageDeleteError.message}`);
+      throw new Error(`Lỗi xoá ảnh gallery: ${imageDeleteError.message}`);
     }
 
     const { error } = await supabase
@@ -148,7 +148,7 @@ export async function deleteGallery(galleryId: string) {
       .eq("id", galleryId);
 
     if (error) {
-      throw new Error(`Loi xoa gallery: ${error.message}`);
+      throw new Error(`Lỗi xoá gallery: ${error.message}`);
     }
 
     revalidatePath(`/contracts/${gallery.contract_id}`);

@@ -19,7 +19,7 @@ interface GalleryImageGridProps {
   loadingMore?: boolean;
   hasMore?: boolean;
   publicMode?: boolean;
-  /** Hiá»ƒn thá»‹ client_note dÆ°á»›i tile (chá»‰ khi publicMode + truthy). Máº·c Ä‘á»‹nh: false. */
+  /** Hiển thị client_note dưới tile (chỉ khi publicMode + truthy). Mặc định: false. */
   showClientNote?: boolean;
 }
 
@@ -102,7 +102,7 @@ export default function GalleryImageGrid({
                 const isError = errorGroups[group.fileGroup] === true;
                 // Admin + public both load the lh3 sized URL directly (tile marks lh3 unoptimized).
                 // Do NOT route public through the /api/drive-download proxy: it 302-redirects to lh3,
-                // and Next.js /_next/image cannot optimize a redirect â†’ 400 on every tile (broken gallery).
+                // and Next.js /_next/image cannot optimize a redirect -> 400 on every tile (broken gallery).
                 const imageSrc = getResponsiveThumbnailUrl(
                   image.thumbnail_url,
                   image.image_url,
@@ -257,7 +257,7 @@ export default function GalleryImageGrid({
                         <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
 
-                      {/* Note preview â€” CHá»ˆ hiá»ƒn thá»‹ khi publicMode + showClientNote + client_note truthy */}
+                      {/* Note preview - chỉ hiển thị khi publicMode + showClientNote + client_note truthy */}
                       {publicMode && showClientNote && image.client_note && (
                         <div
                           className="pointer-events-none absolute bottom-0 right-12 left-0 z-20 px-3 pb-2 pt-6"
@@ -280,7 +280,7 @@ export default function GalleryImageGrid({
         </div>
       </div>
 
-      {/* Invisible sentinel â€” IntersectionObserver watches this to trigger load-more */}
+      {/* Invisible sentinel - IntersectionObserver watches this to trigger load-more */}
       {showSentinel && (
         <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
       )}

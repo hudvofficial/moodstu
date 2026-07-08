@@ -9,13 +9,13 @@ import {
 import { generateAccessUrl } from "@/types/gallery";
 import { backfillGalleryDimensions } from "./gallery-dimensions-actions";
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// Gallery Drive Actions â€” Multi-folder, tracking, delivery
-// Split tá»« gallery-actions.ts (lesson #7: max 250 lines/file)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ------------------------------------------------------------
+// Gallery Drive Actions - Multi-folder, tracking, delivery
+// Split from gallery-actions.ts (lesson #7: max 250 lines/file)
+// ------------------------------------------------------------
 
-// â”€â”€â”€ createMultiFolderGalleries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// DĂ¡n 1 parent folder URL â†’ auto-detect subfolders â†’ táº¡o tá»‘i Ä‘a 3 galleries
+// --- createMultiFolderGalleries -----------------------------
+// Paste one parent folder URL -> auto-detect subfolders -> create up to 3 galleries
 export async function createMultiFolderGalleries(
   contractId: string,
   parentDriveUrl: string,
@@ -25,10 +25,10 @@ export async function createMultiFolderGalleries(
 
     const parentFolderId = parseDriveFolderUrl(parentDriveUrl);
     if (!parentFolderId) {
-      throw new Error("Link khĂ´ng há»£p lá»‡. HĂ£y dĂ¡n link folder Google Drive.");
+      throw new Error("Link không hợp lệ. Hãy dán link folder Google Drive.");
     }
 
-    // Helper: táº¡o 1 gallery + images (internal, khĂ´ng wrap withAuth)
+    // Helper: create one gallery + images (internal, not wrapped withAuth)
     async function createGalleryInternal(
       folderId: string,
       folderUrl: string,
@@ -53,7 +53,7 @@ export async function createMultiFolderGalleries(
         .select("id")
         .single();
 
-      if (error) throw new Error(`Lá»—i táº¡o gallery: ${error.message}`);
+      if (error) throw new Error(`Lỗi tạo gallery: ${error.message}`);
 
       const imageRows = driveFiles.map((file, index) => ({
         gallery_id: gallery.id,
@@ -67,7 +67,7 @@ export async function createMultiFolderGalleries(
 
       await supabase.from("gallery_images").insert(imageRows);
 
-      // Background: backfill dimensions + blurhash (cháº¡y song song, khĂ´ng block return)
+      // Background: backfill dimensions + blurhash in parallel without blocking return.
       backfillGalleryDimensions(gallery.id).catch(err =>
         console.error('Failed to backfill dimensions:', err)
       );
@@ -80,11 +80,11 @@ export async function createMultiFolderGalleries(
       return { galleryId: gallery.id, folderType, totalImages: driveFiles.length };
     }
 
-    // 1. TĂ¬m subfolders
+    // 1. Find subfolders
     const subfolders = await fetchDriveSubfolders(parentFolderId);
 
     if (subfolders.length === 0) {
-      const result = await createGalleryInternal(parentFolderId, parentDriveUrl, "áº¢nh gá»‘c", "goc");
+      const result = await createGalleryInternal(parentFolderId, parentDriveUrl, "Ảnh gốc", "goc");
       revalidatePath(`/contracts/${contractId}`);
       return {
         created: result ? 1 : 0,
@@ -92,7 +92,7 @@ export async function createMultiFolderGalleries(
       };
     }
 
-    // 2. Auto-detect folder types tá»« subfolders
+    // 2. Auto-detect folder types from subfolders
     const created: Array<{ galleryId: string; folderType: string; totalImages: number }> = [];
 
     for (const subfolder of subfolders) {
@@ -110,9 +110,9 @@ export async function createMultiFolderGalleries(
 
       const folderUrl = `https://drive.google.com/drive/folders/${subfolder.id}`;
       const title =
-        folderType === "goc" ? "áº¢nh gá»‘c" :
-        folderType === "da_sua" ? "áº¢nh Ä‘Ă£ sá»­a" :
-        "áº¢nh chá»n in";
+        folderType === "goc" ? "Ảnh gốc" :
+        folderType === "da_sua" ? "Ảnh đã sửa" :
+        "Ảnh chọn in";
 
       try {
         const result = await createGalleryInternal(subfolder.id, folderUrl, title, folderType);
@@ -127,8 +127,8 @@ export async function createMultiFolderGalleries(
   });
 }
 
-// â”€â”€â”€ updateDriveFolderUrl â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Admin: sá»­a link Drive cho 1 gallery
+// --- updateDriveFolderUrl -----------------------------------
+// Admin: update Drive link for one gallery
 export async function updateDriveFolderUrl(
   galleryId: string,
   newDriveUrl: string,
@@ -138,7 +138,7 @@ export async function updateDriveFolderUrl(
 
     const folderId = parseDriveFolderUrl(newDriveUrl);
     if (!folderId) {
-      throw new Error("Link khĂ´ng há»£p lá»‡.");
+      throw new Error("Link không hợp lệ.");
     }
 
     const { data, error } = await supabase
@@ -152,15 +152,15 @@ export async function updateDriveFolderUrl(
       .select("id, contract_id")
       .single();
 
-    if (error) throw new Error(`Lá»—i cáº­p nháº­t: ${error.message}`);
+    if (error) throw new Error(`Lỗi cập nhật: ${error.message}`);
 
     revalidatePath(`/contracts/${data.contract_id}`);
     return { galleryId: data.id };
   });
 }
 
-// â”€â”€â”€ getRetouchProgress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// So sĂ¡nh áº£nh Ä‘Ă£ chá»n (folder gá»‘c) vs áº£nh Ä‘Ă£ sá»­a (folder da_sua)
+// --- getRetouchProgress -------------------------------------
+// Compare selected original images against edited images.
 export async function getRetouchProgress(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -205,8 +205,8 @@ export async function getRetouchProgress(contractId: string) {
   });
 }
 
-// â”€â”€â”€ getDeliveryDate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Láº¥y ngĂ y tráº£ file tá»« event "hau_ky" trong contract_events
+// --- getDeliveryDate ----------------------------------------
+// Get delivery date from the hau_ky contract event.
 export async function getDeliveryDate(contractId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -229,7 +229,7 @@ export async function getDeliveryDate(contractId: string) {
   });
 }
 
-// â”€â”€â”€ initDriveCopyJob â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- initDriveCopyJob ---------------------------------------
 export async function initDriveCopyJob(galleryId: string, contractId: string, destFolderName: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -267,7 +267,7 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
       .single();
 
     if (!gallery?.drive_folder_id) {
-      return { error: "Gallery chÆ°a cĂ³ link Drive gá»‘c" };
+      return { error: "Gallery chưa có link Drive gốc" };
     }
 
     const { data: heartReactions, error: reactionsError } = await supabase
@@ -290,7 +290,7 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
 
     if (imagesError) throw new Error("Failed to load hearted gallery images");
     if (!images || images.length === 0) return { error: "No hearted images found" };
-    // Lá»c ra cĂ¡c file JPG/JPEG (case-insensitive)
+    // Filter JPG/JPEG files (case-insensitive).
     const jpgImages = images.filter((img) => {
       if (!img.file_name) return false;
       const lower = img.file_name.toLowerCase();
@@ -298,19 +298,19 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
     });
 
     if (jpgImages.length === 0) {
-      return { error: "KhĂ´ng tĂ¬m tháº¥y file Ä‘á»‹nh dáº¡ng JPG/JPEG trong cĂ¡c áº£nh Ä‘Ă£ chá»n" };
+      return { error: "Không tìm thấy file định dạng JPG/JPEG trong các ảnh khách đã chọn" };
     }
 
     const finalFolderName = destFolderName.trim() || `Selected - ${contractCode}`;
     
-    // Táº¡o folder BĂN TRONG folder gá»‘c (folder gá»‘c Ä‘Ă£ Ä‘Æ°á»£c share quyá»n Editor)
-    // + tá»± Ä‘á»™ng dĂ¹ng láº¡i folder náº¿u Ä‘Ă£ tá»“n táº¡i (trĂ¡nh trĂ¹ng tĂªn)
+    // Create destination folder inside the original Drive folder shared with Editor permission.
+    // Reuse an existing folder when found to avoid duplicate names.
     let destFolderId: string;
     try {
       destFolderId = await findOrCreateDriveFolder(authData.access_token, finalFolderName, gallery.drive_folder_id);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      return { error: `Lá»—i táº¡o thÆ° má»¥c: ${msg}` };
+      return { error: `Lỗi tạo thư mục: ${msg}` };
     }
 
     const { data: job } = await supabase
@@ -339,12 +339,12 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
   });
 }
 
-// â”€â”€â”€ processDriveCopyChunk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Nháº­n accessToken trá»±c tiáº¿p (khĂ´ng query DB má»—i chunk).
-// P7: bá» SELECT+UPDATE gallery_filter_jobs má»—i chunk â€” khĂ´ng cĂ³ UI poll progress (verify grep).
-//     Cáº¯t ~100ms/chunk Ă— N chunks = tiáº¿t kiá»‡m 1s+ cho 100+ áº£nh. Client gá»i finalizeDriveCopyJob 1 láº§n cuá»‘i.
-// P8: truyá»n onTokenExpired callback vĂ o createDriveShortcut. Khi 401 trĂªn Drive API â†’ refresh
-//     token qua getValidGoogleToken (Ä‘á»c studio_info) â†’ retry. Báº£o vá»‡ job dĂ i > token TTL 1h.
+// --- processDriveCopyChunk ----------------------------------
+// Receives accessToken directly without querying DB for each chunk.
+// P7: skip SELECT+UPDATE gallery_filter_jobs for each chunk; no UI poll progress.
+//     Saves roughly 100ms/chunk for large selections; client finalizes once at the end.
+// P8: pass onTokenExpired into createDriveShortcut; refresh and retry on Drive API 401.
+//     Uses getValidGoogleToken and protects long jobs beyond token TTL.
 export async function processDriveCopyChunk(
   jobId: string | undefined,
   destFolderId: string,
@@ -358,8 +358,8 @@ export async function processDriveCopyChunk(
     let successCount = 0;
     let failedCount = 0;
 
-    // P8: refresh callback â€” cháº¡y khi createDriveShortcut báº¯t 401 tá»« Drive API.
-    // Re-query studio_info + láº¥y token má»›i (cĂ³ thá»ƒ Ä‘Ă£ refresh trong DB do request song song khĂ¡c).
+    // P8: refresh callback runs when createDriveShortcut catches 401 from Drive API.
+    // Re-query studio_info and get the latest token, including refreshes from parallel requests.
     const onTokenExpired = async (): Promise<string> => {
       const { data: studioInfo } = await supabase
         .from("studio_info")
@@ -367,7 +367,7 @@ export async function processDriveCopyChunk(
         .limit(1)
         .maybeSingle();
       if (!studioInfo?.google_oauth) {
-        throw new Error("Studio máº¥t Google OAuth â€” khĂ´ng refresh Ä‘Æ°á»£c token");
+        throw new Error("Studio mất Google OAuth - không refresh được token");
       }
       const fresh = await getValidGoogleToken(supabase, studioInfo);
       return fresh.access_token;
@@ -397,21 +397,21 @@ export async function processDriveCopyChunk(
       }
     }
 
-    // Tráº£ vá» lá»—i fatal ngay láº­p tá»©c náº¿u háº¿t dung lÆ°á»£ng Drive
+    // Return fatal error immediately when Drive quota is exceeded.
     if (quotaExceededError) {
       return { success: false, error: quotaExceededError };
     }
 
-    // P7: KHĂ”NG update gallery_filter_jobs á»Ÿ Ä‘Ă¢y ná»¯a â€” client gá»i finalizeDriveCopyJob 1 láº§n cuá»‘i.
-    // jobId váº«n nháº­n Ä‘á»ƒ giá»¯ signature á»•n Ä‘á»‹nh + log náº¿u cáº§n debug.
+    // P7: do not update gallery_filter_jobs here; client calls finalizeDriveCopyJob once.
+    // jobId remains in the signature for stability and debug logging if needed.
     return { success: true, successCount, failedCount };
   });
 }
 
-// â”€â”€â”€ finalizeDriveCopyJob â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// P7: client gá»i 1 láº§n SAU khi táº¥t cáº£ workers `processDriveCopyChunk` xong.
-// Thay vĂ¬ SELECT+UPDATE má»—i chunk (N round-trip), chá»‰ 1 UPDATE cuá»‘i â†’ tiáº¿t kiá»‡m ~100ms Ă— (N-1) chunk.
-// gallery_filter_jobs váº«n Ä‘Æ°á»£c track Ä‘Ăºng status cuá»‘i (completed/failed/partial).
+// --- finalizeDriveCopyJob -----------------------------------
+// P7: client calls once after all processDriveCopyChunk workers finish.
+// Replace per-chunk SELECT+UPDATE round trips with one final UPDATE.
+// gallery_filter_jobs still tracks final status correctly.
 export async function finalizeDriveCopyJob(
   jobId: string,
   successCount: number,
@@ -422,7 +422,7 @@ export async function finalizeDriveCopyJob(
     const processed = successCount + failedCount;
     const status = processed >= totalCount
       ? (successCount > 0 ? "completed" : "failed")
-      : "failed"; // Client káº¿t thĂºc sá»›m (vd QUOTA_EXCEEDED) â†’ mark failed
+      : "failed"; // Client ended early, for example QUOTA_EXCEEDED.
 
     await supabase
       .from("gallery_filter_jobs")
@@ -440,7 +440,7 @@ export async function finalizeDriveCopyJob(
 }
 
 
-// â”€â”€â”€ getGalleryFilterJobProgress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- getGalleryFilterJobProgress ----------------------------
 export async function getGalleryFilterJobProgress(galleryId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -453,7 +453,7 @@ export async function getGalleryFilterJobProgress(galleryId: string) {
       .limit(1)
       .maybeSingle();
 
-    if (error) throw new Error("Lá»—i láº¥y tiáº¿n Ä‘á»™ copy: " + error.message);
+    if (error) throw new Error("Lỗi lấy tiến độ copy: " + error.message);
     return data;
   });
 }

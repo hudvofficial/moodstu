@@ -22,7 +22,7 @@ import type { GallerySummary } from "@/types/gallery";
 import type { GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// GalleryFullPage â€” Grid view of all images in a gallery
+// GalleryFullPage - Grid view of all images in a gallery
 // Responsive: 3 cols desktop, 2 cols mobile
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 

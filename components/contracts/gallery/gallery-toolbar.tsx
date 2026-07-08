@@ -32,7 +32,7 @@ import {
 } from "./gallery-toolbar-actions";
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// GalleryToolbar â€” Main toolbar orchestrator
+// GalleryToolbar - Main toolbar orchestrator
 // Sub-components extracted to:
 //   gallery-toolbar-stats.tsx (MobilePrimaryStatCard, MobileSecondaryStatChip)
 //   gallery-toolbar-filters.tsx (GalleryFilterTabs, GalleryDesktopFilterGroup)
