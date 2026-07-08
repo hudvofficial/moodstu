@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useRef } from "react";
 import Link from "next/link";
@@ -31,22 +31,22 @@ import {
   AlbumCreateInput,
 } from "./gallery-toolbar-actions";
 
-// ═══════════════════════════════════════════
-// GalleryToolbar — Main toolbar orchestrator
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// GalleryToolbar â€” Main toolbar orchestrator
 // Sub-components extracted to:
 //   gallery-toolbar-stats.tsx (MobilePrimaryStatCard, MobileSecondaryStatChip)
 //   gallery-toolbar-filters.tsx (GalleryFilterTabs, GalleryDesktopFilterGroup)
 //   gallery-toolbar-actions.tsx (ActionButton, ViewModeToggle, MoreMenu, AlbumInput)
-// ═══════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const ALL_ALBUMS_TAB = "__all_albums__";
 
-// ─── Gallery Status Badge ───────────────────
+// â”€â”€â”€ Gallery Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  draft: { label: "Bản nháp", className: "bg-bg-hover text-text-muted" },
-  shared: { label: "Đã chia sẻ", className: "bg-success/10 text-success" },
-  locked: { label: "Đã khoá", className: "bg-warning/10 text-warning" },
-  delivered: { label: "Đã bàn giao", className: "bg-info/10 text-info" },
+  draft: { label: "Báº£n nhĂ¡p", className: "bg-bg-hover text-text-muted" },
+  shared: { label: "ÄĂ£ chia sáº»", className: "bg-success/10 text-success" },
+  locked: { label: "ÄĂ£ khoĂ¡", className: "bg-warning/10 text-warning" },
+  delivered: { label: "ÄĂ£ bĂ n giao", className: "bg-info/10 text-info" },
 };
 
 function GalleryStatusBadge({ status, accessUrl }: { status: string; accessUrl?: string | null }) {
@@ -173,7 +173,7 @@ export default function GalleryToolbar({
   const statsItems = useMemo<StatItem[]>(() => ([
     {
       icon: Camera,
-      label: "ảnh",
+      label: "áº£nh",
       value: String(totalImageCount || images.length),
       tone: "primary",
       onClick: () => onSetActiveFilter("all"),
@@ -215,7 +215,7 @@ export default function GalleryToolbar({
 
   const fileTabs = useMemo(
     () => [
-      { label: "Tất cả", value: "all", count: groupedImages.length },
+      { label: "Táº¥t cáº£", value: "all", count: groupedImages.length },
       { label: "JPG", value: "jpg", count: jpgCount },
       { label: "RAW", value: "raw", count: rawCount },
     ],
@@ -224,7 +224,7 @@ export default function GalleryToolbar({
 
   const albumTabs = useMemo(
     () => [
-      { label: "Tất cả", value: ALL_ALBUMS_TAB },
+      { label: "Táº¥t cáº£", value: ALL_ALBUMS_TAB },
       ...albums.map((album) => ({
         label: album.title,
         value: album.id,
@@ -278,7 +278,7 @@ export default function GalleryToolbar({
               <GalleryMoreMenu
                 downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
                 fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
-                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
+                downloadLabel={selectedCount > 0 ? `Táº£i ${selectedCount} Ä‘Ă£ chá»n` : "Táº£i táº¥t cáº£"}
                 onOpenShare={onOpenShare}
                 onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
@@ -312,14 +312,14 @@ export default function GalleryToolbar({
             <div className="shrink-0 flex items-center justify-end gap-2 overflow-visible lg:flex">
               <GallerySortDropdown value={sortBy} onChange={onSort} />
               <ViewModeToggle viewMode={viewMode} onChange={onViewMode} />
-              <ActionButton onClick={onWatermarkToggle} title={watermarkOn ? "Tắt watermark" : "Bật watermark"}>
+              <ActionButton onClick={onWatermarkToggle} title={watermarkOn ? "Táº¯t watermark" : "Báº­t watermark"}>
                 {watermarkOn ? <EyeOff size={15} /> : <Eye size={15} />}
                 <span>WM</span>
               </ActionButton>
               <GalleryMoreMenu
                 downloadFiles={selectedCount > 0 ? selectedDownloadFiles : allDownloadFiles}
                 fetchDownloadFiles={selectedCount > 0 ? fetchAllSelectedDownloadFiles : fetchAllDownloadFiles}
-                downloadLabel={selectedCount > 0 ? `Tải ${selectedCount} đã chọn` : "Tải tất cả"}
+                downloadLabel={selectedCount > 0 ? `Táº£i ${selectedCount} Ä‘Ă£ chá»n` : "Táº£i táº¥t cáº£"}
                 onOpenShare={onOpenShare}
                 onOpenSettings={onOpenSettings}
                 onOpenFilterDrive={onOpenFilterModal ? () => onOpenFilterModal("drive") : undefined}
@@ -368,7 +368,7 @@ export default function GalleryToolbar({
           )}
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-caption text-text-muted font-medium ml-1">{totalImageCount || images.length} mục</span>
+            <span className="text-caption text-text-muted font-medium ml-1">{totalImageCount || images.length} má»¥c</span>
             <GallerySortDropdown value={sortBy} onChange={onSort} />
           </div>
         </div>

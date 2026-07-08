@@ -333,7 +333,7 @@ export function useGalleryData(
     } else if (activeFilter === "selected") {
       filtered = filtered.filter((g) => g.images.some((img) => img.is_selected));
     } else if (activeFilter === "hearted") {
-      filtered = filtered.filter((g) => g.images.some((img) => (reactionCounts[img.id]?.hearts || 0) > 0));
+      filtered = filtered.filter((g) => g.images.some((img) => img.is_selected || (reactionCounts[img.id]?.hearts || 0) > 0));
     } else if (activeFilter === "commented") {
       filtered = filtered.filter((g) => g.images.some((img) => (commentCountsPerImage[img.id] || 0) > 0));
     }
@@ -375,7 +375,7 @@ export function useGalleryData(
   const starredCount = images.filter((i) => i.is_starred).length;
   const hasPassword = activeGallery?.hasPassword ?? !!(activeGallery?.password_hash || activeGallery?.password);
   const effectiveTotalImageCount = totalImageCount || activeGallery?.imageCount || images.length;
-  const totalHearts = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
+  const totalHearts = images.filter((img) => img.is_selected || (reactionCounts[img.id]?.hearts || 0) > 0).length;
 
   // ─── Star toggle (Admin đề xuất ảnh) ──────
   const handleToggleStar = useCallback(async (imageId: string, currentStarred: boolean) => {

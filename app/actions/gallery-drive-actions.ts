@@ -276,21 +276,20 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
       .eq("gallery_id", galleryId)
       .eq("reaction_type", "heart");
 
-    if (reactionsError) throw new Error("L?i t?i danh sách ?nh tim");
+    if (reactionsError) throw new Error("Failed to load hearted images");
 
-    const heartedImageIds = [...new Set((heartReactions || []).map((row) => row.image_id).filter(Boolean))];
-    if (heartedImageIds.length === 0) return { error: "Không có ?nh nào đư?c khách th? tim" };
+    const reactionHeartedIds = (heartReactions || []).map((row) => row.image_id).filter(Boolean);
 
     const { data: images, error: imagesError } = await supabase
       .from("gallery_images")
-      .select("id, drive_file_id, file_name, sort_order, created_at")
+      .select("id, drive_file_id, file_name, sort_order, created_at, is_selected")
       .eq("gallery_id", galleryId)
-      .in("id", heartedImageIds)
+      .or(`is_selected.eq.true,id.in.(${reactionHeartedIds.length > 0 ? reactionHeartedIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
-    if (imagesError) throw new Error("L?i t?i danh sách ?nh tim");
-    if (!images || images.length === 0) return { error: "Không t?m th?y ?nh tim trong album" };
+    if (imagesError) throw new Error("Failed to load hearted gallery images");
+    if (!images || images.length === 0) return { error: "No hearted images found" };
     // Lá»c ra cĂ¡c file JPG/JPEG (case-insensitive)
     const jpgImages = images.filter((img) => {
       if (!img.file_name) return false;

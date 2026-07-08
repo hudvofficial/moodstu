@@ -110,7 +110,7 @@ export default function GalleryFullPage({
         .map((f: { fileName: string }) => f.fileName);
       setFullSelectedJpgNames(jpgNames);
     } catch (e) {
-      console.error("L?i l?y danh sách JPG tim", e);
+      console.error("Lỗi lấy danh sách JPG tim", e);
     }
   };
 
@@ -143,8 +143,8 @@ export default function GalleryFullPage({
         contractId={contractId}
         galleryTitle={galleryTitle}
         breadcrumbItems={[
-          { label: "Há»£p Ä‘á»“ng", href: "/contracts" },
-          { label: "Chi tiáº¿t", href: `/contracts/${contractId}` },
+          { label: "Hợp đồng", href: "/contracts" },
+          { label: "Chi tiết", href: `/contracts/${contractId}` },
           { label: galleryTitle },
         ]}
         galleries={galleries}
@@ -216,9 +216,9 @@ export default function GalleryFullPage({
           onSave={async (settings) => {
             const result = await updateGallerySettings(activeGallery.id, settings as GallerySettingsPayload);
             if (!result.success) {
-              throw new Error(result.error || "Lá»—i cáº­p nháº­t cĂ i Ä‘áº·t");
+              throw new Error(result.error || "Lỗi cập nhật cài đặt");
             }
-            toast.success("ÄĂ£ lÆ°u cĂ i Ä‘áº·t album");
+            toast.success("Đã lưu cài đặt album");
           }}
         />
       )}

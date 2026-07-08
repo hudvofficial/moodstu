@@ -119,7 +119,7 @@ export async function getAllHeartedImagesForAction(galleryId: string) {
     const heartedIds = new Set((reactionsResult.data || []).map((row) => row.image_id));
 
     return allImages
-      .filter((img) => heartedIds.has(img.id))
+      .filter((img) => img.is_selected || heartedIds.has(img.id))
       .map((img) => ({
         id: img.id,
         file_name: img.file_name,

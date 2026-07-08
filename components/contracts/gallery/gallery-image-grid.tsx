@@ -70,7 +70,7 @@ export default function GalleryImageGrid({
     return (
       <div className="py-16 text-center">
         <ImageIcon size={48} className="mx-auto mb-3 text-text-muted/20" />
-        <p className="text-body-sm text-text-muted">ChÆ°a cĂ³ áº£nh nĂ o</p>
+        <p className="text-body-sm text-text-muted">Chưa có ảnh nào</p>
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function GalleryImageGrid({
                           }}
                           className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${(isAdmin ? image.is_starred : isClientReacted) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                           style={publicMode ? {} : overlayChipStyle}
-                          title={publicMode ? (isClientReacted ? "Bỏ yêu thích" : "Yêu thích") : (image.is_starred ? "Bá» Ä‘á» xuáº¥t" : "ÄĂ¡nh dáº¥u Ä‘á» xuáº¥t")}
+                          title={publicMode ? (isClientReacted ? "Bỏ yêu thích" : "Yêu thích") : (image.is_starred ? "Bỏ đề xuất" : "Đánh dấu đề xuất")}
                         >
                           {publicMode ? (
                             <Heart
