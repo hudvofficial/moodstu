@@ -35,21 +35,6 @@ export async function getPublicGallery(accessUrl: string) {
       };
     }
 
-    if (galleryHasPassword(data)) {
-      return {
-        success: true as const,
-        data: {
-          id: data.id,
-          title: data.og_title || data.title,
-          status: data.status,
-          selection_deadline: data.selection_deadline,
-          access_url: getGalleryPublicSlug(data),
-          capability: getGalleryCapability(data),
-          needsPassword: true as const,
-        },
-      };
-    }
-
     const [page, selectedCount] = await Promise.all([
       fetchPublicGalleryImagesPage(supabase, data.id, 0),
       fetchGalleryImageCount(supabase, data.id, { selectedOnly: true }),
@@ -64,14 +49,14 @@ export async function getPublicGallery(accessUrl: string) {
         selection_deadline: data.selection_deadline,
         access_url: getGalleryPublicSlug(data),
         capability: getGalleryCapability(data),
-        accessToken: buildGalleryAccessToken(data),
+        accessToken: galleryHasPassword(data) ? undefined : buildGalleryAccessToken(data),
         gallery_images: page.images,
         imageCount: page.totalCount,
         selectedCount,
         hasMoreImages: page.hasMore,
         currentPage: page.page,
-        needsPassword: false as const,
-      } as Gallery & { needsPassword: false },
+        needsPassword: galleryHasPassword(data),
+      } as Gallery & { needsPassword: boolean },
     };
   } catch (err) {
     console.error("[getPublicGallery] Error:", err);
@@ -141,7 +126,7 @@ export async function getPublicGalleryImagesPaginated(
       return { success: false as const, error: "Gallery khong ton tai." };
     }
 
-    if (!assertGalleryProof(gallery, accessToken)) {
+    if (accessToken && !assertGalleryProof(gallery, accessToken)) {
       return {
         success: false as const,
         error: "Phien truy cap gallery da het han.",
@@ -424,4 +409,3 @@ export async function getGalleryShareDetails(galleryId: string) {
     } satisfies GalleryShareDetails;
   });
 }
-

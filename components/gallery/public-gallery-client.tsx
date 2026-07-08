@@ -6,13 +6,14 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
-import { getPublicGalleryImagesPaginated, getPublicGalleryStats } from "@/app/actions/gallery-public-actions";
+import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
 import { toggleImageSelection, updateClientNote } from "@/app/actions/gallery-selection-actions";
 import { getClientReactions, getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
 import ImageViewer from "./image-viewer";
 import SelectionSummary from "./selection-summary";
+import HeartPasswordModal from "./heart-password-modal";
 import { useNetworkQuality } from "@/hooks/use-network-quality";
 
 // ═══════════════════════════════════════════
@@ -47,12 +48,16 @@ export default function PublicGalleryClient({
   gallery,
   mode = "select",
 }: PublicGalleryClientProps) {
+  const STORAGE_KEY_PREFIX = "gallery_access_";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
+  const [heartAccessToken, setHeartAccessToken] = useState(gallery.accessToken || "");
+  const [showHeartPasswordModal, setShowHeartPasswordModal] = useState(false);
+  const [pendingHeartImageId, setPendingHeartImageId] = useState<string | null>(null);
   const isViewOnly = mode === "view";
   const accessUrl = gallery.access_url || "";
-  const accessToken = gallery.accessToken || "";
+  const accessToken = heartAccessToken;
 
   // ⚡ Network-aware loading: adjust page size and quality based on connection
   const { isSlowNetwork, effectiveType, saveData } = useNetworkQuality();
@@ -92,6 +97,22 @@ export default function PublicGalleryClient({
   useEffect(() => {
     setClientId(getClientId());
   }, [getClientId]);
+
+  useEffect(() => {
+    if (gallery.accessToken || !gallery.id || !accessUrl) return;
+    const saved = sessionStorage.getItem(STORAGE_KEY_PREFIX + gallery.id);
+    if (!saved) return;
+
+    getPublicGalleryWithAccess(gallery.id, saved, accessUrl).then((res) => {
+      if (!res.success || !res.data.accessToken) {
+        sessionStorage.removeItem(STORAGE_KEY_PREFIX + gallery.id);
+        return;
+      }
+
+      sessionStorage.setItem(STORAGE_KEY_PREFIX + gallery.id, res.data.accessToken);
+      setHeartAccessToken(res.data.accessToken);
+    });
+  }, [accessUrl, gallery.accessToken, gallery.id]);
 
   const { data: clientReactions = {}, mutate: mutateClientReactions } = useSWR<Record<string, { heart: boolean; star: boolean }>>(
     gallery.id && clientId ? `gallery-client-reactions-${gallery.id}-${clientId}` : null,
@@ -234,8 +255,8 @@ export default function PublicGalleryClient({
     return ids;
   }, [clientReactions]);
 
-  const handleToggleReaction = useCallback(
-    async (imageId: string) => {
+  const performToggleReaction = useCallback(
+    async (imageId: string, token: string) => {
       const hadHeart = Boolean(clientReactions[imageId]?.heart);
       const optimisticClientReactions = {
         ...clientReactions,
@@ -255,7 +276,7 @@ export default function PublicGalleryClient({
       mutateClientReactions(optimisticClientReactions, false);
       mutateReactionCounts(optimisticReactionCounts, false);
 
-      const res = await toggleReaction(imageId, gallery.id, "heart", clientId || "guest", accessUrl, accessToken);
+      const res = await toggleReaction(imageId, gallery.id, "heart", clientId || "guest", accessUrl, token);
       if (!res.success) {
         mutateClientReactions(clientReactions, false);
         mutateReactionCounts(reactionCounts, false);
@@ -265,7 +286,20 @@ export default function PublicGalleryClient({
       mutateClientReactions();
       mutateReactionCounts();
     },
-    [accessToken, accessUrl, clientId, clientReactions, gallery.id, mutateClientReactions, mutateReactionCounts, reactionCounts],
+    [accessUrl, clientId, clientReactions, gallery.id, mutateClientReactions, mutateReactionCounts, reactionCounts],
+  );
+
+  const handleToggleReaction = useCallback(
+    async (imageId: string) => {
+      if (!accessToken) {
+        setPendingHeartImageId(imageId);
+        setShowHeartPasswordModal(true);
+        return;
+      }
+
+      await performToggleReaction(imageId, accessToken);
+    },
+    [accessToken, performToggleReaction],
   );
 
   const handleSaveNote = useCallback(
@@ -384,6 +418,26 @@ export default function PublicGalleryClient({
           accessToken={accessToken}
         />
       )}
+
+      <HeartPasswordModal
+        isOpen={showHeartPasswordModal}
+        galleryId={gallery.id}
+        accessUrl={accessUrl}
+        galleryTitle={gallery.title}
+        onClose={() => {
+          setShowHeartPasswordModal(false);
+          setPendingHeartImageId(null);
+        }}
+        onUnlocked={async (unlockedGallery) => {
+          const nextToken = unlockedGallery.accessToken || "";
+          setHeartAccessToken(nextToken);
+          if (pendingHeartImageId && nextToken) {
+            const targetImageId = pendingHeartImageId;
+            setPendingHeartImageId(null);
+            await performToggleReaction(targetImageId, nextToken);
+          }
+        }}
+      />
     </div>
   );
 }
