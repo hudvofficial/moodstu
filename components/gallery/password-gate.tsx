@@ -52,7 +52,7 @@ export default function PasswordGate({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
-      setError("Vui long nhap mat khau.");
+      setError("Vui lòng nhập mật khẩu.");
       return;
     }
 
@@ -70,7 +70,7 @@ export default function PasswordGate({
       }
       onUnlock(res.data);
     } else {
-      setError(res.error || "Mat khau khong dung.");
+      setError(res.error || "Mật khẩu không đúng.");
     }
   };
 
@@ -107,15 +107,15 @@ export default function PasswordGate({
             className="text-lg font-bold mb-1"
             style={{ color: "var(--color-gallery-text)" }}
           >
-            {galleryTitle || "Album rieng tu"}
+            {galleryTitle || "Album riêng tư"}
           </h1>
           <p
             className="text-xs"
             style={{ color: "var(--color-gallery-text-muted)" }}
           >
             {mode === "view"
-              ? "Vui long nhap mat khau de xem album"
-              : "Vui long nhap mat khau de xem va chon anh"}
+              ? "Vui lòng nhập mật khẩu để xem album"
+              : "Vui lòng nhập mật khẩu để xem và chọn ảnh"}
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export default function PasswordGate({
                 setPassword(e.target.value);
                 setError("");
               }}
-              placeholder="Mat khau..."
+              placeholder="Mật khẩu..."
               autoFocus
               className="w-full px-4 py-3 pr-10 text-sm rounded-xl outline-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{
@@ -160,7 +160,7 @@ export default function PasswordGate({
               color: "var(--color-gallery-btn-text)",
             }}
           >
-            {loading ? "Dang kiem tra..." : "Vao xem"}
+            {loading ? "Đang kiểm tra..." : "Vào xem"}
           </button>
         </form>
 

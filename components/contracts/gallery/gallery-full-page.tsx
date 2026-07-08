@@ -21,10 +21,10 @@ import { useNetworkQuality } from "@/hooks/use-network-quality";
 import type { GallerySummary } from "@/types/gallery";
 import type { GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ------------------------------------------------------------
 // GalleryFullPage - Grid view of all images in a gallery
 // Responsive: 3 cols desktop, 2 cols mobile
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ------------------------------------------------------------
 
 interface GalleryFullPageProps {
   contractId: string;
@@ -59,7 +59,7 @@ export default function GalleryFullPage({
     galleryDataFor: galleryId,
   });
 
-  // â”€â”€ Set header slots for gallery â”€â”€
+    // Set header slots for gallery
   const setHeaderSlots = useSetHeaderSlots();
   const galleryTitle = activeGallery
     ? (FOLDER_LABELS[activeGallery.folder_type || ""] || activeGallery.title || "Gallery")
@@ -138,7 +138,7 @@ export default function GalleryFullPage({
 
   return (
     <div className="min-h-screen bg-bg-base">
-      {/* â”€â”€ Sticky Header Block â”€â”€ */}
+      {/* Sticky header block */}
       <GalleryToolbar
         contractId={contractId}
         galleryTitle={galleryTitle}
@@ -207,7 +207,7 @@ export default function GalleryFullPage({
         commentCountsPerImage={commentCountsPerImage}
       />
 
-      {/* â”€â”€ Settings Modal â”€â”€ */}
+      {/* Settings modal */}
       {activeGallery && (
         <GallerySettingsModal
           isOpen={isSettingsOpen}
@@ -224,7 +224,7 @@ export default function GalleryFullPage({
       )}
 
 
-      {/* â”€â”€ Image Grid or List â”€â”€ */}
+      {/* Image grid or list */}
       {viewMode === "list" ? (
         <GalleryImageList
           groups={filteredGroups}
@@ -248,7 +248,7 @@ export default function GalleryFullPage({
         />
       )}
 
-      {/* â”€â”€ Lightbox â”€â”€ */}
+      {/* Lightbox */}
       {lightboxIdx !== null && displayImages[lightboxIdx] && (
         <GalleryLightbox
           images={displayImages}

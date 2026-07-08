@@ -31,7 +31,7 @@ export async function getPublicGallery(accessUrl: string) {
     if (!data) {
       return {
         success: false as const,
-        error: "Album chua san sang hoac khong ton tai.",
+        error: "Album chưa sẵn sàng hoặc không tồn tại.",
       };
     }
 
@@ -60,7 +60,7 @@ export async function getPublicGallery(accessUrl: string) {
     };
   } catch (err) {
     console.error("[getPublicGallery] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -72,7 +72,7 @@ export async function getPublicGalleryPreview(accessUrl: string) {
     if (!data) {
       return {
         success: false as const,
-        error: "Album chua san sang hoac khong ton tai.",
+        error: "Album chưa sẵn sàng hoặc không tồn tại.",
       };
     }
 
@@ -103,7 +103,7 @@ export async function getPublicGalleryPreview(accessUrl: string) {
     };
   } catch (err) {
     console.error("[getPublicGalleryPreview] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -116,20 +116,20 @@ export async function getPublicGalleryImagesPaginated(
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
-      return { success: false as const, error: "ID khong hop le." };
+      return { success: false as const, error: "ID không hợp lệ." };
     }
 
     const supabase = await createAdminClient();
     const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!gallery) {
-      return { success: false as const, error: "Gallery khong ton tai." };
+      return { success: false as const, error: "Gallery không tồn tại." };
     }
 
     if (accessToken && !assertGalleryProof(gallery, accessToken)) {
       return {
         success: false as const,
-        error: "Phien truy cap gallery da het han.",
+        error: "Phiên truy cập gallery đã hết hạn.",
       };
     }
 
@@ -146,7 +146,7 @@ export async function getPublicGalleryImagesPaginated(
     };
   } catch (err) {
     console.error("[getPublicGalleryImagesPaginated] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -171,24 +171,24 @@ export async function verifyGalleryPassword(
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
-      return { success: false as const, error: "ID khong hop le." };
+      return { success: false as const, error: "ID không hợp lệ." };
     }
 
     if (!password) {
-      return { success: false as const, error: "Vui long nhap mat khau." };
+            return { success: false as const, error: "Vui lòng nhập mật khẩu." };
     }
 
     const supabase = await createAdminClient();
     const data = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!data) {
-      return { success: false as const, error: "Gallery khong ton tai." };
+      return { success: false as const, error: "Gallery không tồn tại." };
     }
 
     if (data.password && !data.password_hash) {
       return {
         success: false as const,
-        error: "Album can dat lai mat khau truoc khi chia se.",
+        error: "Album cần đặt lại mật khẩu trước khi chia sẻ.",
       };
     }
 
@@ -201,15 +201,15 @@ export async function verifyGalleryPassword(
       if (verifyError) {
         return {
           success: false as const,
-          error: `Loi kiem tra mat khau: ${verifyError.message}`,
+          error: `Lỗi kiểm tra mật khẩu: ${verifyError.message}`,
         };
       }
 
       if (!verified) {
-        return { success: false as const, error: "Mat khau khong dung." };
+        return { success: false as const, error: "Mật khẩu không đúng." };
       }
     } else if (galleryHasPassword(data)) {
-      return { success: false as const, error: "Mat khau khong dung." };
+      return { success: false as const, error: "Mật khẩu không đúng." };
     }
 
     const [page, selectedCount] = await Promise.all([
@@ -236,7 +236,7 @@ export async function verifyGalleryPassword(
     };
   } catch (err) {
     console.error("[verifyGalleryPassword] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -321,7 +321,7 @@ export async function fetchSharedGalleryByAccessUrl(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Loi tai gallery: ${error.message}`);
+    throw new Error(`Lỗi tải gallery: ${error.message}`);
   }
 
   return data ? attachShareLinkToGallery(data as PublicGalleryRow, null) : null;
@@ -334,20 +334,20 @@ export async function getPublicGalleryWithAccess(
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
-      return { success: false as const, error: "ID khong hop le." };
+      return { success: false as const, error: "ID không hợp lệ." };
     }
 
     const supabase = await createAdminClient();
     const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!gallery) {
-      return { success: false as const, error: "Gallery khong ton tai." };
+      return { success: false as const, error: "Gallery không tồn tại." };
     }
 
     if (!assertGalleryProof(gallery, accessToken)) {
       return {
         success: false as const,
-        error: "Phien truy cap gallery da het han.",
+        error: "Phiên truy cập gallery đã hết hạn.",
       };
     }
 
@@ -371,7 +371,7 @@ export async function getPublicGalleryWithAccess(
     };
   } catch (err) {
     console.error("[getPublicGalleryWithAccess] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -390,7 +390,7 @@ export async function getGalleryShareDetails(galleryId: string) {
     profiler.mark("gallery");
 
     if (error || !gallery) {
-      throw new Error("Khong tim thay gallery.");
+      throw new Error("Không tìm thấy gallery.");
     }
 
     const links = (await fetchGalleryShareLinks(supabase, galleryId))

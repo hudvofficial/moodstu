@@ -186,9 +186,9 @@ export async function updateGallerySettings(
 
       if (error) {
         if (error.code === "23505") {
-          throw new Error("Ten mien album nay da duoc su dung. Vui long chon ten khac.");
+                    throw new Error("Tên miền album này đã được sử dụng. Vui lòng chọn tên khác.");
         }
-        throw new Error(`Loi cap nhat cai dat: ${error.message}`);
+                throw new Error(`Lỗi cập nhật cài đặt: ${error.message}`);
       }
     }
 
@@ -199,7 +199,7 @@ export async function updateGallerySettings(
       });
 
       if (passwordError) {
-        throw new Error(`Loi cap nhat mat khau: ${passwordError.message}`);
+                throw new Error(`Lỗi cập nhật mật khẩu: ${passwordError.message}`);
       }
     }
 
@@ -214,7 +214,7 @@ export async function setGalleryPassword(
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID khong hop le.");
+            throw new Error("ID không hợp lệ.");
     }
 
     const { data, error } = await supabase.rpc("set_gallery_password", {
@@ -223,7 +223,7 @@ export async function setGalleryPassword(
     });
 
     if (error) {
-      throw new Error(`Loi cap nhat mat khau: ${error.message}`);
+            throw new Error(`Lỗi cập nhật mật khẩu: ${error.message}`);
     }
 
     return {
@@ -240,21 +240,21 @@ export async function setGalleryCoverImage(
 ) {
   try {
     if (!galleryId || !isValidUUID(galleryId)) {
-      return { success: false as const, error: "ID gallery khong hop le." };
+            return { success: false as const, error: "ID gallery không hợp lệ." };
     }
     if (imageId && !isValidUUID(imageId)) {
-      return { success: false as const, error: "ID anh khong hop le." };
+            return { success: false as const, error: "ID ảnh không hợp lệ." };
     }
 
     if (accessUrl && accessToken) {
       const supabase = await createAdminClient();
       const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
       if (!gallery || gallery.id !== galleryId) {
-        return { success: false as const, error: "Gallery khong ton tai." };
+                return { success: false as const, error: "Gallery không tồn tại." };
       }
       
       if (!assertGalleryProof(gallery, accessToken, "select")) {
-        return { success: false as const, error: "Phien truy cap khong hop le." };
+                return { success: false as const, error: "Phiên truy cập không hợp lệ." };
       }
       
       const { data: updatedGallery, error } = await supabase
@@ -265,7 +265,7 @@ export async function setGalleryCoverImage(
         .single();
 
       if (error) {
-        return { success: false as const, error: `Loi cap nhat: ${error.message}` };
+                return { success: false as const, error: `Lỗi cập nhật: ${error.message}` };
       }
       
       if (updatedGallery) {
@@ -288,7 +288,7 @@ export async function setGalleryCoverImage(
         .single();
 
       if (error) {
-        throw new Error(`Loi cap nhat anh bia: ${error.message}`);
+                throw new Error(`Lỗi cập nhật ảnh bìa: ${error.message}`);
       }
       return updatedGallery;
     });
@@ -307,7 +307,7 @@ export async function setGalleryCoverImage(
     return { success: true as const, data: null };
   } catch (err) {
     console.error("[setGalleryCoverImage] Error:", err);
-    return { success: false as const, error: "Loi server." };
+        return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -322,11 +322,11 @@ export async function syncDriveFolder(galleryId: string) {
       .single();
 
     if (galleryError || !gallery) {
-      throw new Error("Gallery khong ton tai.");
+            throw new Error("Gallery không tồn tại.");
     }
 
     if (!gallery.drive_folder_id) {
-      throw new Error("Gallery chua co Drive folder ID.");
+            throw new Error("Gallery chưa có Drive folder ID.");
     }
 
     const driveFiles = await fetchDriveFiles(gallery.drive_folder_id);
@@ -358,7 +358,7 @@ export async function syncDriveFolder(galleryId: string) {
 
       const { error } = await supabase.from("gallery_images").insert(newRows);
       if (error) {
-        throw new Error(`Loi them anh moi: ${error.message}`);
+                throw new Error(`Lỗi thêm ảnh mới: ${error.message}`);
       }
 
       // Background: backfill dimensions + blurhash for new images
@@ -384,11 +384,11 @@ export async function syncDriveFolder(galleryId: string) {
 }
 
 export async function getGallerySummariesByContract(contractId: string) {
-  // â¡ withAuthRead (read path): local JWT verify, skips redundant network getUser().
+  // Fast read path: withAuthRead skips redundant network getUser().
   return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // â¡ OPTIMIZED: Single RPC call (4 queries â†’ 1)
+    // Optimized: single RPC call replaces four queries.
     const startTime = performance.now();
     const { data, error } = await supabase.rpc("get_gallery_summaries_by_contract", {
       p_contract_id: contractId
@@ -398,7 +398,7 @@ export async function getGallerySummariesByContract(contractId: string) {
     console.log(`[Gallery RPC] get_gallery_summaries_by_contract in ${duration}ms (${data?.length || 0} galleries)`);
 
     if (error) {
-      throw new Error(`Loi lay galleries: ${error.message}`);
+            throw new Error(`Lỗi lấy galleries: ${error.message}`);
     }
 
     if (!data || data.length === 0) {
@@ -430,7 +430,7 @@ export async function getGalleriesByContract(contractId: string) {
       .order("created_at", { ascending: true });
 
     if (error) {
-      throw new Error(`Loi lay galleries: ${error.message}`);
+            throw new Error(`Lỗi lấy galleries: ${error.message}`);
     }
 
     if (!galleries || galleries.length === 0) {
@@ -470,7 +470,7 @@ export async function getGalleryByContract(contractId: string) {
       .maybeSingle();
 
     if (error) {
-      throw new Error(`Loi lay gallery: ${error.message}`);
+            throw new Error(`Lỗi lấy gallery: ${error.message}`);
     }
 
     if (!data) return null;
@@ -487,7 +487,7 @@ export async function shareGallery(galleryId: string) {
     profiler.mark("auth");
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID gallery khong hop le.");
+            throw new Error("ID gallery không hợp lệ.");
     }
 
     const payload = await prepareGallerySharePayload(
@@ -506,7 +506,7 @@ export async function shareGallery(galleryId: string) {
     profiler.mark("contract");
 
     if (error || !gallery) {
-      throw new Error(`Gallery khong ton tai: ${error?.message || "Unknown"}`);
+            throw new Error(`Gallery không tồn tại: ${error?.message || "Unknown"}`);
     }
 
     revalidatePath(`/contracts/${gallery.contract_id}`);
@@ -529,7 +529,7 @@ export async function prepareGalleryShare(galleryId: string) {
     profiler.mark("auth");
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID gallery khong hop le.");
+            throw new Error("ID gallery không hợp lệ.");
     }
 
     const payload = await prepareGallerySharePayload(
@@ -549,7 +549,7 @@ export async function ensureGalleryShareLinks(galleryId: string) {
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID gallery khong hop le.");
+            throw new Error("ID gallery không hợp lệ.");
     }
 
     const { data: gallery, error } = await supabase
@@ -559,7 +559,7 @@ export async function ensureGalleryShareLinks(galleryId: string) {
       .maybeSingle();
 
     if (error || !gallery) {
-      throw new Error(`Gallery khong ton tai: ${error?.message || "Unknown"}`);
+            throw new Error(`Gallery không tồn tại: ${error?.message || "Unknown"}`);
     }
 
     return ensureAllGalleryShareLinks(supabase, galleryId, userId);

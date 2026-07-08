@@ -120,7 +120,7 @@ export function buildGalleryAccessToken(
   const slug = getGalleryPublicSlug(gallery);
 
   if (!slug) {
-    throw new Error("Gallery chua co link chia se.");
+        throw new Error("Gallery chưa có link chia sẻ.");
   }
 
   return signGalleryAccessProof({
@@ -232,7 +232,7 @@ export async function fetchActiveShareLinkBySlug(
 
   if (error) {
     if (isMissingTableError(error)) return null;
-    throw new Error(`Loi tai link gallery: ${error.message}`);
+    throw new Error(`Lỗi tải link gallery: ${error.message}`);
   }
 
   return normalizeShareLinkRow(data as GalleryShareLinkRow | null);
@@ -251,7 +251,7 @@ export async function fetchSharedGalleryBaseById(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Loi tai gallery: ${error.message}`);
+    throw new Error(`Lỗi tải gallery: ${error.message}`);
   }
 
   return (data || null) as PublicGalleryRow | null;
@@ -325,15 +325,15 @@ export async function requirePublicGalleryImageAccess(
 
   const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
   if (!gallery) {
-    throw new Error("Gallery khong ton tai hoac chua duoc chia se.");
+        throw new Error("Gallery không tồn tại hoặc chưa được chia sẻ.");
   }
 
   if (!assertGalleryProof(gallery, accessToken, "select")) {
-    throw new Error("Phien truy cap gallery khong hop le hoac da het han.");
+        throw new Error("Phiên truy cập gallery không hợp lệ hoặc đã hết hạn.");
   }
 
   if (isSelectionClosed(gallery.selection_deadline)) {
-    throw new Error("Album da het han chon anh.");
+        throw new Error("Album đã hết hạn chọn ảnh.");
   }
 
   const { data: image, error: imageError } = await supabase
@@ -343,11 +343,11 @@ export async function requirePublicGalleryImageAccess(
     .maybeSingle();
 
   if (imageError) {
-    throw new Error(`Loi kiem tra anh: ${imageError.message}`);
+    throw new Error(`Lỗi kiểm tra ảnh: ${imageError.message}`);
   }
 
   if (!image || image.gallery_id !== gallery.id) {
-    throw new Error("Anh khong thuoc gallery nay.");
+        throw new Error("Ảnh không thuộc gallery này.");
   }
 
   return { gallery, image };
@@ -368,7 +368,7 @@ export async function updateGalleryImageSelection(
     .eq("id", imageId);
 
   if (error) {
-    throw new Error(`Loi cap nhat: ${error.message}`);
+    throw new Error(`Lỗi cập nhật: ${error.message}`);
   }
 }
 
@@ -410,7 +410,7 @@ export async function fetchGalleryImageCount(
 
   const { count, error } = await query;
   if (error) {
-    throw new Error(`Khong the dem anh gallery: ${error.message}`);
+        throw new Error(`Không thể đếm ảnh gallery: ${error.message}`);
   }
 
   return count ?? 0;
@@ -432,7 +432,7 @@ export async function fetchGalleryCoverImage(
       .maybeSingle();
 
     if (coverError) {
-      throw new Error(`Khong the tai cover gallery: ${coverError.message}`);
+            throw new Error(`Không thể tải cover gallery: ${coverError.message}`);
     }
 
     if (cover) {
@@ -455,7 +455,7 @@ export async function fetchGalleryCoverImage(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Khong the tai cover gallery: ${error.message}`);
+        throw new Error(`Không thể tải cover gallery: ${error.message}`);
   }
 
   return data?.thumbnail_url || data?.image_url || null;
@@ -500,7 +500,7 @@ export async function fetchPublicGalleryImagesPage(
     .range(from, to);
 
   if (error) {
-    throw new Error(`Khong the tai anh gallery: ${error.message}`);
+        throw new Error(`Không thể tải ảnh gallery: ${error.message}`);
   }
 
   const images = data || [];
@@ -536,7 +536,7 @@ export async function fetchAllGalleryImages(
       .range(from, from + pageSize - 1);
 
     if (error) {
-      throw new Error(`Khong the tai anh gallery: ${error.message}`);
+          throw new Error(`Không thể tải ảnh gallery: ${error.message}`);
     }
 
     if (batch && batch.length > 0) {
@@ -590,11 +590,11 @@ export async function insertShareLinkWithRetry(
     }
 
     if (error?.code !== "23505") {
-      throw new Error(`Khong the tao link ${capability}: ${error?.message || "Unknown"}`);
+            throw new Error(`Không thể tạo link ${capability}: ${error?.message || "Unknown"}`);
     }
   }
 
-  throw new Error(`Khong the tao link ${capability}: trung slug qua nhieu lan.`);
+    throw new Error(`Không thể tạo link ${capability}: trùng slug quá nhiều lần.`);
 }
 
 export async function ensureGalleryShareLink(
@@ -612,7 +612,7 @@ export async function ensureGalleryShareLink(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Khong the tai link ${capability}: ${error.message}`);
+        throw new Error(`Không thể tải link ${capability}: ${error.message}`);
   }
 
   if (existing) {
@@ -631,7 +631,7 @@ export async function ensureGalleryShareLink(
       .single();
 
     if (updateError || !reactivated) {
-      throw new Error(`Khong the kich hoat link ${capability}: ${updateError?.message || "Unknown"}`);
+            throw new Error(`Không thể kích hoạt link ${capability}: ${updateError?.message || "Unknown"}`);
     }
 
     return reactivated as GalleryShareLink;
@@ -651,7 +651,7 @@ export async function fetchGalleryShareLinks(
     .eq("gallery_id", galleryId);
 
   if (error) {
-    throw new Error(`Khong the tai link gallery: ${error.message}`);
+        throw new Error(`Không thể tải link gallery: ${error.message}`);
   }
 
   return sortGalleryShareLinks((data || []) as GalleryShareLink[]);
@@ -697,7 +697,7 @@ export async function prepareGalleryShareViaRpc(
       prepareGalleryShareRpcAvailable = false;
       return null;
     }
-    throw new Error(`Khong the chuan bi link chia se: ${error.message}`);
+        throw new Error(`Không thể chuẩn bị link chia sẻ: ${error.message}`);
   }
 
   prepareGalleryShareRpcAvailable = true;
@@ -720,7 +720,7 @@ export async function prepareGalleryShareFallback(
   profiler?.mark("gallery");
 
   if (galleryError || !gallery) {
-    throw new Error(`Gallery khong ton tai: ${galleryError?.message || "Unknown"}`);
+        throw new Error(`Gallery không tồn tại: ${galleryError?.message || "Unknown"}`);
   }
 
   let preparedGallery = gallery;
@@ -739,7 +739,7 @@ export async function prepareGalleryShareFallback(
     profiler?.mark("publish");
 
     if (updateError || !updated) {
-      throw new Error(`Loi chia se gallery: ${updateError?.message || "Unknown"}`);
+            throw new Error(`Lỗi chia sẻ gallery: ${updateError?.message || "Unknown"}`);
     }
 
     preparedGallery = updated;

@@ -21,7 +21,7 @@ export async function toggleImageSelection(
 ) {
   try {
     if (!imageId || !isValidUUID(imageId)) {
-      return { success: false as const, error: "ID anh khong hop le." };
+      return { success: false as const, error: "ID ảnh không hợp lệ." };
     }
 
     if (accessUrl || accessToken) {
@@ -66,7 +66,7 @@ export async function toggleImageSelection(
     return { success: true as const, data: null, newSelectedCount: result.data?.newSelectedCount || 0 };
   } catch (err) {
     console.error("[toggleImageSelection] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -78,10 +78,10 @@ export async function toggleImageStar(
 ) {
   try {
     if (!imageId || !isValidUUID(imageId)) {
-      return { success: false as const, error: "ID anh khong hop le." };
+      return { success: false as const, error: "ID ảnh không hợp lệ." };
     }
 
-    // Public token path: client thong qua gallery share link
+        // Public token path: client đi qua gallery share link.
     if (accessUrl || accessToken) {
       const supabase = await createAdminClient();
       await requirePublicGalleryImageAccess(
@@ -100,13 +100,13 @@ export async function toggleImageStar(
 
       if (error) {
         console.error("toggleImageStar update error:", error);
-        return { success: false as const, error: "Khong the cap nhat trang thai anh." };
+                return { success: false as const, error: "Không thể cập nhật trạng thái ảnh." };
       }
 
       return { success: true as const };
     }
 
-    // Admin path: phai co contract access moi duoc star
+        // Admin path: phải có contract access mới được đánh dấu sao.
     const result = await withAuth(async (supabase, userId) => {
       await requireContractAccess(supabase, userId);
       const { error } = await supabase
@@ -118,7 +118,7 @@ export async function toggleImageStar(
         .eq("id", imageId);
 
       if (error) {
-        throw new Error(`Loi cap nhat: ${error.message}`);
+                throw new Error(`Lỗi cập nhật: ${error.message}`);
       }
 
       return null;
@@ -132,7 +132,7 @@ export async function toggleImageStar(
     return { success: true as const };
   } catch (error) {
     console.error("toggleImageStar exception:", error);
-    return { success: false as const, error: "Da co loi xay ra." };
+        return { success: false as const, error: "Đã có lỗi xảy ra." };
   }
 }
 
@@ -144,7 +144,7 @@ export async function updateClientNote(
 ) {
   try {
     if (!imageId || !isValidUUID(imageId)) {
-      return { success: false as const, error: "ID anh khong hop le." };
+      return { success: false as const, error: "ID ảnh không hợp lệ." };
     }
 
     if (accessUrl || accessToken) {
@@ -172,7 +172,7 @@ export async function updateClientNote(
     return { success: true as const, data: null };
   } catch (err) {
     console.error("[updateClientNote] Error:", err);
-    return { success: false as const, error: "Loi server." };
+    return { success: false as const, error: "Lỗi server." };
   }
 }
 
@@ -190,7 +190,7 @@ export async function updateGalleryImageNote(
     .eq("id", imageId);
 
   if (error) {
-    throw new Error(`Loi cap nhat: ${error.message}`);
+            throw new Error(`Lỗi cập nhật: ${error.message}`);
   }
 }
 
@@ -206,7 +206,7 @@ export async function getSelectedImages(galleryId: string) {
       .order("sort_order", { ascending: true });
 
     if (error) {
-      throw new Error(`Loi lay anh da chon: ${error.message}`);
+            throw new Error(`Lỗi lấy ảnh đã chọn: ${error.message}`);
     }
 
     return data || [];
@@ -221,7 +221,7 @@ export async function createSelectionBatchFromCurrentSelection(
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID gallery khong hop le.");
+            throw new Error("ID gallery không hợp lệ.");
     }
 
     const { data: gallery, error: galleryError } = await supabase
@@ -231,7 +231,7 @@ export async function createSelectionBatchFromCurrentSelection(
       .maybeSingle();
 
     if (galleryError || !gallery) {
-      throw new Error(`Gallery khong ton tai: ${galleryError?.message || "Unknown"}`);
+            throw new Error(`Gallery không tồn tại: ${galleryError?.message || "Unknown"}`);
     }
 
     const { data: selectedImages, error: imagesError } = await supabase
@@ -242,11 +242,11 @@ export async function createSelectionBatchFromCurrentSelection(
       .order("sort_order", { ascending: true });
 
     if (imagesError) {
-      throw new Error(`Khong the tai anh da chon: ${imagesError.message}`);
+            throw new Error(`Không thể tải ảnh đã chọn: ${imagesError.message}`);
     }
 
     if (!selectedImages || selectedImages.length === 0) {
-      throw new Error("Chua co anh nao duoc chon.");
+            throw new Error("Chưa có ảnh nào được chọn.");
     }
 
     const { data: batch, error: batchError } = await supabase
@@ -264,7 +264,7 @@ export async function createSelectionBatchFromCurrentSelection(
       .single();
 
     if (batchError || !batch) {
-      throw new Error(`Khong the tao batch anh da chon: ${batchError?.message || "Unknown"}`);
+            throw new Error(`Không thể tạo batch ảnh đã chọn: ${batchError?.message || "Unknown"}`);
     }
 
     const items = selectedImages.map((image) => ({
@@ -282,7 +282,7 @@ export async function createSelectionBatchFromCurrentSelection(
 
     if (itemsError) {
       await supabase.from("gallery_selection_batches").delete().eq("id", batch.id);
-      throw new Error(`Khong the luu danh sach anh da chon: ${itemsError.message}`);
+            throw new Error(`Không thể lưu danh sách ảnh đã chọn: ${itemsError.message}`);
     }
 
     return batch as GallerySelectionBatch;
@@ -298,17 +298,17 @@ export async function createGalleryFilterJob(
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
-      throw new Error("ID gallery khong hop le.");
+            throw new Error("ID gallery không hợp lệ.");
     }
 
     if (jobType !== "drive_copy_jpg" && jobType !== "local_manifest") {
-      throw new Error("Loai job khong hop le.");
+            throw new Error("Loại job không hợp lệ.");
     }
 
     let totalCount = 0;
     if (batchId) {
       if (!isValidUUID(batchId)) {
-        throw new Error("ID batch khong hop le.");
+                throw new Error("ID batch không hợp lệ.");
       }
 
       const { count, error: countError } = await supabase
@@ -317,7 +317,7 @@ export async function createGalleryFilterJob(
         .eq("batch_id", batchId);
 
       if (countError) {
-        throw new Error(`Khong the dem anh trong batch: ${countError.message}`);
+                throw new Error(`Không thể đếm ảnh trong batch: ${countError.message}`);
       }
 
       totalCount = count || 0;
@@ -337,7 +337,7 @@ export async function createGalleryFilterJob(
       .single();
 
     if (error || !job) {
-      throw new Error(`Khong the tao job loc anh: ${error?.message || "Unknown"}`);
+            throw new Error(`Không thể tạo job lọc ảnh: ${error?.message || "Unknown"}`);
     }
 
     return job as GalleryFilterJob;
@@ -346,7 +346,7 @@ export async function createGalleryFilterJob(
 
 export async function reorderImages(orderedIds: string[]) {
   if (!orderedIds.length) {
-    return { success: false as const, error: "Danh sach rong." };
+        return { success: false as const, error: "Danh sách rỗng." };
   }
 
   const result = await withAuth(async (supabase, userId) => {
@@ -359,7 +359,7 @@ export async function reorderImages(orderedIds: string[]) {
     const failed = responses.find((response) => response.error);
 
     if (failed?.error) {
-      throw new Error(`Khong the sap xep anh: ${failed.error.message}`);
+            throw new Error(`Không thể sắp xếp ảnh: ${failed.error.message}`);
     }
 
     return null;

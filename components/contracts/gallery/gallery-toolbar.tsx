@@ -31,17 +31,17 @@ import {
   AlbumCreateInput,
 } from "./gallery-toolbar-actions";
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ------------------------------------------------------------
 // GalleryToolbar - Main toolbar orchestrator
 // Sub-components extracted to:
 //   gallery-toolbar-stats.tsx (MobilePrimaryStatCard, MobileSecondaryStatChip)
 //   gallery-toolbar-filters.tsx (GalleryFilterTabs, GalleryDesktopFilterGroup)
 //   gallery-toolbar-actions.tsx (ActionButton, ViewModeToggle, MoreMenu, AlbumInput)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ------------------------------------------------------------
 
 const ALL_ALBUMS_TAB = "__all_albums__";
 
-// â”€â”€â”€ Gallery Status Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Gallery status badge
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   draft: { label: "Bản nháp", className: "bg-bg-hover text-text-muted" },
   shared: { label: "Đã chia sẻ", className: "bg-success/10 text-success" },
