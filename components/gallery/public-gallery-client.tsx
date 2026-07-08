@@ -384,6 +384,8 @@ export default function PublicGalleryClient({
           onImageClick={(idx: number) => setViewerIndex(idx)}
           reactionCounts={reactionCounts}
           onToggleStar={isViewOnly ? undefined : (id: string, sel: boolean) => handleToggleStar(id, sel)}
+          onToggleReaction={isViewOnly ? undefined : handleToggleReaction}
+          reactedImageIds={reactedImageIds}
           onLoadMore={loadMoreServerImages}
           loadingMore={loadingMoreImages}
           hasMore={hasMoreImages}

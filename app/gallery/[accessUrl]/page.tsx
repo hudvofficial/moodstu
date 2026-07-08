@@ -2,6 +2,8 @@ import { getPublicGallery } from "@/app/actions/gallery-public-actions";
 import type { Metadata } from "next";
 import GalleryPageClient from "@/components/gallery/gallery-page-client";
 
+export const dynamic = "force-dynamic";
+
 // ═══════════════════════════════════════════
 // /gallery/[accessUrl] — Public Gallery Page
 // NO AUTH — khách xem + chọn ảnh

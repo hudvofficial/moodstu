@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Heart, ImageIcon, ImageOff, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,14 @@ interface GalleryImageGridProps {
   onImageClick: (index: number) => void;
   reactionCounts?: ReactionCounts;
   onToggleStar?: (imageId: string, currentSelected: boolean) => void;
+  onToggleReaction?: (imageId: string) => void;
+  reactedImageIds?: Set<string>;
   watermarkEnabled?: boolean;
   onLoadMore?: () => void;
   loadingMore?: boolean;
   hasMore?: boolean;
   publicMode?: boolean;
-  /** Hiển thị client_note dưới tile (chỉ khi publicMode + truthy). Mặc định: false. */
+  /** Hiá»ƒn thá»‹ client_note dÆ°á»›i tile (chá»‰ khi publicMode + truthy). Máº·c Ä‘á»‹nh: false. */
   showClientNote?: boolean;
 }
 
@@ -39,6 +41,8 @@ export default function GalleryImageGrid({
   onImageClick,
   reactionCounts,
   onToggleStar,
+  onToggleReaction,
+  reactedImageIds,
   watermarkEnabled,
   onLoadMore,
   loadingMore,
@@ -66,7 +70,7 @@ export default function GalleryImageGrid({
     return (
       <div className="py-16 text-center">
         <ImageIcon size={48} className="mx-auto mb-3 text-text-muted/20" />
-        <p className="text-body-sm text-text-muted">Chưa có ảnh nào</p>
+        <p className="text-body-sm text-text-muted">ChÆ°a cĂ³ áº£nh nĂ o</p>
       </div>
     );
   }
@@ -98,7 +102,7 @@ export default function GalleryImageGrid({
                 const isError = errorGroups[group.fileGroup] === true;
                 // Admin + public both load the lh3 sized URL directly (tile marks lh3 unoptimized).
                 // Do NOT route public through the /api/drive-download proxy: it 302-redirects to lh3,
-                // and Next.js /_next/image cannot optimize a redirect → 400 on every tile (broken gallery).
+                // and Next.js /_next/image cannot optimize a redirect â†’ 400 on every tile (broken gallery).
                 const imageSrc = getResponsiveThumbnailUrl(
                   image.thumbnail_url,
                   image.image_url,
@@ -117,6 +121,7 @@ export default function GalleryImageGrid({
                 const fileBadgeLabel = hasBoth ? "RAW+JPG" : "RAW";
                 const isAdmin = !publicMode;
                 const groupHeartCount = group.images.reduce((sum, groupImage) => sum + (reactionCounts?.[groupImage.id]?.hearts || 0), 0);
+                const isClientReacted = publicMode ? !!reactedImageIds?.has(image.id) : false;
 
                 return (
                   <div
@@ -172,22 +177,26 @@ export default function GalleryImageGrid({
                         }}
                       />
 
-                      {onToggleStar ? (
+                      {(publicMode ? onToggleReaction : onToggleStar) ? (
                         <Button
                           unstyled
                           onClick={(event) => {
                             event.stopPropagation();
-                            onToggleStar(image.id, isAdmin ? !!image.is_starred : !!image.is_selected);
+                            if (publicMode) {
+                              onToggleReaction?.(image.id);
+                              return;
+                            }
+                            onToggleStar?.(image.id, !!image.is_starred);
                           }}
-                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${(isAdmin ? image.is_starred : image.is_selected) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${(isAdmin ? image.is_starred : isClientReacted) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                           style={publicMode ? {} : overlayChipStyle}
-                          title={publicMode ? (image.is_selected ? "Bỏ chọn" : "Chọn ảnh") : (image.is_starred ? "Bỏ đề xuất" : "Đánh dấu đề xuất")}
+                          title={publicMode ? (isClientReacted ? "Bỏ yêu thích" : "Yêu thích") : (image.is_starred ? "Bá» Ä‘á» xuáº¥t" : "ÄĂ¡nh dáº¥u Ä‘á» xuáº¥t")}
                         >
                           {publicMode ? (
                             <Heart
                               size={20}
-                              fill={image.is_selected ? "#ff3b30" : "none"}
-                              stroke={image.is_selected ? "#ff3b30" : "white"}
+                              fill={isClientReacted ? "#ff3b30" : "none"}
+                              stroke={isClientReacted ? "#ff3b30" : "white"}
                               strokeWidth={2}
                               style={{ transition: "fill 0.3s, stroke 0.3s", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
                             />
@@ -195,7 +204,7 @@ export default function GalleryImageGrid({
                             <Star size={16} className={image.is_starred ? "fill-warning text-warning" : "text-text-muted"} />
                           )}
                         </Button>
-                      ) : (isAdmin ? image.is_starred : image.is_selected) ? (
+                      ) : (isAdmin ? image.is_starred : isClientReacted) ? (
                         <div
                           className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full`}
                           style={publicMode ? {} : overlayChipStyle}
@@ -212,7 +221,7 @@ export default function GalleryImageGrid({
                         <div
                           className="absolute left-2 bottom-2 z-20 flex h-7 w-7 items-center justify-center rounded-full"
                           style={overlayChipStyle}
-                          title="Có ghi chú"
+                          title="CĂ³ ghi chĂº"
                         >
                           <MessageSquare size={13} className="text-primary" />
                         </div>
@@ -221,12 +230,12 @@ export default function GalleryImageGrid({
                       {!publicMode && (showFileBadge || image.is_selected || groupHeartCount > 0) && (
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {image.is_selected && (
-                            <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="Khách chọn">
+                            <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="KhĂ¡ch chá»n">
                               <Heart size={12} className="fill-error text-error" />
                             </span>
                           )}
                           {groupHeartCount > 0 && (
-                            <span className="flex h-5 items-center gap-1 rounded-full px-2 text-tiny font-semibold" style={overlayChipStyle} title="Khách thả tim">
+                            <span className="flex h-5 items-center gap-1 rounded-full px-2 text-tiny font-semibold" style={overlayChipStyle} title="KhĂ¡ch tháº£ tim">
                               <Heart size={11} className="fill-error text-error" />
                               {groupHeartCount}
                             </span>
@@ -248,7 +257,7 @@ export default function GalleryImageGrid({
                         <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
 
-                      {/* Note preview — CHỈ hiển thị khi publicMode + showClientNote + client_note truthy */}
+                      {/* Note preview â€” CHá»ˆ hiá»ƒn thá»‹ khi publicMode + showClientNote + client_note truthy */}
                       {publicMode && showClientNote && image.client_note && (
                         <div
                           className="pointer-events-none absolute bottom-0 right-12 left-0 z-20 px-3 pb-2 pt-6"
@@ -271,7 +280,7 @@ export default function GalleryImageGrid({
         </div>
       </div>
 
-      {/* Invisible sentinel — IntersectionObserver watches this to trigger load-more */}
+      {/* Invisible sentinel â€” IntersectionObserver watches this to trigger load-more */}
       {showSentinel && (
         <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
       )}
@@ -280,7 +289,7 @@ export default function GalleryImageGrid({
         <div className="py-6 text-center">
           <div className="flex items-center justify-center gap-2">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-            <p className="text-caption text-text-muted">Đang tải thêm ảnh...</p>
+            <p className="text-caption text-text-muted">Äang táº£i thĂªm áº£nh...</p>
           </div>
         </div>
       )}
