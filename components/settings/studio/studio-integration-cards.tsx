@@ -2,12 +2,18 @@
 
 import GoogleCalendarCard from "../google-calendar-card";
 import MoodieAiCard from "../moodie-ai-card";
-import type { MoodieAiSettings, StudioInfo } from "@/types/settings";
+import { MoodieBenchmarkCard } from "../moodie-benchmark-card";
+import type {
+  MoodieAiSettings,
+  MoodieProviderSettings,
+  StudioInfo,
+} from "@/types/settings";
 import type { MoodieGeminiModelOption } from "@/lib/moodie/model-options";
 
 interface StudioIntegrationCardsProps {
   savedStudioInfo: StudioInfo;
   savedMoodieSettings: MoodieAiSettings;
+  moodieProviderSettings: MoodieProviderSettings;
   moodieApiKeyInput: string;
   setMoodieApiKeyInput: (v: string) => void;
   moodieGeminiModel: string;
@@ -26,6 +32,7 @@ interface StudioIntegrationCardsProps {
 export default function StudioIntegrationCards({
   savedStudioInfo,
   savedMoodieSettings,
+  moodieProviderSettings,
   moodieApiKeyInput,
   setMoodieApiKeyInput,
   moodieGeminiModel,
@@ -53,6 +60,7 @@ export default function StudioIntegrationCards({
       />
       <MoodieAiCard
         settings={savedMoodieSettings}
+        providerSettings={moodieProviderSettings}
         apiKeyInput={moodieApiKeyInput}
         setApiKeyInput={setMoodieApiKeyInput}
         geminiModel={moodieGeminiModel}
@@ -64,6 +72,7 @@ export default function StudioIntegrationCards({
         onRefreshModels={onRefreshModels}
         disabled={disabled}
       />
+      <MoodieBenchmarkCard />
     </>
   );
 }

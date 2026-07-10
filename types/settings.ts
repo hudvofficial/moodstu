@@ -48,9 +48,20 @@ export interface MoodieAiSettings {
   geminiModel: string;
 }
 
+export interface MoodieProviderSettings {
+  providerId: "gemini" | "openai_compatible";
+  label: string;
+  model: string;
+  embeddingModel?: string;
+  hasKey: boolean;
+  baseUrl?: string;
+  isLocal: boolean;
+}
+
 export interface StudioSettingsAdminData {
   studioInfo: StudioInfo;
   moodieAiSettings: MoodieAiSettings;
+  moodieProviderSettings: MoodieProviderSettings;
 }
 
 export interface NotificationPreferences {

@@ -41,14 +41,14 @@ export const MOODIE_CAPABILITY_CATALOG: MoodieCapabilityConfig[] = [
     id: "schedule_summary",
     label: "Lịch sắp tới",
     description: "Sự kiện hôm nay, ngày mai hoặc lịch chạy trong tuần.",
-    prompts: ["Lịch hôm nay có gì?", "Ngày mai ekip có lịch nào?", "Lịch tuần này ra sao?"],
+    prompts: ["Lịch hôm nay có gì?", "Ngày mai ê-kíp có lịch nào?", "Lịch tuần này ra sao?"],
     requiredModule: "calendar",
   },
   {
     id: "team_summary",
     label: "Nhân sự & tiến độ",
     description: "Nhân sự đang hoạt động, số task trễ hạn và điểm nghẽn vận hành.",
-    prompts: ["Nhân sự đang hoạt động thế nào?", "Có bao nhiêu task trễ hạn?", "Tiến độ ekip hôm nay ra sao?"],
+    prompts: ["Nhân sự đang hoạt động thế nào?", "Có bao nhiêu công việc trễ hạn?", "Tiến độ ê-kíp hôm nay ra sao?"],
     requiredModule: "employees",
   },
   {

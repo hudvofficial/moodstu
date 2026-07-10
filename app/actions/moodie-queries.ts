@@ -1,7 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { withAuth, requireMoodieAccess } from "@/lib/auth_utils";
+import { withAuthRead, requireMoodieAccess } from "@/lib/auth_utils";
 import { getMoodieCapabilitiesForRole, getMoodieDefaultSuggestions, MOODIE_PROVIDER_LABEL } from "@/lib/moodie/catalog";
 import {
   createMoodieSetupError,
@@ -29,6 +29,7 @@ type ConversationRow = {
   updated_at: string | null;
   locked_until: string | null;
   locked_by: string | null;
+  message_count: number | null;
   version: number | null;
 };
 
@@ -40,13 +41,15 @@ type MessageRow = {
   created_at: string | null;
 };
 
-function buildMessageCountMap(rows: { conversation_id: string | null }[]) {
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    if (!row.conversation_id) continue;
-    counts.set(row.conversation_id, (counts.get(row.conversation_id) || 0) + 1);
-  }
-  return counts;
+function emptyTelemetry() {
+  return {
+    observedMessages: 0,
+    averageLatencyMs: 0,
+    toolCallCount: 0,
+    fallbackCount: 0,
+    verifierCorrections: 0,
+    retrievalCount: 0,
+  };
 }
 
 function toSetupFallback(baseData: Omit<MoodiePageData, "setup">): MoodiePageData {
@@ -97,7 +100,7 @@ async function loadConversationDetail(
 }
 
 export async function getMoodiePageData() {
-  return withAuth(async (supabase, userId) => {
+  return withAuthRead(async (supabase, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
 
     const baseData = {
@@ -107,6 +110,7 @@ export async function getMoodiePageData() {
         lockedConversations: 0,
         skillCount: getMoodieCapabilitiesForRole(role).length,
         providerLabel: MOODIE_PROVIDER_LABEL,
+        telemetry: emptyTelemetry(),
       },
       conversations: [],
       activeConversation: null,
@@ -119,7 +123,7 @@ export async function getMoodiePageData() {
     try {
       const { data: conversations, error: conversationError } = await supabase
         .from("ai_conversations")
-        .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version")
+        .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, message_count, version")
         .eq("user_id", userId)
         .order("updated_at", { ascending: false })
         .limit(30);
@@ -129,61 +133,44 @@ export async function getMoodiePageData() {
         throw new Error(`Không thể tải hội thoại Moodie: ${conversationError.message}`);
       }
 
-      const conversationIds = (conversations || []).map((conversation) => conversation.id);
-
-      const [messageRefsResult, totalConversationsResult, totalMessagesResult] = await Promise.all([
-        conversationIds.length > 0
-          ? supabase
-              .from("ai_messages")
-              .select("conversation_id")
-              .in("conversation_id", conversationIds)
-          : Promise.resolve({ data: [], error: null }),
-        supabase
-          .from("ai_conversations")
-          .select("id", { head: true, count: "exact" })
-          .eq("user_id", userId),
-        conversationIds.length > 0
-          ? supabase
-              .from("ai_messages")
-              .select("id", { head: true, count: "exact" })
-              .in("conversation_id", conversationIds)
-          : Promise.resolve({ data: null, error: null, count: 0 }),
-      ]);
-
-      if (messageRefsResult.error) {
-        if (isMissingMoodieTablesError(messageRefsResult.error)) throw createMoodieSetupError();
-        throw new Error(`Không thể tải số lượng tin nhắn: ${messageRefsResult.error.message}`);
-      }
-      if (totalConversationsResult.error) {
-        if (isMissingMoodieTablesError(totalConversationsResult.error)) throw createMoodieSetupError();
-        throw new Error(totalConversationsResult.error.message);
-      }
-      if (totalMessagesResult.error) {
-        if (isMissingMoodieTablesError(totalMessagesResult.error)) throw createMoodieSetupError();
-        throw new Error(totalMessagesResult.error.message);
+      const firstConversation = (conversations || [])[0] as ConversationRow | undefined;
+      const activeMessagesResult = firstConversation
+        ? await supabase
+            .from("ai_messages")
+            .select("id, role, content, metadata, created_at")
+            .eq("conversation_id", firstConversation.id)
+            .order("created_at", { ascending: true })
+        : { data: [], error: null };
+      if (activeMessagesResult.error) {
+        if (isMissingMoodieTablesError(activeMessagesResult.error)) throw createMoodieSetupError();
+        throw new Error(`Không thể tải tin nhắn: ${activeMessagesResult.error.message}`);
       }
 
-      const countMap = buildMessageCountMap(messageRefsResult.data || []);
       const summaries = sortMoodieConversations(
         ((conversations || []) as ConversationRow[]).map((conversation) =>
-          mapMoodieConversationSummary(conversation, countMap.get(conversation.id) || 0),
+          mapMoodieConversationSummary(conversation, conversation.message_count || 0),
         ),
       );
 
-      const activeConversation = summaries[0]
-        ? await loadConversationDetail(supabase, userId, summaries[0].id)
+      const activeConversation = firstConversation
+        ? mapMoodieConversationDetail(
+            firstConversation,
+            firstConversation.message_count || (activeMessagesResult.data || []).length,
+            (activeMessagesResult.data || []) as MessageRow[],
+          )
         : null;
 
       const now = Date.now();
       return {
         stats: {
-          totalConversations: totalConversationsResult.count || summaries.length,
-          totalMessages: totalMessagesResult.count || 0,
+          totalConversations: summaries.length,
+          totalMessages: summaries.reduce((sum, conversation) => sum + conversation.message_count, 0),
           lockedConversations: summaries.filter((conversation) => {
             return conversation.locked_until && new Date(conversation.locked_until).getTime() > now;
           }).length,
           skillCount: getMoodieCapabilitiesForRole(role).length,
           providerLabel: MOODIE_PROVIDER_LABEL,
+          telemetry: emptyTelemetry(),
         },
         conversations: summaries,
         activeConversation,
@@ -207,7 +194,7 @@ export async function getMoodiePageData() {
 }
 
 export async function getMoodieConversationDetail(rawInput: unknown) {
-  return withAuth(async (supabase, userId) => {
+  return withAuthRead(async (supabase, userId) => {
     const parsed = moodieConversationQuerySchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
 

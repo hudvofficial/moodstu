@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CreditCard,
   FileSearch,
+  Images,
   PiggyBank,
   Package,
   type LucideIcon,
@@ -11,14 +12,16 @@ import {
 import type { MoodieSkillId } from "@/types/moodie";
 
 export const MOODIE_SKILL_HINT_MAP: Record<MoodieSkillId, string> = {
-  financial_summary: "Tai chinh",
-  debt_summary: "Cong no",
-  pending_collections: "Thu no",
-  contract_lookup: "Hop dong",
-  schedule_summary: "Lich",
-  team_summary: "Nhan su",
-  goal_summary: "Muc tieu",
-  service_catalog: "Dich vu",
+  financial_summary: "Tài chính",
+  debt_summary: "Công nợ",
+  pending_collections: "Thu nợ",
+  contract_lookup: "Hợp đồng",
+  schedule_summary: "Lịch",
+  gallery_delivery: "Tiến độ gallery",
+  gallery_images: "Ảnh gallery",
+  team_summary: "Nhân sự",
+  goal_summary: "Mục tiêu",
+  service_catalog: "Dịch vụ",
   fallback: "Moodie",
 };
 
@@ -28,6 +31,8 @@ export const MOODIE_SKILL_ICON_MAP: Record<MoodieSkillId, LucideIcon> = {
   pending_collections: BriefcaseBusiness,
   contract_lookup: FileSearch,
   schedule_summary: CalendarDays,
+  gallery_delivery: Images,
+  gallery_images: Images,
   team_summary: Users,
   goal_summary: PiggyBank,
   service_catalog: Package,

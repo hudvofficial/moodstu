@@ -3,7 +3,6 @@ import type {
   MoodieConversationDetail,
   MoodieConversationScope,
   MoodieConversationSummary,
-  MoodiePageStats,
 } from "@/types/moodie";
 
 export interface MoodieConversationCounts {
@@ -13,7 +12,6 @@ export interface MoodieConversationCounts {
 }
 
 export interface MoodieWorkspaceSharedProps {
-  stats: MoodiePageStats;
   conversations: MoodieConversationSummary[];
   activeConversation: MoodieConversationDetail | null;
   activeConversationId: string | null;
@@ -25,6 +23,7 @@ export interface MoodieWorkspaceSharedProps {
   editingTitle: string;
   pendingPrompt: string | null;
   isSending: boolean;
+  streamStatus: string | null;
   capabilities: MoodieCapability[];
   suggestions: string[];
   onSelectConversation: (conversationId: string) => void;

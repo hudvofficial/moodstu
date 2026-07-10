@@ -888,3 +888,21 @@ export async function requirePaymentRecordAccess(supabase: SupabaseClient, userI
 
   return { employee, role };
 }
+
+/**
+ * Gatekeeper cho Moodie code tools (get_repo_map, read_file, grep_code...).
+ * Chỉ admin mới được phép explore codebase qua moodie.
+ */
+export async function requireCodebaseAccess(supabase: SupabaseClient, userId: string) {
+  const { employee, role } = await resolveActiveUserRole(supabase, userId);
+
+  if (!employee) {
+    throw new Error("Không tìm thấy thông tin nhân viên");
+  }
+
+  if (role !== "admin") {
+    throw new Error("Khám phá codebase chỉ dành cho vai trò admin");
+  }
+
+  return { employee, role };
+}

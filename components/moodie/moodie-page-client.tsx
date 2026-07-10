@@ -2,26 +2,32 @@
 
 import { useDeferredValue, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Database, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteMoodieConversation,
   renameMoodieConversation,
-  sendMoodieMessage,
 } from "@/app/actions/moodie-mutations";
 import { getMoodieConversationDetail } from "@/app/actions/moodie-queries";
 import { MoodieWorkspaceDesktop } from "@/components/moodie/moodie-workspace-desktop";
-import { MoodieWorkspaceMobile } from "@/components/moodie/moodie-workspace-mobile";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
+import { getSmartMoodieFollowUps } from "@/lib/moodie/follow-up-suggestions";
 import { sortMoodieConversations } from "@/lib/moodie/records";
+import { sendMoodieStreamingMessage } from "@/lib/moodie/stream-client";
 import type {
   MoodieConversationDetail,
   MoodieConversationScope,
   MoodieConversationSummary,
   MoodiePageData,
 } from "@/types/moodie";
+
+const MoodieWorkspaceMobile = dynamic(
+  () => import("@/components/moodie/moodie-workspace-mobile").then((module) => module.MoodieWorkspaceMobile),
+  { ssr: false },
+);
 
 interface MoodiePageClientProps {
   initialData: MoodiePageData;
@@ -77,6 +83,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     useState<MoodieConversationSummary | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [, startTransition] = useTransition();
   const setHeaderSlots = useSetHeaderSlots();
@@ -85,11 +92,15 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     ? conversationCache[activeConversationId] || null
     : null;
   const setupReady = initialData.setup.ready;
+  const smartSuggestions = getSmartMoodieFollowUps({
+    conversation: activeConversation,
+    defaultSuggestions: initialData.suggestions,
+  });
 
   useEffect(() => {
     setHeaderSlots({
       hideSearch: true,
-      subtitleOverride: "Tr\u1ee3 l\u00fd AI th\u00f4ng minh",
+      subtitleOverride: "Trợ lý AI thông minh",
     });
 
     return () => setHeaderSlots({});
@@ -111,17 +122,6 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     all: conversations.length,
     active: conversations.filter((conversation) => !isLocked(conversation)).length,
     locked: conversations.filter((conversation) => isLocked(conversation)).length,
-  };
-
-  const stats = {
-    ...initialData.stats,
-    totalConversations: conversations.length,
-    totalMessages: conversations.reduce(
-      (sum, conversation) => sum + conversation.message_count,
-      0,
-    ),
-    lockedConversations: counts.locked,
-    skillCount: initialData.capabilities.length,
   };
 
   async function openConversation(conversationId: string) {
@@ -158,20 +158,29 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     setPendingPrompt(content);
     setIsSending(true);
 
-    const result = await sendMoodieMessage({
-      conversation_id: activeConversationId,
-      content,
-    });
-
-    setPendingPrompt(null);
-    setIsSending(false);
-
-    if (!result.success) {
-      toast.error(result.error);
+    let result;
+    try {
+      result = await sendMoodieStreamingMessage({
+        conversationId: activeConversationId,
+        content,
+        onStatus: setStreamStatus,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Moodie không thể trả lời");
+      setPendingPrompt(null);
+      setIsSending(false);
+      setStreamStatus(null);
       return;
     }
 
-    const detail = result.data.conversation;
+    setPendingPrompt(null);
+    setIsSending(false);
+    setStreamStatus(null);
+
+    const detail = result.conversation;
+    if (result.memoryProposed) {
+      toast.success("Moodie đã phát hiện một ghi nhớ mới đang chờ bạn duyệt.");
+    }
     startTransition(() => {
       setConversationCache((current) => ({ ...current, [detail.id]: detail }));
       setConversations((current) =>
@@ -207,7 +216,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     const nextTitle = editingTitle.trim();
 
     if (!target || !nextTitle) {
-      toast.error("Ti\u00eau \u0111\u1ec1 kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
+      toast.error("Tiêu đề không được để trống");
       return;
     }
 
@@ -252,12 +261,11 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
   async function confirmDelete(conversation: MoodieConversationSummary) {
     const result = await deleteMoodieConversation({
       conversation_id: conversation.id,
-      expected_updated_at: conversation.updated_at,
     });
 
     if (!result.success) {
       toast.error(result.error);
-      return;
+      return false;
     }
 
     const nextConversations = conversations.filter(
@@ -286,6 +294,8 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
         });
       }
     }
+
+    return true;
   }
 
   return (
@@ -331,7 +341,6 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
       ) : (
         <>
           <MoodieWorkspaceDesktop
-            stats={stats}
             conversations={filteredConversations}
             activeConversation={activeConversation}
             activeConversationId={activeConversationId}
@@ -343,8 +352,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             editingTitle={editingTitle}
             pendingPrompt={pendingPrompt}
             isSending={isSending}
+            streamStatus={streamStatus}
             capabilities={initialData.capabilities}
-            suggestions={initialData.suggestions}
+            suggestions={smartSuggestions}
             onSelectConversation={(conversationId) => {
               openConversation(conversationId).catch(() => {});
             }}
@@ -368,7 +378,6 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
           />
 
           <MoodieWorkspaceMobile
-            stats={stats}
             conversations={filteredConversations}
             activeConversation={activeConversation}
             activeConversationId={activeConversationId}
@@ -380,8 +389,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             editingTitle={editingTitle}
             pendingPrompt={pendingPrompt}
             isSending={isSending}
+            streamStatus={streamStatus}
             capabilities={initialData.capabilities}
-            suggestions={initialData.suggestions}
+            suggestions={smartSuggestions}
             historyOpen={historyOpen}
             onHistoryOpenChange={setHistoryOpen}
             onSelectConversation={(conversationId) => {
@@ -411,14 +421,15 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             onClose={() => setDeleteTarget(null)}
             onConfirm={() => {
               if (deleteTarget) {
-                confirmDelete(deleteTarget).catch(() => {});
+                return confirmDelete(deleteTarget);
               }
+              return false;
             }}
-            title="X\u00f3a h\u1ed9i tho\u1ea1i Moodie"
-            message={`B\u1ea1n ch\u1eafc ch\u1eafn mu\u1ed1n x\u00f3a "${
-              deleteTarget?.title || "h\u1ed9i tho\u1ea1i n\u00e0y"
-            }"? H\u00e0nh \u0111\u1ed9ng n\u00e0y s\u1ebd x\u00f3a lu\u00f4n to\u00e0n b\u1ed9 l\u1ecbch s\u1eed tin nh\u1eafn c\u1ee7a bu\u1ed5i chat.`}
-            confirmLabel="X\u00f3a h\u1ed9i tho\u1ea1i"
+            title="Xóa hội thoại Moodie"
+            message={`Bạn chắc chắn muốn xóa "${
+              deleteTarget?.title || "hội thoại này"
+            }"? Toàn bộ tin nhắn trong hội thoại sẽ bị xóa vĩnh viễn.`}
+            confirmLabel="Xóa hội thoại"
           />
         </>
       )}

@@ -26,6 +26,7 @@ export function MoodieWorkspaceMobile({
   editingTitle,
   pendingPrompt,
   isSending,
+  streamStatus,
   capabilities,
   suggestions,
   historyOpen,
@@ -83,6 +84,7 @@ export function MoodieWorkspaceMobile({
           suggestions={suggestions}
           pendingPrompt={pendingPrompt}
           loading={isSending}
+          statusLabel={streamStatus}
           onQuickPrompt={onQuickPrompt}
         />
 

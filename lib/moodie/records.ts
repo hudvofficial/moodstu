@@ -1,13 +1,16 @@
-import type { Json } from "@/types/database.types";
+﻿import type { Json } from "@/types/database.types";
 import type {
   MoodieConversationDetail,
   MoodieConversationSummary,
+  MoodieActionPreview,
   MoodieMessage,
   MoodieMessageMeta,
   MoodieMessageRole,
+  MoodieTrace,
   MoodieWidget,
   MoodieWidgetTone,
 } from "@/types/moodie";
+import { parseMoodieMessageParts, widgetsToMoodieParts } from "@/lib/moodie/message-parts";
 
 type ConversationRow = {
   id: string;
@@ -17,6 +20,7 @@ type ConversationRow = {
   updated_at: string | null;
   locked_until: string | null;
   locked_by: string | null;
+  message_count?: number | null;
   version: number | null;
 };
 
@@ -44,6 +48,44 @@ function toToneValue(value: Json | undefined): MoodieWidgetTone | undefined {
   return value === "default" || value === "positive" || value === "warning" || value === "danger"
     ? value
     : undefined;
+}
+
+function parseMoodieActions(value: Json | undefined): MoodieActionPreview[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const actions = value.flatMap((item) => {
+    if (!isObject(item)) return [];
+    const kind = item.kind as MoodieActionPreview["kind"];
+    if (kind !== "navigate" && kind !== "sync_drive_gallery" && kind !== "refresh_gallery_share" && kind !== "sync_google_calendar") return [];
+    const id = toStringValue(item.id);
+    const label = toStringValue(item.label);
+    const href = toStringValue(item.href);
+    const description = toStringValue(item.description);
+    const targetId = toStringValue(item.target_id);
+    const conversationId = toStringValue(item.conversation_id);
+    if (!id || !label || !description) return [];
+    if (kind === "navigate" && (!href || !href.startsWith("/"))) return [];
+    if (kind !== "navigate" && !targetId) return [];
+
+    const risk: MoodieActionPreview["risk"] =
+      item.risk === "low" || item.risk === "medium" || item.risk === "high"
+        ? item.risk
+        : "none";
+
+    return [{
+      id,
+      kind,
+      label,
+      href: href || undefined,
+      target_id: targetId || undefined,
+      conversation_id: conversationId || undefined,
+      description,
+      risk,
+      requires_approval: typeof item.requires_approval === "boolean" ? item.requires_approval : false,
+    }];
+  });
+
+  return actions.length > 0 ? actions : undefined;
 }
 
 function parseMoodieWidgets(value: Json | undefined): MoodieWidget[] | undefined {
@@ -171,14 +213,63 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
     ? value.follow_ups.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : undefined;
 
+  const traceValue: Record<string, Json | undefined> | null = isObject(value.trace ?? null) ? (value.trace as Record<string, Json | undefined>) : null;
+
+  const trace: MoodieTrace | undefined = traceValue
+    ? {
+        engine: traceValue.engine === "core_fallback" ? "core_fallback" : "model",
+        started_at: typeof traceValue.started_at === "string" ? traceValue.started_at : new Date().toISOString(),
+        duration_ms: typeof traceValue.duration_ms === "number" ? traceValue.duration_ms : 0,
+        provider: typeof traceValue.provider === "string" ? traceValue.provider : undefined,
+        agent_id: typeof traceValue.agent_id === "string" ? traceValue.agent_id : undefined,
+        route_intent: typeof traceValue.route_intent === "string" ? traceValue.route_intent : undefined,
+        route_reason: typeof traceValue.route_reason === "string" ? traceValue.route_reason : undefined,
+        retrieval_used: typeof traceValue.retrieval_used === "boolean" ? traceValue.retrieval_used : undefined,
+        execution_plan: typeof traceValue.execution_plan === "string" ? traceValue.execution_plan : undefined,
+        model_steps: typeof traceValue.model_steps === "number" ? traceValue.model_steps : 0,
+        tool_call_count: typeof traceValue.tool_call_count === "number" ? traceValue.tool_call_count : 0,
+        verifier_corrections: typeof traceValue.verifier_corrections === "number" ? traceValue.verifier_corrections : 0,
+        fallback_used: typeof traceValue.fallback_used === "boolean" ? traceValue.fallback_used : false,
+        fallback_reason: traceValue.fallback_reason === "provider_error" ? "provider_error" : traceValue.fallback_reason === "provider_unavailable" ? "provider_unavailable" : undefined,
+        provider_latency_ms: typeof traceValue.provider_latency_ms === "number" ? traceValue.provider_latency_ms : undefined,
+        fallback_latency_ms: typeof traceValue.fallback_latency_ms === "number" ? traceValue.fallback_latency_ms : undefined,
+        input_tokens: typeof traceValue.input_tokens === "number" ? traceValue.input_tokens : undefined,
+        output_tokens: typeof traceValue.output_tokens === "number" ? traceValue.output_tokens : undefined,
+        total_tokens: typeof traceValue.total_tokens === "number" ? traceValue.total_tokens : undefined,
+        tools: Array.isArray(traceValue.tools)
+          ? traceValue.tools
+              .filter((item): item is Record<string, Json | undefined> => typeof item === "object" && item !== null && !Array.isArray(item))
+              .map((item) => ({
+                name: typeof item.name === "string" ? item.name : "unknown",
+                ok: typeof item.ok === "boolean" ? item.ok : false,
+                duration_ms: typeof item.duration_ms === "number" ? item.duration_ms : 0,
+                result_bytes: typeof item.result_bytes === "number" ? item.result_bytes : undefined,
+                error: typeof item.error === "string" ? item.error : undefined,
+              }))
+          : [],
+        error: typeof traceValue.error === "string" ? traceValue.error : undefined,
+      }
+    : undefined;
+
+  const widgets = parseMoodieWidgets(value.widgets);
   return {
     provider,
+    agent_id: typeof value.agent_id === "string" ? value.agent_id : undefined,
+    agent_label: typeof value.agent_label === "string" ? value.agent_label : undefined,
     skill_id: typeof value.skill_id === "string" ? (value.skill_id as MoodieMessageMeta["skill_id"]) : undefined,
     skill_label: typeof value.skill_label === "string" ? value.skill_label : undefined,
     note: typeof value.note === "string" ? value.note : null,
+    route_intent: typeof value.route_intent === "string" ? value.route_intent : undefined,
+    route_reason: typeof value.route_reason === "string" ? value.route_reason : undefined,
+    retrieval_used: typeof value.retrieval_used === "boolean" ? value.retrieval_used : undefined,
+    execution_plan: typeof value.execution_plan === "string" ? value.execution_plan : undefined,
     follow_ups: followUps,
     sources,
-    widgets: parseMoodieWidgets(value.widgets),
+    widgets,
+    parts: parseMoodieMessageParts(value.parts) || widgetsToMoodieParts(widgets),
+    visual_schema_version: value.visual_schema_version === 1 ? 1 : undefined,
+    actions: parseMoodieActions(value.actions),
+    trace,
   };
 }
 

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 // ═══════════════════════════════════════════
 // ConfirmDialog — Shared confirmation modal
@@ -12,7 +13,7 @@ import { AlertTriangle } from "lucide-react";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | boolean | Promise<void | boolean>;
   title: string;
   message: string;
   confirmLabel?: string;
@@ -30,7 +31,19 @@ export function ConfirmDialog({
   cancelLabel = "Hủy",
   variant = "danger",
 }: Props) {
+  const [isConfirming, setIsConfirming] = useState(false);
   const confirmVariant = variant === "danger" ? "danger" : "interactive";
+
+  async function handleConfirm() {
+    if (isConfirming) return;
+    setIsConfirming(true);
+    try {
+      const shouldClose = await onConfirm();
+      if (shouldClose !== false) onClose();
+    } finally {
+      setIsConfirming(false);
+    }
+  }
 
   return (
     <UnifiedModal isOpen={isOpen} onClose={onClose} title={title}>
@@ -46,6 +59,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             onClick={onClose}
+            disabled={isConfirming}
             variant="ghost"
             className="text-body-sm"
             data-testid="confirm-dialog-cancel"
@@ -54,15 +68,14 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
+            onClick={handleConfirm}
+            disabled={isConfirming}
             variant={confirmVariant}
             className="text-body-sm"
             data-testid="confirm-dialog-confirm"
           >
-            {confirmLabel}
+            {isConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isConfirming ? "Đang xử lý..." : confirmLabel}
           </Button>
         </div>
       </div>

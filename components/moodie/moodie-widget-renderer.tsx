@@ -1,4 +1,5 @@
 import type { MoodieWidget, MoodieWidgetTone } from "@/types/moodie";
+import { normalizeMoodieDisplayText } from "@/lib/moodie/ux-helpers";
 
 interface MoodieWidgetRendererProps {
   widgets: MoodieWidget[];
@@ -51,7 +52,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
             >
               {widget.title ? (
                 <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                  {widget.title}
+                  {normalizeMoodieDisplayText(widget.title)}
                 </h4>
               ) : null}
 
@@ -62,11 +63,11 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
                     className={`rounded-xl border px-3 py-2 ${toneClasses(item.tone)}`}
                   >
                     <p className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                      {item.label}
+                      {normalizeMoodieDisplayText(item.label)}
                     </p>
                     <p className="mt-1 break-words text-body font-semibold">{item.value}</p>
                     {item.hint ? (
-                      <p className="mt-1 text-caption text-text-secondary">{item.hint}</p>
+                      <p className="mt-1 text-caption text-text-secondary">{normalizeMoodieDisplayText(item.hint)}</p>
                     ) : null}
                   </div>
                 ))}
@@ -83,7 +84,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
             >
               {widget.title ? (
                 <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                  {widget.title}
+                  {normalizeMoodieDisplayText(widget.title)}
                 </h4>
               ) : null}
 
@@ -94,7 +95,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
                 return (
                   <div key={`${item.label}-${item.current}-${item.target}`} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3 text-caption">
-                      <span className="font-medium text-text-primary">{item.label}</span>
+                      <span className="font-medium text-text-primary">{normalizeMoodieDisplayText(item.label)}</span>
                       <span className="text-text-secondary">
                         {item.current.toLocaleString("vi-VN")}
                         {item.unit ? `/${item.target.toLocaleString("vi-VN")} ${item.unit}` : `/${item.target.toLocaleString("vi-VN")}`}
@@ -110,7 +111,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
 
                     <div className="flex items-center justify-between gap-3 text-caption text-text-secondary">
                       <span>{percent}% hoàn thành</span>
-                      {item.hint ? <span className="text-right">{item.hint}</span> : null}
+                      {item.hint ? <span className="text-right">{normalizeMoodieDisplayText(item.hint)}</span> : null}
                     </div>
                   </div>
                 );
@@ -128,7 +129,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
           >
             {widget.title ? (
               <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
-                {widget.title}
+                {normalizeMoodieDisplayText(widget.title)}
               </h4>
             ) : null}
 
@@ -139,9 +140,9 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
                 <div key={`${item.label}-${item.value}`} className="space-y-1.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-body font-medium text-text-primary">{item.label}</p>
+                      <p className="text-body font-medium text-text-primary">{normalizeMoodieDisplayText(item.label)}</p>
                       {item.hint ? (
-                        <p className="text-caption text-text-secondary">{item.hint}</p>
+                        <p className="text-caption text-text-secondary">{normalizeMoodieDisplayText(item.hint)}</p>
                       ) : null}
                     </div>
 

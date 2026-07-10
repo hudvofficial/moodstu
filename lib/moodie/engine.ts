@@ -1,28 +1,48 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logError } from "@/lib/audit";
 import { runMoodieCoreEngine } from "@/lib/moodie/core-engine";
-import {
-  callMoodieGemini,
-  getMoodieModelProvider,
-  type MoodieModelMessage,
-} from "@/lib/moodie/gemini";
+import { getActiveMoodieProvider } from "@/lib/moodie/providers/registry";
 import {
   MOODIE_MODEL_MAX_HISTORY,
+  MOODIE_IDENTITY_PROMPT,
   MOODIE_MODEL_SYSTEM_PROMPT,
 } from "@/lib/moodie/model-prompt";
 import { executeMoodieTool, getMoodieToolDefinitions } from "@/lib/moodie/tools";
+import { routeMoodieIntent } from "@/lib/moodie/intent-router";
+import { verifyMoodieAnswer } from "@/lib/moodie/answer-verifier";
+import { shapeMoodieHistoryForModel } from "@/lib/moodie/context-shaper";
+import { normalizeMoodieToolOutput } from "@/lib/moodie/tool-output-normalizer";
+import { buildMoodieRetrievedContext } from "@/lib/moodie/retrieval-context";
+import { planMoodieExecution } from "@/lib/moodie/tool-planner";
+import { attachMoodieTrace, createMoodieTrace } from "@/lib/moodie/trace";
+import { buildMoodieAgentInstruction, selectMoodieAgent } from "@/lib/moodie/agents/profiles";
+import { planMoodieSafeNavigation } from "@/lib/moodie/action-planner";
+import { loadMoodieMemoryContext } from "@/lib/moodie/memory-store";
+import { buildMoodieConversationSummaryContext } from "@/lib/moodie/conversation-summary";
 import type { Database } from "@/types/database.types";
 import type {
   MoodieHistoryMessage,
   MoodieMessageMeta,
+  MoodieMessagePart,
   MoodieWidget,
 } from "@/types/moodie";
 import type { Role } from "@/types/roles";
+import type { ProviderMessage } from "@/lib/moodie/providers/types";
 
 type EngineResult = {
   content: string;
   metadata: MoodieMessageMeta;
 };
+
+class MoodieModelError extends Error {
+  constructor(
+    message: string,
+    readonly trace: ReturnType<typeof createMoodieTrace>["trace"],
+  ) {
+    super(message);
+    this.name = "MoodieModelError";
+  }
+}
 
 function trimHistory(history: MoodieHistoryMessage[] | undefined, prompt: string) {
   const baseHistory =
@@ -40,62 +60,149 @@ async function runMoodieModelEngine(params: {
   role: Role;
   prompt: string;
   history?: MoodieHistoryMessage[];
+  userId?: string;
+  conversationId?: string;
+  conversationSummary?: string | null;
 }): Promise<EngineResult | null> {
-  const provider = await getMoodieModelProvider();
+  const provider = await getActiveMoodieProvider();
   if (!provider) return null;
 
   const history = trimHistory(params.history, params.prompt);
-  const toolDefinitions = getMoodieToolDefinitions();
+  const route = routeMoodieIntent({
+    prompt: params.prompt,
+    history,
+    role: params.role,
+  });
+  const executionPlan = planMoodieExecution({
+    route,
+    prompt: params.prompt,
+    role: params.role,
+  });
+  const agent = selectMoodieAgent({ intent: route.intent, role: params.role });
+  const plannedAction = planMoodieSafeNavigation({ prompt: params.prompt, role: params.role });
+  const retrievedContext = buildMoodieRetrievedContext({
+    prompt: params.prompt,
+    route,
+  });
+  const memoryContext = await loadMoodieMemoryContext({
+    supabase: params.supabase,
+    userId: params.userId,
+    conversationId: params.conversationId,
+    prompt: params.prompt,
+  });
+  const toolDefinitions = getMoodieToolDefinitions({
+    allowedToolNames: executionPlan.prioritizedToolNames,
+    role: params.role,
+  });
+  const traceState = createMoodieTrace({
+    provider: provider.label,
+    agent_id: agent.id,
+    route_intent: route.intent,
+    route_reason: route.reason,
+    retrieval_used: retrievedContext.hasContext,
+    execution_plan: executionPlan.summary,
+  });
 
-  const messages: MoodieModelMessage[] = [
-    { role: "system", content: MOODIE_MODEL_SYSTEM_PROMPT },
-    ...history.map((message) => ({
-      role: message.role,
-      content: message.content,
-    })),
+  const messages: ProviderMessage[] = [
+    {
+      role: "system",
+      content: MOODIE_IDENTITY_PROMPT,
+    },
+    ...(buildMoodieConversationSummaryContext(params.conversationSummary)
+      ? [{ role: "system" as const, content: buildMoodieConversationSummaryContext(params.conversationSummary) }]
+      : []),
+    {
+      role: "system",
+      content: buildMoodieAgentInstruction(agent),
+    },
+    ...(memoryContext
+      ? [{ role: "system" as const, content: memoryContext }]
+      : []),
+    {
+      role: "system",
+      content: `${MOODIE_MODEL_SYSTEM_PROMPT}\n\nRouting context:\n- intent: ${route.intent}\n- must_use_data_tool: ${executionPlan.shouldForceTool ? "yes" : "no"}\n- exposed_tools: ${executionPlan.prioritizedToolNames.join(", ") || "none"}\n- route_reason: ${route.reason}\n- execution_plan: ${executionPlan.summary}\n- history_policy: only recent, compact, decision-relevant context is preserved${retrievedContext.hasContext ? `\n\n${retrievedContext.summary}` : ""}`,
+    },
+    ...shapeMoodieHistoryForModel(history),
   ];
 
   let metadataPatch: Partial<MoodieMessageMeta> = {
-    skill_label: "Moodie AI",
+    skill_label: agent.label,
+    agent_id: agent.id,
+    agent_label: agent.label,
+    actions: plannedAction ? [plannedAction] : undefined,
+    provider: provider.label,
   };
   const widgets: MoodieWidget[] = [];
+  const parts: MoodieMessagePart[] = [];
+  let toolUsedInTurn = false;
+  let correctionCount = 0;
 
-  for (let step = 0; step < 5; step += 1) {
-    const modelResult = await callMoodieGemini(
-      messages,
-      toolDefinitions,
-      provider,
-    );
-    if (!modelResult.ok) {
-      throw new Error(modelResult.error);
-    }
+  try {
+    for (let step = 0; step < 8; step += 1) {
+      traceState.trace.model_steps = step + 1;
+      const modelResult = await provider.chat(messages, toolDefinitions);
 
-    const assistantMessage = modelResult.message;
-    const toolCalls = assistantMessage.tool_calls || [];
+      if (!modelResult.ok) {
+        throw new Error(modelResult.error);
+      }
 
-    if (toolCalls.length === 0) {
+      if (modelResult.usage) {
+        traceState.trace.input_tokens = (traceState.trace.input_tokens || 0) + (modelResult.usage.inputTokens || 0);
+        traceState.trace.output_tokens = (traceState.trace.output_tokens || 0) + (modelResult.usage.outputTokens || 0);
+        traceState.trace.total_tokens = (traceState.trace.total_tokens || 0) + (modelResult.usage.totalTokens || 0);
+      }
+
+      const assistantMessage = modelResult.message;
+      const toolCalls = assistantMessage.tool_calls || [];
+
+      if (toolCalls.length === 0) {
       const content = assistantMessage.content?.trim();
       if (!content) {
         throw new Error("Moodie model returned an empty response.");
       }
 
-      return {
+      const verification = verifyMoodieAnswer({
+        userPrompt: params.prompt,
+        route,
+        assistantMessage,
+        toolUsedInTurn,
+        correctionCount,
+      });
+
+      if (!verification.ok) {
+        correctionCount += 1;
+        traceState.trace.verifier_corrections = correctionCount;
+        messages.push(assistantMessage);
+        messages.push({ role: "system", content: verification.correctiveInstruction });
+        continue;
+      }
+
+        return {
         content,
-        metadata: {
+        metadata: attachMoodieTrace({
           provider: provider.label,
           note: "model_generated",
+          route_intent: route.intent,
+          route_reason: route.reason,
+          agent_id: agent.id,
+          retrieval_used: retrievedContext.hasContext,
+          execution_plan: executionPlan.summary,
           ...metadataPatch,
           widgets:
             widgets.length > 0
               ? widgets.slice(0, 3)
               : metadataPatch.widgets,
-        },
-      };
-    }
+          parts: parts.length > 0 ? parts.slice(0, 6) : metadataPatch.parts,
+          visual_schema_version: parts.length > 0 || metadataPatch.parts?.length ? 1 : undefined,
+        }, traceState.finish({
+          tool_call_count: traceState.trace.tools.length,
+        })),
+        };
+      }
 
-    messages.push(assistantMessage);
+      messages.push(assistantMessage);
 
-    for (const toolCall of toolCalls) {
+      for (const toolCall of toolCalls) {
       let parsedArgs: Record<string, unknown> = {};
       try {
         parsedArgs = JSON.parse(toolCall.function.arguments);
@@ -103,22 +210,51 @@ async function runMoodieModelEngine(params: {
         parsedArgs = {};
       }
 
-      const execution = await executeMoodieTool(
+      toolUsedInTurn = true;
+
+      const toolStartedAt = Date.now();
+      let execution;
+      try {
+        execution = await executeMoodieTool(
         toolCall.function.name,
         {
           supabase: params.supabase,
           role: params.role,
+          userId: params.userId,
+          conversationId: params.conversationId,
           history,
         },
         parsedArgs,
       );
 
+      } catch (error) {
+        traceState.trace.tools.push({
+          name: toolCall.function.name,
+          ok: false,
+          duration_ms: Date.now() - toolStartedAt,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+
+      traceState.trace.tools.push({
+        name: toolCall.function.name,
+        ok: true,
+        duration_ms: Date.now() - toolStartedAt,
+        result_bytes: JSON.stringify(execution.result).length,
+      });
+
       const nextWidgets = execution.metadata.widgets || [];
-      const { widgets: metadataWidgets, ...restMetadata } = execution.metadata;
+      const nextParts = execution.metadata.parts || [];
+      const { widgets: metadataWidgets, parts: metadataParts, ...restMetadata } = execution.metadata;
       void metadataWidgets;
+      void metadataParts;
 
       if (nextWidgets.length > 0) {
         widgets.push(...nextWidgets);
+      }
+      if (nextParts.length > 0) {
+        parts.push(...nextParts);
       }
 
       metadataPatch = {
@@ -126,15 +262,38 @@ async function runMoodieModelEngine(params: {
         ...restMetadata,
       };
 
-      messages.push({
+        messages.push({
         role: "tool",
-        content: JSON.stringify(execution.result),
+        content: normalizeMoodieToolOutput({
+          toolName: toolCall.function.name,
+          result: execution.result,
+          metadata: execution.metadata,
+        }),
         _tool_name: toolCall.function.name,
-      });
+        _tool_call_id: toolCall.id,
+        });
+      }
     }
-  }
 
-  throw new Error("Moodie model exceeded the tool loop limit.");
+    throw new Error("Moodie model exceeded the tool loop limit (8 steps).");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    traceState.finish({ error: message, provider_latency_ms: Date.now() - Date.parse(traceState.trace.started_at) });
+    throw new MoodieModelError(message, traceState.trace);
+  }
+}
+
+export function buildMoodieUnavailableResult(error?: string): EngineResult {
+  return {
+    content: "Moodie đang không kết nối được với model trò chuyện. Bạn có thể thử lại sau khi kiểm tra combo provider trong Cài đặt Studio.",
+    metadata: {
+      provider: "Moodie fallback",
+      skill_id: "fallback",
+      skill_label: "Kết nối AI gián đoạn",
+      note: error || "provider_unavailable",
+      follow_ups: ["Thử lại câu vừa rồi", "Kiểm tra provider đang dùng"],
+    },
+  };
 }
 
 export async function runMoodieEngine(params: {
@@ -142,11 +301,27 @@ export async function runMoodieEngine(params: {
   role: Role;
   prompt: string;
   history?: MoodieHistoryMessage[];
+  userId?: string;
+  conversationId?: string;
+  conversationSummary?: string | null;
 }): Promise<EngineResult> {
+  const requestStartedAt = Date.now();
+  const route = routeMoodieIntent({
+    prompt: params.prompt,
+    history: trimHistory(params.history, params.prompt),
+    role: params.role,
+  });
+  let modelError: MoodieModelError | null = null;
+  let fallbackReason: "provider_unavailable" | "provider_error" = "provider_unavailable";
+
   try {
     const modelResult = await runMoodieModelEngine(params);
     if (modelResult) return modelResult;
   } catch (error) {
+    fallbackReason = "provider_error";
+    modelError = error instanceof MoodieModelError
+      ? error
+      : new MoodieModelError(error instanceof Error ? error.message : String(error), createMoodieTrace({ route_intent: route.intent, route_reason: route.reason }).trace);
     await logError({
       error,
       context: "moodie.modelEngine",
@@ -154,9 +329,37 @@ export async function runMoodieEngine(params: {
     }).catch(() => {});
   }
 
-  return runMoodieCoreEngine({
-    supabase: params.supabase,
-    role: params.role,
-    prompt: params.prompt,
-  });
+  const fallbackStartedAt = Date.now();
+  const fallbackResult = route.intent === "general"
+    ? buildMoodieUnavailableResult(modelError?.message)
+    : await runMoodieCoreEngine({
+        supabase: params.supabase,
+        role: params.role,
+        prompt: params.prompt,
+      });
+  const fallbackLatency = Date.now() - fallbackStartedAt;
+  const previousTrace = modelError?.trace;
+
+  return {
+    ...fallbackResult,
+    metadata: attachMoodieTrace(fallbackResult.metadata, {
+      engine: "core_fallback",
+      started_at: new Date(requestStartedAt).toISOString(),
+      duration_ms: Date.now() - requestStartedAt,
+      provider: previousTrace?.provider || fallbackResult.metadata.provider,
+      route_intent: route.intent,
+      route_reason: route.reason,
+      retrieval_used: false,
+      execution_plan: previousTrace?.execution_plan || fallbackResult.metadata.execution_plan,
+      model_steps: previousTrace?.model_steps || 0,
+      tool_call_count: previousTrace?.tool_call_count || 0,
+      verifier_corrections: previousTrace?.verifier_corrections || 0,
+      fallback_used: true,
+      fallback_reason: fallbackReason,
+      provider_latency_ms: previousTrace?.provider_latency_ms,
+      fallback_latency_ms: fallbackLatency,
+      tools: previousTrace?.tools || [],
+      error: modelError?.message,
+    }),
+  };
 }

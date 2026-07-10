@@ -4,6 +4,18 @@ import { fetchDebtStats, fetchGoals, fetchGoalsCashflow } from "@/app/actions/fi
 import { getReportsSnapshot } from "@/app/actions/finance-reports-queries";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 import { getMoodieDefaultSuggestions } from "@/lib/moodie/catalog";
+import {
+  buildCalendarTimelinePart,
+  loadMoodieCalendarAgenda,
+} from "@/lib/moodie/domain/calendar-context";
+import {
+  buildDeliveryAssetParts,
+  buildGalleryPart,
+  loadMoodieDeliveryAssets,
+  loadMoodieGalleryImages,
+  resolveMoodieContract,
+} from "@/lib/moodie/domain/gallery-context";
+import { canExposeMoodieTool } from "@/lib/moodie/tool-manifest";
 import type { Database } from "@/types/database.types";
 import type { ActionResult } from "@/types/finance-operations";
 import type {
@@ -25,6 +37,8 @@ type MoodieAdminClient = SupabaseClient<Database>;
 type MoodieToolContext = {
   supabase: MoodieAdminClient;
   role: Role;
+  userId?: string;
+  conversationId?: string;
   history: MoodieHistoryMessage[];
 };
 
@@ -40,6 +54,98 @@ type MoodieTool = {
     rawArgs: Record<string, unknown>,
   ) => Promise<MoodieToolExecution>;
 };
+
+function optionalString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function customerNameForTool(contract: {
+  customers: { full_name: string | null } | Array<{ full_name: string | null }> | null;
+}) {
+  const customer = Array.isArray(contract.customers) ? contract.customers[0] : contract.customers;
+  return customer?.full_name || null;
+}
+
+async function resolveGalleryToolContract(context: MoodieToolContext, rawArgs: Record<string, unknown>) {
+  if (!canAccess(context.role, "contracts")) {
+    return null;
+  }
+  return resolveMoodieContract(context.supabase, {
+    contract_id: optionalString(rawArgs.contract_id),
+    contract_code: optionalString(rawArgs.contract_code),
+    customer_query: optionalString(rawArgs.customer_query),
+  });
+}
+
+async function executeCalendarAgenda(
+  context: MoodieToolContext,
+  rawArgs: Record<string, unknown>,
+): Promise<MoodieToolExecution> {
+  if (!canAccess(context.role, "calendar")) {
+    return buildPermissionDeniedResult(context.role, "schedule_summary", "Lịch tổng hợp");
+  }
+
+  const range = getScheduleRange(rawArgs);
+  const start = new Date(`${range.start}T00:00:00`);
+  const end = new Date(`${range.end}T00:00:00`);
+  end.setDate(end.getDate() + 1);
+  const includeGoogle = rawArgs.include_google !== false;
+  const includeTasks = rawArgs.include_tasks !== false;
+  const limit = Math.max(1, Math.min(40, toInteger(rawArgs.limit) || 20));
+  const agenda = await loadMoodieCalendarAgenda({ start, end, includeGoogle, includeTasks, limit });
+
+  return {
+    result: {
+      range: range.label,
+      total: agenda.totals.all,
+      totals: agenda.totals,
+      events: agenda.events.map((event) => ({
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        all_day: event.allDay,
+        source: event.source,
+        location: event.location,
+        status: event.status,
+        contract_id: event.contractId,
+        customer_name: event.customerName,
+      })),
+      partial_errors: agenda.errors,
+    },
+    metadata: {
+      skill_id: "schedule_summary",
+      skill_label: "Lịch tổng hợp",
+      sources: buildSources([
+        { label: "Khung thời gian", value: range.label },
+        { label: "Lịch studio", value: String(agenda.totals.studio) },
+        { label: "Google Calendar", value: String(agenda.totals.google) },
+        { label: "Công việc", value: String(agenda.totals.tasks) },
+      ]),
+      follow_ups: [
+        "Lịch nào trong tuần này lấy từ Google Calendar?",
+        "Ngày mai tôi có công việc nào?",
+        "Mở lịch studio",
+      ],
+      parts: agenda.events.length > 0
+        ? [buildCalendarTimelinePart(agenda.events, `Lịch ${range.label.toLowerCase()}`)]
+        : undefined,
+      actions: rawArgs.requested_action === "sync_google_calendar"
+        ? agenda.events.filter((event) => event.source === "schedule").slice(0, 1).map((event) => ({
+            id: `sync-google-${event.id}`,
+            kind: "sync_google_calendar" as const,
+            label: "Đồng bộ Google Calendar",
+            target_id: event.id,
+            conversation_id: context.conversationId,
+            description: `Xếp lịch “${event.title}” vào hàng đợi đồng bộ Google Calendar.`,
+            risk: "low" as const,
+            requires_approval: true,
+          }))
+        : undefined,
+      visual_schema_version: 1,
+    },
+  };
+}
 
 type ContractLookupRow = {
   id: string;
@@ -106,7 +212,7 @@ function formatPercent(value: number | null | undefined) {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "Chua co";
+  if (!value) return "Chưa có";
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -131,7 +237,7 @@ function buildPermissionDeniedResult(
 
   return {
     result: {
-      error: `Vai tro ${role} khong duoc truy cap du lieu cho yeu cau nay.`,
+      error: `Vai trò ${role} không được truy cập dữ liệu cho yêu cầu này.`,
       allowed_prompts: followUps,
     },
     metadata: {
@@ -180,7 +286,7 @@ function getScheduleRange(rawArgs: Record<string, unknown>) {
     const tomorrow = new Date(base);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const iso = tomorrow.toISOString().slice(0, 10);
-    return { start: iso, end: iso, label: "Ngay mai" };
+    return { start: iso, end: iso, label: "Ngày mai" };
   }
 
   if (range === "week") {
@@ -189,13 +295,13 @@ function getScheduleRange(rawArgs: Record<string, unknown>) {
     return {
       start: base.toISOString().slice(0, 10),
       end: end.toISOString().slice(0, 10),
-      label: "7 ngay toi",
+      label: "7 ngày tới",
     };
   }
 
   if (range === "today") {
     const iso = base.toISOString().slice(0, 10);
-    return { start: iso, end: iso, label: "Hom nay" };
+    return { start: iso, end: iso, label: "Hôm nay" };
   }
 
   const end = new Date(base);
@@ -203,7 +309,7 @@ function getScheduleRange(rawArgs: Record<string, unknown>) {
   return {
     start: base.toISOString().slice(0, 10),
     end: end.toISOString().slice(0, 10),
-    label: `${days} ngay toi`,
+    label: `${days} ngày tới`,
   };
 }
 
@@ -242,26 +348,26 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_financial_summary",
-        description: "Lay tong quan tai chinh studio theo thang, quy hoac nam.",
+        description: "Lấy tổng quan tài chính studio theo tháng, quý hoặc năm.",
         parameters: {
           type: "object",
           properties: {
             period_type: {
               type: "string",
               enum: ["month", "quarter", "year"],
-              description: "Loai ky bao cao can xem.",
+              description: "Loại kỳ báo cáo cần xem.",
             },
             month: {
               type: "number",
-              description: "Thang can xem neu dung period_type = month.",
+              description: "Tháng cần xem nếu dùng period_type = month.",
             },
             quarter: {
               type: "number",
-              description: "Quy can xem neu dung period_type = quarter.",
+              description: "Quý cần xem nếu dùng period_type = quarter.",
             },
             year: {
               type: "number",
-              description: "Nam cua ky bao cao.",
+              description: "Năm của kỳ báo cáo.",
             },
           },
         },
@@ -269,7 +375,7 @@ const moodieTools: Record<string, MoodieTool> = {
     },
     async execute(context, rawArgs) {
       if (!canAccess(context.role, "finance")) {
-        return buildPermissionDeniedResult(context.role, "financial_summary", "Tai chinh tong quan");
+        return buildPermissionDeniedResult(context.role, "financial_summary", "Tài chính tổng quan");
       }
 
       const snapshot = unwrap(await getReportsSnapshot(buildReportFilters(rawArgs)));
@@ -295,32 +401,32 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "financial_summary",
-          skill_label: "Tai chinh tong quan",
+          skill_label: "Tài chính tổng quan",
           sources: buildSources([
-            { label: "Ky bao cao", value: snapshot.range.label },
-            { label: "Gia tri TB / HD", value: formatCurrency(summary.avgContractValue) },
-            { label: "Chi phi luong", value: formatCurrency(summary.salaryCost) },
+            { label: "Kỳ báo cáo", value: snapshot.range.label },
+            { label: "Giá trị TB / HĐ", value: formatCurrency(summary.avgContractValue) },
+            { label: "Chi phí lương", value: formatCurrency(summary.salaryCost) },
           ]),
           follow_ups: [
-            "Cong no hien tai the nao?",
-            "Nhung hop dong nao con phai thu?",
-            "Tien do cac muc tieu tai chinh ra sao?",
+            "Công nợ hiện tại thế nào?",
+            "Những hợp đồng nào còn phải thu?",
+            "Tiến độ các mục tiêu tài chính ra sao?",
           ],
           widgets: [
-            toKpiWidget("Tong quan tai chinh", [
+            toKpiWidget("Tổng quan tài chính", [
               { label: "Doanh thu", value: formatCurrency(summary.totalRevenue), tone: "positive" },
-              { label: "Tong chi", value: formatCurrency(summary.totalCost), tone: "warning" },
+              { label: "Tổng chi", value: formatCurrency(summary.totalCost), tone: "warning" },
               {
-                label: "Loi nhuan rong",
+                label: "Lợi nhuận ròng",
                 value: formatCurrency(summary.netProfit),
                 tone: summary.netProfit >= 0 ? "positive" : "danger",
               },
-              { label: "Bien loi nhuan", value: formatPercent(summary.profitMargin) },
+              { label: "Biên lợi nhuận", value: formatPercent(summary.profitMargin) },
             ]),
             ...(topServices.length > 0
               ? [
                   toComparisonWidget(
-                    "Danh muc doanh thu noi bat",
+                    "Danh mục doanh thu nổi bật",
                     topServices.map((item) => ({
                       label: item.name,
                       value: item.revenue,
@@ -341,22 +447,22 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_debt_summary",
-        description: "Lay tong hop cong no, no qua han va bucket tuoi no.",
+        description: "Lấy tổng hợp công nợ, nợ quá hạn và nhóm tuổi nợ.",
         parameters: { type: "object", properties: {} },
       },
     },
     async execute(context) {
       if (!canAccess(context.role, "finance")) {
-        return buildPermissionDeniedResult(context.role, "debt_summary", "Cong no");
+        return buildPermissionDeniedResult(context.role, "debt_summary", "Công nợ");
       }
 
       const stats = unwrap(await fetchDebtStats());
       const agingEntries = [
-        { label: "Chua den han", value: stats.aging.not_due },
-        { label: "1-30 ngay", value: stats.aging.days_1_30 },
-        { label: "31-60 ngay", value: stats.aging.days_31_60 },
-        { label: "61-90 ngay", value: stats.aging.days_61_90 },
-        { label: "> 90 ngay", value: stats.aging.over_90 },
+        { label: "Chưa đến hạn", value: stats.aging.not_due },
+        { label: "1-30 ngày", value: stats.aging.days_1_30 },
+        { label: "31-60 ngày", value: stats.aging.days_31_60 },
+        { label: "61-90 ngày", value: stats.aging.days_61_90 },
+        { label: "> 90 ngày", value: stats.aging.over_90 },
       ].filter((item) => item.value > 0);
 
       return {
@@ -369,23 +475,23 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "debt_summary",
-          skill_label: "Cong no",
+          skill_label: "Công nợ",
           sources: buildSources([
-            { label: "Phai thu", value: formatCurrency(stats.receivable) },
-            { label: "Phai tra", value: formatCurrency(stats.payable) },
-            { label: "Qua han", value: formatCurrency(stats.overdue) },
+            { label: "Phải thu", value: formatCurrency(stats.receivable) },
+            { label: "Phải trả", value: formatCurrency(stats.payable) },
+            { label: "Quá hạn", value: formatCurrency(stats.overdue) },
           ]),
           follow_ups: [
-            "Nhung hop dong nao con phai thu?",
-            "Tai chinh tong quan thang nay ra sao?",
+            "Những hợp đồng nào còn phải thu?",
+            "Tài chính tổng quan tháng này ra sao?",
           ],
           widgets: [
-            toKpiWidget("Cong no hien tai", [
-              { label: "Phai thu", value: formatCurrency(stats.receivable), tone: "positive" },
-              { label: "Phai tra", value: formatCurrency(stats.payable), tone: "warning" },
-              { label: "Qua han", value: formatCurrency(stats.overdue), tone: "danger" },
+            toKpiWidget("Công nợ hiện tại", [
+              { label: "Phải thu", value: formatCurrency(stats.receivable), tone: "positive" },
+              { label: "Phải trả", value: formatCurrency(stats.payable), tone: "warning" },
+              { label: "Quá hạn", value: formatCurrency(stats.overdue), tone: "danger" },
               {
-                label: "No rong",
+                label: "Nợ ròng",
                 value: formatCurrency(stats.net_debt),
                 tone: stats.net_debt >= 0 ? "warning" : "positive",
               },
@@ -393,12 +499,12 @@ const moodieTools: Record<string, MoodieTool> = {
             ...(agingEntries.length > 0
               ? [
                   toComparisonWidget(
-                    "Bucket tuoi no",
+                    "Nhóm tuổi nợ",
                     agingEntries.map((item) => ({
                       label: item.label,
                       value: item.value,
                       value_label: formatCurrency(item.value),
-                      tone: item.label === "> 90 ngay" ? "danger" : item.label === "1-30 ngay" ? "warning" : "default",
+                      tone: item.label === "> 90 ngày" ? "danger" : item.label === "1-30 ngày" ? "warning" : "default",
                     })),
                   ),
                 ]
@@ -413,13 +519,13 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_pending_collections",
-        description: "Lay danh sach hop dong con tien can thu.",
+        description: "Lấy danh sách hợp đồng còn tiền cần thu.",
         parameters: {
           type: "object",
           properties: {
             limit: {
               type: "number",
-              description: "So hop dong toi da can tra ve.",
+              description: "Số hợp đồng tối đa cần trả về.",
             },
           },
         },
@@ -427,7 +533,7 @@ const moodieTools: Record<string, MoodieTool> = {
     },
     async execute(context, rawArgs) {
       if (!canAccess(context.role, "finance")) {
-        return buildPermissionDeniedResult(context.role, "pending_collections", "Danh sach can thu");
+        return buildPermissionDeniedResult(context.role, "pending_collections", "Danh sách cần thu");
       }
 
       const limit = Math.max(1, Math.min(8, toInteger(rawArgs.limit) || 5));
@@ -438,29 +544,29 @@ const moodieTools: Record<string, MoodieTool> = {
           total: items.length,
           items: items.map((item) => ({
             contract_code: item.contract_code || item.id,
-            customer_name: item.customers?.full_name || "Khach chua ro",
+            customer_name: item.customers?.full_name || "Khách chưa rõ",
             remaining_amount: item.remaining_amount || 0,
             status: item.status,
           })),
         },
         metadata: {
           skill_id: "pending_collections",
-          skill_label: "Danh sach can thu",
-          sources: buildSources([{ label: "So hop dong", value: String(items.length) }]),
+          skill_label: "Danh sách cần thu",
+          sources: buildSources([{ label: "Số hợp đồng", value: String(items.length) }]),
           follow_ups: [
-            "Cong no hien tai the nao?",
-            "Tra cuu hop dong cua khach Lan",
+            "Công nợ hiện tại thế nào?",
+            "Tra cứu hợp đồng của khách Lan",
           ],
           widgets:
             items.length > 0
               ? [
                   toComparisonWidget(
-                    "Khoan can thu noi bat",
+                    "Khoản cần thu nổi bật",
                     items.map((item) => ({
                       label: item.contract_code || item.id,
                       value: item.remaining_amount || 0,
                       value_label: formatCurrency(item.remaining_amount || 0),
-                      hint: item.customers?.full_name || "Khach chua ro",
+                      hint: item.customers?.full_name || "Khách chưa rõ",
                       tone: "warning",
                     })),
                   ),
@@ -475,17 +581,17 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "search_contracts",
-        description: "Tim hop dong theo ma, ten khach hoac trang thai thanh toan.",
+        description: "Tìm hợp đồng theo mã, tên khách hoặc trạng thái thanh toán.",
         parameters: {
           type: "object",
           properties: {
             keyword: {
               type: "string",
-              description: "Ma hop dong, ten khach hoac SDT gan dung.",
+              description: "Mã hợp đồng, tên khách hoặc số điện thoại gần đúng.",
             },
             status: {
               type: "string",
-              description: "Trang thai hop dong neu can loc them.",
+              description: "Trạng thái hợp đồng nếu cần lọc thêm.",
             },
           },
         },
@@ -493,7 +599,7 @@ const moodieTools: Record<string, MoodieTool> = {
     },
     async execute(context, rawArgs) {
       if (!canAccess(context.role, "contracts")) {
-        return buildPermissionDeniedResult(context.role, "contract_lookup", "Tra cuu hop dong");
+        return buildPermissionDeniedResult(context.role, "contract_lookup", "Tra cứu hợp đồng");
       }
 
       const keyword = normalizeText(extractKeyword(rawArgs.keyword));
@@ -505,7 +611,7 @@ const moodieTools: Record<string, MoodieTool> = {
         .order("contract_date", { ascending: false })
         .limit(24);
 
-      if (error) throw new Error(`Khong the tra cuu hop dong: ${error.message}`);
+      if (error) throw new Error(`Không thể tra cứu hợp đồng: ${error.message}`);
 
       const rows = ((data || []) as ContractLookupRow[])
         .filter((row) => {
@@ -530,7 +636,7 @@ const moodieTools: Record<string, MoodieTool> = {
             return {
               id: row.id,
               contract_code: row.contract_code,
-              customer_name: customer?.full_name || "Khach chua ro",
+              customer_name: customer?.full_name || "Khách chưa rõ",
               phone: customer?.phone,
               contract_date: row.contract_date,
               work_date: row.work_date,
@@ -543,41 +649,64 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "contract_lookup",
-          skill_label: "Tra cuu hop dong",
-          sources: buildSources([{ label: "Ket qua", value: String(rows.length) }]),
+          skill_label: "Tra cứu hợp đồng",
+          sources: buildSources([{ label: "Kết quả", value: String(rows.length) }]),
           follow_ups: [
-            "Nhung hop dong nao con phai thu?",
-            "Lich hom nay co gi?",
+            "Những hợp đồng nào còn phải thu?",
+            "Lịch hôm nay có gì?",
           ],
         },
       };
     },
+  },
+  get_calendar_agenda: {
+    definition: {
+      type: "function",
+      function: {
+        name: "get_calendar_agenda",
+        description: "Read the unified studio, Google Calendar, and task agenda for a requested date range.",
+        parameters: {
+          type: "object",
+          properties: {
+            range: { type: "string", enum: ["today", "tomorrow", "week", "3days"] },
+            days: { type: "number" },
+            include_google: { type: "boolean" },
+            include_tasks: { type: "boolean" },
+            limit: { type: "number" },
+            requested_action: { type: "string", enum: ["sync_google_calendar"] },
+          },
+        },
+      },
+    },
+    execute: executeCalendarAgenda,
   },
   get_upcoming_schedules: {
     definition: {
       type: "function",
       function: {
         name: "get_upcoming_schedules",
-        description: "Lay lich su kien sap toi theo ngay, ngay mai hoac 7 ngay toi.",
+        description: "Lấy lịch sự kiện sắp tới theo ngày, ngày mai hoặc 7 ngày tới.",
         parameters: {
           type: "object",
           properties: {
             range: {
               type: "string",
               enum: ["today", "tomorrow", "week", "3days"],
-              description: "Khung lich can xem.",
+              description: "Khung lịch cần xem.",
             },
             days: {
               type: "number",
-              description: "So ngay toi can xem neu range = 3days.",
+              description: "Số ngày tới cần xem nếu range = 3days.",
             },
           },
         },
       },
     },
     async execute(context, rawArgs) {
+      return executeCalendarAgenda(context, rawArgs);
+      /* Legacy implementation retained below temporarily for reference.
       if (!canAccess(context.role, "calendar")) {
-        return buildPermissionDeniedResult(context.role, "schedule_summary", "Lich sap toi");
+        return buildPermissionDeniedResult(context.role, "schedule_summary", "Lịch sắp tới");
       }
 
       const range = getScheduleRange(rawArgs);
@@ -590,7 +719,7 @@ const moodieTools: Record<string, MoodieTool> = {
         .order("start_time", { ascending: true })
         .limit(12);
 
-      if (error) throw new Error(`Khong the tai lich: ${error.message}`);
+      if (error) throw new Error(`Không thể tải lịch: ${error.message}`);
 
       const events = (data || []) as EventRow[];
       const contractIds = Array.from(new Set(events.map((event) => event.contract_id).filter(Boolean))) as string[];
@@ -602,7 +731,7 @@ const moodieTools: Record<string, MoodieTool> = {
           .select("id, contract_code, customers(full_name)")
           .in("id", contractIds);
 
-        if (contractError) throw new Error(`Khong the tai hop dong lich: ${contractError.message}`);
+        if (contractError) throw new Error(`Không thể tải hợp đồng liên quan đến lịch: ${contractError.message}`);
 
         for (const contract of contracts || []) {
           const customerRaw = contract.customers;
@@ -622,7 +751,7 @@ const moodieTools: Record<string, MoodieTool> = {
             const contract = event.contract_id ? contractMap.get(event.contract_id) : null;
             return {
               id: event.id,
-              title: event.title || event.event_type || "Su kien",
+              title: event.title || event.event_type || "Sự kiện",
               event_date: event.event_date,
               start_time: event.start_time,
               location: event.location,
@@ -634,15 +763,161 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "schedule_summary",
-          skill_label: "Lich sap toi",
+          skill_label: "Lịch sắp tới",
           sources: buildSources([
-            { label: "Khung thoi gian", value: range.label },
-            { label: "Su kien", value: String(events.length) },
+            { label: "Khung thời gian", value: range.label },
+            { label: "Sự kiện", value: String(events.length) },
           ]),
           follow_ups: [
-            "Ngay mai ekip co lich nao?",
-            "Tim hop dong cua khach Lan",
+            "Ngày mai ê-kíp có lịch nào?",
+            "Tìm hợp đồng của khách Lan",
           ],
+        },
+      };
+      */
+    },
+  },
+  get_contract_delivery_assets: {
+    definition: {
+      type: "function",
+      function: {
+        name: "get_contract_delivery_assets",
+        description: "Summarize synchronized gallery albums, selected images, retouch progress, and delivery date for a contract.",
+        parameters: {
+          type: "object",
+          properties: {
+            contract_id: { type: "string" },
+            contract_code: { type: "string" },
+            customer_query: { type: "string" },
+            requested_action: { type: "string", enum: ["sync_drive_gallery", "refresh_gallery_share"] },
+          },
+        },
+      },
+    },
+    async execute(context, rawArgs) {
+      if (!canAccess(context.role, "contracts")) {
+        return buildPermissionDeniedResult(context.role, "gallery_delivery", "Tiến độ gallery");
+      }
+      const contract = await resolveGalleryToolContract(context, rawArgs);
+      if (!contract) {
+        return {
+          result: { found: false, error: "Không tìm thấy hợp đồng phù hợp." },
+          metadata: { skill_id: "gallery_delivery", skill_label: "Tiến độ gallery" },
+        };
+      }
+      const assets = await loadMoodieDeliveryAssets(context.supabase, contract.id);
+      const contractCode = contract.contract_code || contract.id;
+      return {
+        result: {
+          found: true,
+          contract: { id: contract.id, contract_code: contract.contract_code, customer_name: customerNameForTool(contract) },
+          album_count: assets.galleries.length,
+          selected_count: assets.selectedCount,
+          edited_count: assets.editedCount,
+          progress_percent: assets.progress,
+          delivery_date: assets.deliveryDate,
+          galleries: assets.galleries.map((gallery) => ({
+            id: gallery.id,
+            title: gallery.title,
+            status: gallery.status,
+            folder_type: gallery.folder_type,
+            image_count: gallery.total,
+            selected_count: gallery.selected,
+          })),
+        },
+        metadata: {
+          skill_id: "gallery_delivery",
+          skill_label: "Tiến độ gallery",
+          sources: buildSources([
+            { label: "Hợp đồng", value: contractCode },
+            { label: "Album đã đồng bộ", value: String(assets.galleries.length) },
+            { label: "Tiến độ hậu kỳ", value: `${assets.progress}%` },
+          ]),
+          follow_ups: ["Cho tôi xem ảnh đã chọn của hợp đồng này.", "Mở gallery của hợp đồng này."],
+          parts: buildDeliveryAssetParts({ contractCode, assets }),
+          actions: assets.galleries.length > 0 && (rawArgs.requested_action === "sync_drive_gallery" || rawArgs.requested_action === "refresh_gallery_share")
+            ? [{
+                id: `${rawArgs.requested_action}-${assets.galleries[0].id}`,
+                kind: rawArgs.requested_action,
+                label: rawArgs.requested_action === "sync_drive_gallery" ? "Đồng bộ lại Drive" : "Tạo hoặc làm mới link trả ảnh",
+                target_id: assets.galleries[0].id,
+                conversation_id: context.conversationId,
+                description: rawArgs.requested_action === "sync_drive_gallery"
+                  ? "Đọc lại thư mục Drive và cập nhật danh sách ảnh đã đồng bộ."
+                  : "Tạo hoặc làm mới liên kết gallery dùng để trả ảnh cho khách.",
+                risk: rawArgs.requested_action === "sync_drive_gallery" ? "low" : "medium",
+                requires_approval: true,
+              }]
+            : undefined,
+          visual_schema_version: 1,
+        },
+      };
+    },
+  },
+  list_contract_gallery_images: {
+    definition: {
+      type: "function",
+      function: {
+        name: "list_contract_gallery_images",
+        description: "List safe synchronized gallery thumbnails for a contract without exposing Drive URLs, tokens, passwords, or original files.",
+        parameters: {
+          type: "object",
+          properties: {
+            contract_id: { type: "string" },
+            contract_code: { type: "string" },
+            customer_query: { type: "string" },
+            gallery_id: { type: "string" },
+            selected_only: { type: "boolean" },
+            limit: { type: "number" },
+          },
+        },
+      },
+    },
+    async execute(context, rawArgs) {
+      if (!canAccess(context.role, "contracts")) {
+        return buildPermissionDeniedResult(context.role, "gallery_images", "Ảnh gallery");
+      }
+      const contract = await resolveGalleryToolContract(context, rawArgs);
+      if (!contract) {
+        return {
+          result: { found: false, error: "Không tìm thấy hợp đồng phù hợp." },
+          metadata: { skill_id: "gallery_images", skill_label: "Ảnh gallery" },
+        };
+      }
+      const selectedOnly = rawArgs.selected_only === true;
+      const limit = Math.max(1, Math.min(12, toInteger(rawArgs.limit) || 12));
+      const gallery = await loadMoodieGalleryImages(context.supabase, {
+        contractId: contract.id,
+        galleryId: optionalString(rawArgs.gallery_id),
+        selectedOnly,
+        limit,
+      });
+      const contractCode = contract.contract_code || contract.id;
+      return {
+        result: {
+          found: true,
+          contract: { id: contract.id, contract_code: contract.contract_code, customer_name: customerNameForTool(contract) },
+          total: gallery.total,
+          displayed: gallery.images.length,
+          selected_only: selectedOnly,
+          images: gallery.images.map((image) => ({
+            id: image.id,
+            gallery_id: image.gallery_id,
+            file_name: image.file_name,
+            selected: image.is_selected,
+            starred: image.is_starred,
+          })),
+        },
+        metadata: {
+          skill_id: "gallery_images",
+          skill_label: "Ảnh gallery",
+          sources: buildSources([
+            { label: "Hợp đồng", value: contractCode },
+            { label: "Ảnh phù hợp", value: String(gallery.total) },
+          ]),
+          follow_ups: ["Ảnh đã sửa được bao nhiêu phần trăm?", "Mở gallery của hợp đồng này."],
+          parts: [buildGalleryPart({ contractId: contract.id, contractCode, selectedOnly, result: gallery })],
+          visual_schema_version: 1,
         },
       };
     },
@@ -652,13 +927,13 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_team_summary",
-        description: "Lay tinh hinh nhan su active va so task qua han.",
+        description: "Lấy tình hình nhân sự đang hoạt động và số công việc quá hạn.",
         parameters: { type: "object", properties: {} },
       },
     },
     async execute(context) {
       if (!canAccess(context.role, "employees")) {
-        return buildPermissionDeniedResult(context.role, "team_summary", "Nhan su va tien do");
+        return buildPermissionDeniedResult(context.role, "team_summary", "Nhân sự và tiến độ");
       }
 
       const today = getTodayInTimeZone();
@@ -674,8 +949,8 @@ const moodieTools: Record<string, MoodieTool> = {
           .lt("deadline", today),
       ]);
 
-      if (employeesResult.error) throw new Error(`Khong the tai nhan su: ${employeesResult.error.message}`);
-      if (tasksResult.error) throw new Error(`Khong the tai task nhan su: ${tasksResult.error.message}`);
+      if (employeesResult.error) throw new Error(`Không thể tải nhân sự: ${employeesResult.error.message}`);
+      if (tasksResult.error) throw new Error(`Không thể tải công việc nhân sự: ${tasksResult.error.message}`);
 
       const activeEmployees = employeesResult.data || [];
       const overdueTasks = (tasksResult.data || []).filter(
@@ -691,21 +966,21 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "team_summary",
-          skill_label: "Nhan su va tien do",
+          skill_label: "Nhân sự và tiến độ",
           sources: buildSources([
-            { label: "Nhan su active", value: String(activeEmployees.length) },
-            { label: "Task tre", value: String(overdueTasks.length) },
+            { label: "Nhân sự hoạt động", value: String(activeEmployees.length) },
+            { label: "Công việc trễ", value: String(overdueTasks.length) },
           ]),
           follow_ups: [
-            "Lich hom nay co gi?",
-            "Tai chinh tong quan thang nay",
+            "Lịch hôm nay có gì?",
+            "Tài chính tổng quan tháng này",
           ],
           widgets: [
-            toKpiWidget("Van hanh nhan su", [
-              { label: "Nhan su active", value: String(activeEmployees.length) },
-              { label: "Phong ban", value: String(departments.size) },
+            toKpiWidget("Vận hành nhân sự", [
+              { label: "Nhân sự hoạt động", value: String(activeEmployees.length) },
+              { label: "Phòng ban", value: String(departments.size) },
               {
-                label: "Task qua han",
+                label: "Công việc quá hạn",
                 value: String(overdueTasks.length),
                 tone: overdueTasks.length > 0 ? "warning" : "positive",
               },
@@ -720,13 +995,13 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_services_catalog",
-        description: "Tra cuu bang gia va danh sach dich vu dang active.",
+        description: "Tra cứu bảng giá và danh sách dịch vụ đang hoạt động.",
         parameters: {
           type: "object",
           properties: {
             keyword: {
               type: "string",
-              description: "Ten goi, ma dich vu hoac nhom dich vu.",
+              description: "Tên gói, mã dịch vụ hoặc nhóm dịch vụ.",
             },
           },
         },
@@ -734,7 +1009,7 @@ const moodieTools: Record<string, MoodieTool> = {
     },
     async execute(context, rawArgs) {
       if (!canAccess(context.role, "services")) {
-        return buildPermissionDeniedResult(context.role, "service_catalog", "Dich vu va bang gia");
+        return buildPermissionDeniedResult(context.role, "service_catalog", "Dịch vụ và bảng giá");
       }
 
       const keyword = normalizeText(extractKeyword(rawArgs.keyword));
@@ -746,7 +1021,7 @@ const moodieTools: Record<string, MoodieTool> = {
         .order("updated_at", { ascending: false })
         .limit(32);
 
-      if (error) throw new Error(`Khong the tai dich vu: ${error.message}`);
+      if (error) throw new Error(`Không thể tải dịch vụ: ${error.message}`);
 
       const rows = ((data || []) as ServiceRow[])
         .filter((row) => {
@@ -770,11 +1045,11 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "service_catalog",
-          skill_label: "Dich vu va bang gia",
-          sources: buildSources([{ label: "Dich vu", value: String(rows.length) }]),
+          skill_label: "Dịch vụ và bảng giá",
+          sources: buildSources([{ label: "Dịch vụ", value: String(rows.length) }]),
           follow_ups: [
-            "Gia goi baby la bao nhieu?",
-            "Tai chinh tong quan thang nay",
+            "Giá gói baby là bao nhiêu?",
+            "Tài chính tổng quan tháng này",
           ],
         },
       };
@@ -785,18 +1060,18 @@ const moodieTools: Record<string, MoodieTool> = {
       type: "function",
       function: {
         name: "get_financial_goals",
-        description: "Lay tien do muc tieu tai chinh va kha nang dong gop trong thang.",
+        description: "Lấy tiến độ mục tiêu tài chính và khả năng đóng góp trong tháng.",
         parameters: {
           type: "object",
           properties: {
             status: {
               type: "string",
               enum: ["active", "completed", "cancelled"],
-              description: "Loc theo trang thai muc tieu neu can.",
+              description: "Lọc theo trạng thái mục tiêu nếu cần.",
             },
             limit: {
               type: "number",
-              description: "So muc tieu toi da can tra ve.",
+              description: "Số mục tiêu tối đa cần trả về.",
             },
           },
         },
@@ -804,7 +1079,7 @@ const moodieTools: Record<string, MoodieTool> = {
     },
     async execute(context, rawArgs) {
       if (!canAccess(context.role, "finance")) {
-        return buildPermissionDeniedResult(context.role, "goal_summary", "Muc tieu tai chinh");
+        return buildPermissionDeniedResult(context.role, "goal_summary", "Mục tiêu tài chính");
       }
 
       const limit = Math.max(1, Math.min(6, toInteger(rawArgs.limit) || 4));
@@ -848,36 +1123,36 @@ const moodieTools: Record<string, MoodieTool> = {
         },
         metadata: {
           skill_id: "goal_summary",
-          skill_label: "Muc tieu tai chinh",
+          skill_label: "Mục tiêu tài chính",
           sources: buildSources([
-            { label: "Ky hien tai", value: cashflow.currentPeriod },
-            { label: "Co the danh cho muc tieu", value: formatCurrency(cashflow.availableForGoals) },
-            { label: "Tien do tong", value: formatPercent(overallProgress) },
+            { label: "Kỳ hiện tại", value: cashflow.currentPeriod },
+            { label: "Có thể dành cho mục tiêu", value: formatCurrency(cashflow.availableForGoals) },
+            { label: "Tiến độ tổng", value: formatPercent(overallProgress) },
           ]),
           follow_ups: [
-            "Tai chinh tong quan thang nay ra sao?",
-            "Cong no hien tai the nao?",
+            "Tài chính tổng quan tháng này ra sao?",
+            "Công nợ hiện tại thế nào?",
           ],
           widgets: [
-            toKpiWidget("Dong tien cho muc tieu", [
-              { label: "Ky hien tai", value: cashflow.currentPeriod },
-              { label: "Net cashflow", value: formatCurrency(cashflow.netCashflow), tone: cashflow.netCashflow >= 0 ? "positive" : "danger" },
-              { label: "Co the danh cho muc tieu", value: formatCurrency(cashflow.availableForGoals), tone: "positive" },
-              { label: "Tien do tong", value: formatPercent(overallProgress) },
+            toKpiWidget("Dòng tiền cho mục tiêu", [
+              { label: "Kỳ hiện tại", value: cashflow.currentPeriod },
+              { label: "Dòng tiền ròng", value: formatCurrency(cashflow.netCashflow), tone: cashflow.netCashflow >= 0 ? "positive" : "danger" },
+              { label: "Có thể dành cho mục tiêu", value: formatCurrency(cashflow.availableForGoals), tone: "positive" },
+              { label: "Tiến độ tổng", value: formatPercent(overallProgress) },
             ]),
             ...(goals.length > 0
               ? [
                   toProgressWidget(
-                    "Tien do muc tieu",
+              "Tiến độ mục tiêu",
                     goals.map((goal) => ({
                       label: goal.name,
                       current: goal.current_amount,
                       target: goal.target_amount,
                       unit: "VND",
                       hint: goal.monthly_needed
-                        ? `Can them ${formatCurrency(goal.monthly_needed)}/thang`
+                        ? `Cần thêm ${formatCurrency(goal.monthly_needed)}/tháng`
                         : goal.deadline
-                          ? `Deadline ${formatDate(goal.deadline)}`
+                          ? `Hạn chót ${formatDate(goal.deadline)}`
                           : undefined,
                       tone:
                         goal.progress_percent >= 100
@@ -896,8 +1171,18 @@ const moodieTools: Record<string, MoodieTool> = {
   },
 };
 
-export function getMoodieToolDefinitions() {
-  return Object.values(moodieTools).map((tool) => tool.definition);
+export function getMoodieToolDefinitions(options?: { allowedToolNames?: string[]; role?: Role }) {
+  const allowedToolNames = options?.allowedToolNames ? new Set(options.allowedToolNames) : null;
+  const canExpose = (name: string) => {
+    if (allowedToolNames && !allowedToolNames.has(name)) return false;
+    return options?.role ? canExposeMoodieTool(name, options.role) : true;
+  };
+
+  const businessTools = Object.values(moodieTools)
+    .map((tool) => tool.definition)
+    .filter((definition) => canExpose(definition.function.name));
+
+  return businessTools;
 }
 
 export async function executeMoodieTool(
@@ -907,7 +1192,7 @@ export async function executeMoodieTool(
 ) {
   const tool = moodieTools[name];
   if (!tool) {
-    throw new Error(`Unknown Moodie tool: ${name}`);
+    throw new Error(`Không nhận diện được công cụ Moodie: ${name}`);
   }
 
   return tool.execute(context, rawArgs);

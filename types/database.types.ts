@@ -85,6 +85,9 @@ export type Database = {
           last_message_preview: string | null
           locked_by: string | null
           locked_until: string | null
+          message_count: number
+          summary: string | null
+          summary_updated_at: string | null
           title: string
           updated_at: string
           user_id: string
@@ -96,6 +99,9 @@ export type Database = {
           last_message_preview?: string | null
           locked_by?: string | null
           locked_until?: string | null
+          message_count?: number
+          summary?: string | null
+          summary_updated_at?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -107,6 +113,9 @@ export type Database = {
           last_message_preview?: string | null
           locked_by?: string | null
           locked_until?: string | null
+          message_count?: number
+          summary?: string | null
+          summary_updated_at?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -149,6 +158,70 @@ export type Database = {
           },
         ]
       }
+      moodie_memories: {
+        Row: {
+          confidence: number
+          content: string
+          conversation_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_confirmed_at: string | null
+          memory_type: string
+          scope: string
+          source_message_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          confidence?: number
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_confirmed_at?: string | null
+          memory_type: string
+          scope: string
+          source_message_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          confidence?: number
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_confirmed_at?: string | null
+          memory_type?: string
+          scope?: string
+          source_message_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_memories_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memories_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+
       attendance: {
         Row: {
           attendance_code: string | null

@@ -30,6 +30,8 @@
     "release:minor": "node scripts/release.mjs --minor",
     "release:major": "node scripts/release.mjs --major",
     "changelog:generate": "node scripts/release.mjs --no-bump",
+    "moodie:map": "node scripts/build-code-index.mjs",
+    "moodie:map:status": "node scripts/build-code-index.mjs --status",
     "perf:chunks": "node scripts/perf-chunks.mjs",
     "perf:audit": "node scripts/perf-audit.mjs",
     "perf:operational": "node scripts/perf-operational-probe.mjs",

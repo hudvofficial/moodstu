@@ -477,7 +477,7 @@ async function respondScheduleSummary(
         skill_id: "schedule_summary",
         skill_label: "Lịch sắp tới",
         sources: [{ label: "Khung thời gian", value: range.label }],
-        follow_ups: ["Ngày mai ekip có lịch nào?", "Nhân sự đang hoạt động thế nào?"],
+        follow_ups: ["Ngày mai ê-kíp có lịch nào?", "Nhân sự đang hoạt động thế nào?"],
       },
     };
   }
@@ -498,7 +498,7 @@ async function respondScheduleSummary(
         { label: "Khung thời gian", value: range.label },
         { label: "Sự kiện", value: String(events.length) },
       ],
-      follow_ups: ["Ngày mai ekip có lịch nào?", "Tìm hợp đồng của khách Lan"],
+      follow_ups: ["Ngày mai ê-kíp có lịch nào?", "Tìm hợp đồng của khách Lan"],
     },
   };
 }

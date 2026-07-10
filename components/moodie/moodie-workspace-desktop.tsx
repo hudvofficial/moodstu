@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, Plus } from "lucide-react";
+import dynamic from "next/dynamic";
+import { History, Plus } from "lucide-react";
 import { MoodieComposer } from "@/components/moodie/moodie-composer";
 import { MoodieConversationList } from "@/components/moodie/moodie-conversation-list";
 import { MoodieThread } from "@/components/moodie/moodie-thread";
 import { Button } from "@/components/ui/button";
 import type { MoodieWorkspaceSharedProps } from "@/components/moodie/moodie-workspace-types";
+
+const MoodieMemoryPanel = dynamic(
+  () => import("@/components/moodie/moodie-memory-panel").then((module) => module.MoodieMemoryPanel),
+  { ssr: false },
+);
 
 function isConversationLocked(lockedUntil: string | null | undefined) {
   return Boolean(lockedUntil && new Date(lockedUntil).getTime() > Date.now());
@@ -21,6 +27,7 @@ export function MoodieWorkspaceDesktop({
   editingTitle,
   pendingPrompt,
   isSending,
+  streamStatus,
   capabilities,
   suggestions,
   onSelectConversation,
@@ -39,24 +46,30 @@ export function MoodieWorkspaceDesktop({
 
   return (
     <section className="hidden h-full entrance entrance-1 lg:flex lg:min-h-0 lg:flex-1">
-      <div className="flex h-full min-h-0 flex-1 overflow-hidden border border-border/70 bg-bg-base shadow-sm">
+      <div className="flex h-full min-h-0 flex-1 overflow-hidden border border-border/60 bg-white">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-white/90 px-5 py-3 backdrop-blur-sm">
+          <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border/60 bg-white px-3">
             <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-11 w-11 rounded-xl px-0 text-text-secondary"
+                className={`h-8 w-8 rounded-lg border px-0 shadow-xs transition-colors ${
+                  sidebarVisible
+                    ? "border-primary/25 bg-primary/10 text-primary hover:bg-primary/15"
+                    : "border-border bg-white text-text-secondary hover:border-primary/25 hover:bg-primary/5 hover:text-primary"
+                }`}
                 onClick={() => setSidebarVisible((currentValue) => !currentValue)}
-                aria-label="Bật tắt lịch sử chat"
+                aria-label={sidebarVisible ? "Thu gọn lịch sử chat" : "Mở lịch sử chat"}
+                aria-pressed={sidebarVisible}
+                title={sidebarVisible ? "Thu gọn lịch sử chat" : "Mở lịch sử chat"}
               >
-                <Menu className="h-5 w-5" />
+                <History className="h-4 w-4" strokeWidth={2} />
               </Button>
 
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-success" />
-                <span className="text-overline text-text-secondary">Moodie Online</span>
+                <span className="h-2 w-2 rounded-full bg-success ring-2 ring-success/15" />
+                <span className="text-xs font-semibold text-text-secondary">Moodie</span>
               </div>
             </div>
 
@@ -81,6 +94,7 @@ export function MoodieWorkspaceDesktop({
             suggestions={suggestions}
             pendingPrompt={pendingPrompt}
             loading={isSending}
+            statusLabel={streamStatus}
             onQuickPrompt={onQuickPrompt}
           />
 
@@ -89,28 +103,19 @@ export function MoodieWorkspaceDesktop({
             loading={isSending}
             hasMessages={hasMessages}
             capabilities={capabilities}
+            suggestionChips={suggestions}
+            onSuggestionClick={onQuickPrompt}
             onSend={onSendMessage}
           />
         </div>
 
         {sidebarVisible ? (
-          <aside className="flex min-h-0 w-72 shrink-0 flex-col border-l border-border/70 bg-white">
-            <div className="shrink-0 border-b border-border/70 px-4 py-4">
-              <p className="text-overline text-text-secondary">Lịch sử chat</p>
+          <aside className="flex min-h-0 w-64 shrink-0 flex-col border-l border-border/60 bg-white">
+            <div className="shrink-0 px-3 pb-1 pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">Lịch sử chat</p>
             </div>
 
-            <div className="shrink-0 px-3 py-3">
-              <Button
-                type="button"
-                className="w-full justify-center gap-2 rounded-2xl"
-                onClick={onNewConversation}
-              >
-                <Plus className="h-4 w-4" />
-                <span>Cuộc hội thoại mới</span>
-              </Button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-2">
               <MoodieConversationList
                 conversations={conversations}
                 activeId={activeConversationId}
@@ -125,6 +130,7 @@ export function MoodieWorkspaceDesktop({
                 onDelete={onDeleteConversation}
               />
             </div>
+            <MoodieMemoryPanel />
           </aside>
         ) : null}
       </div>

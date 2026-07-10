@@ -16,6 +16,7 @@ interface MoodieThreadProps {
   suggestions: string[];
   pendingPrompt: string | null;
   loading?: boolean;
+  statusLabel?: string | null;
   onQuickPrompt: (prompt: string) => void;
 }
 
@@ -25,6 +26,7 @@ export function MoodieThread({
   suggestions,
   pendingPrompt,
   loading,
+  statusLabel,
   onQuickPrompt,
 }: MoodieThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,12 +50,11 @@ export function MoodieThread({
     ...(conversation?.messages || []),
     ...(pendingMessage ? [pendingMessage] : []),
   ];
-
   if (!conversation && !pendingMessage) {
     return (
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 scroll-smooth overflow-x-hidden overflow-y-auto bg-linear-to-b from-white via-bg-base/70 to-bg-base px-4 py-6 lg:px-8"
+        className="min-h-0 flex-1 scroll-smooth overflow-x-hidden overflow-y-auto bg-white px-4 py-5 lg:px-6"
       >
         <MoodieEmptyState
           capabilities={capabilities}
@@ -67,7 +68,7 @@ export function MoodieThread({
   return (
     <div
       ref={scrollRef}
-      className="min-h-0 flex-1 scroll-smooth overflow-x-hidden overflow-y-auto bg-linear-to-b from-white via-bg-base/70 to-bg-base px-4 py-6 space-y-4 sm:space-y-5 lg:px-8"
+      className="min-h-0 flex-1 space-y-2.5 scroll-smooth overflow-x-hidden overflow-y-auto bg-white px-4 py-4 lg:px-6"
     >
       {messages.map((message) => (
         <MoodieMessageBubble
@@ -78,7 +79,7 @@ export function MoodieThread({
         />
       ))}
 
-      {loading ? <MoodieThinkingState /> : null}
+      {loading ? <MoodieThinkingState statusLabel={statusLabel} /> : null}
     </div>
   );
 }

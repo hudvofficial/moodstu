@@ -1,5 +1,9 @@
-import { Bot, User2 } from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
+import { MoodieDebugPanel } from "@/components/moodie/moodie-debug-panel";
+import { MoodieActionPreviews } from "@/components/moodie/moodie-action-previews";
 import { MoodieWidgetRenderer } from "@/components/moodie/moodie-widget-renderer";
+import { MoodieMessageParts } from "@/components/moodie/moodie-message-parts";
+import { normalizeMoodieDisplayText } from "@/lib/moodie/ux-helpers";
 import { Button } from "@/components/ui/button";
 import type { MoodieMessage } from "@/types/moodie";
 
@@ -16,6 +20,7 @@ type ParsedListItem = {
 };
 
 type ParsedMessageBlock =
+  | { type: "heading"; text: string }
   | { type: "paragraph"; text: string }
   | { type: "list"; ordered: boolean; items: ParsedListItem[] };
 
@@ -29,6 +34,13 @@ function parseMessageBlocks(content: string): ParsedMessageBlock[] {
     const trimmedLine = rawLine.trim();
 
     if (!trimmedLine) {
+      index += 1;
+      continue;
+    }
+
+    const headingMatch = trimmedLine.match(/^\*\*(.+?)(?:\*\*)?$/);
+    if (headingMatch) {
+      blocks.push({ type: "heading", text: headingMatch[1].trim() });
       index += 1;
       continue;
     }
@@ -87,6 +99,18 @@ function parseMessageBlocks(content: string): ParsedMessageBlock[] {
   return blocks;
 }
 
+function renderInlineMarkdown(text: string) {
+  return text.split(/(\*\*[^*]+\*\*|\x60[^\x60]+\x60)/g).filter(Boolean).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} className="font-semibold text-text-primary">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("\x60") && part.endsWith("\x60")) {
+      return <code key={index} className="rounded bg-bg-subtle px-1 py-0.5 font-mono text-sm text-primary">{part.slice(1, -1)}</code>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 function renderAssistantContent(content: string) {
   const blocks = parseMessageBlocks(content);
 
@@ -95,15 +119,19 @@ function renderAssistantContent(content: string) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {blocks.map((block, blockIndex) => {
+        if (block.type === "heading") {
+          return <h3 key={"heading-" + blockIndex} className="pt-1 text-sm font-semibold text-text-primary">{block.text}</h3>;
+        }
+
         if (block.type === "paragraph") {
           return (
             <p
               key={`paragraph-${blockIndex}`}
-              className="break-words text-body leading-7 text-text-primary"
+              className="break-words text-sm leading-6 text-text-primary"
             >
-              {block.text}
+              {renderInlineMarkdown(block.text)}
             </p>
           );
         }
@@ -114,7 +142,7 @@ function renderAssistantContent(content: string) {
               {block.items.map((item, itemIndex) => (
                 <div
                   key={`metric-${itemIndex}`}
-                  className={`rounded-xl border border-border/70 bg-bg-hover/70 px-3 py-2 ${
+                  className={`rounded-lg bg-bg-subtle px-3 py-2 ${
                     block.items.length % 2 === 1 && itemIndex === block.items.length - 1
                       ? "sm:col-span-2"
                       : ""
@@ -123,7 +151,7 @@ function renderAssistantContent(content: string) {
                   <p className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
                     {item.label}
                   </p>
-                  <p className="mt-1 break-words text-body font-semibold text-text-primary">
+                  <p className="mt-0.5 break-words text-sm font-semibold text-text-primary">
                     {item.value}
                   </p>
                 </div>
@@ -137,13 +165,13 @@ function renderAssistantContent(content: string) {
         return (
           <ListTag
             key={`list-${blockIndex}`}
-            className={`space-y-2 pl-5 text-body leading-7 text-text-primary ${
+            className={`space-y-1.5 pl-5 text-sm leading-6 text-text-primary ${
               block.ordered ? "list-decimal" : "list-disc"
             }`}
           >
             {block.items.map((item, itemIndex) => (
               <li key={`item-${itemIndex}`} className="pl-1 break-words marker:text-primary">
-                {item.text}
+                {renderInlineMarkdown(item.text)}
               </li>
             ))}
           </ListTag>
@@ -165,26 +193,24 @@ export function MoodieMessageBubble({
       className={`flex w-full ${isAssistant ? "justify-start" : "justify-end"} animate-fade-in-up`}
     >
       <div
-        className={`flex min-w-0 gap-3 ${
+        className={`flex min-w-0 gap-2.5 ${
           isAssistant
-            ? "w-full max-w-4xl flex-row"
-            : "max-w-[85%] flex-row-reverse lg:max-w-[75%]"
+            ? "w-full max-w-[760px] flex-row"
+            : "max-w-[82%] flex-row-reverse lg:max-w-[58%]"
         }`}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-text-inverse shadow-sm sm:h-10 sm:w-10 sm:rounded-2xl">
-          {isAssistant ? (
-            <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
-          ) : (
-            <User2 className="h-4 w-4 sm:h-5 sm:w-5" />
-          )}
-        </div>
+        {isAssistant ? (
+          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Bot className="h-3.5 w-3.5" />
+          </div>
+        ) : null}
 
-        <div className={`min-w-0 max-w-full space-y-3 ${isAssistant ? "flex-1" : ""}`}>
+        <div className={`min-w-0 max-w-full space-y-2 ${isAssistant ? "w-full" : ""}`}>
           <div
-            className={`max-w-full rounded-2xl px-4 py-3 text-left text-body leading-7 sm:px-5 sm:py-4 ${
+            className={`max-w-full text-left text-sm leading-6 ${
               isAssistant
-                ? "w-full border border-border bg-white text-text-primary shadow-xs rounded-tl-sm"
-                : "bg-primary text-text-inverse shadow-sm rounded-tr-sm"
+                ? "w-full py-1 text-text-primary"
+                : "rounded-2xl rounded-tr-sm border border-primary/10 bg-primary/[0.08] px-3.5 py-2 text-text-primary"
             }`}
           >
             {isAssistant ? (
@@ -196,7 +222,7 @@ export function MoodieMessageBubble({
             {pending ? (
               <p
                 className={`mt-2 text-caption ${
-                  isAssistant ? "text-text-muted" : "text-white/80"
+                  isAssistant ? "text-text-muted" : "text-primary/70"
                 }`}
               >
                 Đang gửi...
@@ -204,10 +230,20 @@ export function MoodieMessageBubble({
             ) : null}
           </div>
 
-          {isAssistant &&
+          {isAssistant && message.metadata?.parts && message.metadata.parts.length > 0 ? (
+            <MoodieMessageParts parts={message.metadata.parts} />
+          ) : isAssistant &&
           message.metadata?.widgets &&
           message.metadata.widgets.length > 0 ? (
             <MoodieWidgetRenderer widgets={message.metadata.widgets} />
+          ) : null}
+
+          {isAssistant && message.metadata?.actions && message.metadata.actions.length > 0 ? (
+            <MoodieActionPreviews actions={message.metadata.actions} />
+          ) : null}
+
+          {isAssistant && message.metadata?.trace ? (
+            <MoodieDebugPanel trace={message.metadata.trace} />
           ) : null}
 
           {isAssistant &&
@@ -219,7 +255,7 @@ export function MoodieMessageBubble({
                   key={`${source.label}-${source.value || ""}`}
                   className="max-w-full break-words rounded-full bg-bg-hover px-3 py-1 text-caption text-text-secondary"
                 >
-                  <strong className="text-text-main">{source.label}</strong>
+                  <strong className="text-text-main">{normalizeMoodieDisplayText(source.label)}</strong>
                   {source.value ? `: ${source.value}` : ""}
                 </span>
               ))}
@@ -231,17 +267,20 @@ export function MoodieMessageBubble({
           message.metadata.follow_ups.length > 0 &&
           onQuickPrompt ? (
             <div className="flex flex-wrap gap-2 pl-1">
-              {message.metadata.follow_ups.map((prompt) => (
-                <Button
-                  key={prompt}
-                  type="button"
-                  onClick={() => onQuickPrompt(prompt)}
-                  unstyled
-                  className="max-w-full rounded-xl border border-border px-3 py-1.5 text-left text-caption font-medium whitespace-normal text-text-secondary transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                >
-                  {prompt}
-                </Button>
-              ))}
+              {message.metadata.follow_ups.map((prompt) => {
+                const displayPrompt = normalizeMoodieDisplayText(prompt);
+                return (
+                  <Button
+                    key={prompt}
+                    type="button"
+                    onClick={() => onQuickPrompt(displayPrompt)}
+                    unstyled
+                    className="max-w-full rounded-xl border border-border px-3 py-1.5 text-left text-caption font-medium whitespace-normal text-text-secondary transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                  >
+                    {displayPrompt}
+                  </Button>
+                );
+              })}
             </div>
           ) : null}
         </div>

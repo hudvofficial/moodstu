@@ -13,6 +13,9 @@ import {
   mapMoodieConversationSummary,
 } from "@/lib/moodie/records";
 import { runMoodieEngine } from "@/lib/moodie/engine";
+import { buildMoodieConversationSummary } from "@/lib/moodie/conversation-summary";
+import { extractMoodieMemoryCandidate } from "@/lib/moodie/memory-extractor";
+import { createPendingMoodieMemory } from "@/lib/moodie/memory-store";
 import {
   moodieDeleteConversationSchema,
   moodieMessageSchema,
@@ -32,6 +35,8 @@ type ConversationRow = {
   updated_at: string | null;
   locked_until: string | null;
   locked_by: string | null;
+  summary: string | null;
+  summary_updated_at: string | null;
   version: number | null;
 };
 
@@ -105,7 +110,7 @@ async function createLockedConversation(
       locked_by: userId,
       updated_at: now,
     })
-    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version")
+    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, summary, summary_updated_at, version")
     .single();
 
   const setupError = asMoodieSetupError(error);
@@ -132,7 +137,7 @@ async function lockExistingConversation(
 ) {
   const { data: current, error: currentError } = await supabase
     .from("ai_conversations")
-    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version")
+    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, summary, summary_updated_at, version")
     .eq("id", conversationId)
     .eq("user_id", userId)
     .single();
@@ -180,12 +185,14 @@ async function unlockConversation(
   supabase: AdminClient,
   conversationId: string,
   userId: string,
-  payload: Partial<Pick<ConversationRow, "title" | "last_message_preview" | "version">>,
+  payload: Partial<Pick<ConversationRow, "title" | "last_message_preview" | "summary" | "summary_updated_at" | "version">>,
 ) {
   const updatePayload = {
     title: payload.title ?? undefined,
     last_message_preview: payload.last_message_preview ?? undefined,
     version: payload.version ?? undefined,
+    summary: payload.summary ?? undefined,
+    summary_updated_at: payload.summary_updated_at ?? undefined,
     locked_until: null,
     locked_by: null,
     updated_at: new Date().toISOString(),
@@ -241,11 +248,11 @@ export async function sendMoodieMessage(rawInput: unknown) {
         ? await lockExistingConversation(supabase, userId, parsed.data.conversation_id)
         : await createLockedConversation(supabase, userId, prompt);
 
-      const { error: userMessageError } = await supabase.from("ai_messages").insert({
+      const { data: userMessage, error: userMessageError } = await supabase.from("ai_messages").insert({
         conversation_id: conversation.id,
         role: "user",
         content: prompt,
-      });
+      }).select("id").single();
 
       const userSetupError = asMoodieSetupError(userMessageError);
       if (userSetupError) throw userSetupError;
@@ -258,6 +265,9 @@ export async function sendMoodieMessage(rawInput: unknown) {
         role,
         prompt,
         history,
+        userId,
+        conversationId: conversation.id,
+        conversationSummary: conversation.summary,
       });
 
       const { error: assistantMessageError } = await supabase.from("ai_messages").insert({
@@ -271,10 +281,23 @@ export async function sendMoodieMessage(rawInput: unknown) {
       if (assistantSetupError) throw assistantSetupError;
       if (assistantMessageError) throw new Error(`Không thể lưu phản hồi: ${assistantMessageError.message}`);
 
+      const nextSummary = buildMoodieConversationSummary([
+        ...history,
+        { role: "assistant", content: result.content },
+      ], conversation.summary);
+      const memoryCandidate = userMessage
+        ? extractMoodieMemoryCandidate({ prompt, conversationId: conversation.id, sourceMessageId: userMessage.id })
+        : null;
+      const memoryProposed = memoryCandidate
+        ? await createPendingMoodieMemory({ supabase, userId, candidate: memoryCandidate })
+        : false;
+
       await unlockConversation(supabase, conversation.id, userId, {
         title: conversation.title || deriveConversationTitleFromPrompt(prompt),
         last_message_preview: excerptText(result.content),
         version: (conversation.version || 1) + 1,
+        summary: nextSummary,
+        summary_updated_at: new Date().toISOString(),
       });
 
       fireAuditLog({
@@ -285,6 +308,11 @@ export async function sendMoodieMessage(rawInput: unknown) {
         newData: {
           provider: result.metadata.provider,
           skill_id: result.metadata.skill_id,
+          route_intent: result.metadata.route_intent,
+          route_reason: result.metadata.route_reason,
+          retrieval_used: result.metadata.retrieval_used,
+          execution_plan: result.metadata.execution_plan,
+          trace: result.metadata.trace || null,
         },
         source: "server_action",
       });
@@ -292,6 +320,7 @@ export async function sendMoodieMessage(rawInput: unknown) {
       revalidatePath("/moodie");
       return {
         conversation: await fetchConversationDetail(supabase, userId, conversation.id),
+        memoryProposed,
       };
     } catch (error) {
       if (conversation) {
@@ -335,7 +364,7 @@ export async function renameMoodieConversation(rawInput: unknown) {
     const setupError = asMoodieSetupError(error);
     if (setupError) throw setupError;
     if (error || !data) {
-      throw new Error("Tiêu đề vừa bị thay đổi ở nơi khác. Vui lòng tải lại rồi thử lại.");
+      throw new Error("Tiêu đề vừa được thay đổi ở nơi khác. Vui lòng tải lại rồi thử lại.");
     }
 
     const { data: messageRefs, error: messageCountError } = await supabase
@@ -384,7 +413,7 @@ export async function deleteMoodieConversation(rawInput: unknown) {
     const setupError = asMoodieSetupError(error);
     if (setupError) throw setupError;
     if (error || !data) {
-      throw new Error("Cuộc trò chuyện đã thay đổi hoặc đã bị xóa. Vui lòng tải lại danh sách.");
+      throw new Error("Không thể xóa hội thoại này. Vui lòng tải lại danh sách rồi thử lại.");
     }
 
     fireAuditLog({

@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth_utils";
 import { fetchMoodieGeminiModelOptions } from "@/lib/moodie/gemini-models";
 import { MOODIE_GEMINI_MODEL_OPTIONS } from "@/lib/moodie/model-options";
+import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
   getMoodieGeminiSettingsSnapshot,
@@ -93,14 +94,16 @@ async function getOrCreateNotificationPreferences(
 
 export async function getStudioInfoAdmin() {
   return withAdmin(async (adminClient) => {
-    const [studioInfo, moodieAiSettings] = await Promise.all([
+    const [studioInfo, moodieAiSettings, moodieProviderSettings] = await Promise.all([
       getOrCreateStudioInfo(adminClient),
       getMoodieGeminiSettingsSnapshot(adminClient),
+      getMoodieProviderSnapshot(),
     ]);
 
     return {
       studioInfo: sanitizeStudioInfoForClient(studioInfo as StudioInfo),
       moodieAiSettings,
+      moodieProviderSettings,
     } satisfies StudioSettingsAdminData;
   });
 }

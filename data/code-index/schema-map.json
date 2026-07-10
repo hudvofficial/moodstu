@@ -1,0 +1,2599 @@
+{
+  "builtAt": "2026-07-09T12:18:11.414Z",
+  "tables": [
+    {
+      "name": "ai_conversations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'Cuộc trò chuyện mới'"
+        },
+        {
+          "name": "last_message_preview",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "locked_until",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "locked_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "version",
+          "type": "INT",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_ai_conversations_user_updated",
+        "idx_ai_conversations_locked_until"
+      ],
+      "definedIn": "20260418160000_create_moodie_tables.sql"
+    },
+    {
+      "name": "ai_messages",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "conversation_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "content",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "metadata",
+          "type": "JSONB",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_ai_messages_conversation_created"
+      ],
+      "definedIn": "20260418160000_create_moodie_tables.sql"
+    },
+    {
+      "name": "approval_requests",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "module",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "action_type",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "target_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "payload",
+          "type": "JSONB",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "requested_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "reviewed_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "review_notes",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now() NOT NULL"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now() NOT NULL"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_approval_requests_status",
+        "idx_approval_requests_module"
+      ],
+      "definedIn": "20260528115016_hybrid_approval_workflow.sql"
+    },
+    {
+      "name": "event_templates",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "event_name",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "default_days_offset",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "sort_order",
+          "type": "INTEGER",
+          "nullable": true,
+          "default": "0"
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": true,
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "uq_event_templates_service_sort",
+        "idx_event_templates_service_active"
+      ],
+      "definedIn": "20260422160000_contracts_business_logic_backfill.sql"
+    },
+    {
+      "name": "finance_close_tasks",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "close_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "step_number",
+          "type": "INT",
+          "nullable": false
+        },
+        {
+          "name": "step_name",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'chua_bat_dau'"
+        },
+        {
+          "name": "assignee_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "started_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "completed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_close_tasks_close_id"
+      ],
+      "definedIn": "20260411160000_finance_close_tables.sql"
+    },
+    {
+      "name": "finance_monthly_closes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "period",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'draft'"
+        },
+        {
+          "name": "snapshot_metrics",
+          "type": "JSONB",
+          "nullable": true,
+          "default": "'{}'"
+        },
+        {
+          "name": "locked_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "locked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [],
+      "definedIn": "20260411160000_finance_close_tables.sql"
+    },
+    {
+      "name": "gallery_filter_jobs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "gallery_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "batch_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "job_type",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'queued'"
+        },
+        {
+          "name": "total_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "processed_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "success_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "failed_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "target_url",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "manifest_url",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "error",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_gallery_filter_jobs_gallery_status",
+        "idx_gallery_filter_jobs_folder_id",
+        "idx_gallery_filter_jobs_gallery_id"
+      ],
+      "definedIn": "20260519090000_gallery_v2_data_contract_permissions.sql"
+    },
+    {
+      "name": "gallery_selection_batch_items",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "batch_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "image_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "file_name",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "drive_file_id",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "sort_order",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "client_note",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_gallery_selection_batch_items_batch"
+      ],
+      "definedIn": "20260519090000_gallery_v2_data_contract_permissions.sql"
+    },
+    {
+      "name": "gallery_selection_batches",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "gallery_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "contract_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'draft'"
+        },
+        {
+          "name": "selected_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "created_by_client",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "locked_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "locked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_gallery_selection_batches_gallery_status"
+      ],
+      "definedIn": "20260519090000_gallery_v2_data_contract_permissions.sql"
+    },
+    {
+      "name": "gallery_share_links",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "gallery_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "slug",
+          "type": "TEXT NOT NULL UNIQUE",
+          "nullable": true
+        },
+        {
+          "name": "capability",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'active'"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "access_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_gallery_share_links_gallery_capability",
+        "idx_gallery_share_links_active_slug"
+      ],
+      "definedIn": "20260519090000_gallery_v2_data_contract_permissions.sql"
+    },
+    {
+      "name": "inventory_reservations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "item_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "order_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "reserved_quantity",
+          "type": "DECIMAL(10,2)",
+          "nullable": false
+        },
+        {
+          "name": "reserved_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": true,
+          "default": "'active'"
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_inventory_reservations_item",
+        "idx_inventory_reservations_order",
+        "idx_inventory_reservations_status",
+        "idx_inventory_reservations_expires"
+      ],
+      "definedIn": "20260524000000_printing_workflow_phase1.sql"
+    },
+    {
+      "name": "lab_payment_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "payment_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "printing_order_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "NUMERIC",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_lab_payment_allocations_order",
+        "idx_lab_payment_allocations_payment"
+      ],
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "order_payments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "order_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "payment_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "receipt_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "payment_type",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(12,2)",
+          "nullable": false
+        },
+        {
+          "name": "payment_date",
+          "type": "DATE",
+          "nullable": false
+        },
+        {
+          "name": "payment_method",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_by",
+          "type": "UUID",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_order_payments_order",
+        "idx_order_payments_payment",
+        "idx_order_payments_receipt",
+        "idx_order_payments_date",
+        "idx_order_payments_type"
+      ],
+      "definedIn": "20260524000000_printing_workflow_phase1.sql"
+    },
+    {
+      "name": "payment_plan_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "contract_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "payment_plan_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "payment_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "NUMERIC",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_payment_plan_allocations_plan",
+        "idx_payment_plan_allocations_payment",
+        "idx_payment_plan_allocations_contract",
+        "idx_payment_plan_allocations_plan_id"
+      ],
+      "definedIn": "20260504103000_payment_plan_ssot_allocations.sql"
+    },
+    {
+      "name": "printing_order_status_history",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "order_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "from_status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "to_status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "changed_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "changed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "nullable": false,
+          "default": "'manual'"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_posh_order_id",
+        "idx_posh_changed_at"
+      ],
+      "definedIn": "20260611230000_printing_phase3_issue_history.sql"
+    },
+    {
+      "name": "push_subscriptions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "employee_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "endpoint",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "p256dh",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "auth",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "user_agent",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_push_subscriptions_employee_id"
+      ],
+      "definedIn": "20260522030000_create_push_subscriptions.sql"
+    },
+    {
+      "name": "realtime_signals",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullable": true
+        },
+        {
+          "name": "table_name",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "op",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "changed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "policies": [],
+      "indexes": [],
+      "definedIn": "20260610130000_realtime_signals.sql"
+    },
+    {
+      "name": "system_settings",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "key",
+          "type": "TEXT NOT NULL UNIQUE",
+          "nullable": true
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        }
+      ],
+      "policies": [],
+      "indexes": [],
+      "definedIn": "20260420103000_create_system_settings.sql"
+    },
+    {
+      "name": "vendor_payment_allocations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "payment_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "work_task_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "NUMERIC",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_vendor_payment_allocations_task",
+        "idx_vendor_payment_allocations_payment",
+        "idx_vendor_payment_allocations_work_task"
+      ],
+      "definedIn": "20260527000000_vendor_payments.sql"
+    },
+    {
+      "name": "vendor_payments",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "vendor_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "amount",
+          "type": "NUMERIC",
+          "nullable": false
+        },
+        {
+          "name": "payment_method",
+          "type": "TEXT",
+          "nullable": true,
+          "default": "'chuyen_khoan'"
+        },
+        {
+          "name": "payment_date",
+          "type": "DATE",
+          "nullable": false,
+          "default": "CURRENT_DATE"
+        },
+        {
+          "name": "note",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "default": "NOW()"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "idx_vendor_payments_vendor",
+        "idx_vendor_payments_payment_date",
+        "idx_vendor_payments_created_by",
+        "idx_vendor_payments_vendor_date"
+      ],
+      "definedIn": "20260527000000_vendor_payments.sql"
+    },
+    {
+      "name": "vendors",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": true,
+          "default": "extensions.uuid_generate_v4()"
+        },
+        {
+          "name": "full_name",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "phone",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "service_type",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": true,
+          "default": "'active'"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "nullable": true,
+          "default": "NOW()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "nullable": true,
+          "default": "NOW()"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "nullable": true
+        }
+      ],
+      "policies": [],
+      "indexes": [
+        "vendors_active_normalized_phone_uidx",
+        "vendors_active_name_idx"
+      ],
+      "definedIn": "20260526000000_vendor_management.sql"
+    }
+  ],
+  "rpcs": [
+    {
+      "name": "add_fulfillment_transaction_atomic",
+      "params": [
+        "p_parent_txn_id uuid",
+        "p_new_item_id uuid",
+        "p_quantity integer",
+        "p_sale_unit_price numeric",
+        "p_payment_method public.payment_method_enum",
+        "p_payment_date date"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260523000001_add_fulfillment_atomic.sql"
+    },
+    {
+      "name": "advance_close_task",
+      "params": [
+        "p_close_id UUID",
+        "p_step_number INT",
+        "p_new_status TEXT",
+        "p_actor_id UUID"
+      ],
+      "returns": "V",
+      "language": "sql",
+      "definedIn": "20260411160002_finance_close_rpcs.sql"
+    },
+    {
+      "name": "append_care_log",
+      "params": [
+        "p_lead_id uuid",
+        "p_content text",
+        "'Ghi chu'"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260427030000_crm_rpc_hardening.sql"
+    },
+    {
+      "name": "backfill_payment_plan_ssot_v2",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260504103000_payment_plan_ssot_allocations.sql"
+    },
+    {
+      "name": "calendar_month_events",
+      "params": [
+        "p_month int",
+        "p_year int"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260522021600_calendar_rpc_remove_work_tasks.sql"
+    },
+    {
+      "name": "cancel_contract_cascade",
+      "params": [
+        "p_contract_id uuid",
+        "p_reason text",
+        "p_user_id uuid"
+      ],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260422160000_contracts_business_logic_backfill.sql"
+    },
+    {
+      "name": "cancel_dress_rental_atomic",
+      "params": [
+        "p_rental_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "contract_payment_health_checks",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    },
+    {
+      "name": "contract_payment_receipt_code",
+      "params": [
+        "p_payment_id uuid",
+        "p_payment_date date"
+      ],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260503070000_contract_payment_receipt_finance_max.sql"
+    },
+    {
+      "name": "contract_payment_status_v2",
+      "params": [
+        "p_paid numeric",
+        "p_remaining numeric"
+      ],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    },
+    {
+      "name": "contract_stats",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260422070000_hot_action_indexes_and_stats_rpcs.sql"
+    },
+    {
+      "name": "contract_stats_simple",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260523100100_contract_stats_simple_rpc.sql"
+    },
+    {
+      "name": "convert_lead_to_customer",
+      "params": [
+        "p_lead_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260427030000_crm_rpc_hardening.sql"
+    },
+    {
+      "name": "create_contract_inventory_addon_sale_atomic",
+      "params": [
+        "p_contract_id uuid",
+        "p_item_id uuid",
+        "p_quantity integer",
+        "p_sale_unit_price numeric",
+        "p_payment_method public.payment_method_enum",
+        "p_payment_date date"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260507123000_inventory_contract_addon_reports.sql"
+    },
+    {
+      "name": "create_default_payment_schedule_v2",
+      "params": [
+        "p_contract_id uuid",
+        "p_total numeric",
+        "DEFAULT 0",
+        "DEFAULT NULL",
+        "DEFAULT CURRENT_DATE",
+        "DEFAULT NULL"
+      ],
+      "returns": "u",
+      "language": "sql",
+      "definedIn": "20260505111000_payment_plan_stage_sort_order.sql"
+    },
+    {
+      "name": "create_dress_contract_reservation_atomic",
+      "params": [
+        "p_dress_id uuid",
+        "p_contract_id uuid",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "create_printing_order_atomic",
+      "params": [
+        "p_order jsonb",
+        "p_actor_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "create_sale_receipt_atomic",
+      "params": [
+        "p_receipt jsonb",
+        "p_items jsonb"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260507103000_inventory_sale_stockout_source_contract.sql"
+    },
+    {
+      "name": "create_standalone_dress_rental_atomic",
+      "params": [
+        "p_item_id uuid",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "dashboard_critical_kpis",
+      "params": [
+        "p_month int",
+        "p_year int"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260512103000_dashboard_correctness_hotfix.sql"
+    },
+    {
+      "name": "dashboard_revenue_chart",
+      "params": [
+        "p_month int",
+        "p_year int",
+        "DEFAULT 6"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260510201000_dashboard_deferred_sections.sql"
+    },
+    {
+      "name": "dashboard_service_breakdown",
+      "params": [
+        "p_month int",
+        "p_year int",
+        "DEFAULT false"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260512103000_dashboard_correctness_hotfix.sql"
+    },
+    {
+      "name": "delete_contract_cascade",
+      "params": [
+        "p_contract_id uuid",
+        "p_user_id uuid"
+      ],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260421153000_contracts_production_hardening.sql"
+    },
+    {
+      "name": "delete_dress_atomic",
+      "params": [
+        "p_dress_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "delete_fulfillment_transaction_atomic",
+      "params": [
+        "p_txn_id uuid",
+        "p_user_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260528115016_hybrid_approval_workflow.sql"
+    },
+    {
+      "name": "delete_printing_order_atomic",
+      "params": [
+        "p_order_id uuid",
+        "p_actor_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "delete_service_atomic",
+      "params": [
+        "p_actor_id uuid",
+        "p_service_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428183000_services_security_atomic_writes.sql"
+    },
+    {
+      "name": "dress_list",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT 'newest'",
+        "DEFAULT 1",
+        "DEFAULT 18"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "dress_rental_list",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT 1",
+        "DEFAULT 20",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429113000_dress_rental_item_filter.sql"
+    },
+    {
+      "name": "dress_stats",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "emit_realtime_signal",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260610130000_realtime_signals.sql"
+    },
+    {
+      "name": "employee_stats",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260429130000_employees_audit_fix.sql"
+    },
+    {
+      "name": "expire_old_reservations",
+      "params": [],
+      "returns": "I",
+      "language": "sql",
+      "definedIn": "20260524000001_printing_workflow_phase1_fixed.sql"
+    },
+    {
+      "name": "finance_cashflow_timeline",
+      "params": [
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428151000_reports_cashflow_timeline.sql"
+    },
+    {
+      "name": "finance_contract_profit_report",
+      "params": [
+        "DEFAULT 'all'",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT 1",
+        "DEFAULT 10"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260528000002_vendor_expense_profit_fix.sql"
+    },
+    {
+      "name": "finance_dashboard_metrics",
+      "params": [
+        "p_month INT",
+        "p_year INT"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "finance_debt_stats",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428090000_finance_audit_fix_completion.sql"
+    },
+    {
+      "name": "finance_expense_stats",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260422070000_hot_action_indexes_and_stats_rpcs.sql"
+    },
+    {
+      "name": "finance_lab_debt_summary",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260526000001_optimize_finance_lab_debt_summary.sql"
+    },
+    {
+      "name": "finance_ledger",
+      "params": [
+        "DEFAULT 1",
+        "DEFAULT 20",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260612131500_fix_finance_ledger_return_types.sql"
+    },
+    {
+      "name": "finance_ledger_range",
+      "params": [
+        "DEFAULT 1",
+        "DEFAULT 20",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260522100000_finance_performance_optimization.sql"
+    },
+    {
+      "name": "finance_receipt_document_stats",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260503070000_contract_payment_receipt_finance_max.sql"
+    },
+    {
+      "name": "finance_receipt_documents",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT 12",
+        "DEFAULT 0"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260503080000_contract_payment_completion.sql"
+    },
+    {
+      "name": "finance_receipt_stats",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260503070000_contract_payment_receipt_finance_max.sql"
+    },
+    {
+      "name": "finance_reports_snapshot",
+      "params": [
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260507123000_inventory_contract_addon_reports.sql"
+    },
+    {
+      "name": "finance_revenue_by_month",
+      "params": [
+        "p_year INT"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "finance_service_distribution",
+      "params": [
+        "p_month INT",
+        "p_year INT"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260412100000_finance_dashboard_ledger_rpcs.sql"
+    },
+    {
+      "name": "finance_vendor_debt_summary",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260527000001_vendor_payment_rpcs.sql"
+    },
+    {
+      "name": "get_budget_vs_actual",
+      "params": [
+        "p_month integer",
+        "p_year integer"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "get_cashflow_forecast",
+      "params": [
+        "DEFAULT 30"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "get_contract_detail_v2",
+      "params": [
+        "p_contract_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260616100000_fix_v2_labs_name.sql"
+    },
+    {
+      "name": "get_contract_detail_v3",
+      "params": [
+        "p_contract_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260615140000_fix_contract_detail_v3_rpc_printing.sql"
+    },
+    {
+      "name": "get_contract_list_v2",
+      "params": [
+        "DEFAULT 'all'",
+        "DEFAULT ''",
+        "DEFAULT 'all'",
+        "DEFAULT 'newest'",
+        "DEFAULT 'all'",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260621100000_contract_list_v2_add_events.sql"
+    },
+    {
+      "name": "get_crm_customer_stats",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260530120000_crm_audit_followups.sql"
+    },
+    {
+      "name": "get_crm_lead_stats",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260530120000_crm_audit_followups.sql"
+    },
+    {
+      "name": "get_customer_ltv",
+      "params": [
+        "p_ids uuid[]"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260530120000_crm_audit_followups.sql"
+    },
+    {
+      "name": "get_employee_job_details",
+      "params": [
+        "p_employee_id uuid",
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428170000_productivity_rpc_hardening.sql"
+    },
+    {
+      "name": "get_employee_productivity",
+      "params": [
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428170000_productivity_rpc_hardening.sql"
+    },
+    {
+      "name": "get_expense_breakdown",
+      "params": [
+        "p_month integer",
+        "p_year integer"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "get_finance_advanced_intelligence",
+      "params": [
+        "p_month integer",
+        "p_year integer"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260422113000_fix_finance_dashboard_scenarios.sql"
+    },
+    {
+      "name": "get_finance_intelligence",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "get_gallery_data_cursor",
+      "params": [
+        "p_gallery_id uuid",
+        "DEFAULT NULL",
+        "DEFAULT 200"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260529000002_gallery_cursor_based_pagination.sql"
+    },
+    {
+      "name": "get_gallery_data_v2",
+      "params": [
+        "p_gallery_id uuid",
+        "DEFAULT 200",
+        "DEFAULT 0"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260529000001_gallery_data_v2_dynamic_pagination.sql"
+    },
+    {
+      "name": "get_gallery_data_v3",
+      "params": [
+        "p_gallery_id uuid",
+        "DEFAULT 200",
+        "DEFAULT 0"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260606000000_gallery_data_v3_with_blur.sql"
+    },
+    {
+      "name": "get_gallery_summaries_by_contract",
+      "params": [
+        "p_contract_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260530000001_gallery_summaries_rpc.sql"
+    },
+    {
+      "name": "get_my_employee_job_details",
+      "params": [
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428170000_productivity_rpc_hardening.sql"
+    },
+    {
+      "name": "get_my_employee_productivity",
+      "params": [
+        "p_start_date date",
+        "p_end_date date"
+      ],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428170000_productivity_rpc_hardening.sql"
+    },
+    {
+      "name": "get_printing_cost_stats",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "get_receivable_aging",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260421113000_finance_dashboard_production_hardening.sql"
+    },
+    {
+      "name": "handle_new_user",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260521230000_auto_provision_employees_from_google.sql"
+    },
+    {
+      "name": "inventory_detail_v2",
+      "params": [
+        "p_item_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260508171641_inventory_detail_v2_rpc.sql"
+    },
+    {
+      "name": "inventory_item_transaction_totals",
+      "params": [
+        "p_item_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428200000_inventory_security_hardening.sql"
+    },
+    {
+      "name": "inventory_list",
+      "params": [
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT 'newest'",
+        "DEFAULT 1",
+        "DEFAULT 20"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428200000_inventory_security_hardening.sql"
+    },
+    {
+      "name": "inventory_stats",
+      "params": [],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428200000_inventory_security_hardening.sql"
+    },
+    {
+      "name": "inventory_stock_in_atomic",
+      "params": [
+        "p_item_id uuid",
+        "p_quantity integer",
+        "p_unit_cost numeric",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260507103000_inventory_sale_stockout_source_contract.sql"
+    },
+    {
+      "name": "inventory_stock_out_atomic",
+      "params": [
+        "p_item_id uuid",
+        "p_quantity integer",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260507103000_inventory_sale_stockout_source_contract.sql"
+    },
+    {
+      "name": "is_active_employee",
+      "params": [],
+      "returns": "b",
+      "language": "sql",
+      "definedIn": "20260605030000_active_employee_rls_helper.sql"
+    },
+    {
+      "name": "is_dress_available",
+      "params": [
+        "p_dress_id uuid",
+        "p_start_date date",
+        "p_end_date date",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "b",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "is_period_locked",
+      "params": [
+        "p_date DATE"
+      ],
+      "returns": "B",
+      "language": "sql",
+      "definedIn": "20260411160002_finance_close_rpcs.sql"
+    },
+    {
+      "name": "mark_dress_cleaned_atomic",
+      "params": [
+        "p_dress_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "next_employee_code",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260429130000_employees_audit_fix.sql"
+    },
+    {
+      "name": "nextval_customer_code",
+      "params": [],
+      "returns": "b",
+      "language": "sql",
+      "definedIn": "20260427030000_crm_rpc_hardening.sql"
+    },
+    {
+      "name": "nextval_inventory_code",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260428200000_inventory_security_hardening.sql"
+    },
+    {
+      "name": "nextval_printing_order_code",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "payment_stage_display_label_v2",
+      "params": [
+        "p_stage text",
+        "DEFAULT NULL"
+      ],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    },
+    {
+      "name": "payment_stage_key_v2",
+      "params": [
+        "p_stage text"
+      ],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260505101000_contract_payment_adjustment_stage_key.sql"
+    },
+    {
+      "name": "prepare_gallery_share",
+      "params": [
+        "p_gallery_id uuid",
+        "p_user_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260520170000_prepare_gallery_share_rpc.sql"
+    },
+    {
+      "name": "printing_integrity_report",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428143000_printing_integrity_verification.sql"
+    },
+    {
+      "name": "printing_items_total",
+      "params": [
+        "p_items jsonb"
+      ],
+      "returns": "n",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "printing_lab_overview",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "printing_stats",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260525000000_printing_stats_workflow_statuses.sql"
+    },
+    {
+      "name": "process_contract_payment",
+      "params": [
+        "p_contract_id uuid",
+        "p_amount numeric",
+        "p_payment_method public.payment_method_enum",
+        "p_payment_date date",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260504103000_payment_plan_ssot_allocations.sql"
+    },
+    {
+      "name": "process_contract_payment_v2",
+      "params": [
+        "p_contract_id uuid",
+        "p_amount numeric",
+        "p_payment_method public.payment_method_enum",
+        "p_payment_date date",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260527120000_fix_payment_race_condition.sql"
+    },
+    {
+      "name": "record_lab_payment_atomic",
+      "params": [
+        "p_lab_id uuid",
+        "p_amount numeric",
+        "p_payment_method text",
+        "p_note text",
+        "p_allocations jsonb",
+        "p_actor_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "record_vendor_payment_atomic",
+      "params": [
+        "p_vendor_id uuid",
+        "p_amount numeric",
+        "p_payment_method text",
+        "p_payment_date date",
+        "p_note text",
+        "p_allocations jsonb"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260615000001_vendor_payment_overpay_guard.sql"
+    },
+    {
+      "name": "refresh_dress_status",
+      "params": [
+        "p_dress_id uuid"
+      ],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "refresh_dress_status_atomic",
+      "params": [
+        "p_dress_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "release_dress_reservation_atomic",
+      "params": [
+        "p_reservation_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "resolve_printing_expense_category_id",
+      "params": [],
+      "returns": "u",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "resolve_vendor_expense_category_id",
+      "params": [],
+      "returns": "u",
+      "language": "sql",
+      "definedIn": "20260528000003_vendor_expense_tracking_safe.sql"
+    },
+    {
+      "name": "restore_inventory_from_transaction",
+      "params": [
+        "p_source_type text",
+        "p_source_id uuid",
+        "p_reason text",
+        "DEFAULT NULL"
+      ],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260507123000_inventory_contract_addon_reports.sql"
+    },
+    {
+      "name": "restore_inventory_on_contract_payment_void",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260507123000_inventory_contract_addon_reports.sql"
+    },
+    {
+      "name": "restore_inventory_on_receipt_void",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260507123000_inventory_contract_addon_reports.sql"
+    },
+    {
+      "name": "return_dress_rental_atomic",
+      "params": [
+        "p_rental_id uuid",
+        "p_return_condition text",
+        "DEFAULT 0",
+        "DEFAULT true",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "run_integrity_scan",
+      "params": [],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260503080000_contract_payment_completion.sql"
+    },
+    {
+      "name": "save_contract_atomic",
+      "params": [
+        "p_contract jsonb",
+        "p_customer jsonb",
+        "p_items jsonb",
+        "p_actor_id uuid",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260621000001_fix_customer_sync_full_name.sql"
+    },
+    {
+      "name": "save_service_atomic",
+      "params": [
+        "p_actor_id uuid",
+        "p_service jsonb",
+        "DEFAULT NULL",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428183000_services_security_atomic_writes.sql"
+    },
+    {
+      "name": "set_gallery_password",
+      "params": [
+        "p_gallery_id uuid",
+        "p_password text"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429170000_contracts_audit_fix_max.sql"
+    },
+    {
+      "name": "start_dress_rental_atomic",
+      "params": [
+        "p_rental_id uuid",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "sync_payment_plan_statuses_v2",
+      "params": [
+        "p_contract_id uuid"
+      ],
+      "returns": "v",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    },
+    {
+      "name": "trg_contract_payment_status_v2",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    },
+    {
+      "name": "trg_refresh_dress_status_from_rental",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "trg_refresh_dress_status_from_reservation",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260422160000_contracts_business_logic_backfill.sql"
+    },
+    {
+      "name": "trg_sync_vendor_expense",
+      "params": [],
+      "returns": "t",
+      "language": "sql",
+      "definedIn": "20260615000002_vendor_expense_accrual_trigger_and_backfill.sql"
+    },
+    {
+      "name": "update_dress_reservation_status_atomic",
+      "params": [
+        "p_reservation_id uuid",
+        "p_status text",
+        "DEFAULT NULL"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260429110000_dresses_audit_fix.sql"
+    },
+    {
+      "name": "update_fulfillment_transaction_atomic",
+      "params": [
+        "p_txn_id uuid",
+        "p_new_quantity integer",
+        "p_new_unit_price numeric",
+        "p_user_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260528115016_hybrid_approval_workflow.sql"
+    },
+    {
+      "name": "update_printing_order_atomic",
+      "params": [
+        "p_order_id uuid",
+        "p_order jsonb",
+        "p_expected_updated_at timestamptz",
+        "p_actor_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "update_vendor_payments_updated_at",
+      "params": [],
+      "returns": "T",
+      "language": "sql",
+      "definedIn": "20260527000000_vendor_payments.sql"
+    },
+    {
+      "name": "upsert_printing_expense",
+      "params": [
+        "p_printing_order_id uuid",
+        "p_actor_id uuid"
+      ],
+      "returns": "u",
+      "language": "sql",
+      "definedIn": "20260428130000_printing_audit_fix.sql"
+    },
+    {
+      "name": "upsert_vendor_expense",
+      "params": [
+        "p_work_task_id uuid",
+        "p_actor_id uuid"
+      ],
+      "returns": "u",
+      "language": "sql",
+      "definedIn": "20260615000003_fix_upsert_vendor_expense_work_type_cast.sql"
+    },
+    {
+      "name": "verify_gallery_password",
+      "params": [
+        "p_gallery_id uuid",
+        "p_password text"
+      ],
+      "returns": "b",
+      "language": "sql",
+      "definedIn": "20260429170000_contracts_audit_fix_max.sql"
+    },
+    {
+      "name": "void_contract_payment_v2",
+      "params": [
+        "p_payment_id uuid",
+        "p_reason text",
+        "p_actor_id uuid"
+      ],
+      "returns": "j",
+      "language": "sql",
+      "definedIn": "20260505093000_contract_payment_flexible_stages.sql"
+    }
+  ],
+  "policies": [
+    {
+      "name": "service_role_closes",
+      "table": "finance_monthly_closes",
+      "operation": "ALL"
+    },
+    {
+      "name": "service_role_close_tasks",
+      "table": "finance_close_tasks",
+      "operation": "ALL"
+    },
+    {
+      "name": "Users manage own Moodie conversations",
+      "table": "ai_conversations",
+      "operation": "ALL"
+    },
+    {
+      "name": "Users manage own Moodie messages",
+      "table": "ai_messages",
+      "operation": "ALL"
+    },
+    {
+      "name": "Managers manage system_settings",
+      "table": "system_settings",
+      "operation": "ALL"
+    },
+    {
+      "name": "Authenticated users can read event_templates",
+      "table": "event_templates",
+      "operation": "SELECT"
+    },
+    {
+      "name": "galleries_service_role_all ON public.galleries FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY gallery_images_service_role_all",
+      "table": "gallery_images",
+      "operation": "ALL"
+    },
+    {
+      "name": "gallery_share_links_service_role_all ON public.gallery_share_links FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY gallery_selection_batches_service_role_all ON public.gallery_selection_batches FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY gallery_selection_batch_items_service_role_all ON public.gallery_selection_batch_items FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY gallery_filter_jobs_service_role_all",
+      "table": "gallery_filter_jobs",
+      "operation": "ALL"
+    },
+    {
+      "name": "Studio can view filter jobs of their galleries",
+      "table": "gallery_filter_jobs",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Service role full access",
+      "table": "gallery_filter_jobs",
+      "operation": "ALL"
+    },
+    {
+      "name": "Users can view own subscriptions",
+      "table": "push_subscriptions",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Users can insert own subscriptions",
+      "table": "push_subscriptions",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Users can delete own subscriptions",
+      "table": "push_subscriptions",
+      "operation": "DELETE"
+    },
+    {
+      "name": "Service role full access",
+      "table": "push_subscriptions",
+      "operation": "ALL"
+    },
+    {
+      "name": "Enable read access for authenticated users on order_payments",
+      "table": "order_payments",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Enable insert access for authenticated users on order_payments",
+      "table": "order_payments",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Enable read access for authenticated users on inventory_reservations",
+      "table": "inventory_reservations",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Enable all access for authenticated users on inventory_reservations",
+      "table": "inventory_reservations",
+      "operation": "ALL"
+    },
+    {
+      "name": "Allow authenticated users to manage order_payments",
+      "table": "order_payments",
+      "operation": "ALL"
+    },
+    {
+      "name": "Allow authenticated users to manage inventory_reservations",
+      "table": "inventory_reservations",
+      "operation": "ALL"
+    },
+    {
+      "name": "Enable read access for authenticated users on vendors",
+      "table": "vendors",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Enable insert access for authenticated users on vendors",
+      "table": "vendors",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Enable update access for authenticated users on vendors",
+      "table": "vendors",
+      "operation": "UPDATE"
+    },
+    {
+      "name": "Enable read access for authenticated users on vendor_payments",
+      "table": "vendor_payments",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Enable insert access for authenticated users on vendor_payments",
+      "table": "vendor_payments",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Enable update access for authenticated users on vendor_payments",
+      "table": "vendor_payments",
+      "operation": "UPDATE"
+    },
+    {
+      "name": "Enable read access for authenticated users on vendor_payment_allocations",
+      "table": "vendor_payment_allocations",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Enable insert access for authenticated users on vendor_payment_allocations",
+      "table": "vendor_payment_allocations",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Allow authenticated users to insert approval_requests",
+      "table": "approval_requests",
+      "operation": "INSERT"
+    },
+    {
+      "name": "Allow authenticated users to read approval_requests",
+      "table": "approval_requests",
+      "operation": "SELECT"
+    },
+    {
+      "name": "Allow authenticated users to update approval_requests",
+      "table": "approval_requests",
+      "operation": "UPDATE"
+    },
+    {
+      "name": "contracts_service_role_all ON public.contracts FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY contracts_authenticated_read ON public.contracts FOR SELECT TO authenticated USING ( EXISTS ( SELECT 1 FROM public.employees e WHERE e.auth_user_id = auth.uid() AND e.deleted_at IS NULL AND e.status = 'active' ) ); ALTER TABLE public.contract_events ENABLE ROW LEVEL SECURITY; CREATE POLICY contract_events_service_role_all ON public.contract_events FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY contract_events_authenticated_read ON public.contract_events FOR SELECT TO authenticated USING ( EXISTS ( SELECT 1 FROM public.employees e WHERE e.auth_user_id = auth.uid() AND e.deleted_at IS NULL AND e.status = 'active' ) ); ALTER TABLE public.contract_checklists ENABLE ROW LEVEL SECURITY; CREATE POLICY contract_checklists_service_role_all ON public.contract_checklists FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY contract_checklists_authenticated_read ON public.contract_checklists FOR SELECT TO authenticated USING ( EXISTS ( SELECT 1 FROM public.employees e WHERE e.auth_user_id = auth.uid() AND e.deleted_at IS NULL AND e.status = 'active' ) ); ALTER TABLE public.work_tasks ENABLE ROW LEVEL SECURITY; CREATE POLICY work_tasks_service_role_all ON public.work_tasks FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY work_tasks_authenticated_read ON public.work_tasks FOR SELECT TO authenticated USING ( EXISTS ( SELECT 1 FROM public.employees e WHERE e.auth_user_id = auth.uid() AND e.deleted_at IS NULL AND e.status = 'active' ) ); ALTER TABLE public.payment_plans ENABLE ROW LEVEL SECURITY; CREATE POLICY payment_plans_service_role_all ON public.payment_plans FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY payment_plans_authenticated_read ON public.payment_plans FOR SELECT TO authenticated USING ( EXISTS ( SELECT 1 FROM public.employees e WHERE e.auth_user_id = auth.uid() AND e.deleted_at IS NULL AND e.status = 'active' ) ); ALTER TABLE public.contract_notes ENABLE ROW LEVEL SECURITY; CREATE POLICY contract_notes_service_role_all ON public.contract_notes FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY contract_notes_authenticated_read",
+      "table": "contract_notes",
+      "operation": "SELECT"
+    },
+    {
+      "name": "payment_plan_allocations_service_role_all ON public.payment_plan_allocations FOR ALL TO service_role USING (true) WITH CHECK (true); CREATE POLICY payment_plan_allocations_authenticated_read",
+      "table": "payment_plan_allocations",
+      "operation": "SELECT"
+    },
+    {
+      "name": "contracts_authenticated_read ON public.contracts FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS contract_events_authenticated_read ON public.contract_events; CREATE POLICY contract_events_authenticated_read ON public.contract_events FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS contract_checklists_authenticated_read ON public.contract_checklists; CREATE POLICY contract_checklists_authenticated_read ON public.contract_checklists FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS work_tasks_authenticated_read ON public.work_tasks; CREATE POLICY work_tasks_authenticated_read ON public.work_tasks FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS payment_plans_authenticated_read ON public.payment_plans; CREATE POLICY payment_plans_authenticated_read ON public.payment_plans FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS contract_notes_authenticated_read ON public.contract_notes; CREATE POLICY contract_notes_authenticated_read ON public.contract_notes FOR SELECT TO authenticated USING (public.is_active_employee()); DROP POLICY IF EXISTS payment_plan_allocations_authenticated_read ON public.payment_plan_allocations; CREATE POLICY payment_plan_allocations_authenticated_read",
+      "table": "payment_plan_allocations",
+      "operation": "SELECT"
+    },
+    {
+      "name": "realtime_signals_select",
+      "table": "realtime_signals",
+      "operation": "SELECT"
+    },
+    {
+      "name": "printing_order_status_history_select",
+      "table": "printing_order_status_history",
+      "operation": "SELECT"
+    },
+    {
+      "name": "printing_order_status_history_insert",
+      "table": "printing_order_status_history",
+      "operation": "INSERT"
+    }
+  ],
+  "totalMigrations": 152
+}
