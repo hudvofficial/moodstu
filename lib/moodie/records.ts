@@ -22,6 +22,7 @@ type ConversationRow = {
   locked_by: string | null;
   message_count?: number | null;
   version: number | null;
+  active_leaf_message_id?: string | null;
 };
 
 type MessageRow = {
@@ -29,6 +30,10 @@ type MessageRow = {
   role: string | null;
   content: string | null;
   metadata: Json | null;
+  parent_message_id?: string | null;
+  revision?: number | null;
+  status?: string | null;
+  request_id?: string | null;
   created_at: string | null;
 };
 
@@ -209,6 +214,22 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
         .filter((item) => item.label)
     : undefined;
 
+  const attachments = Array.isArray(value.attachments)
+    ? value.attachments
+        .filter((item): item is Record<string, Json | undefined> => typeof item === "object" && item !== null && !Array.isArray(item))
+        .flatMap((item) => typeof item.id === "string" && typeof item.name === "string" && typeof item.mime_type === "string" && typeof item.size === "number" && typeof item.storage_path === "string"
+          ? [{ id: item.id, name: item.name, mime_type: item.mime_type, size: item.size, storage_path: item.storage_path }]
+          : [])
+    : undefined;
+
+  const contexts = Array.isArray(value.contexts)
+    ? value.contexts
+        .filter((item): item is Record<string, Json | undefined> => typeof item === "object" && item !== null && !Array.isArray(item))
+        .flatMap((item) => typeof item.id === "string" && typeof item.type === "string" && typeof item.label === "string"
+          ? [{ id: item.id, type: item.type as "capability" | "contract" | "customer" | "calendar" | "gallery" | "reporting_period", label: item.label, value: typeof item.value === "string" ? item.value : undefined }]
+          : [])
+    : undefined;
+
   const followUps = Array.isArray(value.follow_ups)
     ? value.follow_ups.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : undefined;
@@ -265,6 +286,8 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
     execution_plan: typeof value.execution_plan === "string" ? value.execution_plan : undefined,
     follow_ups: followUps,
     sources,
+    attachments,
+    contexts,
     widgets,
     parts: parseMoodieMessageParts(value.parts) || widgetsToMoodieParts(widgets),
     visual_schema_version: value.visual_schema_version === 1 ? 1 : undefined,
@@ -281,6 +304,10 @@ export function mapMoodieMessage(row: MessageRow): MoodieMessage {
     role: role as MoodieMessageRole,
     content: row.content || "",
     metadata: parseMoodieMessageMeta(row.metadata),
+    parent_message_id: row.parent_message_id || null,
+    revision: row.revision || 1,
+    status: row.status === "pending" || row.status === "streaming" || row.status === "failed" || row.status === "cancelled" ? row.status : "completed",
+    request_id: row.request_id || null,
     created_at: row.created_at || new Date().toISOString(),
   };
 }
@@ -299,6 +326,7 @@ export function mapMoodieConversationSummary(
     locked_until: row.locked_until,
     locked_by: row.locked_by,
     version: row.version || 1,
+    active_leaf_message_id: row.active_leaf_message_id || null,
   };
 }
 

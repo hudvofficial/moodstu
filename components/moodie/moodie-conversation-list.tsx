@@ -1,15 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Check,
-  Edit3,
-  Loader2,
-  LockKeyhole,
-  MessageSquare,
-  Trash2,
-  X,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Loader2, LockKeyhole, MessageSquare, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { MoodieConversationSummary } from "@/types/moodie";
@@ -28,178 +20,86 @@ interface MoodieConversationListProps {
   onDelete: (conversation: MoodieConversationSummary) => void;
 }
 
-export function MoodieConversationList({
-  conversations,
-  activeId,
-  loadingConversationId,
-  editingConversationId,
-  editingTitle,
-  onSelect,
-  onStartRename,
-  onEditTitleChange,
-  onRenameSubmit,
-  onRenameCancel,
-  onDelete,
-}: MoodieConversationListProps) {
+function groupLabel(dateValue: string, nowTs: number) {
+  const date = new Date(dateValue);
+  const today = new Date(nowTs);
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const days = Math.floor((startToday - startDate) / 86_400_000);
+  if (days <= 0) return "Hôm nay";
+  if (days === 1) return "Hôm qua";
+  if (days < 7) return "7 ngày qua";
+  if (days < 30) return "30 ngày qua";
+  return "Cũ hơn";
+}
+
+export function MoodieConversationList({ conversations, activeId, loadingConversationId, editingConversationId, editingTitle, onSelect, onStartRename, onEditTitleChange, onRenameSubmit, onRenameCancel, onDelete }: MoodieConversationListProps) {
   const [nowTs, setNowTs] = useState(() => Date.now());
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setNowTs(Date.now()), 15_000);
+    const intervalId = window.setInterval(() => setNowTs(Date.now()), 30_000);
     return () => window.clearInterval(intervalId);
   }, []);
 
+  const groups = useMemo(() => {
+    const grouped = new Map<string, MoodieConversationSummary[]>();
+    for (const conversation of conversations) {
+      const label = groupLabel(conversation.updated_at || conversation.created_at, nowTs);
+      grouped.set(label, [...(grouped.get(label) || []), conversation]);
+    }
+    return [...grouped.entries()];
+  }, [conversations, nowTs]);
+
   if (conversations.length === 0) {
-    return (
-      <div className="flex min-h-48 flex-col items-center justify-center px-6 py-8 text-center">
-        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <MessageSquare className="h-5 w-5" />
-        </div>
-        <p className="text-sm font-medium text-text-primary">Chưa có lịch sử chat</p>
-      </div>
-    );
+    return <div className="px-4 py-10 text-center"><MessageSquare className="mx-auto h-5 w-5 text-text-muted" /><p className="mt-3 text-caption text-text-muted">Chưa có cuộc trò chuyện</p></div>;
   }
 
   return (
-    <div className="space-y-0.5">
-      {conversations.map((conversation) => {
-        const isActive = conversation.id === activeId;
-        const isLocked = Boolean(
-          conversation.locked_until &&
-            new Date(conversation.locked_until).getTime() > nowTs,
-        );
-        const isEditing = conversation.id === editingConversationId;
-        const isLoading = conversation.id === loadingConversationId;
+    <div className="space-y-4 pb-3">
+      {groups.map(([label, items]) => (
+        <section key={label}>
+          <p className="px-2 pb-1.5 text-micro font-medium text-text-muted">{label}</p>
+          <div className="space-y-0.5">
+            {items.map((conversation) => {
+              const isActive = conversation.id === activeId;
+              const isEditing = conversation.id === editingConversationId;
+              const isLoading = conversation.id === loadingConversationId;
+              const isLocked = Boolean(conversation.locked_until && new Date(conversation.locked_until).getTime() > nowTs);
 
-        return (
-          <div
-            key={conversation.id}
-            className={`group/conversation relative rounded-lg transition-colors ${
-              isActive ? "bg-primary/[0.07] text-primary" : "hover:bg-bg-subtle"
-            }`}
-          >
-            <div className="flex min-h-10 items-center gap-1 px-2 py-1.5">
-              {isActive ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" /> : null}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelect(conversation.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelect(conversation.id);
-                  }
-                }}
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
-              >
-                <div
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center ${
-                    isActive
-                      ? "text-primary"
-                      : "text-text-muted group-hover/conversation:text-text-secondary"
-                  }`}
-                >
-                  <MessageSquare className="h-3.5 w-3.5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
+              return (
+                <div key={conversation.id} className={`group relative rounded-xl transition ${isActive ? "bg-bg-hover" : "hover:bg-bg-subtle"}`}>
                   {isEditing ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editingTitle}
-                        onChange={(event) => onEditTitleChange(event.target.value)}
-                        autoFocus
-                        unstyled
-                        className="h-10"
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            onRenameSubmit(conversation.id);
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            onRenameCancel();
-                          }
-                        }}
-                      />
-
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          onClick={() => onRenameSubmit(conversation.id)}
-                          variant="ghost"
-                          className="icon-btn h-8 w-8 rounded-full"
-                          aria-label="Lưu tên mới"
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={onRenameCancel}
-                          variant="ghost"
-                          className="icon-btn h-8 w-8 rounded-full"
-                          aria-label="Hủy đổi tên"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                    <div className="p-2">
+                      <Input value={editingTitle} onChange={(event) => onEditTitleChange(event.target.value)} autoFocus unstyled className="h-9 rounded-lg border border-border bg-white px-2 text-sm" onKeyDown={(event) => { if (event.key === "Enter") onRenameSubmit(conversation.id); if (event.key === "Escape") onRenameCancel(); }} />
+                      <div className="mt-1 flex justify-end gap-1">
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 px-0" onClick={onRenameCancel}><X className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 px-0 text-primary" onClick={() => onRenameSubmit(conversation.id)}><Check className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
                   ) : (
-                    <p
-                      className={`truncate text-[13px] leading-5 ${
-                        isActive ? "text-primary" : "text-text-primary"
-                      }`}
-                    >
-                      {conversation.title}
-                    </p>
+                    <>
+                      <Button type="button" unstyled className="flex min-h-10 w-full items-center gap-2.5 rounded-xl py-2 pl-3 pr-9 text-left" onClick={() => onSelect(conversation.id)}>
+                        {isLoading ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" /> : isLocked ? <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-warning" /> : <MessageSquare className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-text-primary" : "text-text-muted"}`} />}
+                        <span className={`truncate text-sm ${isActive ? "font-medium text-text-primary" : "text-text-secondary"}`}>{conversation.title || "Cuộc trò chuyện mới"}</span>
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2 rounded-lg px-0 text-text-muted opacity-70 hover:opacity-100" onClick={() => setOpenMenuId((current) => current === conversation.id ? null : conversation.id)} aria-label="Tùy chọn cuộc trò chuyện">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                      {openMenuId === conversation.id ? (
+                        <div className="absolute right-1 top-9 z-30 w-36 rounded-xl border border-border bg-white p-1 shadow-lg">
+                          <Button type="button" unstyled className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-caption text-text-secondary hover:bg-bg-subtle" onClick={() => { setOpenMenuId(null); onStartRename(conversation); }}><Pencil className="h-3.5 w-3.5" />Đổi tên</Button>
+                          <Button type="button" unstyled className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-caption text-danger hover:bg-danger/5" onClick={() => { setOpenMenuId(null); onDelete(conversation); }}><Trash2 className="h-3.5 w-3.5" />Xóa</Button>
+                        </div>
+                      ) : null}
+                    </>
                   )}
                 </div>
-              </div>
-
-              {!isEditing ? (
-                <div className={`flex shrink-0 items-center gap-0.5 transition-opacity ${
-                  isActive
-                    ? "opacity-100"
-                    : "opacity-0 group-hover/conversation:opacity-100 group-focus-within/conversation:opacity-100"
-                }`}>
-                  {isLoading ? (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : null}
-
-                  {isLocked ? (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full text-warning">
-                      <LockKeyhole className="h-4 w-4" />
-                    </div>
-                  ) : null}
-
-                  <Button
-                    type="button"
-                    onClick={() => onStartRename(conversation)}
-                    variant="ghost"
-                    className="icon-btn h-7 w-7 rounded-md text-text-muted hover:text-primary"
-                    aria-label="Đổi tên hội thoại"
-                    title="Đổi tên"
-                  >
-                    <Edit3 className="h-3.5 w-3.5" />
-                  </Button>
-
-                  <Button
-                    type="button"
-                    onClick={() => onDelete(conversation)}
-                    variant="ghost"
-                    className="icon-btn h-7 w-7 rounded-md text-text-muted hover:bg-error/10 hover:text-error"
-                    aria-label="Xóa hội thoại"
-                    title="Xóa"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ) : null}
-            </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </section>
+      ))}
     </div>
   );
 }

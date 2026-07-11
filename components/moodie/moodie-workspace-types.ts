@@ -1,8 +1,11 @@
 import type {
   MoodieCapability,
   MoodieConversationDetail,
+  MoodieMessagePart,
   MoodieConversationScope,
   MoodieConversationSummary,
+  MoodieComposerSubmission,
+  MoodieTurnActivity,
 } from "@/types/moodie";
 
 export interface MoodieConversationCounts {
@@ -24,6 +27,9 @@ export interface MoodieWorkspaceSharedProps {
   pendingPrompt: string | null;
   isSending: boolean;
   streamStatus: string | null;
+  turnActivities: MoodieTurnActivity[];
+  streamedText: string;
+  streamedParts: Array<{ id: string; part: MoodieMessagePart }>;
   capabilities: MoodieCapability[];
   suggestions: string[];
   onSelectConversation: (conversationId: string) => void;
@@ -34,7 +40,10 @@ export interface MoodieWorkspaceSharedProps {
   onRenameSubmit: (conversationId: string) => void;
   onRenameCancel: () => void;
   onDeleteConversation: (conversation: MoodieConversationSummary) => void;
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (submission: MoodieComposerSubmission) => Promise<void>;
+  onStopGeneration: () => void;
+  onRegenerateMessage: (messageId: string, content: string) => void;
+  onEditMessage: (messageId: string, content: string) => void;
   onQuickPrompt: (prompt: string) => void;
   onNewConversation: () => void;
 }

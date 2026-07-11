@@ -9,15 +9,18 @@ import {
   deleteMoodieConversation,
   renameMoodieConversation,
 } from "@/app/actions/moodie-mutations";
-import { getMoodieConversationDetail } from "@/app/actions/moodie-queries";
+import { getMoodieConversationDetail, getMoodieTurnStatus } from "@/app/actions/moodie-queries";
+import { MoodieVoiceOverlay } from "@/components/moodie/moodie-voice-overlay";
 import { MoodieWorkspaceDesktop } from "@/components/moodie/moodie-workspace-desktop";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
+import { useMoodieTurn } from "@/hooks/use-moodie-turn";
 import { getSmartMoodieFollowUps } from "@/lib/moodie/follow-up-suggestions";
 import { sortMoodieConversations } from "@/lib/moodie/records";
 import { sendMoodieStreamingMessage } from "@/lib/moodie/stream-client";
 import type {
+  MoodieComposerSubmission,
   MoodieConversationDetail,
   MoodieConversationScope,
   MoodieConversationSummary,
@@ -53,6 +56,7 @@ function toSummary(
     locked_until: conversation.locked_until,
     locked_by: conversation.locked_by,
     version: conversation.version,
+    active_leaf_message_id: conversation.active_leaf_message_id || null,
   };
 }
 
@@ -83,8 +87,10 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     useState<MoodieConversationSummary | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
-  const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const moodieTurn = useMoodieTurn();
+  const streamStatus = moodieTurn.state.statusLabel;
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const [, startTransition] = useTransition();
   const setHeaderSlots = useSetHeaderSlots();
 
@@ -98,9 +104,40 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
   });
 
   useEffect(() => {
+    const turnId = window.localStorage.getItem("moodie:active-turn:v1");
+    if (!turnId) return;
+    let cancelled = false;
+    let timeoutId: number | undefined;
+    const poll = async () => {
+      const result = await getMoodieTurnStatus({ turn_id: turnId });
+      if (cancelled) return;
+      if (!result.success) {
+        window.localStorage.removeItem("moodie:active-turn:v1");
+        return;
+      }
+      if (result.data.status === "completed") {
+        window.localStorage.removeItem("moodie:active-turn:v1");
+        router.refresh();
+        return;
+      }
+      if (result.data.status === "failed" || result.data.status === "cancelled") {
+        window.localStorage.removeItem("moodie:active-turn:v1");
+        if (result.data.error) toast.error(result.data.error);
+        return;
+      }
+      timeoutId = window.setTimeout(poll, 2000);
+    };
+    poll().catch(() => {});
+    return () => {
+      cancelled = true;
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [router]);
+
+  useEffect(() => {
     setHeaderSlots({
+      hideHeader: true,
       hideSearch: true,
-      subtitleOverride: "Trợ lý AI thông minh",
     });
 
     return () => setHeaderSlots({});
@@ -152,30 +189,41 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     });
   }
 
-  async function handleSendMessage(content: string) {
+  async function handleSendMessage(input: MoodieComposerSubmission | string, regenerateFromMessageId?: string, editFromMessageId?: string) {
     if (isSending) return;
+    const submission: MoodieComposerSubmission = typeof input === "string"
+      ? { content: input, attachments: [], contexts: [] }
+      : input;
 
-    setPendingPrompt(content);
+    setPendingPrompt(regenerateFromMessageId || editFromMessageId ? null : submission.content);
     setIsSending(true);
+    const signal = moodieTurn.start();
 
     let result;
     try {
       result = await sendMoodieStreamingMessage({
         conversationId: activeConversationId,
-        content,
-        onStatus: setStreamStatus,
+        content: submission.content,
+        attachments: submission.attachments,
+        contexts: submission.contexts,
+        regenerateFromMessageId,
+        editFromMessageId,
+        signal,
+        onEvent: moodieTurn.receive,
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Moodie không thể trả lời");
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        toast.error(error instanceof Error ? error.message : "Moodie không thể trả lời");
+      }
       setPendingPrompt(null);
       setIsSending(false);
-      setStreamStatus(null);
+      moodieTurn.release();
       return;
     }
 
     setPendingPrompt(null);
     setIsSending(false);
-    setStreamStatus(null);
+    moodieTurn.release();
 
     const detail = result.conversation;
     if (result.memoryProposed) {
@@ -353,6 +401,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             pendingPrompt={pendingPrompt}
             isSending={isSending}
             streamStatus={streamStatus}
+            turnActivities={moodieTurn.state.activities}
+            streamedText={moodieTurn.state.streamedText}
+            streamedParts={moodieTurn.state.parts}
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
             onSelectConversation={(conversationId) => {
@@ -371,10 +422,14 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             }}
             onDeleteConversation={setDeleteTarget}
             onSendMessage={handleSendMessage}
+            onStopGeneration={moodieTurn.stop}
+            onRegenerateMessage={(messageId, content) => { handleSendMessage(content, messageId).catch(() => {}); }}
+            onEditMessage={(messageId, content) => { handleSendMessage(content, undefined, messageId).catch(() => {}); }}
             onQuickPrompt={(prompt) => {
               handleSendMessage(prompt).catch(() => {});
             }}
             onNewConversation={handleNewConversation}
+            onOpenVoiceMode={() => setVoiceMode(true)}
           />
 
           <MoodieWorkspaceMobile
@@ -390,6 +445,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             pendingPrompt={pendingPrompt}
             isSending={isSending}
             streamStatus={streamStatus}
+            turnActivities={moodieTurn.state.activities}
+            streamedText={moodieTurn.state.streamedText}
+            streamedParts={moodieTurn.state.parts}
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
             historyOpen={historyOpen}
@@ -410,10 +468,23 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             }}
             onDeleteConversation={setDeleteTarget}
             onSendMessage={handleSendMessage}
+            onStopGeneration={moodieTurn.stop}
+            onRegenerateMessage={(messageId, content) => { handleSendMessage(content, messageId).catch(() => {}); }}
+            onEditMessage={(messageId, content) => { handleSendMessage(content, undefined, messageId).catch(() => {}); }}
             onQuickPrompt={(prompt) => {
               handleSendMessage(prompt).catch(() => {});
             }}
             onNewConversation={handleNewConversation}
+            onOpenVoiceMode={() => setVoiceMode(true)}
+          />
+
+          <MoodieVoiceOverlay
+            open={voiceMode}
+            onClose={() => setVoiceMode(false)}
+            streamedText={moodieTurn.state.streamedText}
+            status={moodieTurn.state.stage}
+            onSendVoiceMessage={(text) => handleSendMessage(text)}
+            onStopGeneration={moodieTurn.stop}
           />
 
           <ConfirmDialog

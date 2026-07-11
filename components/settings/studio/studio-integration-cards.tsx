@@ -6,6 +6,7 @@ import { MoodieBenchmarkCard } from "../moodie-benchmark-card";
 import type {
   MoodieAiSettings,
   MoodieProviderSettings,
+  MoodieVoiceSettings,
   StudioInfo,
 } from "@/types/settings";
 import type { MoodieGeminiModelOption } from "@/lib/moodie/model-options";
@@ -14,6 +15,7 @@ interface StudioIntegrationCardsProps {
   savedStudioInfo: StudioInfo;
   savedMoodieSettings: MoodieAiSettings;
   moodieProviderSettings: MoodieProviderSettings;
+  moodieVoiceSettings: MoodieVoiceSettings;
   moodieApiKeyInput: string;
   setMoodieApiKeyInput: (v: string) => void;
   moodieGeminiModel: string;
@@ -33,6 +35,7 @@ export default function StudioIntegrationCards({
   savedStudioInfo,
   savedMoodieSettings,
   moodieProviderSettings,
+  moodieVoiceSettings,
   moodieApiKeyInput,
   setMoodieApiKeyInput,
   moodieGeminiModel,
@@ -61,6 +64,7 @@ export default function StudioIntegrationCards({
       <MoodieAiCard
         settings={savedMoodieSettings}
         providerSettings={moodieProviderSettings}
+        voiceSettings={moodieVoiceSettings}
         apiKeyInput={moodieApiKeyInput}
         setApiKeyInput={setMoodieApiKeyInput}
         geminiModel={moodieGeminiModel}

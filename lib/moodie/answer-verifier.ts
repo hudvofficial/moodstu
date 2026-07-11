@@ -23,9 +23,13 @@ export function verifyMoodieAnswer(params: {
   correctionCount: number;
 }): MoodieAnswerVerification {
   const prompt = normalizeText(params.userPrompt);
-  const asksIdentity = /(ban la ai|ten ban la gi|ban ten gi|may la ai|who are you)/.test(prompt);
+  const asksIdentity = /\b(ban la ai|ten ban la gi|ban ten gi|may la ai|who are you)\b/.test(prompt);
   const identityAnswer = normalizeText(params.assistantMessage.content || "");
-  const hasMoodieIdentity = identityAnswer.includes("moodie") && (identityAnswer.includes("mood studio") || identityAnswer.includes("studio") || identityAnswer.includes("tro ly van hanh"));
+  const namesMoodie = identityAnswer.includes("moodie");
+  const statesOperationalRole = identityAnswer.includes("tro ly van hanh");
+  const anchorsToMoodStudio = identityAnswer.includes("mood studio") || identityAnswer.includes("studio");
+  const claimsGenericAiIdentity = /\b(tro ly ai|ai assistant|tri tue nhan tao)\b/.test(identityAnswer);
+  const hasMoodieIdentity = namesMoodie && statesOperationalRole && anchorsToMoodStudio && !claimsGenericAiIdentity;
   if (asksIdentity && !hasMoodieIdentity) {
     if (params.correctionCount >= 1) return { ok: true };
     return {

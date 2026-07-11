@@ -25,6 +25,7 @@ async function StudioDataSection() {
       studioInfo={result.data.studioInfo}
       moodieAiSettings={result.data.moodieAiSettings}
       moodieProviderSettings={result.data.moodieProviderSettings}
+      moodieVoiceSettings={result.data.moodieVoiceSettings}
     />
   );
 }

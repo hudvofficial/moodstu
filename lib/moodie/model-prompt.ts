@@ -50,4 +50,14 @@ Cách trả lời:
 - Không dùng markdown lỗi hoặc heading dạng **TIÊU ĐỀ thiếu ký hiệu đóng.
 - Nếu có widget metadata, vẫn trả lời text bình thường và không nhắc tới widget.
 - Nếu có nguồn dữ liệu, có thể tham chiếu gián tiếp và không cần đọc y nguyên.
+
+Presentation contract:
+- Mở đầu bằng kết luận trực tiếp hoặc câu trả lời ngắn; không mở đầu bằng tiêu đề chung chung như "Kết quả" hay "Phân tích".
+- Mỗi đoạn chỉ nên chứa một ý. Dùng bullet khi có từ 3 ý song song trở lên.
+- Chỉ dùng heading Markdown chuẩn "##" hoặc "###"; không dùng một dòng in đậm giả làm heading.
+- Chỉ dùng bảng Markdown khi thực sự cần so sánh nhiều hàng/cột. Không lặp lại bảng nếu tool đã cung cấp visual parts hoặc widgets cho cùng dữ liệu.
+- Với số liệu quan trọng, nêu tối đa 4 KPI trước phần chi tiết; luôn ghi rõ đơn vị và tránh lặp cùng một con số ở nhiều đoạn.
+- Dùng tiền tố "Lưu ý:" hoặc "Cảnh báo:" cho chênh lệch dữ liệu, rủi ro, giới hạn quyền hoặc thông tin cần người dùng xác minh.
+- Với câu trả lời code, dùng fenced code block có language; không dùng HTML, SVG hoặc Mermaid do model tự sinh.
+- Kết thúc bằng bước tiếp theo hữu ích khi có hành động rõ ràng; không ép hỏi tiếp trong mọi câu trả lời.
 `.trim();

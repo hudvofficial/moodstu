@@ -1,14 +1,32 @@
-import type { MoodieSendResult, MoodieStreamEvent } from "@/types/moodie";
+import type { MoodieAttachment, MoodieComposerContext, MoodieSendResult, MoodieStreamEvent } from "@/types/moodie";
 
 export async function sendMoodieStreamingMessage(params: {
   conversationId: string | null;
   content: string;
-  onStatus: (label: string) => void;
+  attachments?: MoodieAttachment[];
+  contexts?: MoodieComposerContext[];
+  regenerateFromMessageId?: string;
+  editFromMessageId?: string;
+  signal?: AbortSignal;
+  lastEventId?: number;
+  onEvent?: (event: MoodieStreamEvent) => void;
+  onStatus?: (label: string) => void;
 }) {
   const response = await fetch("/api/moodie/messages/stream", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_id: params.conversationId, content: params.content }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(params.lastEventId ? { "Last-Event-ID": String(params.lastEventId) } : {}),
+    },
+    body: JSON.stringify({
+      conversation_id: params.conversationId,
+      content: params.content,
+      attachments: params.attachments || [],
+      contexts: params.contexts || [],
+      regenerate_from_message_id: params.regenerateFromMessageId,
+      edit_from_message_id: params.editFromMessageId,
+    }),
+    signal: params.signal,
   });
   const contentType = response.headers.get("content-type") || "";
   if (!response.ok || !response.body || !contentType.includes("text/event-stream")) {
@@ -22,6 +40,7 @@ export async function sendMoodieStreamingMessage(params: {
   const decoder = new TextDecoder();
   let buffer = "";
   let result: MoodieSendResult | null = null;
+  let lastSequence = params.lastEventId || 0;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -30,16 +49,28 @@ export async function sendMoodieStreamingMessage(params: {
     buffer = events.pop() || "";
 
     for (const rawEvent of events) {
-      const dataLine = rawEvent.split(/\r?\n/).find((line) => line.startsWith("data: "));
-      if (!dataLine) continue;
-      const event = JSON.parse(dataLine.slice(6)) as MoodieStreamEvent;
-      if (event.type === "status") params.onStatus(event.label);
-      if (event.type === "result") result = event.data;
-      if (event.type === "error") throw new Error(event.error);
+      const dataLines = rawEvent
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trimStart());
+      if (dataLines.length === 0) continue;
+
+      const event = JSON.parse(dataLines.join("\n")) as MoodieStreamEvent;
+      if (event.version !== 2 || event.sequence <= lastSequence) continue;
+      lastSequence = event.sequence;
+      params.onEvent?.(event);
+      if ("label" in event) params.onStatus?.(event.label);
+
+      if (event.type === "turn.completed") result = event.data;
+      if (event.type === "turn.failed") throw new Error(event.error);
+      if (event.type === "turn.cancelled") throw new DOMException(event.label, "AbortError");
     }
     if (done) break;
   }
 
-  if (!result) throw new Error("Moodie kết thúc luồng nhưng chưa trả về kết quả");
+  if (!result) {
+    if (params.signal?.aborted) throw new DOMException("Đã dừng phản hồi", "AbortError");
+    throw new Error("Moodie kết thúc luồng nhưng chưa trả về kết quả");
+  }
   return result;
 }

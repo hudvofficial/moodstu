@@ -42,13 +42,13 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
   if (widgets.length === 0) return null;
 
   return (
-    <div className="space-y-3 pl-1">
+    <div className="space-y-3.5">
       {widgets.map((widget, widgetIndex) => {
         if (widget.type === "kpi_cards") {
           return (
             <section
               key={`${widget.type}-${widgetIndex}`}
-              className="space-y-2 rounded-2xl border border-border/70 bg-white/80 p-3 shadow-xs"
+              className="space-y-2.5 rounded-xl border border-border/70 bg-white p-3"
             >
               {widget.title ? (
                 <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
@@ -56,11 +56,11 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
                 </h4>
               ) : null}
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border/60 bg-border/60">
                 {widget.items.map((item) => (
                   <div
                     key={`${item.label}-${item.value}`}
-                    className={`rounded-xl border px-3 py-2 ${toneClasses(item.tone)}`}
+                    className={`min-w-0 border-0 px-3 py-2.5 ${toneClasses(item.tone)}`}
                   >
                     <p className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
                       {normalizeMoodieDisplayText(item.label)}
@@ -80,7 +80,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
           return (
             <section
               key={`${widget.type}-${widgetIndex}`}
-              className="space-y-3 rounded-2xl border border-border/70 bg-white/80 p-3 shadow-xs"
+              className="space-y-3.5 rounded-xl border border-border/70 bg-white p-3"
             >
               {widget.title ? (
                 <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">
@@ -125,7 +125,7 @@ export function MoodieWidgetRenderer({ widgets }: MoodieWidgetRendererProps) {
         return (
           <section
             key={`${widget.type}-${widgetIndex}`}
-            className="space-y-3 rounded-2xl border border-border/70 bg-white/80 p-3 shadow-xs"
+            className="space-y-3.5 rounded-xl border border-border/70 bg-white p-3"
           >
             {widget.title ? (
               <h4 className="text-caption font-semibold uppercase tracking-wide text-text-secondary">

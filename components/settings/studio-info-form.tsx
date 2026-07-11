@@ -25,6 +25,7 @@ import type {
   BankInfo,
   MoodieAiSettings,
   MoodieProviderSettings,
+  MoodieVoiceSettings,
   SocialLinks,
   StudioInfo,
   WorkingHours,
@@ -34,6 +35,7 @@ interface StudioInfoFormProps {
   studioInfo: StudioInfo;
   moodieAiSettings: MoodieAiSettings;
   moodieProviderSettings: MoodieProviderSettings;
+  moodieVoiceSettings: MoodieVoiceSettings;
 }
 
 function normalizeRequiredText(value: string) {
@@ -53,6 +55,7 @@ export default function StudioInfoForm({
   studioInfo,
   moodieAiSettings,
   moodieProviderSettings,
+  moodieVoiceSettings,
 }: StudioInfoFormProps) {
   const [isPending, startTransition] = useTransition();
   const [savedStudioInfo, setSavedStudioInfo] = useState(studioInfo);
@@ -282,6 +285,7 @@ export default function StudioInfoForm({
             savedStudioInfo={savedStudioInfo}
             savedMoodieSettings={savedMoodieSettings}
             moodieProviderSettings={moodieProviderSettings}
+            moodieVoiceSettings={moodieVoiceSettings}
             moodieApiKeyInput={moodieApiKeyInput}
             setMoodieApiKeyInput={setMoodieApiKeyInput}
             moodieGeminiModel={moodieGeminiModel}

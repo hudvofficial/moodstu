@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { parseMoodieMessageParts, widgetsToMoodieParts } from "@/lib/moodie/message-parts";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MoodieMessageParts } from "@/components/moodie/moodie-message-parts";
 
 describe("Moodie typed message parts", () => {
   it("accepts verified chart data and rejects oversized chart data", () => {
@@ -29,5 +32,20 @@ describe("Moodie typed message parts", () => {
 
   it("converts legacy widgets to typed parts", () => {
     expect(widgetsToMoodieParts([{ type: "kpi_cards", items: [{ label: "Album", value: "3" }] }])?.[0].type).toBe("metric_grid");
+  });
+
+  it("renders typed tables as desktop tables and mobile definition cards", () => {
+    const markup = renderToStaticMarkup(createElement(MoodieMessageParts, { parts: [{
+      type: "table",
+      title: "Công nợ",
+      columns: [
+        { key: "code", label: "Mã" },
+        { key: "remaining", label: "Còn phải thu", align: "right", format: "currency" },
+      ],
+      rows: [{ code: "HD-01", remaining: 9000000 }],
+    }] }));
+    expect(markup).toContain("sticky top-0");
+    expect(markup).toContain("sm:hidden");
+    expect(markup).toContain("9.000.000");
   });
 });

@@ -214,6 +214,81 @@ export class OpenAIAdapter implements MoodieProvider {
     };
   }
 
+  async chatStream(
+    messages: ProviderMessage[],
+    tools: ToolDefinition[],
+    onDelta: (delta: string) => void,
+  ): Promise<ProviderChatResult> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages: convertMessages(messages),
+      temperature: 0.35,
+      max_tokens: 4096,
+      stream: true,
+      stream_options: { include_usage: true },
+    };
+    if (tools.length > 0) {
+      body.tools = tools.map((tool) => ({ type: "function", function: { ...tool.function, parameters: tool.function.parameters ?? { type: "object", properties: {} } } }));
+      body.tool_choice = "auto";
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: this.getHeaders(), body: JSON.stringify(body) });
+    } catch (error) {
+      return { ok: false, error: `Network error (${this.baseUrl}): ${String(error)}` };
+    }
+    if (!response.ok || !response.body) return { ok: false, error: `Streaming API error (${response.status}) from ${this.baseUrl}` };
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let content = "";
+    let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
+    const toolCalls = new Map<number, { id: string; name: string; arguments: string }>();
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.startsWith("data:")) continue;
+        const raw = line.slice(5).trim();
+        if (!raw || raw === "[DONE]") continue;
+        const chunk = JSON.parse(raw) as {
+          choices?: Array<{ delta?: { content?: string; tool_calls?: Array<{ index?: number; id?: string; function?: { name?: string; arguments?: string } }> } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+        };
+        usage = chunk.usage || usage;
+        const delta = chunk.choices?.[0]?.delta;
+        if (delta?.content) {
+          content += delta.content;
+          onDelta(delta.content);
+        }
+        for (const toolDelta of delta?.tool_calls || []) {
+          const index = toolDelta.index || 0;
+          const current = toolCalls.get(index) || { id: toolDelta.id || `call_${Date.now()}_${index}`, name: "", arguments: "" };
+          if (toolDelta.id) current.id = toolDelta.id;
+          if (toolDelta.function?.name) current.name += toolDelta.function.name;
+          if (toolDelta.function?.arguments) current.arguments += toolDelta.function.arguments;
+          toolCalls.set(index, current);
+        }
+      }
+      if (done) break;
+    }
+
+    return {
+      ok: true,
+      message: {
+        role: "assistant",
+        content: content.trim() || null,
+        tool_calls: toolCalls.size > 0 ? [...toolCalls.values()].map((tool) => ({ id: tool.id, type: "function" as const, function: { name: tool.name, arguments: tool.arguments || "{}" } })) : undefined,
+      },
+      usage: usage ? { inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens, totalTokens: usage.total_tokens } : undefined,
+    };
+  }
+
   async embed(text: string): Promise<ProviderEmbedResult> {
     let response: Response;
     try {

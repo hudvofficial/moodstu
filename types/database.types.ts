@@ -80,6 +80,7 @@ export type Database = {
       }
       ai_conversations: {
         Row: {
+          active_leaf_message_id: string | null
           created_at: string
           id: string
           last_message_preview: string | null
@@ -94,6 +95,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          active_leaf_message_id?: string | null
           created_at?: string
           id?: string
           last_message_preview?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          active_leaf_message_id?: string | null
           created_at?: string
           id?: string
           last_message_preview?: string | null
@@ -130,7 +133,11 @@ export type Database = {
           created_at: string
           id: string
           metadata: Json | null
+          parent_message_id: string | null
+          request_id: string | null
+          revision: number
           role: string
+          status: string
         }
         Insert: {
           content: string
@@ -138,7 +145,11 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          parent_message_id?: string | null
+          request_id?: string | null
+          revision?: number
           role: string
+          status?: string
         }
         Update: {
           content?: string
@@ -146,7 +157,11 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          parent_message_id?: string | null
+          request_id?: string | null
+          revision?: number
           role?: string
+          status?: string
         }
         Relationships: [
           {
@@ -154,6 +169,101 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_turns: {
+        Row: {
+          completed_at: string | null
+          conversation_id: string | null
+          error: string | null
+          id: string
+          last_sequence: number
+          request_id: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          error?: string | null
+          id: string
+          last_sequence?: number
+          request_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          error?: string | null
+          id?: string
+          last_sequence?: number
+          request_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_turns_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_message_feedback: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_id: string
+          note: string | null
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_id: string
+          note?: string | null
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          note?: string | null
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_message_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_message_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
             referencedColumns: ["id"]
           },
         ]

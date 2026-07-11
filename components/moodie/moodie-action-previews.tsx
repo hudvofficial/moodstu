@@ -12,6 +12,7 @@ export function MoodieActionPreviews({ actions }: { actions: MoodieActionPreview
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [approvalIds, setApprovalIds] = useState<Record<string, string>>({});
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
   if (actions.length === 0) return null;
 
   function handleAction(action: MoodieActionPreview) {
@@ -21,6 +22,7 @@ export function MoodieActionPreviews({ actions }: { actions: MoodieActionPreview
     }
     if (!action.target_id) return;
     const actionKind = action.kind;
+    setActiveActionId(action.id);
     startTransition(async () => {
       try {
         const approvalId = approvalIds[action.id];
@@ -47,23 +49,28 @@ export function MoodieActionPreviews({ actions }: { actions: MoodieActionPreview
         });
       } catch (error) {
         toast(error instanceof Error ? error.message : "Không thể thực thi thao tác.", "error");
+      } finally {
+        setActiveActionId(null);
       }
     });
   }
 
   return (
-    <div className="space-y-2 pl-1">
+    <div className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70 bg-white">
       {actions.map((action) => (
-        <div key={action.id} className="flex items-center gap-3 rounded-xl border border-border bg-white px-3 py-2.5 shadow-xs">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div key={action.id} className={`flex items-start gap-3 px-3 py-3 transition-colors ${approvalIds[action.id] ? "bg-warning/5" : "hover:bg-bg-subtle/60"}`}>
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
             <Compass className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-text-primary">{action.label}</p>
-            <p className="truncate text-caption text-text-muted">{action.description}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-sm font-medium text-text-primary">{action.label}</p>
+              {action.requires_approval ? <span className="rounded-full bg-warning/10 px-1.5 py-0.5 text-micro font-medium text-warning">Cần xác nhận</span> : null}
+            </div>
+            <p className="mt-0.5 line-clamp-2 text-caption leading-5 text-text-muted">{action.description}</p>
           </div>
-          <Button type="button" variant="ghost" size="sm" className="h-8 min-h-0 gap-1 px-2" disabled={isPending} onClick={() => handleAction(action)}>
-            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : action.kind === "navigate" ? <ArrowRight className="h-3.5 w-3.5" /> : approvalIds[action.id] ? <Check className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          <Button type="button" variant="ghost" size="sm" className="h-8 min-h-0 shrink-0 gap-1 px-2" disabled={isPending} onClick={() => handleAction(action)}>
+            {activeActionId === action.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : action.kind === "navigate" ? <ArrowRight className="h-3.5 w-3.5" /> : approvalIds[action.id] ? <Check className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
             {action.kind === "navigate" ? "Mở" : approvalIds[action.id] ? "Xác nhận" : "Duyệt"}
           </Button>
         </div>

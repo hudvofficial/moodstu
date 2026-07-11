@@ -15,7 +15,7 @@ import {
   mapMoodieConversationSummary,
   sortMoodieConversations,
 } from "@/lib/moodie/records";
-import { moodieConversationQuerySchema } from "@/lib/validations/moodie.schema";
+import { moodieConversationQuerySchema, moodieTurnQuerySchema } from "@/lib/validations/moodie.schema";
 import type { Database, Json } from "@/types/database.types";
 import type { MoodieConversationDetail, MoodiePageData } from "@/types/moodie";
 
@@ -31,6 +31,7 @@ type ConversationRow = {
   locked_by: string | null;
   message_count: number | null;
   version: number | null;
+  active_leaf_message_id: string | null;
 };
 
 type MessageRow = {
@@ -38,6 +39,10 @@ type MessageRow = {
   role: string | null;
   content: string | null;
   metadata: Json | null;
+  parent_message_id: string | null;
+  revision: number | null;
+  status: string | null;
+  request_id: string | null;
   created_at: string | null;
 };
 
@@ -70,7 +75,7 @@ async function loadConversationDetail(
 ): Promise<MoodieConversationDetail | null> {
   const { data: conversation, error: conversationError } = await supabase
     .from("ai_conversations")
-    .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version")
+    .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version, active_leaf_message_id")
     .eq("id", conversationId)
     .eq("user_id", userId)
     .single();
@@ -83,7 +88,7 @@ async function loadConversationDetail(
 
   const { data: messages, error: messageError } = await supabase
     .from("ai_messages")
-    .select("id, role, content, metadata, created_at")
+    .select("id, role, content, metadata, parent_message_id, revision, status, request_id, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
@@ -123,7 +128,7 @@ export async function getMoodiePageData() {
     try {
       const { data: conversations, error: conversationError } = await supabase
         .from("ai_conversations")
-        .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, message_count, version")
+        .select("id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, message_count, version, active_leaf_message_id")
         .eq("user_id", userId)
         .order("updated_at", { ascending: false })
         .limit(30);
@@ -137,7 +142,7 @@ export async function getMoodiePageData() {
       const activeMessagesResult = firstConversation
         ? await supabase
             .from("ai_messages")
-            .select("id, role, content, metadata, created_at")
+            .select("id, role, content, metadata, parent_message_id, revision, status, request_id, created_at")
             .eq("conversation_id", firstConversation.id)
             .order("created_at", { ascending: true })
         : { data: [], error: null };
@@ -190,6 +195,21 @@ export async function getMoodiePageData() {
 
       throw error;
     }
+  });
+}
+
+export async function getMoodieTurnStatus(rawInput: unknown) {
+  return withAuthRead(async (supabase, userId) => {
+    const parsed = moodieTurnQuerySchema.safeParse(rawInput);
+    if (!parsed.success) throw new Error("Lượt Moodie không hợp lệ");
+    await requireMoodieAccess(supabase, userId);
+    const { data, error } = await supabase.from("ai_turns")
+      .select("id, conversation_id, status, last_sequence, error, updated_at, completed_at")
+      .eq("id", parsed.data.turn_id)
+      .eq("user_id", userId)
+      .single();
+    if (error || !data) throw new Error("Không tìm thấy lượt Moodie");
+    return data;
   });
 }
 

@@ -111,6 +111,12 @@ export interface MoodieProvider {
     tools: ToolDefinition[],
   ): Promise<ProviderChatResult>;
 
+  chatStream?(
+    messages: ProviderMessage[],
+    tools: ToolDefinition[],
+    onDelta: (delta: string) => void,
+  ): Promise<ProviderChatResult>;
+
   /**
    * Tạo embedding vector cho 1 đoạn text.
    * Optional — chỉ dùng trong Phase 3 (RAG).

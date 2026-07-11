@@ -15,35 +15,36 @@ function formatDuration(milliseconds: number) {
     : milliseconds + "ms";
 }
 
-function getSummary(trace: MoodieTrace) {
-  if (trace.engine === "core_fallback") return "Phản hồi dự phòng";
-  if (trace.tool_call_count > 0) return "Đã tra dữ liệu • " + trace.tool_call_count + " nguồn";
-  return "Đã trả lời";
-}
-
 export function MoodieDebugPanel({ trace }: MoodieDebugPanelProps) {
   const [open, setOpen] = useState(false);
   const hasTechnicalDetail = trace.tool_call_count > 0 || trace.verifier_corrections > 0 || Boolean(trace.error) || trace.fallback_used;
+  if (!hasTechnicalDetail) return null;
+
+  const summary = trace.error
+    ? "Có lỗi xử lý"
+    : trace.fallback_used
+      ? "Đã dùng xử lý dự phòng"
+      : trace.tool_call_count > 0
+        ? `Đã tra ${trace.tool_call_count} nguồn`
+        : "Đã điều chỉnh câu trả lời";
 
   return (
-    <div className="flex min-h-6 flex-wrap items-center gap-1.5 text-[11px] text-text-muted">
-      <span>{getSummary(trace)}</span>
-      <span aria-hidden="true">•</span>
-      <span>{formatDuration(trace.duration_ms)}</span>
-      {hasTechnicalDetail ? <Button
+    <div className="text-caption text-text-muted">
+      <Button
         type="button"
         variant="ghost"
         size="sm"
-        className="h-6 gap-1 px-1 text-[11px] text-text-muted hover:text-text-primary"
+        className={`h-7 gap-1.5 px-1.5 text-caption hover:text-text-primary ${trace.error ? "text-danger" : "text-text-muted"}`}
         onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
       >
         <Wrench className="h-3.5 w-3.5" />
-        {open ? "Ẩn chi tiết" : "Chi tiết"}
+        {summary} · {formatDuration(trace.duration_ms)}
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </Button> : null}
+      </Button>
 
       {open ? (
-        <div className="basis-full rounded-xl border border-border bg-bg-subtle px-3 py-2.5 text-caption text-text-secondary">
+        <div className="mt-1 rounded-xl border border-border bg-bg-subtle px-3 py-2.5 text-caption text-text-secondary">
           <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
             <p><strong>Engine:</strong> {trace.engine}</p>
             <p><strong>Intent:</strong> {trace.route_intent || "general"}</p>

@@ -35,7 +35,7 @@ describe("Moodie memory policy", () => {
       { scope: "studio", memoryType: "instruction", content: "Luôn nêu nguồn khi dùng số liệu." },
     ]);
 
-    expect(context).toContain("Governed memory");
+    expect(context).toContain("Ghi nhớ dài hạn");
     expect(context).toContain("user/preference");
     expect(context).toContain("studio/instruction");
   });

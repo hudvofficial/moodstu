@@ -46,7 +46,7 @@ export function MoodieChartPart({ part }: { part: ChartPart }) {
         <h4 className="text-sm font-semibold text-text-primary">{part.title}</h4>
         {part.description ? <p className="mt-0.5 text-caption text-text-muted">{part.description}</p> : null}
       </div>
-      <div className="h-56 min-w-0">
+      <div className="h-52 min-w-0 sm:h-60">
         <SafeResponsiveContainer width="100%" height="100%">
           {part.chart === "donut" ? (
             <PieChart>

@@ -22,8 +22,9 @@ export function SearchBar({ placeholder = "Tìm kiếm...", value, onChange }: S
       />
       {value && (
         <button
+          type="button"
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-bg-hover transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-0.5 transition-colors hover:bg-bg-hover"
         >
           <X className="w-3.5 h-3.5 text-text-muted" />
         </button>

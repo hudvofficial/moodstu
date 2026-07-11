@@ -28,9 +28,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         ref={ref}
         className={cn(
+          "cursor-pointer disabled:cursor-not-allowed",
           baseClassName,
           sizeClassName,
-          loading && "opacity-70 pointer-events-none",
+          loading && "opacity-70",
           className
         )}
         disabled={disabled || loading}

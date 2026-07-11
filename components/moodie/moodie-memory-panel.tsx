@@ -80,7 +80,7 @@ export function MoodieMemoryPanel() {
       </Button>
       {open ? (
         <div className="mt-2 space-y-2">
-          <p className="px-1 text-[11px] leading-4 text-text-muted">Chỉ ghi nhớ bạn đã duyệt mới được Moodie sử dụng.</p>
+          <p className="px-1 text-caption leading-4 text-text-muted">Chỉ ghi nhớ bạn đã duyệt mới được Moodie sử dụng.</p>
           <div className="flex gap-2">
             <Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Ví dụ: Ưu tiên trả lời ngắn" className="h-8 text-xs" />
             <Button type="button" size="sm" className="h-8 min-h-0 shrink-0 text-xs" loading={proposing} onClick={propose}>Thêm</Button>
@@ -90,7 +90,7 @@ export function MoodieMemoryPanel() {
           {memories.map((memory) => (
             <div key={memory.id} className="rounded-xl border border-border/70 bg-bg-subtle px-2.5 py-2">
               <p className="text-xs leading-5 text-text-primary">{memory.content}</p>
-              <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-text-muted">
+              <div className="mt-1 flex items-center justify-between gap-2 text-caption text-text-muted">
                 <span>{memory.status === "pending" ? "Chờ duyệt" : memory.status === "active" ? "Đang dùng" : "Đã lưu trữ"}</span>
                 <span className="flex gap-1">
                   {memory.status === "pending" ? <Button type="button" variant="ghost" size="sm" className="h-6 min-h-0 px-1.5" onClick={() => setStatus(memory.id, "active")} aria-label="Duyệt memory"><Check className="h-3.5 w-3.5" /></Button> : null}

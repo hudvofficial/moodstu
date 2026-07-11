@@ -216,6 +216,74 @@ export class GeminiAdapter implements MoodieProvider {
     };
   }
 
+  async chatStream(
+    messages: ProviderMessage[],
+    tools: ToolDefinition[],
+    onDelta: (delta: string) => void,
+  ): Promise<ProviderChatResult> {
+    if (!this.apiKey) return { ok: false, error: "Gemini API key chưa được cấu hình." };
+    const { systemInstruction, contents } = convertMessages(messages);
+    const body: Record<string, unknown> = { contents, generationConfig: { temperature: 0.35, maxOutputTokens: 4096 } };
+    if (tools.length > 0) body.tools = convertTools(tools);
+    if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
+
+    let response: Response;
+    try {
+      response = await fetch(`${GEMINI_API_BASE}/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (error) {
+      return { ok: false, error: `Gemini network error: ${String(error)}` };
+    }
+    if (!response.ok || !response.body) return { ok: false, error: `Gemini streaming API error (${response.status})` };
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let content = "";
+    let usage: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined;
+    const toolCalls: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }> = [];
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() || "";
+      for (const event of events) {
+        const raw = event.split(/\r?\n/).filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).join("");
+        if (!raw) continue;
+        const chunk = JSON.parse(raw) as {
+          candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+          usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+        };
+        usage = chunk.usageMetadata || usage;
+        for (const part of chunk.candidates?.[0]?.content?.parts || []) {
+          if (typeof part.text === "string" && part.text) {
+            content += part.text;
+            onDelta(part.text);
+          }
+          if (part.functionCall && typeof part.functionCall === "object") {
+            const functionCall = part.functionCall as { name?: string; args?: Record<string, unknown> };
+            toolCalls.push({
+              id: `gemini_call_${Date.now()}_${toolCalls.length}`,
+              type: "function",
+              function: { name: functionCall.name || "unknown_tool", arguments: JSON.stringify(functionCall.args || {}) },
+            });
+          }
+        }
+      }
+      if (done) break;
+    }
+
+    return {
+      ok: true,
+      message: { role: "assistant", content: content.trim() || null, tool_calls: toolCalls.length > 0 ? toolCalls : undefined },
+      usage: usage ? { inputTokens: usage.promptTokenCount, outputTokens: usage.candidatesTokenCount, totalTokens: usage.totalTokenCount } : undefined,
+    };
+  }
+
   async embed(text: string): Promise<ProviderEmbedResult> {
     if (!this.apiKey) {
       return { ok: false, error: "Gemini API key chưa được cấu hình." };

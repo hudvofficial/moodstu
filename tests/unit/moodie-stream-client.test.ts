@@ -9,9 +9,8 @@ describe("Moodie stream client", () => {
   it("parses status and result events across CRLF boundaries", async () => {
     const onStatus = jest.fn();
     const payload = [
-      'data: {"type":"status","label":"Đang suy nghĩ"}\r\n\r\n',
-      'data: {"type":"result","data":{"conversation":{"id":"conversation-1"},"message":{"id":"message-1"}}}\r\n\r\n',
-      'data: {"type":"done"}\r\n\r\n',
+      'data: {"type":"turn.accepted","label":"Đang suy nghĩ","version":2,"request_id":"request-1","turn_id":"turn-1","sequence":1,"timestamp":"2026-07-11T00:00:00.000Z"}\r\n\r\n',
+      'data: {"type":"turn.completed","label":"Đã hoàn tất","data":{"conversation":{"id":"conversation-1"},"message":{"id":"message-1"}},"version":2,"request_id":"request-1","turn_id":"turn-1","sequence":2,"timestamp":"2026-07-11T00:00:01.000Z"}\r\n\r\n',
     ].join("");
 
     jest.spyOn(globalThis, "fetch").mockResolvedValue(

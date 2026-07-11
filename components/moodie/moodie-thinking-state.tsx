@@ -1,35 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { MoodieMessageParts } from "@/components/moodie/moodie-message-parts";
+import { MoodieResponseContent } from "@/components/moodie/moodie-response-content";
+import type { MoodieMessagePart, MoodieTurnActivity } from "@/types/moodie";
 
-const THINKING_TEXTS = [
-  "Đang truy vấn dữ liệu...",
-  "Đang phân tích thông tin...",
-  "Đang tổng hợp kết quả...",
-];
+interface MoodieThinkingStateProps {
+  statusLabel?: string | null;
+  activities?: MoodieTurnActivity[];
+  streamedText?: string;
+  parts?: Array<{ id: string; part: MoodieMessagePart }>;
+}
 
-export function MoodieThinkingState({ statusLabel }: { statusLabel?: string | null }) {
-  const [textIndex, setTextIndex] = useState(0);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setTextIndex((currentIndex) => (currentIndex + 1) % THINKING_TEXTS.length);
-    }, 2200);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
+export function MoodieThinkingState({ statusLabel, activities = [], streamedText = "", parts = [] }: MoodieThinkingStateProps) {
+  const visibleActivities = activities.slice(-4);
 
   return (
-    <article className="flex w-full justify-start animate-fade-in-up">
-      <div className="flex min-w-0 w-full max-w-[760px] gap-2.5">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <article className="flex w-full justify-start animate-fade-in-up" aria-live="polite">
+      <div className="flex min-w-0 w-full gap-2.5">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-text-inverse">
           <Bot className="h-3.5 w-3.5" />
         </div>
 
-        <div className="inline-flex min-h-8 max-w-full items-center gap-2 py-1 text-xs text-text-muted">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          <span className="truncate">{statusLabel || THINKING_TEXTS[textIndex]}</span>
+        <div className="min-w-0 flex-1 space-y-3 py-1">
+          {visibleActivities.length > 0 ? (
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-muted">
+              {visibleActivities.map((activity) => (
+                <div key={activity.id} className="inline-flex min-w-0 items-center gap-1.5">
+                  {activity.state === "error" ? (
+                    <XCircle className="h-3.5 w-3.5 shrink-0 text-danger" />
+                  ) : activity.state === "done" ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                  ) : (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                  )}
+                  <span className="truncate">{activity.label}</span>
+                  {activity.durationMs !== undefined ? <span className="text-micro text-text-muted">{activity.durationMs}ms</span> : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="inline-flex min-h-8 items-center gap-2 text-xs text-text-muted">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              <span>{statusLabel || "Moodie đang bắt đầu xử lý"}</span>
+            </div>
+          )}
+
+          {streamedText ? <MoodieResponseContent content={streamedText} /> : null}
+          {parts.length > 0 ? <MoodieMessageParts parts={parts.map((item) => item.part)} /> : null}
         </div>
       </div>
     </article>

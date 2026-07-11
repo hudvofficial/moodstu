@@ -156,6 +156,27 @@ export type MoodieMessagePart =
   | MoodieGalleryPart
   | MoodieDiagramPart;
 
+export interface MoodieAttachment {
+  id: string;
+  name: string;
+  mime_type: string;
+  size: number;
+  storage_path: string;
+}
+
+export interface MoodieComposerContext {
+  id: string;
+  type: "capability" | "contract" | "customer" | "calendar" | "gallery" | "reporting_period";
+  label: string;
+  value?: string;
+}
+
+export interface MoodieComposerSubmission {
+  content: string;
+  attachments: MoodieAttachment[];
+  contexts: MoodieComposerContext[];
+}
+
 export interface MoodieMessageSource {
   label: string;
   value?: string;
@@ -219,6 +240,8 @@ export interface MoodieMessageMeta {
   execution_plan?: string;
   follow_ups?: string[];
   sources?: MoodieMessageSource[];
+  attachments?: MoodieAttachment[];
+  contexts?: MoodieComposerContext[];
   widgets?: MoodieWidget[];
   parts?: MoodieMessagePart[];
   visual_schema_version?: 1;
@@ -231,6 +254,10 @@ export interface MoodieMessage {
   role: MoodieMessageRole;
   content: string;
   metadata: MoodieMessageMeta | null;
+  parent_message_id?: string | null;
+  revision?: number;
+  status?: "pending" | "streaming" | "completed" | "failed" | "cancelled";
+  request_id?: string | null;
   created_at: string;
 }
 
@@ -244,6 +271,7 @@ export interface MoodieConversationSummary {
   locked_until: string | null;
   locked_by: string | null;
   version: number;
+  active_leaf_message_id?: string | null;
 }
 
 export interface MoodieConversationDetail extends MoodieConversationSummary {
@@ -294,11 +322,62 @@ export interface MoodieSendResult {
   memoryProposed?: boolean;
 }
 
-export type MoodieStreamEvent =
-  | { type: "status"; stage: "accepted" | "context" | "reasoning" | "saving"; label: string }
-  | { type: "result"; data: MoodieSendResult }
-  | { type: "error"; error: string }
-  | { type: "done" };
+export type MoodieTurnStage =
+  | "accepted"
+  | "routing"
+  | "context"
+  | "planning"
+  | "tool"
+  | "generating"
+  | "saving"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type MoodieRuntimeEvent =
+  | { type: "turn.accepted"; label: string }
+  | { type: "route.resolved"; label: string; intent: string; agent_id: string; agent_label: string }
+  | { type: "context.started"; label: string }
+  | { type: "context.completed"; label: string; retrieval_used: boolean; memory_used: boolean }
+  | { type: "plan.created"; label: string; summary: string; tool_names: string[] }
+  | { type: "tool.started"; label: string; tool_run_id: string; tool_name: string }
+  | { type: "tool.completed"; label: string; tool_run_id: string; tool_name: string; duration_ms: number; sources?: MoodieMessageSource[]; parts?: MoodieMessagePart[] }
+  | { type: "tool.failed"; label: string; tool_run_id: string; tool_name: string; duration_ms: number; error: string }
+  | { type: "text.delta"; delta: string }
+  | { type: "text.reset" }
+  | { type: "part.created"; part_id: string; part: MoodieMessagePart }
+  | { type: "memory.candidate"; label: string }
+  | { type: "turn.saving"; label: string }
+  | { type: "turn.completed"; label: string; data: MoodieSendResult }
+  | { type: "turn.failed"; label: string; error: string; retryable: boolean }
+  | { type: "turn.cancelled"; label: string };
+
+export type MoodieEngineEvent = Exclude<
+  MoodieRuntimeEvent,
+  | { type: "turn.accepted" }
+  | { type: "memory.candidate" }
+  | { type: "turn.saving" }
+  | { type: "turn.completed" }
+  | { type: "turn.failed" }
+  | { type: "turn.cancelled" }
+>;
+
+export type MoodieStreamEvent = MoodieRuntimeEvent & {
+  version: 2;
+  request_id: string;
+  turn_id: string;
+  sequence: number;
+  timestamp: string;
+};
+
+export interface MoodieTurnActivity {
+  id: string;
+  stage: MoodieTurnStage;
+  label: string;
+  state: "active" | "done" | "error";
+  toolName?: string;
+  durationMs?: number;
+}
 
 export type MoodieMetadataValue = Json | null;
 

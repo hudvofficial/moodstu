@@ -58,10 +58,16 @@ export interface MoodieProviderSettings {
   isLocal: boolean;
 }
 
+export interface MoodieVoiceSettings {
+  hasKey: boolean;
+  model: string;
+}
+
 export interface StudioSettingsAdminData {
   studioInfo: StudioInfo;
   moodieAiSettings: MoodieAiSettings;
   moodieProviderSettings: MoodieProviderSettings;
+  moodieVoiceSettings: MoodieVoiceSettings;
 }
 
 export interface NotificationPreferences {
