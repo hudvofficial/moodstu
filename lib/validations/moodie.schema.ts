@@ -21,6 +21,7 @@ export const moodieMessageSchema = z.object({
   turn_id: z.string().uuid().optional(),
   regenerate_from_message_id: z.string().uuid().optional(),
   edit_from_message_id: z.string().uuid().optional(),
+  continue_from_message_id: z.string().uuid().optional(),
   content: z
     .string()
     .trim()
@@ -43,6 +44,11 @@ export const moodieRenameConversationSchema = z.object({
 export const moodieDeleteConversationSchema = z.object({
   conversation_id: z.string().uuid("Cuộc trò chuyện không hợp lệ"),
   expected_updated_at: z.string().datetime().optional(),
+});
+
+export const moodieDeleteMessageSchema = z.object({
+  conversation_id: z.string().uuid(),
+  message_id: z.string().uuid(),
 });
 
 export const moodieFeedbackSchema = z.object({

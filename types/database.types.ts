@@ -187,6 +187,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attempt_count?: number
           completed_at?: string | null
           conversation_id?: string | null
           error?: string | null
@@ -199,6 +200,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attempt_count?: number
           completed_at?: string | null
           conversation_id?: string | null
           error?: string | null
@@ -268,51 +270,375 @@ export type Database = {
           },
         ]
       }
+      moodie_agent_runs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          confirmation_expires_at: string | null
+          confirmation_token_hash: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string | null
+          heartbeat_at: string | null
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          parent_turn_id: string | null
+          progress: number
+          request: Json
+          requires_confirmation: boolean
+          result: Json | null
+          source_refs: Json
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          voice_session_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          confirmation_expires_at?: string | null
+          confirmation_token_hash?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          heartbeat_at?: string | null
+          kind: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          parent_turn_id?: string | null
+          progress?: number
+          request?: Json
+          requires_confirmation?: boolean
+          result?: Json | null
+          source_refs?: Json
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          voice_session_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          confirmation_expires_at?: string | null
+          confirmation_token_hash?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          conversation_id?: string | null
+          error?: string | null
+          idempotency_key?: string | null
+          heartbeat_at?: string | null
+          kind?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          parent_turn_id?: string | null
+          progress?: number
+          request?: Json
+          requires_confirmation?: boolean
+          result?: Json | null
+          source_refs?: Json
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          voice_session_id?: string | null
+        }
+        Relationships: []
+      }
+      moodie_agent_run_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: number
+          message: string | null
+          payload: Json
+          run_id: string
+          sequence: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: number
+          message?: string | null
+          payload?: Json
+          run_id: string
+          sequence: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: number
+          message?: string | null
+          payload?: Json
+          run_id?: string
+          sequence?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moodie_voice_sessions: {
+        Row: {
+          client_metadata: Json
+          connected_at: string | null
+          conversation_id: string | null
+          created_at: string
+          ended_at: string | null
+          engine: string
+          error: string | null
+          id: string
+          last_event_at: string
+          memory_packet_version: number
+          model: string
+          policy_version: number
+          reconnect_count: number
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          voice: string
+        }
+        Insert: {
+          client_metadata?: Json
+          connected_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          engine?: string
+          error?: string | null
+          id?: string
+          last_event_at?: string
+          memory_packet_version?: number
+          model: string
+          policy_version?: number
+          reconnect_count?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          voice: string
+        }
+        Update: {
+          client_metadata?: Json
+          connected_at?: string | null
+          conversation_id?: string | null
+          ended_at?: string | null
+          engine?: string
+          error?: string | null
+          last_event_at?: string
+          memory_packet_version?: number
+          model?: string
+          policy_version?: number
+          reconnect_count?: number
+          status?: string
+          updated_at?: string
+          voice?: string
+        }
+        Relationships: []
+      }
+      moodie_voice_turns: {
+        Row: {
+          assistant_transcript: string | null
+          completed_at: string | null
+          created_at: string
+          delegated_run_ids: string[]
+          first_assistant_audio_at: string | null
+          first_input_at: string | null
+          first_input_transcript_at: string | null
+          id: string
+          interrupted: boolean
+          metrics: Json
+          playback_started_at: string | null
+          sequence: number
+          session_id: string
+          updated_at: string
+          user_id: string
+          user_transcript: string | null
+        }
+        Insert: {
+          assistant_transcript?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delegated_run_ids?: string[]
+          first_assistant_audio_at?: string | null
+          first_input_at?: string | null
+          first_input_transcript_at?: string | null
+          id?: string
+          interrupted?: boolean
+          metrics?: Json
+          playback_started_at?: string | null
+          sequence: number
+          session_id: string
+          updated_at?: string
+          user_id: string
+          user_transcript?: string | null
+        }
+        Update: {
+          assistant_transcript?: string | null
+          completed_at?: string | null
+          delegated_run_ids?: string[]
+          first_assistant_audio_at?: string | null
+          first_input_at?: string | null
+          first_input_transcript_at?: string | null
+          interrupted?: boolean
+          metrics?: Json
+          playback_started_at?: string | null
+          updated_at?: string
+          user_transcript?: string | null
+        }
+        Relationships: []
+      }
+      moodie_voice_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: number
+          occurred_at: string
+          payload: Json
+          sequence: number
+          session_id: string
+          turn_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: number
+          occurred_at?: string
+          payload?: Json
+          sequence: number
+          session_id: string
+          turn_id?: string | null
+          user_id: string
+        }
+        Update: {
+          event_type?: string
+          occurred_at?: string
+          payload?: Json
+          sequence?: number
+          turn_id?: string | null
+        }
+        Relationships: []
+      }
       moodie_memories: {
         Row: {
           confidence: number
+          consolidated_into_memory_id: string | null
           content: string
           conversation_id: string | null
           created_at: string
+          embedding: Json | null
+          embedding_model: string | null
+          embedding_updated_at: string | null
+          archived_reason: string | null
+          deleted_at: string | null
           expires_at: string | null
           id: string
+          importance: number
           last_confirmed_at: string | null
+          last_used_at: string | null
           memory_type: string
+          predicate: string | null
+          reconfirmation_interval_days: number | null
+          review_after: string | null
           scope: string
           source_message_id: string | null
+          source_message_ids: string[]
+          source_voice_turn_id: string | null
           status: string
+          subject: string | null
+          supersedes_memory_id: string | null
           updated_at: string
+          use_count: number
           user_id: string | null
+          value: Json | null
         }
         Insert: {
           confidence?: number
+          consolidated_into_memory_id?: string | null
           content: string
           conversation_id?: string | null
           created_at?: string
+          embedding?: Json | null
+          embedding_model?: string | null
+          embedding_updated_at?: string | null
+          archived_reason?: string | null
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
+          importance?: number
           last_confirmed_at?: string | null
+          last_used_at?: string | null
           memory_type: string
+          predicate?: string | null
+          reconfirmation_interval_days?: number | null
+          review_after?: string | null
           scope: string
           source_message_id?: string | null
+          source_message_ids?: string[]
+          source_voice_turn_id?: string | null
           status?: string
+          subject?: string | null
+          supersedes_memory_id?: string | null
           updated_at?: string
+          use_count?: number
           user_id?: string | null
+          value?: Json | null
         }
         Update: {
           confidence?: number
+          consolidated_into_memory_id?: string | null
           content?: string
           conversation_id?: string | null
           created_at?: string
+          embedding?: Json | null
+          embedding_model?: string | null
+          embedding_updated_at?: string | null
+          archived_reason?: string | null
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
+          importance?: number
           last_confirmed_at?: string | null
+          last_used_at?: string | null
           memory_type?: string
+          predicate?: string | null
+          reconfirmation_interval_days?: number | null
+          review_after?: string | null
           scope?: string
           source_message_id?: string | null
+          source_message_ids?: string[]
+          source_voice_turn_id?: string | null
           status?: string
+          subject?: string | null
+          supersedes_memory_id?: string | null
           updated_at?: string
+          use_count?: number
           user_id?: string | null
+          value?: Json | null
         }
         Relationships: [
           {
@@ -4464,6 +4790,49 @@ export type Database = {
       }
     }
     Functions: {
+      moodie_jsonb_cosine_similarity: {
+        Args: { a: Json; b: Json }
+        Returns: number
+      }
+      match_moodie_memories: {
+        Args: { p_user_id: string; p_conversation_id?: string | null; p_query_text?: string; p_query_embedding?: Json | null; p_limit?: number }
+        Returns: {
+          id: string
+          scope: string
+          memory_type: string
+          content: string
+          subject: string | null
+          predicate: string | null
+          importance: number
+          updated_at: string
+          use_count: number
+          score: number
+        }[]
+      }
+      finalize_moodie_memory_consolidation: {
+        Args: { p_user_id: string; p_source_ids: string[]; p_content: string; p_value?: Json; p_confidence?: number; p_importance?: number }
+        Returns: string
+      }
+      maintain_moodie_memory_lifecycle: {
+        Args: { p_limit?: number }
+        Returns: { expired_count: number; reconfirm_count: number }[]
+      }
+      claim_moodie_agent_run: {
+        Args: { p_worker_id: string; p_lease_seconds?: number }
+        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
+      }
+      heartbeat_moodie_agent_run: {
+        Args: { p_run_id: string; p_lease_token: string; p_progress?: number | null; p_lease_seconds?: number }
+        Returns: boolean
+      }
+      retry_moodie_agent_run: {
+        Args: { p_run_id: string; p_lease_token: string; p_error: string; p_delay_seconds?: number }
+        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
+      }
+      finish_moodie_agent_run: {
+        Args: { p_run_id: string; p_lease_token: string; p_status: string; p_result?: Json | null; p_error?: string | null; p_source_refs?: Json }
+        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
+      }
       advance_close_task: {
         Args: {
           p_actor_id: string

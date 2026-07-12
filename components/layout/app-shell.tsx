@@ -13,6 +13,7 @@ import { Role } from "@/types/roles";
 import { X } from "lucide-react";
 import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
+import { MobileNavigationProvider } from "@/contexts/mobile-navigation-context";
 import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
 
 const NavigationWarmup = dynamic(
@@ -89,7 +90,8 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   const enableNavigationWarmup = process.env.NEXT_PUBLIC_ENABLE_NAVIGATION_WARMUP === "true";
 
   return (
-    <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
+    <MobileNavigationProvider onOpen={() => setIsMobileMenuOpen(true)}>
+      <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
       {enableNavigationWarmup && <NavigationWarmup role={role} />}
       <NavigationProgress />
 
@@ -170,6 +172,7 @@ export function AppShell({ children, role, userName }: AppShellProps) {
           </ScrollContainerProvider>
         </HeaderSlotsProvider>
       </div>
-    </div>
+      </div>
+    </MobileNavigationProvider>
   );
 }

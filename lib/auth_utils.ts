@@ -524,11 +524,11 @@ export async function requireSettingsAdminAccess(
   const employee = await getEmployeeByAuthUserId(supabase, userId);
 
   if (!employee || !isActiveEmployeeContext(employee)) {
-    throw new Error("KhĂ´ng tĂ¬m tháº¥y thĂ´ng tin nhĂ¢n viĂªn");
+    throw new Error("Không tìm thấy thông tin nhân viên");
   }
 
   if (!canManageSettingsRole(employee.role)) {
-    throw new Error("Báº¡n khĂ´ng cĂ³ quyá»n quáº£n trá»‹ cĂ i Ä‘áº·t");
+    throw new Error("Bạn không có quyền quản trị cài đặt");
   }
 
   return { employee, role: normalizeRole(employee.role) };
