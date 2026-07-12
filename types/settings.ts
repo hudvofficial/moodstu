@@ -54,6 +54,7 @@ export interface MoodieProviderSettings {
   model: string;
   embeddingModel?: string;
   hasKey: boolean;
+  keyMasked?: string;
   baseUrl?: string;
   isLocal: boolean;
 }
@@ -71,6 +72,7 @@ export interface MoodieBraveSettings {
 
 export interface MoodieVoiceSettings {
   hasKey: boolean;
+  keyMasked?: string;
   model: string;
 }
 

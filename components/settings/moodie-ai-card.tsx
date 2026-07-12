@@ -411,12 +411,28 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
 
           <div>
               <label className="label-base">API Key provider</label>
+              {settings.hasKey ? (
+                <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-success/20 bg-success/5 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-success">Key đang được sử dụng</p>
+                    <p className="mt-0.5 font-mono text-xs text-text-secondary">
+                      {settings.keyMasked || "Đã lưu an toàn"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-success/10 px-2 py-1 text-xs font-medium text-success">
+                    Đã cấu hình
+                  </span>
+                </div>
+              ) : null}
+              <p className="mb-1 text-xs font-medium text-text-secondary">
+                {settings.hasKey ? "Thay bằng key mới" : "Nhập API key"}
+              </p>
               <div className="relative">
                 <Input
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(event) => setApiKey(event.target.value)}
-                  placeholder={settings.hasKey ? "Đang có key đã lưu; nhập key mới để thay đổi" : "Nhập nếu gateway yêu cầu (sk-... hoặc key nội bộ)"}
+                  placeholder={settings.hasKey ? "Để trống nếu muốn giữ nguyên key hiện tại" : "Nhập nếu gateway yêu cầu (sk-... hoặc key nội bộ)"}
                   className="pr-10"
                 />
                 <Button
@@ -429,7 +445,9 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
                   {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
               </div>
-            <p className="mt-1 text-xs text-text-muted">Một số gateway localhost vẫn yêu cầu API key. Nút kiểm tra sẽ xác nhận chính xác.</p>
+            <p className="mt-1 text-xs text-text-muted">
+              Vì bảo mật, Moodie chỉ hiển thị 4 ký tự cuối. Nhấn “Lưu & kiểm tra” để xác nhận key thực sự hoạt động.
+            </p>
           </div>
         </div>
       )}
@@ -644,12 +662,28 @@ function MoodieVoiceSection({
         <div className="space-y-3 border-t border-border p-3">
           <div>
             <label className="label-base">Google API key cho giọng nói</label>
+            {voiceSettings.hasKey ? (
+              <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-success/20 bg-success/5 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-success">Key giọng nói đang được sử dụng</p>
+                  <p className="mt-0.5 font-mono text-xs text-text-secondary">
+                    {voiceSettings.keyMasked || "Đã lưu an toàn"}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-success/10 px-2 py-1 text-xs font-medium text-success">
+                  Đã cấu hình
+                </span>
+              </div>
+            ) : null}
+            <p className="mb-1 text-xs font-medium text-text-secondary">
+              {voiceSettings.hasKey ? "Thay bằng key mới" : "Nhập Google API key"}
+            </p>
             <div className="relative">
               <Input
                 type={showKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(event) => setApiKey(event.target.value)}
-                placeholder={voiceSettings.hasKey ? "Đang có khóa giọng nói đã lưu; nhập khóa mới để thay đổi" : "AIza..."}
+                placeholder={voiceSettings.hasKey ? "Để trống nếu muốn giữ nguyên key hiện tại" : "AIza..."}
                 className="pr-10"
                 disabled={disabled}
               />
@@ -665,7 +699,7 @@ function MoodieVoiceSection({
               </Button>
             </div>
             <p className="mt-1 text-xs text-text-muted">
-              {voiceSettings.hasKey ? "Đang có khóa giọng nói đã lưu" : "Chưa có khóa giọng nói"}. Khóa này tách riêng khỏi provider chat chính, luôn dùng Google Gemini cho STT.
+              {voiceSettings.hasKey ? `Đã lưu key ${voiceSettings.keyMasked || "được mã hóa"}` : "Chưa có khóa giọng nói"}. Khóa này tách riêng khỏi provider chat chính và chỉ hiển thị 4 ký tự cuối.
             </p>
           </div>
 

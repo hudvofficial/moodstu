@@ -66,11 +66,13 @@ export async function getMoodieVoiceConfig(): Promise<MoodieVoiceConfig> {
  */
 export async function getMoodieVoiceSnapshot(): Promise<{
   hasKey: boolean;
+  keyMasked?: string;
   model: string;
 }> {
   const config = await getMoodieVoiceConfig();
   return {
     hasKey: Boolean(config.apiKey),
+    keyMasked: config.apiKey ? `••••••••${config.apiKey.slice(-4)}` : undefined,
     model: config.model,
   };
 }

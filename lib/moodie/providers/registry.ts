@@ -142,6 +142,7 @@ export async function getMoodieProviderSnapshot(): Promise<{
   model: string;
   embeddingModel?: string;
   hasKey: boolean;
+  keyMasked?: string;
   baseUrl?: string;
   isLocal: boolean;
 }> {
@@ -154,6 +155,7 @@ export async function getMoodieProviderSnapshot(): Promise<{
     model: config.model,
     embeddingModel: config.embeddingModel,
     hasKey: !!(config.apiKey),
+    keyMasked: config.apiKey ? `••••••••${config.apiKey.slice(-4)}` : undefined,
     baseUrl: config.baseUrl,
     isLocal,
   };
