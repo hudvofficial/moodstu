@@ -98,6 +98,16 @@ check-rpc-items.*
 
 # AI workflow local state
 .hermes/
+.agents/
+.codex/
+.engram/
+.codegraph/daemon.pid
+
+# Codex/dev-session logs and temporary helpers
+/.codex-*.log
+/.codex-*.json
+/.dev-server*.log
+/transcribe.py
 
 # temporary visual regression test (not a permanent spec)
 tests/e2e/visual-temp.spec.ts

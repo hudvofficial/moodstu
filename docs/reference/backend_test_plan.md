@@ -18,7 +18,7 @@
 
 3. **Schedules & Attendance**
    - Book a schedule, assign shifts, and log attendance with photos/locations; verify triggers update `monthly_salaries` and `attendance_summary`.
-   - Move schedule to different status (e.g., `–ang l‡m` ? `Ho‡n th‡nh`) and confirm KPI updates for dashboard charts.
+   - Move schedule to a different status (e.g., `ƒêang l√†m` ‚Üí `Ho√†n th√†nh`) and confirm KPI updates for dashboard charts.
 
 4. **CRM/Customers**
    - Create customer + CRM lead, convert lead to contract, and record follow-up notifications. Ensure `crm_leads` view surfaces counts.

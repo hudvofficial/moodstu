@@ -1109,7 +1109,7 @@ inventoryHistory: (id: string) => `inventory:${id}:history`,
 
 ### 22.6 Rủi ro/gotcha cụ thể
 
-- `app/(protected)/inventory/error.tsx` đang có chuỗi tiếng Việt bị mojibake trong source (ví dụ comment và fallback message hiển thị dạng `CĂ³ lá»—i...` khi đọc file); nếu error boundary render thật, UI có thể hiện chữ lỗi sai encoding.
+- `app/(protected)/inventory/error.tsx` từng có chuỗi tiếng Việt bị mojibake trong source (ví dụ fallback `Có lỗi...` bị encode sai); nếu error boundary render thật mà chưa được sửa, UI có thể hiện chữ lỗi sai encoding.
 - `createInventoryContractAddonSale` phụ thuộc migration RPC; code ném lỗi rõ tại `app/actions/inventory-mutations.ts:480` nếu `create_contract_inventory_addon_sale_atomic` chưa được chạy, nên môi trường DB lệch migration sẽ làm bán thêm vật tư fail dù UI hợp lệ.
 - Tồn kho chỉ an toàn khi đi qua RPC atomic. Nếu thêm mutation mới update trực tiếp `inventory_items.current_stock` ngoài `inventory_stock_in_atomic`/`inventory_stock_out_atomic`, sẽ bỏ qua `FOR UPDATE`, transaction log và kiểm tra thiếu tồn trong migration.
 - Cache inventory đang pha SWR và React Query: approval requests invalidate bằng `queryClient.invalidateQueries`, còn list/history dùng SWR/path revalidate. Nếu mutation duyệt fulfillment chỉ revalidate path mà không invalidate `inventoryKeys.approvalsList`, tab approval có thể giữ data cũ cho tới manual refresh `approval-requests-tab.tsx:112`.

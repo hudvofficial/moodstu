@@ -332,7 +332,7 @@ export default function ContractDetailClient({
   const isCancelled = contract?.status === "da_huy";
   const headerContractId = contract?.id;
   const headerContractCode = contract?.contract_code;
-  const headerCustomerName = contract?.customers?.full_name || "KhĂ¡ch hĂ ng";
+  const headerCustomerName = contract?.customers?.full_name || "Khách hàng";
 
   const applyTaskAddedOptimistic = useCallback((task: WorkTask) => {
     if (!task?.id || !task.event_id) { void revalidateContractDetailCaches(queryClient, id); return; }

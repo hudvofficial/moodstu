@@ -19,6 +19,7 @@ const config = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^server-only$': '<rootDir>/tests/mocks/server-only.ts',
   },
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

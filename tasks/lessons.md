@@ -116,18 +116,18 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 99. **LUÔN CHECK ĐIỀU KIỆN TRƯỚC KHI HIỂN THỊ TOGGLE EXTERNAL** — UI toggle liên quan đến cấu hình hệ thống (như Google Sync) BẮT BUỘC phải được evaluate dựa trên state Connect thực tế từ database (`google_calendar_auth`). Đừng "đóng mở vô điều kiện" rồi thả API fail ở dưới server. Mọi External Toggle đều phải có Gate check SWR/server actions.
 
 ### Absolute Bounding Pattern (CSS Grid Height Lock) 
-- **Context**: Khi d�ng CSS Grid \minmax(0, 1fr)\ trong Flex container, c�c tracking sizes (chi?u cao c?t/h�ng) ��i khi b? 'b�ng' (stretch) l�n b?t ch?p \min-h-0\, do tr?nh duy?t t? n?i suy intrinsic min-content height. 
-- **Fix**: �p d?ng **Absolute Bounding Pattern**. C?u tr�c: 
+- **Context**: Khi dùng CSS Grid `minmax(0, 1fr)` trong Flex container, các track size (chiều cao cột/hàng) đôi khi bị "bùng" (stretch) lên bất chấp `min-h-0`, do trình duyệt tự nội suy intrinsic min-content height.
+- **Fix**: Áp dụng **Absolute Bounding Pattern**. Cấu trúc:
   1. Root: \<div className="flex-1 relative min-h-0">\ 
   2. Child: \<div className="absolute inset-0 grid...">\ 
-  => T�ch Grid ra kh?i normal flow c?a Flexbox, �p bu?c Grid ph?i k? th?a chi?u cao v?t l? 100% t?nh ti?n, v� hi?u ho� ho�n to�n \min-content push height\.
+  => Tách Grid khỏi normal flow của Flexbox, ép Grid kế thừa chiều cao vật lý 100% từ container và vô hiệu hóa hoàn toàn `min-content push height`.
 
 
 ## Lesson: NO HOTFIXING (Rule V3)
 - Date: 2026-04-08
 - Trigger: User reported layout squeezing on DatePicker.
 - Mistake: Jumped straight to code (replaced Grid with Flex) without issuing a Plan for approval.
-- Rule Enforced: 'TUY?T �?I kh�ng fix ch?y... Plan d� ng?n 5 d?ng c?ng OK, nh�ng PH?I C� v� PH?I ��?C DUY?T'.
+- Rule Enforced: "TUYỆT ĐỐI không fix chay... Plan dù ngắn 5 dòng cũng OK, nhưng PHẢI CÓ và PHẢI ĐƯỢC DUYỆT".
 - Action: Always create a Phase X plan, request approval securely, then only execute after the user types '/code phase-X'.
 
 ## Lesson: NO HOTFIXING LINTER RULES WITHOUT PLAN (Rule V3)
@@ -145,22 +145,23 @@ Ghi lại bài học sau mỗi lần mắc lỗi để không lặp lại.
 - User Correction: "nếu là .git ảo thì mày hãy tiến hành bằng mọi cách loại bỏ nó" (If it's a virtual/fake .git, you must proceed by all means to eliminate it).
 - Action: When detecting an outer/fake `.git` directory polluting the workspace or VS Code Source Control, IMMEDIATELY and AUTONOMOUSLY run the deletion command (`Remove-Item -Recurse -Force path/.git`) without asking for manual intervention from the user. Explain it immediately after taking the action.
 
-- V2 Finance UI: Kh�ng khai b�o l?p l?i (WET) c�c block UI gi?ng nhau. B?t bu?c map data qua m?ng config. Nh? ki?m tra k? class design system (d�ng 	ext-text-primary, kh�ng d�ng l?n 	ext-text).
+- V2 Finance UI: Không khai báo lặp lại (WET) các block UI giống nhau. Bắt buộc map data qua mảng config. Nhớ kiểm tra kỹ class design system (dùng `text-text-primary`, không dùng lẫn `text-text`).
 
-- V2 Architecture Check: Tuy?t �?i KH�NG t? s�ng t?o component UI (nh� Bar, Card) khi ch�a check c�c ph�n h? Gold Standard (nh� /contract, /inventory). Ph?i tr�ch xu?t v� t�i s? d?ng Shared Components (T?t c? common pattern �?u c� ? components/ui/, v� d?: StatsBar, FAB, TabsFilter).
+- V2 Architecture Check: Tuyệt đối KHÔNG tự sáng tạo component UI (như Bar, Card) khi chưa kiểm tra các phân hệ Gold Standard (như `/contracts`, `/inventory`). Phải trích xuất và tái sử dụng Shared Components; các common pattern đều nằm trong `components/ui/`, ví dụ StatsBar, FAB, TabsFilter.
 
-- V2 ENFORCEMENT STANDARD: T� duy Inline Styling v� Hardcode l� KHUY?T T?T. B?t bu?c 100% s? d?ng V2 Design Tokens (Tailwind utility classes, CSS Variables). Qu?n l? state data B?T BU?C b?ng SWR Patterns. M?i logic ph?c t?p, heavy-computation ph?i t?ng xu?ng Supabase RPCs (tr�nh load JS/N+1 queries). Code ph?i TypeScript Strict mode (kh�ng ny, kh�ng ignore l?i). B?t k? ai vi ph?m rule n�y s? ph� v? ki?n tr�c h? th?ng.
+- V2 ENFORCEMENT STANDARD: Tư duy Inline Styling và Hardcode là KHUYẾT TẬT. Bắt buộc 100% sử dụng V2 Design Tokens (Tailwind utility classes, CSS Variables). Quản lý state data BẮT BUỘC bằng SWR Patterns. Mọi logic phức tạp, heavy-computation phải đẩy xuống Supabase RPCs (tránh load JS/N+1 queries). Code phải ở TypeScript Strict mode (không `any`, không ignore lỗi). Bất kỳ ai vi phạm rule này sẽ phá vỡ kiến trúc hệ thống.
 ## Finance / Dashboard Hardening (2026-04-13)
 
 94. **RESPONSIVE BREAKPOINT PURGE (TAILWIND V4)**: Đừng bao giờ dùng `md:` cho layout quan trọng nếu dự án đã chuẩn hóa dùng `lg:`. Tailwind v4 sẽ purge `md:block` nếu file đó là component duy nhất sử dụng, khiến element bị ẩn vĩnh viễn (lỗi table biến mất). Luôn dùng `lg:block/hidden` theo Gold Standard.
 95. **ICON-BOX & SEMANTIC COLORS**: Tuyệt đối không dùng raw Tailwind colors (`blue-500`, `orange-500`) cho icon-box. Chỉ dùng semantic tokens (`primary`, `info`, `warning`, `success`, `error`, `accent`) với opacity chuẩn `/10`. Raw strings sẽ làm gãy tính đồng nhất của Design System.
 96. **KHÔNG CÓ CLASS `text-h4`**: Hệ thống typography chỉ định nghĩa đến `text-h3`. Cho các title bên trong drawer/card, hãy dùng `section-heading` (14px/600).
-97. **TEST BEFORE DONE (AWF GATE -1)**: Tuy?t �?i kh�ng ��?c g? 'Done' n?u ch�a ch?y /test, npm run build, ho?c eslint �? x�c nh?n kh�ng c?n l?i c� ph�p (nh� unused imports). Code xong ph?i t? ch?y 
-px eslint FILE �? qua Visual & Syntax Gate tr�?c khi b�n giao.
+97. **TEST BEFORE DONE (AWF GATE -1)**: Tuyệt đối không được ghi "Done" nếu chưa chạy test, `npm run build` hoặc ESLint để xác nhận không còn lỗi cú pháp như unused imports. Code xong phải tự chạy `npx eslint FILE` để qua Visual & Syntax Gate trước khi bàn giao.
 
-### C?n th?n Foreign Key Constraint v?i created_by`n- **L?i:** \insert or update on table violates foreign key constraint customers_created_by_fkey\`n- **Nguy�n nh�n:** G�n \created_by\ b?ng \employee.id\ (ID c?a b?ng \employees\) thay v? \userId\ (ID chu?n c?a \uth.users\ l?y t? \withAuth\).
-- **Gi?i ph�p:** �?i v?i c�c tr�?ng h? th?ng nh� \created_by\, \updated_by\ lu�n s? d?ng \userId\.
-98. **BREAKPOINT-BASED SPACING (MACRO VS MICRO)**: �p d?ng tri?t l? co gi?n kh�ng gian (Breakpoint-based Density). Macro Layout (khung trang, padding, gap, data table) PH?I co gi?n theo breakpoint (VD: \px-4 2xl:px-6\, table row \h-14 2xl:h-16\). Micro Components (Button, Input, Badge, Text body) TUY?T �?I GI? C? �?NH (VD: \h-10\, \	ext-sm\) �? b?o to�n click target v� t? l? typography chu?n m?c.
+### Cẩn thận Foreign Key Constraint với `created_by`
+- **Lỗi:** `insert or update on table violates foreign key constraint customers_created_by_fkey`.
+- **Nguyên nhân:** Gán `created_by` bằng `employee.id` (ID của bảng `employees`) thay vì `userId` (ID chuẩn của `auth.users` lấy từ `withAuth`).
+- **Giải pháp:** Đối với các trường hệ thống như `created_by`, `updated_by`, luôn sử dụng `userId`.
+98. **BREAKPOINT-BASED SPACING (MACRO VS MICRO)**: Áp dụng triết lý co giãn không gian (Breakpoint-based Density). Macro Layout (khung trang, padding, gap, data table) PHẢI co giãn theo breakpoint, ví dụ `px-4 2xl:px-6`, table row `h-14 2xl:h-16`. Micro Components (Button, Input, Badge, text body) TUYỆT ĐỐI GIỮ CỐ ĐỊNH, ví dụ `h-10`, `text-sm`, để bảo toàn click target và tỷ lệ typography chuẩn mực.
 
 99. **SAFARI DOUBLE SAFE-AREA PADDING BUG**: Lỗi double padding cực lớn ở đáy màn hình iOS Safari khi dùng `100dvh` kết hợp `env(safe-area-inset-bottom)`. Safari không tự reset `env()` về 0 khi `100dvh` đã co lên né tab bar. **Cách fix:** Khai báo SSOT `--safe-area-bottom: env(safe-area-inset-bottom)`. Chỉ override thành `0px` thông qua query khắt khe: `@media (pointer: coarse) and (max-width: 1023px) and (display-mode: browser)`. KHÔNG override toàn cục để bảo vệ iPad (tab bar ở trên) và PWA (`standalone`).
 

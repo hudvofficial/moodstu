@@ -61,7 +61,7 @@ Impact: the dashboard cannot be used for operational decisions because the visib
 
 ### P0 - Text Encoding and Localization Defects
 
-The dashboard source contains mojibake strings such as `Tá»•ng quan` and related Vietnamese copy corruption.
+The dashboard source previously contained a corrupted encoding of `Tổng quan` and related Vietnamese copy.
 
 Impact: visible UI quality is below release standard and blocks a high final score.
 

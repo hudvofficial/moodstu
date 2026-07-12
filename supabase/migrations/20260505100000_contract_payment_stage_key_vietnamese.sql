@@ -8,19 +8,24 @@ IMMUTABLE
 SET search_path TO public
 AS $$
 DECLARE
-  v_raw text := lower(btrim(COALESCE(p_stage, '')));
+  v_raw text := btrim(COALESCE(p_stage, ''));
   v_key text;
 BEGIN
   IF v_raw = '' THEN
     RETURN NULL;
   END IF;
 
+  -- Preserve support for two common legacy encodings of đ/Đ without storing
+  -- mojibake literals in the migration source.
+  v_raw := replace(v_raw, chr(196) || chr(8216), 'đ');
+  v_raw := replace(v_raw, chr(196) || chr(144), 'Đ');
+  v_raw := lower(v_raw);
+
   v_key := translate(
     v_raw,
     'áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ',
     'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd'
   );
-  v_key := replace(v_key, 'Ä‘', 'd');
   v_key := regexp_replace(v_key, '[^a-z0-9]+', '_', 'g');
   v_key := regexp_replace(v_key, '^_+|_+$', '', 'g');
 

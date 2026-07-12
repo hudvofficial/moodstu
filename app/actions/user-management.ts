@@ -110,7 +110,7 @@ export async function updateUserRole(authUserId: string, newRole: string) {
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error(parsedId.error.issues[0]?.message);
     if (parsedId.data === userId) {
-      throw new Error("KhĂ´ng thá»ƒ tá»± thay Ä‘á»•i quyá»n cá»§a chĂ­nh báº¡n");
+      throw new Error("Không thể tự thay đổi quyền của chính bạn");
     }
 
     const parsedRole = roleSchema.safeParse(newRole);
@@ -217,7 +217,7 @@ export async function unlinkUserFromEmployee(authUserId: string) {
     if (!parsedId.success) throw new Error("Auth ID không hợp lệ");
 
     if (parsedId.data === userId) {
-      throw new Error("KhĂ´ng thá»ƒ há»§y liĂªn káº¿t tĂ i khoáº£n cá»§a chĂ­nh báº¡n");
+      throw new Error("Không thể hủy liên kết tài khoản của chính bạn");
     }
 
     const { data: employee, error: employeeError } = await supabase

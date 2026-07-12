@@ -62,7 +62,6 @@ function buildSupabaseMock(result: DbResult = { data: null, error: null }) {
   const update = jest.fn().mockReturnValue({ eq });
   const from = jest.fn().mockReturnValue({ update });
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     client: { from } as any,
     mocks: { from, update, eq },
   };
@@ -163,7 +162,7 @@ describe("updateClientNote()", () => {
       );
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toMatch(/ID anh khong hop le/i);
+        expect(result.error).toMatch(/ID ảnh không hợp lệ/i);
       }
     });
 
@@ -206,7 +205,6 @@ describe("updateClientNote()", () => {
     it("gọi withAuth và lưu note thành công", async () => {
       const { client, mocks } = buildSupabaseMock();
       (withAuth as jest.Mock).mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async (cb: (s: any, u: string) => Promise<null>) => {
           const data = await cb(client, "admin-user-1");
           return { success: true as const, data };
