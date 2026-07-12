@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { withAuth, requireMoodieAccess } from "@/lib/auth_utils";
 import { fireAuditLog, logError } from "@/lib/audit";
 import { MOODIE_LOCK_WINDOW_MS } from "@/lib/moodie/catalog";
@@ -14,16 +15,22 @@ import {
 } from "@/lib/moodie/records";
 import { runMoodieEngine } from "@/lib/moodie/engine";
 import { buildMoodieConversationSummary } from "@/lib/moodie/conversation-summary";
-import { extractMoodieMemoryCandidate } from "@/lib/moodie/memory-extractor";
+import {
+  curateMoodieMemories,
+  curateMoodieMemoriesWithModel,
+} from "@/lib/moodie/memory-curator";
 import { createPendingMoodieMemory } from "@/lib/moodie/memory-store";
 import {
   moodieDeleteConversationSchema,
+  moodieDeleteMessageSchema,
   moodieFeedbackSchema,
   moodieMessageSchema,
   moodieRenameConversationSchema,
 } from "@/lib/validations/moodie.schema";
 import type { Database, Json } from "@/types/database.types";
-import type { MoodieEngineEvent, MoodieHistoryMessage } from "@/types/moodie";
+import type { MoodieActivityEntry, MoodieEngineEvent, MoodieHistoryMessage, MoodieMessageSourceV2 } from "@/types/moodie";
+import { mergeMoodieSources, normalizeMoodieSources, reduceMoodieActivityHistory } from "@/lib/moodie/response-metadata";
+import { collectMoodieSubtreeIds, findMoodieFallbackLeaf } from "@/lib/moodie/branch-tree";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -175,7 +182,7 @@ async function lockExistingConversation(
     .eq("id", conversationId)
     .eq("user_id", userId)
     .eq("updated_at", current.updated_at || "")
-    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, version")
+    .select("id, user_id, title, last_message_preview, created_at, updated_at, locked_until, locked_by, summary, summary_updated_at, version, active_leaf_message_id")
     .single();
 
   const lockSetupError = asMoodieSetupError(lockError);
@@ -256,18 +263,40 @@ async function fetchConversationHistory(
 export async function sendMoodieMessage(
   rawInput: unknown,
   emit?: (event: MoodieEngineEvent) => void,
+  signal?: AbortSignal,
 ) {
   return withAuth(async (supabase, userId) => {
+    const throwIfAborted = () => {
+      if (signal?.aborted) throw new DOMException("Đã dừng phản hồi", "AbortError");
+    };
+    throwIfAborted();
     const parsed = moodieMessageSchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "D\u1eef li\u1ec7u kh\u00f4ng h\u1ee3p l\u1ec7");
 
-    const { role } = await requireMoodieAccess(supabase, userId);
+    const { employee, role } = await requireMoodieAccess(supabase, userId);
     let prompt = parsed.data.content.trim();
     let turnAttachments = parsed.data.attachments;
     let turnContexts = parsed.data.contexts;
     const requestId = parsed.data.request_id || crypto.randomUUID();
     const turnId = parsed.data.turn_id || crypto.randomUUID();
     let conversation: ConversationRow | null = null;
+    let activityHistory: MoodieActivityEntry[] = [];
+    let sourcesV2: MoodieMessageSourceV2[] = [];
+    const emitWithMetadata = (event: MoodieEngineEvent) => {
+      const timestamp = new Date().toISOString();
+      const eventSources = event.type === "tool.completed"
+        ? normalizeMoodieSources(event.sources, event.tool_run_id)
+        : [];
+      sourcesV2 = mergeMoodieSources(sourcesV2, eventSources);
+      activityHistory = reduceMoodieActivityHistory(
+        activityHistory,
+        event,
+        timestamp,
+        turnId,
+        eventSources.map((source) => source.id),
+      );
+      emit?.(event);
+    };
 
     try {
       conversation = parsed.data.conversation_id
@@ -284,7 +313,26 @@ export async function sendMoodieMessage(
       if (turnError) throw new Error(`Kh\u00f4ng th\u1ec3 kh\u1edfi t\u1ea1o l\u01b0\u1ee3t Moodie: ${turnError.message}`);
 
       let userMessage: { id: string } | null = null;
-      if (parsed.data.edit_from_message_id) {
+      if (parsed.data.continue_from_message_id) {
+        const { data: sourceAssistant, error: sourceAssistantError } = await supabase.from("ai_messages")
+          .select("id")
+          .eq("id", parsed.data.continue_from_message_id)
+          .eq("conversation_id", conversation.id)
+          .eq("role", "assistant")
+          .single();
+        if (sourceAssistantError || !sourceAssistant) throw new Error("Không tìm thấy câu trả lời để tiếp tục");
+        const { data: continuationUser, error: continuationError } = await supabase.from("ai_messages").insert({
+          conversation_id: conversation.id,
+          role: "user",
+          content: prompt,
+          parent_message_id: sourceAssistant.id,
+          request_id: requestId,
+          status: "completed",
+          metadata: { provider: "user", continuation: true, attachments: [], contexts: [] },
+        }).select("id").single();
+        if (continuationError || !continuationUser) throw new Error(`Không thể tạo lượt tiếp tục: ${continuationError?.message || "Unknown"}`);
+        userMessage = continuationUser;
+      } else if (parsed.data.edit_from_message_id) {
         const { data: originalUser, error: originalUserError } = await supabase.from("ai_messages")
           .select("id, parent_message_id, metadata")
           .eq("id", parsed.data.edit_from_message_id)
@@ -346,6 +394,7 @@ export async function sendMoodieMessage(
 
       const history = await fetchConversationHistory(supabase, conversation.id, userMessage?.id);
 
+      throwIfAborted();
       const result = await runMoodieEngine({
         supabase,
         role,
@@ -356,19 +405,36 @@ export async function sendMoodieMessage(
         conversationSummary: conversation.summary,
         attachments: turnAttachments,
         contexts: turnContexts,
-        emit,
+        userContext: {
+          id: employee.id,
+          fullName: employee.full_name,
+          email: employee.email,
+          department: employee.department,
+          position: employee.position,
+          role,
+        },
+        emit: emitWithMetadata,
+        signal,
       });
+      throwIfAborted();
+      emitWithMetadata({ type: "turn.saving", label: "Đang lưu câu trả lời" });
 
       const { count: siblingCount } = await supabase.from("ai_messages")
         .select("id", { count: "exact", head: true })
         .eq("parent_message_id", userMessage?.id || "")
         .eq("role", "assistant");
 
+      throwIfAborted();
       const { data: assistantMessage, error: assistantMessageError } = await supabase.from("ai_messages").insert({
         conversation_id: conversation.id,
         role: "assistant",
         content: result.content,
-        metadata: result.metadata,
+        metadata: {
+          ...result.metadata,
+          response_ui_version: 2,
+          activity_history: activityHistory,
+          sources_v2: sourcesV2,
+        },
         parent_message_id: userMessage?.id || null,
         revision: (siblingCount || 0) + 1,
         request_id: requestId,
@@ -383,12 +449,23 @@ export async function sendMoodieMessage(
         ...history,
         { role: "assistant", content: result.content },
       ], conversation.summary);
-      const memoryCandidate = userMessage && !parsed.data.regenerate_from_message_id && !parsed.data.edit_from_message_id
-        ? extractMoodieMemoryCandidate({ prompt, conversationId: conversation.id, sourceMessageId: userMessage.id })
+      const memoryInput = userMessage && !parsed.data.regenerate_from_message_id && !parsed.data.edit_from_message_id && !parsed.data.continue_from_message_id
+        ? { prompt, conversationId: conversation.id, sourceMessageId: userMessage.id }
         : null;
-      const memoryProposed = memoryCandidate
-        ? await createPendingMoodieMemory({ supabase, userId, candidate: memoryCandidate })
-        : false;
+      const explicitMemoryCandidates = memoryInput ? curateMoodieMemories(memoryInput) : [];
+      const memoryResults = await Promise.all(explicitMemoryCandidates.map((candidate) => createPendingMoodieMemory({ supabase, userId, candidate })));
+      const memoryProposed = memoryResults.some(Boolean);
+
+      if (memoryInput && explicitMemoryCandidates.length === 0) {
+        after(async () => {
+          const inferredCandidates = await curateMoodieMemoriesWithModel(memoryInput);
+          await Promise.all(inferredCandidates.map((candidate) => createPendingMoodieMemory({
+            supabase,
+            userId,
+            candidate,
+          })));
+        });
+      }
 
       await unlockConversation(supabase, conversation.id, userId, {
         title: conversation.title || deriveConversationTitleFromPrompt(prompt),
@@ -428,9 +505,10 @@ export async function sendMoodieMessage(
         memoryProposed,
       };
     } catch (error) {
+      const cancelled = signal?.aborted || (error instanceof DOMException && error.name === "AbortError");
       try {
         await supabase.from("ai_turns").update({
-          status: "failed",
+          status: cancelled ? "cancelled" : "failed",
           error: error instanceof Error ? error.message : String(error),
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -471,7 +549,7 @@ export async function submitMoodieFeedback(rawInput: unknown) {
     if (!conversation) throw new Error("Kh\u00f4ng t\u00ecm th\u1ea5y h\u1ed9i tho\u1ea1i");
 
     const { data: message } = await supabase.from("ai_messages")
-      .select("id")
+      .select("id, metadata")
       .eq("id", parsed.data.message_id)
       .eq("conversation_id", conversation.id)
       .eq("role", "assistant")
@@ -487,7 +565,59 @@ export async function submitMoodieFeedback(rawInput: unknown) {
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,message_id" });
     if (error) throw new Error(`Kh\u00f4ng th\u1ec3 l\u01b0u feedback: ${error.message}`);
+
+    const currentMetadata = message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
+      ? message.metadata
+      : {};
+    await supabase.from("ai_messages").update({
+      metadata: {
+        ...currentMetadata,
+        feedback: { rating: parsed.data.rating, updated_at: new Date().toISOString() },
+      },
+    }).eq("id", message.id).eq("conversation_id", conversation.id);
+
     return { message_id: message.id, rating: parsed.data.rating };
+  });
+}
+
+export async function deleteMoodieMessage(rawInput: unknown) {
+  return withAuth(async (supabase, userId) => {
+    const parsed = moodieDeleteMessageSchema.safeParse(rawInput);
+    if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
+    await requireMoodieAccess(supabase, userId);
+
+    const { data: conversation } = await supabase.from("ai_conversations")
+      .select("id, active_leaf_message_id")
+      .eq("id", parsed.data.conversation_id)
+      .eq("user_id", userId)
+      .single();
+    if (!conversation) throw new Error("Không tìm thấy hội thoại");
+
+    const { data: rows, error: rowsError } = await supabase.from("ai_messages")
+      .select("id, parent_message_id, role, created_at")
+      .eq("conversation_id", conversation.id);
+    if (rowsError) throw new Error(`Không thể tải cây tin nhắn: ${rowsError.message}`);
+    const target = rows?.find((row) => row.id === parsed.data.message_id);
+    if (!target) throw new Error("Không tìm thấy tin nhắn cần xóa");
+
+    const subtree = collectMoodieSubtreeIds(rows || [], target.id);
+    const fallbackLeafId = findMoodieFallbackLeaf(rows || [], target.id, subtree);
+
+    const { error: deleteError } = await supabase.from("ai_messages").delete().in("id", [...subtree]).eq("conversation_id", conversation.id);
+    if (deleteError) throw new Error(`Không thể xóa tin nhắn: ${deleteError.message}`);
+
+    const detailBeforeUpdate = await fetchConversationDetail(supabase, userId, conversation.id);
+    const lastMessage = detailBeforeUpdate.messages.at(-1);
+    const { error: updateError } = await supabase.from("ai_conversations").update({
+      active_leaf_message_id: fallbackLeafId,
+      last_message_preview: lastMessage?.content ? excerptText(lastMessage.content) : null,
+      version: (detailBeforeUpdate.version || 1) + 1,
+      updated_at: new Date().toISOString(),
+    }).eq("id", conversation.id).eq("user_id", userId);
+    if (updateError) throw new Error(`Không thể cập nhật hội thoại sau khi xóa: ${updateError.message}`);
+
+    revalidatePath("/moodie");
+    return fetchConversationDetail(supabase, userId, conversation.id);
   });
 }
 

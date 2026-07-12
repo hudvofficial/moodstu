@@ -5,6 +5,9 @@
   expectsToolUse: boolean;
   expectedSignals: string[];
   expectedAgentId?: string;
+  expectedSkillId?: string;
+  expectedPartTypes?: string[];
+  requiresEvidenceComplete?: boolean;
 };
 
 export const MOODIE_REGRESSION_SUITE: MoodieRegressionCase[] = [
@@ -15,6 +18,17 @@ export const MOODIE_REGRESSION_SUITE: MoodieRegressionCase[] = [
     expectsToolUse: false,
     expectedSignals: ["direct_answer", "identity_moodie"],
     expectedAgentId: "studio_advisor",
+  },
+  {
+    id: "studio_daily_brief",
+    prompt: "Tình hình studio hiện tại thế nào?",
+    expectedIntent: "crm_calendar_ops",
+    expectsToolUse: true,
+    expectedSignals: ["get_team_summary"],
+    expectedAgentId: "operations_assistant",
+    expectedSkillId: "studio_daily_brief",
+    expectedPartTypes: ["metric_grid"],
+    requiresEvidenceComplete: true,
   },
   {
     id: "finance_monthly_summary",
@@ -55,6 +69,32 @@ export const MOODIE_REGRESSION_SUITE: MoodieRegressionCase[] = [
     expectsToolUse: true,
     expectedSignals: ["get_repo_map", "read_file", "retrieval"],
     expectedAgentId: "codebase_analyst",
+  },
+  {
+    id: "current_external_news",
+    prompt: "Tin OpenAI mới nhất hôm nay là gì?",
+    expectedIntent: "general",
+    expectsToolUse: true,
+    expectedSignals: ["search_news", "external_sources", "inline_citation"],
+    expectedAgentId: "studio_advisor",
+    requiresEvidenceComplete: true,
+  },
+  {
+    id: "stable_general_no_search",
+    prompt: "Giải thích nguyên tắc Pareto là gì?",
+    expectedIntent: "general",
+    expectsToolUse: false,
+    expectedSignals: ["direct_answer", "no_paid_search"],
+    expectedAgentId: "studio_advisor",
+  },
+  {
+    id: "deep_external_research",
+    prompt: "Nghiên cứu sâu xu hướng trợ lý AI mới nhất và lập báo cáo chi tiết từ nhiều nguồn.",
+    expectedIntent: "general",
+    expectsToolUse: true,
+    expectedSignals: ["start_deep_research", "background_run"],
+    expectedAgentId: "studio_advisor",
+    requiresEvidenceComplete: true,
   },
   {
     id: "general_clarify",

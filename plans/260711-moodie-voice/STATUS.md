@@ -36,7 +36,7 @@ Spec đầy đủ: [PLAN.md](./PLAN.md) · Task Codex: [PHASE1-TASK.md](./PHASE1
 
 - **Google API key voice đang HẾT CREDIT** — key nằm trong `.env.local` (`MOODIE_VOICE_GOOGLE_API_KEY`), gọi generateContent trả 429. User cần nạp tại ai.studio/projects trước khi test STT thật.
 - Test mic bằng giọng thật trên Chrome localhost (agent không làm được).
-- 7 file mojibake lịch sử đã commit (auth_utils.ts, user-management.ts, 2 migration 20260505*, 3 docs) — cố tình chưa sửa, tránh lẫn WIP.
+- ✅ Mojibake lịch sử ngoài Moodie Voice đã được xử lý ngày 2026-07-11: runtime auth/user-management, 2 migration 20260505*, migration repair cho DB đã apply và các tài liệu bị ảnh hưởng. Có verifier UTF-8 để ngăn tái phát.
 
 ## Bối cảnh quan trọng cho agent khác
 

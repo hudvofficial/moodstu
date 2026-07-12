@@ -1,4 +1,6 @@
-﻿import type { MoodieHistoryMessage } from "@/types/moodie";
+﻿import { decideMoodieOrchestration, type MoodieOrchestrationDecision } from "@/lib/moodie/orchestrator";
+import { classifyMoodieResearchIntent, type MoodieResearchIntent } from "@/lib/moodie/research-intent";
+import type { MoodieHistoryMessage } from "@/types/moodie";
 import type { Role } from "@/types/roles";
 import { canExposeMoodieTool, MOODIE_TOOL_MANIFEST, type MoodieIntentDomain } from "@/lib/moodie/tool-manifest";
 
@@ -7,6 +9,8 @@ export type MoodieIntentRoute = {
   needsData: boolean;
   allowedToolNames: string[];
   reason: string;
+  research: MoodieResearchIntent;
+  orchestration: MoodieOrchestrationDecision;
 };
 
 function normalizeText(value: string) {
@@ -41,12 +45,29 @@ function hasAny(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword));
 }
 
+function isResearchTool(name: string) {
+  return name === "search_web" || name === "search_news" || name === "search_local" || name === "start_deep_research";
+}
+
+function researchToolForMode(mode: MoodieResearchIntent["mode"], orchestration: MoodieOrchestrationDecision) {
+  if (orchestration.mode === "background_run") return "start_deep_research";
+  return mode === "news" ? "search_news" : mode === "local" ? "search_local" : "search_web";
+}
+
+function toolAllowedForRoute(name: string, domains: MoodieIntentDomain[], intent: MoodieIntentDomain, research: MoodieResearchIntent, orchestration: MoodieOrchestrationDecision) {
+  if (isResearchTool(name)) return research.required && name === researchToolForMode(research.mode, orchestration);
+  if (intent === "general") return false;
+  return domains.includes(intent);
+}
+
 export function routeMoodieIntent(params: {
   prompt: string;
   history?: MoodieHistoryMessage[];
   role: Role;
 }): MoodieIntentRoute {
   const corpus = buildCorpus(params.prompt, params.history);
+  const research = classifyMoodieResearchIntent(params.prompt);
+  const orchestration = decideMoodieOrchestration({ prompt: params.prompt, research });
 
   const isCodebase =
     params.role === "admin" &&
@@ -56,7 +77,7 @@ export function routeMoodieIntent(params: {
 
   if (isCodebase) {
     const allowedToolNames = Object.values(MOODIE_TOOL_MANIFEST)
-      .filter((entry) => entry.domains.includes("codebase") && canExposeMoodieTool(entry.name, params.role))
+      .filter((entry) => (entry.domains.includes("codebase") || (research.required && entry.name === researchToolForMode(research.mode, orchestration))) && canExposeMoodieTool(entry.name, params.role))
       .sort((left, right) => right.priority - left.priority)
       .map((entry) => entry.name);
 
@@ -65,6 +86,8 @@ export function routeMoodieIntent(params: {
       needsData: true,
       allowedToolNames,
       reason: "admin_codebase_question",
+      research,
+      orchestration,
     };
   }
 
@@ -92,14 +115,16 @@ export function routeMoodieIntent(params: {
 
   const allowedToolNames = Object.values(MOODIE_TOOL_MANIFEST)
     .filter((entry) => canExposeMoodieTool(entry.name, params.role))
-    .filter((entry) => intent === "general" || entry.domains.includes(intent))
+    .filter((entry) => toolAllowedForRoute(entry.name, entry.domains, intent, research, orchestration))
     .sort((left, right) => right.priority - left.priority)
     .map((entry) => entry.name);
 
   return {
     intent,
-    needsData: intent !== "general",
+    needsData: intent !== "general" || research.required,
     allowedToolNames,
     reason,
+    research,
+    orchestration,
   };
 }

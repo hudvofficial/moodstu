@@ -97,6 +97,11 @@ export interface MoodieProviderConfig {
 // Provider interface
 // ---------------------------------------------------------------------------
 
+export type MoodieProviderChatOptions = {
+  signal?: AbortSignal;
+  toolChoice?: "auto" | "required" | "none";
+};
+
 export interface MoodieProvider {
   readonly id: ProviderId;
   readonly label: string;
@@ -109,12 +114,14 @@ export interface MoodieProvider {
   chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult>;
 
   chatStream?(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
     onDelta: (delta: string) => void,
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult>;
 
   /**

@@ -1,5 +1,28 @@
 export const MOODIE_MODEL_MAX_HISTORY = 12;
 
+export interface MoodieAuthenticatedUserContext {
+  id: string;
+  fullName: string;
+  email: string | null;
+  department: string | null;
+  position: string | null;
+  role: string;
+}
+
+export function buildMoodieAuthenticatedUserPrompt(context: MoodieAuthenticatedUserContext) {
+  return [
+    "Authenticated studio operator:",
+    `- name: ${context.fullName}`,
+    `- role: ${context.role}`,
+    context.department ? `- department: ${context.department}` : null,
+    context.position ? `- position: ${context.position}` : null,
+    "- This identity comes from the authenticated session and is authoritative.",
+    "- When asked who the user is, answer from this context.",
+    "- Do not claim the user has not introduced themselves.",
+    "- Do not expose email, internal IDs, or other private fields unless the user explicitly asks and it is relevant.",
+  ].filter((line): line is string => Boolean(line)).join("\n");
+}
+
 export const MOODIE_IDENTITY_PROMPT = `
 Identity contract:
 - Tên của bạn là Moodie.

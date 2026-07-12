@@ -4,7 +4,9 @@ import type {
   MoodieConversationSummary,
   MoodieActionPreview,
   MoodieMessage,
+  MoodieBackgroundRunRef,
   MoodieMessageMeta,
+  MoodieMessageSource,
   MoodieMessageRole,
   MoodieTrace,
   MoodieWidget,
@@ -206,12 +208,25 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
   const sources = Array.isArray(value.sources)
     ? value.sources
         .filter((item): item is Record<string, Json | undefined> => typeof item === "object" && item !== null && !Array.isArray(item))
-        .map((item) => ({
+        .map((item): MoodieMessageSource => ({
           label: typeof item.label === "string" ? item.label : "",
           value: typeof item.value === "string" ? item.value : undefined,
           hint: typeof item.hint === "string" ? item.hint : undefined,
+          kind: item.kind === "web" || item.kind === "document" || item.kind === "internal" || item.kind === "database" ? item.kind : undefined,
+          entity_type: typeof item.entity_type === "string" ? item.entity_type : undefined,
+          entity_id: typeof item.entity_id === "string" ? item.entity_id : undefined,
+          href: typeof item.href === "string" ? item.href : undefined,
+          metadata: isObject(item.metadata ?? null) ? item.metadata as Record<string, Json> : undefined,
         }))
         .filter((item) => item.label)
+    : undefined;
+
+  const backgroundRuns = Array.isArray(value.background_runs)
+    ? value.background_runs
+        .filter((item): item is Record<string, Json | undefined> => typeof item === "object" && item !== null && !Array.isArray(item))
+        .flatMap((item): MoodieBackgroundRunRef[] => typeof item.id === "string" && typeof item.title === "string" && typeof item.status === "string"
+          ? [{ id: item.id, title: item.title, status: item.status, kind: item.kind === "task" || item.kind === "action" ? item.kind : "research" }]
+          : [])
     : undefined;
 
   const attachments = Array.isArray(value.attachments)
@@ -246,6 +261,9 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
         route_intent: typeof traceValue.route_intent === "string" ? traceValue.route_intent : undefined,
         route_reason: typeof traceValue.route_reason === "string" ? traceValue.route_reason : undefined,
         retrieval_used: typeof traceValue.retrieval_used === "boolean" ? traceValue.retrieval_used : undefined,
+        research_required: typeof traceValue.research_required === "boolean" ? traceValue.research_required : undefined,
+        research_mode: traceValue.research_mode === "news" || traceValue.research_mode === "local" ? traceValue.research_mode : traceValue.research_mode === "web" ? "web" : undefined,
+        allowed_tool_names: Array.isArray(traceValue.allowed_tool_names) ? traceValue.allowed_tool_names.filter((item): item is string => typeof item === "string") : undefined,
         execution_plan: typeof traceValue.execution_plan === "string" ? traceValue.execution_plan : undefined,
         model_steps: typeof traceValue.model_steps === "number" ? traceValue.model_steps : 0,
         tool_call_count: typeof traceValue.tool_call_count === "number" ? traceValue.tool_call_count : 0,
@@ -275,6 +293,8 @@ export function parseMoodieMessageMeta(value: Json | null): MoodieMessageMeta | 
   const widgets = parseMoodieWidgets(value.widgets);
   return {
     provider,
+    response_ui_version: value.response_ui_version === 2 ? 2 : undefined,
+    background_runs: backgroundRuns,
     agent_id: typeof value.agent_id === "string" ? value.agent_id : undefined,
     agent_label: typeof value.agent_label === "string" ? value.agent_label : undefined,
     skill_id: typeof value.skill_id === "string" ? (value.skill_id as MoodieMessageMeta["skill_id"]) : undefined,

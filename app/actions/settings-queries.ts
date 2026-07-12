@@ -9,6 +9,7 @@ import {
 import { fetchMoodieGeminiModelOptions } from "@/lib/moodie/gemini-models";
 import { MOODIE_GEMINI_MODEL_OPTIONS } from "@/lib/moodie/model-options";
 import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
+import { getMoodieBraveSettingsSnapshot } from "@/lib/moodie/brave-config";
 import { getMoodieVoiceSnapshot } from "@/lib/moodie/voice-config";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
@@ -95,11 +96,12 @@ async function getOrCreateNotificationPreferences(
 
 export async function getStudioInfoAdmin() {
   return withAdmin(async (adminClient) => {
-    const [studioInfo, moodieAiSettings, moodieProviderSettings, moodieVoiceSettings] = await Promise.all([
+    const [studioInfo, moodieAiSettings, moodieProviderSettings, moodieVoiceSettings, moodieBraveSettings] = await Promise.all([
       getOrCreateStudioInfo(adminClient),
       getMoodieGeminiSettingsSnapshot(adminClient),
       getMoodieProviderSnapshot(),
       getMoodieVoiceSnapshot(),
+      getMoodieBraveSettingsSnapshot(),
     ]);
 
     return {
@@ -107,6 +109,7 @@ export async function getStudioInfoAdmin() {
       moodieAiSettings,
       moodieProviderSettings,
       moodieVoiceSettings,
+      moodieBraveSettings,
     } satisfies StudioSettingsAdminData;
   });
 }

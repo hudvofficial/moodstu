@@ -1,10 +1,17 @@
 import { describe, expect, it } from "@jest/globals";
-import { buildMoodieUnavailableResult } from "@/lib/moodie/engine";
+import { buildMoodieSessionIdentityResponse, buildMoodieUnavailableResult } from "@/lib/moodie/engine";
 import { routeMoodieIntent } from "@/lib/moodie/intent-router";
 import { createMoodieTrace } from "@/lib/moodie/trace";
 import { verifyMoodieAnswer } from "@/lib/moodie/answer-verifier";
 
 describe("Moodie engine contract", () => {
+  it("answers authenticated user identity through the zero-model fast path", () => {
+    const userContext = { id: "user-admin", fullName: "Admin", email: "admin@moodwedding.com", role: "admin" as const };
+
+    expect(buildMoodieSessionIdentityResponse("Bạn biết mình là ai không?", userContext))
+      .toBe("Bạn đang đăng nhập với tên Admin, vai trò admin tại Mood Studio.");
+    expect(buildMoodieSessionIdentityResponse("Tình hình studio hôm nay?", userContext)).toBeNull();
+  });
   it("routes casual conversation to the model without requiring data", () => {
     const route = routeMoodieIntent({ prompt: "hi", role: "admin" });
 
@@ -61,6 +68,42 @@ describe("Moodie engine contract", () => {
     expect(trace.fallback_reason).toBe("provider_error");
   });
 
+  it("rejects answers that ignore authenticated user identity", () => {
+    const route = routeMoodieIntent({ prompt: "Bạn biết mình là ai không?", role: "admin" });
+    const first = verifyMoodieAnswer({
+      userPrompt: "Bạn biết mình là ai không?",
+      route,
+      assistantMessage: { role: "assistant", content: "Mình chưa biết bạn là ai vì bạn chưa giới thiệu." },
+      toolUsedInTurn: false,
+      correctionCount: 0,
+      authenticatedUser: { fullName: "Admin", role: "admin" },
+    });
+    expect(first.ok).toBe(false);
+    if (!first.ok) expect(first.correctiveInstruction).toContain("tên Admin");
+
+    const second = verifyMoodieAnswer({
+      userPrompt: "Bạn biết mình là ai không?",
+      route,
+      assistantMessage: { role: "assistant", content: "Mình vẫn chưa biết." },
+      toolUsedInTurn: false,
+      correctionCount: 1,
+      authenticatedUser: { fullName: "Admin", role: "admin" },
+    });
+    expect(second).toEqual({ ok: true, replacementContent: "Bạn đang đăng nhập với tên Admin, vai trò admin tại Mood Studio." });
+  });
+
+  it("accepts an answer grounded in authenticated user identity", () => {
+    const route = routeMoodieIntent({ prompt: "Bạn biết mình là ai không?", role: "admin" });
+    expect(verifyMoodieAnswer({
+      userPrompt: "Bạn biết mình là ai không?",
+      route,
+      assistantMessage: { role: "assistant", content: "Bạn là Admin, đang giữ vai trò admin tại Mood Studio." },
+      toolUsedInTurn: false,
+      correctionCount: 0,
+      authenticatedUser: { fullName: "Admin", role: "admin" },
+    })).toEqual({ ok: true });
+  });
+
   it("rejects anonymous answers to identity questions", () => {
     const route = routeMoodieIntent({ prompt: "Bạn là ai?", role: "admin" });
     const result = verifyMoodieAnswer({
@@ -73,6 +116,31 @@ describe("Moodie engine contract", () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.correctiveInstruction).toContain("Mình là Moodie");
+  });
+
+  it("requires successful external evidence for current facts", () => {
+    const route = routeMoodieIntent({ prompt: "Tin OpenAI mới nhất hôm nay", role: "admin" });
+    const missing = verifyMoodieAnswer({
+      userPrompt: "Tin OpenAI mới nhất hôm nay",
+      route,
+      assistantMessage: { role: "assistant", content: "OpenAI vừa công bố một sản phẩm mới." },
+      toolUsedInTurn: true,
+      externalResearchUsed: false,
+      externalSourceCount: 0,
+      correctionCount: 0,
+    });
+    expect(missing.ok).toBe(false);
+
+    const sourced = verifyMoodieAnswer({
+      userPrompt: "Tin OpenAI mới nhất hôm nay",
+      route,
+      assistantMessage: { role: "assistant", content: "Theo các nguồn vừa tra, đây là các cập nhật mới [1]." },
+      toolUsedInTurn: true,
+      externalResearchUsed: true,
+      externalSourceCount: 3,
+      correctionCount: 0,
+    });
+    expect(sourced).toEqual({ ok: true });
   });
 
   it("rejects generic identity even when the answer mentions Moodie", () => {

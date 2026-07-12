@@ -34,11 +34,43 @@ describe("reduceMoodieTurn", () => {
     expect(state.result?.conversation.id).toBe("conversation-1");
   });
 
-  it("resets streamed draft when verifier or tool loop retracts it", () => {
+  it("uses one activity identity per phase and settles previous active phases", () => {
+    let state = reduceMoodieTurn(initialMoodieTurnState, event(1, { type: "turn.accepted", label: "Đã nhận" }));
+    state = reduceMoodieTurn(state, event(2, { type: "route.resolved", label: "Đã định tuyến", intent: "finance", agent_id: "finance", agent_label: "Finance Analyst" }));
+    state = reduceMoodieTurn(state, event(3, { type: "plan.created", label: "Đã lập kế hoạch", summary: "Tra dữ liệu", tool_names: ["get_financial_summary"] }));
+    state = reduceMoodieTurn(state, event(4, { type: "context.started", label: "Đang đọc ngữ cảnh" }));
+    state = reduceMoodieTurn(state, event(5, { type: "context.completed", label: "Đã chuẩn bị ngữ cảnh", retrieval_used: true, memory_used: false }));
+    state = reduceMoodieTurn(state, event(6, { type: "generation.started", label: "Đang soạn câu trả lời" }));
+
+    expect(state.activities.map((activity) => activity.id)).toEqual([
+      "turn-1:request",
+      "turn-1:route",
+      "turn-1:plan",
+      "turn-1:context",
+      "turn-1:generation",
+    ]);
+    expect(state.activities.slice(0, -1).every((activity) => activity.state === "done")).toBe(true);
+    expect(state.activities.at(-1)).toMatchObject({ stage: "generating", state: "active", label: "Đang soạn câu trả lời" });
+    expect(state.activityHistory.find((activity) => activity.kind === "context")).toMatchObject({ label: "Đã chuẩn bị ngữ cảnh", state: "completed" });
+  });
+
+  it("marks a cancelled turn inactive", () => {
+    let state = reduceMoodieTurn(initialMoodieTurnState, event(1, { type: "turn.accepted", label: "Đã nhận" }));
+    state = reduceMoodieTurn(state, event(2, { type: "turn.cancelled", label: "Đã dừng phản hồi" }));
+    expect(state.active).toBe(false);
+    expect(state.stage).toBe("cancelled");
+    expect(state.error).toBe("Đã dừng phản hồi");
+  });
+
+  it("atomically replaces a retracted draft without rendering a blank frame", () => {
     let state = reduceMoodieTurn(initialMoodieTurnState, event(1, { type: "text.delta", delta: "Bản nháp" }));
     state = reduceMoodieTurn(state, event(2, { type: "text.reset" }));
+    expect(state.streamedText).toBe("Bản nháp");
+    expect(state.replaceTextOnNextDelta).toBe(true);
+
     state = reduceMoodieTurn(state, event(3, { type: "text.delta", delta: "Bản đúng" }));
     expect(state.streamedText).toBe("Bản đúng");
+    expect(state.replaceTextOnNextDelta).toBe(false);
   });
 
   it("ignores duplicate and out-of-order events", () => {

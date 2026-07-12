@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { submitMoodieFeedback } from "@/app/actions/moodie-mutations";
 import { MoodieEmptyState } from "@/components/moodie/moodie-empty-state";
 import { MoodieMessageBubble } from "@/components/moodie/moodie-message-bubble";
-import { MoodieThinkingState } from "@/components/moodie/moodie-thinking-state";
 import { Button } from "@/components/ui/button";
 import type { MoodieCapability, MoodieConversationDetail, MoodieMessage, MoodieMessagePart, MoodieTurnActivity } from "@/types/moodie";
+import { findMoodieLatestDescendantLeaf, groupMoodieAssistantSiblings, groupMoodieRoleSiblings } from "@/lib/moodie/branch-tree";
 
 interface MoodieThreadProps {
   conversation: MoodieConversationDetail | null;
@@ -16,16 +16,19 @@ interface MoodieThreadProps {
   suggestions: string[];
   pendingPrompt: string | null;
   loading?: boolean;
+  requestId?: string | null;
   statusLabel?: string | null;
   activities?: MoodieTurnActivity[];
   streamedText?: string;
   streamedParts?: Array<{ id: string; part: MoodieMessagePart }>;
   onRegenerateMessage?: (messageId: string, content: string) => void;
   onEditMessage?: (messageId: string, content: string) => void;
+  onContinueMessage?: (messageId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   onQuickPrompt: (prompt: string) => void;
 }
 
-export function MoodieThread({ conversation, capabilities, suggestions, pendingPrompt, loading, statusLabel, activities, streamedText, streamedParts, onRegenerateMessage, onEditMessage, onQuickPrompt }: MoodieThreadProps) {
+export function MoodieThread({ conversation, capabilities, suggestions, pendingPrompt, loading, requestId, statusLabel, activities, streamedText, streamedParts, onRegenerateMessage, onEditMessage, onContinueMessage, onDeleteMessage, onQuickPrompt }: MoodieThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
@@ -52,10 +55,12 @@ export function MoodieThread({ conversation, capabilities, suggestions, pendingP
     if (!nearBottomRef.current) return;
     const frame = window.requestAnimationFrame(() => scrollElementToBottom("auto"));
     return () => window.cancelAnimationFrame(frame);
-  }, [conversation?.messages.length, loading, pendingPrompt, scrollElementToBottom]);
+  }, [conversation?.messages.length, loading, pendingPrompt, streamedText?.length, streamedParts?.length, scrollElementToBottom]);
 
-  const allMessages = conversation?.messages || [];
-  const byId = new Map(allMessages.map((message) => [message.id, message]));
+  const allMessages = useMemo(() => conversation?.messages || [], [conversation?.messages]);
+  const byId = useMemo(() => new Map(allMessages.map((message) => [message.id, message])), [allMessages]);
+  const assistantSiblingGroups = useMemo(() => groupMoodieAssistantSiblings(allMessages), [allMessages]);
+  const userSiblingGroups = useMemo(() => groupMoodieRoleSiblings(allMessages, "user"), [allMessages]);
   const effectiveLeafId = selectedLeafId && byId.has(selectedLeafId) ? selectedLeafId : conversation?.active_leaf_message_id || null;
   const branchMessages = effectiveLeafId && byId.has(effectiveLeafId)
     ? (() => {
@@ -76,7 +81,19 @@ export function MoodieThread({ conversation, capabilities, suggestions, pendingP
     metadata: null,
     created_at: new Date().toISOString(),
   } : null;
-  const messages = [...branchMessages, ...(pendingMessage ? [pendingMessage] : [])];
+  const optimisticRequestId = requestId || "pending-assistant-message";
+  const hasPersistedTurn = requestId ? branchMessages.some((message) => message.request_id === requestId && message.role === "assistant") : false;
+  const optimisticAssistant: MoodieMessage | null = loading && !hasPersistedTurn ? {
+    id: optimisticRequestId,
+    role: "assistant",
+    content: streamedText || "",
+    metadata: null,
+    parent_message_id: pendingMessage?.id || effectiveLeafId,
+    request_id: optimisticRequestId,
+    status: "streaming",
+    created_at: new Date().toISOString(),
+  } : null;
+  const messages = [...branchMessages, ...(pendingMessage ? [pendingMessage] : []), ...(optimisticAssistant ? [optimisticAssistant] : [])];
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden bg-white">
@@ -96,16 +113,24 @@ export function MoodieThread({ conversation, capabilities, suggestions, pendingP
           <div className="mx-auto w-full max-w-5xl space-y-3 pb-4 pt-3">
             {messages.map((message) => {
               const siblings = message.role === "assistant"
-                ? allMessages.filter((candidate) => candidate.role === "assistant" && candidate.parent_message_id === message.parent_message_id).sort((left, right) => (left.revision || 1) - (right.revision || 1))
-                : [];
+                ? assistantSiblingGroups.get(message.parent_message_id || "root") || []
+                : userSiblingGroups.get(message.parent_message_id || "root") || [];
               const branchIndex = siblings.findIndex((candidate) => candidate.id === message.id);
               const parentUser = message.parent_message_id ? byId.get(message.parent_message_id) : undefined;
+              const optimistic = message === optimisticAssistant;
+              const reactKey = message.role === "assistant" && message.request_id ? `assistant:${message.request_id}` : message.id;
               return <MoodieMessageBubble
-                key={message.id}
+                key={reactKey}
                 message={message}
-                pending={message.id === "pending-user-message"}
+                pending={message.id === "pending-user-message" || optimistic}
+                statusLabel={optimistic ? statusLabel : undefined}
+                activities={optimistic ? activities : undefined}
+                streamedParts={optimistic ? streamedParts : undefined}
+                activeLeaf={message.role === "assistant" && message.id === effectiveLeafId}
                 onQuickPrompt={onQuickPrompt}
                 onRegenerate={message.role === "assistant" && parentUser?.role === "user" && onRegenerateMessage ? () => onRegenerateMessage(parentUser.id, parentUser.content) : undefined}
+                onContinue={message.role === "assistant" && onContinueMessage ? () => onContinueMessage(message.id) : undefined}
+                onDelete={message.role === "assistant" && onDeleteMessage ? () => onDeleteMessage(message.id) : undefined}
                 onEditResend={message.role === "user" && !pendingPrompt && onEditMessage ? (content) => onEditMessage(message.id, content) : undefined}
                 onFeedback={message.role === "assistant" && conversation ? async (rating) => {
                   const result = await submitMoodieFeedback({ conversation_id: conversation.id, message_id: message.id, rating });
@@ -115,12 +140,11 @@ export function MoodieThread({ conversation, capabilities, suggestions, pendingP
                 branch={siblings.length > 1 ? {
                   index: branchIndex,
                   total: siblings.length,
-                  onPrevious: branchIndex > 0 ? () => setSelectedLeafId(siblings[branchIndex - 1].id) : undefined,
-                  onNext: branchIndex < siblings.length - 1 ? () => setSelectedLeafId(siblings[branchIndex + 1].id) : undefined,
+                  onPrevious: branchIndex > 0 ? () => setSelectedLeafId(findMoodieLatestDescendantLeaf(allMessages, siblings[branchIndex - 1].id)) : undefined,
+                  onNext: branchIndex < siblings.length - 1 ? () => setSelectedLeafId(findMoodieLatestDescendantLeaf(allMessages, siblings[branchIndex + 1].id)) : undefined,
                 } : undefined}
               />;
             })}
-            {loading ? <MoodieThinkingState statusLabel={statusLabel} activities={activities} streamedText={streamedText} parts={streamedParts} /> : null}
           </div>
         )}
       </div>

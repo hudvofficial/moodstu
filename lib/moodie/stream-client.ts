@@ -7,6 +7,7 @@ export async function sendMoodieStreamingMessage(params: {
   contexts?: MoodieComposerContext[];
   regenerateFromMessageId?: string;
   editFromMessageId?: string;
+  continueFromMessageId?: string;
   signal?: AbortSignal;
   lastEventId?: number;
   onEvent?: (event: MoodieStreamEvent) => void;
@@ -25,6 +26,7 @@ export async function sendMoodieStreamingMessage(params: {
       contexts: params.contexts || [],
       regenerate_from_message_id: params.regenerateFromMessageId,
       edit_from_message_id: params.editFromMessageId,
+      continue_from_message_id: params.continueFromMessageId,
     }),
     signal: params.signal,
   });

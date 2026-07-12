@@ -1,8 +1,11 @@
 "use client";
 
-import { Bot, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ChevronRight, CircleCheck, CircleX, Sun } from "lucide-react";
 import { MoodieMessageParts } from "@/components/moodie/moodie-message-parts";
 import { MoodieResponseContent } from "@/components/moodie/moodie-response-content";
+import { Button } from "@/components/ui/button";
+import { getMoodieActivityDetailLabel, presentMoodieActivity } from "@/lib/moodie/activity-presentation";
 import type { MoodieMessagePart, MoodieTurnActivity } from "@/types/moodie";
 
 interface MoodieThinkingStateProps {
@@ -13,43 +16,65 @@ interface MoodieThinkingStateProps {
 }
 
 export function MoodieThinkingState({ statusLabel, activities = [], streamedText = "", parts = [] }: MoodieThinkingStateProps) {
-  const visibleActivities = activities.slice(-4);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const presentation = presentMoodieActivity(activities);
+  const phaseLabel = presentation.phaseLabel || statusLabel || "Đang hiểu yêu cầu";
 
   return (
-    <article className="flex w-full justify-start animate-fade-in-up" aria-live="polite">
-      <div className="flex min-w-0 w-full gap-2.5">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-text-inverse">
-          <Bot className="h-3.5 w-3.5" />
-        </div>
-
-        <div className="min-w-0 flex-1 space-y-3 py-1">
-          {visibleActivities.length > 0 ? (
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-muted">
-              {visibleActivities.map((activity) => (
-                <div key={activity.id} className="inline-flex min-w-0 items-center gap-1.5">
-                  {activity.state === "error" ? (
-                    <XCircle className="h-3.5 w-3.5 shrink-0 text-danger" />
-                  ) : activity.state === "done" ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
-                  ) : (
-                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
-                  )}
-                  <span className="truncate">{activity.label}</span>
-                  {activity.durationMs !== undefined ? <span className="text-micro text-text-muted">{activity.durationMs}ms</span> : null}
-                </div>
-              ))}
-            </div>
+    <div className="flex w-full justify-start" aria-live="polite" data-moodie-activity-status>
+      <div className="min-w-0 w-full py-0.5">
+        <div className="min-w-0">
+          {presentation.expandable ? (
+            <Button
+              type="button"
+              unstyled
+              className="flex min-h-11 max-w-full items-center gap-2 bg-transparent px-0 text-left text-sm text-text-muted outline-none transition-colors hover:text-text-primary focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-primary/20 md:min-h-8"
+              onClick={() => setHistoryOpen((value) => !value)}
+              aria-expanded={historyOpen}
+              aria-label="Mở hoặc đóng các bước Moodie đang thực hiện"
+            >
+              <MoodieActivityIcon failed={presentation.failed} completed={presentation.completed} />
+              <span className="min-w-0 truncate">{phaseLabel}</span>
+              {historyOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+            </Button>
           ) : (
-            <div className="inline-flex min-h-8 items-center gap-2 text-xs text-text-muted">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              <span>{statusLabel || "Moodie đang bắt đầu xử lý"}</span>
+            <div className="flex min-h-8 max-w-full items-center gap-2 text-sm text-text-muted" role="status">
+              <MoodieActivityIcon failed={presentation.failed} completed={presentation.completed} />
+              <span className="min-w-0 truncate">{phaseLabel}</span>
             </div>
           )}
 
-          {streamedText ? <MoodieResponseContent content={streamedText} /> : null}
-          {parts.length > 0 ? <MoodieMessageParts parts={parts.map((item) => item.part)} /> : null}
+          {historyOpen && presentation.expandable ? (
+            <div className="mt-0.5 max-w-2xl pl-0.5">
+              {presentation.details.map((activity, index) => (
+                <div key={activity.id} className="flex items-stretch gap-2 text-sm text-text-muted">
+                  <div className="flex w-3 shrink-0 flex-col items-center">
+                    <span className={`mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full ${activity.state === "error" ? "bg-danger" : activity.state === "done" ? "bg-text-muted/70" : "bg-primary"}`} />
+                    {index < presentation.details.length - 1 ? <span className="my-0.5 w-px flex-1 bg-border" /> : null}
+                  </div>
+                  <div className={`min-w-0 flex-1 py-1.5 leading-5 ${activity.state === "active" ? "text-text-primary" : ""}`}>
+                    <span>{getMoodieActivityDetailLabel(activity)}</span>
+                    {activity.durationMs !== undefined ? <span className="ml-1.5 text-micro tabular-nums text-text-muted">{formatActivityDuration(activity.durationMs)}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {streamedText ? <div className="mt-3"><MoodieResponseContent content={streamedText} /></div> : null}
+          {parts.length > 0 ? <div className="mt-3"><MoodieMessageParts parts={parts.map((item) => item.part)} /></div> : null}
         </div>
       </div>
-    </article>
+    </div>
   );
+}
+
+function formatActivityDuration(durationMs: number) {
+  return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`;
+}
+
+function MoodieActivityIcon({ failed, completed }: { failed: boolean; completed: boolean }) {
+  if (failed) return <CircleX className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />;
+  if (completed) return <CircleCheck className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />;
+  return <Sun className="h-4 w-4 shrink-0 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" style={{ animationDuration: "1.8s" }} />;
 }

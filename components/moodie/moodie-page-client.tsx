@@ -7,6 +7,7 @@ import { Database, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteMoodieConversation,
+  deleteMoodieMessage,
   renameMoodieConversation,
 } from "@/app/actions/moodie-mutations";
 import { getMoodieConversationDetail, getMoodieTurnStatus } from "@/app/actions/moodie-queries";
@@ -189,7 +190,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
     });
   }
 
-  async function handleSendMessage(input: MoodieComposerSubmission | string, regenerateFromMessageId?: string, editFromMessageId?: string) {
+  async function handleSendMessage(input: MoodieComposerSubmission | string, regenerateFromMessageId?: string, editFromMessageId?: string, continueFromMessageId?: string) {
     if (isSending) return;
     const submission: MoodieComposerSubmission = typeof input === "string"
       ? { content: input, attachments: [], contexts: [] }
@@ -208,6 +209,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
         contexts: submission.contexts,
         regenerateFromMessageId,
         editFromMessageId,
+        continueFromMessageId,
         signal,
         onEvent: moodieTurn.receive,
       });
@@ -217,29 +219,46 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
       }
       setPendingPrompt(null);
       setIsSending(false);
-      moodieTurn.release();
+      moodieTurn.stop();
       return;
     }
 
+    const detail = result.conversation;
+    setConversationCache((current) => ({ ...current, [detail.id]: detail }));
+    setActiveConversationId(detail.id);
     setPendingPrompt(null);
     setIsSending(false);
     moodieTurn.release();
 
-    const detail = result.conversation;
     if (result.memoryProposed) {
       toast.success("Moodie đã phát hiện một ghi nhớ mới đang chờ bạn duyệt.");
     }
     startTransition(() => {
-      setConversationCache((current) => ({ ...current, [detail.id]: detail }));
       setConversations((current) =>
         sortMoodieConversations([
           toSummary(detail),
           ...current.filter((conversation) => conversation.id !== detail.id),
         ]),
       );
-      setActiveConversationId(detail.id);
       setHistoryOpen(false);
     });
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    if (!activeConversationId || isSending) return;
+    const confirmed = window.confirm("Xóa câu trả lời này và toàn bộ nhánh phía sau?");
+    if (!confirmed) return;
+    const result = await deleteMoodieMessage({ conversation_id: activeConversationId, message_id: messageId });
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+    const detail = result.data;
+    startTransition(() => {
+      setConversationCache((current) => ({ ...current, [detail.id]: detail }));
+      setConversations((current) => sortMoodieConversations([toSummary(detail), ...current.filter((item) => item.id !== detail.id)]));
+    });
+    toast.success("Đã xóa nhánh câu trả lời");
   }
 
   function handleNewConversation() {
@@ -400,12 +419,14 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             editingTitle={editingTitle}
             pendingPrompt={pendingPrompt}
             isSending={isSending}
+            streamRequestId={moodieTurn.state.requestId}
             streamStatus={streamStatus}
             turnActivities={moodieTurn.state.activities}
             streamedText={moodieTurn.state.streamedText}
             streamedParts={moodieTurn.state.parts}
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
+            providerReady={initialData.setup.providerReady}
             onSelectConversation={(conversationId) => {
               openConversation(conversationId).catch(() => {});
             }}
@@ -425,6 +446,8 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             onStopGeneration={moodieTurn.stop}
             onRegenerateMessage={(messageId, content) => { handleSendMessage(content, messageId).catch(() => {}); }}
             onEditMessage={(messageId, content) => { handleSendMessage(content, undefined, messageId).catch(() => {}); }}
+            onContinueMessage={(messageId) => { handleSendMessage("Tiếp tục câu trả lời trước đó.", undefined, undefined, messageId).catch(() => {}); }}
+            onDeleteMessage={(messageId) => { handleDeleteMessage(messageId).catch(() => {}); }}
             onQuickPrompt={(prompt) => {
               handleSendMessage(prompt).catch(() => {});
             }}
@@ -444,12 +467,14 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             editingTitle={editingTitle}
             pendingPrompt={pendingPrompt}
             isSending={isSending}
+            streamRequestId={moodieTurn.state.requestId}
             streamStatus={streamStatus}
             turnActivities={moodieTurn.state.activities}
             streamedText={moodieTurn.state.streamedText}
             streamedParts={moodieTurn.state.parts}
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
+            providerReady={initialData.setup.providerReady}
             historyOpen={historyOpen}
             onHistoryOpenChange={setHistoryOpen}
             onSelectConversation={(conversationId) => {
@@ -471,6 +496,8 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             onStopGeneration={moodieTurn.stop}
             onRegenerateMessage={(messageId, content) => { handleSendMessage(content, messageId).catch(() => {}); }}
             onEditMessage={(messageId, content) => { handleSendMessage(content, undefined, messageId).catch(() => {}); }}
+            onContinueMessage={(messageId) => { handleSendMessage("Tiếp tục câu trả lời trước đó.", undefined, undefined, messageId).catch(() => {}); }}
+            onDeleteMessage={(messageId) => { handleDeleteMessage(messageId).catch(() => {}); }}
             onQuickPrompt={(prompt) => {
               handleSendMessage(prompt).catch(() => {});
             }}

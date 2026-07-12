@@ -1,6 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getActiveMoodieProvider } from "@/lib/moodie/providers/registry";
 import { withAuthRead, requireMoodieAccess } from "@/lib/auth_utils";
 import { getMoodieCapabilitiesForRole, getMoodieDefaultSuggestions, MOODIE_PROVIDER_LABEL } from "@/lib/moodie/catalog";
 import {
@@ -62,6 +63,7 @@ function toSetupFallback(baseData: Omit<MoodiePageData, "setup">): MoodiePageDat
     ...baseData,
     setup: {
       ready: false,
+      providerReady: false,
       message: getMoodieSetupMessage(),
       migrationPath: MOODIE_MIGRATION_PATH,
     },
@@ -107,6 +109,8 @@ async function loadConversationDetail(
 export async function getMoodiePageData() {
   return withAuthRead(async (supabase, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
+
+    const providerReadyPromise = getActiveMoodieProvider().then(Boolean).catch(() => false);
 
     const baseData = {
       stats: {
@@ -165,6 +169,7 @@ export async function getMoodiePageData() {
           )
         : null;
 
+      const providerReady = await providerReadyPromise;
       const now = Date.now();
       return {
         stats: {
@@ -183,6 +188,7 @@ export async function getMoodiePageData() {
         capabilities: getMoodieCapabilitiesForRole(role),
         setup: {
           ready: true,
+          providerReady,
         },
       } satisfies MoodiePageData;
     } catch (error) {

@@ -12,6 +12,7 @@ import {
 import type { MoodieSkillId } from "@/types/moodie";
 
 export const MOODIE_SKILL_HINT_MAP: Record<MoodieSkillId, string> = {
+  session_identity: "Phiên đăng nhập",
   financial_summary: "Tài chính",
   debt_summary: "Công nợ",
   pending_collections: "Thu nợ",
@@ -20,12 +21,18 @@ export const MOODIE_SKILL_HINT_MAP: Record<MoodieSkillId, string> = {
   gallery_delivery: "Tiến độ gallery",
   gallery_images: "Ảnh gallery",
   team_summary: "Nhân sự",
+  overdue_tasks: "Việc quá hạn",
+  studio_daily_brief: "Tổng quan vận hành",
+  financial_health_review: "Sức khỏe tài chính",
+  contract_risk_review: "Rủi ro hợp đồng",
+  customer_lookup: "Hồ sơ khách hàng",
   goal_summary: "Mục tiêu",
   service_catalog: "Dịch vụ",
   fallback: "Moodie",
 };
 
 export const MOODIE_SKILL_ICON_MAP: Record<MoodieSkillId, LucideIcon> = {
+  session_identity: Users,
   financial_summary: CreditCard,
   debt_summary: CreditCard,
   pending_collections: BriefcaseBusiness,
@@ -34,6 +41,11 @@ export const MOODIE_SKILL_ICON_MAP: Record<MoodieSkillId, LucideIcon> = {
   gallery_delivery: Images,
   gallery_images: Images,
   team_summary: Users,
+  overdue_tasks: CalendarDays,
+  studio_daily_brief: BriefcaseBusiness,
+  financial_health_review: CreditCard,
+  contract_risk_review: FileSearch,
+  customer_lookup: Users,
   goal_summary: PiggyBank,
   service_catalog: Package,
   fallback: BriefcaseBusiness,

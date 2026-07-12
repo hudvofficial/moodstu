@@ -8,6 +8,7 @@ import { routeMoodieIntent } from "@/lib/moodie/intent-router";
 import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
 import { MOODIE_REGRESSION_SUITE } from "@/lib/moodie/regression-prompts";
 import { planMoodieExecution } from "@/lib/moodie/tool-planner";
+import { planMoodieWorkflow } from "@/lib/moodie/execution-plan-v2";
 import type { Database, Json } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -46,20 +47,17 @@ export async function getMoodieBenchmarkPreflight() {
         prompt: testCase.prompt,
         role: "admin",
       });
-      const plan = planMoodieExecution({
-        route,
-        prompt: testCase.prompt,
-        role: "admin",
-      });
+      const workflowPlan = planMoodieWorkflow({ prompt: testCase.prompt, role: "admin" });
+      const plan = planMoodieExecution({ route, prompt: testCase.prompt, role: "admin" });
 
       return {
         id: testCase.id,
         prompt: testCase.prompt,
         expectedIntent: testCase.expectedIntent,
-        actualIntent: route.intent,
-        routePassed: route.intent === testCase.expectedIntent,
+        actualIntent: workflowPlan ? "crm_calendar_ops" : route.intent,
+        routePassed: (workflowPlan ? "crm_calendar_ops" : route.intent) === testCase.expectedIntent,
         expectsToolUse: testCase.expectsToolUse,
-        plannedTools: plan.prioritizedToolNames,
+        plannedTools: workflowPlan ? workflowPlan.steps.map((step) => step.tool) : plan.prioritizedToolNames,
       };
     });
 
@@ -110,6 +108,14 @@ export async function runMoodieBenchmark(caseIds?: string[]) {
           role: "admin",
           prompt: testCase.prompt,
           history: [{ role: "user", content: testCase.prompt }],
+          userContext: {
+            id: "moodie-benchmark",
+            fullName: "Moodie Benchmark",
+            email: null,
+            department: null,
+            position: null,
+            role: "admin",
+          },
         });
 
         results.push(evaluateMoodieResponse({

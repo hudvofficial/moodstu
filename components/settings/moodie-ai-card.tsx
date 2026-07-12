@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
+  Globe2,
   Info,
   KeyRound,
   Loader2,
@@ -20,9 +21,11 @@ import {
 import { toast } from "sonner";
 import {
   saveMoodieProviderConfig,
+  saveMoodieBraveConfig,
   saveMoodieVoiceConfig,
   saveMoodieVoiceLiveConfig,
   testActiveMoodieProvider,
+  testMoodieBraveConnection,
 } from "@/app/actions/moodie-provider-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,12 +41,13 @@ import {
   type ProviderId,
   type ProviderModelOption,
 } from "@/lib/moodie/providers/types";
-import type { MoodieAiSettings, MoodieProviderSettings, MoodieVoiceSettings } from "@/types/settings";
+import type { MoodieAiSettings, MoodieBraveSettings, MoodieProviderSettings, MoodieVoiceSettings } from "@/types/settings";
 
 interface MoodieAiCardProps {
   settings: MoodieAiSettings;
   providerSettings: MoodieProviderSettings;
   voiceSettings: MoodieVoiceSettings;
+  braveSettings: MoodieBraveSettings;
   apiKeyInput: string;
   setApiKeyInput: (value: string) => void;
   geminiModel: string;
@@ -724,10 +728,106 @@ function MoodieVoiceSection({
   );
 }
 
+function MoodieBraveSection({ settings, disabled }: { settings: MoodieBraveSettings; disabled?: boolean }) {
+  const router = useRouter();
+  const [enabled, setEnabled] = useState(settings.enabled);
+  const [apiKey, setApiKey] = useState("");
+  const [endpoint, setEndpoint] = useState(settings.endpoint);
+  const [mcpUrl, setMcpUrl] = useState(settings.mcpUrl);
+  const [mcpToken, setMcpToken] = useState("");
+  const [timeoutMs, setTimeoutMs] = useState(settings.timeoutMs);
+  const [maxResponseBytes, setMaxResponseBytes] = useState(settings.maxResponseBytes);
+  const [showKey, setShowKey] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveMoodieBraveConfig({ enabled, api_key: apiKey || undefined, endpoint, mcp_url: mcpUrl, mcp_token: mcpToken || undefined, timeout_ms: timeoutMs, max_response_bytes: maxResponseBytes });
+      setApiKey("");
+      setMcpToken("");
+      toast.success("Đã lưu cấu hình Brave Search");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể lưu Brave Search");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function testConnection() {
+    setTesting(true);
+    try {
+      const actionResult = await testMoodieBraveConnection();
+      if (!actionResult.success) {
+        toast.error(actionResult.error);
+        return;
+      }
+      const result = actionResult.data;
+      if (result.ok) toast.success(`Brave Search hoạt động · ${result.sourceCount} nguồn · ${result.latencyMs}ms`);
+      else toast.error(result.error);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể kiểm tra Brave Search");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  const configured = settings.hasApiKey || Boolean(settings.mcpUrl);
+  return (
+    <section className="space-y-3 border-t border-border pt-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <Globe2 className="mt-0.5 h-4 w-4 text-text-muted" />
+          <div>
+            <h5 className="text-sm font-semibold text-text-primary">Brave Search</h5>
+            <p className="mt-0.5 text-xs text-text-muted">Cho Moodie nghiên cứu web, tin tức và trả lời kèm nguồn mới nhất.</p>
+          </div>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary">
+          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} disabled={disabled || saving} className="h-4 w-4 accent-primary" />
+          Bật
+        </label>
+      </div>
+
+      <div className={`rounded-lg border p-3 text-xs ${configured ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300" : "border-border bg-bg-subtle text-text-muted"}`}>
+        {configured ? `Đã có cấu hình ${settings.source === "environment" ? "từ môi trường" : "được lưu"}${settings.hasApiKey ? " · Brave API key" : " · MCP"}` : "Chưa có Brave Search API key"}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-text-secondary">Brave Search API key</label>
+        <div className="relative">
+          <Input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={settings.hasApiKey ? "Đã có key; nhập key mới để thay đổi" : "BSA..."} disabled={disabled || saving} className="pr-10" autoComplete="new-password" />
+          <Button type="button" unstyled onClick={() => setShowKey((value) => !value)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted" aria-label={showKey ? "Ẩn API key" : "Hiện API key"}>{showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+        </div>
+        <p className="text-[11px] text-text-muted">Key được mã hóa trước khi lưu và không bao giờ trả lại trình duyệt.</p>
+      </div>
+
+      <Button type="button" variant="ghost" onClick={() => setAdvanced((value) => !value)} className="w-full justify-between text-xs">
+        Cấu hình nâng cao {advanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </Button>
+      {advanced ? <div className="space-y-3 rounded-lg border border-border bg-bg-subtle p-3">
+        <div className="space-y-1"><label className="text-xs text-text-secondary">Search API endpoint</label><Input value={endpoint} onChange={(event) => setEndpoint(event.target.value)} disabled={disabled || saving} /></div>
+        <div className="space-y-1"><label className="text-xs text-text-secondary">MCP endpoint (tùy chọn)</label><Input value={mcpUrl} onChange={(event) => setMcpUrl(event.target.value)} placeholder="https://.../mcp" disabled={disabled || saving} /></div>
+        <div className="space-y-1"><label className="text-xs text-text-secondary">MCP token (tùy chọn)</label><Input type="password" value={mcpToken} onChange={(event) => setMcpToken(event.target.value)} placeholder={settings.hasMcpToken ? "Đã có token; nhập mới để thay đổi" : "Bearer token"} disabled={disabled || saving} /></div>
+        <div className="grid grid-cols-2 gap-3"><div className="space-y-1"><label className="text-xs text-text-secondary">Timeout (ms)</label><Input type="number" min={1000} max={60000} value={timeoutMs} onChange={(event) => setTimeoutMs(Number(event.target.value))} /></div><div className="space-y-1"><label className="text-xs text-text-secondary">Max response (bytes)</label><Input type="number" min={100000} max={5000000} value={maxResponseBytes} onChange={(event) => setMaxResponseBytes(Number(event.target.value))} /></div></div>
+      </div> : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" onClick={() => void save()} disabled={disabled || saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Lưu Brave Search</Button>
+        <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={disabled || testing || !configured}>{testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Kiểm tra kết nối</Button>
+      </div>
+    </section>
+  );
+}
+
 export default function MoodieAiCard({
   settings,
   providerSettings,
   voiceSettings,
+  braveSettings,
   apiKeyInput,
   setApiKeyInput,
   geminiModel,
@@ -827,6 +927,7 @@ export default function MoodieAiCard({
           />
 
           <MoodieVoiceSection voiceSettings={voiceSettings} disabled={disabled} />
+          <MoodieBraveSection settings={braveSettings} disabled={disabled} />
         </div>
       )}
     </div>

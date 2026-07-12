@@ -58,6 +58,17 @@ export interface MoodieProviderSettings {
   isLocal: boolean;
 }
 
+export interface MoodieBraveSettings {
+  enabled: boolean;
+  hasApiKey: boolean;
+  endpoint: string;
+  hasMcpToken: boolean;
+  mcpUrl: string;
+  timeoutMs: number;
+  maxResponseBytes: number;
+  source: "database" | "environment" | "none";
+}
+
 export interface MoodieVoiceSettings {
   hasKey: boolean;
   model: string;
@@ -68,6 +79,7 @@ export interface StudioSettingsAdminData {
   moodieAiSettings: MoodieAiSettings;
   moodieProviderSettings: MoodieProviderSettings;
   moodieVoiceSettings: MoodieVoiceSettings;
+  moodieBraveSettings: MoodieBraveSettings;
 }
 
 export interface NotificationPreferences {

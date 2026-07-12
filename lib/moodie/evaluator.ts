@@ -43,7 +43,7 @@ export function evaluateMoodieResponse(params: {
     : (trace?.tool_call_count || 0) === 0;
   const expectedToolsPassed = expectedTools.length === 0
     ? true
-    : expectedTools.some((tool) => includesExpectedTool(tool, toolNameSet));
+    : expectedTools.every((tool) => includesExpectedTool(tool, toolNameSet));
   const retrievalExpected = params.testCase.expectedSignals.includes("retrieval");
   const retrievalPassed = retrievalExpected ? trace?.retrieval_used === true : true;
   const responsePassed = params.content.trim().length >= 24;
@@ -52,6 +52,10 @@ export function evaluateMoodieResponse(params: {
   const identityExpected = params.testCase.expectedSignals.includes("identity_moodie");
   const normalizedContent = params.content.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
   const identityPassed = !identityExpected || (normalizedContent.includes("moodie") && normalizedContent.includes("studio"));
+  const skillPassed = !params.testCase.expectedSkillId || params.metadata.skill_id === params.testCase.expectedSkillId;
+  const partTypes = new Set((params.metadata.parts || []).map((part) => part.type));
+  const presentationPassed = !params.testCase.expectedPartTypes?.length || params.testCase.expectedPartTypes.every((type) => partTypes.has(type as never));
+  const evidencePassed = !params.testCase.requiresEvidenceComplete || params.metadata.note === "evidence_complete";
 
   const rawChecks = [
     { key: "intent", label: "Intent đúng", passed: routePassed, points: 25 },
@@ -62,6 +66,9 @@ export function evaluateMoodieResponse(params: {
     { key: "fallback", label: "Không fallback ngoài ý muốn", passed: fallbackPassed, points: 10 },
     { key: "agent", label: "Agent đúng vai trò", passed: agentPassed, points: 0 },
     { key: "identity", label: "Giữ đúng danh tính Moodie", passed: identityPassed, points: 0 },
+    { key: "skill", label: "Workflow đúng", passed: skillPassed, points: 0 },
+    { key: "presentation", label: "Structured presentation đúng", passed: presentationPassed, points: 0 },
+    { key: "evidence", label: "Bằng chứng hoàn chỉnh", passed: evidencePassed, points: 0 },
   ];
   const checks = rawChecks.map((check) => ({
     ...check,
@@ -73,7 +80,7 @@ export function evaluateMoodieResponse(params: {
     caseId: params.testCase.id,
     prompt: params.testCase.prompt,
     score,
-    passed: score >= 70 && routePassed && toolUsePassed && agentPassed && identityPassed,
+    passed: score >= 70 && routePassed && toolUsePassed && agentPassed && identityPassed && skillPassed && presentationPassed && evidencePassed,
     checks,
     actualIntent: trace?.route_intent || params.metadata.route_intent,
     toolNames,

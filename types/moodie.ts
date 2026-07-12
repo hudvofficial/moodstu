@@ -4,6 +4,7 @@ export type MoodieMessageRole = "user" | "assistant";
 export type MoodieConversationScope = "all" | "active" | "locked";
 
 export type MoodieSkillId =
+  | "session_identity"
   | "financial_summary"
   | "debt_summary"
   | "pending_collections"
@@ -12,6 +13,11 @@ export type MoodieSkillId =
   | "gallery_delivery"
   | "gallery_images"
   | "team_summary"
+  | "studio_daily_brief"
+  | "financial_health_review"
+  | "contract_risk_review"
+  | "customer_lookup"
+  | "overdue_tasks"
   | "goal_summary"
   | "service_catalog"
   | "fallback";
@@ -116,6 +122,30 @@ export type MoodieTablePart = {
   truncated?: boolean;
 };
 
+export type MoodieAlertListPart = {
+  type: "alert_list";
+  title: string;
+  items: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    tone: "info" | "warning" | "danger" | "positive";
+    owner?: string;
+    due_label?: string;
+  }>;
+};
+
+export type MoodieActionListPart = {
+  type: "action_list";
+  title: string;
+  items: Array<{
+    id: string;
+    label: string;
+    reason?: string;
+    priority: "high" | "medium" | "low";
+  }>;
+};
+
 export type MoodieGalleryPart = {
   type: "gallery";
   title: string;
@@ -153,6 +183,8 @@ export type MoodieMessagePart =
   | MoodieChartPart
   | MoodieTimelinePart
   | MoodieTablePart
+  | MoodieAlertListPart
+  | MoodieActionListPart
   | MoodieGalleryPart
   | MoodieDiagramPart;
 
@@ -177,10 +209,55 @@ export interface MoodieComposerSubmission {
   contexts: MoodieComposerContext[];
 }
 
+export type MoodieMessageSourceKind = "web" | "database" | "document" | "internal";
+
 export interface MoodieMessageSource {
   label: string;
   value?: string;
   hint?: string;
+  kind?: MoodieMessageSourceKind;
+  entity_type?: string;
+  entity_id?: string;
+  href?: string;
+  metadata?: Record<string, Json>;
+}
+
+export type MoodieActivityKind = "request" | "route" | "context" | "plan" | "tool" | "generation" | "save";
+export type MoodieActivityState = "running" | "completed" | "failed";
+
+export interface MoodieActivityEntry {
+  id: string;
+  kind: MoodieActivityKind;
+  action: string;
+  label: string;
+  state: MoodieActivityState;
+  started_at: string;
+  completed_at?: string;
+  duration_ms?: number;
+  tool_name?: string;
+  source_ids?: string[];
+  error_code?: string;
+}
+
+export interface MoodieMessageSourceV2 {
+  id: string;
+  kind: MoodieMessageSourceKind;
+  title: string;
+  url?: string;
+  href?: string;
+  domain?: string;
+  snippet?: string;
+  entity_type?: string;
+  entity_id?: string;
+  tool_run_ids?: string[];
+  /** @deprecated Read tool_run_ids instead. Kept for persisted v2 messages. */
+  tool_run_id?: string;
+  metadata?: Record<string, Json>;
+}
+
+export interface MoodieMessageFeedbackState {
+  rating: -1 | 1 | null;
+  updated_at?: string;
 }
 
 export interface MoodieActionPreview {
@@ -204,7 +281,7 @@ export interface MoodieToolTrace {
 }
 
 export interface MoodieTrace {
-  engine: "model" | "core_fallback";
+  engine: "model" | "core_fallback" | "session";
   started_at: string;
   duration_ms: number;
   provider?: string;
@@ -212,6 +289,9 @@ export interface MoodieTrace {
   route_intent?: string;
   route_reason?: string;
   retrieval_used?: boolean;
+  research_required?: boolean;
+  research_mode?: "web" | "news" | "local";
+  allowed_tool_names?: string[];
   execution_plan?: string;
   model_steps: number;
   tool_call_count: number;
@@ -227,8 +307,20 @@ export interface MoodieTrace {
   error?: string;
 }
 
+export interface MoodieBackgroundRunRef {
+  id: string;
+  kind: "research" | "task" | "action";
+  title: string;
+  status: string;
+}
+
 export interface MoodieMessageMeta {
   provider: string;
+  response_ui_version?: 2;
+  activity_history?: MoodieActivityEntry[];
+  sources_v2?: MoodieMessageSourceV2[];
+  background_runs?: MoodieBackgroundRunRef[];
+  feedback?: MoodieMessageFeedbackState;
   agent_id?: string;
   agent_label?: string;
   skill_id?: MoodieSkillId;
@@ -304,6 +396,7 @@ export interface MoodiePageStats {
 
 export interface MoodieSetupState {
   ready: boolean;
+  providerReady: boolean;
   message?: string;
   migrationPath?: string;
 }
@@ -343,6 +436,7 @@ export type MoodieRuntimeEvent =
   | { type: "tool.started"; label: string; tool_run_id: string; tool_name: string }
   | { type: "tool.completed"; label: string; tool_run_id: string; tool_name: string; duration_ms: number; sources?: MoodieMessageSource[]; parts?: MoodieMessagePart[] }
   | { type: "tool.failed"; label: string; tool_run_id: string; tool_name: string; duration_ms: number; error: string }
+  | { type: "generation.started"; label: string }
   | { type: "text.delta"; delta: string }
   | { type: "text.reset" }
   | { type: "part.created"; part_id: string; part: MoodieMessagePart }
@@ -356,7 +450,6 @@ export type MoodieEngineEvent = Exclude<
   MoodieRuntimeEvent,
   | { type: "turn.accepted" }
   | { type: "memory.candidate" }
-  | { type: "turn.saving" }
   | { type: "turn.completed" }
   | { type: "turn.failed" }
   | { type: "turn.cancelled" }

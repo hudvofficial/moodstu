@@ -47,17 +47,28 @@ export function planMoodieExecution(params: {
     general: [],
   };
 
+  const researchTool = params.route.orchestration.mode === "background_run"
+    ? "start_deep_research"
+    : params.route.research.mode === "news"
+    ? "search_news"
+    : params.route.research.mode === "local"
+      ? "search_local"
+      : "search_web";
   const prioritizedToolNames = prioritize(
     params.route.allowedToolNames,
-    preferencesByIntent[params.route.intent] || [],
+    params.route.research.required
+      ? [researchTool, ...(preferencesByIntent[params.route.intent] || [])]
+      : preferencesByIntent[params.route.intent] || [],
   );
 
   return {
     summary:
-      params.route.needsData
+      params.route.research.required
+        ? `Plan: external research is required (${params.route.research.reason}); call ${researchTool} before answering and cite only retrieved sources.`
+        : params.route.needsData
         ? "Plan: gather live system data from the most relevant tool first, then summarize only what the retrieved data proves."
         : "Plan: answer directly if no live data is required; otherwise ask one short clarifying question.",
-    shouldForceTool: params.route.needsData,
+    shouldForceTool: params.route.needsData || params.route.research.required,
     prioritizedToolNames,
   } satisfies MoodieExecutionPlan;
 }

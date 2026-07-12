@@ -43,23 +43,19 @@ export async function POST(request: Request) {
         controller.close();
       };
 
-      request.signal.addEventListener("abort", () => {
-        emit({ type: "turn.cancelled", label: "Đã dừng phản hồi" });
-        close();
-      }, { once: true });
+      request.signal.addEventListener("abort", close, { once: true });
 
       emit({ type: "turn.accepted", label: "Moodie đã nhận yêu cầu" });
 
       void (async () => {
         try {
-          const result = await sendMoodieMessage({ ...payload, request_id: requestId, turn_id: turnId }, emitEngineEvent);
+          const result = await sendMoodieMessage({ ...payload, request_id: requestId, turn_id: turnId }, emitEngineEvent, request.signal);
           if (request.signal.aborted) return;
           if (!result.success) {
             emit({ type: "turn.failed", label: "Moodie không thể hoàn tất yêu cầu", error: result.error, retryable: true });
             return;
           }
 
-          emit({ type: "turn.saving", label: "Đang hoàn tất hội thoại" });
           if (result.data.memoryProposed) {
             emit({ type: "memory.candidate", label: "Moodie có một ghi nhớ đang chờ bạn duyệt" });
           }

@@ -1,7 +1,7 @@
+import { after } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getPendingCollections } from "@/app/actions/finance-dashboard-queries";
-import { fetchDebtStats, fetchGoals, fetchGoalsCashflow } from "@/app/actions/finance-operations-queries";
-import { getReportsSnapshot } from "@/app/actions/finance-reports-queries";
+import { fetchGoals, fetchGoalsCashflow } from "@/app/actions/finance-operations-queries";
+import { getReportRange } from "@/lib/report-period";
 import { getTodayInTimeZone } from "@/lib/studio-date";
 import { getMoodieDefaultSuggestions } from "@/lib/moodie/catalog";
 import {
@@ -15,6 +15,8 @@ import {
   loadMoodieGalleryImages,
   resolveMoodieContract,
 } from "@/lib/moodie/domain/gallery-context";
+import { proposeMoodieRun } from "@/lib/moodie/runs/repository";
+import { researchWithBrave, type BraveResearchMode } from "@/lib/moodie/mcp/adapters/brave";
 import { canExposeMoodieTool } from "@/lib/moodie/tool-manifest";
 import type { Database } from "@/types/database.types";
 import type { ActionResult } from "@/types/finance-operations";
@@ -342,7 +344,133 @@ function toComparisonWidget(title: string, items: MoodieComparisonBarItem[]): Mo
   };
 }
 
+function buildBraveTool(mode: BraveResearchMode, name: "search_web" | "search_news" | "search_local", description: string): MoodieTool {
+  return {
+    definition: {
+      type: "function",
+      function: {
+        name,
+        description,
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Truy vấn công khai đã loại dữ liệu riêng tư của Studio." },
+            count: { type: "number", description: "Số nguồn cần lấy, từ 1 đến 8." },
+          },
+          required: ["query"],
+        },
+      },
+    },
+    async execute(context, rawArgs) {
+      const query = optionalString(rawArgs.query);
+      if (!query) throw new Error("Brave Search thiếu query");
+      const count = Math.max(1, Math.min(8, toInteger(rawArgs.count) || 6));
+      const research = await researchWithBrave({ query, mode, count, userId: context.userId });
+      if (research.sources.length === 0) throw new Error(research.warnings[0] || "Brave không trả về nguồn hợp lệ");
+      return {
+        result: {
+          query: research.query,
+          retrieved_at: research.sources[0]?.retrievedAt,
+          source_count: research.sources.length,
+          sources: research.sources.map((source, index) => ({
+            index: index + 1,
+            title: source.title,
+            url: source.url,
+            snippet: source.snippet,
+            published_at: source.publishedAt,
+            retrieved_at: source.retrievedAt,
+          })),
+        },
+        metadata: {
+          skill_label: mode === "news" ? "Brave News Search" : mode === "local" ? "Brave Local Search" : "Brave Web Search",
+          note: "external_research_verified",
+          sources: research.sources.map((source) => ({
+            label: source.title,
+            value: source.url,
+            hint: source.snippet,
+            kind: "web" as const,
+            metadata: {
+              provider: source.provider,
+              retrieved_at: source.retrievedAt,
+              ...(source.publishedAt ? { published_at: source.publishedAt } : {}),
+            },
+          })),
+        },
+      };
+    },
+  };
+}
+
 const moodieTools: Record<string, MoodieTool> = {
+  start_deep_research: {
+    definition: {
+      type: "function",
+      function: {
+        name: "start_deep_research",
+        description: "Khởi tạo một tác vụ nghiên cứu nền bền vững cho báo cáo sâu, so sánh nhiều nguồn hoặc yêu cầu nhiều truy vấn. Trả về run id ngay để cuộc trò chuyện không bị chặn.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Mục tiêu nghiên cứu công khai đã loại dữ liệu riêng tư." },
+            mode: { type: "string", enum: ["web", "news", "local"] },
+            title: { type: "string", description: "Tên ngắn của tác vụ nghiên cứu." },
+          },
+          required: ["query"],
+        },
+      },
+    },
+    async execute(context, rawArgs) {
+      if (!context.userId) throw new Error("Deep research cần user session hợp lệ");
+      const query = optionalString(rawArgs.query);
+      if (!query) throw new Error("Deep research thiếu query");
+      const mode = rawArgs.mode === "news" || rawArgs.mode === "local" ? rawArgs.mode : "web";
+      const title = optionalString(rawArgs.title) || `Nghiên cứu: ${query.slice(0, 80)}`;
+      const proposed = await proposeMoodieRun({
+        supabase: context.supabase,
+        userId: context.userId,
+        conversationId: context.conversationId,
+        kind: "research",
+        title,
+        toolName: "start_deep_research",
+        readOnly: true,
+        request: { query, mode },
+        idempotencyKey: `text-research:${context.conversationId || "none"}:${Buffer.from(query).toString("base64url").slice(0, 80)}`,
+      });
+
+      after(async () => {
+        const [{ createAdminClient }, { claimSpecificMoodieAgentRun }, { executeMoodieAgentRun }] = await Promise.all([
+          import("@/lib/supabase/server"),
+          import("@/lib/moodie/runs/worker"),
+          import("@/lib/moodie/runs/executor"),
+        ]);
+        const admin = await createAdminClient();
+        const run = await claimSpecificMoodieAgentRun({
+          supabase: admin,
+          runId: proposed.run.id,
+          workerId: `text-after:${crypto.randomUUID()}`,
+          leaseSeconds: 90,
+        });
+        if (run) await executeMoodieAgentRun({ supabase: admin, run });
+      });
+
+      return {
+        result: {
+          run_id: proposed.run.id,
+          status: proposed.run.status,
+          title: proposed.run.title,
+          message: "Tác vụ nghiên cứu đã được đưa vào nền. Có thể tiếp tục trò chuyện và theo dõi tiến độ.",
+        },
+        metadata: {
+          skill_label: "Deep Research",
+          note: "background_research_started",
+          background_runs: [{ id: proposed.run.id, kind: "research" as const, title: proposed.run.title, status: proposed.run.status }],
+        },
+      };
+    },
+  },
+  search_web: buildBraveTool("web", "search_web", "Tìm nguồn web bên ngoài cho thông tin hiện tại, mới nhất hoặc khi người dùng yêu cầu kiểm chứng/citation."),
+  search_news: buildBraveTool("news", "search_news", "Tìm tin tức và thông báo mới từ các nguồn bên ngoài qua Brave Search."),
+  search_local: buildBraveTool("local", "search_local", "Tìm địa điểm hoặc kết quả địa phương bên ngoài qua Brave Search."),
   get_financial_summary: {
     definition: {
       type: "function",
@@ -378,9 +506,35 @@ const moodieTools: Record<string, MoodieTool> = {
         return buildPermissionDeniedResult(context.role, "financial_summary", "Tài chính tổng quan");
       }
 
-      const snapshot = unwrap(await getReportsSnapshot(buildReportFilters(rawArgs)));
+      const filters = buildReportFilters(rawArgs);
+      const range = getReportRange(filters);
+      const { data: snapshotData, error: snapshotError } = await context.supabase.rpc("finance_reports_snapshot", {
+        p_start_date: range.startDate,
+        p_end_date: range.endDate,
+      });
+      if (snapshotError) throw new Error(`Không thể tải báo cáo tài chính: ${snapshotError.message}`);
+      const snapshotRecord = snapshotData && typeof snapshotData === "object" && !Array.isArray(snapshotData)
+        ? snapshotData as Record<string, unknown> : {};
+      const summaryRaw = snapshotRecord.summary && typeof snapshotRecord.summary === "object"
+        ? snapshotRecord.summary as Record<string, unknown> : {};
+      const serviceDistribution = Array.isArray(snapshotRecord.serviceDistribution) ? snapshotRecord.serviceDistribution : [];
+      const topServices = serviceDistribution.slice(0, 5).map((item) => item && typeof item === "object" ? item as Record<string, unknown> : {});
+      const snapshot = {
+        range,
+        summary: {
+          totalRevenue: Number(summaryRaw.totalRevenue) || 0,
+          totalCost: Number(summaryRaw.totalCost) || 0,
+          netProfit: Number(summaryRaw.netProfit) || 0,
+          profitMargin: Number(summaryRaw.profitMargin) || 0,
+          totalContracts: Number(summaryRaw.totalContracts) || 0,
+          completedContracts: Number(summaryRaw.completedContracts) || 0,
+          addonRevenue: Number(summaryRaw.addonRevenue) || 0,
+          addonPercentage: Number(summaryRaw.addonPercentage) || 0,
+          avgContractValue: Number(summaryRaw.avgContractValue) || 0,
+          salaryCost: Number(summaryRaw.salaryCost) || 0,
+        },
+      };
       const summary = snapshot.summary;
-      const topServices = snapshot.serviceDistribution.slice(0, 5);
 
       return {
         result: {
@@ -394,9 +548,9 @@ const moodieTools: Record<string, MoodieTool> = {
           addon_revenue: summary.addonRevenue,
           addon_percentage: summary.addonPercentage,
           top_services: topServices.map((item) => ({
-            name: item.name,
-            revenue: item.revenue,
-            contracts: item.value,
+            name: typeof item.name === "string" ? item.name : "Khác",
+            revenue: Number(item.revenue) || 0,
+            contracts: Number(item.value) || 0,
           })),
         },
         metadata: {
@@ -428,10 +582,10 @@ const moodieTools: Record<string, MoodieTool> = {
                   toComparisonWidget(
                     "Danh mục doanh thu nổi bật",
                     topServices.map((item) => ({
-                      label: item.name,
-                      value: item.revenue,
-                      value_label: formatCurrency(item.revenue),
-                      secondary_value: item.value,
+                      label: typeof item.name === "string" ? item.name : "Khác",
+                      value: Number(item.revenue) || 0,
+                      value_label: formatCurrency(Number(item.revenue) || 0),
+                      secondary_value: Number(item.value) || 0,
                       secondary_label: "HD",
                     })),
                   ),
@@ -456,7 +610,24 @@ const moodieTools: Record<string, MoodieTool> = {
         return buildPermissionDeniedResult(context.role, "debt_summary", "Công nợ");
       }
 
-      const stats = unwrap(await fetchDebtStats());
+      const { data: debtData, error: debtError } = await context.supabase.rpc("finance_debt_stats");
+      if (debtError) throw new Error(`Không thể tải công nợ: ${debtError.message}`);
+      const debtRow = Array.isArray(debtData) ? debtData[0] : debtData;
+      const debtRecord = debtRow && typeof debtRow === "object" ? debtRow as Record<string, unknown> : {};
+      const agingRaw = debtRecord.aging && typeof debtRecord.aging === "object" ? debtRecord.aging as Record<string, unknown> : {};
+      const stats = {
+        receivable: Number(debtRecord.receivable) || 0,
+        payable: Number(debtRecord.payable) || 0,
+        overdue: Number(debtRecord.overdue) || 0,
+        net_debt: Number(debtRecord.net_debt) || 0,
+        aging: {
+          not_due: Number(agingRaw.not_due) || 0,
+          days_1_30: Number(agingRaw.days_1_30) || 0,
+          days_31_60: Number(agingRaw.days_31_60) || 0,
+          days_61_90: Number(agingRaw.days_61_90) || 0,
+          over_90: Number(agingRaw.over_90) || 0,
+        },
+      };
       const agingEntries = [
         { label: "Chưa đến hạn", value: stats.aging.not_due },
         { label: "1-30 ngày", value: stats.aging.days_1_30 },
@@ -477,9 +648,9 @@ const moodieTools: Record<string, MoodieTool> = {
           skill_id: "debt_summary",
           skill_label: "Công nợ",
           sources: buildSources([
-            { label: "Phải thu", value: formatCurrency(stats.receivable) },
-            { label: "Phải trả", value: formatCurrency(stats.payable) },
-            { label: "Quá hạn", value: formatCurrency(stats.overdue) },
+            { label: "Phải thu", value: formatCurrency(stats.receivable), kind: "database", entity_type: "debt_metric", entity_id: "receivable", metadata: { amount: stats.receivable } },
+            { label: "Phải trả", value: formatCurrency(stats.payable), kind: "database", entity_type: "debt_metric", entity_id: "payable", metadata: { amount: stats.payable } },
+            { label: "Quá hạn", value: formatCurrency(stats.overdue), kind: "database", entity_type: "debt_metric", entity_id: "overdue", metadata: { amount: stats.overdue } },
           ]),
           follow_ups: [
             "Những hợp đồng nào còn phải thu?",
@@ -537,7 +708,23 @@ const moodieTools: Record<string, MoodieTool> = {
       }
 
       const limit = Math.max(1, Math.min(8, toInteger(rawArgs.limit) || 5));
-      const items = unwrap(await getPendingCollections(limit));
+      const { data: collectionRows, error: collectionError } = await context.supabase
+        .from("contracts")
+        .select("id, contract_code, remaining_amount, contract_date, status, customers(id, full_name, phone)")
+        .gt("remaining_amount", 0).is("deleted_at", null)
+        .order("contract_date", { ascending: false }).limit(limit);
+      if (collectionError) throw new Error(`Không thể tải danh sách cần thu: ${collectionError.message}`);
+      const items = (collectionRows || []).map((item) => {
+        const customerValue = Array.isArray(item.customers) ? item.customers[0] : item.customers;
+        const customer = customerValue && typeof customerValue === "object" ? customerValue as { full_name?: string | null } : null;
+        return {
+          id: item.id,
+          contract_code: item.contract_code,
+          remaining_amount: Number(item.remaining_amount) || 0,
+          status: item.status,
+          customers: customer ? { full_name: customer.full_name || null } : null,
+        };
+      });
 
       return {
         result: {
@@ -650,7 +837,15 @@ const moodieTools: Record<string, MoodieTool> = {
         metadata: {
           skill_id: "contract_lookup",
           skill_label: "Tra cứu hợp đồng",
-          sources: buildSources([{ label: "Kết quả", value: String(rows.length) }]),
+          sources: buildSources(rows.map((row) => ({
+            label: row.contract_code || "Hợp đồng",
+            value: formatCurrency(row.remaining_amount || 0),
+            hint: "Số tiền còn phải thu",
+            kind: "database" as const,
+            entity_type: "contract",
+            entity_id: row.id,
+            href: `/contracts/${row.id}`,
+          }))),
           follow_ups: [
             "Những hợp đồng nào còn phải thu?",
             "Lịch hôm nay có gì?",
@@ -986,6 +1181,91 @@ const moodieTools: Record<string, MoodieTool> = {
               },
             ]),
           ],
+        },
+      };
+    },
+  },
+  get_overdue_tasks: {
+    definition: {
+      type: "function",
+      function: {
+        name: "get_overdue_tasks",
+        description: "Lấy chi tiết các công việc đang quá hạn, người phụ trách và hợp đồng liên quan để xác định hành động cụ thể.",
+        parameters: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Số công việc tối đa, mặc định 10 và tối đa 25.",
+            },
+          },
+        },
+      },
+    },
+    async execute(context, rawArgs) {
+      if (!canAccess(context.role, "employees")) {
+        return buildPermissionDeniedResult(context.role, "overdue_tasks", "Công việc quá hạn");
+      }
+
+      const today = getTodayInTimeZone();
+      const limit = Math.max(1, Math.min(25, toInteger(rawArgs.limit) || 10));
+      const { data, error } = await context.supabase
+        .from("work_tasks")
+        .select("id, work_type, status, deadline, assigned_to, contract_id, notes, employees(full_name, department), contracts(contract_code)")
+        .lt("deadline", today)
+        .not("status", "in", '("hoan_thanh","da_huy")')
+        .order("deadline", { ascending: true })
+        .limit(limit);
+      if (error) throw new Error(`Không thể tải chi tiết công việc quá hạn: ${error.message}`);
+
+      const tasks = (data || []).map((task) => {
+        const employee = Array.isArray(task.employees) ? task.employees[0] : task.employees;
+        const contract = Array.isArray(task.contracts) ? task.contracts[0] : task.contracts;
+        const dueAt = task.deadline ? new Date(`${task.deadline}T00:00:00Z`).getTime() : Date.now();
+        const todayAt = new Date(`${today}T00:00:00Z`).getTime();
+        return {
+          id: task.id,
+          work_type: task.work_type,
+          status: task.status,
+          deadline: task.deadline,
+          days_overdue: Math.max(1, Math.floor((todayAt - dueAt) / 86_400_000)),
+          assignee_id: task.assigned_to,
+          assignee_name: employee?.full_name || null,
+          department: employee?.department || null,
+          contract_id: task.contract_id,
+          contract_code: contract?.contract_code || null,
+          notes: task.notes,
+        };
+      });
+
+      return {
+        result: { total: tasks.length, tasks },
+        metadata: {
+          skill_id: "overdue_tasks",
+          skill_label: "Công việc quá hạn",
+          sources: buildSources([
+            { label: "Công việc quá hạn", value: String(tasks.length) },
+            { label: "Chưa có người phụ trách", value: String(tasks.filter((task) => !task.assignee_id).length) },
+          ]),
+          parts: tasks.length > 0 ? [{
+            type: "table",
+            title: "Công việc quá hạn cần xử lý",
+            columns: [
+              { key: "work_type", label: "Công việc" },
+              { key: "contract_code", label: "Hợp đồng" },
+              { key: "assignee_name", label: "Phụ trách" },
+              { key: "deadline", label: "Deadline", format: "date" },
+              { key: "days_overdue", label: "Quá hạn", align: "right" },
+            ],
+            rows: tasks.map((task) => ({
+              work_type: task.work_type,
+              contract_code: task.contract_code || "Chưa có mã",
+              assignee_name: task.assignee_name || "Chưa phân công",
+              deadline: task.deadline,
+              days_overdue: `${task.days_overdue} ngày`,
+            })),
+          }] : undefined,
+          visual_schema_version: 1,
         },
       };
     },

@@ -6,6 +6,7 @@ import { PanelRightClose, PanelRightOpen, SquarePen } from "lucide-react";
 import { MoodieComposer } from "@/components/moodie/moodie-composer";
 import { MoodieConversationList } from "@/components/moodie/moodie-conversation-list";
 import { MoodieFilters } from "@/components/moodie/moodie-filters";
+import { MoodiePresenceDot } from "@/components/moodie/moodie-presence-dot";
 import { MoodieThread } from "@/components/moodie/moodie-thread";
 import { Button } from "@/components/ui/button";
 import type { MoodieWorkspaceSharedProps } from "@/components/moodie/moodie-workspace-types";
@@ -26,9 +27,9 @@ function isConversationLocked(lockedUntil: string | null | undefined) {
 export function MoodieWorkspaceDesktop({
   conversations, activeConversation, activeConversationId, scope, search, counts,
   loadingConversationId, editingConversationId, editingTitle, pendingPrompt,
-  isSending, streamStatus, turnActivities, streamedText, streamedParts, capabilities, suggestions, onSelectConversation,
+  isSending, streamRequestId, streamStatus, turnActivities, streamedText, streamedParts, capabilities, suggestions, providerReady, onSelectConversation,
   onScopeChange, onSearchChange, onStartRename, onEditTitleChange, onRenameSubmit,
-  onRenameCancel, onDeleteConversation, onSendMessage, onStopGeneration, onRegenerateMessage, onEditMessage, onQuickPrompt, onNewConversation, onOpenVoiceMode,
+  onRenameCancel, onDeleteConversation, onSendMessage, onStopGeneration, onRegenerateMessage, onEditMessage, onContinueMessage, onDeleteMessage, onQuickPrompt, onNewConversation, onOpenVoiceMode,
 }: MoodieWorkspaceDesktopProps) {
   const [sidebarVisible, setSidebarVisible] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -50,7 +51,7 @@ export function MoodieWorkspaceDesktop({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
         <header className="relative z-20 grid h-14 shrink-0 grid-cols-[1fr_minmax(0,2fr)_1fr] items-center border-b border-border/50 bg-white/90 px-4 backdrop-blur-md">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-text-inverse"><span className="text-xs font-semibold">M</span></div>
+            <MoodiePresenceDot live={providerReady} className="mx-2" />
             <div className="min-w-0"><p className="truncate text-sm font-semibold text-text-primary">Moodie</p><p className="truncate text-micro text-text-muted">Trợ lý vận hành Studio</p></div>
           </div>
           <div className="min-w-0 px-4 text-center">{hasMessages ? <p className="truncate text-caption font-medium text-text-secondary">{activeConversation?.title || "Cuộc trò chuyện mới"}</p> : <p className="text-caption text-text-muted">Sẵn sàng hỗ trợ Studio</p>}</div>
@@ -60,7 +61,7 @@ export function MoodieWorkspaceDesktop({
           </div>
         </header>
 
-        <MoodieThread conversation={activeConversation} capabilities={capabilities} suggestions={suggestions} pendingPrompt={pendingPrompt} loading={isSending} statusLabel={streamStatus} activities={turnActivities} streamedText={streamedText} streamedParts={streamedParts} onRegenerateMessage={onRegenerateMessage} onEditMessage={onEditMessage} onQuickPrompt={onQuickPrompt} />
+        <MoodieThread conversation={activeConversation} capabilities={capabilities} suggestions={suggestions} pendingPrompt={pendingPrompt} loading={isSending} requestId={streamRequestId} statusLabel={streamStatus} activities={turnActivities} streamedText={streamedText} streamedParts={streamedParts} onRegenerateMessage={onRegenerateMessage} onEditMessage={onEditMessage} onContinueMessage={onContinueMessage} onDeleteMessage={onDeleteMessage} onQuickPrompt={onQuickPrompt} />
         <MoodieComposer disabled={activeConversationLocked} loading={isSending} hasMessages={hasMessages} capabilities={capabilities} draftKey={activeConversationId} suggestionChips={suggestions} onSuggestionClick={onQuickPrompt} onSend={onSendMessage} onStop={onStopGeneration} onOpenVoiceMode={onOpenVoiceMode} />
       </div>
 

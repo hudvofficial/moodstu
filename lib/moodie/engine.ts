@@ -7,18 +7,20 @@ import {
   MOODIE_IDENTITY_PROMPT,
   MOODIE_MODEL_SYSTEM_PROMPT,
 } from "@/lib/moodie/model-prompt";
+import type { MoodieAuthenticatedUserContext } from "@/lib/moodie/model-prompt";
 import { executeMoodieTool, getMoodieToolDefinitions } from "@/lib/moodie/tools";
+import { classifyMoodieResearchIntent } from "@/lib/moodie/research-intent";
 import { routeMoodieIntent } from "@/lib/moodie/intent-router";
 import { verifyMoodieAnswer } from "@/lib/moodie/answer-verifier";
 import { shapeMoodieHistoryForModel } from "@/lib/moodie/context-shaper";
 import { normalizeMoodieToolOutput } from "@/lib/moodie/tool-output-normalizer";
-import { buildMoodieRetrievedContext } from "@/lib/moodie/retrieval-context";
+import { planMoodieContext } from "@/lib/moodie/context-planner";
 import { planMoodieExecution } from "@/lib/moodie/tool-planner";
 import { attachMoodieTrace, createMoodieTrace } from "@/lib/moodie/trace";
 import { buildMoodieAgentInstruction, selectMoodieAgent } from "@/lib/moodie/agents/profiles";
 import { planMoodieSafeNavigation } from "@/lib/moodie/action-planner";
-import { loadMoodieMemoryContext } from "@/lib/moodie/memory-store";
-import { buildMoodieConversationSummaryContext } from "@/lib/moodie/conversation-summary";
+import { planMoodieWorkflow } from "@/lib/moodie/execution-plan-v2";
+import { getMoodieWorkflow } from "@/lib/moodie/workflows/registry";
 import type { Database } from "@/types/database.types";
 import type {
   MoodieAttachment,
@@ -26,6 +28,7 @@ import type {
   MoodieEngineEvent,
   MoodieHistoryMessage,
   MoodieMessageMeta,
+  MoodieMessageSource,
   MoodieMessagePart,
   MoodieWidget,
 } from "@/types/moodie";
@@ -45,6 +48,29 @@ class MoodieModelError extends Error {
     super(message);
     this.name = "MoodieModelError";
   }
+}
+
+function normalizeFastPathPrompt(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function buildMoodieSessionIdentityResponse(
+  prompt: string,
+  userContext: MoodieAuthenticatedUserContext,
+): string | null {
+  const normalized = normalizeFastPathPrompt(prompt);
+  const asksWhoAmI = /^(ban (co )?biet )?(minh|toi) la ai( khong)?$/.test(normalized)
+    || /^(who am i|do you know who i am)$/.test(normalized);
+
+  if (!asksWhoAmI) return null;
+  return `Bạn đang đăng nhập với tên ${userContext.fullName}, vai trò ${userContext.role} tại Mood Studio.`;
 }
 
 async function buildAttachmentContext(
@@ -80,6 +106,10 @@ function trimHistory(history: MoodieHistoryMessage[] | undefined, prompt: string
     .slice(-MOODIE_MODEL_MAX_HISTORY);
 }
 
+function throwIfMoodieAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException("Đã dừng phản hồi", "AbortError");
+}
+
 async function runMoodieModelEngine(params: {
   supabase: SupabaseClient<Database>;
   role: Role;
@@ -88,12 +118,30 @@ async function runMoodieModelEngine(params: {
   userId?: string;
   conversationId?: string;
   conversationSummary?: string | null;
+  userContext: MoodieAuthenticatedUserContext;
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
   emit?: (event: MoodieEngineEvent) => void;
+  signal?: AbortSignal;
 }): Promise<EngineResult | null> {
+  throwIfMoodieAborted(params.signal);
+  const earlyResearchIntent = classifyMoodieResearchIntent(params.prompt);
+  const workflowPlan = earlyResearchIntent.required ? null : planMoodieWorkflow({ prompt: params.prompt, role: params.role });
+  if (workflowPlan) {
+    const workflowIntent = workflowPlan.skillId === "financial_health_review" ? "finance" : workflowPlan.skillId === "studio_daily_brief" ? "crm_calendar_ops" : "contracts";
+    const workflowAgentId = workflowIntent === "finance" ? "finance_analyst" : "operations_assistant";
+    const workflowAgentLabel = workflowIntent === "finance" ? "Finance Analyst" : "Operations Assistant";
+    params.emit?.({ type: "route.resolved", label: `Đang xử lý theo ${workflowPlan.skillId}`, intent: workflowIntent, agent_id: workflowAgentId, agent_label: workflowAgentLabel });
+    params.emit?.({ type: "plan.created", label: "Đã lập kế hoạch điều tra vận hành", summary: workflowPlan.objective, tool_names: workflowPlan.steps.map((step) => step.tool) });
+    const workflow = getMoodieWorkflow(workflowPlan);
+    const workflowResult = await workflow.run({ plan: workflowPlan, supabase: params.supabase, role: params.role, userId: params.userId, conversationId: params.conversationId, emit: params.emit, signal: params.signal });
+    params.emit?.({ type: "generation.started", label: "Đang trình bày kết quả đã kiểm chứng" });
+    params.emit?.({ type: "text.delta", delta: workflowResult.content });
+    return workflowResult;
+  }
   const provider = await getActiveMoodieProvider();
   if (!provider) return null;
+  throwIfMoodieAborted(params.signal);
 
   const history = trimHistory(params.history, params.prompt);
   const route = routeMoodieIntent({
@@ -122,19 +170,19 @@ async function runMoodieModelEngine(params: {
     tool_names: executionPlan.prioritizedToolNames,
   });
   params.emit?.({ type: "context.started", label: "Đang đọc ngữ cảnh liên quan" });
-  const retrievedContext = buildMoodieRetrievedContext({
-    prompt: params.prompt,
-    route,
-  });
-  const [memoryContext, attachmentContext] = await Promise.all([
-    loadMoodieMemoryContext({
+  const [contextPacket, attachmentContext] = await Promise.all([
+    planMoodieContext({
       supabase: params.supabase,
-      userId: params.userId,
-      conversationId: params.conversationId,
+      userContext: params.userContext,
       prompt: params.prompt,
+      conversationId: params.conversationId,
+      conversationSummary: params.conversationSummary,
+      route,
     }),
     buildAttachmentContext(params.supabase, params.attachments),
   ]);
+  const retrievedContext = contextPacket.retrieval;
+  const memoryContext = contextPacket.memory;
   const selectedContext = buildSelectedContext(params.contexts);
   params.emit?.({
     type: "context.completed",
@@ -142,8 +190,12 @@ async function runMoodieModelEngine(params: {
     retrieval_used: retrievedContext.hasContext,
     memory_used: Boolean(memoryContext || attachmentContext || selectedContext),
   });
+  const availableToolNames = contextPacket.trace.allowed_tool_names;
+  if (route.research.required && !availableToolNames.some((name) => name.startsWith("search_") || name === "start_deep_research")) {
+    throw new Error("Không thể truy cập nguồn bên ngoài: Brave Search đang tắt hoặc chưa được cấu hình");
+  }
   const toolDefinitions = getMoodieToolDefinitions({
-    allowedToolNames: executionPlan.prioritizedToolNames,
+    allowedToolNames: availableToolNames,
     role: params.role,
   });
   const traceState = createMoodieTrace({
@@ -153,6 +205,9 @@ async function runMoodieModelEngine(params: {
     route_reason: route.reason,
     retrieval_used: retrievedContext.hasContext,
     execution_plan: executionPlan.summary,
+    research_required: contextPacket.trace.research_required,
+    research_mode: contextPacket.trace.research_mode,
+    allowed_tool_names: availableToolNames,
   });
 
   const messages: ProviderMessage[] = [
@@ -160,8 +215,12 @@ async function runMoodieModelEngine(params: {
       role: "system",
       content: MOODIE_IDENTITY_PROMPT,
     },
-    ...(buildMoodieConversationSummaryContext(params.conversationSummary)
-      ? [{ role: "system" as const, content: buildMoodieConversationSummaryContext(params.conversationSummary) }]
+    {
+      role: "system",
+      content: contextPacket.identity,
+    },
+    ...(contextPacket.conversationSummary
+      ? [{ role: "system" as const, content: contextPacket.conversationSummary }]
       : []),
     {
       role: "system",
@@ -172,7 +231,10 @@ async function runMoodieModelEngine(params: {
     ...(selectedContext ? [{ role: "system" as const, content: selectedContext }] : []),
     {
       role: "system",
-      content: `${MOODIE_MODEL_SYSTEM_PROMPT}\n\nRouting context:\n- intent: ${route.intent}\n- must_use_data_tool: ${executionPlan.shouldForceTool ? "yes" : "no"}\n- exposed_tools: ${executionPlan.prioritizedToolNames.join(", ") || "none"}\n- route_reason: ${route.reason}\n- execution_plan: ${executionPlan.summary}\n- history_policy: only recent, compact, decision-relevant context is preserved${retrievedContext.hasContext ? `\n\n${retrievedContext.summary}` : ""}`,
+      content: `${MOODIE_MODEL_SYSTEM_PROMPT}\n\nRouting context:\n- intent: ${route.intent}\n- must_use_data_tool: ${executionPlan.shouldForceTool ? "yes" : "no"}\n- exposed_tools: ${availableToolNames.join(", ") || "none"}
+- research_required: ${contextPacket.trace.research_required ? "yes" : "no"}
+- research_mode: ${contextPacket.trace.research_mode || "none"}
+- research_policy: ${route.orchestration.mode === "background_run" ? "Call start_deep_research exactly once, then tell the user the research is running in the background. Do not claim a research result yet." : contextPacket.trace.research_required ? "You must call the exposed search tool before answering. Every current external claim must be grounded in the returned sources and include an inline numeric citation like [1] matching the source order. If the tool fails, state that external research is unavailable and do not answer from memory." : "Do not call external search unless an exposed tool is present."}\n- route_reason: ${route.reason}\n- execution_plan: ${executionPlan.summary}\n- history_policy: only recent, compact, decision-relevant context is preserved${retrievedContext.hasContext ? `\n\n${retrievedContext.summary}` : ""}`,
     },
     ...shapeMoodieHistoryForModel(history),
   ];
@@ -186,19 +248,28 @@ async function runMoodieModelEngine(params: {
   };
   const widgets: MoodieWidget[] = [];
   const parts: MoodieMessagePart[] = [];
+  const sources: MoodieMessageSource[] = [];
   let toolUsedInTurn = false;
+  let externalResearchCalls = 0;
+  let externalResearchUsed = false;
+  let backgroundResearchStarted = false;
   let correctionCount = 0;
 
   try {
     for (let step = 0; step < 8; step += 1) {
+      throwIfMoodieAborted(params.signal);
       traceState.trace.model_steps = step + 1;
       let streamedThisStep = false;
+      params.emit?.({ type: "generation.started", label: step === 0 ? "Đang soạn câu trả lời" : "Đang hoàn thiện câu trả lời" });
+      const toolChoice = step === 0 && executionPlan.shouldForceTool ? "required" as const : "auto" as const;
       const modelResult = provider.chatStream
         ? await provider.chatStream(messages, toolDefinitions, (delta) => {
+            throwIfMoodieAborted(params.signal);
             streamedThisStep = true;
             params.emit?.({ type: "text.delta", delta });
-          })
-        : await provider.chat(messages, toolDefinitions);
+          }, { signal: params.signal, toolChoice })
+        : await provider.chat(messages, toolDefinitions, { signal: params.signal, toolChoice });
+      throwIfMoodieAborted(params.signal);
 
       if (!modelResult.ok) {
         throw new Error(modelResult.error);
@@ -224,7 +295,11 @@ async function runMoodieModelEngine(params: {
         route,
         assistantMessage,
         toolUsedInTurn,
+        externalResearchUsed,
+        externalSourceCount: sources.filter((source) => source.kind === "web").length,
+        backgroundResearchStarted,
         correctionCount,
+        authenticatedUser: { fullName: params.userContext.fullName, role: params.userContext.role },
       });
 
       if (!verification.ok) {
@@ -236,9 +311,11 @@ async function runMoodieModelEngine(params: {
         continue;
       }
 
-        if (!streamedThisStep) params.emit?.({ type: "text.delta", delta: content });
+        const finalContent = verification.replacementContent || content;
+        if (verification.replacementContent && streamedThisStep) params.emit?.({ type: "text.reset" });
+        if (!streamedThisStep || verification.replacementContent) params.emit?.({ type: "text.delta", delta: finalContent });
         return {
-        content,
+        content: finalContent,
         metadata: attachMoodieTrace({
           provider: provider.label,
           note: "model_generated",
@@ -248,6 +325,7 @@ async function runMoodieModelEngine(params: {
           retrieval_used: retrievedContext.hasContext,
           execution_plan: executionPlan.summary,
           ...metadataPatch,
+          sources: sources.length > 0 ? sources.slice(0, 20) : metadataPatch.sources,
           widgets:
             widgets.length > 0
               ? widgets.slice(0, 3)
@@ -271,6 +349,22 @@ async function runMoodieModelEngine(params: {
         parsedArgs = {};
       }
 
+      const isExternalResearchTool = toolCall.function.name === "search_web"
+        || toolCall.function.name === "search_news"
+        || toolCall.function.name === "search_local";
+      if (isExternalResearchTool && externalResearchCalls >= contextPacket.trace.foreground_call_budget) {
+        messages.push({
+          role: "tool",
+          content: JSON.stringify({
+            tool: toolCall.function.name,
+            error: "Foreground external research call budget exhausted. Use the sources already returned and finish the answer.",
+          }),
+          _tool_name: toolCall.function.name,
+          _tool_call_id: toolCall.id,
+        });
+        continue;
+      }
+      if (isExternalResearchTool) externalResearchCalls += 1;
       toolUsedInTurn = true;
 
       const toolStartedAt = Date.now();
@@ -282,6 +376,7 @@ async function runMoodieModelEngine(params: {
       });
       let execution;
       try {
+        throwIfMoodieAborted(params.signal);
         execution = await executeMoodieTool(
         toolCall.function.name,
         {
@@ -314,6 +409,7 @@ async function runMoodieModelEngine(params: {
         throw error;
       }
 
+      throwIfMoodieAborted(params.signal);
       const toolDurationMs = Date.now() - toolStartedAt;
       traceState.trace.tools.push({
         name: toolCall.function.name,
@@ -340,9 +436,14 @@ async function runMoodieModelEngine(params: {
           part,
         });
       });
-      const { widgets: metadataWidgets, parts: metadataParts, ...restMetadata } = execution.metadata;
+      const { widgets: metadataWidgets, parts: metadataParts, sources: metadataSources, ...restMetadata } = execution.metadata;
       void metadataWidgets;
       void metadataParts;
+      if (execution.metadata.background_runs?.length) backgroundResearchStarted = true;
+      if (metadataSources?.length) sources.push(...metadataSources);
+      if (isExternalResearchTool && metadataSources?.some((source) => source.kind === "web")) {
+        externalResearchUsed = true;
+      }
 
       if (nextWidgets.length > 0) {
         widgets.push(...nextWidgets);
@@ -398,11 +499,40 @@ export async function runMoodieEngine(params: {
   userId?: string;
   conversationId?: string;
   conversationSummary?: string | null;
+  userContext: MoodieAuthenticatedUserContext;
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
   emit?: (event: MoodieEngineEvent) => void;
+  signal?: AbortSignal;
 }): Promise<EngineResult> {
   const requestStartedAt = Date.now();
+  const sessionIdentityResponse = buildMoodieSessionIdentityResponse(params.prompt, params.userContext);
+  if (sessionIdentityResponse) {
+    throwIfMoodieAborted(params.signal);
+    params.emit?.({ type: "generation.started", label: "Đang kiểm tra phiên đăng nhập" });
+    params.emit?.({ type: "text.delta", delta: sessionIdentityResponse });
+    return {
+      content: sessionIdentityResponse,
+      metadata: attachMoodieTrace({
+        provider: "Moodie session",
+        skill_id: "session_identity",
+        skill_label: "Phiên đăng nhập",
+        note: "authenticated_session",
+      }, {
+        engine: "session",
+        started_at: new Date(requestStartedAt).toISOString(),
+        duration_ms: Date.now() - requestStartedAt,
+        route_intent: "general",
+        route_reason: "authenticated_session_identity",
+        retrieval_used: false,
+        model_steps: 0,
+        tool_call_count: 0,
+        verifier_corrections: 0,
+        fallback_used: false,
+        tools: [],
+      }),
+    };
+  }
   const route = routeMoodieIntent({
     prompt: params.prompt,
     history: trimHistory(params.history, params.prompt),
@@ -412,6 +542,7 @@ export async function runMoodieEngine(params: {
   let fallbackReason: "provider_unavailable" | "provider_error" = "provider_unavailable";
 
   try {
+    throwIfMoodieAborted(params.signal);
     const modelResult = await runMoodieModelEngine(params);
     if (modelResult) return modelResult;
   } catch (error) {
@@ -426,14 +557,27 @@ export async function runMoodieEngine(params: {
     }).catch(() => {});
   }
 
+  throwIfMoodieAborted(params.signal);
+  params.emit?.({ type: "generation.started", label: "Đang chuẩn bị câu trả lời" });
   const fallbackStartedAt = Date.now();
-  const fallbackResult = route.intent === "general"
-    ? buildMoodieUnavailableResult(modelError?.message)
-    : await runMoodieCoreEngine({
-        supabase: params.supabase,
-        role: params.role,
-        prompt: params.prompt,
-      });
+  const fallbackResult = route.research.required
+    ? {
+        content: "Mình chưa thể truy cập nguồn bên ngoài để kiểm chứng câu hỏi này. Mình sẽ không trả lời bằng dữ liệu có thể đã cũ hoặc không có nguồn. Bạn có thể thử lại sau.",
+        metadata: {
+          provider: "Moodie research fallback",
+          skill_label: "Nghiên cứu bên ngoài",
+          note: modelError?.message || "external_research_unavailable",
+          follow_ups: ["Thử tìm nguồn lại", "Đặt câu hỏi không yêu cầu dữ liệu mới nhất"],
+        } satisfies MoodieMessageMeta,
+      }
+    : route.intent === "general"
+      ? buildMoodieUnavailableResult(modelError?.message)
+      : await runMoodieCoreEngine({
+          supabase: params.supabase,
+          role: params.role,
+          prompt: params.prompt,
+        });
+  throwIfMoodieAborted(params.signal);
   const fallbackLatency = Date.now() - fallbackStartedAt;
   const previousTrace = modelError?.trace;
   params.emit?.({ type: "text.delta", delta: fallbackResult.content });

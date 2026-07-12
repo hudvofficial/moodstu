@@ -20,6 +20,19 @@ import {
   PROVIDER_PRESETS,
   type ProviderId,
 } from "@/lib/moodie/providers/types";
+import {
+  DEFAULT_BRAVE_MAX_RESPONSE_BYTES,
+  DEFAULT_BRAVE_SEARCH_ENDPOINT,
+  DEFAULT_BRAVE_TIMEOUT_MS,
+  MOODIE_BRAVE_API_KEY_KEY,
+  MOODIE_BRAVE_ENABLED_KEY,
+  MOODIE_BRAVE_ENDPOINT_KEY,
+  MOODIE_BRAVE_MAX_BYTES_KEY,
+  MOODIE_BRAVE_MCP_TOKEN_KEY,
+  MOODIE_BRAVE_MCP_URL_KEY,
+  MOODIE_BRAVE_TIMEOUT_KEY,
+} from "@/lib/moodie/brave-config";
+import { researchWithBrave } from "@/lib/moodie/mcp/adapters/brave";
 import { encryptSecret } from "@/lib/settings-secrets";
 import {
   DEFAULT_MOODIE_VOICE_STT_MODEL,
@@ -291,6 +304,68 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
     revalidatePath("/moodie");
 
     return { success: true, engine, voice, model };
+  });
+}
+
+export interface MoodieBraveFormData {
+  enabled: boolean;
+  api_key?: string;
+  endpoint?: string;
+  mcp_url?: string;
+  mcp_token?: string;
+  timeout_ms?: number;
+  max_response_bytes?: number;
+}
+
+export async function saveMoodieBraveConfig(rawInput: unknown) {
+  return withAdmin(async (adminClient) => {
+    const data = rawInput as MoodieBraveFormData;
+    const endpoint = data.endpoint?.trim() || DEFAULT_BRAVE_SEARCH_ENDPOINT;
+    const mcpUrl = data.mcp_url?.trim() || "";
+    for (const value of [endpoint, mcpUrl].filter(Boolean)) {
+      const url = new URL(value);
+      if (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname)) {
+        throw new Error("Brave endpoint phải dùng HTTPS");
+      }
+    }
+    const timeoutMs = Math.max(1_000, Math.min(Number(data.timeout_ms) || DEFAULT_BRAVE_TIMEOUT_MS, 60_000));
+    const maxResponseBytes = Math.max(100_000, Math.min(Number(data.max_response_bytes) || DEFAULT_BRAVE_MAX_RESPONSE_BYTES, 5_000_000));
+    const now = new Date().toISOString();
+    const updates = [
+      { key: MOODIE_BRAVE_ENABLED_KEY, value: String(Boolean(data.enabled)), description: "Enable Moodie Brave Search", updated_at: now },
+      { key: MOODIE_BRAVE_ENDPOINT_KEY, value: endpoint, description: "Brave Search API endpoint", updated_at: now },
+      { key: MOODIE_BRAVE_MCP_URL_KEY, value: mcpUrl, description: "Optional Brave MCP endpoint", updated_at: now },
+      { key: MOODIE_BRAVE_TIMEOUT_KEY, value: String(timeoutMs), description: "Brave request timeout", updated_at: now },
+      { key: MOODIE_BRAVE_MAX_BYTES_KEY, value: String(maxResponseBytes), description: "Brave maximum response bytes", updated_at: now },
+    ];
+    if (data.api_key?.trim()) updates.push({ key: MOODIE_BRAVE_API_KEY_KEY, value: encryptSecret(data.api_key.trim()) || data.api_key.trim(), description: "Brave Search API key (encrypted)", updated_at: now });
+    if (data.mcp_token?.trim()) updates.push({ key: MOODIE_BRAVE_MCP_TOKEN_KEY, value: encryptSecret(data.mcp_token.trim()) || data.mcp_token.trim(), description: "Brave MCP token (encrypted)", updated_at: now });
+    const { error } = await adminClient.from("system_settings").upsert(updates, { onConflict: "key" });
+    if (error) throw new Error(`Lỗi lưu Brave Search: ${error.message}`);
+    fireAuditLog({
+      action: "UPDATE",
+      tableName: "system_settings",
+      recordId: MOODIE_BRAVE_ENABLED_KEY,
+      description: "Cập nhật Brave Search cho Moodie",
+      newData: { enabled: Boolean(data.enabled), endpoint, has_api_key_update: Boolean(data.api_key?.trim()), has_mcp_url: Boolean(mcpUrl) },
+      source: "server_action",
+    });
+    revalidatePath("/settings/studio");
+    revalidatePath("/moodie");
+    return { success: true };
+  });
+}
+
+export async function testMoodieBraveConnection() {
+  return withAdmin(async () => {
+    const startedAt = Date.now();
+    try {
+      const result = await researchWithBrave({ query: "Brave Search API", count: 3 });
+      if (result.sources.length === 0) return { ok: false as const, error: result.warnings[0] || "Brave không trả về nguồn", latencyMs: Date.now() - startedAt };
+      return { ok: true as const, sourceCount: result.sources.length, latencyMs: Date.now() - startedAt };
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : "Không thể kết nối Brave Search", latencyMs: Date.now() - startedAt };
+    }
   });
 }
 

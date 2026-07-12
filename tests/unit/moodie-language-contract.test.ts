@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { MOODIE_IDENTITY_PROMPT, MOODIE_MODEL_SYSTEM_PROMPT } from "@/lib/moodie/model-prompt";
+import { buildMoodieAuthenticatedUserPrompt, MOODIE_IDENTITY_PROMPT, MOODIE_MODEL_SYSTEM_PROMPT } from "@/lib/moodie/model-prompt";
 import { MOODIE_SKILL_HINT_MAP } from "@/components/moodie/moodie-skill-meta";
 import { getMoodieToolDefinitions } from "@/lib/moodie/tools";
 import { normalizeMoodieDisplayText } from "@/lib/moodie/ux-helpers";
@@ -25,6 +25,24 @@ describe("Moodie Vietnamese language contract", () => {
     expect(MOODIE_IDENTITY_PROMPT).toContain("Tên của bạn là Moodie");
     expect(MOODIE_IDENTITY_PROMPT).toContain("Mình là Moodie");
     expect(MOODIE_IDENTITY_PROMPT).toContain("không phải một trợ lý AI vô danh");
+  });
+
+  it("grounds the operator identity in the authenticated session without exposing private fields", () => {
+    const prompt = buildMoodieAuthenticatedUserPrompt({
+      id: "employee-private-id",
+      fullName: "Admin",
+      email: "admin@moodwedding.com",
+      department: "Operations",
+      position: "Studio administrator",
+      role: "admin",
+    });
+
+    expect(prompt).toContain("- name: Admin");
+    expect(prompt).toContain("- role: admin");
+    expect(prompt).toContain("authenticated session");
+    expect(prompt).toContain("Do not claim the user has not introduced themselves");
+    expect(prompt).not.toContain("employee-private-id");
+    expect(prompt).not.toContain("admin@moodwedding.com");
   });
 
   it("uses accented labels in the user-facing skill map", () => {

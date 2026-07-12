@@ -26,12 +26,14 @@ export interface MoodieWorkspaceSharedProps {
   editingTitle: string;
   pendingPrompt: string | null;
   isSending: boolean;
+  streamRequestId: string | null;
   streamStatus: string | null;
   turnActivities: MoodieTurnActivity[];
   streamedText: string;
   streamedParts: Array<{ id: string; part: MoodieMessagePart }>;
   capabilities: MoodieCapability[];
   suggestions: string[];
+  providerReady: boolean;
   onSelectConversation: (conversationId: string) => void;
   onScopeChange: (value: MoodieConversationScope) => void;
   onSearchChange: (value: string) => void;
@@ -44,6 +46,8 @@ export interface MoodieWorkspaceSharedProps {
   onStopGeneration: () => void;
   onRegenerateMessage: (messageId: string, content: string) => void;
   onEditMessage: (messageId: string, content: string) => void;
+  onContinueMessage: (messageId: string) => void;
+  onDeleteMessage: (messageId: string) => void;
   onQuickPrompt: (prompt: string) => void;
   onNewConversation: () => void;
 }

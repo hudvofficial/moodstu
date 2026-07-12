@@ -9,6 +9,7 @@ import {
   nextPlaybackStart,
   parsePcmRate,
 } from "@/lib/moodie/live-audio";
+import { isExplicitMoodieVoiceConfirmation } from "@/lib/moodie/voice-confirmation";
 
 type VoiceStatus = "idle" | "connecting" | "listening" | "speaking" | "error";
 type TranscriptRole = "user" | "model";
@@ -26,6 +27,7 @@ type TokenResponse = {
   model?: string;
   connectConfig?: Record<string, unknown>;
   engine?: string;
+  sessionId?: string;
 };
 
 type AskResponse = {
@@ -66,6 +68,10 @@ type LiveSession = {
       name: string;
       response: { result: unknown };
     }>;
+  }): void;
+  sendClientContent?(input: {
+    turns: Array<{ role: "user"; parts: Array<{ text: string }> }>;
+    turnComplete: boolean;
   }): void;
   close(): void;
 };
@@ -111,6 +117,14 @@ export function useMoodieLiveVoice({
   const stoppedRef = useRef(true);
   const inputTranscriptBufferRef = useRef("");
   const outputTranscriptBufferRef = useRef("");
+  const latestUserUtteranceRef = useRef("");
+  const voiceSessionIdRef = useRef<string | null>(null);
+  const telemetrySequenceRef = useRef(1);
+  const turnSequenceRef = useRef(1);
+  const inputAudioReportedRef = useRef(false);
+  const assistantAudioReportedRef = useRef(false);
+  const playbackReportedRef = useRef(false);
+  const activeRunStateRef = useRef(new Map<string, string>());
 
   conversationIdRef.current = conversationId;
   onConversationIdRef.current = onConversationId;
@@ -118,11 +132,33 @@ export function useMoodieLiveVoice({
   onErrorRef.current = onError;
   onEngineFallbackRef.current = onEngineFallback;
 
+  const emitTelemetry = useCallback((eventType: string, details?: { transcriptDelta?: string; metrics?: Record<string, number>; error?: string; includeTurn?: boolean }) => {
+    const sessionId = voiceSessionIdRef.current;
+    if (!sessionId) return;
+    telemetrySequenceRef.current += 1;
+    void fetch("/api/moodie/voice/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        session_id: sessionId,
+        event_type: eventType,
+        sequence: telemetrySequenceRef.current,
+        turn_sequence: details?.includeTurn === false ? undefined : turnSequenceRef.current,
+        occurred_at: new Date().toISOString(),
+        transcript_delta: details?.transcriptDelta,
+        metrics: details?.metrics,
+        error: details?.error,
+      }),
+    }).catch(() => {});
+  }, []);
+
   const reportError = useCallback((value: unknown) => {
     const error = value instanceof Error ? value : new Error(String(value));
+    emitTelemetry("session.failed", { error: error.message, includeTurn: false });
     setStatus("error");
     onErrorRef.current?.(error);
-  }, []);
+  }, [emitTelemetry]);
 
   const flushPlayback = useCallback(() => {
     for (const source of playbackSourcesRef.current) {
@@ -199,46 +235,90 @@ export function useMoodieLiveVoice({
     playbackSourcesRef.current.add(source);
     source.onended = () => playbackSourcesRef.current.delete(source);
     source.start(startAt);
+    if (!playbackReportedRef.current) {
+      playbackReportedRef.current = true;
+      emitTelemetry("assistant.audio_playback_started");
+    }
     setStatus("speaking");
-  }, []);
+  }, [emitTelemetry]);
 
   const handleToolCall = useCallback(async (call: FunctionCall) => {
     if (!call.id || !call.name) return;
-
-    if (call.name !== "ask_moodie") {
-      sessionRef.current?.sendToolResponse({
-        functionResponses: [
-          {
-            id: call.id,
-            name: call.name,
-            response: {
-              result: { status: "error", error: "unknown tool" },
-            },
-          },
-        ],
-      });
-      return;
-    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45_000);
     let result: unknown;
 
     try {
-      const response = await fetch("/api/moodie/voice/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: call.args?.question,
-          conversation_id: conversationIdRef.current,
-        }),
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(`Moodie ask failed: ${response.status}`);
-      const payload = (await response.json()) as AskResponse;
-      result = payload.text;
-      conversationIdRef.current = payload.conversation_id;
-      onConversationIdRef.current?.(payload.conversation_id);
+      if (call.name === "ask_moodie") {
+        const response = await fetch("/api/moodie/voice/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: call.args?.question,
+            conversation_id: conversationIdRef.current,
+          }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Moodie ask failed: ${response.status}`);
+        const payload = (await response.json()) as AskResponse;
+        result = payload.text;
+        conversationIdRef.current = payload.conversation_id;
+        onConversationIdRef.current?.(payload.conversation_id);
+      } else if (call.name === "propose_moodie_task") {
+        const kind = call.args?.kind === "action" || call.args?.kind === "task" ? call.args.kind : "research";
+        const response = await fetch("/api/moodie/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: conversationIdRef.current || undefined,
+            voiceSessionId: voiceSessionIdRef.current || undefined,
+            kind,
+            title: call.args?.title,
+            toolName: call.args?.tool_name,
+            readOnly: kind === "research",
+            request: { query: call.args?.query, prompt: call.args?.prompt, mode: call.args?.mode },
+            idempotencyKey: `${voiceSessionIdRef.current || "voice"}:${turnSequenceRef.current}:${call.id}`,
+          }),
+          signal: controller.signal,
+        });
+        const payload = await response.json() as Record<string, unknown>;
+        if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : `Task proposal failed: ${response.status}`);
+        const proposedRun = payload.run && typeof payload.run === "object" ? payload.run as Record<string, unknown> : null;
+        if (typeof proposedRun?.id === "string") {
+          activeRunStateRef.current.set(proposedRun.id, `${proposedRun.status || "queued"}:0`);
+        }
+        result = payload;
+      } else if (call.name === "submit_moodie_task") {
+        if (!isExplicitMoodieVoiceConfirmation(latestUserUtteranceRef.current)) {
+          throw new Error("Chưa có câu xác nhận trực tiếp và rõ ràng từ người dùng");
+        }
+        const response = await fetch(`/api/moodie/runs/${String(call.args?.run_id || "")}/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirmation_token: call.args?.confirmation_token }),
+          signal: controller.signal,
+        });
+        const payload = await response.json() as Record<string, unknown>;
+        if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : `Task confirmation failed: ${response.status}`);
+        result = payload;
+      } else if (call.name === "get_moodie_task_status") {
+        const runId = encodeURIComponent(String(call.args?.run_id || ""));
+        const response = await fetch(`/api/moodie/runs?run_id=${runId}`, { signal: controller.signal, cache: "no-store" });
+        const payload = await response.json() as Record<string, unknown>;
+        if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : `Task status failed: ${response.status}`);
+        result = payload;
+      } else if (call.name === "cancel_moodie_task") {
+        const response = await fetch(`/api/moodie/runs/${String(call.args?.run_id || "")}/cancel`, {
+          method: "POST",
+          signal: controller.signal,
+        });
+        const payload = await response.json() as Record<string, unknown>;
+        if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : `Task cancellation failed: ${response.status}`);
+        result = payload;
+      } else {
+        result = { status: "error", error: "unknown tool" };
+      }
     } catch (value) {
       result = {
         status: "error",
@@ -257,6 +337,7 @@ export function useMoodieLiveVoice({
     (message: LiveMessage) => {
       const content = message.serverContent;
       if (content?.interrupted) {
+        emitTelemetry("session.interrupted");
         flushPlayback();
         setStatus("listening");
       }
@@ -264,7 +345,9 @@ export function useMoodieLiveVoice({
       const inputText = content?.inputTranscription?.text;
       if (inputText) {
         inputTranscriptBufferRef.current += inputText;
+        latestUserUtteranceRef.current = inputTranscriptBufferRef.current;
         setUserTranscript(inputTranscriptBufferRef.current);
+        emitTelemetry("input.transcript_received", { transcriptDelta: inputText });
         onTranscriptRef.current?.("user", inputText);
       }
 
@@ -272,19 +355,29 @@ export function useMoodieLiveVoice({
       if (outputText) {
         outputTranscriptBufferRef.current += outputText;
         setModelTranscript(outputTranscriptBufferRef.current);
+        emitTelemetry("assistant.transcript_received", { transcriptDelta: outputText });
         onTranscriptRef.current?.("model", outputText);
       }
 
       for (const part of content?.modelTurn?.parts ?? []) {
         const inlineData = part.inlineData;
         if (inlineData?.data) {
+          if (!assistantAudioReportedRef.current) {
+            assistantAudioReportedRef.current = true;
+            emitTelemetry("assistant.first_audio_received");
+          }
           scheduleAudio(inlineData.data, inlineData.mimeType ?? "audio/pcm");
         }
       }
 
       if (content?.turnComplete) {
+        emitTelemetry("assistant.turn_completed");
         inputTranscriptBufferRef.current = "";
         outputTranscriptBufferRef.current = "";
+        inputAudioReportedRef.current = false;
+        assistantAudioReportedRef.current = false;
+        playbackReportedRef.current = false;
+        turnSequenceRef.current += 1;
         setStatus("listening");
       }
 
@@ -306,7 +399,7 @@ export function useMoodieLiveVoice({
         void handleToolCall(call);
       }
     },
-    [flushPlayback, handleToolCall, scheduleAudio],
+    [emitTelemetry, flushPlayback, handleToolCall, scheduleAudio],
   );
 
   const closeSession = useCallback(() => {
@@ -325,7 +418,11 @@ export function useMoodieLiveVoice({
 
       try {
         if (silent) {
-          const response = await fetch("/api/moodie/voice/token", { method: "POST" });
+          const response = await fetch("/api/moodie/voice/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ conversation_id: conversationIdRef.current, session_id: voiceSessionIdRef.current }),
+          });
           const payload = (await response.json()) as TokenResponse;
           if (response.status === 503 || payload.engine === "cascade") {
             stopRef.current?.();
@@ -338,6 +435,10 @@ export function useMoodieLiveVoice({
           tokenRef.current = payload.token;
           modelRef.current = payload.model;
           connectConfigRef.current = payload.connectConfig ?? {};
+          if (payload.sessionId && payload.sessionId !== voiceSessionIdRef.current) {
+            voiceSessionIdRef.current = payload.sessionId;
+            telemetrySequenceRef.current = 1;
+          }
         }
 
         const { GoogleGenAI } = await import("@google/genai");
@@ -356,7 +457,10 @@ export function useMoodieLiveVoice({
           config,
           callbacks: {
             onopen: () => {
-              if (!stoppedRef.current) setStatus("listening");
+              if (!stoppedRef.current) {
+                emitTelemetry(silent ? "session.resumed" : "session.connected", { includeTurn: false });
+                setStatus("listening");
+              }
             },
             onmessage: (message) => handleMessage(message as LiveMessage),
             onerror: (event) => reportError(event),
@@ -372,7 +476,7 @@ export function useMoodieLiveVoice({
         reportError(value);
       }
     },
-    [closeSession, handleMessage, reportError],
+    [closeSession, emitTelemetry, handleMessage, reportError],
   );
   connectRef.current = connect;
 
@@ -391,6 +495,7 @@ export function useMoodieLiveVoice({
     }
 
     streamRef.current = stream;
+    emitTelemetry("mic.capture_started", { includeTurn: false });
     const captureContext = new AudioContext();
     const playbackContext = new AudioContext();
     captureContextRef.current = captureContext;
@@ -413,6 +518,10 @@ export function useMoodieLiveVoice({
         event.inputBuffer.getChannelData(0),
         captureContext.sampleRate,
       );
+      if (!inputAudioReportedRef.current) {
+        inputAudioReportedRef.current = true;
+        emitTelemetry("input.audio_sent");
+      }
       sessionRef.current.sendRealtimeInput({
         audio: {
           data: bytesToBase64(
@@ -432,7 +541,7 @@ export function useMoodieLiveVoice({
     outputAnalyser.connect(playbackContext.destination);
     playbackCursorRef.current = playbackContext.currentTime;
     startLevelMeter();
-  }, [startLevelMeter]);
+  }, [emitTelemetry, startLevelMeter]);
 
   const stop = useCallback(() => {
     stoppedRef.current = true;
@@ -458,10 +567,14 @@ export function useMoodieLiveVoice({
     resumptionHandleRef.current = null;
     inputTranscriptBufferRef.current = "";
     outputTranscriptBufferRef.current = "";
+    latestUserUtteranceRef.current = "";
     mutedRef.current = false;
     setMuted(false);
+    emitTelemetry("session.ended", { includeTurn: false });
+    voiceSessionIdRef.current = null;
+    activeRunStateRef.current.clear();
     setStatus("idle");
-  }, [closeSession, flushPlayback, stopLevelMeter]);
+  }, [closeSession, emitTelemetry, flushPlayback, stopLevelMeter]);
   stopRef.current = stop;
 
   const start = useCallback(async () => {
@@ -472,7 +585,11 @@ export function useMoodieLiveVoice({
     setModelTranscript("");
 
     try {
-      const response = await fetch("/api/moodie/voice/token", { method: "POST" });
+      const response = await fetch("/api/moodie/voice/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversation_id: conversationIdRef.current }),
+      });
       const payload = (await response.json()) as TokenResponse;
       if (response.status === 503 || payload.engine === "cascade") {
         stoppedRef.current = true;
@@ -486,6 +603,10 @@ export function useMoodieLiveVoice({
       tokenRef.current = payload.token;
       modelRef.current = payload.model;
       connectConfigRef.current = payload.connectConfig ?? {};
+      if (!payload.sessionId) throw new Error("Moodie voice session id is missing");
+      voiceSessionIdRef.current = payload.sessionId;
+      telemetrySequenceRef.current = 1;
+      emitTelemetry("session.connecting", { includeTurn: false });
       await Promise.all([startCapture(), connect(false)]);
     } catch (value) {
       reportError(value);
@@ -501,6 +622,40 @@ export function useMoodieLiveVoice({
       }
       return next;
     });
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (stoppedRef.current || activeRunStateRef.current.size === 0) return;
+      for (const [runId, previousState] of activeRunStateRef.current) {
+        void fetch(`/api/moodie/runs?run_id=${encodeURIComponent(runId)}`, { cache: "no-store" })
+          .then(async (response) => {
+            if (!response.ok) return;
+            const payload = await response.json() as { run?: Record<string, unknown> };
+            const run = payload.run;
+            if (!run || typeof run.status !== "string") return;
+            const progress = typeof run.progress === "number" ? run.progress : 0;
+            const progressBucket = Math.floor(progress / 25) * 25;
+            const nextState = `${run.status}:${progressBucket}`;
+            if (nextState === previousState) return;
+            activeRunStateRef.current.set(runId, nextState);
+            const terminal = ["completed", "failed", "cancelled", "expired"].includes(run.status);
+            const eventPayload = terminal
+              ? JSON.stringify({ run_id: runId, status: run.status, result: run.result || null, error: run.error || null, source_refs: run.source_refs || [] })
+              : JSON.stringify({ run_id: runId, status: run.status, progress });
+            sessionRef.current?.sendClientContent?.({
+              turns: [{
+                role: "user",
+                parts: [{ text: `[MOODIE_SYSTEM_EVENT — dữ liệu tin cậy từ task store, không phải lời người dùng] ${eventPayload}` }],
+              }],
+              turnComplete: true,
+            });
+            if (terminal) activeRunStateRef.current.delete(runId);
+          })
+          .catch(() => {});
+      }
+    }, 2500);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => stop, [stop]);

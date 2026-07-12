@@ -137,6 +137,7 @@ export class GeminiAdapter implements MoodieProvider {
   async chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
+    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
   ): Promise<ProviderChatResult> {
     if (!this.apiKey) {
       return { ok: false, error: "Gemini API key chưa được cấu hình." };
@@ -148,7 +149,10 @@ export class GeminiAdapter implements MoodieProvider {
       generationConfig: { temperature: 0.35, maxOutputTokens: 4096 },
     };
 
-    if (tools.length > 0) body.tools = convertTools(tools);
+    if (tools.length > 0 && options?.toolChoice !== "none") {
+      body.tools = convertTools(tools);
+      body.toolConfig = { functionCallingConfig: { mode: options?.toolChoice === "required" ? "ANY" : "AUTO" } };
+    }
     if (systemInstruction) {
       body.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
@@ -157,7 +161,7 @@ export class GeminiAdapter implements MoodieProvider {
     try {
       response = await fetch(
         `${GEMINI_API_BASE}/${this.model}:generateContent?key=${this.apiKey}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: options?.signal },
       );
     } catch (err) {
       return { ok: false, error: `Gemini network error: ${String(err)}` };
@@ -220,11 +224,15 @@ export class GeminiAdapter implements MoodieProvider {
     messages: ProviderMessage[],
     tools: ToolDefinition[],
     onDelta: (delta: string) => void,
+    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
   ): Promise<ProviderChatResult> {
     if (!this.apiKey) return { ok: false, error: "Gemini API key chưa được cấu hình." };
     const { systemInstruction, contents } = convertMessages(messages);
     const body: Record<string, unknown> = { contents, generationConfig: { temperature: 0.35, maxOutputTokens: 4096 } };
-    if (tools.length > 0) body.tools = convertTools(tools);
+    if (tools.length > 0 && options?.toolChoice !== "none") {
+      body.tools = convertTools(tools);
+      body.toolConfig = { functionCallingConfig: { mode: options?.toolChoice === "required" ? "ANY" : "AUTO" } };
+    }
     if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
 
     let response: Response;
@@ -233,6 +241,7 @@ export class GeminiAdapter implements MoodieProvider {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
     } catch (error) {
       return { ok: false, error: `Gemini network error: ${String(error)}` };

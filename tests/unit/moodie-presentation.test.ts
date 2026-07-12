@@ -5,6 +5,7 @@ import { MoodieResponseContent } from "@/components/moodie/moodie-response-conte
 import { MoodieMessageBubble } from "@/components/moodie/moodie-message-bubble";
 import { MoodieDebugPanel } from "@/components/moodie/moodie-debug-panel";
 import { MoodieThread } from "@/components/moodie/moodie-thread";
+import { MoodieThinkingState } from "@/components/moodie/moodie-thinking-state";
 
 describe("parseMoodieText", () => {
   it("parses a markdown table without flattening rows", () => {
@@ -106,15 +107,18 @@ describe("parseMoodieText", () => {
         metadata: null,
       },
     }));
-    expect(markup).toContain("md:opacity-0");
-    expect(markup).toContain("md:group-hover:opacity-100");
-    expect(markup).toContain("absolute right-0 top-full");
-    expect(markup).toContain("absolute bottom-full right-2");
+    expect(markup).toContain("flex-auto w-0 max-w-full pl-1");
+    expect(markup).toContain("flex justify-end pr-2 text-xs");
+    expect(markup).toContain("text-[0.65rem]");
+    expect(markup).toContain("invisible transition group-hover:visible");
+    expect(markup).toContain("flex justify-end pb-1");
     expect(markup).toContain("max-w-[90%]");
     expect(markup).toContain("rounded-3xl");
-    expect(markup).toContain("py-1.5");
-    expect(markup).toContain("pb-7");
+    expect(markup).toContain("bg-gray-50");
+    expect(markup).toContain("px-4 py-1.5");
+    expect(markup).not.toContain("pb-7");
     expect(markup).toContain("Sao chép tin nhắn");
+    expect(markup).toContain("lúc");
   });
 
   it("hides debug chrome for ordinary model responses", () => {
@@ -131,6 +135,34 @@ describe("parseMoodieText", () => {
       },
     }));
     expect(markup).toBe("");
+  });
+
+  it("shows a concise phase and only exposes meaningful tool history", () => {
+    const markup = renderToStaticMarkup(createElement(MoodieThinkingState, {
+      activities: [
+        { id: "tool-contract", stage: "tool", label: "Đã tra hợp đồng", state: "done", durationMs: 820 },
+        { id: "tool-calendar", stage: "tool", label: "Đang tra lịch", state: "active" },
+      ],
+    }));
+    expect(markup).toContain("Đang tra dữ liệu");
+    expect(markup).not.toContain("Đã tra hợp đồng");
+    expect(markup).not.toContain("Đang tra lịch");
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain("Mở hoặc đóng các bước Moodie đang thực hiện");
+  });
+
+  it("keeps the Open-style status unboxed and mobile touch accessible", () => {
+    const markup = renderToStaticMarkup(createElement(MoodieThinkingState, {
+      activities: [
+        { id: "tool-a", stage: "tool", label: "Tra dữ liệu A", state: "done", durationMs: 900 },
+        { id: "tool-b", stage: "tool", label: "Tra dữ liệu B", state: "active" },
+      ],
+    }));
+    expect(markup).toContain("min-h-11");
+    expect(markup).toContain("md:min-h-8");
+    expect(markup).toContain("motion-reduce:animate-none");
+    expect(markup).not.toContain("rounded-lg bg-primary text-text-inverse");
+    expect(markup).not.toContain("animate-pulse");
   });
 
   it("uses Open WebUI message-list rhythm instead of a large global gap", () => {

@@ -9,7 +9,7 @@ export type MoodieToolTrace = {
 };
 
 export type MoodieTrace = {
-  engine: "model" | "core_fallback";
+  engine: "model" | "core_fallback" | "session";
   started_at: string;
   duration_ms: number;
   provider?: string;
@@ -17,6 +17,9 @@ export type MoodieTrace = {
   route_intent?: string;
   route_reason?: string;
   retrieval_used?: boolean;
+  research_required?: boolean;
+  research_mode?: "web" | "news" | "local";
+  allowed_tool_names?: string[];
   execution_plan?: string;
   model_steps: number;
   tool_call_count: number;
@@ -38,6 +41,9 @@ export function createMoodieTrace(params: {
   route_intent?: string;
   route_reason?: string;
   retrieval_used?: boolean;
+  research_required?: boolean;
+  research_mode?: "web" | "news" | "local";
+  allowed_tool_names?: string[];
   execution_plan?: string;
 }) {
   const startedAt = Date.now();
@@ -50,6 +56,9 @@ export function createMoodieTrace(params: {
     route_intent: params.route_intent,
     route_reason: params.route_reason,
     retrieval_used: params.retrieval_used,
+    research_required: params.research_required,
+    research_mode: params.research_mode,
+    allowed_tool_names: params.allowed_tool_names,
     execution_plan: params.execution_plan,
     model_steps: 0,
     tool_call_count: 0,

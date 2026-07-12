@@ -132,6 +132,7 @@ export class OpenAIAdapter implements MoodieProvider {
   async chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
+    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
   ): Promise<ProviderChatResult> {
     const oaiMessages = convertMessages(messages);
 
@@ -142,7 +143,7 @@ export class OpenAIAdapter implements MoodieProvider {
       max_tokens: 4096,
     };
 
-    if (tools.length > 0) {
+    if (tools.length > 0 && options?.toolChoice !== "none") {
       body.tools = tools.map((t) => ({
         type: "function",
         function: {
@@ -151,7 +152,7 @@ export class OpenAIAdapter implements MoodieProvider {
           parameters: t.function.parameters ?? { type: "object", properties: {} },
         },
       }));
-      body.tool_choice = "auto";
+      body.tool_choice = options?.toolChoice || "auto";
     }
 
     let response: Response;
@@ -160,6 +161,7 @@ export class OpenAIAdapter implements MoodieProvider {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(body),
+        signal: options?.signal,
       });
     } catch (err) {
       return { ok: false, error: `Network error (${this.baseUrl}): ${String(err)}` };
@@ -218,6 +220,7 @@ export class OpenAIAdapter implements MoodieProvider {
     messages: ProviderMessage[],
     tools: ToolDefinition[],
     onDelta: (delta: string) => void,
+    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
   ): Promise<ProviderChatResult> {
     const body: Record<string, unknown> = {
       model: this.model,
@@ -227,14 +230,14 @@ export class OpenAIAdapter implements MoodieProvider {
       stream: true,
       stream_options: { include_usage: true },
     };
-    if (tools.length > 0) {
+    if (tools.length > 0 && options?.toolChoice !== "none") {
       body.tools = tools.map((tool) => ({ type: "function", function: { ...tool.function, parameters: tool.function.parameters ?? { type: "object", properties: {} } } }));
-      body.tool_choice = "auto";
+      body.tool_choice = options?.toolChoice || "auto";
     }
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: this.getHeaders(), body: JSON.stringify(body) });
+      response = await fetch(`${this.baseUrl}/chat/completions`, { method: "POST", headers: this.getHeaders(), body: JSON.stringify(body), signal: options?.signal });
     } catch (error) {
       return { ok: false, error: `Network error (${this.baseUrl}): ${String(error)}` };
     }

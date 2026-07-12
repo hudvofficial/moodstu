@@ -22,6 +22,34 @@ describe("OpenAIAdapter", () => {
     fetchMock.mockRestore();
   });
 
+  it("forwards required tool choice to OpenAI-compatible providers", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
+      JSON.stringify({ choices: [{ message: { role: "assistant", tool_calls: [{ id: "call-1", function: { name: "get_team_summary", arguments: "{}" } }] } }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    ));
+    const provider = new OpenAIAdapter({ providerId: "openai_compatible", model: "gpt" });
+
+    await provider.chat([{ role: "user", content: "status" }], [{ type: "function", function: { name: "get_team_summary", description: "team", parameters: { type: "object", properties: {} } } }], { toolChoice: "required" });
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({ tool_choice: "required" });
+    fetchMock.mockRestore();
+  });
+
+  it("forwards AbortSignal to provider requests", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
+      JSON.stringify({ choices: [{ message: { role: "assistant", content: "Pong" } }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    ));
+    const provider = new OpenAIAdapter({ providerId: "openai_compatible", model: "gpt" });
+    const controller = new AbortController();
+
+    await provider.chat([{ role: "user", content: "ping" }], [], { signal: controller.signal });
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: controller.signal }));
+    fetchMock.mockRestore();
+  });
+
   it("preserves string errors returned by OpenAI-compatible gateways", async () => {
     const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
       JSON.stringify({ error: "API key required for remote API access" }),
