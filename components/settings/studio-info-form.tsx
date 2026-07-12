@@ -24,6 +24,7 @@ import { executeSaveTasks } from "./studio/studio-save-logic";
 import type {
   BankInfo,
   MoodieAiSettings,
+  MoodieBraveSettings,
   MoodieProviderSettings,
   MoodieVoiceSettings,
   SocialLinks,
@@ -36,6 +37,7 @@ interface StudioInfoFormProps {
   moodieAiSettings: MoodieAiSettings;
   moodieProviderSettings: MoodieProviderSettings;
   moodieVoiceSettings: MoodieVoiceSettings;
+  moodieBraveSettings: MoodieBraveSettings;
 }
 
 function normalizeRequiredText(value: string) {
@@ -56,6 +58,7 @@ export default function StudioInfoForm({
   moodieAiSettings,
   moodieProviderSettings,
   moodieVoiceSettings,
+  moodieBraveSettings,
 }: StudioInfoFormProps) {
   const [isPending, startTransition] = useTransition();
   const [savedStudioInfo, setSavedStudioInfo] = useState(studioInfo);
@@ -286,6 +289,7 @@ export default function StudioInfoForm({
             savedMoodieSettings={savedMoodieSettings}
             moodieProviderSettings={moodieProviderSettings}
             moodieVoiceSettings={moodieVoiceSettings}
+            moodieBraveSettings={moodieBraveSettings}
             moodieApiKeyInput={moodieApiKeyInput}
             setMoodieApiKeyInput={setMoodieApiKeyInput}
             moodieGeminiModel={moodieGeminiModel}
