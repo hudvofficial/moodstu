@@ -1,24 +1,44 @@
 import { Modality, Type, type FunctionDeclaration, type LiveConnectConfig } from "@google/genai";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getMoodieVoiceConfig } from "@/lib/moodie/voice-config";
+import { decryptSecret } from "@/lib/settings-secrets";
 import { getMoodieCapability, listMoodieCapabilities } from "@/lib/moodie/capability-registry";
 import type { Role } from "@/types/roles";
 
 export const MOODIE_VOICE_LIVE_MODEL_KEY = "moodie_voice_live_model";
 export const MOODIE_VOICE_LIVE_VOICE_KEY = "moodie_voice_live_voice";
 export const MOODIE_VOICE_ENGINE_KEY = "moodie_voice_engine";
+export const MOODIE_VOICE_REALTIME_PROVIDER_KEY = "moodie_voice_realtime_provider";
+export const MOODIE_VOICE_OPENAI_API_KEY_KEY = "moodie_voice_openai_api_key";
+export const MOODIE_VOICE_OPENAI_MODEL_KEY = "moodie_voice_openai_model";
+export const MOODIE_VOICE_OPENAI_VOICE_KEY = "moodie_voice_openai_voice";
 
 export const DEFAULT_MOODIE_VOICE_LIVE_MODEL = "gemini-3.1-flash-live-preview";
 export const DEFAULT_MOODIE_VOICE_LIVE_VOICE = "Zephyr";
 export const DEFAULT_MOODIE_VOICE_ENGINE = "live" as const;
+export const DEFAULT_MOODIE_VOICE_REALTIME_PROVIDER = "gemini" as const;
+export const DEFAULT_MOODIE_VOICE_OPENAI_MODEL = "gpt-realtime-2.1";
+export const DEFAULT_MOODIE_VOICE_OPENAI_VOICE = "marin";
 
 export type MoodieVoiceEngine = "live" | "cascade";
+export type MoodieRealtimeProvider = "gemini" | "openai";
 
 export interface MoodieVoiceLiveConfig {
   apiKey: string | null;
   model: string;
   voice: string;
   engine: MoodieVoiceEngine;
+  provider: MoodieRealtimeProvider;
+  openaiApiKey: string | null;
+  openaiModel: string;
+  openaiVoice: string;
+}
+
+export function resolveMoodieRealtimeProvider(config: Pick<MoodieVoiceLiveConfig, "provider" | "apiKey" | "openaiApiKey">): MoodieRealtimeProvider | null {
+  if (config.provider === "openai" && config.openaiApiKey) return "openai";
+  if (config.apiKey) return "gemini";
+  if (config.openaiApiKey) return "openai";
+  return null;
 }
 
 function normalize(value: string | null | undefined) {
@@ -53,17 +73,28 @@ export async function getMoodieVoiceLiveConfig(): Promise<MoodieVoiceLiveConfig>
         MOODIE_VOICE_LIVE_MODEL_KEY,
         MOODIE_VOICE_LIVE_VOICE_KEY,
         MOODIE_VOICE_ENGINE_KEY,
+        MOODIE_VOICE_REALTIME_PROVIDER_KEY,
+        MOODIE_VOICE_OPENAI_API_KEY_KEY,
+        MOODIE_VOICE_OPENAI_MODEL_KEY,
+        MOODIE_VOICE_OPENAI_VOICE_KEY,
       ]);
 
     const row = (key: string) =>
       normalize((data || []).find((item) => item.key === key)?.value);
     const engineValue = row(MOODIE_VOICE_ENGINE_KEY);
+    const providerValue = row(MOODIE_VOICE_REALTIME_PROVIDER_KEY);
+    const openaiApiKey = decryptSecret(row(MOODIE_VOICE_OPENAI_API_KEY_KEY))
+      || normalize(process.env.MOODIE_VOICE_OPENAI_API_KEY);
 
     return {
       apiKey: voiceConfig.apiKey,
       model: row(MOODIE_VOICE_LIVE_MODEL_KEY) || DEFAULT_MOODIE_VOICE_LIVE_MODEL,
       voice: row(MOODIE_VOICE_LIVE_VOICE_KEY) || DEFAULT_MOODIE_VOICE_LIVE_VOICE,
       engine: engineValue === "cascade" ? "cascade" : DEFAULT_MOODIE_VOICE_ENGINE,
+      provider: providerValue === "openai" ? "openai" : DEFAULT_MOODIE_VOICE_REALTIME_PROVIDER,
+      openaiApiKey,
+      openaiModel: row(MOODIE_VOICE_OPENAI_MODEL_KEY) || DEFAULT_MOODIE_VOICE_OPENAI_MODEL,
+      openaiVoice: row(MOODIE_VOICE_OPENAI_VOICE_KEY) || DEFAULT_MOODIE_VOICE_OPENAI_VOICE,
     };
   } catch {
     return {
@@ -71,6 +102,10 @@ export async function getMoodieVoiceLiveConfig(): Promise<MoodieVoiceLiveConfig>
       model: DEFAULT_MOODIE_VOICE_LIVE_MODEL,
       voice: DEFAULT_MOODIE_VOICE_LIVE_VOICE,
       engine: DEFAULT_MOODIE_VOICE_ENGINE,
+      provider: DEFAULT_MOODIE_VOICE_REALTIME_PROVIDER,
+      openaiApiKey: normalize(process.env.MOODIE_VOICE_OPENAI_API_KEY),
+      openaiModel: DEFAULT_MOODIE_VOICE_OPENAI_MODEL,
+      openaiVoice: DEFAULT_MOODIE_VOICE_OPENAI_VOICE,
     };
   }
 }
@@ -172,5 +207,55 @@ export function buildMoodieLiveConnectConfig(opts: { voice: string; contextPacke
         },
       ],
     },
+  };
+}
+
+export function buildMoodieOpenAIRealtimeSessionConfig(opts: {
+  model: string;
+  voice: string;
+  contextPacket?: string;
+  role?: Role;
+}) {
+  const geminiConfig = buildMoodieLiveConnectConfig({
+    voice: DEFAULT_MOODIE_VOICE_LIVE_VOICE,
+    contextPacket: opts.contextPacket,
+    role: opts.role,
+  });
+  const declarations = (geminiConfig.tools as Array<{ functionDeclarations?: FunctionDeclaration[] }> | undefined)
+    ?.flatMap((tool) => tool.functionDeclarations || []) || [];
+  const normalizeSchema = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(normalizeSchema);
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, child]) => [
+      key,
+      key === "type" && typeof child === "string" ? child.toLowerCase() : normalizeSchema(child),
+    ]));
+  };
+
+  return {
+    type: "realtime" as const,
+    model: opts.model,
+    instructions: (geminiConfig.systemInstruction as { parts?: Array<{ text?: string }> } | undefined)?.parts
+      ?.map((part) => part.text || "")
+      .filter(Boolean)
+      .join("\n\n"),
+    audio: {
+      input: {
+        transcription: { model: "gpt-4o-mini-transcribe" },
+        turn_detection: {
+          type: "semantic_vad",
+          create_response: true,
+          interrupt_response: true,
+        },
+      },
+      output: { voice: opts.voice },
+    },
+    tools: declarations.map((declaration) => ({
+      type: "function" as const,
+      name: declaration.name,
+      description: declaration.description,
+      parameters: normalizeSchema(declaration.parameters),
+    })),
+    tool_choice: "auto" as const,
   };
 }

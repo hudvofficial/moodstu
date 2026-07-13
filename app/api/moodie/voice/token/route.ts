@@ -2,7 +2,9 @@ import { GoogleGenAI } from "@google/genai";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   buildMoodieLiveConnectConfig,
+  buildMoodieOpenAIRealtimeSessionConfig,
   getMoodieVoiceLiveConfig,
+  resolveMoodieRealtimeProvider,
 } from "@/lib/moodie/voice-live-config";
 import { buildMoodieVoiceMemoryPacket, planMoodieContext } from "@/lib/moodie/context-planner";
 import { normalizeRole } from "@/types/roles";
@@ -16,25 +18,31 @@ function isRateLimitError(error: unknown) {
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json(
-      { error: "Phi\u00ean \u0111\u0103ng nh\u1eadp \u0111\u00e3 h\u1ebft h\u1ea1n" },
-      { status: 401 },
-    );
-  }
+  if (!user) return Response.json({ error: "Phiên đăng nhập đã hết hạn" }, { status: 401 });
 
   const voiceConfig = await getMoodieVoiceLiveConfig();
-  const body = await request.json().catch(() => ({})) as { conversation_id?: string | null; session_id?: string | null };
-  if (voiceConfig.engine === "cascade" || !voiceConfig.apiKey) {
-    return Response.json(
-      {
-        error: voiceConfig.engine === "cascade"
-          ? "Ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i Live \u0111ang t\u1eaft."
-          : "Ch\u01b0a c\u1ea5u h\u00ecnh Google API key cho gi\u1ecdng n\u00f3i.",
-        engine: "cascade",
-      },
-      { status: 503 },
-    );
+  const body = await request.json().catch(() => ({})) as {
+    conversation_id?: string | null;
+    session_id?: string | null;
+    provider?: "gemini" | "openai";
+  };
+  const activeProvider = body.provider === "gemini"
+    ? (voiceConfig.apiKey ? "gemini" : null)
+    : body.provider === "openai"
+      ? (voiceConfig.openaiApiKey ? "openai" : null)
+      : resolveMoodieRealtimeProvider(voiceConfig);
+  const activeProviderKey = activeProvider === "openai"
+    ? voiceConfig.openaiApiKey
+    : voiceConfig.apiKey;
+  if (voiceConfig.engine === "cascade" || !activeProviderKey) {
+    return Response.json({
+      error: voiceConfig.engine === "cascade"
+        ? "Chế độ giọng nói Live đang tắt."
+        : voiceConfig.provider === "openai" && !voiceConfig.apiKey
+          ? "Chưa cấu hình OpenAI API key cho Realtime. Hãy chọn Gemini hoặc thêm key OpenAI."
+          : "Chưa cấu hình Google API key cho giọng nói.",
+      engine: "cascade",
+    }, { status: 503 });
   }
 
   const admin = await createAdminClient();
@@ -45,6 +53,8 @@ export async function POST(request: Request) {
       : Promise.resolve({ data: null }),
   ]);
   if (!employee) return Response.json({ error: "Không tìm thấy hồ sơ người dùng Moodie" }, { status: 403 });
+
+  const role = normalizeRole(employee.role);
   const contextPacket = await planMoodieContext({
     supabase,
     userContext: {
@@ -59,75 +69,95 @@ export async function POST(request: Request) {
     conversationSummary: conversation?.summary,
     includeRetrieval: false,
   });
-  const connectConfig = buildMoodieLiveConnectConfig({
-    voice: voiceConfig.voice,
-    contextPacket: buildMoodieVoiceMemoryPacket(contextPacket),
-    role: normalizeRole(employee.role),
-  });
+  const memoryPacket = buildMoodieVoiceMemoryPacket(contextPacket);
   const now = Date.now();
 
-  try {
-    const ai = new GoogleGenAI({
-      apiKey: voiceConfig.apiKey,
-      httpOptions: { apiVersion: "v1alpha" },
+  const ensureVoiceSession = async (model: string, voice: string) => {
+    let voiceSession: { id: string } | null = null;
+    if (body.session_id && /^[0-9a-f-]{36}$/i.test(body.session_id)) {
+      const { data } = await supabase.from("moodie_voice_sessions").select("id")
+        .eq("id", body.session_id).eq("user_id", user.id).maybeSingle();
+      voiceSession = data;
+    }
+    if (voiceSession) return voiceSession;
+
+    const { data, error } = await supabase.from("moodie_voice_sessions").insert({
+      user_id: user.id,
+      conversation_id: body.conversation_id || null,
+      engine: "live",
+      model,
+      voice,
+      status: "issued",
+      client_metadata: {
+        provider: activeProvider,
+        user_agent: request.headers.get("user-agent")?.slice(0, 300) || null,
+      },
+    }).select("id").single();
+    if (error || !data) throw new Error(`Không thể tạo phiên voice: ${error?.message || "Unknown"}`);
+    await supabase.from("moodie_voice_events").insert({
+      session_id: data.id,
+      user_id: user.id,
+      event_type: "session.token_issued",
+      sequence: 1,
+      payload: { provider: activeProvider },
     });
+    return data;
+  };
+
+  try {
+    if (activeProvider === "openai") {
+      const sessionConfig = buildMoodieOpenAIRealtimeSessionConfig({
+        model: voiceConfig.openaiModel,
+        voice: voiceConfig.openaiVoice,
+        contextPacket: memoryPacket,
+        role,
+      });
+      const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${voiceConfig.openaiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ session: sessionConfig }),
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => ({})) as {
+        value?: string;
+        client_secret?: { value?: string };
+        error?: { message?: string };
+      };
+      const token = payload.value || payload.client_secret?.value;
+      if (!response.ok || !token) {
+        throw new Error(payload.error?.message || `OpenAI Realtime session failed (${response.status})`);
+      }
+      const voiceSession = await ensureVoiceSession(voiceConfig.openaiModel, voiceConfig.openaiVoice);
+      return Response.json({
+        provider: "openai",
+        token,
+        model: voiceConfig.openaiModel,
+        sessionConfig,
+        sessionId: voiceSession.id,
+      });
+    }
+
+    const connectConfig = buildMoodieLiveConnectConfig({
+      voice: voiceConfig.voice,
+      contextPacket: memoryPacket,
+      role,
+    });
+    const ai = new GoogleGenAI({ apiKey: voiceConfig.apiKey!, httpOptions: { apiVersion: "v1alpha" } });
     const token = await ai.authTokens.create({
       config: {
         uses: 1,
         expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
         newSessionExpireTime: new Date(now + 2 * 60 * 1000).toISOString(),
-        liveConnectConstraints: {
-          model: voiceConfig.model,
-          config: connectConfig,
-        },
+        liveConnectConstraints: { model: voiceConfig.model, config: connectConfig },
       },
     });
-
-    if (!token.name) {
-      throw new Error("Google AI kh\u00f4ng tr\u1ea3 v\u1ec1 t\u00ean token.");
-    }
-
-    let voiceSession: { id: string } | null = null;
-    if (body.session_id && /^[0-9a-f-]{36}$/i.test(body.session_id)) {
-      const { data: existingSession } = await supabase
-        .from("moodie_voice_sessions")
-        .select("id")
-        .eq("id", body.session_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      voiceSession = existingSession;
-    }
-
-    if (!voiceSession) {
-      const { data: createdSession, error: voiceSessionError } = await supabase
-        .from("moodie_voice_sessions")
-        .insert({
-          user_id: user.id,
-          conversation_id: body.conversation_id || null,
-          engine: "live",
-          model: voiceConfig.model,
-          voice: voiceConfig.voice,
-          status: "issued",
-          client_metadata: {
-            user_agent: request.headers.get("user-agent")?.slice(0, 300) || null,
-          },
-        })
-        .select("id")
-        .single();
-      if (voiceSessionError || !createdSession) {
-        throw new Error(`Không thể tạo phiên voice: ${voiceSessionError?.message || "Unknown"}`);
-      }
-      voiceSession = createdSession;
-      await supabase.from("moodie_voice_events").insert({
-        session_id: voiceSession.id,
-        user_id: user.id,
-        event_type: "session.token_issued",
-        sequence: 1,
-        payload: {},
-      });
-    }
-
+    if (!token.name) throw new Error("Google AI không trả về tên token.");
+    const voiceSession = await ensureVoiceSession(voiceConfig.model, voiceConfig.voice);
     return Response.json({
+      provider: "gemini",
       token: token.name,
       model: voiceConfig.model,
       connectConfig,
@@ -135,15 +165,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (isRateLimitError(error)) {
-      return Response.json(
-        { error: "T\u00e0i kho\u1ea3n Google AI \u0111\u00e3 h\u1ebft h\u1ea1n m\u1ee9c, vui l\u00f2ng n\u1ea1p th\u00eam." },
-        { status: 429 },
-      );
+      return Response.json({ error: "Tài khoản AI đã hết hạn mức, vui lòng kiểm tra billing." }, { status: 429 });
     }
-
-    return Response.json(
-      { error: `Kh\u00f4ng th\u1ec3 t\u1ea1o phi\u00ean gi\u1ecdng n\u00f3i Live: ${error instanceof Error ? error.message : String(error)}` },
-      { status: 502 },
-    );
+    return Response.json({
+      error: `Không thể tạo phiên giọng nói Live: ${error instanceof Error ? error.message : String(error)}`,
+    }, { status: 502 });
   }
 }

@@ -11,6 +11,7 @@ import { MOODIE_GEMINI_MODEL_OPTIONS } from "@/lib/moodie/model-options";
 import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
 import { getMoodieBraveSettingsSnapshot } from "@/lib/moodie/brave-config";
 import { getMoodieVoiceSnapshot } from "@/lib/moodie/voice-config";
+import { getMoodieVoiceLiveConfig } from "@/lib/moodie/voice-live-config";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
 import {
   getMoodieGeminiSettingsSnapshot,
@@ -96,11 +97,12 @@ async function getOrCreateNotificationPreferences(
 
 export async function getStudioInfoAdmin() {
   return withAdmin(async (adminClient) => {
-    const [studioInfo, moodieAiSettings, moodieProviderSettings, moodieVoiceSettings, moodieBraveSettings] = await Promise.all([
+    const [studioInfo, moodieAiSettings, moodieProviderSettings, moodieVoiceSettings, moodieVoiceLiveSettings, moodieBraveSettings] = await Promise.all([
       getOrCreateStudioInfo(adminClient),
       getMoodieGeminiSettingsSnapshot(adminClient),
       getMoodieProviderSnapshot(),
       getMoodieVoiceSnapshot(),
+      getMoodieVoiceLiveConfig(),
       getMoodieBraveSettingsSnapshot(),
     ]);
 
@@ -108,7 +110,19 @@ export async function getStudioInfoAdmin() {
       studioInfo: sanitizeStudioInfoForClient(studioInfo as StudioInfo),
       moodieAiSettings,
       moodieProviderSettings,
-      moodieVoiceSettings,
+      moodieVoiceSettings: {
+        ...moodieVoiceSettings,
+        engine: moodieVoiceLiveSettings.engine,
+        liveVoice: moodieVoiceLiveSettings.voice,
+        liveModel: moodieVoiceLiveSettings.model,
+        realtimeProvider: moodieVoiceLiveSettings.provider,
+        hasOpenAIKey: Boolean(moodieVoiceLiveSettings.openaiApiKey),
+        openaiKeyMasked: moodieVoiceLiveSettings.openaiApiKey
+          ? `••••••••${moodieVoiceLiveSettings.openaiApiKey.slice(-4)}`
+          : undefined,
+        openaiModel: moodieVoiceLiveSettings.openaiModel,
+        openaiVoice: moodieVoiceLiveSettings.openaiVoice,
+      },
       moodieBraveSettings,
     } satisfies StudioSettingsAdminData;
   });

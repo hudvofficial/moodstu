@@ -44,10 +44,18 @@ import {
   DEFAULT_MOODIE_VOICE_ENGINE,
   DEFAULT_MOODIE_VOICE_LIVE_MODEL,
   DEFAULT_MOODIE_VOICE_LIVE_VOICE,
+  DEFAULT_MOODIE_VOICE_OPENAI_MODEL,
+  DEFAULT_MOODIE_VOICE_OPENAI_VOICE,
+  DEFAULT_MOODIE_VOICE_REALTIME_PROVIDER,
   getMoodieVoiceLiveConfig,
   MOODIE_VOICE_ENGINE_KEY,
   MOODIE_VOICE_LIVE_MODEL_KEY,
   MOODIE_VOICE_LIVE_VOICE_KEY,
+  MOODIE_VOICE_OPENAI_API_KEY_KEY,
+  MOODIE_VOICE_OPENAI_MODEL_KEY,
+  MOODIE_VOICE_OPENAI_VOICE_KEY,
+  MOODIE_VOICE_REALTIME_PROVIDER_KEY,
+  type MoodieRealtimeProvider,
   type MoodieVoiceEngine,
 } from "@/lib/moodie/voice-live-config";
 
@@ -241,6 +249,11 @@ export async function getMoodieVoiceSettingsAction() {
       engine: live.engine,
       liveVoice: live.voice,
       liveModel: live.model,
+      realtimeProvider: live.provider,
+      hasOpenAIKey: Boolean(live.openaiApiKey),
+      openaiKeyMasked: live.openaiApiKey ? `••••••••${live.openaiApiKey.slice(-4)}` : undefined,
+      openaiModel: live.openaiModel,
+      openaiVoice: live.openaiVoice,
     };
   });
 }
@@ -249,6 +262,10 @@ export interface MoodieVoiceLiveFormData {
   engine?: MoodieVoiceEngine;
   voice?: string;
   model?: string;
+  provider?: MoodieRealtimeProvider;
+  openai_api_key?: string;
+  openai_model?: string;
+  openai_voice?: string;
 }
 
 export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
@@ -257,6 +274,9 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
     const engine = data.engine === "cascade" ? "cascade" : DEFAULT_MOODIE_VOICE_ENGINE;
     const voice = data.voice?.trim() || DEFAULT_MOODIE_VOICE_LIVE_VOICE;
     const model = data.model?.trim() || DEFAULT_MOODIE_VOICE_LIVE_MODEL;
+    const provider = data.provider === "openai" ? "openai" : DEFAULT_MOODIE_VOICE_REALTIME_PROVIDER;
+    const openaiModel = data.openai_model?.trim() || DEFAULT_MOODIE_VOICE_OPENAI_MODEL;
+    const openaiVoice = data.openai_voice?.trim() || DEFAULT_MOODIE_VOICE_OPENAI_VOICE;
     const now = new Date().toISOString();
     const updates = [
       {
@@ -277,7 +297,33 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
         description: "Moodie Live model",
         updated_at: now,
       },
+      {
+        key: MOODIE_VOICE_REALTIME_PROVIDER_KEY,
+        value: provider,
+        description: "Moodie realtime voice provider",
+        updated_at: now,
+      },
+      {
+        key: MOODIE_VOICE_OPENAI_MODEL_KEY,
+        value: openaiModel,
+        description: "Moodie OpenAI Realtime model",
+        updated_at: now,
+      },
+      {
+        key: MOODIE_VOICE_OPENAI_VOICE_KEY,
+        value: openaiVoice,
+        description: "Moodie OpenAI Realtime voice",
+        updated_at: now,
+      },
     ];
+    if (data.openai_api_key?.trim()) {
+      updates.push({
+        key: MOODIE_VOICE_OPENAI_API_KEY_KEY,
+        value: encryptSecret(data.openai_api_key.trim()) ?? data.openai_api_key.trim(),
+        description: "Moodie OpenAI Realtime API key (encrypted)",
+        updated_at: now,
+      });
+    }
 
     const { error } = await adminClient
       .from("system_settings")
@@ -294,8 +340,8 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
       action: "UPDATE",
       tableName: "system_settings",
       recordId: MOODIE_VOICE_ENGINE_KEY,
-      description: `C\u1eadp nh\u1eadt Moodie Live voice (${engine}, ${voice}, ${model})`,
-      newData: { engine, voice, model },
+      description: `C\u1eadp nh\u1eadt Moodie Live voice (${provider}, ${engine})`,
+      newData: { engine, provider, voice, model, openaiModel, openaiVoice, has_openai_key_update: Boolean(data.openai_api_key?.trim()) },
       source: "server_action",
     });
 
@@ -303,7 +349,7 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
     revalidatePath("/settings/studio");
     revalidatePath("/moodie");
 
-    return { success: true, engine, voice, model };
+    return { success: true, engine, provider, voice, model, openaiModel, openaiVoice };
   });
 }
 

@@ -74,6 +74,14 @@ export interface MoodieVoiceSettings {
   hasKey: boolean;
   keyMasked?: string;
   model: string;
+  engine?: "live" | "cascade";
+  liveVoice?: string;
+  liveModel?: string;
+  realtimeProvider?: "gemini" | "openai";
+  hasOpenAIKey?: boolean;
+  openaiKeyMasked?: string;
+  openaiModel?: string;
+  openaiVoice?: string;
 }
 
 export interface StudioSettingsAdminData {

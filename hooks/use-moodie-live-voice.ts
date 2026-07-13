@@ -10,6 +10,7 @@ import {
   parsePcmRate,
 } from "@/lib/moodie/live-audio";
 import { isExplicitMoodieVoiceConfirmation } from "@/lib/moodie/voice-confirmation";
+import type { OpenAIRealtimeWebRTCClient } from "@/lib/moodie/realtime/openai-webrtc-client";
 
 type VoiceStatus = "idle" | "connecting" | "listening" | "speaking" | "error";
 type TranscriptRole = "user" | "model";
@@ -23,11 +24,13 @@ type UseMoodieLiveVoiceOptions = {
 };
 
 type TokenResponse = {
+  provider?: "gemini" | "openai";
   token?: string;
   model?: string;
   connectConfig?: Record<string, unknown>;
   engine?: string;
   sessionId?: string;
+  sessionConfig?: Record<string, unknown>;
 };
 
 type AskResponse = {
@@ -97,6 +100,8 @@ export function useMoodieLiveVoice({
   const onErrorRef = useRef(onError);
   const onEngineFallbackRef = useRef(onEngineFallback);
   const sessionRef = useRef<LiveSession | null>(null);
+  const openAIClientRef = useRef<OpenAIRealtimeWebRTCClient | null>(null);
+  const providerRef = useRef<"gemini" | "openai">("gemini");
   const connectRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -172,6 +177,15 @@ export function useMoodieLiveVoice({
       connectTimeoutRef.current = null;
     }
     emitTelemetry("session.failed", { error: reason, includeTurn: false });
+    if (providerRef.current === "openai") {
+      openAIClientRef.current?.close();
+      openAIClientRef.current = null;
+      providerRef.current = "gemini";
+      fallbackTriggeredRef.current = false;
+      setStatus("connecting");
+      void connectRef.current?.(true);
+      return;
+    }
     stopRef.current?.();
     onEngineFallbackRef.current?.();
   }, [emitTelemetry]);
@@ -366,9 +380,13 @@ export function useMoodieLiveVoice({
       clearTimeout(timeout);
     }
 
-    sessionRef.current?.sendToolResponse({
-      functionResponses: [{ id: call.id, name: call.name, response: { result } }],
-    });
+    if (providerRef.current === "openai") {
+      openAIClientRef.current?.sendToolResult(call.id, result);
+    } else {
+      sessionRef.current?.sendToolResponse({
+        functionResponses: [{ id: call.id, name: call.name, response: { result } }],
+      });
+    }
   }, [emitTelemetry]);
 
   const handleMessage = useCallback(
@@ -442,6 +460,8 @@ export function useMoodieLiveVoice({
 
   const closeSession = useCallback(() => {
     try {
+      openAIClientRef.current?.close();
+      openAIClientRef.current = null;
       sessionRef.current?.close();
     } finally {
       sessionRef.current = null;
@@ -461,7 +481,11 @@ export function useMoodieLiveVoice({
           const response = await fetch("/api/moodie/voice/token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ conversation_id: conversationIdRef.current, session_id: voiceSessionIdRef.current }),
+            body: JSON.stringify({
+              conversation_id: conversationIdRef.current,
+              session_id: voiceSessionIdRef.current,
+              provider: providerRef.current,
+            }),
           });
           const payload = (await response.json()) as TokenResponse;
           if (response.status === 503 || payload.engine === "cascade") {
@@ -473,12 +497,57 @@ export function useMoodieLiveVoice({
             throw new Error(`Moodie token failed: ${response.status}`);
           }
           tokenRef.current = payload.token;
+          providerRef.current = payload.provider || "gemini";
           modelRef.current = payload.model;
           connectConfigRef.current = payload.connectConfig ?? {};
           if (payload.sessionId && payload.sessionId !== voiceSessionIdRef.current) {
             voiceSessionIdRef.current = payload.sessionId;
             telemetrySequenceRef.current = 1;
           }
+        }
+
+        if (providerRef.current === "openai") {
+          const stream = streamRef.current;
+          if (!stream) throw new Error("Microphone stream is missing for OpenAI Realtime");
+          const { OpenAIRealtimeWebRTCClient } = await import("@/lib/moodie/realtime/openai-webrtc-client");
+          const client = new OpenAIRealtimeWebRTCClient(tokenRef.current, stream, {
+            onOpen: () => {
+              if (connectTimeoutRef.current !== null) clearTimeout(connectTimeoutRef.current);
+              connectTimeoutRef.current = null;
+              emitTelemetry("session.connected", { includeTurn: false });
+              setStatus("listening");
+            },
+            onClose: () => { if (!stoppedRef.current) reportError(new Error("OpenAI Realtime disconnected")); },
+            onError: reportError,
+            onInputTranscript: (text, completed) => {
+              if (!text) return;
+              inputTranscriptBufferRef.current = completed ? text : inputTranscriptBufferRef.current + text;
+              latestUserUtteranceRef.current = inputTranscriptBufferRef.current;
+              setUserTranscript(inputTranscriptBufferRef.current);
+              emitTelemetry("input.transcript_received", { transcriptDelta: text });
+              onTranscriptRef.current?.("user", text);
+            },
+            onOutputTranscript: (text, completed) => {
+              if (!text) return;
+              outputTranscriptBufferRef.current = completed ? text : outputTranscriptBufferRef.current + text;
+              setModelTranscript(outputTranscriptBufferRef.current);
+              emitTelemetry("assistant.transcript_received", { transcriptDelta: text });
+              onTranscriptRef.current?.("model", text);
+            },
+            onSpeaking: (speaking) => setStatus(speaking ? "speaking" : "listening"),
+            onTurnComplete: () => {
+              emitTelemetry("assistant.turn_completed");
+              inputTranscriptBufferRef.current = "";
+              outputTranscriptBufferRef.current = "";
+              turnSequenceRef.current += 1;
+              setStatus("listening");
+            },
+            onToolCall: (call) => { void handleToolCall(call); },
+          });
+          openAIClientRef.current = client;
+          connectTimeoutRef.current = setTimeout(() => fallbackToCascade("OpenAI Realtime connection timed out"), 12_000);
+          await client.connect();
+          return;
         }
 
         const { GoogleGenAI } = await import("@google/genai");
@@ -542,7 +611,7 @@ export function useMoodieLiveVoice({
         reportError(value);
       }
     },
-    [closeSession, emitTelemetry, fallbackToCascade, handleMessage, reportError],
+    [closeSession, emitTelemetry, fallbackToCascade, handleMessage, handleToolCall, reportError],
   );
   connectRef.current = connect;
 
@@ -674,13 +743,19 @@ export function useMoodieLiveVoice({
         throw new Error(`Moodie token failed: ${response.status}`);
       }
       tokenRef.current = payload.token;
+      providerRef.current = payload.provider || "gemini";
       modelRef.current = payload.model;
       connectConfigRef.current = payload.connectConfig ?? {};
       if (!payload.sessionId) throw new Error("Moodie voice session id is missing");
       voiceSessionIdRef.current = payload.sessionId;
       telemetrySequenceRef.current = 1;
       emitTelemetry("session.connecting", { includeTurn: false });
-      await Promise.all([startCapture(), connect(false)]);
+      if (providerRef.current === "openai") {
+        await startCapture();
+        await connect(false);
+      } else {
+        await Promise.all([startCapture(), connect(false)]);
+      }
     } catch (value) {
       reportError(value);
     }
@@ -690,14 +765,20 @@ export function useMoodieLiveVoice({
     const cleanText = text.trim();
     if (!cleanText) return false;
     const session = sessionRef.current;
-    if (!session?.sendClientContent || stoppedRef.current) return false;
+    if (stoppedRef.current) return false;
     latestUserUtteranceRef.current = cleanText;
     setUserTranscript(cleanText);
     onTranscriptRef.current?.("user", cleanText);
-    session.sendClientContent({
-      turns: [{ role: "user", parts: [{ text: cleanText }] }],
-      turnComplete: true,
-    });
+    if (providerRef.current === "openai") {
+      if (!openAIClientRef.current) return false;
+      openAIClientRef.current.sendText(cleanText);
+    } else {
+      if (!session?.sendClientContent) return false;
+      session.sendClientContent({
+        turns: [{ role: "user", parts: [{ text: cleanText }] }],
+        turnComplete: true,
+      });
+    }
     return true;
   }, []);
 
@@ -731,6 +812,9 @@ export function useMoodieLiveVoice({
             const eventPayload = terminal
               ? JSON.stringify({ run_id: runId, status: run.status, result: run.result || null, error: run.error || null, source_refs: run.source_refs || [] })
               : JSON.stringify({ run_id: runId, status: run.status, progress });
+            if (providerRef.current === "openai") {
+              openAIClientRef.current?.sendSystemEvent(`[MOODIE_SYSTEM_EVENT - trusted task-store data] ${eventPayload}`);
+            }
             sessionRef.current?.sendClientContent?.({
               turns: [{
                 role: "user",

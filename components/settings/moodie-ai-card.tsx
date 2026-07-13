@@ -14,7 +14,6 @@ import {
   Info,
   KeyRound,
   Loader2,
-  Mic,
   RefreshCw,
   Server,
 } from "lucide-react";
@@ -22,14 +21,13 @@ import { toast } from "sonner";
 import {
   saveMoodieProviderConfig,
   saveMoodieBraveConfig,
-  saveMoodieVoiceConfig,
-  saveMoodieVoiceLiveConfig,
   testActiveMoodieProvider,
   testMoodieBraveConnection,
 } from "@/app/actions/moodie-provider-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectForm } from "@/components/ui/select/SelectForm";
+import { MoodieVoiceSettingsSection } from "@/components/settings/moodie-voice-settings-section";
 import {
   DEFAULT_MOODIE_GEMINI_MODEL,
   formatMoodieGeminiModelLabel,
@@ -589,179 +587,6 @@ function GeminiLegacySection({
   );
 }
 
-type MoodieVoiceSettingsWithLive = MoodieVoiceSettings & {
-  engine?: "live" | "cascade";
-  liveVoice?: string;
-  liveModel?: string;
-};
-
-const VOICE_ENGINE_OPTIONS = [
-  { value: "live", label: "Realtime (Live)" },
-  { value: "cascade", label: "D\u1ef1 ph\u00f2ng (t\u1eebng c\u00e2u)" },
-];
-
-function MoodieVoiceSection({
-  voiceSettings,
-  disabled,
-}: {
-  voiceSettings: MoodieVoiceSettingsWithLive;
-  disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState(voiceSettings.model);
-  const [engine, setEngine] = useState<"live" | "cascade">(voiceSettings.engine || "live");
-  const [liveVoice, setLiveVoice] = useState(voiceSettings.liveVoice || "Zephyr");
-  const [liveModel, setLiveModel] = useState(
-    voiceSettings.liveModel || "gemini-3.1-flash-live-preview",
-  );
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const [voiceResult, liveResult] = await Promise.all([
-        saveMoodieVoiceConfig({
-          api_key: apiKey || undefined,
-          model: model || undefined,
-        }),
-        saveMoodieVoiceLiveConfig({
-          engine,
-          voice: liveVoice || undefined,
-          model: liveModel || undefined,
-        }),
-      ]);
-      if (!voiceResult.success) throw new Error(voiceResult.error);
-      if (!liveResult.success) throw new Error(liveResult.error);
-      setApiKey("");
-      toast.success("Đã lưu cấu hình giọng nói");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Lỗi lưu cấu hình giọng nói");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="rounded-lg border border-border">
-      <Button
-        type="button"
-        unstyled
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between px-3 py-2 text-left"
-      >
-        <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
-          <Mic className="w-4 h-4 text-text-muted" />
-          Giọng nói (đọc để nhập)
-        </span>
-        {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </Button>
-
-      {open && (
-        <div className="space-y-3 border-t border-border p-3">
-          <div>
-            <label className="label-base">Google API key cho giọng nói</label>
-            {voiceSettings.hasKey ? (
-              <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-success/20 bg-success/5 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-success">Key giọng nói đang được sử dụng</p>
-                  <p className="mt-0.5 font-mono text-xs text-text-secondary">
-                    {voiceSettings.keyMasked || "Đã lưu an toàn"}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-success/10 px-2 py-1 text-xs font-medium text-success">
-                  Đã cấu hình
-                </span>
-              </div>
-            ) : null}
-            <p className="mb-1 text-xs font-medium text-text-secondary">
-              {voiceSettings.hasKey ? "Thay bằng key mới" : "Nhập Google API key"}
-            </p>
-            <div className="relative">
-              <Input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder={voiceSettings.hasKey ? "Để trống nếu muốn giữ nguyên key hiện tại" : "AIza..."}
-                className="pr-10"
-                disabled={disabled}
-              />
-              <Button
-                type="button"
-                variant="icon"
-                onClick={() => setShowKey((value) => !value)}
-                className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md text-text-muted hover:text-text-primary"
-                aria-label={showKey ? "Ẩn khóa API" : "Hiện khóa API"}
-                disabled={disabled}
-              >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
-            </div>
-            <p className="mt-1 text-xs text-text-muted">
-              {voiceSettings.hasKey ? `Đã lưu key ${voiceSettings.keyMasked || "được mã hóa"}` : "Chưa có khóa giọng nói"}. Khóa này tách riêng khỏi provider chat chính và chỉ hiển thị 4 ký tự cuối.
-            </p>
-          </div>
-
-          <div>
-            <label className="label-base">Mô hình STT (speech-to-text)</label>
-            <Input
-              value={model}
-              onChange={(event) => setModel(event.target.value)}
-              placeholder="gemini-2.5-flash"
-              className="font-mono text-xs"
-              disabled={disabled}
-            />
-          </div>
-
-          <div>
-            <label className="label-base">Ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i: Realtime (Live) / D\u1ef1 ph\u00f2ng (t\u1eebng c\u00e2u)</label>
-            <SelectForm
-              value={engine}
-              onChange={(value) => setEngine(value as "live" | "cascade")}
-              options={VOICE_ENGINE_OPTIONS}
-              disabled={disabled}
-            />
-          </div>
-
-          <div>
-            <label className="label-base">Voice</label>
-            <Input
-              value={liveVoice}
-              onChange={(event) => setLiveVoice(event.target.value)}
-              placeholder="Zephyr"
-              className="font-mono text-xs"
-              disabled={disabled}
-            />
-          </div>
-
-          <div>
-            <label className="label-base">Live model</label>
-            <Input
-              value={liveModel}
-              onChange={(event) => setLiveModel(event.target.value)}
-              placeholder="gemini-3.1-flash-live-preview"
-              className="font-mono text-xs"
-              disabled={disabled}
-            />
-          </div>
-
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSave}
-            disabled={saving || disabled}
-            className="gap-2"
-          >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            Lưu khóa giọng nói
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MoodieBraveSection({ settings, disabled }: { settings: MoodieBraveSettings; disabled?: boolean }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(settings.enabled);
@@ -821,7 +646,7 @@ function MoodieBraveSection({ settings, disabled }: { settings: MoodieBraveSetti
           </div>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary">
-          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} disabled={disabled || saving} className="h-4 w-4 accent-primary" />
+          <Input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} disabled={disabled || saving} className="h-4 w-4 accent-primary" />
           Bật
         </label>
       </div>
@@ -836,7 +661,7 @@ function MoodieBraveSection({ settings, disabled }: { settings: MoodieBraveSetti
           <Input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={settings.hasApiKey ? "Đã có key; nhập key mới để thay đổi" : "BSA..."} disabled={disabled || saving} className="pr-10" autoComplete="new-password" />
           <Button type="button" unstyled onClick={() => setShowKey((value) => !value)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted" aria-label={showKey ? "Ẩn API key" : "Hiện API key"}>{showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
         </div>
-        <p className="text-[11px] text-text-muted">Key được mã hóa trước khi lưu và không bao giờ trả lại trình duyệt.</p>
+        <p className="text-xs text-text-muted">Key được mã hóa trước khi lưu và không bao giờ trả lại trình duyệt.</p>
       </div>
 
       <Button type="button" variant="ghost" onClick={() => setAdvanced((value) => !value)} className="w-full justify-between text-xs">
@@ -960,7 +785,7 @@ export default function MoodieAiCard({
             disabled={disabled}
           />
 
-          <MoodieVoiceSection voiceSettings={voiceSettings} disabled={disabled} />
+          <MoodieVoiceSettingsSection settings={voiceSettings} disabled={disabled} />
           <MoodieBraveSection settings={braveSettings} disabled={disabled} />
         </div>
       )}
