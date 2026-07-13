@@ -373,6 +373,9 @@ export async function saveMoodieVoiceConfig(rawInput: unknown) {
   return withAdmin(async (adminClient) => {
     const data = rawInput as MoodieVoiceFormData;
     const model = data.model?.trim() || DEFAULT_MOODIE_VOICE_STT_MODEL;
+    if (/(?:live|native-audio)/iu.test(model)) {
+      throw new Error("Model STT phải hỗ trợ generateContent; không dùng model Live/Native Audio ở trường này");
+    }
 
     const now = new Date().toISOString();
     const updates: Array<{ key: string; value: string; description: string; updated_at: string }> = [];

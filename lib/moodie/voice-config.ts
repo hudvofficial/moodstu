@@ -30,6 +30,14 @@ function normalize(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function normalizeSttModel(value: string | null | undefined) {
+  const model = normalize(value);
+  if (!model || /(?:live|native-audio)/iu.test(model)) {
+    return DEFAULT_MOODIE_VOICE_STT_MODEL;
+  }
+  return model;
+}
+
 /**
  * Doc config voice tu system_settings, giai ma api key, fallback env khi thieu.
  * KHONG fallback sang key chat chinh cua Moodie.
@@ -47,7 +55,7 @@ export async function getMoodieVoiceConfig(): Promise<MoodieVoiceConfig> {
 
     const storedKey = decryptSecret(row(MOODIE_VOICE_API_KEY_KEY));
     const envKey = normalize(process.env.MOODIE_VOICE_GOOGLE_API_KEY);
-    const model = row(MOODIE_VOICE_STT_MODEL_KEY) || DEFAULT_MOODIE_VOICE_STT_MODEL;
+    const model = normalizeSttModel(row(MOODIE_VOICE_STT_MODEL_KEY));
 
     return {
       apiKey: storedKey || envKey,
