@@ -12,11 +12,17 @@ config({ path: join(rootDir, '.env.local') });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const GALLERY_ID = process.argv[2];
 
 console.log('🧪 Testing RPC Migration\n');
 
 if (!SUPABASE_URL || !ANON_KEY) {
   console.log('❌ Missing Supabase credentials');
+  process.exit(1);
+}
+
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(GALLERY_ID || '')) {
+  console.error('Usage: node scripts/test-rpc-migration.mjs <gallery-uuid>');
   process.exit(1);
 }
 
@@ -33,7 +39,7 @@ async function testRPC() {
         'Authorization': `Bearer ${ANON_KEY}`
       },
       body: JSON.stringify({
-        p_gallery_id: 'debb307f-1bb3-4d59-8994-7de2bcea3b8d',
+        p_gallery_id: GALLERY_ID,
         p_limit: 50,
         p_offset: 0
       })

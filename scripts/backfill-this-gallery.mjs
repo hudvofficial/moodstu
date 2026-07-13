@@ -6,7 +6,11 @@ import https from 'https';
 
 config({ path: '.env.local' });
 
-const GALLERY_ID = '0aaa52b4-7dac-4845-bf5a-dbc96640a35a';
+const GALLERY_ID = process.argv[2];
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(GALLERY_ID || '')) {
+  console.error('Usage: node scripts/backfill-this-gallery.mjs <gallery-uuid>');
+  process.exit(1);
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

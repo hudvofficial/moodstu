@@ -18,7 +18,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GALLERY_ID = 'a50f0b0d-52df-49b5-af9e-952972ba4585';
+const GALLERY_ID = process.argv[2];
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(GALLERY_ID || '')) {
+  console.error('Usage: node scripts/test-image-urls.mjs <gallery-uuid>');
+  process.exit(1);
+}
 
 async function testImageUrls() {
   console.log('🧪 Testing Image URLs from Database\n');
