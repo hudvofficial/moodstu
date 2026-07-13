@@ -110,6 +110,8 @@ export function useMoodieLiveVoice({
   const playbackSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const animationFrameRef = useRef<number | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackTriggeredRef = useRef(false);
   const resumptionHandleRef = useRef<string | null>(null);
   const connectConfigRef = useRef<Record<string, unknown>>({});
   const modelRef = useRef("");
@@ -158,6 +160,18 @@ export function useMoodieLiveVoice({
     emitTelemetry("session.failed", { error: error.message, includeTurn: false });
     setStatus("error");
     onErrorRef.current?.(error);
+  }, [emitTelemetry]);
+
+  const fallbackToCascade = useCallback((reason: string) => {
+    if (stoppedRef.current || fallbackTriggeredRef.current) return;
+    fallbackTriggeredRef.current = true;
+    if (connectTimeoutRef.current !== null) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
+    emitTelemetry("session.failed", { error: reason, includeTurn: false });
+    stopRef.current?.();
+    onEngineFallbackRef.current?.();
   }, [emitTelemetry]);
 
   const flushPlayback = useCallback(() => {
@@ -452,31 +466,53 @@ export function useMoodieLiveVoice({
               sessionResumption: { handle: resumptionHandleRef.current },
             }
           : connectConfigRef.current;
+        if (!silent) {
+          connectTimeoutRef.current = setTimeout(() => {
+            fallbackToCascade("Live connection timed out");
+          }, 12_000);
+        }
         const session = await ai.live.connect({
           model: modelRef.current,
           config,
           callbacks: {
             onopen: () => {
               if (!stoppedRef.current) {
+                if (connectTimeoutRef.current !== null) {
+                  clearTimeout(connectTimeoutRef.current);
+                  connectTimeoutRef.current = null;
+                }
                 emitTelemetry(silent ? "session.resumed" : "session.connected", { includeTurn: false });
                 setStatus("listening");
               }
             },
             onmessage: (message) => handleMessage(message as LiveMessage),
-            onerror: (event) => reportError(event),
-            onclose: () => {
+            onerror: (event) => {
+              if (!silent) {
+                fallbackToCascade(`Live connection error: ${String(event)}`);
+                return;
+              }
+              reportError(event);
+            },
+            onclose: (event) => {
               if (!stoppedRef.current && reconnectTimerRef.current === null) {
-                setStatus("connecting");
+                const reason = event && typeof event === "object" && "reason" in event
+                  ? `: ${String(event.reason)}`
+                  : "";
+                fallbackToCascade(`Live connection closed${reason}`);
               }
             },
           },
         });
         sessionRef.current = session as LiveSession;
       } catch (value) {
+        if (!silent) {
+          fallbackToCascade(value instanceof Error ? value.message : String(value));
+          return;
+        }
         reportError(value);
       }
     },
-    [closeSession, emitTelemetry, handleMessage, reportError],
+    [closeSession, emitTelemetry, fallbackToCascade, handleMessage, reportError],
   );
   connectRef.current = connect;
 
@@ -549,6 +585,10 @@ export function useMoodieLiveVoice({
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
+    if (connectTimeoutRef.current !== null) {
+      clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
     closeSession();
     flushPlayback();
     stopLevelMeter();
@@ -573,6 +613,7 @@ export function useMoodieLiveVoice({
     emitTelemetry("session.ended", { includeTurn: false });
     voiceSessionIdRef.current = null;
     activeRunStateRef.current.clear();
+    fallbackTriggeredRef.current = false;
     setStatus("idle");
   }, [closeSession, emitTelemetry, flushPlayback, stopLevelMeter]);
   stopRef.current = stop;
@@ -580,6 +621,7 @@ export function useMoodieLiveVoice({
   const start = useCallback(async () => {
     stop();
     stoppedRef.current = false;
+    fallbackTriggeredRef.current = false;
     setStatus("connecting");
     setUserTranscript("");
     setModelTranscript("");
