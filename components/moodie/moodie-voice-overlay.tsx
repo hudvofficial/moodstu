@@ -316,16 +316,20 @@ function MoodieVoiceCascade({
   const circleScale = 0.88 + rmsLevel * 0.38;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-neutral-950 text-white" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
-      <div className="flex justify-end p-4 sm:p-6">
+    <div className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[88dvh] min-h-[30rem] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
+        <div>
+          <p className="text-sm font-semibold">Moodie Voice</p>
+          <p className="text-xs text-white/45">Chế độ dự phòng</p>
+        </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
         </Button>
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 pb-24">
-        <div className="relative flex h-64 w-64 items-center justify-center sm:h-80 sm:w-80">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-5 py-6 sm:px-8 sm:py-7">
+        <div className="relative flex h-36 w-36 shrink-0 items-center justify-center sm:h-40 sm:w-40">
           <div className="absolute inset-8 rounded-full bg-primary/20 blur-3xl transition-transform duration-100" style={{ transform: `scale(${circleScale})` }} />
-          <div className="flex h-40 w-40 items-center justify-center rounded-full bg-linear-to-br from-primary to-violet-500 shadow-[0_0_80px_rgba(124,58,237,0.35)] transition-transform duration-100 sm:h-48 sm:w-48" style={{ transform: `scale(${circleScale})` }}>
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-primary to-violet-500 shadow-xl transition-transform duration-100 sm:h-28 sm:w-28" style={{ transform: `scale(${circleScale})` }}>
             {muted ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
           </div>
         </div>
@@ -334,8 +338,8 @@ function MoodieVoiceCascade({
           <p className="mt-2 text-sm text-white/55">{muted ? "Nh\u1ea5n M \u0111\u1ec3 b\u1eadt micro" : "B\u1ea1n c\u00f3 th\u1ec3 n\u00f3i b\u1ea5t c\u1ee9 l\u00fac n\u00e0o"}</p>
         </div>
       </div>
-      <div className="absolute inset-x-0 bottom-8 flex justify-center">
-        <Button type="button" unstyled className={`flex h-14 min-w-14 items-center justify-center gap-2 rounded-full px-5 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={() => setMuted((current) => !current)} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
+      <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
+        <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={() => setMuted((current) => !current)} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           <span className="text-sm font-medium">M</span>
         </Button>
@@ -455,16 +459,20 @@ export function MoodieVoiceOverlay({
         : "\u0110ang nghe";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-neutral-950 text-white" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
-      <div className="flex justify-end p-4 sm:p-6">
+    <div className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[88dvh] min-h-[32rem] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
+        <div>
+          <p className="text-sm font-semibold">Moodie Voice</p>
+          <p className="text-xs text-white/45">Trò chuyện trực tiếp</p>
+        </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
         </Button>
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 pb-32">
-        <div className="relative flex h-64 w-64 items-center justify-center sm:h-80 sm:w-80">
+      <div className="flex flex-1 flex-col items-center gap-4 overflow-y-auto px-5 py-6 sm:px-8 sm:py-7">
+        <div className="relative flex h-36 w-36 shrink-0 items-center justify-center sm:h-40 sm:w-40">
           <div ref={glowRef} className="absolute inset-8 rounded-full bg-primary/20 blur-3xl transition-transform duration-100" />
-          <div ref={circleRef} className="flex h-40 w-40 items-center justify-center rounded-full bg-linear-to-br from-primary to-violet-500 shadow-[0_0_80px_rgba(124,58,237,0.35)] transition-transform duration-100 sm:h-48 sm:w-48">
+          <div ref={circleRef} className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-primary to-violet-500 shadow-xl transition-transform duration-100 sm:h-28 sm:w-28">
             {muted ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
           </div>
         </div>
@@ -472,13 +480,13 @@ export function MoodieVoiceOverlay({
           <p className="text-xl font-semibold">{label}</p>
           <p className="mt-2 text-sm text-white/55">{muted ? "Nh\u1ea5n M \u0111\u1ec3 b\u1eadt micro" : "B\u1ea1n c\u00f3 th\u1ec3 n\u00f3i b\u1ea5t c\u1ee9 l\u00fac n\u00e0o"}</p>
         </div>
-        <div className="w-full max-w-2xl space-y-2 text-center">
-          <p className="min-h-6 text-sm text-white/45">{userTranscript}</p>
-          <p className="min-h-7 text-base text-white/90">{modelTranscript}</p>
+        <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-center">
+          <p className="min-h-6 text-sm text-white/45">{userTranscript || "Lời bạn nói sẽ hiện ở đây"}</p>
+          <p className="mt-2 min-h-7 text-sm font-medium leading-6 text-white/90 sm:text-base">{modelTranscript || "Moodie đang sẵn sàng lắng nghe"}</p>
         </div>
       </div>
-      <div className="absolute inset-x-0 bottom-8 flex justify-center">
-        <Button type="button" unstyled className={`flex h-14 min-w-14 items-center justify-center gap-2 rounded-full px-5 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={toggleMute} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
+      <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
+        <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={toggleMute} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           <span className="text-sm font-medium">M</span>
         </Button>

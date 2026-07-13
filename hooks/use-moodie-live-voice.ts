@@ -112,6 +112,7 @@ export function useMoodieLiveVoice({
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackTriggeredRef = useRef(false);
+  const connectionGenerationRef = useRef(0);
   const resumptionHandleRef = useRef<string | null>(null);
   const connectConfigRef = useRef<Record<string, unknown>>({});
   const modelRef = useRef("");
@@ -428,6 +429,8 @@ export function useMoodieLiveVoice({
     async (silent = false) => {
       if (stoppedRef.current) return;
       if (!silent) setStatus("connecting");
+      const connectionGeneration = connectionGenerationRef.current + 1;
+      connectionGenerationRef.current = connectionGeneration;
       closeSession();
 
       try {
@@ -494,7 +497,11 @@ export function useMoodieLiveVoice({
               reportError(event);
             },
             onclose: (event) => {
-              if (!stoppedRef.current && reconnectTimerRef.current === null) {
+              if (
+                connectionGeneration === connectionGenerationRef.current
+                && !stoppedRef.current
+                && reconnectTimerRef.current === null
+              ) {
                 const reason = event && typeof event === "object" && "reason" in event
                   ? `: ${String(event.reason)}`
                   : "";
@@ -589,6 +596,7 @@ export function useMoodieLiveVoice({
       clearTimeout(connectTimeoutRef.current);
       connectTimeoutRef.current = null;
     }
+    connectionGenerationRef.current += 1;
     closeSession();
     flushPlayback();
     stopLevelMeter();
