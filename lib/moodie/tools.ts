@@ -17,6 +17,7 @@ import {
 } from "@/lib/moodie/domain/gallery-context";
 import { proposeMoodieRun } from "@/lib/moodie/runs/repository";
 import { researchWithBrave, type BraveResearchMode } from "@/lib/moodie/mcp/adapters/brave";
+import { browseMoodiePage } from "@/lib/moodie/browser-page";
 import { canExposeMoodieTool } from "@/lib/moodie/tool-manifest";
 import type { Database } from "@/types/database.types";
 import type { ActionResult } from "@/types/finance-operations";
@@ -464,6 +465,42 @@ const moodieTools: Record<string, MoodieTool> = {
           skill_label: "Deep Research",
           note: "background_research_started",
           background_runs: [{ id: proposed.run.id, kind: "research" as const, title: proposed.run.title, status: proposed.run.status }],
+        },
+      };
+    },
+  },
+  browse_page: {
+    definition: {
+      type: "function",
+      function: {
+        name: "browse_page",
+        description: "Mở và đọc nội dung một URL công khai cụ thể. Dùng khi người dùng đưa link hoặc cần đọc trang gốc sau khi tìm kiếm. Không dùng cho localhost, mạng riêng, đăng nhập hay thao tác thay đổi dữ liệu.",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "URL http/https công khai cần đọc." },
+          },
+          required: ["url"],
+        },
+      },
+    },
+    async execute(_context, rawArgs) {
+      const url = optionalString(rawArgs.url);
+      if (!url) throw new Error("Browser thiếu URL");
+      const page = await browseMoodiePage({ url });
+      return {
+        result: { title: page.title, url: page.url, content: page.text, engine: page.engine },
+        metadata: {
+          skill_label: page.engine === "cloakbrowser" ? "CloakBrowser" : "Web Page Reader",
+          note: `browser_engine:${page.engine}`,
+          sources: [{
+            label: page.title || page.url,
+            value: page.url,
+            kind: "web" as const,
+            url: page.url,
+            snippet: page.text.slice(0, 280),
+            metadata: { provider: page.engine, retrieved_at: new Date().toISOString() },
+          }],
         },
       };
     },

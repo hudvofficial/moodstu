@@ -163,7 +163,7 @@ export async function createPendingMoodieMemory(params: {
 
   const confirmedAt = new Date();
   const lifecycle = moodieMemoryReviewPolicy(params.candidate.memoryType, confirmedAt);
-  const { error } = await params.supabase.from("moodie_memories").insert({
+  const { data: inserted, error } = await params.supabase.from("moodie_memories").insert({
     scope: params.candidate.scope,
     user_id: params.userId,
     conversation_id: params.candidate.conversationId || null,
@@ -185,10 +185,19 @@ export async function createPendingMoodieMemory(params: {
     embedding: embedding?.vector || null,
     embedding_model: embedding?.model || null,
     embedding_updated_at: embedding ? new Date().toISOString() : null,
-  });
-  if (error) return false;
+  }).select("id").single();
+  if (error || !inserted) return false;
   if (previous) {
-    await params.supabase.from("moodie_memories").update({ status: "archived" }).eq("id", previous.id);
+    await Promise.all([
+      params.supabase.from("moodie_memories").update({ status: "archived" }).eq("id", previous.id),
+      (params.supabase as unknown as SupabaseClient).from("moodie_memory_relations").insert({
+        user_id: params.userId,
+        source_memory_id: inserted.id,
+        target_memory_id: previous.id,
+        relation_type: "supersedes",
+        confidence: params.candidate.confidence,
+      }),
+    ]);
   }
   return true;
 }

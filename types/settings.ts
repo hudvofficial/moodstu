@@ -70,6 +70,15 @@ export interface MoodieBraveSettings {
   source: "database" | "environment" | "none";
 }
 
+export interface MoodieBrowserSettings {
+  enabled: boolean;
+  cdpUrl: string;
+  hasCdpToken: boolean;
+  timeoutMs: number;
+  source: "database" | "environment" | "none";
+  preferredEngine: "cloakbrowser" | "fetch";
+}
+
 export interface MoodieVoiceSettings {
   hasKey: boolean;
   keyMasked?: string;
@@ -90,6 +99,7 @@ export interface StudioSettingsAdminData {
   moodieProviderSettings: MoodieProviderSettings;
   moodieVoiceSettings: MoodieVoiceSettings;
   moodieBraveSettings: MoodieBraveSettings;
+  moodieBrowserSettings: MoodieBrowserSettings;
 }
 
 export interface NotificationPreferences {

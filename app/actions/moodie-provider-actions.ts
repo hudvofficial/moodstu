@@ -33,6 +33,14 @@ import {
   MOODIE_BRAVE_TIMEOUT_KEY,
 } from "@/lib/moodie/brave-config";
 import { researchWithBrave } from "@/lib/moodie/mcp/adapters/brave";
+import {
+  DEFAULT_MOODIE_BROWSER_TIMEOUT_MS,
+  MOODIE_BROWSER_ENABLED_KEY,
+  MOODIE_BROWSER_TIMEOUT_KEY,
+  MOODIE_CLOAK_CDP_TOKEN_KEY,
+  MOODIE_CLOAK_CDP_URL_KEY,
+} from "@/lib/moodie/browser-config";
+import { browseMoodiePage } from "@/lib/moodie/browser-page";
 import { encryptSecret } from "@/lib/settings-secrets";
 import {
   DEFAULT_MOODIE_VOICE_STT_MODEL,
@@ -350,6 +358,51 @@ export async function saveMoodieVoiceLiveConfig(rawInput: unknown) {
     revalidatePath("/moodie");
 
     return { success: true, engine, provider, voice, model, openaiModel, openaiVoice };
+  });
+}
+
+export interface MoodieBrowserFormData {
+  enabled?: boolean;
+  cdp_url?: string;
+  cdp_token?: string;
+  timeout_ms?: number;
+}
+
+export async function saveMoodieBrowserConfig(rawInput: unknown) {
+  return withAdmin(async (adminClient) => {
+    const data = rawInput as MoodieBrowserFormData;
+    const cdpUrl = data.cdp_url?.trim() || "";
+    if (cdpUrl) {
+      const parsed = new URL(cdpUrl);
+      if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsed.protocol)) throw new Error("Cloak CDP URL phải dùng HTTP(S) hoặc WS(S)");
+      if (parsed.username || parsed.password) throw new Error("Không đặt credential trong CDP URL; hãy dùng CDP token riêng");
+    }
+    const timeoutMs = Math.max(3_000, Math.min(Number(data.timeout_ms) || DEFAULT_MOODIE_BROWSER_TIMEOUT_MS, 30_000));
+    const now = new Date().toISOString();
+    const updates = [
+      { key: MOODIE_BROWSER_ENABLED_KEY, value: String(data.enabled !== false), description: "Enable Moodie page browser", updated_at: now },
+      { key: MOODIE_CLOAK_CDP_URL_KEY, value: cdpUrl, description: "CloakBrowser CDP endpoint", updated_at: now },
+      { key: MOODIE_BROWSER_TIMEOUT_KEY, value: String(timeoutMs), description: "Moodie browser timeout", updated_at: now },
+    ];
+    if (data.cdp_token?.trim()) updates.push({ key: MOODIE_CLOAK_CDP_TOKEN_KEY, value: encryptSecret(data.cdp_token.trim()) || data.cdp_token.trim(), description: "CloakBrowser CDP token (encrypted)", updated_at: now });
+    const { error } = await adminClient.from("system_settings").upsert(updates, { onConflict: "key" });
+    if (error) throw new Error(`Lỗi lưu Browser: ${error.message}`);
+    fireAuditLog({ action: "UPDATE", tableName: "system_settings", recordId: MOODIE_BROWSER_ENABLED_KEY, description: "Cập nhật Browser/CloakBrowser cho Moodie", newData: { enabled: data.enabled !== false, has_cdp_url: Boolean(cdpUrl), timeout_ms: timeoutMs }, source: "server_action" });
+    revalidatePath("/settings");
+    revalidatePath("/moodie");
+    return { success: true };
+  });
+}
+
+export async function testMoodieBrowserConnection() {
+  return withAdmin(async () => {
+    const startedAt = Date.now();
+    try {
+      const result = await browseMoodiePage({ url: "https://example.com" });
+      return { ok: true as const, engine: result.engine, preferredEngine: result.preferredEngine, fallbackReason: result.fallbackReason, title: result.title, latencyMs: Date.now() - startedAt };
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : "Không thể chạy Moodie Browser", latencyMs: Date.now() - startedAt };
+    }
   });
 }
 

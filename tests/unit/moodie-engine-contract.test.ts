@@ -20,6 +20,15 @@ describe("Moodie engine contract", () => {
     expect(route.reason).toBe("general_chat");
   });
 
+  it("only exposes page browsing for an explicit URL or research flow", () => {
+    const casual = routeMoodieIntent({ prompt: "hi", role: "admin" });
+    const linked = routeMoodieIntent({ prompt: "Đọc giúp mình https://example.com/source", role: "admin" });
+
+    expect(casual.allowedToolNames).not.toContain("browse_page");
+    expect(linked.allowedToolNames).toContain("browse_page");
+    expect(linked.needsData).toBe(true);
+  });
+
   it("does not let prior assistant suggestions force a business route", () => {
     const route = routeMoodieIntent({
       prompt: "hi",

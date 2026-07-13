@@ -20,8 +20,10 @@ import {
 import { toast } from "sonner";
 import {
   saveMoodieProviderConfig,
+  saveMoodieBrowserConfig,
   saveMoodieBraveConfig,
   testActiveMoodieProvider,
+  testMoodieBrowserConnection,
   testMoodieBraveConnection,
 } from "@/app/actions/moodie-provider-actions";
 import { Button } from "@/components/ui/button";
@@ -39,13 +41,14 @@ import {
   type ProviderId,
   type ProviderModelOption,
 } from "@/lib/moodie/providers/types";
-import type { MoodieAiSettings, MoodieBraveSettings, MoodieProviderSettings, MoodieVoiceSettings } from "@/types/settings";
+import type { MoodieAiSettings, MoodieBrowserSettings, MoodieBraveSettings, MoodieProviderSettings, MoodieVoiceSettings } from "@/types/settings";
 
 interface MoodieAiCardProps {
   settings: MoodieAiSettings;
   providerSettings: MoodieProviderSettings;
   voiceSettings: MoodieVoiceSettings;
   braveSettings: MoodieBraveSettings;
+  browserSettings: MoodieBrowserSettings;
   apiKeyInput: string;
   setApiKeyInput: (value: string) => void;
   geminiModel: string;
@@ -587,6 +590,63 @@ function GeminiLegacySection({
   );
 }
 
+function MoodieBrowserSection({ settings, disabled }: { settings: MoodieBrowserSettings; disabled?: boolean }) {
+  const router = useRouter();
+  const [enabled, setEnabled] = useState(settings.enabled);
+  const [cdpUrl, setCdpUrl] = useState(settings.cdpUrl);
+  const [cdpToken, setCdpToken] = useState("");
+  const [timeoutMs, setTimeoutMs] = useState(settings.timeoutMs);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveMoodieBrowserConfig({ enabled, cdp_url: cdpUrl, cdp_token: cdpToken || undefined, timeout_ms: timeoutMs });
+      setCdpToken("");
+      toast.success("Đã lưu cấu hình Browser");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể lưu Browser");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function testConnection() {
+    setTesting(true);
+    try {
+      const actionResult = await testMoodieBrowserConnection();
+      if (!actionResult.success) return toast.error(actionResult.error);
+      const result = actionResult.data;
+      if (!result.ok) return toast.error(result.error);
+      if (result.engine === "cloakbrowser") toast.success(`CloakBrowser đang live · ${result.latencyMs}ms`);
+      else if (result.preferredEngine === "cloakbrowser") toast.warning(`Cloak không kết nối được; đang fallback an toàn · ${result.latencyMs}ms`);
+      else toast.success(`Browser fetch hoạt động · ${result.latencyMs}ms`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể kiểm tra Browser");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  const liveLabel = settings.preferredEngine === "cloakbrowser"
+    ? `Ưu tiên CloakBrowser${settings.source === "environment" ? " từ môi trường" : " đã lưu"}`
+    : "Safe fetch đang hoạt động; chưa cấu hình CloakBrowser";
+  return (
+    <section className="space-y-3 border-t border-border pt-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2"><Globe2 className="mt-0.5 h-4 w-4 text-text-muted" /><div><h5 className="text-sm font-semibold text-text-primary">Browser & CloakBrowser</h5><p className="mt-0.5 text-xs text-text-muted">Cho Moodie mở và đọc trang nguồn; URL nội bộ vẫn bị chặn SSRF.</p></div></div>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary"><Input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} disabled={disabled || saving} className="h-4 w-4 accent-primary" />Bật</label>
+      </div>
+      <p className="rounded-lg bg-bg-subtle px-3 py-2 text-xs text-text-secondary">{liveLabel}</p>
+      <div className="space-y-1"><label className="text-xs font-medium text-text-secondary">Cloak CDP URL</label><Input value={cdpUrl} onChange={(event) => setCdpUrl(event.target.value)} placeholder="ws://127.0.0.1:9222/devtools/browser/..." disabled={disabled || saving} /></div>
+      <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1"><label className="text-xs font-medium text-text-secondary">CDP token {settings.hasCdpToken ? "(đã lưu)" : "(tuỳ chọn)"}</label><Input type="password" value={cdpToken} onChange={(event) => setCdpToken(event.target.value)} placeholder={settings.hasCdpToken ? "Để trống để giữ key hiện tại" : "Bearer token"} disabled={disabled || saving} /></div><div className="space-y-1"><label className="text-xs font-medium text-text-secondary">Timeout (ms)</label><Input type="number" min={3000} max={30000} value={timeoutMs} onChange={(event) => setTimeoutMs(Number(event.target.value))} disabled={disabled || saving} /></div></div>
+      <div className="flex flex-wrap gap-2"><Button type="button" onClick={() => void save()} disabled={disabled || saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Lưu Browser</Button><Button type="button" variant="outline" onClick={() => void testConnection()} disabled={disabled || testing || !enabled}>{testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Kiểm tra Browser</Button></div>
+    </section>
+  );
+}
+
 function MoodieBraveSection({ settings, disabled }: { settings: MoodieBraveSettings; disabled?: boolean }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(settings.enabled);
@@ -687,6 +747,7 @@ export default function MoodieAiCard({
   providerSettings,
   voiceSettings,
   braveSettings,
+  browserSettings,
   apiKeyInput,
   setApiKeyInput,
   geminiModel,
@@ -787,6 +848,7 @@ export default function MoodieAiCard({
 
           <MoodieVoiceSettingsSection settings={voiceSettings} disabled={disabled} />
           <MoodieBraveSection settings={braveSettings} disabled={disabled} />
+          <MoodieBrowserSection settings={browserSettings} disabled={disabled} />
         </div>
       )}
     </div>

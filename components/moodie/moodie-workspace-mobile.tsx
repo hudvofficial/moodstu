@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { History, Menu, SquarePen } from "lucide-react";
 import { MoodieComposer } from "@/components/moodie/moodie-composer";
 import { MoodieConversationList } from "@/components/moodie/moodie-conversation-list";
@@ -10,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { useOpenMobileNavigation } from "@/contexts/mobile-navigation-context";
 import type { MoodieWorkspaceSharedProps } from "@/components/moodie/moodie-workspace-types";
+
+const MoodieMemoryPanel = dynamic(
+  () => import("@/components/moodie/moodie-memory-panel").then((module) => module.MoodieMemoryPanel),
+  { ssr: false },
+);
 
 interface MoodieWorkspaceMobileProps extends MoodieWorkspaceSharedProps {
   historyOpen: boolean;
@@ -99,6 +105,7 @@ export function MoodieWorkspaceMobile({
           </Button>
           <MoodieFilters scope={scope} search={search} counts={counts} variant="embedded" onScopeChange={onScopeChange} onSearchChange={onSearchChange} />
           <MoodieConversationList conversations={conversations} activeId={activeConversationId} loadingConversationId={loadingConversationId} editingConversationId={editingConversationId} editingTitle={editingTitle} onSelect={(conversationId) => { onSelectConversation(conversationId); onHistoryOpenChange(false); }} onStartRename={onStartRename} onEditTitleChange={onEditTitleChange} onRenameSubmit={onRenameSubmit} onRenameCancel={onRenameCancel} onDelete={onDeleteConversation} />
+          <MoodieMemoryPanel />
         </div>
       </Drawer>
     </section>

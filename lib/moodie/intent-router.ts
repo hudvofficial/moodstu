@@ -54,8 +54,13 @@ function researchToolForMode(mode: MoodieResearchIntent["mode"], orchestration: 
   return mode === "news" ? "search_news" : mode === "local" ? "search_local" : "search_web";
 }
 
-function toolAllowedForRoute(name: string, domains: MoodieIntentDomain[], intent: MoodieIntentDomain, research: MoodieResearchIntent, orchestration: MoodieOrchestrationDecision) {
+function hasExplicitPublicUrl(value: string) {
+  return /https?:\/\/[^\s]+/i.test(value);
+}
+
+function toolAllowedForRoute(name: string, domains: MoodieIntentDomain[], intent: MoodieIntentDomain, research: MoodieResearchIntent, orchestration: MoodieOrchestrationDecision, allowBrowser: boolean) {
   if (isResearchTool(name)) return research.required && name === researchToolForMode(research.mode, orchestration);
+  if (name === "browse_page") return allowBrowser;
   if (intent === "general") return false;
   return domains.includes(intent);
 }
@@ -68,6 +73,7 @@ export function routeMoodieIntent(params: {
   const corpus = buildCorpus(params.prompt, params.history);
   const research = classifyMoodieResearchIntent(params.prompt);
   const orchestration = decideMoodieOrchestration({ prompt: params.prompt, research });
+  const allowBrowser = hasExplicitPublicUrl(params.prompt) || research.required;
 
   const isCodebase =
     params.role === "admin" &&
@@ -77,7 +83,7 @@ export function routeMoodieIntent(params: {
 
   if (isCodebase) {
     const allowedToolNames = Object.values(MOODIE_TOOL_MANIFEST)
-      .filter((entry) => (entry.domains.includes("codebase") || (research.required && entry.name === researchToolForMode(research.mode, orchestration))) && canExposeMoodieTool(entry.name, params.role))
+      .filter((entry) => ((entry.domains.includes("codebase") && (entry.name !== "browse_page" || allowBrowser)) || (research.required && entry.name === researchToolForMode(research.mode, orchestration))) && canExposeMoodieTool(entry.name, params.role))
       .sort((left, right) => right.priority - left.priority)
       .map((entry) => entry.name);
 
@@ -115,13 +121,13 @@ export function routeMoodieIntent(params: {
 
   const allowedToolNames = Object.values(MOODIE_TOOL_MANIFEST)
     .filter((entry) => canExposeMoodieTool(entry.name, params.role))
-    .filter((entry) => toolAllowedForRoute(entry.name, entry.domains, intent, research, orchestration))
+    .filter((entry) => toolAllowedForRoute(entry.name, entry.domains, intent, research, orchestration, allowBrowser))
     .sort((left, right) => right.priority - left.priority)
     .map((entry) => entry.name);
 
   return {
     intent,
-    needsData: intent !== "general" || research.required,
+    needsData: intent !== "general" || research.required || allowBrowser,
     allowedToolNames,
     reason,
     research,

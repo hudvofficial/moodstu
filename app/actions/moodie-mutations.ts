@@ -20,6 +20,7 @@ import {
   curateMoodieMemoriesWithModel,
 } from "@/lib/moodie/memory-curator";
 import { createPendingMoodieMemory } from "@/lib/moodie/memory-store";
+import { recordMoodieObservation } from "@/lib/moodie/observation-store";
 import {
   moodieDeleteConversationSchema,
   moodieDeleteMessageSchema,
@@ -313,6 +314,7 @@ export async function sendMoodieMessage(
       if (turnError) throw new Error(`Kh\u00f4ng th\u1ec3 kh\u1edfi t\u1ea1o l\u01b0\u1ee3t Moodie: ${turnError.message}`);
 
       let userMessage: { id: string } | null = null;
+      let memoryProposed = false;
       if (parsed.data.continue_from_message_id) {
         const { data: sourceAssistant, error: sourceAssistantError } = await supabase.from("ai_messages")
           .select("id")
@@ -392,6 +394,22 @@ export async function sendMoodieMessage(
         userMessage = insertedUser;
       }
 
+      // Explicit memories belong to the user's message, not to a successful
+      // model response. Persist them before provider/tool execution so a
+      // timeout, cancellation or provider outage cannot lose "hãy nhớ...".
+      const memoryInput = userMessage && !parsed.data.regenerate_from_message_id && !parsed.data.edit_from_message_id && !parsed.data.continue_from_message_id
+        ? { prompt, conversationId: conversation.id, sourceMessageId: userMessage.id }
+        : null;
+      const explicitMemoryCandidates = memoryInput ? curateMoodieMemories(memoryInput) : [];
+      if (explicitMemoryCandidates.length > 0) {
+        const memoryResults = await Promise.all(
+          explicitMemoryCandidates.map((candidate) =>
+            createPendingMoodieMemory({ supabase, userId, candidate }),
+          ),
+        );
+        memoryProposed = memoryResults.some(Boolean);
+      }
+
       const history = await fetchConversationHistory(supabase, conversation.id, userMessage?.id);
 
       throwIfAborted();
@@ -450,13 +468,6 @@ export async function sendMoodieMessage(
         ...history,
         { role: "assistant", content: result.content },
       ], conversation.summary);
-      const memoryInput = userMessage && !parsed.data.regenerate_from_message_id && !parsed.data.edit_from_message_id && !parsed.data.continue_from_message_id
-        ? { prompt, conversationId: conversation.id, sourceMessageId: userMessage.id }
-        : null;
-      const explicitMemoryCandidates = memoryInput ? curateMoodieMemories(memoryInput) : [];
-      const memoryResults = await Promise.all(explicitMemoryCandidates.map((candidate) => createPendingMoodieMemory({ supabase, userId, candidate })));
-      const memoryProposed = memoryResults.some(Boolean);
-
       if (memoryInput && explicitMemoryCandidates.length === 0) {
         after(async () => {
           const inferredCandidates = await curateMoodieMemoriesWithModel(memoryInput);
@@ -482,6 +493,19 @@ export async function sendMoodieMessage(
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }).eq("id", turnId).eq("user_id", userId);
+
+      const completedConversationId = conversation.id;
+      after(async () => {
+        await recordMoodieObservation({
+          supabase,
+          userId,
+          conversationId: completedConversationId,
+          turnId,
+          prompt,
+          outcome: result.content,
+          metadata: result.metadata,
+        });
+      });
 
       fireAuditLog({
         action: "UPDATE",

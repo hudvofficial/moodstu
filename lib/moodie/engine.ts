@@ -184,12 +184,13 @@ async function runMoodieModelEngine(params: {
   ]);
   const retrievedContext = contextPacket.retrieval;
   const memoryContext = contextPacket.memory;
+  const workingMemoryContext = contextPacket.workingMemory;
   const selectedContext = buildSelectedContext(params.contexts);
   params.emit?.({
     type: "context.completed",
-    label: retrievedContext.hasContext || memoryContext ? "Đã chuẩn bị ngữ cảnh" : "Không cần bổ sung ngữ cảnh",
+    label: retrievedContext.hasContext || memoryContext || workingMemoryContext ? "Đã chuẩn bị ngữ cảnh" : "Không cần bổ sung ngữ cảnh",
     retrieval_used: retrievedContext.hasContext,
-    memory_used: Boolean(memoryContext || attachmentContext || selectedContext),
+    memory_used: Boolean(memoryContext || workingMemoryContext || attachmentContext || selectedContext),
   });
   const availableToolNames = contextPacket.trace.allowed_tool_names;
   if (route.research.required && !availableToolNames.some((name) => name.startsWith("search_") || name === "start_deep_research")) {
@@ -205,6 +206,7 @@ async function runMoodieModelEngine(params: {
     route_intent: route.intent,
     route_reason: route.reason,
     retrieval_used: retrievedContext.hasContext,
+    working_memory_used: contextPacket.trace.working_memory_used,
     execution_plan: executionPlan.summary,
     research_required: contextPacket.trace.research_required,
     research_mode: contextPacket.trace.research_mode,
@@ -228,6 +230,7 @@ async function runMoodieModelEngine(params: {
       content: buildMoodieAgentInstruction(agent),
     },
     ...(memoryContext ? [{ role: "system" as const, content: memoryContext }] : []),
+    ...(workingMemoryContext ? [{ role: "system" as const, content: workingMemoryContext }] : []),
     ...(attachmentContext ? [{ role: "system" as const, content: attachmentContext }] : []),
     ...(selectedContext ? [{ role: "system" as const, content: selectedContext }] : []),
     {

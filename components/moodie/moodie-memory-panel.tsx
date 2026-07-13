@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Brain, ChevronDown, ChevronUp, Check, Archive, Trash2, Pencil, Save, X, Download, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { eraseAllMoodieMemories, exportMoodieMemories, listMoodieMemories, updateMoodieMemoryContent, updateMoodieMemoryStatus } from "@/app/actions/moodie-memory-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { proposeMoodieMemory } from "@/app/actions/moodie-memory-actions";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 
 type MemoryItem = {
   id: string;
@@ -49,7 +50,7 @@ export function MoodieMemoryPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     const result = await listMoodieMemories();
     setLoading(false);
@@ -58,7 +59,13 @@ export function MoodieMemoryPanel() {
       return;
     }
     setMemories(result.data as MemoryItem[]);
-  }
+  }, []);
+
+  useRealtimeSignal("moodie_memories", {
+    onChange: () => {
+      if (open) void load();
+    },
+  });
 
   async function toggle() {
     const next = !open;
@@ -140,7 +147,7 @@ export function MoodieMemoryPanel() {
   }
 
   return (
-    <div className="border-t border-border/60 px-2.5 py-2.5">
+    <div data-testid="moodie-memory-panel" className="border-t border-border/60 px-2.5 py-2.5">
       <Button type="button" variant="ghost" size="sm" className="h-8 w-full justify-between gap-2 px-2 text-xs text-text-secondary" onClick={toggle}>
         <span className="flex items-center gap-2"><Brain className="h-3.5 w-3.5" /> Ghi nhớ</span>
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

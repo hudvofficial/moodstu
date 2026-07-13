@@ -28,6 +28,7 @@ async function StudioDataSection() {
       moodieProviderSettings={data.moodieProviderSettings}
       moodieVoiceSettings={data.moodieVoiceSettings}
       moodieBraveSettings={data.moodieBraveSettings}
+      moodieBrowserSettings={data.moodieBrowserSettings}
     />
   );
 }

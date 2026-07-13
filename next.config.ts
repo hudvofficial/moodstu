@@ -22,6 +22,10 @@ const cspHeader = `
 `;
 
 const nextConfig: NextConfig = {
+  // Playwright and local devices may use the loopback IP while Next binds to
+  // localhost. Allow both dev origins so hydration/HMR is not silently blocked.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
+
   // ⚡ React Compiler (Next.js 16 — V1/mcoffe chưa có)
   reactCompiler: true,
 

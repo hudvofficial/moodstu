@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMoodieBraveSettingsSnapshot } from "@/lib/moodie/brave-config";
+import { getMoodieBrowserSettingsSnapshot } from "@/lib/moodie/browser-config";
 import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
 import { getMoodieVoiceSnapshot } from "@/lib/moodie/voice-config";
 import { getMoodieVoiceLiveConfig } from "@/lib/moodie/voice-live-config";
@@ -45,6 +46,7 @@ export async function loadStudioSettingsAdminData(
     moodieVoiceSettings,
     moodieVoiceLiveSettings,
     moodieBraveSettings,
+    moodieBrowserSettings,
   ] = await Promise.all([
     getOrCreateStudioInfo(adminClient),
     getMoodieGeminiSettingsSnapshot(adminClient),
@@ -52,6 +54,7 @@ export async function loadStudioSettingsAdminData(
     getMoodieVoiceSnapshot(),
     getMoodieVoiceLiveConfig(),
     getMoodieBraveSettingsSnapshot(),
+    getMoodieBrowserSettingsSnapshot(),
   ]);
 
   return {
@@ -72,5 +75,6 @@ export async function loadStudioSettingsAdminData(
       openaiVoice: moodieVoiceLiveSettings.openaiVoice,
     },
     moodieBraveSettings,
+    moodieBrowserSettings,
   };
 }

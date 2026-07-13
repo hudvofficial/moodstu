@@ -17,6 +17,7 @@ export type MoodieTrace = {
   route_intent?: string;
   route_reason?: string;
   retrieval_used?: boolean;
+  working_memory_used?: boolean;
   research_required?: boolean;
   research_mode?: "web" | "news" | "local";
   allowed_tool_names?: string[];
@@ -41,6 +42,7 @@ export function createMoodieTrace(params: {
   route_intent?: string;
   route_reason?: string;
   retrieval_used?: boolean;
+  working_memory_used?: boolean;
   research_required?: boolean;
   research_mode?: "web" | "news" | "local";
   allowed_tool_names?: string[];
@@ -56,6 +58,7 @@ export function createMoodieTrace(params: {
     route_intent: params.route_intent,
     route_reason: params.route_reason,
     retrieval_used: params.retrieval_used,
+    working_memory_used: params.working_memory_used,
     research_required: params.research_required,
     research_mode: params.research_mode,
     allowed_tool_names: params.allowed_tool_names,
