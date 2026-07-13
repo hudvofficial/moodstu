@@ -92,7 +92,7 @@ async function getNextCode(client) {
   return data;
 }
 
-async function createSmokeIdentity(client, role) {
+async function createSmokeIdentity(client, role, state) {
   const email = `${marker}-${role}@example.invalid`;
   const password = `SettingsSmoke-${Date.now()}-${role}!`;
   const employeeRole = role === "viewer" ? "ctv" : role;
@@ -109,11 +109,10 @@ async function createSmokeIdentity(client, role) {
   if (userError || !userData.user) {
     throw new Error(`Cannot create ${role} auth user: ${userError?.message || "missing user"}`);
   }
+  state.userIds.push(userData.user.id);
 
   const employeeCode = await getNextCode(client);
-  const { data: employee, error: employeeError } = await client
-    .from("employees")
-    .insert({
+  const employeePayload = {
       auth_user_id: userData.user.id,
       employee_code: employeeCode,
       full_name: `Settings Smoke ${role}`,
@@ -124,13 +123,23 @@ async function createSmokeIdentity(client, role) {
       status: "active",
       start_date: new Date().toISOString().slice(0, 10),
       salary_info: { base_salary: 1, bank_name: "Smoke Bank" },
-    })
+    };
+  const { data: existingEmployee } = await client
+    .from("employees")
+    .select("id")
+    .eq("auth_user_id", userData.user.id)
+    .maybeSingle();
+  const employeeMutation = existingEmployee
+    ? client.from("employees").update(employeePayload).eq("id", existingEmployee.id)
+    : client.from("employees").insert(employeePayload);
+  const { data: employee, error: employeeError } = await employeeMutation
     .select("id")
     .single();
 
   if (employeeError || !employee) {
     throw new Error(`Cannot create ${role} employee: ${employeeError?.message || "missing row"}`);
   }
+  state.employeeIds.push(employee.id);
 
   return {
     role,
@@ -475,10 +484,8 @@ try {
   const [port, debugPort] = await Promise.all([getFreePort(), getFreePort()]);
   const baseUrl = `http://127.0.0.1:${port}`;
 
-  const admin = await createSmokeIdentity(serviceClient, "manager");
-  const viewer = await createSmokeIdentity(serviceClient, "viewer");
-  state.userIds.push(admin.userId, viewer.userId);
-  state.employeeIds.push(admin.employeeId, viewer.employeeId);
+  const admin = await createSmokeIdentity(serviceClient, "manager", state);
+  const viewer = await createSmokeIdentity(serviceClient, "viewer", state);
 
   const [adminCookies, viewerCookies] = await Promise.all([
     createAuthCookies(admin),
