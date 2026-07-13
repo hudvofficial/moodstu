@@ -86,9 +86,25 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
         <link rel="preconnect" href="https://drive.google.com" />
         <link rel="preconnect" href="https://lh3.googleusercontent.com" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (sessionStorage.getItem("ms_v2_loaded")) {
+                  document.documentElement.classList.add("skip-splash");
+                }
+              } catch {}
+            `,
+          }}
+        />
         <style
           dangerouslySetInnerHTML={{
             __html: `
+              .skip-splash #splash-screen {
+                display: none !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+              }
               #splash-screen {
                 position: fixed;
                 top: 0;

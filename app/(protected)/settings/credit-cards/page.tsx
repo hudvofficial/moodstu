@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { fetchCreditCards } from "@/app/actions/finance-operations-queries";
+import type { CreditCardOption } from "@/app/actions/finance-operations-queries";
 import CreditCardsClient from "@/components/settings/credit-cards/credit-cards-client";
 import { getAuthenticatedUserContext } from "@/lib/auth_utils";
+import { createAdminClient } from "@/lib/supabase/server";
 
 // 
 export const dynamic = "force-dynamic";
@@ -12,12 +13,24 @@ export const metadata = {
 };
 
 async function CreditCardsDataSection() {
-  const context = await getAuthenticatedUserContext({ bootstrapProfile: true });
+  // Authentication and the independent read start together. Nothing is returned
+  // until the cached protected-layout context confirms settings-admin access.
+  const contextPromise = getAuthenticatedUserContext();
+  const cardsPromise = createAdminClient().then((adminClient) =>
+    adminClient
+      .from("credit_cards")
+      .select("id, bank_name, last_4, statement_day, due_day, credit_limit, updated_at")
+      .is("deleted_at", null)
+      .order("bank_name", { ascending: true }),
+  );
+  const [context, cardsResult] = await Promise.all([contextPromise, cardsPromise]);
+
   if (!context) redirect("/login");
   if (!context.canManageSettings) redirect("/settings");
-
-  const response = await fetchCreditCards();
-  const cards = response.success ? response.data : [];
+  if (cardsResult.error) {
+    throw new Error(`Không thể tải danh sách thẻ tín dụng: ${cardsResult.error.message}`);
+  }
+  const cards = (cardsResult.data || []) as CreditCardOption[];
 
   return <CreditCardsClient initialCards={cards} />;
 }

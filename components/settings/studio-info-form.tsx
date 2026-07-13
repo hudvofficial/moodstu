@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast-manager";
 import { Save, Loader2 } from "lucide-react";
 import {
@@ -15,11 +17,11 @@ import {
   type MoodieGeminiModelOption,
 } from "@/lib/moodie/model-options";
 import { cacheKeys, mutate } from "@/lib/swr";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import StudioIdentitySection from "./studio/studio-identity-section";
 import StudioBankSection from "./studio/studio-bank-section";
 import StudioSocialSection from "./studio/studio-social-section";
 import StudioHoursSection from "./studio/studio-hours-section";
-import StudioIntegrationCards from "./studio/studio-integration-cards";
 import { executeSaveTasks } from "./studio/studio-save-logic";
 import type {
   BankInfo,
@@ -31,6 +33,18 @@ import type {
   StudioInfo,
   WorkingHours,
 } from "@/types/settings";
+
+const StudioIntegrationCards = dynamic(
+  () => import("./studio/studio-integration-cards"),
+  {
+    loading: () => (
+      <div className="card-base p-5 space-y-3 animate-pulse" aria-hidden="true">
+        <div className="h-5 w-40 rounded bg-bg-hover" />
+        <div className="h-24 rounded-xl bg-bg-hover" />
+      </div>
+    ),
+  },
+);
 
 interface StudioInfoFormProps {
   studioInfo: StudioInfo;
@@ -60,6 +74,7 @@ export default function StudioInfoForm({
   moodieVoiceSettings,
   moodieBraveSettings,
 }: StudioInfoFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [savedStudioInfo, setSavedStudioInfo] = useState(studioInfo);
   const [savedMoodieSettings, setSavedMoodieSettings] = useState(moodieAiSettings);
@@ -90,18 +105,7 @@ export default function StudioInfoForm({
   // render pass flagged by react-hooks/set-state-in-effect. React's documented
   // "adjust state during render" pattern (you-might-not-need-an-effect).
   const [syncedMoodieSettings, setSyncedMoodieSettings] = useState(moodieAiSettings);
-  if (syncedMoodieSettings !== moodieAiSettings) {
-    setSyncedMoodieSettings(moodieAiSettings);
-    setSavedMoodieSettings(moodieAiSettings);
-    setMoodieGeminiModel(moodieAiSettings.geminiModel);
-  }
-
   const [syncedStudioInfo, setSyncedStudioInfo] = useState(studioInfo);
-  if (syncedStudioInfo !== studioInfo) {
-    setSyncedStudioInfo(studioInfo);
-    setSavedStudioInfo(studioInfo);
-    setLogoUrl(studioInfo.logo_url || "");
-  }
 
   const studioPayload = {
     name: normalizeRequiredText(name),
@@ -131,6 +135,51 @@ export default function StudioInfoForm({
     moodieApiKeyInput.trim().length > 0 ||
     moodieGeminiModel.trim() !== savedMoodieSettings.geminiModel;
   const hasChanges = hasStudioChanges || hasMoodieChanges;
+
+  // Accept fresh server props only when that section has no local draft.
+  // This keeps unrelated router.refresh() calls from discarding in-progress edits.
+  if (syncedMoodieSettings !== moodieAiSettings) {
+    setSyncedMoodieSettings(moodieAiSettings);
+    if (!hasMoodieChanges) {
+      setSavedMoodieSettings(moodieAiSettings);
+      setMoodieGeminiModel(moodieAiSettings.geminiModel);
+    }
+  }
+
+  if (syncedStudioInfo !== studioInfo) {
+    setSyncedStudioInfo(studioInfo);
+    if (!hasStudioChanges) {
+      setSavedStudioInfo(studioInfo);
+      setName(studioInfo.name || "");
+      setHotline(studioInfo.hotline || "");
+      setAddress(studioInfo.address || "");
+      setRepresentative(studioInfo.representative || "");
+      setLogoUrl(studioInfo.logo_url || "");
+      setTimezone(studioInfo.timezone || "Asia/Ho_Chi_Minh");
+      setBankInfo(studioInfo.bank_info || {});
+      setSocialLinks(studioInfo.social_links || {});
+      setWorkingHours(studioInfo.working_hours || {});
+    }
+  }
+
+  const handleRemoteSettingsChange = useCallback(() => {
+    if (hasChanges) {
+      toast.warning("Cài đặt vừa được cập nhật ở nơi khác. Hãy lưu hoặc tải lại trước khi tiếp tục.");
+      return;
+    }
+    router.refresh();
+  }, [hasChanges, router]);
+
+  useRealtimeSignal("studio_info", {
+    channelName: "settings-studio-info-realtime",
+    debounceMs: 250,
+    onChange: handleRemoteSettingsChange,
+  });
+  useRealtimeSignal("system_settings", {
+    channelName: "settings-system-settings-realtime",
+    debounceMs: 250,
+    onChange: handleRemoteSettingsChange,
+  });
 
   const loadMoodieModels = useCallback(async (showToast = false) => {
     const overrideKey = moodieApiKeyInput.trim();

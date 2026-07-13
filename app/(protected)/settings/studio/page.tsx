@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getStudioInfoAdmin } from "@/app/actions/settings-queries";
 import StudioInfoForm from "@/components/settings/studio-info-form";
+import { getAuthenticatedUserContext } from "@/lib/auth_utils";
+import { loadStudioSettingsAdminData } from "@/lib/settings-studio-admin";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Thông tin studio" };
 
@@ -13,20 +15,19 @@ export const dynamic = "force-dynamic";
    ═══════════════════════════════════════════ */
 
 async function StudioDataSection() {
-  const result = await getStudioInfoAdmin();
+  const contextPromise = getAuthenticatedUserContext();
+  const dataPromise = createAdminClient().then(loadStudioSettingsAdminData);
+  const [context, data] = await Promise.all([contextPromise, dataPromise]);
 
-  // withAdmin returns { success, data, error }
-  if (!result.success) {
-    redirect("/settings");
-  }
+  if (!context?.canManageSettings) redirect("/settings");
 
   return (
     <StudioInfoForm
-      studioInfo={result.data.studioInfo}
-      moodieAiSettings={result.data.moodieAiSettings}
-      moodieProviderSettings={result.data.moodieProviderSettings}
-      moodieVoiceSettings={result.data.moodieVoiceSettings}
-      moodieBraveSettings={result.data.moodieBraveSettings}
+      studioInfo={data.studioInfo}
+      moodieAiSettings={data.moodieAiSettings}
+      moodieProviderSettings={data.moodieProviderSettings}
+      moodieVoiceSettings={data.moodieVoiceSettings}
+      moodieBraveSettings={data.moodieBraveSettings}
     />
   );
 }

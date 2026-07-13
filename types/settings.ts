@@ -115,6 +115,7 @@ export interface SettingsPageData {
   notificationPrefs: NotificationPreferences;
   canManageSettings: boolean;
   canManageMembers: boolean;
+  initialMembers?: import("@/app/actions/user-management").AuthUsersPage;
 }
 
 export interface EmployeeProfile {

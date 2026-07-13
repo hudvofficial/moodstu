@@ -50,12 +50,19 @@ export async function getAuthUsers(params?: { page?: number; perPage?: number })
   return withAdmin(async (supabase) => {
     const page = Math.max(1, Math.trunc(Number(params?.page) || 1));
     const perPage = Math.min(50, Math.max(1, Math.trunc(Number(params?.perPage) || 25)));
-    const { data: authUsersRaw, error: authError } =
-      await supabase.auth.admin.listUsers({ page, perPage });
+    const [authResult, employeeResult] = await Promise.all([
+      supabase.auth.admin.listUsers({ page, perPage }),
+      supabase
+        .from("employees")
+        .select("id, full_name, email, role, avatar_url, auth_user_id, status")
+        .eq("status", "active")
+        .order("full_name"),
+    ]);
 
-    if (authError) throw new Error(authError.message);
+    if (authResult.error) throw new Error(authResult.error.message);
+    if (employeeResult.error) throw new Error(employeeResult.error.message);
 
-    const authUsers = (authUsersRaw?.users || []).map((user) => ({
+    const authUsers = (authResult.data.users || []).map((user) => ({
       auth_id: user.id,
       email: user.email || "",
       jwt_role: normalizeEmployeeRole(
@@ -66,28 +73,23 @@ export async function getAuthUsers(params?: { page?: number; perPage?: number })
       is_banned: !!user.banned_until,
     }));
 
-    const { data: employees } = await supabase
-      .from("employees")
-      .select("id, full_name, email, role, avatar_url, auth_user_id, status")
-      .eq("status", "active")
-      .order("full_name");
+    const employees = employeeResult.data || [];
+    const linkedByAuthId = new Map(
+      employees
+        .filter((employee) => employee.auth_user_id)
+        .map((employee) => [employee.auth_user_id as string, employee]),
+    );
+    const unlinkedByEmail = new Map(
+      employees
+        .filter((employee) => !employee.auth_user_id && employee.email)
+        .map((employee) => [employee.email!.toLowerCase(), employee]),
+    );
 
     const result: AuthUserWithEmployee[] = authUsers.map((user) => {
-      const linked =
-        employees?.find(
-          (employee: { auth_user_id: string | null }) =>
-            employee.auth_user_id === user.auth_id,
-        ) || null;
-      const emailMatch = !linked
-        ? employees?.find(
-            (employee: {
-              email: string | null;
-              auth_user_id: string | null;
-            }) =>
-              employee.email?.toLowerCase() === user.email.toLowerCase() &&
-              !employee.auth_user_id,
-          ) || null
-        : null;
+      const linked = linkedByAuthId.get(user.auth_id) || null;
+      const emailMatch = linked
+        ? null
+        : unlinkedByEmail.get(user.email.toLowerCase()) || null;
 
       return {
         ...user,

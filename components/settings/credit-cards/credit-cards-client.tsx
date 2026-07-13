@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { Plus, CreditCard, Banknote, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { CreditCardOption } from "@/app/actions/finance-operations-queries";
-import CreditCardFormModal from "./credit-card-form-modal";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
+
+const CreditCardFormModal = dynamic(() => import("./credit-card-form-modal"), {
+  ssr: false,
+});
 
 export default function CreditCardsClient({
   initialCards,
 }: {
   initialCards: CreditCardOption[];
 }) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<CreditCardOption | null>(null);
 
   const cards = initialCards || [];
+  const refreshCards = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  useRealtimeSignal("credit_cards", {
+    channelName: "settings-credit-cards-realtime",
+    debounceMs: 250,
+    onChange: refreshCards,
+  });
 
   const handleOpenEdit = (card: CreditCardOption) => {
     setSelectedCard(card);
@@ -110,11 +126,14 @@ export default function CreditCardsClient({
         </div>
       )}
 
-      <CreditCardFormModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        initialData={selectedCard}
-      />
+      {isOpen ? (
+        <CreditCardFormModal
+          isOpen
+          onClose={() => setIsOpen(false)}
+          initialData={selectedCard}
+          onMutated={refreshCards}
+        />
+      ) : null}
     </div>
   );
 }

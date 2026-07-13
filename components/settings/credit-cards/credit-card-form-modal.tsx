@@ -18,12 +18,14 @@ interface CreditCardFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: CreditCardOption | null;
+  onMutated?: () => void;
 }
 
 export default function CreditCardFormModal({
   isOpen,
   onClose,
   initialData,
+  onMutated,
 }: CreditCardFormModalProps) {
   const isEditing = !!initialData;
   const [isPending, startTransition] = useTransition();
@@ -100,6 +102,7 @@ export default function CreditCardFormModal({
           toast.success("Đã thêm thẻ mới");
         }
 
+        onMutated?.();
         onClose();
       } catch (error: unknown) {
         const message =
@@ -132,6 +135,7 @@ export default function CreditCardFormModal({
           throw new Error(response.error || "Xóa lỗi");
         }
         toast.success("Đã xóa thẻ");
+        onMutated?.();
         onClose();
       } catch (error: unknown) {
         const message =

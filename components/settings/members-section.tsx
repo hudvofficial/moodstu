@@ -3,9 +3,10 @@
 import { ChevronDown, RefreshCw, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthUsers } from "@/app/actions/user-management";
-import type { AuthUserWithEmployee } from "@/app/actions/user-management";
+import type { AuthUserWithEmployee, AuthUsersPage } from "@/app/actions/user-management";
 import MemberCard from "./member-card";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 
 const PAGE_SIZE = 25;
 
@@ -14,35 +15,51 @@ export const AUTH_USERS_QUERY_KEY = ["settings", "auth-users"] as const;
 
 interface MembersSectionProps {
   currentUserEmail: string;
+  initialData?: AuthUsersPage;
 }
 
-export default function MembersSection({ currentUserEmail }: MembersSectionProps) {
+export default function MembersSection({ currentUserEmail, initialData }: MembersSectionProps) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [allUsers, setAllUsers] = useState<AuthUserWithEmployee[]>([]);
-  const [hasMore, setHasMore] = useState(false);
+  const [extraUsers, setExtraUsers] = useState<AuthUserWithEmployee[]>([]);
+  const [extraHasMore, setExtraHasMore] = useState<boolean | null>(null);
 
-  const { isLoading, isFetching, refetch } = useQuery({
-    queryKey: [...AUTH_USERS_QUERY_KEY, page],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [...AUTH_USERS_QUERY_KEY, 1],
     queryFn: async () => {
       const result = await getAuthUsers({ page: 1, perPage: PAGE_SIZE });
-      if (!result.success || !result.data) return [];
-      setAllUsers(result.data.users);
-      setHasMore(result.data.hasMore);
-      return result.data.users;
+      if (!result.success || !result.data) {
+        return { users: [], page: 1, perPage: PAGE_SIZE, hasMore: false };
+      }
+      return result.data;
     },
+    initialData,
     // Cache 2 phút — danh sách user không thay đổi liên tục
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setPage(1);
-    setAllUsers([]);
-    queryClient.invalidateQueries({ queryKey: AUTH_USERS_QUERY_KEY });
-    void refetch();
-  };
+    setExtraUsers([]);
+    setExtraHasMore(null);
+    void queryClient.invalidateQueries({ queryKey: AUTH_USERS_QUERY_KEY });
+  }, [queryClient]);
+
+  useRealtimeSignal("employees", {
+    channelName: "settings-members-realtime",
+    debounceMs: 250,
+    onChange: handleRefresh,
+  });
+
+  const firstPageUsers = data?.users || [];
+  const firstPageIds = new Set(firstPageUsers.map((user) => user.auth_id));
+  const allUsers = [
+    ...firstPageUsers,
+    ...extraUsers.filter((user) => !firstPageIds.has(user.auth_id)),
+  ];
+  const hasMore = extraHasMore ?? data?.hasMore ?? false;
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -50,11 +67,11 @@ export default function MembersSection({ currentUserEmail }: MembersSectionProps
     if (result.success && result.data) {
       const existingIds = new Set(allUsers.map((u) => u.auth_id));
       const newUsers = result.data.users.filter((u) => !existingIds.has(u.auth_id));
-      setAllUsers((prev) => [...prev, ...newUsers]);
+      setExtraUsers((prev) => [...prev, ...newUsers]);
       setPage(nextPage);
-      setHasMore(result.data.hasMore);
+      setExtraHasMore(result.data.hasMore);
     } else {
-      setHasMore(false);
+      setExtraHasMore(false);
     }
   };
 

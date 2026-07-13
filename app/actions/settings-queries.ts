@@ -8,46 +8,20 @@ import {
 } from "@/lib/auth_utils";
 import { fetchMoodieGeminiModelOptions } from "@/lib/moodie/gemini-models";
 import { MOODIE_GEMINI_MODEL_OPTIONS } from "@/lib/moodie/model-options";
-import { getMoodieProviderSnapshot } from "@/lib/moodie/providers/registry";
-import { getMoodieBraveSettingsSnapshot } from "@/lib/moodie/brave-config";
-import { getMoodieVoiceSnapshot } from "@/lib/moodie/voice-config";
-import { getMoodieVoiceLiveConfig } from "@/lib/moodie/voice-live-config";
 import { getOrCreateStudioInfo } from "@/lib/studio-info";
+import { loadStudioSettingsAdminData } from "@/lib/settings-studio-admin";
 import {
   getMoodieGeminiSettingsSnapshot,
   getMoodieGeminiStoredApiKey,
 } from "@/lib/system-settings";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
-  type GoogleOAuth,
   type NotificationPreferences,
   type SettingsPageData,
   type StudioInfo,
-  type StudioSettingsAdminData,
 } from "@/types/settings";
-
-function sanitizeStudioInfoForClient(studioInfo: StudioInfo): StudioInfo {
-  const googleAuth = studioInfo.google_oauth as
-    | (Partial<GoogleOAuth> & Record<string, unknown>)
-    | null;
-
-  return {
-    ...studioInfo,
-    google_oauth: googleAuth
-      ? {
-          access_token: "",
-          refresh_token: "",
-          expires_in:
-            typeof googleAuth.expires_in === "number" ? googleAuth.expires_in : 0,
-          granted_scopes: typeof googleAuth.granted_scopes === "string" ? googleAuth.granted_scopes : undefined,
-          updated_at:
-            typeof googleAuth.updated_at === "string"
-              ? googleAuth.updated_at
-              : studioInfo.updated_at || "",
-        }
-      : null,
-  };
-}
+import type { AuthUserWithEmployee, AuthUsersPage } from "@/app/actions/user-management";
+import { normalizeEmployeeRole } from "@/types/roles";
 
 async function getOrCreateNotificationPreferences(
   supabase: Awaited<ReturnType<typeof createAdminClient>>,
@@ -95,37 +69,60 @@ async function getOrCreateNotificationPreferences(
   return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...created };
 }
 
-export async function getStudioInfoAdmin() {
-  return withAdmin(async (adminClient) => {
-    const [studioInfo, moodieAiSettings, moodieProviderSettings, moodieVoiceSettings, moodieVoiceLiveSettings, moodieBraveSettings] = await Promise.all([
-      getOrCreateStudioInfo(adminClient),
-      getMoodieGeminiSettingsSnapshot(adminClient),
-      getMoodieProviderSnapshot(),
-      getMoodieVoiceSnapshot(),
-      getMoodieVoiceLiveConfig(),
-      getMoodieBraveSettingsSnapshot(),
-    ]);
+async function getInitialAuthUsers(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+): Promise<AuthUsersPage> {
+  const page = 1;
+  const perPage = 25;
+  const [authResult, employeeResult] = await Promise.all([
+    supabase.auth.admin.listUsers({ page, perPage }),
+    supabase
+      .from("employees")
+      .select("id, full_name, email, role, avatar_url, auth_user_id, status")
+      .eq("status", "active")
+      .order("full_name"),
+  ]);
+
+  if (authResult.error) throw new Error(authResult.error.message);
+  if (employeeResult.error) throw new Error(employeeResult.error.message);
+
+  const employees = employeeResult.data || [];
+  const linkedByAuthId = new Map(
+    employees
+      .filter((employee) => employee.auth_user_id)
+      .map((employee) => [employee.auth_user_id as string, employee]),
+  );
+  const unlinkedByEmail = new Map(
+    employees
+      .filter((employee) => !employee.auth_user_id && employee.email)
+      .map((employee) => [employee.email!.toLowerCase(), employee]),
+  );
+
+  const users: AuthUserWithEmployee[] = (authResult.data.users || []).map((user) => {
+    const linked = linkedByAuthId.get(user.id) || null;
+    const suggested = linked
+      ? null
+      : unlinkedByEmail.get((user.email || "").toLowerCase()) || null;
 
     return {
-      studioInfo: sanitizeStudioInfoForClient(studioInfo as StudioInfo),
-      moodieAiSettings,
-      moodieProviderSettings,
-      moodieVoiceSettings: {
-        ...moodieVoiceSettings,
-        engine: moodieVoiceLiveSettings.engine,
-        liveVoice: moodieVoiceLiveSettings.voice,
-        liveModel: moodieVoiceLiveSettings.model,
-        realtimeProvider: moodieVoiceLiveSettings.provider,
-        hasOpenAIKey: Boolean(moodieVoiceLiveSettings.openaiApiKey),
-        openaiKeyMasked: moodieVoiceLiveSettings.openaiApiKey
-          ? `••••••••${moodieVoiceLiveSettings.openaiApiKey.slice(-4)}`
-          : undefined,
-        openaiModel: moodieVoiceLiveSettings.openaiModel,
-        openaiVoice: moodieVoiceLiveSettings.openaiVoice,
-      },
-      moodieBraveSettings,
-    } satisfies StudioSettingsAdminData;
+      auth_id: user.id,
+      email: user.email || "",
+      jwt_role: normalizeEmployeeRole(
+        (user.app_metadata?.role as string | undefined) ?? null,
+      ),
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at || null,
+      is_banned: Boolean(user.banned_until),
+      linked_employee: linked,
+      suggested_employee: suggested,
+    };
   });
+
+  return { users, page, perPage, hasMore: users.length === perPage };
+}
+
+export async function getStudioInfoAdmin() {
+  return withAdmin(loadStudioSettingsAdminData);
 }
 
 export async function getMoodieGeminiModelOptions(
@@ -179,7 +176,9 @@ export async function getStudioInfo() {
 }
 
 export async function getSettingsPageData(): Promise<SettingsPageData> {
-  const context = await getAuthenticatedUserContext({ bootstrapProfile: true });
+  // ProtectedLayout already resolves this exact cached context for the request.
+  // Reuse claims + employee context instead of adding a second GoTrue getUser round-trip.
+  const context = await getAuthenticatedUserContext();
 
   if (!context) {
     throw new Error("Chưa đăng nhập");
@@ -190,15 +189,18 @@ export async function getSettingsPageData(): Promise<SettingsPageData> {
   }
 
   const adminClient = await createAdminClient();
-  const notificationPrefs = await getOrCreateNotificationPreferences(
-    adminClient,
-    context.employee.id,
-  );
+  const [notificationPrefs, initialMembers] = await Promise.all([
+    getOrCreateNotificationPreferences(adminClient, context.employee.id),
+    context.canManageMembers
+      ? getInitialAuthUsers(adminClient)
+      : Promise.resolve(undefined),
+  ]);
 
   return {
     employee: context.employee,
     notificationPrefs,
     canManageSettings: context.canManageSettings,
     canManageMembers: context.canManageMembers,
+    initialMembers,
   };
 }

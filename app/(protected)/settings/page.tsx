@@ -14,6 +14,7 @@ async function SettingsDataSection() {
       notificationPrefs={data.notificationPrefs}
       canManageSettings={data.canManageSettings}
       canManageMembers={data.canManageMembers}
+      initialMembers={data.initialMembers}
     />
   );
 }
@@ -25,4 +26,3 @@ export default function SettingsPage() {
     </Suspense>
   );
 }
-

@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { updateNotificationPreferences } from "@/app/actions/notification-actions";
 import { toast } from "@/lib/toast-manager";
@@ -12,16 +13,22 @@ import type {
 } from "@/types/settings";
 import ProfileCard from "./profile-card";
 import NotificationPrefs from "./notification-prefs";
-import EditProfileModal from "./edit-profile-modal";
 import MembersSection from "./members-section";
 import ChangelogSection from "./changelog-section";
 import { Settings, History, ChevronRight, CreditCard } from "lucide-react";
+import type { AuthUsersPage } from "@/app/actions/user-management";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
+
+const EditProfileModal = dynamic(() => import("./edit-profile-modal"), {
+  ssr: false,
+});
 
 interface SettingsViewProps {
   employee: EmployeeProfile;
   notificationPrefs: NotificationPreferences;
   canManageSettings: boolean;
   canManageMembers: boolean;
+  initialMembers?: AuthUsersPage;
 }
 
 export default function SettingsView({
@@ -29,6 +36,7 @@ export default function SettingsView({
   notificationPrefs,
   canManageSettings,
   canManageMembers,
+  initialMembers,
 }: SettingsViewProps) {
   const router = useRouter();
   const [currentEmployee, setCurrentEmployee] = useState(employee);
@@ -38,6 +46,33 @@ export default function SettingsView({
   const [isPending, startTransition] = useTransition();
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "?";
   const buildDate = process.env.NEXT_PUBLIC_BUILD_DATE;
+
+  const [syncedEmployee, setSyncedEmployee] = useState(employee);
+  if (syncedEmployee !== employee) {
+    setSyncedEmployee(employee);
+    setCurrentEmployee(employee);
+  }
+
+  const [syncedNotificationPrefs, setSyncedNotificationPrefs] = useState(notificationPrefs);
+  if (syncedNotificationPrefs !== notificationPrefs) {
+    setSyncedNotificationPrefs(notificationPrefs);
+    setPrefs(notificationPrefs);
+  }
+
+  const refreshSettings = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  useRealtimeSignal("employees", {
+    channelName: "settings-profile-realtime",
+    debounceMs: 250,
+    onChange: refreshSettings,
+  });
+  useRealtimeSignal("notification_preferences", {
+    channelName: "settings-notification-preferences-realtime",
+    debounceMs: 250,
+    onChange: refreshSettings,
+  });
 
   const togglePref = useCallback(
     (key: keyof NotificationPreferences, value: boolean) => {
@@ -120,7 +155,10 @@ export default function SettingsView({
       )}
 
       {canManageMembers && (
-        <MembersSection currentUserEmail={employee.email || ""} />
+        <MembersSection
+          currentUserEmail={employee.email || ""}
+          initialData={initialMembers}
+        />
       )}
     </>
   );
@@ -158,13 +196,15 @@ export default function SettingsView({
         <div className="detail-sidebar flex!">{sidebarContent}</div>
       </div>
 
-      <EditProfileModal
-        isOpen={editOpen}
-        onClose={() => setEditOpen(false)}
-        profile={currentEmployee}
-        canManageSettings={canManageSettings}
-        onSaved={(nextProfile) => setCurrentEmployee(nextProfile)}
-      />
+      {editOpen ? (
+        <EditProfileModal
+          isOpen
+          onClose={() => setEditOpen(false)}
+          profile={currentEmployee}
+          canManageSettings={canManageSettings}
+          onSaved={(nextProfile) => setCurrentEmployee(nextProfile)}
+        />
+      ) : null}
     </div>
   );
 }
