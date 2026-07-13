@@ -215,8 +215,11 @@ function MoodieVoiceCascade({
   useEffect(() => {
     if (!open) return;
     mountedRef.current = true;
-    setMuted(false);
-    setRmsLevel(0.04);
+    queueMicrotask(() => {
+      if (!mountedRef.current) return;
+      setMuted(false);
+      setRmsLevel(0.04);
+    });
     spokenSentenceIndexRef.current = 0;
     currentTurnTextRef.current = "";
 
@@ -302,6 +305,8 @@ function MoodieVoiceCascade({
       const remainder = stripCompletedPrefix(streamedText, sentences);
       if (remainder) enqueueSpeech(remainder);
     }
+    // enqueueSpeech intentionally reads current refs; rerunning on its identity would replay audio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, status, streamedText]);
 
   if (!open) return null;
@@ -316,12 +321,16 @@ function MoodieVoiceCascade({
   const circleScale = 0.88 + rmsLevel * 0.38;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[88dvh] min-h-[30rem] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-neutral-950/60 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onCloseRef.current(); }}>
+      <section className="moodie-voice-panel flex flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Trò chuyện bằng giọng nói">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
-        <div>
-          <p className="text-sm font-semibold">Moodie Voice</p>
-          <p className="text-xs text-white/45">Chế độ dự phòng</p>
-        </div>
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : assistantSpeaking || transcribing ? "bg-warning animate-pulse" : "bg-success animate-pulse"}`} aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">Moodie Voice</p>
+              <p className="text-xs text-white/45">Chế độ dự phòng</p>
+            </div>
+          </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
         </Button>
@@ -334,16 +343,17 @@ function MoodieVoiceCascade({
           </div>
         </div>
         <div className="text-center">
-          <p className="text-xl font-semibold">{label}</p>
+          <p className="text-lg font-semibold" aria-live="polite">{label}</p>
           <p className="mt-2 text-sm text-white/55">{muted ? "Nh\u1ea5n M \u0111\u1ec3 b\u1eadt micro" : "B\u1ea1n c\u00f3 th\u1ec3 n\u00f3i b\u1ea5t c\u1ee9 l\u00fac n\u00e0o"}</p>
         </div>
       </div>
       <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
         <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={() => setMuted((current) => !current)} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          <span className="text-sm font-medium">M</span>
+          <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
         </Button>
       </div>
+      </section>
     </div>
   );
 }
@@ -366,8 +376,6 @@ export function MoodieVoiceOverlay({
   const stopRef = useRef<() => void>(() => {});
   const toggleMuteRef = useRef<() => void>(() => {});
   const statusRef = useRef<"idle" | "connecting" | "listening" | "speaking" | "error">("idle");
-
-  onCloseRef.current = onClose;
 
   const {
     status,
@@ -392,15 +400,18 @@ export function MoodieVoiceOverlay({
     },
   });
 
-  startRef.current = start;
-  stopRef.current = stop;
-  toggleMuteRef.current = toggleMute;
-  statusRef.current = status;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    startRef.current = start;
+    stopRef.current = stop;
+    toggleMuteRef.current = toggleMute;
+    statusRef.current = status;
+  }, [onClose, start, status, stop, toggleMute]);
 
   useEffect(() => {
     if (!open) {
       stopRef.current();
-      setUseCascade(false);
+      queueMicrotask(() => setUseCascade(false));
       return;
     }
 
@@ -459,12 +470,16 @@ export function MoodieVoiceOverlay({
         : "\u0110ang nghe";
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] flex max-h-[88dvh] min-h-[32rem] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-neutral-950/60 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onCloseRef.current(); }}>
+      <section className="moodie-voice-panel flex flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Trò chuyện bằng giọng nói">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
-        <div>
-          <p className="text-sm font-semibold">Moodie Voice</p>
-          <p className="text-xs text-white/45">Trò chuyện trực tiếp</p>
-        </div>
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : status === "connecting" ? "bg-warning animate-pulse" : "bg-success animate-pulse"}`} aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">Moodie Voice</p>
+              <p className="text-xs text-white/45">Trò chuyện trực tiếp</p>
+            </div>
+          </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
         </Button>
@@ -477,7 +492,7 @@ export function MoodieVoiceOverlay({
           </div>
         </div>
         <div className="text-center">
-          <p className="text-xl font-semibold">{label}</p>
+          <p className="text-lg font-semibold" aria-live="polite">{label}</p>
           <p className="mt-2 text-sm text-white/55">{muted ? "Nh\u1ea5n M \u0111\u1ec3 b\u1eadt micro" : "B\u1ea1n c\u00f3 th\u1ec3 n\u00f3i b\u1ea5t c\u1ee9 l\u00fac n\u00e0o"}</p>
         </div>
         <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-center">
@@ -488,9 +503,10 @@ export function MoodieVoiceOverlay({
       <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
         <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={toggleMute} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          <span className="text-sm font-medium">M</span>
+          <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
         </Button>
       </div>
+      </section>
     </div>
   );
 }
