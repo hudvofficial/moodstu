@@ -41,7 +41,7 @@ export const MOODIE_CAPABILITIES: Record<string, MoodieCapability> = {
   ask_moodie: {
     name: "ask_moodie", label: "Moodie", surfaces: ["voice"], domains: ["general", "finance", "contracts", "crm_calendar_ops", "catalog", "codebase"], minimumRoles: ALL_ROLES,
     boundary: "mixed", sideEffect: "none", confirmation: "never", executionMode: "delegated", requiresData: true, readOnly: true, priority: 120,
-    voiceDescription: "Hỏi bộ não Moodie. Bắt buộc dùng cho dữ liệu và nghiệp vụ Studio; Moodie tự áp dụng quyền, công cụ, nguồn và chính sách freshness.",
+    voiceDescription: "Hỏi bộ não Moodie khi cần dữ liệu Studio đang thay đổi, kiểm tra quyền, hoặc bằng chứng từ công cụ. Không dùng cho identity, capability hay kiến thức hệ thống tĩnh đã có trong voice context.",
   },
   propose_moodie_task: {
     name: "propose_moodie_task", label: "Tạo tác vụ Moodie", surfaces: ["voice"], domains: ["general"], minimumRoles: ALL_ROLES,

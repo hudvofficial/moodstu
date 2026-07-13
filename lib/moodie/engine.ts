@@ -121,6 +121,7 @@ async function runMoodieModelEngine(params: {
   userContext: MoodieAuthenticatedUserContext;
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
+  responseProfile?: "default" | "voice";
   emit?: (event: MoodieEngineEvent) => void;
   signal?: AbortSignal;
 }): Promise<EngineResult | null> {
@@ -236,6 +237,10 @@ async function runMoodieModelEngine(params: {
 - research_mode: ${contextPacket.trace.research_mode || "none"}
 - research_policy: ${route.orchestration.mode === "background_run" ? "Call start_deep_research exactly once, then tell the user the research is running in the background. Do not claim a research result yet." : contextPacket.trace.research_required ? "You must call the exposed search tool before answering. Every current external claim must be grounded in the returned sources and include an inline numeric citation like [1] matching the source order. If the tool fails, state that external research is unavailable and do not answer from memory." : "Do not call external search unless an exposed tool is present."}\n- route_reason: ${route.reason}\n- execution_plan: ${executionPlan.summary}\n- history_policy: only recent, compact, decision-relevant context is preserved${retrievedContext.hasContext ? `\n\n${retrievedContext.summary}` : ""}`,
     },
+    ...(params.responseProfile === "voice" ? [{
+      role: "system" as const,
+      content: "Voice response profile: answer for speech, not a document. Give the direct answer first, use at most 120 Vietnamese words, no markdown table, no long preamble, and ask at most one short follow-up. Keep tool use and factual safeguards unchanged.",
+    }] : []),
     ...shapeMoodieHistoryForModel(history),
   ];
 
@@ -267,8 +272,8 @@ async function runMoodieModelEngine(params: {
             throwIfMoodieAborted(params.signal);
             streamedThisStep = true;
             params.emit?.({ type: "text.delta", delta });
-          }, { signal: params.signal, toolChoice })
-        : await provider.chat(messages, toolDefinitions, { signal: params.signal, toolChoice });
+          }, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined })
+        : await provider.chat(messages, toolDefinitions, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined });
       throwIfMoodieAborted(params.signal);
 
       if (!modelResult.ok) {
@@ -502,6 +507,7 @@ export async function runMoodieEngine(params: {
   userContext: MoodieAuthenticatedUserContext;
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
+  responseProfile?: "default" | "voice";
   emit?: (event: MoodieEngineEvent) => void;
   signal?: AbortSignal;
 }): Promise<EngineResult> {

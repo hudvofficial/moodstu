@@ -15,6 +15,9 @@ export const moodieVoiceEventTypeSchema = z.enum([
   "assistant.transcript_received",
   "assistant.turn_completed",
   "session.interrupted",
+  "tool.ask_moodie.started",
+  "tool.ask_moodie.completed",
+  "tool.ask_moodie.failed",
 ]);
 
 export type MoodieVoiceEventType = z.infer<typeof moodieVoiceEventTypeSchema>;

@@ -13,6 +13,7 @@ import type {
   ToolDefinition,
   ProviderChatResult,
   ProviderEmbedResult,
+  MoodieProviderChatOptions,
 } from "@/lib/moodie/providers/types";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -137,7 +138,7 @@ export class GeminiAdapter implements MoodieProvider {
   async chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
-    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult> {
     if (!this.apiKey) {
       return { ok: false, error: "Gemini API key chưa được cấu hình." };
@@ -146,7 +147,7 @@ export class GeminiAdapter implements MoodieProvider {
     const { systemInstruction, contents } = convertMessages(messages);
     const body: Record<string, unknown> = {
       contents,
-      generationConfig: { temperature: 0.35, maxOutputTokens: 4096 },
+      generationConfig: { temperature: 0.35, maxOutputTokens: options?.maxOutputTokens ?? 4096 },
     };
 
     if (tools.length > 0 && options?.toolChoice !== "none") {
@@ -224,11 +225,11 @@ export class GeminiAdapter implements MoodieProvider {
     messages: ProviderMessage[],
     tools: ToolDefinition[],
     onDelta: (delta: string) => void,
-    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult> {
     if (!this.apiKey) return { ok: false, error: "Gemini API key chưa được cấu hình." };
     const { systemInstruction, contents } = convertMessages(messages);
-    const body: Record<string, unknown> = { contents, generationConfig: { temperature: 0.35, maxOutputTokens: 4096 } };
+    const body: Record<string, unknown> = { contents, generationConfig: { temperature: 0.35, maxOutputTokens: options?.maxOutputTokens ?? 4096 } };
     if (tools.length > 0 && options?.toolChoice !== "none") {
       body.tools = convertTools(tools);
       body.toolConfig = { functionCallingConfig: { mode: options?.toolChoice === "required" ? "ANY" : "AUTO" } };

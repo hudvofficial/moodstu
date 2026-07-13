@@ -13,6 +13,7 @@ import type {
   ToolDefinition,
   ProviderChatResult,
   ProviderEmbedResult,
+  MoodieProviderChatOptions,
 } from "@/lib/moodie/providers/types";
 
 // ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ export class OpenAIAdapter implements MoodieProvider {
   async chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
-    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult> {
     const oaiMessages = convertMessages(messages);
 
@@ -140,7 +141,7 @@ export class OpenAIAdapter implements MoodieProvider {
       model: this.model,
       messages: oaiMessages,
       temperature: 0.35,
-      max_tokens: 4096,
+      max_tokens: options?.maxOutputTokens ?? 4096,
     };
 
     if (tools.length > 0 && options?.toolChoice !== "none") {
@@ -220,13 +221,13 @@ export class OpenAIAdapter implements MoodieProvider {
     messages: ProviderMessage[],
     tools: ToolDefinition[],
     onDelta: (delta: string) => void,
-    options?: { signal?: AbortSignal; toolChoice?: "auto" | "required" | "none" },
+    options?: MoodieProviderChatOptions,
   ): Promise<ProviderChatResult> {
     const body: Record<string, unknown> = {
       model: this.model,
       messages: convertMessages(messages),
       temperature: 0.35,
-      max_tokens: 4096,
+      max_tokens: options?.maxOutputTokens ?? 4096,
       stream: true,
       stream_options: { include_usage: true },
     };

@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       content: question,
       attachments: [],
       contexts: [],
+      response_profile: "voice",
     }, undefined);
 
     if (!result.success) {

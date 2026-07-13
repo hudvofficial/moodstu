@@ -128,6 +128,7 @@ export function useMoodieLiveVoice({
   const assistantAudioReportedRef = useRef(false);
   const playbackReportedRef = useRef(false);
   const activeRunStateRef = useRef(new Map<string, string>());
+  const askMoodieRequestsRef = useRef(new Map<string, Promise<AskResponse>>());
 
   conversationIdRef.current = conversationId;
   onConversationIdRef.current = onConversationId;
@@ -266,17 +267,36 @@ export function useMoodieLiveVoice({
 
     try {
       if (call.name === "ask_moodie") {
-        const response = await fetch("/api/moodie/voice/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: call.args?.question,
-            conversation_id: conversationIdRef.current,
-          }),
-          signal: controller.signal,
+        const question = String(call.args?.question || "").trim();
+        if (!question) throw new Error("Moodie ask question is required");
+        const requestKey = question.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ");
+        let request = askMoodieRequestsRef.current.get(requestKey);
+        const deduplicated = Boolean(request);
+        const startedAt = performance.now();
+        emitTelemetry("tool.ask_moodie.started", { metrics: { deduplicated: deduplicated ? 1 : 0 } });
+        if (!request) {
+          request = fetch("/api/moodie/voice/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question, conversation_id: conversationIdRef.current }),
+            signal: controller.signal,
+          }).then(async (response) => {
+            if (!response.ok) throw new Error(`Moodie ask failed: ${response.status}`);
+            return response.json() as Promise<AskResponse>;
+          });
+          askMoodieRequestsRef.current.set(requestKey, request);
+          void request.then(
+            () => askMoodieRequestsRef.current.delete(requestKey),
+            () => askMoodieRequestsRef.current.delete(requestKey),
+          );
+        }
+        const payload = await request;
+        emitTelemetry("tool.ask_moodie.completed", {
+          metrics: {
+            duration_ms: Math.round(performance.now() - startedAt),
+            deduplicated: deduplicated ? 1 : 0,
+          },
         });
-        if (!response.ok) throw new Error(`Moodie ask failed: ${response.status}`);
-        const payload = (await response.json()) as AskResponse;
         result = payload.text;
         conversationIdRef.current = payload.conversation_id;
         onConversationIdRef.current?.(payload.conversation_id);
@@ -335,6 +355,9 @@ export function useMoodieLiveVoice({
         result = { status: "error", error: "unknown tool" };
       }
     } catch (value) {
+      if (call.name === "ask_moodie") {
+        emitTelemetry("tool.ask_moodie.failed", { error: value instanceof Error ? value.message : String(value) });
+      }
       result = {
         status: "error",
         error: value instanceof Error ? value.message : String(value),
@@ -346,7 +369,7 @@ export function useMoodieLiveVoice({
     sessionRef.current?.sendToolResponse({
       functionResponses: [{ id: call.id, name: call.name, response: { result } }],
     });
-  }, []);
+  }, [emitTelemetry]);
 
   const handleMessage = useCallback(
     (message: LiveMessage) => {
@@ -661,7 +684,7 @@ export function useMoodieLiveVoice({
     } catch (value) {
       reportError(value);
     }
-  }, [connect, reportError, startCapture, stop]);
+  }, [connect, emitTelemetry, reportError, startCapture, stop]);
 
   const toggleMute = useCallback(() => {
     setMuted((current) => {

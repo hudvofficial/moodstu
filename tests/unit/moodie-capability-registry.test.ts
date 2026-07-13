@@ -22,6 +22,16 @@ describe("Moodie unified capability registry", () => {
     }
   });
 
+  it("keeps static system knowledge in the realtime brain and long work in background runs", () => {
+    const adminConfig = buildMoodieLiveConnectConfig({ voice: "Zephyr", role: "admin" });
+    const instruction = adminConfig.systemInstruction?.parts?.map((part) => part.text || "").join("\n") || "";
+
+    expect(instruction).toContain("cấu trúc tổng quan Mood Studio");
+    expect(instruction).toContain("Knowledge pack hệ thống Mood Studio");
+    expect(instruction).toContain("Không dùng ask_moodie để chờ một cuộc điều tra dài");
+    expect(instruction).toContain("Admin có thể yêu cầu phân tích codebase");
+  });
+
   it("keeps consequential confirmation and external evidence policy explicit", () => {
     expect(MOODIE_CAPABILITIES.submit_moodie_task.confirmation).toBe("explicit");
     expect(MOODIE_CAPABILITIES.submit_moodie_task.sideEffect).toBe("consequential");

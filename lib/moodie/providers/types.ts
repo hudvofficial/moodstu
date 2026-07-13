@@ -100,6 +100,7 @@ export interface MoodieProviderConfig {
 export type MoodieProviderChatOptions = {
   signal?: AbortSignal;
   toolChoice?: "auto" | "required" | "none";
+  maxOutputTokens?: number;
 };
 
 export interface MoodieProvider {
