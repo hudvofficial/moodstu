@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Mic, MicOff, SendHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useMoodieLiveVoice } from "@/hooks/use-moodie-live-voice";
 import { extractCompletedSentences } from "@/lib/moodie/voice-sentences";
 import { toast } from "sonner";
@@ -49,6 +50,54 @@ function stripCompletedPrefix(text: string, sentences: string[]) {
     remainder = remainder.slice(index + sentence.length).trim();
   }
   return remainder.replace(/^\s+/, "").trim();
+}
+
+function VoiceTextComposer({
+  disabled,
+  onSend,
+}: {
+  disabled?: boolean;
+  onSend: (text: string) => void | boolean | Promise<void | boolean>;
+}) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = draft.trim();
+    if (!text || disabled || sending) return;
+    setSending(true);
+    try {
+      const accepted = await onSend(text);
+      if (accepted !== false) setDraft("");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <form className="flex w-full items-center gap-2" onSubmit={submit}>
+      <Input
+        unstyled
+        withBaseStyles={false}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Nhắn cho Moodie…"
+        aria-label="Nhắn cho Moodie"
+        disabled={disabled || sending}
+        className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-white/6 px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/25 focus:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      />
+      <Button
+        type="submit"
+        unstyled
+        disabled={disabled || sending || !draft.trim()}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-neutral-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-35"
+        aria-label="Gửi tin nhắn"
+      >
+        <SendHorizontal className="h-4 w-4" />
+      </Button>
+    </form>
+  );
 }
 
 function MoodieVoiceCascade({
@@ -282,8 +331,13 @@ function MoodieVoiceCascade({
     start().catch(() => {});
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
       if (event.key.toLowerCase() === "m") setMuted((current) => !current);
-      if (event.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -326,10 +380,7 @@ function MoodieVoiceCascade({
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : assistantSpeaking || transcribing ? "bg-warning animate-pulse" : "bg-success animate-pulse"}`} aria-hidden="true" />
-            <div>
-              <p className="text-sm font-semibold">Moodie Voice</p>
-              <p className="text-xs text-white/45">Chế độ dự phòng</p>
-            </div>
+            <p className="text-sm font-semibold">Moodie</p>
           </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
@@ -347,11 +398,14 @@ function MoodieVoiceCascade({
           <p className="mt-2 text-sm text-white/55">{muted ? "Nh\u1ea5n M \u0111\u1ec3 b\u1eadt micro" : "B\u1ea1n c\u00f3 th\u1ec3 n\u00f3i b\u1ea5t c\u1ee9 l\u00fac n\u00e0o"}</p>
         </div>
       </div>
-      <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
-        <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={() => setMuted((current) => !current)} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
-          {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
-        </Button>
+      <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-4 safe-area-pb sm:px-5">
+        <VoiceTextComposer onSend={async (text) => { await onSendVoiceMessage(text); }} />
+        <div className="flex justify-center">
+          <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={() => setMuted((current) => !current)} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
+            {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
+          </Button>
+        </div>
       </div>
       </section>
     </div>
@@ -383,6 +437,7 @@ export function MoodieVoiceOverlay({
     stop,
     muted,
     toggleMute,
+    sendText,
     inputLevelRef,
     outputLevelRef,
     userTranscript,
@@ -417,8 +472,13 @@ export function MoodieVoiceOverlay({
 
     void startRef.current();
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
       if (event.key.toLowerCase() === "m") toggleMuteRef.current();
-      if (event.key === "Escape") onCloseRef.current();
     };
     window.addEventListener("keydown", handleKeyDown);
 
@@ -475,10 +535,7 @@ export function MoodieVoiceOverlay({
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : status === "connecting" ? "bg-warning animate-pulse" : "bg-success animate-pulse"}`} aria-hidden="true" />
-            <div>
-              <p className="text-sm font-semibold">Moodie Voice</p>
-              <p className="text-xs text-white/45">Trò chuyện trực tiếp</p>
-            </div>
+            <p className="text-sm font-semibold">Moodie</p>
           </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
           <X className="h-5 w-5" />
@@ -500,11 +557,14 @@ export function MoodieVoiceOverlay({
           <p className="mt-2 min-h-7 text-sm font-medium leading-6 text-white/90 sm:text-base">{modelTranscript || "Moodie đang sẵn sàng lắng nghe"}</p>
         </div>
       </div>
-      <div className="flex justify-center border-t border-white/10 px-4 py-4 safe-area-pb">
-        <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={toggleMute} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
-          {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
-        </Button>
+      <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-4 safe-area-pb sm:px-5">
+        <VoiceTextComposer disabled={status === "connecting" || status === "error"} onSend={sendText} />
+        <div className="flex justify-center">
+          <Button type="button" unstyled className={`flex h-12 min-w-12 items-center justify-center gap-2 rounded-full px-4 transition ${muted ? "bg-white text-neutral-950" : "bg-white/10 text-white hover:bg-white/20"}`} onClick={toggleMute} aria-label={muted ? "B\u1eadt micro" : "T\u1eaft micro"}>
+            {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            <span className="text-sm font-medium">{muted ? "Bật mic" : "Tắt mic"}</span>
+          </Button>
+        </div>
       </div>
       </section>
     </div>

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { useMoodieTurn } from "@/hooks/use-moodie-turn";
+import { useMoodieWakePhrase } from "@/hooks/use-moodie-wake-phrase";
 import { getSmartMoodieFollowUps } from "@/lib/moodie/follow-up-suggestions";
 import { sortMoodieConversations } from "@/lib/moodie/records";
 import { sendMoodieStreamingMessage } from "@/lib/moodie/stream-client";
@@ -92,6 +93,26 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
   const streamStatus = moodieTurn.state.statusLabel;
   const [historyOpen, setHistoryOpen] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+
+  useMoodieWakePhrase(!voiceMode, () => setVoiceMode(true));
+
+  useEffect(() => {
+    const handleMoodieShortcut = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.tagName === "SELECT") return;
+      const key = event.key.toLowerCase();
+      if (key === "w" && !voiceMode) {
+        event.preventDefault();
+        setVoiceMode(true);
+      } else if (key === "s" && voiceMode) {
+        event.preventDefault();
+        setVoiceMode(false);
+      }
+    };
+    window.addEventListener("keydown", handleMoodieShortcut);
+    return () => window.removeEventListener("keydown", handleMoodieShortcut);
+  }, [voiceMode]);
   const [, startTransition] = useTransition();
   const setHeaderSlots = useSetHeaderSlots();
 

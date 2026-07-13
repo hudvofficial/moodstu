@@ -242,7 +242,7 @@ export function MoodieComposer({
                       <Square className="h-3.5 w-3.5 fill-current" />
                     </Button>
                   ) : value.trim() === "" && attachments.length === 0 && !recording ? (
-                    <Button type="button" unstyled onClick={() => { openVoiceMode().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled} aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i">
+                    <Button type="button" unstyled onClick={() => { openVoiceMode().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled} aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i" title="Hey Moodie · W mở · S đóng">
                       <AudioLines className="h-5 w-5" />
                     </Button>
                   ) : (

@@ -686,6 +686,21 @@ export function useMoodieLiveVoice({
     }
   }, [connect, emitTelemetry, reportError, startCapture, stop]);
 
+  const sendText = useCallback((text: string) => {
+    const cleanText = text.trim();
+    if (!cleanText) return false;
+    const session = sessionRef.current;
+    if (!session?.sendClientContent || stoppedRef.current) return false;
+    latestUserUtteranceRef.current = cleanText;
+    setUserTranscript(cleanText);
+    onTranscriptRef.current?.("user", cleanText);
+    session.sendClientContent({
+      turns: [{ role: "user", parts: [{ text: cleanText }] }],
+      turnComplete: true,
+    });
+    return true;
+  }, []);
+
   const toggleMute = useCallback(() => {
     setMuted((current) => {
       const next = !current;
@@ -739,6 +754,7 @@ export function useMoodieLiveVoice({
     stop,
     muted,
     toggleMute,
+    sendText,
     inputLevelRef,
     outputLevelRef,
     userTranscript,
