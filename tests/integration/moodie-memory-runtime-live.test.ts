@@ -32,6 +32,15 @@ describeLive("Moodie durable memory runtime", () => {
   });
 
   afterAll(async () => {
+    const employeeIds = [userId, otherUserId].filter(Boolean);
+    if (employeeIds.length > 0) {
+      const { error: employeeCleanupError } = await supabase
+        .from("employees")
+        .delete()
+        .in("id", employeeIds);
+      if (employeeCleanupError) throw employeeCleanupError;
+    }
+
     await Promise.all([
       userId ? supabase.auth.admin.deleteUser(userId) : Promise.resolve(),
       otherUserId ? supabase.auth.admin.deleteUser(otherUserId) : Promise.resolve(),
