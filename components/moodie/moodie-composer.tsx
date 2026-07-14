@@ -226,27 +226,27 @@ export function MoodieComposer({
 
               <div className="mx-0.5 mb-2.5 mt-0.5 flex justify-between">
                 <div className="ml-1 flex min-w-0 flex-1 items-center self-end">
-                  <Button type="button" unstyled className="flex size-8 shrink-0 items-center justify-center rounded-full bg-transparent text-text-muted hover:bg-bg-subtle" onClick={() => fileInputRef.current?.click()} disabled={uploading || attachments.length >= 6} aria-label="\u0110\u00ednh k\u00e8m t\u1ec7p">
+                  <Button type="button" unstyled className="flex size-8 shrink-0 items-center justify-center rounded-full bg-transparent text-text-muted hover:bg-bg-subtle" onClick={() => fileInputRef.current?.click()} disabled={uploading || attachments.length >= 6} aria-label="Đính kèm tệp">
                     {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
                   </Button>
-                  <Button type="button" unstyled className={`flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-bg-subtle ${showShortcuts ? "bg-bg-subtle text-primary" : "bg-transparent"}`} onClick={() => setShowShortcuts((current) => !current)} aria-label="K\u1ef9 n\u0103ng v\u00e0 l\u1ec7nh nhanh">
+                  <Button type="button" unstyled className={`flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-bg-subtle ${showShortcuts ? "bg-bg-subtle text-primary" : "bg-transparent"}`} onClick={() => setShowShortcuts((current) => !current)} aria-label="Kỹ năng và lệnh nhanh">
                     <Sparkles className="h-[18px] w-[18px]" />
                   </Button>
                 </div>
                 <div className="mr-1 flex items-center gap-0.5 self-end">
-                  <Button type="button" unstyled className="mr-0.5 self-center rounded-full p-1.5 text-text-muted transition hover:text-text-primary" onClick={() => { startRecording().catch(() => {}); }} disabled={disabled || loading} aria-label="\u0110\u1ecdc \u0111\u1ec3 nh\u1eadp">
+                  <Button type="button" unstyled className="mr-0.5 self-center rounded-full p-1.5 text-text-muted transition hover:text-text-primary" onClick={() => { startRecording().catch(() => {}); }} disabled={disabled || loading} aria-label="Đọc để nhập">
                     <Mic className="h-5 w-5" />
                   </Button>
                   {loading ? (
-                    <Button type="button" unstyled onClick={onStop} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90" aria-label="D\u1eebng ph\u1ea3n h\u1ed3i c\u1ee7a Moodie">
+                    <Button type="button" unstyled onClick={onStop} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90" aria-label="Dừng phản hồi của Moodie">
                       <Square className="h-3.5 w-3.5 fill-current" />
                     </Button>
                   ) : value.trim() === "" && attachments.length === 0 && !recording ? (
-                    <Button type="button" unstyled onClick={() => { openVoiceMode().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled} aria-label="Tr\u00f2 chuy\u1ec7n b\u1eb1ng gi\u1ecdng n\u00f3i" title="Hey Moodie · W mở · S đóng">
+                    <Button type="button" unstyled onClick={() => { openVoiceMode().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled} aria-label="Trò chuyện bằng giọng nói" title="Hey Moodie · W mở · S đóng">
                       <AudioLines className="h-5 w-5" />
                     </Button>
                   ) : (
-                    <Button type="button" unstyled onClick={() => { handleSubmit().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled || value.trim().length === 0} aria-label="G\u1eedi tin nh\u1eafn cho Moodie">
+                    <Button type="button" unstyled onClick={() => { handleSubmit().catch(() => {}); }} className="self-center rounded-full bg-primary p-1.5 text-white transition hover:bg-primary/90 disabled:bg-bg-subtle disabled:text-text-muted" disabled={disabled || value.trim().length === 0} aria-label="Gửi tin nhắn cho Moodie">
                       <ArrowUp className="h-5 w-5" />
                     </Button>
                   )}

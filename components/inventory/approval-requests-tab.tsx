@@ -14,6 +14,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { useApprovalRequests, useApprovalInvalidation } from "@/lib/hooks/use-inventory-queries";
 import { approveFulfillmentRequest, rejectFulfillmentRequest } from "@/app/actions/inventory-mutations";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
@@ -35,7 +36,7 @@ export function ApprovalRequestsTab({ userRole }: { userRole: string }) {
 
   // Realtime updates
   useRealtimeMulti(
-    useMemo(() => [{ table: "approval_requests" }], []),
+    useMemo(() => [realtimeSignalConfig("approval_requests")], []),
     {
       channelName: "approval-requests-updates",
       onChange: invalidateAll,

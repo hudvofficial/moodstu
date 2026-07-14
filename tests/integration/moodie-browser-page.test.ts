@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, jest as vi } from "@jest/globals";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/moodie/browser-config", () => ({
@@ -12,12 +12,12 @@ vi.mock("node:dns/promises", () => ({
 
 describe("browseMoodiePage", () => {
   beforeEach(() => {
-    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     delete process.env.MOODIE_CLOAK_CDP_URL;
   });
 
   it("extracts bounded text from a public HTML page", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+    vi.spyOn(globalThis, "fetch").mockImplementation(vi.fn(async () => new Response(
       "<html><head><title>Public source</title><script>secret()</script></head><body><h1>Hello Moodie</h1><p>Useful evidence.</p></body></html>",
       { status: 200, headers: { "content-type": "text/html" } },
     )));
@@ -31,7 +31,7 @@ describe("browseMoodiePage", () => {
   });
 
   it("blocks redirects into a private network", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, {
+    vi.spyOn(globalThis, "fetch").mockImplementation(vi.fn(async () => new Response(null, {
       status: 302,
       headers: { location: "http://private.test/admin" },
     })));

@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, jest as vi } from "@jest/globals";
 
 vi.mock("server-only", () => ({}));
 config({ path: ".env.local", quiet: true });
@@ -10,9 +10,10 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const describeLive = url && key ? describe : describe.skip;
 
 describeLive("Moodie browser tool live runtime", () => {
+  vi.retryTimes(2);
   const supabase = createClient(url!, key!, { auth: { persistSession: false } });
 
-  it("lets the model read an explicit public URL with browse_page", { retry: 2, timeout: 90_000 }, async () => {
+  it("lets the model read an explicit public URL with browse_page", async () => {
     const { runMoodieEngine } = await import("../../lib/moodie/engine");
     const request = {
       supabase: supabase as never,
@@ -25,10 +26,10 @@ describeLive("Moodie browser tool live runtime", () => {
       result = await runMoodieEngine(request);
     }
 
-    expect(result.metadata.trace, JSON.stringify(result.metadata)).toBeDefined();
+    expect(result.metadata.trace).toBeDefined();
     expect(result.metadata.trace?.allowed_tool_names).toContain("browse_page");
     expect(result.metadata.trace?.tools.map((tool) => tool.name)).toContain("browse_page");
     expect(result.metadata.trace?.tools.find((tool) => tool.name === "browse_page")?.ok).toBe(true);
     expect(result.metadata.sources?.some((source) => source.url?.includes("example.com"))).toBe(true);
-  });
+  }, 90_000);
 });

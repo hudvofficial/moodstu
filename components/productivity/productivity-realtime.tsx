@@ -1,6 +1,5 @@
 "use client";
 
-import { useRealtime } from "@/hooks/use-realtime";
 import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 
 export function ProductivityRealtimeBindings({
@@ -12,7 +11,7 @@ export function ProductivityRealtimeBindings({
 }) {
   const cacheKeys = detailKey ? [overviewKey, detailKey] : [overviewKey];
 
-  useRealtime("work_tasks", {
+  useRealtimeSignal("work_tasks", {
     cacheKeys,
     debounceMs: 1000,
   });

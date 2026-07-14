@@ -107,7 +107,8 @@ if (detailClient.includes('useRealtime("receipts"')) {
 }
 if (
   !detailClient.includes('useRealtime("payments"') &&
-  !detailClient.includes('table: "payments"')
+  !detailClient.includes('table: "payments"') &&
+  !detailClient.includes('realtimeSignalConfig("payments")')
 ) {
   fail("contract detail is missing payments realtime subscription");
 }

@@ -102,13 +102,21 @@ export function DashboardRealtimeRefresh({ visibility }: DashboardRealtimeRefres
       if (disposed || !session) return;
 
       channel = supabase.channel("dashboard-realtime");
-      for (const table of subscribedTables) {
-        channel.on(
-          "postgres_changes",
-          { event: "*", schema: "public", table },
-          () => scheduleRefresh(table),
-        );
-      }
+      channel.on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "realtime_signals",
+          filter: `table_name=in.(${subscribedTables.join(",")})`,
+        },
+        (payload) => {
+          const table = typeof payload.new?.table_name === "string"
+            ? payload.new.table_name
+            : null;
+          if (table && subscribedTables.includes(table)) scheduleRefresh(table);
+        },
+      );
 
       channel.subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {

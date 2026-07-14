@@ -83,8 +83,7 @@ export default async function EmployeesPage({
     <>
       {/* Tín hiệu qua realtime_signals — employees server-only, không có grant SELECT */}
       <RealtimeSync
-        table="realtime_signals"
-        filter="table_name=eq.employees"
+        sourceTable="employees"
         prefixes="employees"
         debounceMs={600}
       />

@@ -13,7 +13,7 @@ import {
   reserveDressSchema,
 } from "@/lib/validations/dress.schema";
 import { CATEGORY_PREFIX_MAP } from "@/types/dress-constants";
-import { generateBlurHashFromUrl } from "./blurhash-actions";
+import { generateGalleryBlurHash } from "@/lib/gallery/blurhash";
 import { createAdminClient } from "@/lib/supabase/server";
 import { after } from "next/server";
 
@@ -40,7 +40,7 @@ function revalidateDresses(contractId?: string | null) {
 function scheduleDressBlurHash(dressId: string, imageUrl: string) {
   after(async () => {
     try {
-      const { blurHash, dataUrl } = await generateBlurHashFromUrl(imageUrl);
+      const { blurHash, dataUrl } = await generateGalleryBlurHash(imageUrl);
       const supabase = await createAdminClient();
       await supabase
         .from("dresses")

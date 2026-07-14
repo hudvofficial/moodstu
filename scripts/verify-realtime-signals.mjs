@@ -27,6 +27,22 @@ const SOURCE_TABLES = [
   "vendor_payments",
   "monthly_salaries",
   "transaction_categories",
+  // Business tables migrated away from direct postgres_changes.
+  "contracts",
+  "payments",
+  "contract_checklists",
+  "contract_notes",
+  "contract_events",
+  "work_tasks",
+  "payment_plans",
+  "dress_reservations",
+  "printing_orders",
+  "crm_leads",
+  "customers",
+  "schedules",
+  "approval_requests",
+  "receipts",
+  "google_sync_queue",
 ];
 
 // Bảng có row-trigger side effect (audit log...) → chỉ phantom touch (UPDATE
@@ -41,6 +57,21 @@ const PHANTOM_ONLY = new Set([
   "vendor_payments",
   "monthly_salaries",
   "transaction_categories",
+  "contracts",
+  "payments",
+  "contract_checklists",
+  "contract_notes",
+  "contract_events",
+  "work_tasks",
+  "payment_plans",
+  "dress_reservations",
+  "printing_orders",
+  "crm_leads",
+  "customers",
+  "schedules",
+  "approval_requests",
+  "receipts",
+  "google_sync_queue",
 ]);
 const marker = `verify-signals-${Date.now()}`;
 const EVENT_WAIT_MS = 15_000;
@@ -208,6 +239,8 @@ const APP_FILTERS = [
   "table_name=in.(inventory_items,inventory_transactions)",
   // FinanceRealtimeRefresh (finance-realtime-refresh.tsx)
   "table_name=in.(expenses,debts,fixed_costs,financial_goals,budgets,investments,vendor_payments,monthly_salaries,transaction_categories)",
+  "table_name=in.(contracts,payments,contract_checklists,contract_notes,contract_events,work_tasks,payment_plans)",
+  "table_name=in.(dress_reservations,printing_orders,crm_leads,customers,schedules,approval_requests,receipts,google_sync_queue)",
 ];
 
 async function touchOneRow(table) {
@@ -282,6 +315,7 @@ async function main() {
   for (const table of SOURCE_TABLES) {
     if (await touchOneRow(table)) touched.push(table);
     else empty.push(table);
+    await delay(100);
   }
   if (empty.length > 0) {
     console.log(`  SKIP (bảng rỗng): ${empty.join(", ")}`);

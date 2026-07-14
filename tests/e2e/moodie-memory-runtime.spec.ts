@@ -26,7 +26,8 @@ test("explicit memory is durable and manageable through the UI", async ({ page }
   const composer = page.getByPlaceholder("Tôi có thể giúp gì cho bạn hôm nay?").first();
   await expect(composer).toBeVisible({ timeout: 30_000 });
   await composer.fill(`Hãy nhớ: ưu tiên gọi tôi là ${marker}`);
-  await composer.press("Enter");
+  await page.getByRole("button", { name: "Gửi tin nhắn cho Moodie" }).click();
+  await expect(composer).toHaveValue("");
 
   await expect.poll(async () => {
     const { data } = await admin().from("moodie_memories")
@@ -67,7 +68,8 @@ test("explicit memory is durable and manageable through the UI", async ({ page }
   expect(persistedObservation?.conversation_id).toBeTruthy();
 
   await composer.fill("Tiếp tục giúp mình từ lượt vừa rồi");
-  await composer.press("Enter");
+  await page.getByRole("button", { name: "Gửi tin nhắn cho Moodie" }).click();
+  await expect(composer).toHaveValue("");
   await expect.poll(async () => {
     const { data } = await admin().from("ai_messages")
       .select("content, metadata")

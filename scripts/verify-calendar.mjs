@@ -140,6 +140,12 @@ if (
   fail("calendar task date source parity is missing");
 }
 if (
+  !calendarMutations.includes('onConflict: "idempotency_key"') ||
+  !calendarMutations.includes('status: "pending"')
+) {
+  fail("Google sync queue writes are not idempotent");
+}
+if (
   !calendarMutations.includes("shiftEndDateByStoredDuration") ||
   calendarMutations.includes("parsed.oldDateIso)")
 ) {
@@ -153,10 +159,10 @@ if (
 if (!calendarHook.includes("cacheKeys.calendarGoogle")) {
   fail("calendar hook is missing separate Google SWR key");
 }
-if (!calendarHook.includes('useRealtime("schedules"')) {
+if (!calendarHook.includes('useRealtimeSignal("schedules"')) {
   fail("calendar hook is missing schedules realtime subscription");
 }
-if (!calendarHook.includes('useRealtime("work_tasks"')) {
+if (!calendarHook.includes('useRealtimeSignal("work_tasks"')) {
   fail("calendar hook is missing work_tasks realtime subscription");
 }
 if (calendarHook.includes('prefixes: "calendar"')) {
@@ -193,7 +199,7 @@ const deleteActionIndex = calendarMutations.indexOf(
   "export async function deleteCalendarEvent",
 );
 const googleDeleteIndex = calendarMutations.indexOf(
-  "deleteGoogleCalendarEvent(oldRecord.google_event_id)",
+  'action: "DELETE"',
   deleteActionIndex,
 );
 const localDeleteIndex = calendarMutations.indexOf(

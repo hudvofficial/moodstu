@@ -10,7 +10,22 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-const TABLES = ["crm_leads", "customers", "schedules", "approval_requests", "receipts"];
+const TABLES = [
+  "contracts",
+  "payments",
+  "contract_checklists",
+  "contract_notes",
+  "contract_events",
+  "work_tasks",
+  "payment_plans",
+  "dress_reservations",
+  "printing_orders",
+  "crm_leads",
+  "customers",
+  "schedules",
+  "approval_requests",
+  "receipts",
+];
 const marker = `verify-realtime-${Date.now()}`;
 const EVENT_WAIT_MS = 15_000;
 
@@ -192,7 +207,7 @@ async function main() {
   console.log("1/5 Tạo temp admin user...");
   const creds = await createTempAdmin();
 
-  console.log("2/5 Đăng nhập authenticated client + subscribe 5 bảng...");
+  console.log("2/5 Đăng nhập authenticated client + probe direct business-table publication...");
   const authClient = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -226,25 +241,20 @@ async function main() {
     console.log(`  SKIP (bảng rỗng, không thể bắn event): ${empty.join(", ")}`);
   }
 
-  console.log(`5/5 Chờ event (tối đa ${EVENT_WAIT_MS / 1000}s)...`);
-  const deadline = Date.now() + EVENT_WAIT_MS;
-  while (Date.now() < deadline && authEvents.size < touched.length) {
-    await delay(300);
-  }
-
-  const missing = touched.filter((t) => !authEvents.has(t));
+  console.log("5/5 Chờ cửa sổ quan sát direct event...");
+  await delay(Math.min(EVENT_WAIT_MS, 4_000));
   console.log("");
   console.log(`Authenticated nhận event: [${[...authEvents].join(", ") || "—"}]`);
   console.log(`Anon nhận event:          [${[...anonEvents].join(", ") || "—"}]`);
 
-  if (missing.length > 0) {
-    throw new Error(`FAIL: authenticated KHÔNG nhận event cho: ${missing.join(", ")}`);
+  if (authEvents.size > 0) {
+    throw new Error(`FAIL: business rows vẫn được publish trực tiếp: ${[...authEvents].join(", ")}`);
   }
   if (anonEvents.size > 0) {
     throw new Error(`FAIL: anon NHẬN ĐƯỢC event (lộ data!): ${[...anonEvents].join(", ")}`);
   }
   console.log("");
-  console.log(`PASS: ${touched.length}/${TABLES.length} bảng fire event tới authenticated, anon 0 event.`);
+  console.log(`PASS: ${touched.length}/${TABLES.length} business tables emit 0 direct event to authenticated and anon.`);
   if (empty.length > 0) {
     console.log(`Lưu ý: ${empty.join(", ")} rỗng — chưa verify bằng event thật.`);
   }

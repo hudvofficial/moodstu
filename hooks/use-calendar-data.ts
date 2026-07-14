@@ -6,7 +6,7 @@ import {
   fetchCalendarGoogleEvents,
   checkGoogleCalendarStatus,
 } from "@/app/actions/calendar-queries";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CALENDAR_STATUS_ORDER, getCalendarStatusLabel } from "@/lib/utils/calendar-utils";
 import type { CalendarViewMode } from "@/types/calendar.types";
@@ -108,12 +108,17 @@ export function useCalendarData() {
     },
   );
 
-  useRealtime("schedules", {
+  useRealtimeSignal("schedules", {
     cacheKeys: [cacheKeys.calendar(month, year, viewMode)],
     debounceMs: 750,
   });
 
-  useRealtime("google_sync_queue", {
+  useRealtimeSignal("work_tasks", {
+    cacheKeys: [cacheKeys.calendar(month, year, viewMode)],
+    debounceMs: 750,
+  });
+
+  useRealtimeSignal("google_sync_queue", {
     cacheKeys: [cacheKeys.calendarGoogle(month, year)],
     debounceMs: 750,
   });

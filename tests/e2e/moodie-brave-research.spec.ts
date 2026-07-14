@@ -13,11 +13,13 @@ test("Moodie text uses Brave for current external facts and exposes citations", 
   await page.goto(loginUrl, { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/moodie/);
 
+  await expect(page.locator("#splash-screen")).toBeHidden({ timeout: 30_000 });
   await page.locator('button[aria-label="Tạo chat mới"]:visible').click();
   const composer = page.locator('textarea[placeholder="Tôi có thể giúp gì cho bạn hôm nay?"]:visible');
   await expect(composer).toBeVisible();
   await composer.fill("Hãy dùng Brave Search tìm 3 tin mới nhất về OpenAI và trả lời kèm nguồn.");
-  await composer.press("Enter");
+  await page.getByRole("button", { name: "Gửi tin nhắn cho Moodie" }).click();
+  await expect(composer).toHaveValue("");
 
   const sourceSummary = page.getByText(/Xem \d+ nguồn tham chiếu|Đã tra \d+ nguồn/).first();
   await expect(sourceSummary).toBeVisible({ timeout: 120_000 });

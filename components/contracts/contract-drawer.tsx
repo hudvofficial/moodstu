@@ -24,6 +24,7 @@ import type { ContractStatus, ContractEvent, ContractChecklist, WorkTask, Paymen
 import { DrawerContent, type DrawerEvent, type DrawerChecklist, type DrawerWorkTask } from "./drawer-tab-content";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
+import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 import { useQueryClient } from "@tanstack/react-query";
 import { prefetchContractDetail, useContractDrawerExtra, contractKeys, updateContractListChecklistCache } from "@/lib/hooks/use-contract-queries";
 import type { RealtimePayload } from "@/hooks/use-realtime-multi";
@@ -117,13 +118,12 @@ export function ContractDrawer({
 
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(() => {
     if (!contractId || !isOpen) return [];
-    const filter = `contract_id=eq.${contractId}`;
     return [
-      { table: "contract_notes", filter },
-      { table: "contract_events", filter },
-      { table: "contract_checklists", filter, eventTypes: ["INSERT", "UPDATE", "DELETE"] },
-      { table: "work_tasks", filter },
-      { table: "payment_plans", filter },
+      realtimeSignalConfig("contract_notes"),
+      realtimeSignalConfig("contract_events"),
+      realtimeSignalConfig("contract_checklists"),
+      realtimeSignalConfig("work_tasks"),
+      realtimeSignalConfig("payment_plans"),
     ];
   }, [contractId, isOpen]);
 

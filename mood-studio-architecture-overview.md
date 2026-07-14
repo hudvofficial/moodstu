@@ -4,7 +4,22 @@
 
 Tài liệu này tổng hợp bức tranh kiến trúc tổng quan của ứng dụng `mood-studio` dựa trên đợt audit cấu trúc và các file cấu hình/lõi đã được kiểm tra. Mục tiêu là tạo một “bản đồ dự án cố định” để những thay đổi tiếp theo có thể bám đúng context, tránh sửa sai lớp hoặc bỏ sót ràng buộc hệ thống.
 
-> Phạm vi hiện tại là **architecture overview** ở mức hệ thống và module. Đây **chưa phải deep audit từng feature** hoặc review toàn bộ business logic.
+> Phạm vi hiện tại là **architecture overview** ở mức hệ thống và module. Phần “Trạng thái đã xác minh” dưới đây phản ánh code, migration và runtime gate ngày **14/07/2026**; các nhận định audit cũ ở phần sau chỉ còn giá trị lịch sử nếu mâu thuẫn với phần này.
+
+## Trạng thái kiến trúc đã xác minh — 14/07/2026
+
+Đây là trạng thái thực tế sau khi đối chiếu source, migration, database runtime, unit/integration test, E2E và production build:
+
+- **Realtime dùng signal-only:** publication chỉ phát `public.realtime_signals`; các bảng nghiệp vụ không phát row payload trực tiếp. Client subscribe theo `table_name`, sau đó refetch qua server boundary có kiểm quyền. Migration chuẩn hóa: `20260714040000_realtime_signal_only_hardening.sql`.
+- **Mutation và quyền đặc quyền:** push/cron nội bộ dùng Bearer secret so sánh constant-time và fail-closed; gallery dimension/blurhash có admin guard và network policy chống SSRF, redirect riêng tư, metadata IP, payload quá lớn và sai content type.
+- **Calendar/Google:** thao tác xóa enqueue Google DELETE trước khi xóa local; queue có idempotency key `${schedule_id}:${action}` và upsert retry-safe qua migration `20260714050000_google_sync_queue_idempotency.sql`.
+- **Moodie:** authenticated identity được truyền vào engine; intent routing tách domain nội bộ khỏi web/news/local research; Brave Search chỉ mở tool phù hợp; `browse_page` chỉ được expose khi prompt có URL công khai rõ ràng. Workflow nội bộ có thể ưu tiên studio/finance ngay cả khi câu hỏi chứa “hiện tại”. Các bước cần tool/research buffer text đến final để tránh reset/chớp nhiều lần.
+- **Moodie memory:** explicit memory được commit trước, embedding chỉ là enrichment best-effort; UI hỗ trợ xem, sửa, archive, đề xuất/duyệt và đồng bộ giữa tab.
+- **PWA/cache:** không còn custom `Cache-Control` cho `/_next/static`; các Workbox rule REST/Storage bao trùm đã bị loại để `NetworkOnly`/RPC policy không bị shadow theo first-match routing.
+- **App Shell:** route mode được phân loại bằng helper thuần có unit test thay vì regex rải trong component.
+- **Finance reports:** `finance_ledger_range` đã được sửa strict return types và giới hạn paging qua migration `20260714060000_finance_ledger_range_return_types.sql`.
+
+Các gate đã dùng để xác minh gồm UTF-8/mojibake, privileged entrypoints, realtime client/publication/signals, PWA cache policy, Calendar, Contracts, Dashboard, Inventory, Dresses, Printing, Reports, Productivity, Services, Settings, Employees, Moodie runtime, toàn bộ unit suite, integration suite mục tiêu, E2E Moodie activity/memory/Brave và Settings realtime CRUD.
 
 ---
 

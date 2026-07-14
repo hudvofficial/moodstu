@@ -159,8 +159,6 @@ export async function createPendingMoodieMemory(params: {
   if (existing.error) return false;
   const previous = existing.data?.[0];
   if (previous?.content === params.candidate.content) return false;
-  const embedding = await embedMemoryText(`${params.candidate.subject || "user"} ${params.candidate.predicate || `memory.${params.candidate.memoryType}`} ${params.candidate.content}`);
-
   const confirmedAt = new Date();
   const lifecycle = moodieMemoryReviewPolicy(params.candidate.memoryType, confirmedAt);
   const { data: inserted, error } = await params.supabase.from("moodie_memories").insert({
@@ -182,13 +180,25 @@ export async function createPendingMoodieMemory(params: {
     last_confirmed_at: params.candidate.autoActivate ? confirmedAt.toISOString() : null,
     reconfirmation_interval_days: lifecycle.reconfirmationIntervalDays,
     review_after: params.candidate.autoActivate ? lifecycle.reviewAfter : null,
-    embedding: embedding?.vector || null,
-    embedding_model: embedding?.model || null,
-    embedding_updated_at: embedding ? new Date().toISOString() : null,
   }).select("id").single();
   if (error || !inserted) return false;
-  if (previous) {
-    await Promise.all([
+
+  // Durability comes first: explicit memory must exist even when the embedding
+  // provider is slow or unavailable. Semantic enrichment is best-effort after
+  // the authoritative row has been committed.
+  const embeddingUpdate = embedMemoryText(
+    `${params.candidate.subject || "user"} ${params.candidate.predicate || `memory.${params.candidate.memoryType}`} ${params.candidate.content}`,
+  ).then((embedding) => {
+    if (!embedding) return;
+    return params.supabase.from("moodie_memories").update({
+      embedding: embedding.vector,
+      embedding_model: embedding.model,
+      embedding_updated_at: new Date().toISOString(),
+    }).eq("id", inserted.id);
+  }).catch(() => undefined);
+
+  const supersessionUpdate = previous
+    ? Promise.all([
       params.supabase.from("moodie_memories").update({ status: "archived" }).eq("id", previous.id),
       (params.supabase as unknown as SupabaseClient).from("moodie_memory_relations").insert({
         user_id: params.userId,
@@ -197,7 +207,9 @@ export async function createPendingMoodieMemory(params: {
         relation_type: "supersedes",
         confidence: params.candidate.confidence,
       }),
-    ]);
-  }
+      ]).then(() => undefined)
+    : Promise.resolve();
+
+  await Promise.all([embeddingUpdate, supersessionUpdate]);
   return true;
 }

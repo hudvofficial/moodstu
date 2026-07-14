@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 
 // Chuông báo "màn hình cũ rồi" cho Finance (2 admin cùng thao tác):
 // nhận event → router.refresh() → trang RSC (force-dynamic) re-render với số
@@ -26,9 +27,9 @@ export function FinanceRealtimeRefresh() {
 
   useRealtimeMulti(
     [
-      { table: "receipts" },
-      { table: "payments" },
-      { table: "payment_plans" },
+      realtimeSignalConfig("receipts"),
+      realtimeSignalConfig("payments"),
+      realtimeSignalConfig("payment_plans"),
       {
         table: "realtime_signals",
         filter: `table_name=in.(${FINANCE_SIGNAL_TABLES})`,

@@ -7,7 +7,8 @@ import {
   detectFolderType, getDriveThumbnailUrl, getDriveImageUrl, extractFileGroup,
 } from "@/lib/google-drive";
 import { generateAccessUrl } from "@/types/gallery";
-import { backfillGalleryDimensions } from "./gallery-dimensions-actions";
+import { backfillGalleryDimensionsInternal } from "@/lib/gallery/image-dimensions";
+import { backfillGalleryBlurhashesInternal } from "@/lib/gallery/blurhash";
 
 // ------------------------------------------------------------
 // Gallery Drive Actions - Multi-folder, tracking, delivery
@@ -68,13 +69,11 @@ export async function createMultiFolderGalleries(
       await supabase.from("gallery_images").insert(imageRows);
 
       // Background: backfill dimensions + blurhash in parallel without blocking return.
-      backfillGalleryDimensions(gallery.id).catch(err =>
+      backfillGalleryDimensionsInternal(supabase, gallery.id).catch(err =>
         console.error('Failed to backfill dimensions:', err)
       );
-      import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
-        backfillGalleryBlurhashes(gallery.id).catch(err =>
-          console.error('Failed to backfill blurhash:', err)
-        )
+      backfillGalleryBlurhashesInternal(supabase, gallery.id).catch(err =>
+        console.error('Failed to backfill blurhash:', err)
       );
 
       return { galleryId: gallery.id, folderType, totalImages: driveFiles.length };

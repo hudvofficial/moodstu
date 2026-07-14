@@ -24,6 +24,7 @@ import { FAB } from "@/components/ui/fab";
 import { Button } from "@/components/ui/button";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
+import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 import type { RealtimePayload } from "@/hooks/use-realtime";
 import { ContractsListSkeleton } from "@/components/contracts/contracts-list-skeleton";
 
@@ -207,9 +208,9 @@ const ContractsListInner = memo(function ContractsListInner({
 
   const realtimeConfigs = useMemo<RealtimeMultiConfig[]>(
     () => [
-      { table: "contracts" },
-      { table: "customers" },
-      { table: "contract_checklists", eventTypes: ["UPDATE"] },
+      realtimeSignalConfig("contracts"),
+      realtimeSignalConfig("customers"),
+      realtimeSignalConfig("contract_checklists"),
     ],
     [],
   );

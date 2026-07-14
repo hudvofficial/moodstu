@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { ConnectionStatus, RealtimePayload } from "@/hooks/use-realtime";
+import {
+  normalizeRealtimePayload,
+  type ConnectionStatus,
+  type RealtimePayload,
+} from "@/hooks/use-realtime";
 
 export type { RealtimePayload };
 
@@ -105,7 +109,8 @@ export function useRealtimeMulti(
         })();
       };
 
-      const handler = (payload: RealtimePayload) => {
+      const handler = (rawPayload: RealtimePayload) => {
+        const payload = normalizeRealtimePayload(rawPayload);
         payloadQueueRef.current.push(payload);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(flushPayloads, debounceMs);

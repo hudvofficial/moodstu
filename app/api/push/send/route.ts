@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { fireAuditLog } from "@/lib/audit";
+import { isAuthorizedInternalRequest } from "@/lib/internal-api-auth";
 import webPush from "web-push";
+import { z } from "zod";
 
-interface SendPushPayload {
-  employeeId: string;
-  title: string;
-  body: string;
-  url?: string;
-  tag?: string;
-}
+const sendPushSchema = z.object({
+  employeeId: z.string().uuid(),
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().min(1).max(500),
+  url: z.string().trim().max(500).optional().refine(
+    (value) => !value || (value.startsWith("/") && !value.startsWith("//")),
+    "url must be an internal absolute path",
+  ),
+  tag: z.string().trim().min(1).max(100).optional(),
+});
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -24,29 +30,26 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify this is an internal call (from server actions or cron)
-    const authHeader = request.headers.get("authorization");
     const internalKey = process.env.INTERNAL_API_KEY;
-
-    if (!internalKey || authHeader !== `Bearer ${internalKey}`) {
-      // Also allow from same origin (server components)
-      const origin = request.headers.get("origin");
-      const host = request.headers.get("host");
-      if (origin && !origin.includes(host || "")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    if (!internalKey) {
+      return NextResponse.json({ error: "Internal API is not configured" }, { status: 503 });
+    }
+    if (!isAuthorizedInternalRequest(request.headers.get("authorization"), internalKey)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
       return NextResponse.json({ error: "VAPID keys not configured" }, { status: 500 });
     }
 
-    const body = await request.json() as SendPushPayload;
-    const { employeeId, title, body: messageBody, url, tag } = body;
-
-    if (!employeeId || !title) {
-      return NextResponse.json({ error: "employeeId and title required" }, { status: 400 });
+    const parsed = sendPushSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid push payload", issues: parsed.error.issues },
+        { status: 400 },
+      );
     }
+    const { employeeId, title, body: messageBody, url, tag } = parsed.data;
 
     const supabase = await createAdminClient();
 
@@ -103,6 +106,15 @@ export async function POST(request: NextRequest) {
     const sent = results.filter(
       (r) => r.status === "fulfilled" && r.value.success
     ).length;
+
+    void fireAuditLog({
+      action: "CREATE",
+      tableName: "push_notifications",
+      recordId: employeeId,
+      description: `Internal push sent to employee ${employeeId}`,
+      newData: { sent, total: subscriptions.length, url: url || "/", tag: tag || "mood-studio" },
+      source: "system",
+    });
 
     return NextResponse.json({ sent, total: subscriptions.length });
   } catch (error) {

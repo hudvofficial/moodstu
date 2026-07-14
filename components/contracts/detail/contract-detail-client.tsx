@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
+import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 import type { RealtimePayload } from "@/hooks/use-realtime";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, Pencil } from "lucide-react";
@@ -498,14 +499,14 @@ export default function ContractDetailClient({
       //   ❌ dress_reservations, printing_orders: use stale-while-revalidate
       //   ❌ contract_checklists, contract_notes: refresh on tab switch
       return [
-        { table: "contracts", filter: `id=eq.${id}` },
-        { table: "customers", filter: contract?.customers?.id ? `id=eq.${contract.customers.id}` : "" },
-        { table: "contract_events", filter: `contract_id=eq.${id}` },
-        { table: "work_tasks", filter: `contract_id=eq.${id}` },
-        { table: "payments", filter: `contract_id=eq.${id}` },
+        realtimeSignalConfig("contracts"),
+        realtimeSignalConfig("customers"),
+        realtimeSignalConfig("contract_events"),
+        realtimeSignalConfig("work_tasks"),
+        realtimeSignalConfig("payments"),
       ];
     },
-    [id, contract?.customers?.id, enableRealtime],
+    [enableRealtime],
   );
 
   useRealtimeMulti(detailRealtimeConfigs, {

@@ -127,7 +127,10 @@ async function runMoodieModelEngine(params: {
 }): Promise<EngineResult | null> {
   throwIfMoodieAborted(params.signal);
   const earlyResearchIntent = classifyMoodieResearchIntent(params.prompt);
-  const workflowPlan = earlyResearchIntent.required ? null : planMoodieWorkflow({ prompt: params.prompt, role: params.role });
+  const workflowCandidate = planMoodieWorkflow({ prompt: params.prompt, role: params.role });
+  const workflowPlan = earlyResearchIntent.requested || earlyResearchIntent.mode === "local"
+    ? null
+    : workflowCandidate;
   if (workflowPlan) {
     const workflowIntent = workflowPlan.skillId === "financial_health_review" ? "finance" : workflowPlan.skillId === "studio_daily_brief" ? "crm_calendar_ops" : "contracts";
     const workflowAgentId = workflowIntent === "finance" ? "finance_analyst" : "operations_assistant";
@@ -268,13 +271,19 @@ async function runMoodieModelEngine(params: {
       throwIfMoodieAborted(params.signal);
       traceState.trace.model_steps = step + 1;
       let streamedThisStep = false;
+      let bufferedText = "";
       params.emit?.({ type: "generation.started", label: step === 0 ? "Đang soạn câu trả lời" : "Đang hoàn thiện câu trả lời" });
       const toolChoice = step === 0 && executionPlan.shouldForceTool ? "required" as const : "auto" as const;
+      const bufferUntilFinal = executionPlan.shouldForceTool
+        || route.research.required
+        || route.orchestration.mode === "background_run"
+        || toolUsedInTurn;
       const modelResult = provider.chatStream
         ? await provider.chatStream(messages, toolDefinitions, (delta) => {
             throwIfMoodieAborted(params.signal);
             streamedThisStep = true;
-            params.emit?.({ type: "text.delta", delta });
+            if (bufferUntilFinal) bufferedText += delta;
+            else params.emit?.({ type: "text.delta", delta });
           }, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined })
         : await provider.chat(messages, toolDefinitions, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined });
       throwIfMoodieAborted(params.signal);
@@ -313,15 +322,17 @@ async function runMoodieModelEngine(params: {
       if (!verification.ok) {
         correctionCount += 1;
         traceState.trace.verifier_corrections = correctionCount;
-        if (streamedThisStep) params.emit?.({ type: "text.reset" });
+        if (streamedThisStep && !bufferUntilFinal) params.emit?.({ type: "text.reset" });
         messages.push(assistantMessage);
         messages.push({ role: "system", content: verification.correctiveInstruction });
         continue;
       }
 
         const finalContent = verification.replacementContent || content;
-        if (verification.replacementContent && streamedThisStep) params.emit?.({ type: "text.reset" });
-        if (!streamedThisStep || verification.replacementContent) params.emit?.({ type: "text.delta", delta: finalContent });
+        if (verification.replacementContent && streamedThisStep && !bufferUntilFinal) params.emit?.({ type: "text.reset" });
+        if (!streamedThisStep || verification.replacementContent || bufferUntilFinal) {
+          params.emit?.({ type: "text.delta", delta: finalContent || bufferedText });
+        }
         return {
         content: finalContent,
         metadata: attachMoodieTrace({
@@ -346,7 +357,7 @@ async function runMoodieModelEngine(params: {
         };
       }
 
-      if (streamedThisStep) params.emit?.({ type: "text.reset" });
+      if (streamedThisStep && !bufferUntilFinal) params.emit?.({ type: "text.reset" });
       messages.push(assistantMessage);
 
       for (const toolCall of toolCalls) {

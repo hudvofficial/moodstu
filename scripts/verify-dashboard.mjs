@@ -134,10 +134,10 @@ if (!page.includes('export const dynamic = "force-dynamic"')) {
 if (!page.includes("<DashboardRealtimeRefresh")) {
   fail("dashboard page is missing dashboard realtime refresh bridge");
 }
-if (!dashboardRealtime.includes('"payments"') || !dashboardRealtime.includes('"receipts"')) {
+if (!dashboardRealtime.includes("payments:") || !dashboardRealtime.includes("receipts:")) {
   fail("dashboard realtime bridge is missing finance source refresh");
 }
-if (!dashboardRealtime.includes('"payment_plans"')) {
+if (!dashboardRealtime.includes("payment_plans:")) {
   fail("dashboard realtime bridge is missing payment_plans refresh");
 }
 if (!dashboardRealtime.includes("invalidateDashboardCache")) {
@@ -185,8 +185,9 @@ if (page.includes("DashboardWarmup")) {
 if (
   !dashboardRealtime.includes('supabase.channel("dashboard-realtime")') ||
   dashboardRealtime.includes("useRealtime(") ||
+  !dashboardRealtime.includes('table: "realtime_signals"') ||
   !dashboardCacheAction.includes("changedTables") ||
-  !dashboardCacheAction.includes("DASHBOARD_CRITICAL_TABLES")
+  !dashboardCacheAction.includes("TABLE_TO_TAGS")
 ) {
   fail("dashboard realtime/cache budget is missing single-channel refresh or scoped invalidation");
 }

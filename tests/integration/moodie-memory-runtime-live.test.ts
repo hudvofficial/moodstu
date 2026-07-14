@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, jest as vi } from "@jest/globals";
 
 vi.mock("server-only", () => ({}));
 config({ path: ".env.local", quiet: true });

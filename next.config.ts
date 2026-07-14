@@ -76,18 +76,6 @@ const nextConfig: NextConfig = {
               },
             ],
           },
-          {
-            // Static assets (JS, CSS) — cache 1 năm (hashed = immutable).
-            // Dev mode tắt: chunk hash đổi mỗi rebuild, browser pin chunk cũ
-            // sẽ gây lỗi "module factory is not available" khi HMR.
-            source: "/_next/static/:path*",
-            headers: [
-              {
-                key: "Cache-Control",
-                value: "public, max-age=31536000, immutable",
-              },
-            ],
-          },
         ];
 
     return [
@@ -240,28 +228,6 @@ const withPWA = withPWAInit({
     disableDevLogs: true,
     importScripts: ["/push-sw.js"],
     runtimeCaching: [
-      // 🟢 D4: Supabase REST API — NetworkFirst 3s timeout, cache 10 phút
-      {
-        urlPattern: /\/rest\/v1\/.*/,
-        handler: "NetworkFirst",
-        options: {
-          cacheName: "supabase-api",
-          networkTimeoutSeconds: 3,
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 10 * 60,
-          },
-        },
-      },
-      // 🟢 D4: Supabase Storage — CacheFirst 24h
-      {
-        urlPattern: /\/storage\/v1\/.*/,
-        handler: "CacheFirst",
-        options: {
-          cacheName: "supabase-storage",
-          expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-        },
-      },
       // 🔴 RULE 1: Supabase Auth — NEVER CACHE (V1 audit finding)
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/.*/i,

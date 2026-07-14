@@ -1,6 +1,15 @@
 "use client";
 
 import { useRealtime, type RealtimeOptions } from "@/hooks/use-realtime";
+import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
+
+export function realtimeSignalConfig(sourceTable: string): RealtimeMultiConfig {
+  return {
+    table: "realtime_signals",
+    filter: `table_name=eq.${sourceTable}`,
+    eventTypes: ["INSERT"],
+  };
+}
 
 /**
  * 📡 useRealtimeSignal — nhận tín hiệu đổi-dữ-liệu qua bảng `realtime_signals`

@@ -15,7 +15,7 @@ import { fetchRentalHistory } from "@/app/actions/dress-queries";
 import { RENTAL_HISTORY_PAGE_SIZE, RESERVATION_STATUS_MAP } from "@/types/dress-constants";
 import type { RentalHistoryFilters, RentalHistoryRow } from "@/types/dress";
 import { cacheKeys, revalidateByPrefixes } from "@/lib/swr";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/ux-states";
@@ -129,7 +129,7 @@ export default function RentalHistoryClient() {
   const filters: RentalHistoryFilters = { status, item_id: itemId, page };
 
   // 📡 Realtime — auto-refresh on reservation changes
-  useRealtime("dress_reservations", {
+  useRealtimeSignal("dress_reservations", {
     onChange: () => {
       void revalidateByPrefixes(cacheKeys.dressRentals());
     },

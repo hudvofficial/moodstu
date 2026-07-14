@@ -14,6 +14,24 @@ export type ConnectionStatus =
 
 export type RealtimePayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
 
+export function normalizeRealtimePayload(payload: RealtimePayload): RealtimePayload {
+  if (payload.table !== "realtime_signals") return payload;
+
+  const signal = payload.new as Record<string, unknown>;
+  const sourceTable = typeof signal.table_name === "string"
+    ? signal.table_name
+    : "realtime_signals";
+  const sourceEvent = typeof signal.op === "string"
+    ? signal.op
+    : payload.eventType;
+
+  return {
+    ...payload,
+    table: sourceTable,
+    eventType: sourceEvent as RealtimePayload["eventType"],
+  };
+}
+
 export type RealtimeOptions = {
   /** Exact SWR cache keys to revalidate. Prefer keys/prefixes over route refresh. */
   cacheKeys?: string[] | ((payload: RealtimePayload) => string[] | undefined);
@@ -110,7 +128,8 @@ export function useRealtime(
 
       channel = supabase.channel(channelName);
 
-      const handler = (payload: RealtimePayload) => {
+      const handler = (rawPayload: RealtimePayload) => {
+        const payload = normalizeRealtimePayload(rawPayload);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
           const currentKeys = cacheKeysRef.current;

@@ -18,7 +18,8 @@ import {
 } from "@/types/gallery";
 
 import { GallerySettingsPayload, createGalleryShareProfiler, assertGalleryProof, fetchGalleryCoverImage, fetchAllGalleryImages, ensureAllGalleryShareLinks, prepareGallerySharePayload } from "./gallery-core";
-import { backfillGalleryDimensions } from "./gallery-dimensions-actions";
+import { backfillGalleryDimensionsInternal } from "@/lib/gallery/image-dimensions";
+import { backfillGalleryBlurhashesInternal } from "@/lib/gallery/blurhash";
 import { fetchSharedGalleryByAccessUrl } from "./gallery-actions";
 
 export async function createGallery(
@@ -105,13 +106,11 @@ export async function createGallery(
     }
 
     // Background: backfill dimensions + blurhash for newly-created gallery images.
-    backfillGalleryDimensions(gallery.id).catch(err =>
+    backfillGalleryDimensionsInternal(supabase, gallery.id).catch(err =>
       console.error("Failed to backfill dimensions:", err)
     );
-    import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
-      backfillGalleryBlurhashes(gallery.id).catch(err =>
-        console.error("Failed to backfill blurhash:", err)
-      )
+    backfillGalleryBlurhashesInternal(supabase, gallery.id).catch(err =>
+      console.error("Failed to backfill blurhash:", err)
     );
 
     revalidatePath(`/contracts/${contractId}`);
@@ -363,13 +362,11 @@ export async function syncDriveFolder(galleryId: string) {
 
       // Background: backfill dimensions + blurhash for new images
       if (newRows.length > 0) {
-        backfillGalleryDimensions(galleryId).catch(err =>
+        backfillGalleryDimensionsInternal(supabase, galleryId).catch(err =>
           console.error('Failed to backfill dimensions:', err)
         );
-        import("./blurhash-actions").then(({ backfillGalleryBlurhashes }) =>
-          backfillGalleryBlurhashes(galleryId).catch(err =>
-            console.error('Failed to backfill blurhash:', err)
-          )
+        backfillGalleryBlurhashesInternal(supabase, galleryId).catch(err =>
+          console.error('Failed to backfill blurhash:', err)
         );
       }
     }

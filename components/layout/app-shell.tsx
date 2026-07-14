@@ -15,6 +15,7 @@ import { ScrollContainerProvider } from "@/contexts/scroll-container";
 import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 import { MobileNavigationProvider } from "@/contexts/mobile-navigation-context";
 import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
+import { getAppShellRouteMode } from "@/lib/app-shell-route-mode";
 
 const NavigationWarmup = dynamic(
   () => import("./navigation-warmup").then((mod) => mod.NavigationWarmup),
@@ -27,33 +28,17 @@ const NavigationProgress = dynamic(
 );
 
 // Routes that hide BOTH Header + BottomNav (currently unused)
-const FULLPAGE_PATTERNS: RegExp[] = [
-  /\/print(\/.*)?$/, // Hide app frame layout for active printing previews, tolerating trailing slashes or sub-paths
-];
+// Route classification lives in lib/app-shell-route-mode.ts so it can be tested without rendering the shell.
 
 // Routes that use absolute viewports (ban scrolling)
-const APP_VIEW_PATTERNS = [
-  /^\/calendar(\/.*)?$/,
-];
 
 // Routes that keep Header but lock the page viewport like a workspace
-const CHAT_VIEW_PATTERNS = [
-  /^\/moodie(\/.*)?$/,
-];
 
 // Routes that keep Header (via HeaderSlotsContext) but hide BottomNav
 // (form pages have their own fixed footer: Hủy / Lưu nháp / Tạo HĐ)
-const FORM_PAGE_PATTERNS = [
-  /^\/contracts\/create$/,
-  /^\/contracts\/[^/]+\/edit$/,
-  /^\/services\/[^/]+\/quote$/,
-];
 
 // Routes that keep Header + BottomNav but remove main padding
 // (e.g. gallery page needs sticky header flush to top)
-const GALLERY_VIEW_PATTERNS = [
-  /\/contracts\/[^/]+\/gallery/,
-];
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -68,12 +53,12 @@ export function AppShell({ children, role, userName }: AppShellProps) {
   const isTabletChrome = operationalTier === "tablet";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
-  // Fullpage mode: hide Header + BottomNav, form handles its own chrome
-  const isFullpage = FULLPAGE_PATTERNS.some(p => p.test(pathname));
-  const isAppView = APP_VIEW_PATTERNS.some(p => p.test(pathname));
-  const isChatView = CHAT_VIEW_PATTERNS.some(p => p.test(pathname));
-  const isFormPage = FORM_PAGE_PATTERNS.some(p => p.test(pathname));
-  const isGalleryView = GALLERY_VIEW_PATTERNS.some(p => p.test(pathname));
+  const routeMode = getAppShellRouteMode(pathname);
+  const isFullpage = routeMode === "fullpage";
+  const isAppView = routeMode === "app";
+  const isChatView = routeMode === "chat";
+  const isFormPage = routeMode === "form";
+  const isGalleryView = routeMode === "gallery";
 
   // Ref to the main scroll container — shared via context
   const mainRef = React.useRef<HTMLElement>(null);

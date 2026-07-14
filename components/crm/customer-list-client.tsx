@@ -9,7 +9,7 @@ import { cacheKeys, mutateListCache, revalidateByPrefixes, useSWR } from "@/lib/
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
@@ -98,11 +98,11 @@ export default function CustomerListClient({
     { fallbackData: stats },
   );
 
-  useRealtime("customers", {
+  useRealtimeSignal("customers", {
     prefixes: cacheKeys.customers(),
     debounceMs: 600,
   });
-  useRealtime("contracts", {
+  useRealtimeSignal("contracts", {
     prefixes: cacheKeys.customers(),
     debounceMs: 600,
   });

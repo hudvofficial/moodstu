@@ -41,10 +41,6 @@ export default function LoginPageClient() {
     window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   }, []);
 
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
-
   // 2. Login handler
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

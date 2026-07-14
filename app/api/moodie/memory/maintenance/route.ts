@@ -1,10 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { consolidateNextMoodieEpisodicBatch } from "@/lib/moodie/memory-consolidator";
 import { reflectNextMoodieObservationBatch } from "@/lib/moodie/observation-store";
+import { isAuthorizedInternalRequest } from "@/lib/internal-api-auth";
 
 function authorized(request: Request) {
   const expected = process.env.CRON_SECRET || process.env.INTERNAL_API_KEY;
-  return Boolean(expected) && request.headers.get("authorization") === `Bearer ${expected}`;
+  return isAuthorizedInternalRequest(request.headers.get("authorization"), expected);
 }
 
 export async function POST(request: Request) {

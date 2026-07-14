@@ -110,7 +110,18 @@ async function enqueueGoogleSync(
   supabase: SupabaseClient,
   entry: GoogleSyncQueueEntry,
 ) {
-  const { error } = await supabase.from("google_sync_queue").insert(entry);
+  const idempotencyKey = entry.schedule_id
+    ? `${entry.schedule_id}:${entry.action}`
+    : null;
+  const { error } = await supabase.from("google_sync_queue").upsert({
+    ...entry,
+    idempotency_key: idempotencyKey,
+    status: "pending",
+    attempts: 0,
+    updated_at: new Date().toISOString(),
+  }, {
+    onConflict: "idempotency_key",
+  });
   if (!error) return undefined;
 
   console.error("[calendar] google_sync_queue insert failed:", error);
@@ -350,24 +361,24 @@ export async function deleteCalendarEvent(
     const oldRecord = await requireCalendarScheduleEditable(supabase, access, validEventId);
     let warningMsg: string | undefined;
 
+    if (oldRecord.google_event_id) {
+      warningMsg = await enqueueGoogleSync(supabase, {
+        schedule_id: validEventId,
+        google_event_id: oldRecord.google_event_id,
+        action: "DELETE",
+        payload: {},
+      });
+      if (warningMsg) {
+        throw new Error(`Google Sync delete blocked local delete: ${warningMsg}`);
+      }
+    }
+
     const { error } = await supabase
       .from("schedules")
       .delete()
       .eq("id", validEventId);
 
     if (error) throw new Error(`Xóa sự kiện thất bại: ${error.message}`);
-
-    if (oldRecord.google_event_id) {
-      warningMsg = await enqueueGoogleSync(supabase, {
-        schedule_id: validEventId,
-        google_event_id: oldRecord.google_event_id,
-        action: "DELETE",
-        payload: {}
-      });
-      if (warningMsg) {
-        console.error(`Calendar deleted locally, but Google Sync warning: ${warningMsg}`);
-      }
-    }
 
     revalidateCalendar();
     return { success: true, warning: warningMsg };

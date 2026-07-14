@@ -10,7 +10,7 @@ import { moveLeadToStage } from "@/app/actions/lead-lifecycle";
 import type { CrmLead, LeadStats, LeadStatus } from "@/types/crm";
 import { cacheKeys, revalidateByPrefixes, useSWR } from "@/lib/swr";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtimeSignal } from "@/hooks/use-realtime-signal";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/ux-states";
 import { FAB } from "@/components/ui/fab";
@@ -176,7 +176,7 @@ export default function LeadListPage({
     [leads, statusOverrides],
   );
 
-  useRealtime("crm_leads", {
+  useRealtimeSignal("crm_leads", {
     prefixes: cacheKeys.leads(),
     debounceMs: 600,
   });

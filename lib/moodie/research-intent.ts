@@ -45,7 +45,10 @@ const STABLE_ONLY = [
 ];
 
 function includesAny(text: string, values: string[]) {
-  return values.some((value) => text.includes(value));
+  return values.some((value) => {
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|\\s)${escaped}(?=$|\\s)`).test(text);
+  });
 }
 
 export function classifyMoodieResearchIntent(prompt: string): MoodieResearchIntent {
@@ -54,9 +57,10 @@ export function classifyMoodieResearchIntent(prompt: string): MoodieResearchInte
   const local = includesAny(text, LOCAL_SIGNALS);
   const current = includesAny(text, CURRENT_SIGNALS);
   const stableOnly = includesAny(text, STABLE_ONLY) && !current && !explicit;
+  const news = /^tin(?:\s|$)/.test(text) || includesAny(text, NEWS_SIGNALS);
   const mode: MoodieResearchMode = local
     ? "local"
-    : includesAny(text, NEWS_SIGNALS)
+    : news
       ? "news"
       : "web";
 
