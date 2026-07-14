@@ -32,16 +32,75 @@ function MilestoneIcon({ milestone }: { milestone: ContractMilestone }) {
 }
 
 function compactSummary(milestones: ContractMilestone[]) {
-  const missing = milestones.filter((item) => !item.date && item.status !== "hoan_thanh" && item.status !== "da_huy").length;
-  if (missing > 0) return { label: "Thiếu", count: missing, className: "bg-error/10 text-error", icon: AlertTriangle };
+  const active = milestones.filter((item) => item.status !== "da_huy");
+  const completed = active.filter((item) => item.status === "hoan_thanh").length;
+  const total = active.length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const pending = active.filter((item) => item.status !== "hoan_thanh");
+  const missing = pending.filter((item) => !item.date).length;
+  const overdue = pending.filter((item) => item.date && dayDistance(item.date) < 0).length;
+  const next = pending
+    .filter((item) => item.date && dayDistance(item.date) >= 0)
+    .sort((left, right) => Date.parse(left.date || "") - Date.parse(right.date || ""))[0];
 
-  const active = milestones.filter((item) => item.status !== "hoan_thanh" && item.status !== "da_huy");
-  if (active.length === 0) return { label: "Đã xong", count: 0, className: "bg-success/10 text-success", icon: CheckCircle2 };
-
-  const overdue = active.filter((item) => item.date && dayDistance(item.date) < 0).length;
-  if (overdue > 0) return { label: "Quá hạn", count: overdue, className: "bg-error/10 text-error", icon: AlertTriangle };
-
-  return { label: "Sắp tới", count: active.length, className: "bg-warning/10 text-warning", icon: Clock3 };
+  if (total === 0) {
+    return {
+      completed: 0,
+      total: 0,
+      pct: 0,
+      label: "Chưa có sự kiện",
+      barClassName: "bg-text-muted",
+      textClassName: "text-text-muted",
+      cardClassName: "bg-bg-hover opacity-60",
+      icon: Clock3,
+    };
+  }
+  if (completed === total) {
+    return {
+      completed,
+      total,
+      pct,
+      label: "Hoàn tất",
+      barClassName: "bg-success",
+      textClassName: "text-success",
+      cardClassName: "bg-success/10",
+      icon: CheckCircle2,
+    };
+  }
+  if (missing > 0) {
+    return {
+      completed,
+      total,
+      pct,
+      label: `Thiếu ngày${missing > 1 ? ` ${missing}` : ""}`,
+      barClassName: "bg-error",
+      textClassName: "text-error",
+      cardClassName: "bg-error/10",
+      icon: AlertTriangle,
+    };
+  }
+  if (overdue > 0) {
+    return {
+      completed,
+      total,
+      pct,
+      label: `Quá hạn${overdue > 1 ? ` ${overdue}` : ""}`,
+      barClassName: "bg-error",
+      textClassName: "text-error",
+      cardClassName: "bg-error/10",
+      icon: AlertTriangle,
+    };
+  }
+  return {
+    completed,
+    total,
+    pct,
+    label: next ? `→ ${next.label}` : "Chờ cập nhật",
+    barClassName: "bg-warning",
+    textClassName: "text-warning",
+    cardClassName: "bg-bg-hover shadow-xs",
+    icon: Clock3,
+  };
 }
 
 function MilestoneRows({ milestones }: { milestones: ContractMilestone[] }) {
@@ -84,7 +143,7 @@ export function ContractMilestones({
     setIsOpen(true);
   }, []);
 
-  if (milestones.length === 0) return <span className="text-sm text-text-muted">—</span>;
+  if (milestones.length === 0 && !compact) return <span className="text-sm text-text-muted">—</span>;
 
   const visible = milestones.slice(0, limit);
   const hiddenCount = Math.max(0, milestones.length - visible.length);
@@ -100,16 +159,30 @@ export function ContractMilestones({
         onMouseLeave={() => setIsOpen(false)}
         onFocus={open}
         onBlur={() => setIsOpen(false)}
-        className={`relative inline-block outline-none ${className}`}
-        aria-label={`${summary.label}${summary.count ? ` ${summary.count}` : ""} mốc sự kiện`}
+        className={`relative inline-block w-full outline-none ${className}`}
+        aria-label={`${summary.completed}/${summary.total} mốc sự kiện, ${summary.label}`}
       >
-        <div className={`inline-flex cursor-help items-center gap-1 rounded-md px-2 py-1 text-tiny font-bold uppercase tracking-tight ${summary.className}`}>
-          <SummaryIcon className="size-3" />
-          <span>{summary.label}</span>
-          {summary.count > 0 ? <span className="rounded bg-white/30 px-1 py-0.5">{summary.count}</span> : null}
-          <ChevronDown className="size-3 opacity-40" />
+        <div className={`flex min-w-30 cursor-help flex-col gap-1 rounded-md px-2 py-1.5 transition-all ${summary.cardClassName}`}>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border/30">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${summary.barClassName}`}
+                style={{ width: `${summary.pct}%` }}
+              />
+            </div>
+            <span className={`shrink-0 text-xs font-bold ${summary.textClassName}`}>
+              {summary.total > 0 ? `${summary.completed}/${summary.total}` : "—"}
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center justify-between gap-1">
+            <span className={`flex min-w-0 items-center gap-1 truncate text-tiny font-medium ${summary.textClassName}`}>
+              <SummaryIcon className="size-3 shrink-0" />
+              <span className="truncate">{summary.label}</span>
+            </span>
+            <ChevronDown className={`size-3 shrink-0 opacity-40 ${summary.textClassName}`} />
+          </div>
         </div>
-        {isOpen ? (
+        {isOpen && milestones.length > 0 ? (
           <div className={`absolute left-1/2 z-50 w-72 -translate-x-1/2 rounded-lg bg-bg-card p-3 text-left shadow-xl ${flipUp ? "bottom-full mb-2" : "top-full mt-2"}`}>
             <div className="mb-2 text-tiny font-black uppercase tracking-widest text-primary/60">Mốc sự kiện</div>
             <div className="space-y-2"><MilestoneRows milestones={milestones} /></div>
