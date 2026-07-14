@@ -2,6 +2,7 @@ import type {
   MoodieCapability,
   MoodieConversationDetail,
   MoodieMessagePart,
+  MoodiePageData,
   MoodieConversationScope,
   MoodieConversationSummary,
   MoodieComposerSubmission,
@@ -34,6 +35,9 @@ export interface MoodieWorkspaceSharedProps {
   capabilities: MoodieCapability[];
   suggestions: string[];
   providerReady: boolean;
+  modelOptions: MoodiePageData["models"]["options"];
+  selectedModel: string;
+  onModelChange: (model: string) => void;
   onSelectConversation: (conversationId: string) => void;
   onScopeChange: (value: MoodieConversationScope) => void;
   onSearchChange: (value: string) => void;

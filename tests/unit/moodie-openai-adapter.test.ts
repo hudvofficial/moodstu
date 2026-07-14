@@ -66,4 +66,60 @@ describe("OpenAIAdapter", () => {
     expect(result).toEqual({ ok: false, error: "API key required for remote API access" });
     fetchMock.mockRestore();
   });
+
+  it("uses the NVIDIA base URL without duplicating chat/completions", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
+      JSON.stringify({ choices: [{ message: { role: "assistant", content: "OK" } }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    ));
+    const provider = new OpenAIAdapter({
+      providerId: "openai_compatible",
+      baseUrl: "https://integrate.api.nvidia.com/v1/",
+      apiKey: "test-key",
+      model: "minimaxai/minimax-m3",
+    });
+
+    await provider.chat([{ role: "user", content: "ping" }], []);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://integrate.api.nvidia.com/v1/chat/completions",
+      expect.objectContaining({ method: "POST" }),
+    );
+    fetchMock.mockRestore();
+  });
+
+  it("does not call the embedding endpoint when semantic embedding is disabled", async () => {
+    const fetchMock = jest.spyOn(global, "fetch");
+    const provider = new OpenAIAdapter({
+      providerId: "openai_compatible",
+      baseUrl: "https://integrate.api.nvidia.com/v1",
+      model: "minimaxai/minimax-m3",
+      embeddingEnabled: false,
+    });
+
+    const result = await provider.embed("studio memory");
+
+    expect(result).toEqual({ ok: false, error: "Semantic embedding is disabled for this provider." });
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
+  });
+
+  it("does not duplicate an accidental Bearer prefix from pasted keys", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
+      JSON.stringify({ choices: [{ message: { role: "assistant", content: "OK" } }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    ));
+    const provider = new OpenAIAdapter({
+      providerId: "openai_compatible",
+      baseUrl: "https://integrate.api.nvidia.com/v1",
+      apiKey: "Bearer nvapi-example",
+      model: "minimaxai/minimax-m3",
+    });
+
+    await provider.chat([{ role: "user", content: "ping" }], []);
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(request.headers).toMatchObject({ Authorization: "Bearer nvapi-example" });
+    fetchMock.mockRestore();
+  });
 });

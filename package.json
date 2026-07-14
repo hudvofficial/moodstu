@@ -22,6 +22,7 @@
     "verify:pwa-cache": "node scripts/verify-pwa-cache-policy.mjs",
     "verify:pwa-artifact": "node scripts/verify-pwa-build-artifact.mjs",
     "verify:moodie-runtime": "node scripts/verify-moodie-runtime-policy.mjs",
+    "verify:moodie-ui": "node scripts/verify-moodie-chat-ui.mjs",
     "verify:payment-stage-key": "node scripts/verify-payment-stage-key.mjs",
     "test:e2e": "playwright test",
     "test:e2e:setup": "playwright test --project=setup",

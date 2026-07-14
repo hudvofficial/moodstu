@@ -5,6 +5,7 @@ export async function sendMoodieStreamingMessage(params: {
   content: string;
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
+  model?: string;
   regenerateFromMessageId?: string;
   editFromMessageId?: string;
   continueFromMessageId?: string;
@@ -24,6 +25,7 @@ export async function sendMoodieStreamingMessage(params: {
       content: params.content,
       attachments: params.attachments || [],
       contexts: params.contexts || [],
+      model: params.model,
       regenerate_from_message_id: params.regenerateFromMessageId,
       edit_from_message_id: params.editFromMessageId,
       continue_from_message_id: params.continueFromMessageId,

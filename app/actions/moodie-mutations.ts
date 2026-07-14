@@ -424,6 +424,7 @@ export async function sendMoodieMessage(
         attachments: turnAttachments,
         contexts: turnContexts,
         responseProfile: parsed.data.response_profile,
+        model: parsed.data.model,
         userContext: {
           id: employee.id,
           fullName: employee.full_name,

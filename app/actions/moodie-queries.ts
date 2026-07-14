@@ -1,7 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getActiveMoodieProvider } from "@/lib/moodie/providers/registry";
+import { getActiveMoodieProvider, getMoodieSelectableModels } from "@/lib/moodie/providers/registry";
 import { withAuthRead, requireMoodieAccess } from "@/lib/auth_utils";
 import { getMoodieCapabilitiesForRole, getMoodieDefaultSuggestions, MOODIE_PROVIDER_LABEL } from "@/lib/moodie/catalog";
 import {
@@ -111,6 +111,11 @@ export async function getMoodiePageData() {
     const { role } = await requireMoodieAccess(supabase, userId);
 
     const providerReadyPromise = getActiveMoodieProvider().then(Boolean).catch(() => false);
+    const modelsPromise = getMoodieSelectableModels().catch(() => ({
+      selected: "",
+      providerLabel: MOODIE_PROVIDER_LABEL,
+      options: [],
+    }));
 
     const baseData = {
       stats: {
@@ -125,6 +130,11 @@ export async function getMoodiePageData() {
       activeConversation: null,
       suggestions: getMoodieDefaultSuggestions(role),
       capabilities: getMoodieCapabilitiesForRole(role),
+      models: {
+        selected: "",
+        providerLabel: MOODIE_PROVIDER_LABEL,
+        options: [],
+      },
     };
 
     const setupFallback = toSetupFallback(baseData);
@@ -169,7 +179,7 @@ export async function getMoodiePageData() {
           )
         : null;
 
-      const providerReady = await providerReadyPromise;
+      const [providerReady, models] = await Promise.all([providerReadyPromise, modelsPromise]);
       const now = Date.now();
       return {
         stats: {
@@ -186,6 +196,7 @@ export async function getMoodiePageData() {
         activeConversation,
         suggestions: getMoodieDefaultSuggestions(role),
         capabilities: getMoodieCapabilitiesForRole(role),
+        models,
         setup: {
           ready: true,
           providerReady,

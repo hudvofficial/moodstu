@@ -93,6 +93,18 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
   const streamStatus = moodieTurn.state.statusLabel;
   const [historyOpen, setHistoryOpen] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(initialData.models.selected);
+
+  useEffect(() => {
+    const savedModel = window.localStorage.getItem("moodie:model:v1");
+    if (savedModel && initialData.models.options.some((option) => option.value === savedModel)) {
+      setSelectedModel(savedModel);
+    }
+  }, [initialData.models.options]);
+
+  useEffect(() => {
+    if (selectedModel) window.localStorage.setItem("moodie:model:v1", selectedModel);
+  }, [selectedModel]);
 
   useMoodieWakePhrase(!voiceMode, () => setVoiceMode(true));
 
@@ -228,6 +240,7 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
         content: submission.content,
         attachments: submission.attachments,
         contexts: submission.contexts,
+        model: submission.model || selectedModel,
         regenerateFromMessageId,
         editFromMessageId,
         continueFromMessageId,
@@ -448,6 +461,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
             providerReady={initialData.setup.providerReady}
+            modelOptions={initialData.models.options}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
             onSelectConversation={(conversationId) => {
               openConversation(conversationId).catch(() => {});
             }}
@@ -496,6 +512,9 @@ export function MoodiePageClient({ initialData }: MoodiePageClientProps) {
             capabilities={initialData.capabilities}
             suggestions={smartSuggestions}
             providerReady={initialData.setup.providerReady}
+            modelOptions={initialData.models.options}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
             historyOpen={historyOpen}
             onHistoryOpenChange={setHistoryOpen}
             onSelectConversation={(conversationId) => {

@@ -122,6 +122,7 @@ async function runMoodieModelEngine(params: {
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
   responseProfile?: "default" | "voice";
+  model?: string;
   emit?: (event: MoodieEngineEvent) => void;
   signal?: AbortSignal;
 }): Promise<EngineResult | null> {
@@ -143,7 +144,7 @@ async function runMoodieModelEngine(params: {
     params.emit?.({ type: "text.delta", delta: workflowResult.content });
     return workflowResult;
   }
-  const provider = await getActiveMoodieProvider();
+  const provider = await getActiveMoodieProvider(params.model);
   if (!provider) return null;
   throwIfMoodieAborted(params.signal);
 
@@ -522,6 +523,7 @@ export async function runMoodieEngine(params: {
   attachments?: MoodieAttachment[];
   contexts?: MoodieComposerContext[];
   responseProfile?: "default" | "voice";
+  model?: string;
   emit?: (event: MoodieEngineEvent) => void;
   signal?: AbortSignal;
 }): Promise<EngineResult> {

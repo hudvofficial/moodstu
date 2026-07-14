@@ -47,6 +47,9 @@ export function MoodieWorkspaceMobile({
   capabilities,
   suggestions,
   providerReady,
+  modelOptions,
+  selectedModel,
+  onModelChange,
   historyOpen,
   onHistoryOpenChange,
   onSelectConversation,
@@ -96,7 +99,7 @@ export function MoodieWorkspaceMobile({
       </header>
 
       <MoodieThread conversation={activeConversation} capabilities={capabilities} suggestions={suggestions} pendingPrompt={pendingPrompt} loading={isSending} requestId={streamRequestId} statusLabel={streamStatus} activities={turnActivities} streamedText={streamedText} streamedParts={streamedParts} onRegenerateMessage={onRegenerateMessage} onEditMessage={onEditMessage} onContinueMessage={onContinueMessage} onDeleteMessage={onDeleteMessage} onQuickPrompt={onQuickPrompt} />
-      <MoodieComposer disabled={activeConversationLocked} loading={isSending} hasMessages={hasMessages} capabilities={capabilities} draftKey={activeConversationId} suggestionChips={suggestions} onSuggestionClick={onQuickPrompt} onSend={onSendMessage} onStop={onStopGeneration} onOpenVoiceMode={onOpenVoiceMode} />
+      <MoodieComposer disabled={activeConversationLocked} loading={isSending} hasMessages={hasMessages} capabilities={capabilities} draftKey={activeConversationId} suggestionChips={suggestions} modelOptions={modelOptions} selectedModel={selectedModel} onModelChange={onModelChange} onSuggestionClick={onQuickPrompt} onSend={onSendMessage} onStop={onStopGeneration} onOpenVoiceMode={onOpenVoiceMode} />
 
       <Drawer isOpen={historyOpen} onClose={() => onHistoryOpenChange(false)} title="Moodie">
         <div className="space-y-4 pb-6">

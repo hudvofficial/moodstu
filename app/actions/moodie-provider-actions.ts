@@ -7,11 +7,15 @@ import {
   MOODIE_PROVIDER_API_KEY_KEY,
   MOODIE_PROVIDER_BASE_URL_KEY,
   MOODIE_PROVIDER_EMBEDDING_MODEL_KEY,
+  MOODIE_PROVIDER_EMBEDDING_ENABLED_KEY,
   MOODIE_PROVIDER_ID_KEY,
   MOODIE_PROVIDER_LABEL_KEY,
   MOODIE_PROVIDER_MODEL_KEY,
+  MOODIE_PROVIDER_MODELS_KEY,
+  createProvider,
   getActiveMoodieProvider,
   getMoodieProviderDisplayLabel,
+  getMoodieProviderRuntimeConfig,
   getMoodieProviderSnapshot,
 } from "@/lib/moodie/providers/registry";
 import {
@@ -43,6 +47,16 @@ import {
 import { browseMoodiePage } from "@/lib/moodie/browser-page";
 import { encryptSecret } from "@/lib/settings-secrets";
 import {
+  canReuseProviderKey,
+  normalizeProviderApiKey,
+  normalizeProviderBaseUrl,
+  providerNeedsApiKey,
+} from "@/lib/moodie/providers/config-policy";
+import {
+  discoverProviderModels,
+  ProviderModelDiscoveryError,
+} from "@/lib/moodie/providers/model-discovery";
+import {
   DEFAULT_MOODIE_VOICE_STT_MODEL,
   getMoodieVoiceSnapshot,
   MOODIE_VOICE_API_KEY_KEY,
@@ -72,9 +86,20 @@ export interface MoodieProviderFormData {
   preset_id?: string;
   base_url?: string;
   api_key?: string;
+  reuse_existing_key?: boolean;
   model: string;
+  models?: Array<{ value: string; label: string }>;
   embedding_model?: string;
+  embedding_enabled?: boolean;
   label?: string;
+}
+
+export interface MoodieProviderProbeData {
+  provider_id: ProviderId;
+  base_url?: string;
+  api_key?: string;
+  reuse_existing_key?: boolean;
+  model?: string;
 }
 
 export async function getMoodieProviderSettingsAction() {
@@ -111,6 +136,104 @@ export async function testActiveMoodieProvider() {
       provider: provider.label,
       latencyMs: Date.now() - startedAt,
     };
+  });
+}
+
+export async function probeMoodieProviderModels(rawInput: unknown) {
+  return withAdmin(async () => {
+    const data = rawInput as MoodieProviderProbeData;
+    if (!data.provider_id) throw new Error("Thiếu loại provider");
+
+    const baseUrl = normalizeProviderBaseUrl(data.base_url);
+    if (data.provider_id === "openai_compatible" && !baseUrl) {
+      throw new Error("Cần nhập Base URL trước khi kiểm tra key");
+    }
+
+    let apiKey = normalizeProviderApiKey(data.api_key);
+    if (!apiKey && data.reuse_existing_key) {
+      const current = await getMoodieProviderRuntimeConfig();
+      if (!canReuseProviderKey({
+        hasKey: Boolean(current.apiKey),
+        currentProviderId: current.providerId,
+        currentBaseUrl: current.baseUrl,
+        nextProviderId: data.provider_id,
+        nextBaseUrl: baseUrl,
+      })) {
+        throw new Error("Key đã lưu không thuộc provider hoặc Base URL hiện tại");
+      }
+      apiKey = current.apiKey || "";
+    }
+
+    if (providerNeedsApiKey(data.provider_id, baseUrl) && !apiKey) {
+      throw new Error("Cần nhập API key trước khi kiểm tra kết nối");
+    }
+
+    try {
+      const result = await discoverProviderModels({
+        providerId: data.provider_id,
+        baseUrl,
+        apiKey,
+      });
+
+      return {
+        ok: true as const,
+        models: result.models,
+        latencyMs: result.latencyMs,
+        discoverySupported: true,
+      };
+    } catch (discoveryError) {
+      if (
+        discoveryError instanceof ProviderModelDiscoveryError
+        && discoveryError.status
+        && ![404, 405, 501].includes(discoveryError.status)
+      ) {
+        throw discoveryError;
+      }
+
+      const fallbackModel = data.model?.trim();
+      if (!fallbackModel) throw discoveryError;
+
+      const provider = createProvider({
+        providerId: data.provider_id,
+        baseUrl: baseUrl || undefined,
+        apiKey,
+        model: fallbackModel,
+        embeddingEnabled: false,
+      });
+      const startedAt = Date.now();
+      const chatResult = await provider.chat([
+        { role: "system", content: "Chỉ trả lời đúng một từ: OK" },
+        { role: "user", content: "ping" },
+      ], []);
+      if (!chatResult.ok) {
+        const normalizedError = chatResult.error.toLowerCase();
+        const isAuthenticationError = [
+          "authentication",
+          "unauthorized",
+          "invalid api key",
+          "api key not valid",
+          "status 401",
+          "status 403",
+        ].some((token) => normalizedError.includes(token));
+        if (isAuthenticationError) throw new Error(chatResult.error);
+
+        return {
+          ok: true as const,
+          models: [],
+          latencyMs: Date.now() - startedAt,
+          discoverySupported: false,
+          warning: chatResult.error,
+        };
+      }
+
+      return {
+        ok: true as const,
+        models: [],
+        latencyMs: Date.now() - startedAt,
+        discoverySupported: false,
+        warning: undefined,
+      };
+    }
   });
 }
 
@@ -162,6 +285,24 @@ export async function saveMoodieProviderConfig(rawInput: unknown) {
       throw new Error("Provider OpenAI-compatible cần có Base URL");
     }
 
+    const normalizedBaseUrl = normalizeProviderBaseUrl(data.base_url);
+    const needsApiKey = providerNeedsApiKey(data.provider_id, normalizedBaseUrl);
+    const current = await getMoodieProviderSnapshot();
+    const canReuseExistingKey = Boolean(
+      data.reuse_existing_key
+      && canReuseProviderKey({
+        hasKey: current.hasKey,
+        currentProviderId: current.providerId,
+        currentBaseUrl: current.baseUrl,
+        nextProviderId: data.provider_id,
+        nextBaseUrl: normalizedBaseUrl,
+      }),
+    );
+
+    if (needsApiKey && !data.api_key?.trim() && !canReuseExistingKey) {
+      throw new Error("Provider cloud cần API key mới; không thể dùng lại key của provider khác");
+    }
+
     const now = new Date().toISOString();
     const updates: Array<{ key: string; value: string; description: string; updated_at: string }> = [];
 
@@ -180,16 +321,31 @@ export async function saveMoodieProviderConfig(rawInput: unknown) {
     });
 
     updates.push({
+      key: MOODIE_PROVIDER_MODELS_KEY,
+      value: JSON.stringify((data.models || []).slice(0, 500)),
+      description: "Moodie selectable chat models",
+      updated_at: now,
+    });
+
+    updates.push({
       key: MOODIE_PROVIDER_BASE_URL_KEY,
       value: data.base_url?.trim() || "",
       description: "Moodie OpenAI-compatible base URL",
       updated_at: now,
     });
 
-    if (data.api_key?.trim()) {
+    const normalizedApiKey = normalizeProviderApiKey(data.api_key);
+    if (normalizedApiKey) {
       updates.push({
         key: MOODIE_PROVIDER_API_KEY_KEY,
-        value: encryptSecret(data.api_key.trim()) ?? data.api_key.trim(),
+        value: encryptSecret(normalizedApiKey) ?? normalizedApiKey,
+        description: "Moodie provider API key (encrypted)",
+        updated_at: now,
+      });
+    } else if (!canReuseExistingKey) {
+      updates.push({
+        key: MOODIE_PROVIDER_API_KEY_KEY,
+        value: "",
         description: "Moodie provider API key (encrypted)",
         updated_at: now,
       });
@@ -197,8 +353,15 @@ export async function saveMoodieProviderConfig(rawInput: unknown) {
 
     updates.push({
       key: MOODIE_PROVIDER_EMBEDDING_MODEL_KEY,
-      value: data.embedding_model?.trim() || "",
+      value: data.embedding_enabled === false ? "" : data.embedding_model?.trim() || "",
       description: "Moodie embedding model",
+      updated_at: now,
+    });
+
+    updates.push({
+      key: MOODIE_PROVIDER_EMBEDDING_ENABLED_KEY,
+      value: data.embedding_enabled === false ? "false" : "true",
+      description: "Enable semantic embeddings for Moodie memory",
       updated_at: now,
     });
 

@@ -23,6 +23,7 @@ export const moodieMessageSchema = z.object({
   edit_from_message_id: z.string().uuid().optional(),
   continue_from_message_id: z.string().uuid().optional(),
   response_profile: z.enum(["default", "voice"]).default("default"),
+  model: z.string().trim().min(1).max(200).optional(),
   content: z
     .string()
     .trim()

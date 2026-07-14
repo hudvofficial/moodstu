@@ -88,8 +88,11 @@ export interface MoodieProviderConfig {
   baseUrl?: string;
   apiKey?: string;
   model: string;
+  availableModels?: ProviderModelOption[];
   /** model dùng cho embedding (optional, dùng trong Phase 3 RAG) */
   embeddingModel?: string;
+  /** Tắt để memory dùng keyword matching mà không gọi endpoint embeddings. */
+  embeddingEnabled?: boolean;
   label?: string;
 }
 
@@ -136,18 +139,23 @@ export interface MoodieProvider {
 // Preset configs để fill nhanh trong UI settings
 // ---------------------------------------------------------------------------
 
-export const PROVIDER_PRESETS: Array<{
+export type ProviderPreset = {
   id: string;
   label: string;
+  description: string;
+  environment: "cloud" | "local";
   providerId: ProviderId;
   baseUrl?: string;
-  apiKey?: string;
   model: string;
   embeddingModel?: string;
-}> = [
+};
+
+export const PROVIDER_PRESETS: ProviderPreset[] = [
   {
     id: "gemini",
     label: "Google Gemini (Cloud)",
+    description: "Thiết lập nhanh bằng Google AI API key.",
+    environment: "cloud",
     providerId: "gemini",
     model: "gemini-2.5-flash",
     embeddingModel: "text-embedding-004",
@@ -155,23 +163,27 @@ export const PROVIDER_PRESETS: Array<{
   {
     id: "ollama_local",
     label: "Ollama (Local)",
+    description: "Model chạy cùng máy chủ Mood Studio.",
+    environment: "local",
     providerId: "openai_compatible",
     baseUrl: "http://localhost:11434/v1",
-    apiKey: "ollama",
     model: "qwen2.5-coder:7b",
     embeddingModel: "nomic-embed-text",
   },
   {
     id: "lmstudio",
     label: "LM Studio (Local)",
+    description: "OpenAI-compatible server chạy cùng máy chủ.",
+    environment: "local",
     providerId: "openai_compatible",
     baseUrl: "http://localhost:1234/v1",
-    apiKey: "lm-studio",
     model: "local-model",
   },
   {
     id: "qwen_cloud",
     label: "Qwen / DashScope (Cloud)",
+    description: "Qwen Cloud qua DashScope OpenAI-compatible.",
+    environment: "cloud",
     providerId: "openai_compatible",
     baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     model: "qwen-plus",
@@ -180,6 +192,8 @@ export const PROVIDER_PRESETS: Array<{
   {
     id: "deepseek",
     label: "DeepSeek (Cloud)",
+    description: "DeepSeek API chính thức.",
+    environment: "cloud",
     providerId: "openai_compatible",
     baseUrl: "https://api.deepseek.com/v1",
     model: "deepseek-chat",
@@ -187,10 +201,21 @@ export const PROVIDER_PRESETS: Array<{
   {
     id: "openai",
     label: "OpenAI (Cloud)",
+    description: "OpenAI Chat Completions và embeddings.",
+    environment: "cloud",
     providerId: "openai_compatible",
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
     embeddingModel: "text-embedding-3-small",
+  },
+  {
+    id: "nvidia_nim",
+    label: "NVIDIA NIM (Cloud)",
+    description: "NVIDIA API Catalog qua giao thức OpenAI-compatible.",
+    environment: "cloud",
+    providerId: "openai_compatible",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    model: "minimaxai/minimax-m3",
   },
 ];
 
@@ -273,6 +298,16 @@ const PROVIDER_MODEL_CATALOG_BY_PRESET_ID: Partial<Record<string, ProviderModelC
     allowCustomEmbeddingModel: true,
     customModelPlaceholder: "gpt-4o-mini",
     customEmbeddingModelPlaceholder: "text-embedding-3-small",
+  },
+  nvidia_nim: {
+    models: [
+      { value: "minimaxai/minimax-m3", label: "MiniMax M3" },
+    ],
+    embeddingModels: [],
+    allowCustomModel: true,
+    allowCustomEmbeddingModel: true,
+    customModelPlaceholder: "minimaxai/minimax-m3",
+    customEmbeddingModelPlaceholder: "nvidia/...",
   },
 };
 

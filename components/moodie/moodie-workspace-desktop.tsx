@@ -27,7 +27,7 @@ function isConversationLocked(lockedUntil: string | null | undefined) {
 export function MoodieWorkspaceDesktop({
   conversations, activeConversation, activeConversationId, scope, search, counts,
   loadingConversationId, editingConversationId, editingTitle, pendingPrompt,
-  isSending, streamRequestId, streamStatus, turnActivities, streamedText, streamedParts, capabilities, suggestions, providerReady, onSelectConversation,
+  isSending, streamRequestId, streamStatus, turnActivities, streamedText, streamedParts, capabilities, suggestions, providerReady, modelOptions, selectedModel, onModelChange, onSelectConversation,
   onScopeChange, onSearchChange, onStartRename, onEditTitleChange, onRenameSubmit,
   onRenameCancel, onDeleteConversation, onSendMessage, onStopGeneration, onRegenerateMessage, onEditMessage, onContinueMessage, onDeleteMessage, onQuickPrompt, onNewConversation, onOpenVoiceMode,
 }: MoodieWorkspaceDesktopProps) {
@@ -62,7 +62,7 @@ export function MoodieWorkspaceDesktop({
         </header>
 
         <MoodieThread conversation={activeConversation} capabilities={capabilities} suggestions={suggestions} pendingPrompt={pendingPrompt} loading={isSending} requestId={streamRequestId} statusLabel={streamStatus} activities={turnActivities} streamedText={streamedText} streamedParts={streamedParts} onRegenerateMessage={onRegenerateMessage} onEditMessage={onEditMessage} onContinueMessage={onContinueMessage} onDeleteMessage={onDeleteMessage} onQuickPrompt={onQuickPrompt} />
-        <MoodieComposer disabled={activeConversationLocked} loading={isSending} hasMessages={hasMessages} capabilities={capabilities} draftKey={activeConversationId} suggestionChips={suggestions} onSuggestionClick={onQuickPrompt} onSend={onSendMessage} onStop={onStopGeneration} onOpenVoiceMode={onOpenVoiceMode} />
+        <MoodieComposer disabled={activeConversationLocked} loading={isSending} hasMessages={hasMessages} capabilities={capabilities} draftKey={activeConversationId} suggestionChips={suggestions} modelOptions={modelOptions} selectedModel={selectedModel} onModelChange={onModelChange} onSuggestionClick={onQuickPrompt} onSend={onSendMessage} onStop={onStopGeneration} onOpenVoiceMode={onOpenVoiceMode} />
       </div>
 
       {sidebarVisible ? (

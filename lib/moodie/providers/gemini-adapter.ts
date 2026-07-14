@@ -15,6 +15,7 @@ import type {
   ProviderEmbedResult,
   MoodieProviderChatOptions,
 } from "@/lib/moodie/providers/types";
+import { normalizeProviderApiKey } from "@/lib/moodie/providers/config-policy";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -127,11 +128,13 @@ export class GeminiAdapter implements MoodieProvider {
   private readonly apiKey: string;
   private readonly model: string;
   private readonly embeddingModel: string;
+  private readonly embeddingEnabled: boolean;
 
   constructor(config: MoodieProviderConfig) {
-    this.apiKey = config.apiKey ?? "";
+    this.apiKey = normalizeProviderApiKey(config.apiKey);
     this.model = config.model || "gemini-2.5-flash";
     this.embeddingModel = config.embeddingModel || "text-embedding-004";
+    this.embeddingEnabled = config.embeddingEnabled !== false;
     this.label = config.label || `Gemini (${this.model})`;
   }
 
@@ -295,6 +298,9 @@ export class GeminiAdapter implements MoodieProvider {
   }
 
   async embed(text: string): Promise<ProviderEmbedResult> {
+    if (!this.embeddingEnabled) {
+      return { ok: false, error: "Semantic embedding is disabled for this provider." };
+    }
     if (!this.apiKey) {
       return { ok: false, error: "Gemini API key chưa được cấu hình." };
     }

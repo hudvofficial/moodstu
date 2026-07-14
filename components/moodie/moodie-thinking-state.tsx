@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, CircleCheck, CircleX, Sun } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, CircleCheck, CircleX, LoaderCircle } from "lucide-react";
 import { MoodieMessageParts } from "@/components/moodie/moodie-message-parts";
 import { MoodieResponseContent } from "@/components/moodie/moodie-response-content";
 import { Button } from "@/components/ui/button";
@@ -17,30 +17,40 @@ interface MoodieThinkingStateProps {
 
 export function MoodieThinkingState({ statusLabel, activities = [], streamedText = "", parts = [] }: MoodieThinkingStateProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
+  const startedAtRef = useRef(Date.now());
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const presentation = presentMoodieActivity(activities);
   const phaseLabel = presentation.phaseLabel || statusLabel || "Đang hiểu yêu cầu";
 
+  useEffect(() => {
+    const updateElapsed = () => setElapsedSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000));
+    const intervalId = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
     <div className="flex w-full justify-start" aria-live="polite" data-moodie-activity-status>
-      <div className="min-w-0 w-full py-0.5">
+      <div className="min-w-0 w-full">
         <div className="min-w-0">
           {presentation.expandable ? (
             <Button
               type="button"
               unstyled
-              className="flex min-h-11 max-w-full items-center gap-2 bg-transparent px-0 text-left text-sm text-text-muted outline-none transition-colors hover:text-text-primary focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-primary/20 md:min-h-8"
+              className="flex min-h-8 max-w-full items-center gap-2 bg-transparent px-0 text-left text-sm text-text-muted outline-none transition-colors hover:text-text-primary focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-primary/20"
               onClick={() => setHistoryOpen((value) => !value)}
               aria-expanded={historyOpen}
               aria-label="Mở hoặc đóng các bước Moodie đang thực hiện"
             >
               <MoodieActivityIcon failed={presentation.failed} completed={presentation.completed} />
               <span className="min-w-0 truncate">{phaseLabel}</span>
+              {elapsedSeconds > 0 ? <span className="shrink-0 text-micro tabular-nums text-text-muted/80">{elapsedSeconds}s</span> : null}
               {historyOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
             </Button>
           ) : (
             <div className="flex min-h-8 max-w-full items-center gap-2 text-sm text-text-muted" role="status">
               <MoodieActivityIcon failed={presentation.failed} completed={presentation.completed} />
               <span className="min-w-0 truncate">{phaseLabel}</span>
+              {elapsedSeconds > 0 ? <span className="shrink-0 text-micro tabular-nums text-text-muted/80">{elapsedSeconds}s</span> : null}
             </div>
           )}
 
@@ -76,5 +86,5 @@ function formatActivityDuration(durationMs: number) {
 function MoodieActivityIcon({ failed, completed }: { failed: boolean; completed: boolean }) {
   if (failed) return <CircleX className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />;
   if (completed) return <CircleCheck className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />;
-  return <Sun className="h-4 w-4 shrink-0 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" style={{ animationDuration: "1.8s" }} />;
+  return <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-primary/80 motion-reduce:animate-none" aria-hidden="true" style={{ animationDuration: "1.4s" }} />;
 }

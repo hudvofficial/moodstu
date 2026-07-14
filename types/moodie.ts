@@ -207,6 +207,12 @@ export interface MoodieComposerSubmission {
   content: string;
   attachments: MoodieAttachment[];
   contexts: MoodieComposerContext[];
+  model?: string;
+}
+
+export interface MoodieModelOption {
+  value: string;
+  label: string;
 }
 
 export type MoodieMessageSourceKind = "web" | "database" | "document" | "internal";
@@ -407,6 +413,11 @@ export interface MoodiePageData {
   activeConversation: MoodieConversationDetail | null;
   suggestions: string[];
   capabilities: MoodieCapability[];
+  models: {
+    selected: string;
+    providerLabel: string;
+    options: MoodieModelOption[];
+  };
   setup: MoodieSetupState;
 }
 

@@ -19,10 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  saveMoodieProviderConfig,
   saveMoodieBrowserConfig,
   saveMoodieBraveConfig,
-  testActiveMoodieProvider,
   testMoodieBrowserConnection,
   testMoodieBraveConnection,
 } from "@/app/actions/moodie-provider-actions";
@@ -42,6 +40,14 @@ import {
   type ProviderModelOption,
 } from "@/lib/moodie/providers/types";
 import type { MoodieAiSettings, MoodieBrowserSettings, MoodieBraveSettings, MoodieProviderSettings, MoodieVoiceSettings } from "@/types/settings";
+import type { ActionResult } from "@/types/action-result";
+import {
+  canReuseProviderKey,
+  isLocalProviderBaseUrl,
+  normalizeProviderApiKey,
+  normalizeProviderBaseUrl,
+  providerNeedsApiKey,
+} from "@/lib/moodie/providers/config-policy";
 
 interface MoodieAiCardProps {
   settings: MoodieAiSettings;
@@ -91,14 +97,25 @@ const PRESET_PLACEHOLDER_VALUE = "__moodie_provider_preset_placeholder__";
 const CUSTOM_MODEL_VALUE = "__moodie_provider_custom_model__";
 const DEFAULT_EMBEDDING_VALUE = "__moodie_provider_default_embedding__";
 const CUSTOM_EMBEDDING_VALUE = "__moodie_provider_custom_embedding__";
+const DISABLED_EMBEDDING_VALUE = "__moodie_provider_embedding_disabled__";
+
+async function callProviderConfigApi<T>(operation: "probe" | "save", payload: unknown) {
+  const response = await fetch("/api/moodie/provider/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ operation, payload }),
+  });
+  const result = await response.json().catch(() => null) as ActionResult<T> | null;
+  if (!result) throw new Error(`Provider API trả dữ liệu không hợp lệ (${response.status})`);
+  return result;
+}
 
 function findMatchingPreset(settings: MoodieProviderSettings) {
   return PROVIDER_PRESETS.find((preset) => {
     const sameProvider = preset.providerId === settings.providerId;
-    const sameBaseUrl = (preset.baseUrl || "") === (settings.baseUrl || "");
+    const sameBaseUrl = normalizeProviderBaseUrl(preset.baseUrl) === normalizeProviderBaseUrl(settings.baseUrl);
     const sameModel = preset.model === settings.model;
-    const sameEmbedding = (preset.embeddingModel || "") === (settings.embeddingModel || "");
-    return sameProvider && sameBaseUrl && sameModel && sameEmbedding;
+    return sameProvider && sameBaseUrl && sameModel;
   });
 }
 
@@ -120,6 +137,7 @@ function resolveInitialModelSelection(settings: MoodieProviderSettings, presetId
 }
 
 function resolveInitialEmbeddingSelection(settings: MoodieProviderSettings, presetId?: string) {
+  if (!settings.embeddingEnabled) return DISABLED_EMBEDDING_VALUE;
   const catalog = getProviderModelCatalog({ providerId: settings.providerId, presetId });
   if (!settings.embeddingModel) return DEFAULT_EMBEDDING_VALUE;
   return hasOption(catalog.embeddingModels, settings.embeddingModel)
@@ -146,26 +164,22 @@ function MoodieExplainPanel() {
 
 function ProviderStatus({ settings }: { settings: MoodieProviderSettings }) {
   const { providerLabel, modelLabel } = getProviderSummary(settings);
-  const isReady = settings.hasKey;
+  const hasRequiredCredential = settings.isLocal || settings.hasKey;
 
   return (
-    <div className="rounded-xl border border-border bg-bg-subtle p-3 space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-text-muted">Provider đang chạy</p>
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-subtle p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${hasRequiredCredential ? "bg-success" : "bg-warning"}`} />
           <p className="truncate text-sm font-semibold text-text-primary">{providerLabel}</p>
         </div>
-        <span className={`rounded-full px-2 py-1 text-xs ${isReady ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
-          {isReady ? "Đã có API key" : settings.isLocal ? "Chưa kiểm tra" : "Thiếu API key"}
-        </span>
+        <p className="mt-1 truncate pl-4 text-xs text-text-muted">
+          {modelLabel}{settings.baseUrl ? ` · ${settings.baseUrl}` : ""}
+        </p>
       </div>
-      <div className="grid gap-2 text-xs text-text-secondary sm:grid-cols-2">
-        <span>Model: <strong>{modelLabel}</strong></span>
-        <span>Embedding: <strong>{settings.embeddingModel || "Auto"}</strong></span>
-      </div>
-      {settings.baseUrl ? (
-        <p className="truncate text-xs text-text-muted">Endpoint: {settings.baseUrl}</p>
-      ) : null}
+      <span className={`shrink-0 text-xs font-medium ${hasRequiredCredential ? "text-success" : "text-warning"}`}>
+        {settings.isLocal ? "Cấu hình local" : settings.hasKey ? "Đã lưu key" : "Cần API key"}
+      </span>
     </div>
   );
 }
@@ -190,33 +204,35 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
   const [customEmbeddingModel, setCustomEmbeddingModel] = useState(
     initialEmbeddingSelection === CUSTOM_EMBEDDING_VALUE ? settings.embeddingModel || "" : "",
   );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [testingKey, setTestingKey] = useState(false);
+  const [discoveredModels, setDiscoveredModels] = useState<ProviderModelOption[]>([]);
+  const [modelDiscoveryAttempted, setModelDiscoveryAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [connectionMessage, setConnectionMessage] = useState<{
     ok: boolean;
     text: string;
+    warning?: boolean;
   } | null>(null);
 
   const activePresetId =
     selectedPresetId === PRESET_PLACEHOLDER_VALUE ? undefined : selectedPresetId;
+  const activePreset = PROVIDER_PRESETS.find((preset) => preset.id === activePresetId);
+  const isCustomProvider = !activePreset;
   const modelCatalog = useMemo(
     () => getProviderModelCatalog({ providerId, presetId: activePresetId }),
     [providerId, activePresetId],
   );
-  const modelOptions = useMemo(() => {
-    const options = [...modelCatalog.models];
-    if (modelCatalog.allowCustomModel) {
-      options.push({ value: CUSTOM_MODEL_VALUE, label: "Model khác (nhập thủ công)" });
-    }
-    return options;
-  }, [modelCatalog]);
   const embeddingOptions = useMemo(() => {
     const options: ProviderModelOption[] = [
-      { value: DEFAULT_EMBEDDING_VALUE, label: "Auto / theo provider" },
+      { value: DISABLED_EMBEDDING_VALUE, label: "Không dùng semantic embedding" },
       ...(modelCatalog.embeddingModels || []),
     ];
+    if ((modelCatalog.embeddingModels || []).length > 0) {
+      options.splice(1, 0, { value: DEFAULT_EMBEDDING_VALUE, label: "Mặc định theo nhà cung cấp" });
+    }
     if (modelCatalog.allowCustomEmbeddingModel !== false) {
       options.push({ value: CUSTOM_EMBEDDING_VALUE, label: "Embedding khác (nhập thủ công)" });
     }
@@ -225,16 +241,27 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
 
   const isCustomModel = modelSelection === CUSTOM_MODEL_VALUE;
   const isCustomEmbedding = embeddingSelection === CUSTOM_EMBEDDING_VALUE;
+  const embeddingEnabled = embeddingSelection !== DISABLED_EMBEDDING_VALUE;
   const model = isCustomModel ? customModel.trim() : modelSelection;
   const embeddingModel = isCustomEmbedding
     ? customEmbeddingModel.trim()
     : embeddingSelection === DEFAULT_EMBEDDING_VALUE
       ? ""
       : embeddingSelection;
-  const isLocal = baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
+  const isLocal = isLocalProviderBaseUrl(baseUrl);
+
+  function resetModelDiscovery() {
+    setDiscoveredModels([]);
+    setModelDiscoveryAttempted(false);
+    setConnectionMessage(null);
+  }
 
   function applyPreset(presetId: string) {
-    if (presetId === PRESET_PLACEHOLDER_VALUE) return;
+    if (presetId === PRESET_PLACEHOLDER_VALUE) {
+      setSelectedPresetId(PRESET_PLACEHOLDER_VALUE);
+      resetModelDiscovery();
+      return;
+    }
     const preset = PROVIDER_PRESETS.find((option) => option.id === presetId);
     if (!preset) return;
 
@@ -248,7 +275,8 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
     setSelectedPresetId(presetId);
     setProviderId(preset.providerId);
     setBaseUrl(preset.baseUrl || "");
-    setApiKey(preset.apiKey || "");
+    setApiKey("");
+    resetModelDiscovery();
     setModelSelection(presetModelInCatalog ? preset.model : CUSTOM_MODEL_VALUE);
     setCustomModel(presetModelInCatalog ? "" : preset.model);
     setEmbeddingSelection(
@@ -256,11 +284,81 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
         ? presetEmbeddingInCatalog
           ? preset.embeddingModel
           : CUSTOM_EMBEDDING_VALUE
-        : DEFAULT_EMBEDDING_VALUE,
+        : DISABLED_EMBEDDING_VALUE,
     );
     setCustomEmbeddingModel(
       preset.embeddingModel && !presetEmbeddingInCatalog ? preset.embeddingModel : "",
     );
+  }
+
+  const canReuseSavedKey = canReuseProviderKey({
+    hasKey: settings.hasKey,
+    currentProviderId: settings.providerId,
+    currentBaseUrl: settings.baseUrl,
+    nextProviderId: providerId,
+    nextBaseUrl: baseUrl,
+  });
+  const requiresApiKey = providerNeedsApiKey(providerId, baseUrl);
+  const configurationMatchesSaved = providerId === settings.providerId
+    && normalizeProviderBaseUrl(baseUrl) === normalizeProviderBaseUrl(settings.baseUrl);
+  const canUseSavedConfiguration = configurationMatchesSaved && (isLocal || settings.hasKey);
+
+  async function handleProbeProvider() {
+    if (providerId === "openai_compatible" && !baseUrl.trim()) {
+      toast.error("Nhập Base URL trước khi kiểm tra kết nối");
+      return;
+    }
+    if (requiresApiKey && !apiKey.trim() && !canReuseSavedKey) {
+      toast.error("Nhập API key trước khi kiểm tra kết nối");
+      return;
+    }
+
+    setTestingKey(true);
+    try {
+      const result = await callProviderConfigApi<{
+        ok: true;
+        models: ProviderModelOption[];
+        latencyMs: number;
+        discoverySupported: boolean;
+        warning?: string;
+      }>("probe", {
+        provider_id: providerId,
+        base_url: baseUrl || undefined,
+        api_key: apiKey || undefined,
+        reuse_existing_key: canReuseSavedKey && !apiKey,
+        model: model || undefined,
+      });
+      if (!result.success || !result.data.ok) {
+        throw new Error(result.success ? "Không thể tải model từ provider" : result.error);
+      }
+
+      setDiscoveredModels(result.data.models);
+      setModelDiscoveryAttempted(true);
+      if (result.data.models.length > 0 && !result.data.models.some((option) => option.value === model)) {
+        setModelSelection(result.data.models[0]?.value || CUSTOM_MODEL_VALUE);
+        setCustomModel("");
+      }
+      setConnectionMessage({
+        ok: true,
+        warning: Boolean(result.data.warning),
+        text: result.data.discoverySupported
+          ? `Key hoạt động · tìm thấy ${result.data.models.length} model · ${result.data.latencyMs}ms`
+          : result.data.warning
+            ? `Key được provider tiếp nhận · ${result.data.warning} · cần xác nhận model thủ công`
+            : `Key hoạt động · provider không hỗ trợ /models · ${result.data.latencyMs}ms`,
+      });
+      toast.success(result.data.discoverySupported
+        ? `Kết nối thành công, đã tải ${result.data.models.length} model`
+        : "Kết nối thành công; hãy xác nhận model ID thủ công");
+    } catch (error) {
+      setDiscoveredModels([]);
+      setModelDiscoveryAttempted(true);
+      const message = error instanceof Error ? error.message : "Không thể kiểm tra provider";
+      setConnectionMessage({ ok: false, text: message });
+      toast.error(message);
+    } finally {
+      setTestingKey(false);
+    }
   }
 
   function handleProviderChange(value: string) {
@@ -273,6 +371,7 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
     setCustomModel("");
     setEmbeddingSelection(DEFAULT_EMBEDDING_VALUE);
     setCustomEmbeddingModel("");
+    resetModelDiscovery();
   }
 
   async function handleSave() {
@@ -284,6 +383,19 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
       toast.error("Cần nhập Base URL cho OpenAI-compatible provider");
       return;
     }
+    if (requiresApiKey && !apiKey.trim() && !canReuseSavedKey) {
+      toast.error("Nhà cung cấp cloud cần API key mới để kết nối");
+      return;
+    }
+    if (!canUseSavedConfiguration && connectionMessage?.ok !== true) {
+      toast.error("Hãy bấm icon kiểm tra kết nối trước khi lưu provider mới");
+      return;
+    }
+    if (embeddingEnabled && isCustomEmbedding && !customEmbeddingModel.trim()) {
+      toast.error("Cần nhập mã model embedding hoặc tắt semantic embedding");
+      setMemoryOpen(true);
+      return;
+    }
 
     const preset = activePresetId
       ? PROVIDER_PRESETS.find((option) => option.id === activePresetId)
@@ -292,33 +404,23 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
     setSaving(true);
     setConnectionMessage(null);
     try {
-      const saveResult = await saveMoodieProviderConfig({
+      const saveResult = await callProviderConfigApi<{ provider_id: ProviderId; model: string }>("save", {
         provider_id: providerId,
         preset_id: activePresetId,
         base_url: baseUrl || undefined,
         api_key: apiKey || undefined,
+        reuse_existing_key: canReuseSavedKey && !apiKey,
         model,
+        models: discoveredModels,
         embedding_model: embeddingModel || undefined,
+        embedding_enabled: embeddingEnabled,
         label: preset?.label,
       });
       if (!saveResult.success) {
         throw new Error(saveResult.error);
       }
-      const connection = await testActiveMoodieProvider();
-      if (!connection.success || !connection.data.ok) {
-        const error = (connection.success ? connection.data.error : connection.error) || "Không thể kiểm tra provider";
-        setAdvancedOpen(true);
-        setConnectionMessage({ ok: false, text: error });
-        toast.error(`Đã lưu nhưng kết nối thất bại: ${error}`);
-        return;
-      }
-
-      setConnectionMessage({
-        ok: true,
-        text: `${connection.data.provider} phản hồi trong ${connection.data.latencyMs}ms`,
-      });
       setSaved(true);
-      toast.success("Đã lưu và kiểm tra provider thành công");
+      toast.success("Đã lưu cấu hình provider");
       router.refresh();
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
@@ -329,149 +431,183 @@ function ProviderSection({ settings }: { settings: MoodieProviderSettings }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <SelectForm
-        label="Provider"
+        label="Nhà cung cấp"
         value={selectedPresetId}
         onChange={applyPreset}
-        options={[{ value: PRESET_PLACEHOLDER_VALUE, label: "Tùy chỉnh provider" }, ...PRESET_OPTIONS]}
+        options={[...PRESET_OPTIONS, { value: PRESET_PLACEHOLDER_VALUE, label: "Provider khác / Tùy chỉnh" }]}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {activePreset ? (
+        <p className="-mt-2 text-xs text-text-muted">{activePreset.description}</p>
+      ) : null}
+
+      {isCustomProvider ? (
         <SelectForm
-          label="Loại provider"
+          label="Giao thức kết nối"
           value={providerId}
           onChange={handleProviderChange}
           options={PROVIDER_OPTIONS}
         />
-        <SelectForm
-          label="Model chat"
-          value={modelSelection}
-          onChange={setModelSelection}
-          options={modelOptions}
-        />
-      </div>
-
-      {isCustomModel && (
-        <div>
-          <label className="label-base">Mã model custom</label>
-          <Input
-            value={customModel}
-            onChange={(event) => setCustomModel(event.target.value)}
-            placeholder={modelCatalog.customModelPlaceholder || "qwen2.5-coder:7b"}
-            className="font-mono text-xs"
-          />
-        </div>
-      )}
+      ) : null}
 
       {providerId === "openai_compatible" && (
         <div>
-          <label className="label-base">Endpoint</label>
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <label className="label-base !mb-0">Base URL</label>
+            {activePreset ? <span className="text-xs text-text-muted">Tự điền theo nhà cung cấp</span> : null}
+          </div>
           <Input
             value={baseUrl}
-            onChange={(event) => setBaseUrl(event.target.value)}
+            onChange={(event) => {
+              setBaseUrl(event.target.value);
+              resetModelDiscovery();
+            }}
+            readOnly={Boolean(activePreset)}
             placeholder="http://localhost:1234/v1"
-            className="font-mono text-xs"
+            className="font-mono text-xs read-only:bg-bg-subtle read-only:text-text-secondary"
           />
+          {isLocal ? (
+            <div className="mt-2 rounded-lg border border-warning/25 bg-warning/5 px-3 py-2 text-xs text-text-secondary">
+              <strong className="text-warning">Chỉ dùng khi model chạy cùng máy chủ Mood Studio.</strong>{" "}
+              `localhost` trên Vercel hoặc mobile không trỏ về máy tính của bạn.
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {requiresApiKey ? (
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <label className="label-base !mb-0">API key</label>
+            {canReuseSavedKey ? (
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+                Đã lưu an toàn
+              </span>
+            ) : null}
+          </div>
+          <div className="relative">
+            <Input
+              type={showKey ? "text" : "password"}
+              value={apiKey}
+              onChange={(event) => {
+                setApiKey(event.target.value);
+                resetModelDiscovery();
+              }}
+              onBlur={() => setApiKey(normalizeProviderApiKey(apiKey))}
+              placeholder={canReuseSavedKey ? settings.keyMasked || "•••••••• (đang sử dụng)" : "Nhập API key của nhà cung cấp"}
+              className={canReuseSavedKey ? "border-success/25 bg-success/[0.03] pr-20 font-mono text-xs" : "pr-20 font-mono text-xs"}
+              autoComplete="off"
+            />
+            <Button
+              type="button"
+              variant="icon"
+              onClick={() => setShowKey((value) => !value)}
+              disabled={!apiKey}
+              className="absolute right-10 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md text-text-muted hover:text-text-primary disabled:cursor-default disabled:opacity-40"
+              aria-label={showKey ? "Ẩn khóa API" : "Hiện khóa API"}
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+            <Button
+              type="button"
+              variant="icon"
+              onClick={handleProbeProvider}
+              disabled={testingKey || (requiresApiKey && !apiKey.trim() && !canReuseSavedKey)}
+              className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Kiểm tra key và tải danh sách model"
+              title="Kiểm tra kết nối và tải model"
+            >
+              <RefreshCw className={`h-4 w-4 ${testingKey ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
           <p className="mt-1 text-xs text-text-muted">
-            {isLocal ? "Local — không cần API key" : "Cloud provider thường cần API key ở phần nâng cao."}
+            {canReuseSavedKey
+              ? "Để nguyên để tiếp tục dùng key hiện tại, hoặc nhập key mới để thay thế trên mọi thiết bị."
+              : "Chỉ dán chuỗi key (ví dụ nvapi-...), không thêm tiền tố Bearer. Key được mã hóa trên server."}
           </p>
         </div>
-      )}
-
-      <Button
-        type="button"
-        unstyled
-        onClick={() => setAdvancedOpen((value) => !value)}
-        className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-hover"
-      >
-        <span>Nâng cao: API key & embedding</span>
-        {advancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </Button>
-
-      {advancedOpen && (
-        <div className="space-y-3 rounded-lg border border-border bg-bg-subtle p-3">
-          <SelectForm
-            label="Embedding model"
-            value={embeddingSelection}
-            onChange={setEmbeddingSelection}
-            options={embeddingOptions}
-          />
-
-          {isCustomEmbedding && (
-            <div>
-              <label className="label-base">Mã embedding custom</label>
-              <Input
-                value={customEmbeddingModel}
-                onChange={(event) => setCustomEmbeddingModel(event.target.value)}
-                placeholder={modelCatalog.customEmbeddingModelPlaceholder || "text-embedding-3-small"}
-                className="font-mono text-xs"
-              />
-            </div>
-          )}
-
-          <div>
-              <label className="label-base">API Key provider</label>
-              {settings.hasKey ? (
-                <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-success/20 bg-success/5 px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-success">Key đang được sử dụng</p>
-                    <p className="mt-0.5 font-mono text-xs text-text-secondary">
-                      {settings.keyMasked || "Đã lưu an toàn"}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-success/10 px-2 py-1 text-xs font-medium text-success">
-                    Đã cấu hình
-                  </span>
-                </div>
-              ) : null}
-              <p className="mb-1 text-xs font-medium text-text-secondary">
-                {settings.hasKey ? "Thay bằng key mới" : "Nhập API key"}
-              </p>
-              <div className="relative">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder={settings.hasKey ? "Để trống nếu muốn giữ nguyên key hiện tại" : "Nhập nếu gateway yêu cầu (sk-... hoặc key nội bộ)"}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="icon"
-                  onClick={() => setShowKey((value) => !value)}
-                  className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md text-text-muted hover:text-text-primary"
-                  aria-label={showKey ? "Ẩn khóa API" : "Hiện khóa API"}
-                >
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </div>
-            <p className="mt-1 text-xs text-text-muted">
-              Vì bảo mật, Moodie chỉ hiển thị 4 ký tự cuối. Nhấn “Lưu & kiểm tra” để xác nhận key thực sự hoạt động.
-            </p>
-          </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-bg-subtle px-3 py-2 text-xs text-text-secondary">
+          <span>Provider local không yêu cầu API key.</span>
+          <Button type="button" variant="ghost" size="sm" onClick={handleProbeProvider} disabled={testingKey} className="h-8 gap-1.5">
+            <RefreshCw className={`h-3.5 w-3.5 ${testingKey ? "animate-spin" : ""}`} />
+            Kiểm tra
+          </Button>
         </div>
       )}
+
+      {connectionMessage ? (
+        <div className={`rounded-lg border px-3 py-2 text-xs ${connectionMessage.warning ? "border-warning/25 bg-warning/5 text-warning" : connectionMessage.ok ? "border-success/20 bg-success/5 text-success" : "border-danger/20 bg-danger/5 text-danger"}`}>
+          <strong>{connectionMessage.warning ? "Key đã được tiếp nhận" : connectionMessage.ok ? "Kết nối thành công" : "Kiểm tra thất bại"}</strong>
+          <span className="ml-1">· {connectionMessage.text}</span>
+        </div>
+      ) : null}
+
+      {discoveredModels.length > 0 ? (
+        <p className="text-xs text-success">
+          Đã tải {discoveredModels.length} model. Người dùng chọn model trực tiếp trong ô chat Moodie.
+        </p>
+      ) : null}
+
+      <div className="rounded-xl border border-border">
+        <Button
+          type="button"
+          unstyled
+          onClick={() => setMemoryOpen((value) => !value)}
+          className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+        >
+          <span>
+            <span className="block text-sm font-medium text-text-primary">Bộ nhớ & tìm kiếm ngữ nghĩa</span>
+            <span className="block text-xs text-text-muted">
+              {embeddingEnabled ? embeddingModel || "Mặc định theo nhà cung cấp" : "Đang tắt · Moodie vẫn lưu bộ nhớ dạng văn bản"}
+            </span>
+          </span>
+          {memoryOpen ? <ChevronUp className="h-4 w-4 text-text-muted" /> : <ChevronDown className="h-4 w-4 text-text-muted" />}
+        </Button>
+
+        {memoryOpen ? (
+          <div className="space-y-3 border-t border-border bg-bg-subtle p-3">
+            <SelectForm
+              label="Semantic embedding"
+              value={embeddingSelection}
+              onChange={setEmbeddingSelection}
+              options={embeddingOptions}
+            />
+            {isCustomEmbedding ? (
+              <div>
+                <label className="label-base">Mã model embedding</label>
+                <Input
+                  value={customEmbeddingModel}
+                  onChange={(event) => setCustomEmbeddingModel(event.target.value)}
+                  placeholder={modelCatalog.customEmbeddingModelPlaceholder || "Nhập model embedding của provider"}
+                  className="font-mono text-xs"
+                />
+              </div>
+            ) : null}
+            <p className="text-xs text-text-muted">
+              Chat model và embedding model là hai nghiệp vụ khác nhau. Chỉ bật khi nhà cung cấp có endpoint `/embeddings` tương thích.
+            </p>
+          </div>
+        ) : null}
+      </div>
 
       <Button
         type="button"
         size="sm"
         onClick={handleSave}
-        disabled={saving}
-        className="gap-2"
+        disabled={saving || testingKey}
+        className="w-full gap-2 sm:w-auto"
       >
         {saving ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : saved ? (
           <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
         ) : null}
-        {saved ? "Đã kết nối" : "Lưu & kiểm tra"}
+        {saving ? "Đang lưu..." : saved ? "Đã lưu" : "Lưu cấu hình"}
       </Button>
-      {connectionMessage ? (
-        <p className={`text-xs ${connectionMessage.ok ? "text-green-700" : "text-danger"}`}>
-          {connectionMessage.text}
-        </p>
-      ) : null}
     </div>
   );
 }

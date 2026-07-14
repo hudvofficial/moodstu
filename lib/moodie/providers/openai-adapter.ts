@@ -15,6 +15,7 @@ import type {
   ProviderEmbedResult,
   MoodieProviderChatOptions,
 } from "@/lib/moodie/providers/types";
+import { normalizeProviderApiKey } from "@/lib/moodie/providers/config-policy";
 
 // ---------------------------------------------------------------------------
 // OpenAI wire format types
@@ -113,12 +114,14 @@ export class OpenAIAdapter implements MoodieProvider {
   private readonly apiKey: string;
   private readonly model: string;
   private readonly embeddingModel: string;
+  private readonly embeddingEnabled: boolean;
 
   constructor(config: MoodieProviderConfig) {
     this.baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
-    this.apiKey = config.apiKey ?? "";
+    this.apiKey = normalizeProviderApiKey(config.apiKey);
     this.model = config.model || "gpt-4o-mini";
     this.embeddingModel = config.embeddingModel || "text-embedding-3-small";
+    this.embeddingEnabled = config.embeddingEnabled !== false;
     this.label = config.label || `OpenAI-compatible (${this.model} @ ${this.baseUrl})`;
   }
 
@@ -294,6 +297,9 @@ export class OpenAIAdapter implements MoodieProvider {
   }
 
   async embed(text: string): Promise<ProviderEmbedResult> {
+    if (!this.embeddingEnabled) {
+      return { ok: false, error: "Semantic embedding is disabled for this provider." };
+    }
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}/embeddings`, {

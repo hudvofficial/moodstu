@@ -1,7 +1,7 @@
 "use client";
 
-import { lazy, Suspense, useMemo, useState } from "react";
-import { Bot, Check, ChevronLeft, ChevronRight, Copy, FileText, Info, Pencil, RefreshCw, Sparkles, Square, ThumbsDown, ThumbsUp, Trash2, Volume2, X } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Copy, FileText, Info, MoreHorizontal, Pencil, RefreshCw, Sparkles, Square, ThumbsDown, ThumbsUp, Trash2, Volume2, X } from "lucide-react";
 import { MoodieActionPreviews } from "@/components/moodie/moodie-action-previews";
 import { MoodieBackgroundRunStatus } from "@/components/moodie/moodie-background-run-status";
 import { MoodieExecutionSummary } from "@/components/moodie/moodie-execution-summary";
@@ -46,6 +46,25 @@ export function MoodieMessageBubble({ message, pending, activeLeaf = true, statu
   const [speaking, setSpeaking] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const hasMoreActions = Boolean(metadata?.trace || onContinue || onDelete);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const closeMenu = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [moreOpen]);
 
   async function copyMessage() {
     await navigator.clipboard.writeText(message.content.trim());
@@ -136,9 +155,8 @@ export function MoodieMessageBubble({ message, pending, activeLeaf = true, statu
 
   return (
     <article className={`group flex w-full ${isAssistant ? "justify-start" : "justify-end"} ${!isAssistant && !pending ? "pb-7" : ""} ${isAssistant ? "" : "animate-fade-in-up"}`} style={{ contentVisibility: "auto", containIntrinsicSize: "auto 160px" }} data-moodie-answer-surface={isAssistant ? message.request_id || message.id : undefined} data-moodie-answer-state={isAssistant ? pending ? "streaming" : "completed" : undefined}>
-      <div className={`flex min-w-0 gap-2.5 ${isAssistant ? "w-full" : "max-w-[90%] flex-row-reverse"}`}>
-        {isAssistant ? <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-text-inverse"><Bot className="h-3.5 w-3.5" /></div> : null}
-        <div className={`min-w-0 max-w-full ${isAssistant ? "w-full space-y-3" : "relative"}`}>
+      <div className={`flex min-w-0 ${isAssistant ? "w-full" : "max-w-[90%] flex-row-reverse"}`}>
+        <div className={`min-w-0 max-w-full ${isAssistant ? `w-full ${pending ? "" : "space-y-3"}` : "relative"}`}>
           {pending && isAssistant ? <MoodieThinkingState statusLabel={statusLabel} activities={activities} streamedText={message.content} parts={streamedParts} /> : null}
           <div className={`max-w-full text-left leading-6 ${isAssistant ? "w-full py-1 text-sm text-text-primary" : "rounded-3xl bg-black/[0.035] px-4 py-1.5 text-[15px] text-text-primary"}`}>
             {isAssistant ? pending ? null : <MoodieResponseContent content={message.content} suppressMetrics={suppressMetrics} suppressTables={suppressTables} /> : editing ? (
@@ -152,24 +170,33 @@ export function MoodieMessageBubble({ message, pending, activeLeaf = true, statu
           {!pending && isAssistant && parts.length ? <MoodieMessageParts parts={parts} /> : !pending && isAssistant && widgets.length ? <MoodieWidgetRenderer widgets={widgets} /> : null}
           {!pending && isAssistant && metadata?.background_runs?.length ? <div className="space-y-2">{metadata.background_runs.map((run) => <MoodieBackgroundRunStatus key={run.id} reference={run} />)}</div> : null}
           {!pending && isAssistant && metadata?.actions?.length ? <MoodieActionPreviews actions={metadata.actions} /> : null}
-          {isAssistant ? <MoodieExecutionSummary activities={metadata?.activity_history} sources={metadata?.sources_v2} trace={metadata?.trace} timestamp={message.created_at} pending={pending} onOpenSources={() => setSourcesOpen(true)} /> : null}
+          {!pending && isAssistant ? <MoodieExecutionSummary activities={metadata?.activity_history} sources={metadata?.sources_v2} trace={metadata?.trace} timestamp={message.created_at} onOpenSources={() => setSourcesOpen(true)} /> : null}
 
           {!pending && isAssistant ? (
-            <div className="flex min-h-8 flex-wrap items-center gap-0.5 border-t border-border/50 pt-1">
+            <div className="mt-0.5 flex min-h-8 flex-wrap items-center gap-0.5">
               {branch && branch.total > 1 ? <div className="mr-1 inline-flex items-center gap-0.5 text-micro text-text-muted"><IconButton label="Phiên bản trước" disabled={!branch.onPrevious} onClick={branch.onPrevious}><ChevronLeft /></IconButton><span>{branch.index + 1}/{branch.total}</span><IconButton label="Phiên bản sau" disabled={!branch.onNext} onClick={branch.onNext}><ChevronRight /></IconButton></div> : null}
               <IconButton label="Sao chép câu trả lời" onClick={() => void copyMessage()}>{copied ? <Check /> : <Copy />}</IconButton>
               <IconButton label={speaking ? "Dừng đọc" : "Đọc câu trả lời"} onClick={toggleSpeech}>{speaking ? <Square /> : <Volume2 />}</IconButton>
-              <IconButton label="Thông tin câu trả lời" onClick={() => setDetailsOpen((value) => !value)}><Info /></IconButton>
               {onFeedback ? <><IconButton label="Phản hồi hữu ích" disabled={feedbackPending} active={feedback === 1} onClick={() => void rate(1)}><ThumbsUp /></IconButton><IconButton label="Phản hồi chưa tốt" disabled={feedbackPending} active={feedback === -1} onClick={() => void rate(-1)}><ThumbsDown /></IconButton></> : null}
-              {onContinue ? <IconButton label="Tiếp tục câu trả lời" onClick={onContinue}><ChevronRight /></IconButton> : null}
               {onRegenerate ? <IconButton label="Tạo lại câu trả lời" onClick={onRegenerate}><RefreshCw /></IconButton> : null}
-              {onDelete ? <IconButton label="Xóa câu trả lời" onClick={onDelete}><Trash2 /></IconButton> : null}
+              {hasMoreActions ? (
+                <div ref={moreMenuRef} className="relative">
+                  <IconButton label="Thao tác khác" active={moreOpen} onClick={() => setMoreOpen((value) => !value)}><MoreHorizontal /></IconButton>
+                  {moreOpen ? (
+                    <div className="absolute bottom-[calc(100%+0.375rem)] left-0 z-30 min-w-48 rounded-xl border border-border/80 bg-white p-1.5 shadow-[0_14px_40px_rgba(31,24,20,0.14)]">
+                      {metadata?.trace ? <Button type="button" unstyled className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-caption text-text-secondary hover:bg-bg-subtle hover:text-text-primary" onClick={() => { setDetailsOpen((value) => !value); setMoreOpen(false); }}><Info className="h-4 w-4" />Chi tiết câu trả lời</Button> : null}
+                      {onContinue ? <Button type="button" unstyled className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-caption text-text-secondary hover:bg-bg-subtle hover:text-text-primary" onClick={() => { onContinue(); setMoreOpen(false); }}><ChevronRight className="h-4 w-4" />Tiếp tục trả lời</Button> : null}
+                      {onDelete ? <Button type="button" unstyled className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-caption text-danger hover:bg-danger/5" onClick={() => { onDelete(); setMoreOpen(false); }}><Trash2 className="h-4 w-4" />Xóa câu trả lời</Button> : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           {detailsOpen && metadata?.trace ? <div className="rounded-xl border border-border bg-bg-subtle p-3 text-caption text-text-secondary"><div className="grid gap-1 sm:grid-cols-2"><p><strong>Engine:</strong> {metadata.trace.engine}</p><p><strong>Thời gian:</strong> {metadata.trace.duration_ms}ms</p><p><strong>Công cụ:</strong> {metadata.trace.tool_call_count}</p><p><strong>Model steps:</strong> {metadata.trace.model_steps}</p></div></div> : null}
 
-          {isAssistant && activeLeaf && metadata?.follow_ups?.length && onQuickPrompt ? <section className="mt-3"><h3 className="mb-1 text-sm font-medium text-text-primary">Hỏi tiếp</h3>{metadata.follow_ups.map((prompt) => { const display = normalizeMoodieDisplayText(prompt); return <Button key={prompt} type="button" unstyled className="flex w-full items-center border-b border-border/50 py-2.5 text-left text-sm text-text-secondary last:border-b-0 hover:text-text-primary" onClick={() => onQuickPrompt(display)}><span className="truncate">{display}</span></Button>; })}</section> : null}
+          {isAssistant && activeLeaf && metadata?.follow_ups?.length && onQuickPrompt ? <section className="mt-3"><h3 className="mb-2 text-caption font-medium text-text-muted">Hỏi tiếp</h3><div className="flex flex-wrap gap-1.5">{metadata.follow_ups.map((prompt) => { const display = normalizeMoodieDisplayText(prompt); return <Button key={prompt} type="button" unstyled className="max-w-full rounded-full border border-border/70 bg-white px-3 py-1.5 text-left text-caption text-text-secondary transition-colors hover:border-border hover:bg-bg-subtle hover:text-text-primary" onClick={() => onQuickPrompt(display)}><span className="block truncate">{display}</span></Button>; })}</div></section> : null}
         </div>
       </div>
       <Suspense fallback={null}><MoodieSourceDrawer open={sourcesOpen} sources={metadata?.sources_v2 || []} onClose={() => setSourcesOpen(false)} /></Suspense>

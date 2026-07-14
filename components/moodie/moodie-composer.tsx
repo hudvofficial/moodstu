@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MoodieVoiceRecorder } from "@/components/moodie/moodie-voice-recorder";
+import { MoodieModelPicker } from "@/components/moodie/moodie-model-picker";
 import { toast } from "sonner";
-import type { MoodieAttachment, MoodieCapability, MoodieComposerContext, MoodieComposerSubmission } from "@/types/moodie";
+import type { MoodieAttachment, MoodieCapability, MoodieComposerContext, MoodieComposerSubmission, MoodieModelOption } from "@/types/moodie";
 
 interface MoodieComposerProps {
   suggestionChips?: string[];
@@ -16,6 +17,9 @@ interface MoodieComposerProps {
   hasMessages?: boolean;
   capabilities?: MoodieCapability[];
   draftKey?: string | null;
+  modelOptions?: MoodieModelOption[];
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
   onSend: (submission: MoodieComposerSubmission) => Promise<void> | void;
   onStop?: () => void;
   onSuggestionClick?: (content: string) => void;
@@ -28,6 +32,9 @@ export function MoodieComposer({
   hasMessages,
   capabilities = [],
   draftKey,
+  modelOptions = [],
+  selectedModel,
+  onModelChange,
   onSend,
   onStop,
   suggestionChips = [],
@@ -72,7 +79,7 @@ export function MoodieComposer({
     window.localStorage.removeItem(storageKey);
     setShowShortcuts(false);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-    const submission = { content, attachments, contexts };
+    const submission = { content, attachments, contexts, model: selectedModel };
     setAttachments([]);
     setContexts([]);
     await onSend(submission);
@@ -150,7 +157,7 @@ export function MoodieComposer({
   const visibleSuggestions = suggestionChips.slice(0, hasMessages ? 3 : 5);
 
   return (
-    <div className="relative z-20 shrink-0 bg-linear-to-t from-white via-white to-white/0 px-3 pb-3 pt-5 sm:px-5 sm:pb-5">
+    <div className="relative z-20 shrink-0 bg-linear-to-t from-white via-white to-white/0 px-3 pb-3 pt-3 sm:px-5 sm:pb-5 sm:pt-5">
       <div className="mx-auto w-full max-w-4xl">
         {showShortcuts && (visibleSuggestions.length > 0 || capabilities.length > 0) ? (
           <div className="mb-2 overflow-hidden rounded-2xl border border-border/70 bg-white p-2 shadow-lg">
@@ -234,6 +241,9 @@ export function MoodieComposer({
                   </Button>
                 </div>
                 <div className="mr-1 flex items-center gap-0.5 self-end">
+                  {modelOptions.length > 0 ? (
+                    <MoodieModelPicker options={modelOptions} value={selectedModel} onChange={onModelChange} disabled={disabled || loading} />
+                  ) : null}
                   <Button type="button" unstyled className="mr-0.5 self-center rounded-full p-1.5 text-text-muted transition hover:text-text-primary" onClick={() => { startRecording().catch(() => {}); }} disabled={disabled || loading} aria-label="Đọc để nhập">
                     <Mic className="h-5 w-5" />
                   </Button>

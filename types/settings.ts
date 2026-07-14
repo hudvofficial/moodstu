@@ -53,6 +53,7 @@ export interface MoodieProviderSettings {
   label: string;
   model: string;
   embeddingModel?: string;
+  embeddingEnabled: boolean;
   hasKey: boolean;
   keyMasked?: string;
   baseUrl?: string;
