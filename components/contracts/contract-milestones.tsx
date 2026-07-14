@@ -103,14 +103,21 @@ function compactSummary(milestones: ContractMilestone[]) {
   };
 }
 
+function milestoneDisplayLabel(milestone: ContractMilestone) {
+  if (milestone.eventType === "ngay_chup" && milestone.label.trim().toLowerCase() === "thực hiện studio") {
+    return "Studio";
+  }
+  return milestone.label;
+}
+
 function MilestoneRows({ milestones }: { milestones: ContractMilestone[] }) {
   return milestones.map((milestone) => {
     const state = milestoneState(milestone);
     return (
       <div key={milestone.key} className="flex min-w-0 items-start gap-1.5 text-xs leading-4">
         <MilestoneIcon milestone={milestone} />
-        <span className="min-w-0 flex-1 truncate text-text-secondary" title={milestone.label}>
-          {milestone.label}
+        <span className="min-w-0 flex-1 truncate font-medium text-text-secondary" title={milestoneDisplayLabel(milestone)}>
+          {milestoneDisplayLabel(milestone)}
         </span>
         <span className="shrink-0 tabular-nums text-text-primary">
           {milestone.date ? formatDate(milestone.date) : "—"}
@@ -184,7 +191,7 @@ export function ContractMilestones({
         </div>
         {isOpen && milestones.length > 0 ? (
           <div className={`absolute left-1/2 z-50 w-72 -translate-x-1/2 rounded-lg bg-bg-card p-3 text-left shadow-xl ${flipUp ? "bottom-full mb-2" : "top-full mt-2"}`}>
-            <div className="mb-2 text-tiny font-black uppercase tracking-widest text-primary/60">Mốc sự kiện</div>
+            <div className="mb-2 text-xs font-semibold text-text-secondary">Mốc sự kiện</div>
             <div className="space-y-2"><MilestoneRows milestones={milestones} /></div>
           </div>
         ) : null}
