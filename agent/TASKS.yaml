@@ -1,0 +1,43 @@
+# TASKS.yaml — Hàng đợi việc + bảng khóa/quyền sở hữu
+#
+# LUẬT (xem agent/AGENT_RULES.md §3):
+#   - Mỗi task 1 `owner` tại một thời điểm. Chỉ owner được ghi trong `locks`.
+#   - Hai task chưa `merged` KHÔNG được có `locks` giao nhau.
+#   - Đổi status/owner = đồng thời viết 1 file trong HANDOFFS/.
+#
+# status: spec | approved | implementing | testing | review | fixing | ci | merged | blocked
+# owner theo status: spec/review/ci -> claude ; implementing/fixing -> codex ; testing -> roo
+#
+# ---- SCHEMA 1 task ----
+# - id: T-YYYYMMDD-<slug>          # định danh duy nhất
+#   title: <mô tả ngắn>
+#   status: spec
+#   owner: claude
+#   branch: codex/<slug>           # branch/worktree Codex làm
+#   worktree: .worktrees/<slug>    # (nếu dùng worktree riêng)
+#   locks:                         # vùng độc quyền của task — KHÔNG chồng task khác
+#     - components/<module>/**
+#     - app/actions/<module>-*.ts
+#   spec: agent/HANDOFFS/T-YYYYMMDD-<slug>.spec.md
+#   verify:                        # gate phải xanh trước merge
+#     - npm run build
+#     - npm run verify:<module>
+#   depends_on: []                 # id task phải merged trước
+#   notes: <ghi chú>
+
+version: 1
+updated: 2026-07-14
+
+# ---- Task đang chạy ----
+active: []
+  # (chưa có task nào tạo qua quy trình 3-agent này)
+
+# ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
+known_inflight:
+  - branch: codex/contract-optimization
+    worktree: .worktrees/contract
+    area: contract module
+    action_required: "Xác nhận đã merge hay còn sống trước khi giao task chạm contracts."
+
+# ---- Đã xong ----
+done: []

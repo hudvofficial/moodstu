@@ -1,0 +1,52 @@
+# CI — cổng chặn code hỏng TRƯỚC khi vào main.
+#
+# Phủ (an toàn, không cần DB): lint + build (build tự typecheck qua tsc của Next).
+# KHÔNG chạy verify:*/e2e ở đây — chúng nối thẳng Supabase (dev/prod chung 1 DB) và
+# e2e từng rò seed vào prod → để Roo/Claude chạy LOCAL. Xem agent/AGENT_RULES.md §6.
+#
+# Để CI THỰC SỰ CHẶN merge, cần (chỉ bạn làm được, 1 lần):
+#   1. GitHub → Settings → Branches → Add rule cho `main`:
+#      "Require status checks to pass" → chọn "quality".
+#   2. Làm việc theo PR: Codex push branch → mở PR → CI xanh → merge vào main → Vercel deploy.
+#   (Nếu vẫn push thẳng main, CI vẫn chạy nhưng chỉ báo SAU khi đã vào main — như Vercel.)
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Hủy run cũ khi có push mới cùng nhánh (tiết kiệm phút CI).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality (lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Env GIẢ cho compile — build không kết nối DB (mọi list page là force-dynamic,
+        # không prerender data). Nếu build thật sự cần secret → thay bằng ${{ secrets.* }}.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build-only
+          NEXT_PUBLIC_SITE_URL: https://example.com
+          # Sentry: không có SENTRY_AUTH_TOKEN → plugin bỏ qua upload sourcemap (không fail build).
+        run: npm run build
