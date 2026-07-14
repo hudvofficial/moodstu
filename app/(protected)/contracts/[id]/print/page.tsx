@@ -3,6 +3,7 @@ import { getStudioInfo } from "@/app/actions/settings-queries";
 import { notFound } from "next/navigation";
 import type {
   Contract,
+  ContractEvent,
   ContractItem,
   PaymentPlan,
   StudioInfo,
@@ -50,6 +51,7 @@ export default async function PrintContractPage(props: {
   const customer = contract.customers;
   const items = (contract.contract_items || []) as ContractItem[];
   const paymentPlans = data.paymentPlans || [];
+  const events = (contract.contract_events || []) as ContractEvent[];
   const studio = studioResult.data as unknown as StudioInfo;
 
   return (
@@ -58,9 +60,9 @@ export default async function PrintContractPage(props: {
       customer={customer}
       items={items}
       paymentPlans={paymentPlans}
+      events={events}
       studio={studio}
       isExportMode={isExportMode}
     />
   );
 }
-

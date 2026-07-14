@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Printer, Download, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import type { Contract, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
+import type { Contract, ContractEvent, ContractItem, PaymentPlan, StudioInfo } from "@/types/contract";
 import type { Customer } from "@/types/crm";
 import ContractTemplate from "./contract-template";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface Props {
   customer: Customer;
   items: ContractItem[];
   paymentPlans: PaymentPlan[];
+  events: ContractEvent[];
   studio: StudioInfo;
   isExportMode?: boolean;
 }
@@ -25,6 +26,7 @@ export default function PrintContractClient({
   customer,
   items,
   paymentPlans,
+  events,
   studio,
   isExportMode = false,
 }: Props) {
@@ -131,7 +133,7 @@ export default function PrintContractClient({
     return () => clearTimeout(timer);
   }, [handleDownload, isExportMode]);
 
-  const templateProps = { contract, customer, items, paymentPlans, studio, logoUrl };
+  const templateProps = { contract, customer, items, paymentPlans, events, studio, logoUrl };
 
   return (
     <div className="contract-print-page min-h-screen bg-neutral-100">
@@ -174,14 +176,15 @@ export default function PrintContractClient({
           className="contract-print-area bg-white shadow-2xl mx-auto"
           style={{
             width: isExportMode ? "148mm" : "297mm",
-            height: isExportMode ? "195mm" : "210mm",
+            minHeight: "210mm",
+            height: isExportMode ? "auto" : "210mm",
             display: "flex",
             position: "relative",
-            overflow: "hidden",
+            overflow: isExportMode ? "visible" : "hidden",
           }}
         >
           {isExportMode ? (
-            <div className="contract-print-copy" style={{ width: "100%", height: "100%" }}>
+            <div className="contract-print-copy" style={{ width: "100%", minHeight: "210mm" }}>
               <ContractTemplate {...templateProps} templateId="print-template-export" />
             </div>
           ) : (

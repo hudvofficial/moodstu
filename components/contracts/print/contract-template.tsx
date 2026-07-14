@@ -7,6 +7,7 @@
 
 import type {
   Contract,
+  ContractEvent,
   ContractItem,
   PaymentPlan,
   StudioInfo,
@@ -15,10 +16,10 @@ import type { Customer } from "@/types/crm";
 import { getPaymentStageLabel } from "@/types/contract-constants";
 
 const PRINT_FONT_FAMILY = "var(--font-sans)";
-const PRINT_BODY_SIZE = "calc(var(--font-size-micro) + 0.5px)";
-const PRINT_TABLE_SIZE = "var(--font-size-micro)";
-const PRINT_NOTE_SIZE = "calc(var(--font-size-micro) - 1px)";
-const PRINT_META_SIZE = "calc(var(--font-size-micro) - 1.5px)";
+const PRINT_BODY_SIZE = "8.2pt";
+const PRINT_TABLE_SIZE = "7.4pt";
+const PRINT_NOTE_SIZE = "6.8pt";
+const PRINT_META_SIZE = "6.5pt";
 const PRINT_RADIUS = "calc(var(--radius-md) / 2)";
 
 interface PrintPaymentScheduleRow {
@@ -44,10 +45,9 @@ function formatDate(date: string | null): string {
 
 function getPaymentScheduleRows(
   paymentPlans: PaymentPlan[],
-  contract: Contract,
 ): PrintPaymentScheduleRow[] {
-  const planRows = paymentPlans
-    .filter((plan) => plan.status !== "cancelled")
+  return paymentPlans
+    .filter((plan) => plan.status !== "cancelled" && Number(plan.amount) > 0)
     .map((plan) => ({
       id: plan.id,
       label: getPaymentStageLabel(plan.stage_key || plan.stage_name, "Đợt thanh toán"),
@@ -73,25 +73,6 @@ function getPaymentScheduleRows(
       dueDate: row.dueDate,
       status: row.status,
     }));
-
-  if (planRows.length > 0) return planRows;
-
-  const remaining = Number(contract.remaining_amount) || 0;
-  if (remaining <= 0) return [];
-
-  return [
-    {
-      id: "remaining-balance",
-      label: "Thanh toán hết",
-      amount: remaining,
-      dueDate:
-        contract.delivery_date ||
-        contract.work_date ||
-        contract.contract_date ||
-        null,
-      status: "pending",
-    },
-  ];
 }
 
 // ═══════════════════════════════════════════
@@ -103,6 +84,7 @@ interface ContractTemplateProps {
   customer: Customer;
   items: ContractItem[];
   paymentPlans: PaymentPlan[];
+  events: ContractEvent[];
   studio: StudioInfo;
   logoUrl?: string;
   templateId?: string;
@@ -117,19 +99,31 @@ export default function ContractTemplate({
   customer,
   items,
   paymentPlans,
+  events,
   studio,
   logoUrl,
   templateId,
 }: ContractTemplateProps) {
-  const isWedding = contract.service_type === "ngay_cuoi";
-
   // Financial calculations
   const subtotal = items.reduce((sum, item) => sum + item.total_amount, 0);
   const discount = contract.discount_amount || 0;
   const total = contract.total_amount;
   const paid = contract.paid_amount;
   const remaining = contract.remaining_amount;
-  const paymentScheduleRows = getPaymentScheduleRows(paymentPlans, contract);
+  const paymentScheduleRows = getPaymentScheduleRows(paymentPlans);
+  const operationalEvents = events
+    .filter((event) =>
+      !event.deleted_at &&
+      Boolean(event.event_date) &&
+      (event.event_type === "ngay_chup" || event.event_type === "ngay_to_chuc"),
+    )
+    .toSorted((left, right) =>
+      (left.event_date || "").localeCompare(right.event_date || "") ||
+      left.sort_order - right.sort_order,
+    );
+  const primaryWeddingDate = customer.wedding_date || operationalEvents
+    .filter((event) => event.event_type === "ngay_to_chuc")
+    .at(-1)?.event_date || null;
 
   return (
     <div
@@ -137,8 +131,8 @@ export default function ContractTemplate({
       className="print-template"
       style={{
         width: "148mm",
-        minHeight: "195mm",
-        padding: "7mm 8mm",
+        minHeight: "210mm",
+        padding: "6mm 7mm 5mm",
         boxSizing: "border-box",
         fontFamily: PRINT_FONT_FAMILY,
         fontSize: PRINT_BODY_SIZE,
@@ -156,7 +150,7 @@ export default function ContractTemplate({
           gap: "5mm",
           borderBottom: "1.5px solid var(--color-primary)",
           paddingBottom: "2.5mm",
-          marginBottom: "4mm",
+          marginBottom: "3mm",
           minHeight: "13mm",
         }}
       >
@@ -265,8 +259,8 @@ export default function ContractTemplate({
         style={{
           border: "1px solid var(--color-border)",
           borderRadius: PRINT_RADIUS,
-          padding: "2.6mm 3mm 3mm",
-          marginBottom: "3.5mm",
+          padding: "2.3mm 3mm 2.6mm",
+          marginBottom: "2.8mm",
           background: "var(--color-bg-card)",
         }}
       >
@@ -288,21 +282,18 @@ export default function ContractTemplate({
             italic
             span={2}
           />
-          {isWedding && (
-            <>
-              <InfoField
-                label="Ngày cưới"
-                value={formatDate(customer.wedding_date || null)}
-              />
-              <InfoField
-                label="Ghi chú"
-                value={contract.notes || "..."}
-                allowWrap
-              />
-            </>
+          {contract.notes && (
+            <InfoField label="Ghi chú" value={contract.notes} allowWrap span={2} />
           )}
         </div>
       </div>
+
+      {operationalEvents.length > 0 && (
+        <EventSchedule
+          events={operationalEvents}
+          primaryWeddingDate={primaryWeddingDate}
+        />
+      )}
 
       {/* ── SERVICES TABLE ── */}
       <SectionTitle>Chi tiết dịch vụ</SectionTitle>
@@ -322,15 +313,15 @@ export default function ContractTemplate({
               color: "var(--color-text-inverse)",
             }}
           >
-            <Th width="8%" radius="left">
+            <Th width="7%" radius="left">
               STT
             </Th>
-            <Th width="42%" align="left">
+            <Th width="45%" align="left">
               Dịch vụ / Sản phẩm
             </Th>
-            <Th width="10%">SL</Th>
-            <Th width="20%">Đơn giá</Th>
-            <Th width="20%" radius="right">
+            <Th width="8%">SL</Th>
+            <Th width="19%">Đơn giá</Th>
+            <Th width="21%" radius="right">
               Thành tiền
             </Th>
           </tr>
@@ -492,6 +483,7 @@ export default function ContractTemplate({
 
       {/* ── FOOTER ── */}
       <div
+        className="contract-print-footer"
         style={{
           textAlign: "center",
           fontSize: PRINT_META_SIZE,
@@ -499,6 +491,7 @@ export default function ContractTemplate({
           marginTop: "3mm",
           borderTop: "1px dashed var(--color-border)",
           paddingTop: "1.5mm",
+          breakInside: "avoid",
         }}
       >
         {studio.name} — Cảm ơn quý khách!
@@ -550,6 +543,115 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+function EventSchedule({
+  events,
+  primaryWeddingDate,
+}: {
+  events: ContractEvent[];
+  primaryWeddingDate: string | null;
+}) {
+  return (
+    <div style={{ marginBottom: "2.8mm", breakInside: "avoid" }}>
+      <SectionTitle>Lịch thực hiện</SectionTitle>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: events.length === 1 ? "1fr" : "repeat(2, minmax(0, 1fr))",
+          gap: "1.3mm",
+        }}
+      >
+        {events.map((event) => {
+          const isCeremony = event.event_type === "ngay_to_chuc";
+          const isPrimary = isCeremony &&
+            event.event_date?.slice(0, 10) === primaryWeddingDate?.slice(0, 10);
+
+          return (
+            <div
+              key={event.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "3mm minmax(0, 1fr) auto",
+                alignItems: "center",
+                columnGap: "1.8mm",
+                minHeight: "13mm",
+                padding: "1.5mm 2mm",
+                border: "1px solid var(--color-border-light)",
+                borderRadius: PRINT_RADIUS,
+                background: isPrimary ? "var(--color-surface)" : "var(--color-bg-card)",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: "2.2mm",
+                  height: "2.2mm",
+                  borderRadius: "50%",
+                  background: isPrimary ? "var(--color-primary)" : "var(--color-border)",
+                  boxShadow: isPrimary ? "0 0 0 1.2mm var(--color-surface)" : undefined,
+                }}
+              />
+              <span style={{ minWidth: 0 }}>
+                <span
+                  style={{
+                    display: "block",
+                    whiteSpace: "normal",
+                    overflowWrap: "anywhere",
+                    fontWeight: 800,
+                    color: "var(--color-text-primary)",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {event.title || (isCeremony ? "Ngày cưới" : "Studio")}
+                </span>
+                {event.location && (
+                  <span
+                    style={{
+                      display: "block",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      color: "var(--color-text-muted)",
+                      fontSize: PRINT_META_SIZE,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {event.location}
+                  </span>
+                )}
+              </span>
+              <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                <span
+                  style={{
+                    display: "block",
+                    fontWeight: 800,
+                    color: "var(--color-primary)",
+                    fontVariantNumeric: "tabular-nums",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {formatDate(event.event_date)}
+                </span>
+                {isPrimary && (
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: "0.4mm",
+                      color: "var(--color-primary)",
+                      fontSize: PRINT_META_SIZE,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Ngày chính
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function InfoField({
   label,
   value,
@@ -572,10 +674,10 @@ function InfoField({
         alignItems: allowWrap ? "flex-start" : "center",
         gap: "2mm",
         borderBottom: "1px solid var(--color-border-light)",
-        paddingBottom: "0.6mm",
+        padding: "0.5mm 0 0.9mm",
         gridColumn: span ? `span ${span}` : undefined,
         minWidth: 0,
-        minHeight: "4mm",
+        minHeight: "5.2mm",
       }}
     >
       <span
@@ -594,13 +696,12 @@ function InfoField({
       <span
         style={{
           minWidth: 0,
-          overflow: allowWrap ? "visible" : "hidden",
-          textOverflow: allowWrap ? undefined : "ellipsis",
-          whiteSpace: allowWrap ? "normal" : "nowrap",
+          whiteSpace: "normal",
+          overflowWrap: "anywhere",
           fontWeight: bold ? 700 : 500,
           fontStyle: italic ? "italic" : undefined,
           color: "var(--color-text-primary)",
-          lineHeight: 1.25,
+          lineHeight: 1.4,
         }}
       >
         {value}
@@ -616,8 +717,8 @@ function PaymentScheduleRow({ row }: { row: PrintPaymentScheduleRow }) {
     <tr>
       <td
         style={{
-          width: "55%",
-          padding: "1.7mm 2mm",
+          width: "50%",
+          padding: "1.45mm 2mm",
           borderBottom: "1px solid var(--color-border)",
         }}
       >
@@ -648,8 +749,8 @@ function PaymentScheduleRow({ row }: { row: PrintPaymentScheduleRow }) {
       </td>
       <td
         style={{
-          width: "20%",
-          padding: "1.7mm 2mm",
+          width: "25%",
+          padding: "1.45mm 2mm",
           textAlign: "center",
           color: "var(--color-text-muted)",
           borderBottom: "1px solid var(--color-border)",
@@ -660,10 +761,11 @@ function PaymentScheduleRow({ row }: { row: PrintPaymentScheduleRow }) {
       <td
         style={{
           width: "25%",
-          padding: "1.7mm 2mm",
+          padding: "1.45mm 2mm",
           textAlign: "right",
           fontWeight: 800,
           color: isPaid ? "var(--color-success)" : "var(--color-primary)",
+          fontVariantNumeric: "tabular-nums",
           borderBottom: "1px solid var(--color-border)",
         }}
       >
@@ -724,6 +826,7 @@ function Td({
           ? "var(--color-text-secondary)"
           : "var(--color-text-primary)",
         fontWeight: strong ? 700 : 500,
+        fontVariantNumeric: align === "right" ? "tabular-nums" : undefined,
       }}
     >
       {children}
@@ -754,7 +857,7 @@ function FinancialSummary({
     >
       <div
         style={{
-          width: "49mm",
+          width: "67mm",
           fontSize: PRINT_TABLE_SIZE,
         }}
       >
@@ -809,7 +912,7 @@ function SummaryLine({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 23mm",
+        gridTemplateColumns: "minmax(0, 1fr) 28mm",
         alignItems: "baseline",
         columnGap: "3mm",
         minHeight: "4mm",
@@ -828,6 +931,7 @@ function SummaryLine({
           textAlign: "right",
           fontWeight: isEmphasis ? 800 : 500,
           color: labelColor,
+          whiteSpace: "nowrap",
         }}
       >
         {label}
