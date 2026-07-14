@@ -41,9 +41,10 @@ interface Props {
   weddingDate: string;
   onWeddingDateChange: (date: string) => void;
   badgeCode?: string;
+  weddingDateError?: string;
 }
 
-export function ContractInfoSection({ formData, updateField, weddingDate, onWeddingDateChange, badgeCode }: Props) {
+export function ContractInfoSection({ formData, updateField, weddingDate, onWeddingDateChange, badgeCode, weddingDateError }: Props) {
   const [employees, setEmployees] = useState<ActiveEmployee[]>([]);
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
   const [employeeError, setEmployeeError] = useState("");
@@ -187,7 +188,9 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
 
         {showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && (
           <div className="space-y-1">
-            <label className="label-base">Ngày cưới</label>
+            <label className="label-base">
+              Ngày cưới {(formData.service_type === "studio" || formData.service_type === "combo") ? <span className="text-error">*</span> : null}
+            </label>
             {weddingDatesArr.map((date, idx) => (
               <div key={idx} className="flex items-center gap-1.5">
                 <div className="flex-1">
@@ -222,6 +225,7 @@ export function ContractInfoSection({ formData, updateField, weddingDate, onWedd
             >
               <Plus size={12} /> Thêm ngày
             </Button>
+            {weddingDateError ? <p className="error-text">{weddingDateError}</p> : null}
           </div>
         )}
 

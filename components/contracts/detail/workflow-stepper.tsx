@@ -2,21 +2,13 @@
 
 import { CheckCircle2 } from "lucide-react";
 import type { Contract, ContractEvent, EventType } from "@/types/contract";
+import { sortContractEvents } from "@/lib/contracts/contract-workflow";
 
 // ═══════════════════════════════════════════
 // WorkflowStepper — Pure Event-Driven
 // Reads contract_events → auto-generates steps
 // 0 code change when adding new package types
 // ═══════════════════════════════════════════
-
-// Sort priority for events on the same date
-const EVENT_TYPE_PRIORITY: Record<EventType, number> = {
-  chuan_bi: 1,
-  ngay_chup: 2,
-  ngay_to_chuc: 3,
-  hau_ky: 4,
-  giao_san_pham: 5,
-};
 
 // Fallback labels when event.title is null
 const FALLBACK_LABELS: Record<EventType, string> = {
@@ -38,13 +30,7 @@ function buildSteps(contract: Contract, events: ContractEvent[]): StepData[] {
 
   if (events.length === 0) return steps;
 
-  // Sort events by date, then by type priority
-  const sorted = [...events].sort((a, b) => {
-    const dateA = new Date(a.event_date || a.deadline || "9999-12-31").getTime();
-    const dateB = new Date(b.event_date || b.deadline || "9999-12-31").getTime();
-    if (dateA !== dateB) return dateA - dateB;
-    return (EVENT_TYPE_PRIORITY[a.event_type] ?? 99) - (EVENT_TYPE_PRIORITY[b.event_type] ?? 99);
-  });
+  const sorted = sortContractEvents(events);
 
   let foundCurrent = false;
 

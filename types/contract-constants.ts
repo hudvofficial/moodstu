@@ -20,12 +20,19 @@ import { ON_SET_EVENT_TYPES } from "./contract";
 
 // ─── CONTRACT STATUS MAP (snake_case → Vietnamese) ───────
 
+export const CONTRACT_STATUS_ORDER: ContractStatus[] = [
+  "cho_xu_ly",
+  "dang_thuc_hien",
+  "hoan_thanh",
+  "da_huy",
+];
+
 export const CONTRACT_STATUS_MAP: Record<
   ContractStatus,
   { label: string; variant: "info" | "warning" | "success" | "error" }
 > = {
-  dang_thuc_hien: { label: "Đang thực hiện", variant: "info" },
   cho_xu_ly: { label: "Chờ xử lý", variant: "warning" },
+  dang_thuc_hien: { label: "Đang thực hiện", variant: "info" },
   hoan_thanh: { label: "Hoàn thành", variant: "success" },
   da_huy: { label: "Đã hủy", variant: "error" },
 };

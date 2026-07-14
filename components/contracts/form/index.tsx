@@ -164,6 +164,7 @@ export default function ContractForm({ mode, contractId }: Props) {
           weddingDate={form.weddingDate}
           onWeddingDateChange={form.setWeddingDate}
           badgeCode={badgeCode}
+          weddingDateError={form.errors.weddingDate}
         />
 
         {/* Section 2: Customer */}

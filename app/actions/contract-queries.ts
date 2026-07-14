@@ -109,6 +109,39 @@ type ContractListPayload = {
   pageSize: number;
 };
 
+async function getContractStatsFromRpc(
+  supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
+): Promise<ContractStats | null> {
+  const { data: rpcData, error: rpcError } = await supabase
+    .rpc("contract_stats")
+    .maybeSingle();
+
+  if (rpcError || !rpcData) return null;
+  const row = rpcData as {
+    total: number;
+    active: number;
+    pending: number;
+    completed: number;
+    revenue: number;
+    outstanding: number;
+    growth_total: number;
+  };
+  return {
+    total: Number(row.total) || 0,
+    active: Number(row.active) || 0,
+    pending: Number(row.pending) || 0,
+    completed: Number(row.completed) || 0,
+    revenue: Number(row.revenue) || 0,
+    outstanding: Number(row.outstanding) || 0,
+    growth: {
+      total: Number(row.growth_total) || 0,
+      active: 0,
+      pending: 0,
+      completed: 0,
+    },
+  } satisfies ContractStats;
+}
+
 function buildChecklistSummary(items: Partial<ContractChecklist>[]) {
   const total = items.length;
   const done = items.filter((item) => item.is_completed === true).length;
@@ -385,6 +418,18 @@ export async function getContractList(filters: ContractFilters) {
   }));
 }
 
+export async function getContractPageBootstrap(filters: ContractFilters) {
+  return profileAction("contracts.getContractPageBootstrap", () => withAuthRead(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+    const [list, stats] = await Promise.all([
+      getContractListFromRpc(supabase, filters),
+      getContractStatsFromRpc(supabase),
+    ]);
+    if (!list || !stats) throw new Error("Không thể tải dữ liệu tổng quan hợp đồng");
+    return { list, stats };
+  }));
+}
+
 // ─── getContractStats ────────────────────────
 
 export async function getContractStats() {
@@ -392,41 +437,12 @@ export async function getContractStats() {
   return profileAction("contracts.getContractStats", () => withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const { data: rpcData, error: rpcError } = await supabase
-      .rpc("contract_stats")
-      .maybeSingle();
-
-    if (!rpcError && rpcData) {
-      const row = rpcData as {
-        total: number;
-        active: number;
-        pending: number;
-        completed: number;
-        revenue: number;
-        outstanding: number;
-        growth_total: number;
-      };
-      return {
-        total: Number(row.total) || 0,
-        active: Number(row.active) || 0,
-        pending: Number(row.pending) || 0,
-        completed: Number(row.completed) || 0,
-        revenue: Number(row.revenue) || 0,
-        outstanding: Number(row.outstanding) || 0,
-        growth: {
-          total: Number(row.growth_total) || 0,
-          active: 0,
-          pending: 0,
-          completed: 0,
-        },
-      } satisfies ContractStats;
-    }
+    const rpcStats = await getContractStatsFromRpc(supabase);
+    if (rpcStats) return rpcStats;
 
     // Nếu RPC lỗi (do đổi schema, thiếu function, runtime SQL lỗi...), ta in log cảnh báo 
     // và chạy ngay xuống fallback để không bao giờ quăng lỗi cứng về cho UI
-    if (rpcError) {
-      console.warn("[getContractStats] RPC contract_stats error, falling back:", rpcError.message);
-    }
+    console.warn("[getContractStats] RPC contract_stats unavailable, falling back");
 
     // Try simple fallback RPC (single scan, no revenue/outstanding)
     const { data: simpleData, error: simpleError } = await supabase

@@ -1,5 +1,5 @@
 import ContractsListClient from "@/components/contracts/contracts-list-client";
-import { getContractList, getContractStats } from "@/app/actions/contract-queries";
+import { getContractList, getContractPageBootstrap, getContractStats } from "@/app/actions/contract-queries";
 import type { ContractFilters, ContractStats } from "@/types/contract";
 
 export const metadata = { title: "Hợp đồng" };
@@ -32,10 +32,16 @@ export default async function ContractsPage(props: {
     page: Math.max(1, Number(sp.page) || 1),
   } as unknown as ContractFilters;
 
-  const [listResult, statsResult] = await Promise.all([
-    getContractList(initialFilters),
-    getContractStats(),
-  ]);
+  const bootstrapResult = await getContractPageBootstrap(initialFilters);
+  const [listResult, statsResult] = bootstrapResult.success
+    ? [
+        { success: true as const, data: bootstrapResult.data.list },
+        { success: true as const, data: bootstrapResult.data.stats },
+      ]
+    : await Promise.all([
+        getContractList(initialFilters),
+        getContractStats(),
+      ]);
 
   return (
     <ContractsListClient

@@ -26,6 +26,7 @@ interface ContractEvent {
   location: string | null;
   status: string;
   notes?: string | null;
+  sort_order?: number;
 }
 
 interface DrawerEventTimelineProps {
@@ -57,8 +58,11 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
     );
   }
 
-  // Sort events by order from SSOT constants
+  // Persisted sort_order is the business sequence; event type is fallback for legacy rows.
   const sortedEvents = [...events].sort((a, b) => {
+    if (a.sort_order !== undefined && b.sort_order !== undefined && a.sort_order !== b.sort_order) {
+      return a.sort_order - b.sort_order;
+    }
     const orderA = EVENT_TYPE_MAP[a.event_type as EventType]?.order ?? 99;
     const orderB = EVENT_TYPE_MAP[b.event_type as EventType]?.order ?? 99;
     return orderA - orderB;
@@ -151,4 +155,3 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
     </section>
   );
 }
-

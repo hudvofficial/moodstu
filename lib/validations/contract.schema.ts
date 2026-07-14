@@ -168,6 +168,15 @@ export const contractSubmissionSchema = z.object({
   weddingDate: z.string().optional(),
   existingContractId: z.string().optional(),
   expectedUpdatedAt: z.string().optional(), // optimistic lock
+}).superRefine((data, ctx) => {
+  const requiresWeddingDate = data.formData.service_type === "studio" || data.formData.service_type === "combo";
+  if (requiresWeddingDate && !data.existingContractId && !data.weddingDate?.trim()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["weddingDate"],
+      message: "Ngày cưới là bắt buộc với hợp đồng Studio/Combo mới",
+    });
+  }
 });
 
 export type ValidatedContractSubmission = z.infer<

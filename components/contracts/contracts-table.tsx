@@ -20,6 +20,7 @@ import type { ContractChecklistSummary, ContractStatus, Contract } from "@/types
 import MissingInfoBadge from "@/components/contracts/missing-info-badge";
 import type { ContractChecklistForBadge } from "@/components/contracts/missing-info-badge";
 import ProgressBadge from "@/components/contracts/progress-badge";
+import { ContractMilestones } from "@/components/contracts/contract-milestones";
 
 // ─── HELPERS ─────────────────────────────────────
 
@@ -39,32 +40,6 @@ function getAvatarColor(serviceType: string | null): string {
 
 function getStatusVariant(status: ContractStatus): "info" | "warning" | "success" | "error" {
   return CONTRACT_STATUS_MAP[status]?.variant || "info";
-}
-
-function getUrgencyInfo(dateStr: string | null): { text: string; className: string } | null {
-  if (!dateStr) return null;
-  const eventDate = new Date(dateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  eventDate.setHours(0, 0, 0, 0);
-  const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return { text: "Đã qua", className: "text-text-muted line-through" };
-  if (diffDays <= 7) return { text: `⚡ ${diffDays} ngày`, className: "text-error font-bold" };
-  if (diffDays <= 30) return { text: `${diffDays} ngày`, className: "text-warning" };
-  return { text: `${diffDays} ngày`, className: "text-success" };
-}
-
-function getFutureOnSetCount(c: Contract): number {
-  const events = getArr(c, "contract_events");
-  const today0 = new Date();
-  today0.setHours(0, 0, 0, 0);
-  return events.filter((e: any) => {
-    if (!e?.event_date) return false;
-    if (e.event_type !== "ngay_chup" && e.event_type !== "ngay_to_chuc") return false;
-    const d = new Date(e.event_date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() >= today0.getTime();
-  }).length;
 }
 
 
@@ -171,27 +146,7 @@ const DesktopTableRow = memo(function DesktopTableRow({
         {fmtDate(getStr(c, "contract_date") || null)}
       </TD>
       <TD>
-        {(() => {
-          const nextDate = getStr(c, "next_event_date") || null;
-          const urgency = getUrgencyInfo(nextDate);
-          const futureOnSetCount = getFutureOnSetCount(c);
-          return (
-            <div className="flex flex-col gap-0.5">
-              {urgency ? (
-                <span className={`text-sm ${urgency.className}`}>
-                  {urgency.text}
-                </span>
-              ) : (
-                <span className="text-sm text-text-muted">—</span>
-              )}
-              {futureOnSetCount >= 2 && (
-                <span className="text-tiny text-text-muted">
-                  +{futureOnSetCount - 1} buổi nữa
-                </span>
-              )}
-            </div>
-          );
-        })()}
+        <ContractMilestones contract={c} />
       </TD>
 
       <TD className="text-right font-semibold text-text-main">
@@ -241,7 +196,9 @@ const DesktopTableRow = memo(function DesktopTableRow({
   prev.c.customers?.full_name === next.c.customers?.full_name &&
   JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
   JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
-  (prev.c as any).next_event_date === (next.c as any).next_event_date
+  JSON.stringify(prev.c.contract_events) === JSON.stringify(next.c.contract_events) &&
+  prev.c.work_date === next.c.work_date &&
+  (prev.c.customers as { wedding_date?: string | null } | null)?.wedding_date === (next.c.customers as { wedding_date?: string | null } | null)?.wedding_date
 );
 
 const DesktopTable = memo(function DesktopTable({
@@ -361,22 +318,8 @@ const MobileCardRow = memo(function MobileCardRow({
         </span>
       </div>
 
-      {/* Row 3.5: Event Date (most important on mobile) */}
-      {(() => {
-        const nextDate = getStr(c, "next_event_date") || null;
-        const urgency = getUrgencyInfo(nextDate);
-        if (!urgency) return null;
-        return (
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-base font-bold text-text-main">
-              📅 {fmtDate(nextDate)}
-            </span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${urgency.className}`}>
-              {urgency.text}
-            </span>
-          </div>
-        );
-      })()}
+      {/* Row 3.5: Operational milestones */}
+      <ContractMilestones contract={c} className="mb-3 rounded-lg bg-bg-subtle/70 p-2.5" />
 
       {/* Row 3.75: Task Progress */}
       <div className="mb-3">
@@ -421,7 +364,9 @@ const MobileCardRow = memo(function MobileCardRow({
   prev.c.customers?.full_name === next.c.customers?.full_name &&
   JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
   JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
-  (prev.c as any).next_event_date === (next.c as any).next_event_date
+  JSON.stringify(prev.c.contract_events) === JSON.stringify(next.c.contract_events) &&
+  prev.c.work_date === next.c.work_date &&
+  (prev.c.customers as { wedding_date?: string | null } | null)?.wedding_date === (next.c.customers as { wedding_date?: string | null } | null)?.wedding_date
 );
 
 const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover }: ContractsTableProps) {

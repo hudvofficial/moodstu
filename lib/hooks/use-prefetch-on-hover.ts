@@ -2,10 +2,11 @@
 
 import { useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIsSlowNetwork } from "@/hooks/use-network-quality";
 import { mutate } from "swr";
 import type { Arguments } from "swr";
-import { getContractList } from "@/app/actions/contract-queries";
+import { getContractPageBootstrap } from "@/app/actions/contract-queries";
 import { getEmployeeList } from "@/app/actions/employee-queries";
 import { getServices } from "@/app/actions/service-queries";
 import { getLeadsBootstrap } from "@/app/actions/lead-actions";
@@ -13,6 +14,7 @@ import { getCustomers, getCustomerStats } from "@/app/actions/customer-actions";
 import { fetchCalendarEvents, fetchCalendarFilterEmployees, checkGoogleCalendarStatus } from "@/app/actions/calendar-queries";
 import { getPrintingBootstrap } from "@/app/actions/printing-queries";
 import { debugPrefetch } from "@/lib/navigation-data-prefetch";
+import { contractKeys } from "@/lib/hooks/use-contract-queries";
 import { cacheKeys } from "@/lib/swr";
 import { createClient } from "@/lib/supabase/client";
 import type { ContractFilters } from "@/types/contract";
@@ -38,11 +40,6 @@ const DEFAULT_CONTRACT_FILTERS: ContractFilters = {
   page: 1,
 };
 
-const CONTRACT_LIST_KEY = [
-  cacheKeys.contracts(),
-  JSON.stringify(DEFAULT_CONTRACT_FILTERS),
-] as const;
-
 const DEFAULT_DRESS_FILTERS = {
   status: undefined,
   category: undefined,
@@ -63,14 +60,9 @@ function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | nu
   const route = href.split("?")[0];
 
   if (route === "/contracts") {
-    return {
-      key: CONTRACT_LIST_KEY,
-      fetcher: async () => {
-        const result = await getContractList(DEFAULT_CONTRACT_FILTERS);
-        if (!result.success) throw new Error(result.error);
-        return result.data;
-      },
-    };
+    // Contracts uses React Query. It is warmed directly in usePrefetchOnHover
+    // so list and stats land in the exact cache keys consumed by the page.
+    return null;
   }
 
   if (route === "/services") {
@@ -183,7 +175,7 @@ function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | nu
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    
+
     return [
       {
         key: cacheKeys.calendar(month, year),
@@ -217,6 +209,7 @@ function getPrefetchConfig(href: string): PrefetchConfig | PrefetchConfig[] | nu
 export function usePrefetchOnHover() {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const prefetchedRef = useRef<Set<string>>(new Set());
   const isSlowNetwork = useIsSlowNetwork();
 
@@ -234,6 +227,19 @@ export function usePrefetchOnHover() {
       debugPrefetch("sidebar-hover", route);
       router.prefetch(route);
 
+      if (route === "/contracts") {
+        void getContractPageBootstrap(DEFAULT_CONTRACT_FILTERS)
+          .then((result) => {
+            if (!result.success) throw new Error(result.error);
+            queryClient.setQueryData(contractKeys.list(DEFAULT_CONTRACT_FILTERS), result.data.list);
+            queryClient.setQueryData(contractKeys.stats(), result.data.stats);
+          })
+          .catch(() => {
+            prefetchedRef.current.delete(route);
+          });
+        return;
+      }
+
       const configOrConfigs = getPrefetchConfig(route);
       if (!configOrConfigs) return;
 
@@ -244,6 +250,6 @@ export function usePrefetchOnHover() {
         });
       });
     },
-    [pathname, router, isSlowNetwork],
+    [pathname, router, queryClient, isSlowNetwork],
   );
 }

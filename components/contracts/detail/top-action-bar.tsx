@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Pencil, Printer, Download } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { CONTRACT_STATUS_MAP, PAYMENT_STATUS_MAP } from "@/types/contract-constants";
+import { CONTRACT_STATUS_MAP, CONTRACT_STATUS_ORDER, PAYMENT_STATUS_MAP } from "@/types/contract-constants";
 import { Badge } from "@/components/ui/badge";
 import type { ContractStatus, PaymentStatus } from "@/types/contract";
 
@@ -184,7 +184,8 @@ function ContractStatusBadge({ contractId, currentStatus }: { contractId: string
     setOptimisticStatus(currentStatus);
   }
 
-  const options = Object.entries(CONTRACT_STATUS_MAP).map(([val, info]) => {
+  const options = CONTRACT_STATUS_ORDER.map((val) => {
+    const info = CONTRACT_STATUS_MAP[val];
     let color = "#cbd5e1"; // default neutral
     if (info.variant === "success") color = "#22c55e";
     if (info.variant === "warning") color = "#f59e0b";

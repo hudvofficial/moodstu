@@ -186,6 +186,10 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     const contractDate = formData.contract_date;
     const workDate = formData.work_date;
 
+    if (mode === "create" && (formData.service_type === "studio" || formData.service_type === "combo") && !weddingDate) {
+      newErrors.weddingDate = "Ngày cưới là bắt buộc với hợp đồng Studio/Combo mới";
+    }
+
     if (contractDate && workDate && workDate < contractDate) {
       newErrors.work_date = "Ngày làm phải sau ngày ký hợp đồng";
     }
@@ -210,7 +214,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     }
 
     return !hasErrors;
-  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, weddingDate, formData.service_type]);
+  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, weddingDate, formData.service_type, mode]);
 
   // ── Submit (internal, reused by both submit + draft) ──
   const handleSubmitInternal = useCallback(async (statusOverride?: ContractFormData["status"]) => {

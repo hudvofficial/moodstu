@@ -89,6 +89,15 @@ function fallbackEventTemplates(serviceType: ServiceType): EventTemplateRow[] {
   };
 
   const label = serviceLabel[serviceType] || "Dự án";
+  if (serviceType === "studio") {
+    return [
+      { event_type: "ngay_chup", event_name: "Chụp cổng tại Studio", default_days_offset: 0, sort_order: 1 },
+      { event_type: "ngay_to_chuc", event_name: "Ngày cưới", default_days_offset: 0, sort_order: 2 },
+      { event_type: "hau_ky", event_name: "Hậu kỳ Studio", default_days_offset: 3, sort_order: 3 },
+      { event_type: "giao_san_pham", event_name: "Giao sản phẩm", default_days_offset: 7, sort_order: 4 },
+    ];
+  }
+
   if (serviceType === "ngay_cuoi") {
     return [
       { event_type: "ngay_to_chuc", event_name: label, default_days_offset: 0, sort_order: 1 },

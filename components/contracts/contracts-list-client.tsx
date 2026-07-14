@@ -34,7 +34,6 @@ import {
   useContracts,
   useContractStats,
   prefetchContract,
-  prefetchContractDetail,
   revalidateContractListCaches,
   updateContractListChecklistCache,
 } from "@/lib/hooks/use-contract-queries";
@@ -49,7 +48,7 @@ import { TabsFilter } from "@/components/ui/tabs-filter";
 import { Pagination } from "@/components/ui/pagination";
 import DatePicker from "@/components/ui/date-picker";
 
-import { SERVICE_TYPE_MAP } from "@/types/contract-constants";
+import { CONTRACT_STATUS_MAP, CONTRACT_STATUS_ORDER, SERVICE_TYPE_MAP } from "@/types/contract-constants";
 import type { ContractFilters, ContractStats, Contract } from "@/types/contract";
 
 const ContractDrawer = dynamic(
@@ -75,10 +74,10 @@ const DEFAULT_STATS: ContractStats = {
 
 const STATUS_TABS = [
   { label: "Tất cả", value: "all" },
-  { label: "Đang thực hiện", value: "dang_thuc_hien" },
-  { label: "Chờ xử lý", value: "cho_xu_ly" },
-  { label: "Hoàn thành", value: "hoan_thanh" },
-  { label: "Đã hủy", value: "da_huy" },
+  ...CONTRACT_STATUS_ORDER.map((value) => ({
+    label: CONTRACT_STATUS_MAP[value].label,
+    value,
+  })),
 ];
 
 const MOBILE_SERVICE_OPTIONS = [
@@ -210,6 +209,7 @@ const ContractsListInner = memo(function ContractsListInner({
     () => [
       realtimeSignalConfig("contracts"),
       realtimeSignalConfig("customers"),
+      realtimeSignalConfig("contract_events"),
       realtimeSignalConfig("contract_checklists"),
     ],
     [],
@@ -270,8 +270,8 @@ const ContractsListInner = memo(function ContractsListInner({
         router.prefetch(`/contracts/${id}/edit`);
       }
 
-      // Warm the detail caches on click too (hover does not fire reliably on touch/mobile).
-      prefetchContractDetail(queryClient, id);
+      // Drawer-specific data is warmed on intent; full detail waits until the user
+      // actually opens the detail route to avoid four parallel requests per row.
       prefetchContract(queryClient, id);
       void preload(["contract-notes", id], () => fetchContractNotesClient(id));
 
@@ -285,12 +285,9 @@ const ContractsListInner = memo(function ContractsListInner({
   const handleHover = useCallback(
     (id: string) => {
       if (!id) return;
-      router.prefetch(`/contracts/${id}`); // Route prefetch (cho navigate trang detail)
-      prefetchContractDetail(queryClient, id); // warm detail cache (khi navigate /contracts/[id])
-      prefetchContract(queryClient, id); // ⚡ warm drawerExtra → tabs (checklist/sự kiện đầy đủ) instant khi mở drawer
-      void preload(["contract-notes", id], () => fetchContractNotesClient(id)); // ⚡ warm notes → ghi chú instant (client-direct)
+      router.prefetch(`/contracts/${id}`);
     },
-    [router, queryClient],
+    [router],
   );
 
   const handleEdit = useCallback(
