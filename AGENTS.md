@@ -19,6 +19,19 @@ metadata:
 - Xong bước = ghi HANDOFF (`agent/HANDOFFS/<task>.codex.md`) + cập nhật `status`/`owner` trong `agent/TASKS.yaml` → chuyển Roo test.
 - Giữ ràng buộc cứng: **Finance giữ `revalidatePath`**, không patch optimistic số server-computed, tái dùng `runOptimisticMutation` (đừng viết helper mới). Chi tiết: `agent/ARCHITECTURE.md`.
 
+## 🪟 Windows file-editing protocol (BẮT BUỘC — nếu không sẽ hỏng)
+
+Máy này là **Windows + PowerShell 5.1**. `apply_patch` qua PowerShell heredoc **BỂ UTF-8/CRLF (mojibake)** và làm hỏng edit. Vì vậy khi sửa file trong repo này:
+
+- **CẤM `apply_patch`.** Không patch qua PowerShell here-string.
+- **Ưu tiên MCP `filesystem` → `write_file`** (ghi CẢ file, root đã trỏ đúng `mood-studio` trong `.codex/config.toml`). Đọc file bằng `read_file`, sửa nội dung trong đầu, rồi `write_file` lại toàn bộ.
+- **Nếu `write_file` không dùng được → Node script UTF-8:** `node -e "const fs=require('fs');fs.writeFileSync('<path>', <content>, 'utf8')"` — Node ghi UTF-8 trực tiếp, không qua encoding PowerShell.
+- Sửa **nhỏ, ít file** để mỗi lần `write_file` gọn (tránh chậm → dính timeout 10' của harness).
+- Sau khi ghi: verify bằng `npx eslint <file>` + `npm run build` như spec yêu cầu.
+
+## Effort theo độ khó task
+Task cơ học/spec rõ (lint, rename, wire nhỏ) → làm nhanh, không suy luận thừa. Task khó/mơ hồ/debug → suy luận kỹ. (Claude giao việc sẽ set `--effort` tương ứng; đừng tự nâng effort cho việc đơn giản.)
+
 Phần dưới (Vercel React Best Practices) là **skill tham chiếu** khi viết/refactor React/Next — không thay thế governance trên.
 
 ---
