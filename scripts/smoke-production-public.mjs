@@ -105,6 +105,26 @@ await expectStatus(baseUrl, "/contracts", [302, 303, 307, 308]);
 
 const swResponse = await expectStatus(baseUrl, "/sw.js", [200]);
 const serviceWorker = await swResponse.text();
+const contentType = swResponse.headers.get("content-type") || "";
+const cacheControl = swResponse.headers.get("cache-control") || "";
+const serviceWorkerAllowed = swResponse.headers.get("service-worker-allowed") || "";
+
+if (!/javascript/i.test(contentType)) {
+  throw new Error(`/sw.js expected a JavaScript content type but got ${contentType || "missing"}`);
+}
+if (!/(?:no-store|max-age=0|must-revalidate)/i.test(cacheControl)) {
+  throw new Error(`/sw.js cache policy can retain stale workers: ${cacheControl || "missing"}`);
+}
+if (serviceWorkerAllowed && serviceWorkerAllowed !== "/") {
+  throw new Error(`/sw.js has an invalid Service-Worker-Allowed scope: ${serviceWorkerAllowed}`);
+}
+if (serviceWorker.includes("Dev-only cleanup worker")) {
+  throw new Error("/sw.js is the development cleanup worker, not the production Workbox worker");
+}
+if (!serviceWorker.includes("push-sw.js")) {
+  throw new Error("/sw.js does not import push-sw.js");
+}
+
 const hasSupabaseRestNetworkOnly =
   /supabase\.co\/rest[\s\S]{0,200}?NetworkOnly/i.test(serviceWorker) ||
   /supabase\\\.co\\\/rest[\s\S]{0,200}?NetworkOnly/i.test(serviceWorker);
@@ -113,6 +133,7 @@ if (!hasSupabaseRestNetworkOnly) {
   throw new Error("/sw.js does not include the Supabase REST runtime cache rule");
 }
 
+await expectStatus(baseUrl, "/push-sw.js", [200]);
 await expectMonitoringEndpoint(baseUrl);
 
 console.log("Production public smoke passed.");

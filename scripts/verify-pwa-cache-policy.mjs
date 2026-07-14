@@ -1,7 +1,16 @@
 import { readFileSync } from "node:fs";
 
 const source = readFileSync("next.config.ts", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const buildScript = packageJson.scripts?.build || "";
 const failures = [];
+
+if (!buildScript.includes("next build --webpack")) {
+  failures.push("production build does not force Webpack, so next-pwa GenerateSW can be skipped by Turbopack");
+}
+if (!buildScript.includes("verify-pwa-build-artifact.mjs")) {
+  failures.push("production build does not verify the generated service worker artifact");
+}
 
 if (source.includes('source: "/_next/static/:path*"')) {
   failures.push("custom Cache-Control header still overrides Next static assets");
