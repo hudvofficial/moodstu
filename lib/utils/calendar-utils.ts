@@ -9,6 +9,12 @@ export function getEventColorToken(
     return "bg-amber-50 text-amber-900 border-amber-200";
   }
 
+  if (source === "contract_event") {
+    return workTypeOrStatus === "ngay_to_chuc"
+      ? "bg-rose-50 text-rose-900 border-rose-200"
+      : "bg-violet-50 text-violet-900 border-violet-200";
+  }
+
   if (source === "task") {
     switch (workTypeOrStatus) {
       case "makeup":

@@ -73,7 +73,7 @@ export async function loadMoodieCalendarAgenda(params: {
     errors,
     totals: {
       all: filtered.length,
-      studio: filtered.filter((event) => event.source === "schedule").length,
+      studio: filtered.filter((event) => event.source === "schedule" || event.source === "contract_event").length,
       google: filtered.filter((event) => event.source === "google").length,
       tasks: filtered.filter((event) => event.source === "task").length,
     },
@@ -116,7 +116,7 @@ export function buildCalendarTimelinePart(events: UnifiedCalendarEvent[], title:
       time_label: toTimeLabel(event),
       title: event.title,
       subtitle: [event.customerName, event.groupLabel, event.location].filter(Boolean).join(" · ") || undefined,
-      source: event.source === "schedule" ? "studio" : event.source,
+      source: event.source === "schedule" || event.source === "contract_event" ? "studio" : event.source,
       status: event.status,
       actions,
     });

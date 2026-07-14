@@ -14,7 +14,15 @@ import {
 import { createAdminClient } from "@/lib/supabase/server";
 import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
 import { isOnSetEvent } from "@/types/contract-constants";
-import type { EventType, ServiceType } from "@/types/contract";
+import {
+  planContractScheduleReconciliation,
+  summarizeContractSchedules,
+} from "@/lib/contracts/contract-schedule";
+import type {
+  ContractScheduleInput,
+  ExistingContractScheduleEvent,
+} from "@/types/contract-schedule";
+import type { EventType, ServiceType, TaskStatus } from "@/types/contract";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 // ═══════════════════════════════════════════
@@ -278,6 +286,186 @@ export async function _generateContractEventsInternal(
   };
 }
 
+type ContractScheduleReconciliationResult = {
+  eventIds: string[];
+  deletedEventIds: string[];
+};
+
+/**
+ * Reconcile submitted operational dates with existing contract events.
+ * Event IDs are the identity boundary: retaining an ID preserves tasks,
+ * notes, status and the linked Google Calendar event.
+ */
+export async function _reconcileContractScheduleInternal(
+  supabase: SupabaseClient,
+  contractId: string,
+  serviceType: ServiceType,
+  scheduleInput: ContractScheduleInput[],
+): Promise<ContractScheduleReconciliationResult> {
+  const summary = summarizeContractSchedules(serviceType, scheduleInput);
+  const now = new Date().toISOString();
+
+  const [eventsResult, tasksResult, templatesResult] = await Promise.all([
+    supabase
+      .from("contract_events")
+      .select("id, event_type, title, event_date, sort_order, status, is_manual_date")
+      .eq("contract_id", contractId)
+      .is("deleted_at", null)
+      .order("sort_order"),
+    supabase
+      .from("work_tasks")
+      .select("event_id")
+      .eq("contract_id", contractId),
+    supabase
+      .from("event_templates")
+      .select("event_type, event_name, default_days_offset, sort_order")
+      .eq("service_type", serviceType)
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+
+  if (eventsResult.error) {
+    throw new Error(`Lỗi đọc lịch trình hợp đồng: ${eventsResult.error.message}`);
+  }
+  if (tasksResult.error) {
+    throw new Error(`Lỗi kiểm tra công việc sự kiện: ${tasksResult.error.message}`);
+  }
+  if (templatesResult.error) {
+    throw new Error(`Lỗi đọc mẫu lịch trình: ${templatesResult.error.message}`);
+  }
+
+  const taskCounts = new Map<string, number>();
+  for (const task of tasksResult.data || []) {
+    if (!task.event_id) continue;
+    taskCounts.set(task.event_id, (taskCounts.get(task.event_id) || 0) + 1);
+  }
+
+  const activeEvents = eventsResult.data || [];
+  const existingOnSet: ExistingContractScheduleEvent[] = activeEvents
+    .filter((event) => isOnSetEvent(event.event_type as EventType))
+    .map((event) => ({
+      id: event.id,
+      eventType: event.event_type as ExistingContractScheduleEvent["eventType"],
+      title: event.title || event.event_type,
+      date: event.event_date,
+      sortOrder: event.sort_order,
+      status: event.status as TaskStatus,
+      taskCount: taskCounts.get(event.id) || 0,
+    }));
+
+  const plan = planContractScheduleReconciliation(existingOnSet, summary.schedules);
+  if (plan.conflicts.length > 0) {
+    const titles = plan.conflicts.map((event) => event.title).join(", ");
+    throw new Error(
+      `Không thể xóa sự kiện đã hoàn thành hoặc đã có công việc: ${titles}`,
+    );
+  }
+
+  const changedIds: string[] = [];
+  for (const event of plan.updates) {
+    const { error } = await supabase
+      .from("contract_events")
+      .update({
+        event_type: event.eventType,
+        title: event.title,
+        event_date: event.date,
+        sort_order: event.sortOrder,
+        updated_at: now,
+      })
+      .eq("id", event.id)
+      .eq("contract_id", contractId)
+      .is("deleted_at", null);
+    if (error) throw new Error(`Lỗi cập nhật sự kiện: ${error.message}`);
+    changedIds.push(event.id);
+  }
+
+  if (plan.inserts.length > 0) {
+    const { data, error } = await supabase
+      .from("contract_events")
+      .insert(plan.inserts.map((event) => ({
+        contract_id: contractId,
+        event_type: event.eventType,
+        title: event.title,
+        event_date: event.date,
+        deadline: null,
+        status: "chua_lam",
+        sort_order: event.sortOrder,
+        is_manual_date: false,
+      })))
+      .select("id");
+    if (error) throw new Error(`Lỗi thêm sự kiện: ${error.message}`);
+    changedIds.push(...(data || []).map((event) => event.id));
+  }
+
+  const deletedEventIds = plan.deletes.map((event) => event.id);
+  if (deletedEventIds.length > 0) {
+    const { error } = await supabase
+      .from("contract_events")
+      .update({ deleted_at: now, updated_at: now, status: "da_huy" })
+      .in("id", deletedEventIds)
+      .eq("contract_id", contractId)
+      .is("deleted_at", null);
+    if (error) throw new Error(`Lỗi xóa sự kiện: ${error.message}`);
+  }
+
+  const configuredTemplates = (templatesResult.data as EventTemplateRow[] | null)?.length
+    ? templatesResult.data as EventTemplateRow[]
+    : fallbackEventTemplates(serviceType);
+  const downstreamTemplates = configuredTemplates.filter(
+    (template) => !isOnSetEvent(template.event_type),
+  );
+  const existingDownstream = activeEvents.filter(
+    (event) => !isOnSetEvent(event.event_type as EventType),
+  );
+  const deadlineBase = summary.finalCeremonyDate ||
+    summary.schedules.filter((item) => item.eventType === "ngay_chup").at(-1)?.date ||
+    null;
+
+  for (const [index, template] of downstreamTemplates.entries()) {
+    const existing = existingDownstream.find(
+      (event) => event.event_type === template.event_type,
+    );
+    const deadline = deadlineBase
+      ? addDays(new Date(deadlineBase), template.default_days_offset ?? 0)
+      : null;
+    const sortOrder = summary.schedules.length + index + 1;
+
+    if (existing) {
+      if (existing.status === "hoan_thanh" || existing.is_manual_date) continue;
+      const { error } = await supabase
+        .from("contract_events")
+        .update({ deadline, sort_order: sortOrder, updated_at: now })
+        .eq("id", existing.id)
+        .eq("contract_id", contractId);
+      if (error) throw new Error(`Lỗi cập nhật hạn công việc: ${error.message}`);
+      changedIds.push(existing.id);
+      continue;
+    }
+
+    const { data, error } = await supabase
+      .from("contract_events")
+      .insert({
+        contract_id: contractId,
+        event_type: template.event_type,
+        title: template.event_name || template.event_type,
+        event_date: null,
+        deadline,
+        status: "chua_lam",
+        sort_order: sortOrder,
+        is_manual_date: false,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(`Lỗi tạo công việc sau sự kiện: ${error.message}`);
+    changedIds.push(data.id);
+  }
+
+  return {
+    eventIds: [...new Set(changedIds)],
+    deletedEventIds,
+  };
+}
+
 export async function generateContractEvents(
   contractId: string,
   serviceType: ServiceType,
@@ -508,7 +696,7 @@ export async function addContractEvent(input: {
 
 // ─── DELETE CONTRACT EVENT (Hybrid Model) ────────
 // Admin/manager can remove a contract timeline milestone.
-// Cascade: remove related work_tasks so deleted milestones no longer affect cost/progress.
+// Protect completed/task-linked milestones so deleting a date never destroys work history.
 export async function deleteContractEvent(eventId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
@@ -517,7 +705,7 @@ export async function deleteContractEvent(eventId: string) {
 
     const { data: evt, error: fetchErr } = await supabase
       .from("contract_events")
-      .select("id, title, contract_id")
+      .select("id, title, contract_id, status")
       .eq("id", eventId)
       .is("deleted_at", null)
       .single();
@@ -525,13 +713,16 @@ export async function deleteContractEvent(eventId: string) {
     if (fetchErr || !evt) throw new Error("Không tìm thấy sự kiện");
     const now = new Date().toISOString();
 
-    const { error: taskError } = await supabase
+    const { count: taskCount, error: taskError } = await supabase
       .from("work_tasks")
-      .delete()
+      .select("id", { count: "exact", head: true })
       .eq("event_id", eventId)
       .eq("contract_id", evt.contract_id);
 
-    if (taskError) throw new Error(`Lỗi xóa phân công liên quan: ${taskError.message}`);
+    if (taskError) throw new Error(`Lỗi kiểm tra phân công liên quan: ${taskError.message}`);
+    if (evt.status === "hoan_thanh" || (taskCount || 0) > 0) {
+      throw new Error("Không thể xóa sự kiện đã hoàn thành hoặc đã có công việc");
+    }
 
     const { error } = await supabase
       .from("contract_events")

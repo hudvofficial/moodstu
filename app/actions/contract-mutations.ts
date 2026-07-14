@@ -11,7 +11,11 @@ import { profileAction } from "@/lib/action-profiler";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
 import { parseIntOrNull } from "@/lib/utils";
 import { _generateChecklistsInternal } from "@/app/actions/checklist-actions";
-import { _generateContractEventsInternal } from "@/app/actions/contract-event-actions";
+import {
+  _generateContractEventsInternal,
+  _reconcileContractScheduleInternal,
+} from "@/app/actions/contract-event-actions";
+import { summarizeContractSchedules } from "@/lib/contracts/contract-schedule";
 import { syncContractEventsToGoogle } from "@/lib/contract-event-google-sync";
 import { createAdminClient } from "@/lib/supabase/server";
 import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
@@ -90,6 +94,10 @@ export async function createContract(rawData: unknown) {
   return profileAction("contracts.createContract", () => withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
+    const scheduleSummary = data.schedules
+      ? summarizeContractSchedules(data.formData.service_type, data.schedules)
+      : null;
+
     const contractPayload = {
       contract_code: data.formData.contract_code,
       customer_id: data.formData.customer_id,
@@ -97,7 +105,7 @@ export async function createContract(rawData: unknown) {
       transaction_type: data.formData.transaction_type || "hop_dong",
       assigned_to: data.formData.assigned_to || null,
       contract_date: data.formData.contract_date || null,
-      work_date: data.formData.work_date || null,
+      work_date: scheduleSummary?.primaryWorkDate || data.formData.work_date || null,
       delivery_date: data.formData.delivery_date || null,
       status: data.formData.status,
       description: data.formData.description || null,
@@ -118,7 +126,7 @@ export async function createContract(rawData: unknown) {
       groom_height: parseIntOrNull(data.formData.groom_height),
       groom_weight: parseIntOrNull(data.formData.groom_weight),
       groom_shoe_size: parseIntOrNull(data.formData.groom_shoe_size),
-      wedding_date: data.weddingDate || null,
+      wedding_date: scheduleSummary?.primaryWeddingDate || data.weddingDate || null,
     };
 
     const itemPayload = data.items.map((item) => ({
@@ -224,7 +232,30 @@ export async function createContract(rawData: unknown) {
       });
     }
 
-    if (!isEdit) {
+    if (data.schedules) {
+      const scheduleResult = await _reconcileContractScheduleInternal(
+        supabase,
+        contractId,
+        data.formData.service_type,
+        data.schedules,
+      );
+
+      if (!isEdit) {
+        await runPostSaveTask(
+          "Tạo checklist hợp đồng",
+          () => _generateChecklistsInternal(supabase, contractId, data.formData.service_type),
+          postSaveWarnings,
+        );
+      }
+
+      const idsToSync = [...scheduleResult.eventIds, ...scheduleResult.deletedEventIds];
+      if (idsToSync.length > 0) {
+        schedulePostSaveTask("Đồng bộ lịch trình với Google", async () => {
+          const adminSupabase = await createAdminClient();
+          await syncContractEventsToGoogle(adminSupabase, idsToSync);
+        });
+      }
+    } else if (!isEdit) {
       schedulePostSaveTask("Tao lich trinh/checklist & Google Sync", async () => {
         const adminSupabase = await createAdminClient();
         const eventIds = await ensureContractAutomation(
@@ -258,7 +289,7 @@ export async function createContract(rawData: unknown) {
       detail: true,
       finance: { receipts: true, cashflow: true },
       dresses: shouldSyncDressReservations,
-      calendar: !isEdit,
+      calendar: Boolean(data.schedules) || !isEdit,
       dashboard: true,
     });
 

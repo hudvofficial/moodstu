@@ -23,6 +23,7 @@ import type {
   PrintingOrder,
 } from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
+import type { ContractScheduleInput } from "@/types/contract-schedule";
 import { mapPaymentPlans } from "@/lib/contracts/payment-plans";
 
 // ─── Helpers ─────────────────────────────────
@@ -632,8 +633,8 @@ export async function getContractForEdit(contractId: string) {
   return withAuthRead(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
-    // ⚡ 2 query độc lập (cùng filter theo contractId) — chạy song song.
-    const [contractResult, paymentsResult] = await Promise.all([
+    // Independent reads are started together to avoid a server-side waterfall.
+    const [contractResult, paymentsResult, eventsResult] = await Promise.all([
       supabase
         .from("contracts")
         .select(
@@ -651,6 +652,13 @@ export async function getContractForEdit(contractId: string) {
         .select("amount")
         .eq("contract_id", contractId)
         .is("deleted_at", null),
+      supabase
+        .from("contract_events")
+        .select("id, event_type, title, event_date, sort_order")
+        .eq("contract_id", contractId)
+        .in("event_type", ["ngay_chup", "ngay_to_chuc"])
+        .is("deleted_at", null)
+        .order("sort_order"),
     ]);
 
     const { data: contract, error } = contractResult;
@@ -689,10 +697,38 @@ export async function getContractForEdit(contractId: string) {
       })
     );
 
+    if (eventsResult.error) {
+      throw new Error(`Lỗi tải lịch trình hợp đồng: ${eventsResult.error.message}`);
+    }
+
+    const primaryWeddingDate = contract.customers?.wedding_date || null;
+    const ceremonyEvents = (eventsResult.data || []).filter(
+      (event) => event.event_type === "ngay_to_chuc" && event.event_date,
+    );
+    const fallbackPrimaryId = ceremonyEvents.at(-1)?.id;
+    const hasStoredPrimary = ceremonyEvents.some(
+      (event) => event.event_date?.slice(0, 10) === primaryWeddingDate,
+    );
+    const schedules: ContractScheduleInput[] = (eventsResult.data || [])
+      .filter((event) => event.event_date)
+      .map((event, index) => ({
+        id: event.id,
+        eventType: event.event_type as ContractScheduleInput["eventType"],
+        title: event.title || (event.event_type === "ngay_chup" ? "Studio" : "Ngày cưới"),
+        date: event.event_date!.slice(0, 10),
+        sortOrder: index + 1,
+        isPrimaryWeddingDate: event.event_type === "ngay_to_chuc"
+          ? hasStoredPrimary
+            ? event.event_date!.slice(0, 10) === primaryWeddingDate
+            : event.id === fallbackPrimaryId
+          : undefined,
+      }));
+
     return {
       contract,
       customer: contract.customers,
       items,
+      schedules,
       paidAmount,
       updatedAt: contract.updated_at as string,
     };

@@ -11,6 +11,7 @@
 import type { ServiceType, ContractStatus, ItemType, ExportType, PaymentMethod } from "./contract";
 import type { AddonCategory } from "./addon-history";
 import type { Customer } from "./crm";
+import type { ContractScheduleInput } from "./contract-schedule";
 
 // ─── FORM MODE ───────────────────────────────────────────
 
@@ -124,6 +125,7 @@ export interface SelectedCustomer {
 export interface ContractEditData {
   contract: ContractFormData;
   items: ContractItemFormData[];
+  schedules: ContractScheduleInput[];
   customer: Customer;
   paidAmount: number;
   updatedAt: string; // for optimistic lock

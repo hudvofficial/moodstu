@@ -55,6 +55,73 @@ describe("contract submission wedding milestone", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts and validates an explicit multi-day Studio schedule", () => {
+    const result = contractSubmissionSchema.safeParse({
+      ...submission("studio"),
+      schedules: [
+        {
+          eventType: "ngay_chup",
+          title: "Studio",
+          date: "2026-07-14",
+          sortOrder: 1,
+        },
+        {
+          eventType: "ngay_to_chuc",
+          title: "Ăn hỏi",
+          date: "2026-08-01",
+          sortOrder: 2,
+        },
+        {
+          eventType: "ngay_to_chuc",
+          title: "Ngày cưới",
+          date: "2026-08-02",
+          isPrimaryWeddingDate: true,
+          sortOrder: 3,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects duplicate schedule dates and ambiguous primary wedding dates", () => {
+    const result = contractSubmissionSchema.safeParse({
+      ...submission("studio"),
+      schedules: [
+        {
+          eventType: "ngay_chup",
+          title: "Studio",
+          date: "2026-07-14",
+          sortOrder: 1,
+        },
+        {
+          eventType: "ngay_to_chuc",
+          title: "Ăn hỏi",
+          date: "2026-08-01",
+          isPrimaryWeddingDate: true,
+          sortOrder: 2,
+        },
+        {
+          eventType: "ngay_to_chuc",
+          title: "Ngày cưới",
+          date: "2026-08-01",
+          isPrimaryWeddingDate: true,
+          sortOrder: 3,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toEqual(
+        expect.arrayContaining([
+          "Không thể tạo hai sự kiện cùng loại trong cùng một ngày",
+          "Cần chọn đúng một ngày cưới chính",
+        ]),
+      );
+    }
+  });
+
   it("accepts a new Studio contract when the wedding date is supplied", () => {
     const result = contractSubmissionSchema.safeParse({
       ...submission("studio"),

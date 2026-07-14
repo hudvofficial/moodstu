@@ -32,6 +32,25 @@ type CalendarScheduleRow = {
   notes: string | null;
 };
 
+type CalendarContractEventRow = {
+  id: string;
+  title: string | null;
+  event_type: string;
+  event_date: string;
+  end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  contract_id: string;
+  status: string | null;
+  google_event_id: string | null;
+  location: string | null;
+  notes: string | null;
+  contracts: {
+    contract_code: string | null;
+    customers: { full_name: string | null }[] | { full_name: string | null } | null;
+  } | null;
+};
+
 type CalendarTaskRow = {
   id: string;
   contract_id: string | null;
@@ -175,6 +194,45 @@ function mapScheduleEvent(
   };
 }
 
+function mapContractEvent(
+  event: CalendarContractEventRow,
+  access: CalendarAccessContext,
+): UnifiedCalendarEvent {
+  const contractRef = event.contracts;
+  const customerName = getCustomerName(contractRef?.customers);
+  const groupLabel = contractRef?.contract_code
+    ? `HĐ: ${contractRef.contract_code} (${customerName})`
+    : null;
+  const day = datePart(event.event_date) || event.event_date;
+  const startTime = timePart(event.start_time);
+  const endTime = timePart(event.end_time);
+
+  return {
+    id: event.id,
+    source: "contract_event",
+    sourceId: event.id,
+    title: event.title || event.event_type,
+    start: startTime ? combineDateTime(day, startTime) : event.event_date,
+    end: startTime && endTime
+      ? combineDateTime(day, endTime)
+      : event.end_date,
+    allDay: !startTime,
+    status: event.status || "chua_lam",
+    employeeId: null,
+    contractId: event.contract_id,
+    editable: access.isGlobalAdmin,
+    draggable: false,
+    groupKey: generateCalendarGroupKey(event.contract_id, event.event_date),
+    groupLabel,
+    colorToken: getEventColorToken("contract_event", event.event_type),
+    googleEventId: event.google_event_id,
+    originalDateField: "event_date",
+    customerName,
+    location: event.location,
+    notes: event.notes,
+  };
+}
+
 function mapTaskEvent(
   task: CalendarTaskRow,
   access: CalendarAccessContext,
@@ -241,6 +299,28 @@ function mapRpcCalendarEvent(
     );
   }
 
+  if (row.event_source === "contract_event") {
+    if (!row.event_date || !row.contract_id) return null;
+    return mapContractEvent({
+      id: row.id,
+      title: row.event_type,
+      event_type: row.event_type || "ngay_to_chuc",
+      event_date: row.event_date.replace(" ", "T"),
+      end_date: row.end_date ? row.end_date.replace(" ", "T") : null,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      contract_id: row.contract_id,
+      status: row.status,
+      google_event_id: row.google_event_id,
+      location: row.location,
+      notes: row.notes,
+      contracts: {
+        contract_code: row.contract_code,
+        customers: { full_name: row.customer_name },
+      },
+    }, access);
+  }
+
   if (row.event_source !== "task") return null;
 
   return mapTaskEvent(
@@ -290,15 +370,33 @@ async function fetchCalendarEventsFallback(
     schedulesQuery = schedulesQuery.eq("employee_id", access.employeeId);
   }
 
-  const schedulesResult = await schedulesQuery;
+  const [schedulesResult, contractEventsResult] = await Promise.all([
+    schedulesQuery,
+    supabase
+      .from("contract_events")
+      .select("id, title, event_type, event_date, end_date, start_time, end_time, contract_id, status, google_event_id, location, notes, contracts!inner(contract_code, deleted_at, customers(full_name))")
+      .in("event_type", ["ngay_chup", "ngay_to_chuc"])
+      .is("deleted_at", null)
+      .is("contracts.deleted_at", null)
+      .gte("event_date", startDate)
+      .lt("event_date", endExclusiveDate),
+  ]);
 
   if (schedulesResult.error) {
     console.error("[fetchCalendarEvents] Schedules Error:", schedulesResult.error);
     throw new Error("Lỗi tải sự kiện cá nhân");
   }
 
+  if (contractEventsResult.error) {
+    console.error("[fetchCalendarEvents] Contract Events Error:", contractEventsResult.error);
+    throw new Error("Lỗi tải lịch trình hợp đồng");
+  }
+
   for (const schedule of (schedulesResult.data || []) as CalendarScheduleRow[]) {
     result.push(mapScheduleEvent(schedule, access));
+  }
+  for (const event of (contractEventsResult.data || []) as unknown as CalendarContractEventRow[]) {
+    result.push(mapContractEvent(event, access));
   }
 
   return result;

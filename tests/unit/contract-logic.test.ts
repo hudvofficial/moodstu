@@ -287,7 +287,7 @@ describe("contractSubmissionSchema date validation", () => {
     formData: {
       contract_code: "HD-001",
       customer_id: "a0000000-0000-4000-8000-000000000001",
-      service_type: "studio",
+      service_type: "baby",
       transaction_type: "hop_dong",
       status: "cho_xu_ly",
       contract_date: "2026-06-01",

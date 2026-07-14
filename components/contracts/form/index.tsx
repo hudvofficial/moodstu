@@ -161,10 +161,12 @@ export default function ContractForm({ mode, contractId }: Props) {
         <ContractInfoSection
           formData={form.formData}
           updateField={form.updateField}
-          weddingDate={form.weddingDate}
-          onWeddingDateChange={form.setWeddingDate}
+          schedules={form.schedules}
+          updateSchedule={form.updateSchedule}
+          addSchedule={form.addSchedule}
+          removeSchedule={form.removeSchedule}
           badgeCode={badgeCode}
-          weddingDateError={form.errors.weddingDate}
+          scheduleError={form.errors.schedules}
         />
 
         {/* Section 2: Customer */}

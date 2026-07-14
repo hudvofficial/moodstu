@@ -1,6 +1,6 @@
 export interface UnifiedCalendarEvent {
   id: string; // id của bản ghi (schedules.id, work_tasks.id, google.id)
-  source: "schedule" | "task" | "google";
+  source: "schedule" | "task" | "google" | "contract_event";
   sourceId: string; // Trỏ về ID thực gốc db hoặc source system
   title: string;
   start: string; // ISO String (event_date | start_time | google.start)

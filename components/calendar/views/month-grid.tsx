@@ -108,7 +108,7 @@ export function MonthGrid({
     const newDateIso = String(over.id);
 
     const ev = events.find((e) => e.id === eventId);
-    if (!ev) return;
+    if (!ev || ev.source === "contract_event") return;
 
     // Tách lấy phần YYYY-MM-DD cũ
     const oldDateStr = ev.start.split("T")[0];

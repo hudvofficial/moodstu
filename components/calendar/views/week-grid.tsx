@@ -83,7 +83,7 @@ export function WeekGrid({ currentDate, eventsByDate, mutate, onEventClick, onDa
     const eventId = String(active.id);
     const newDateIso = String(over.id);
     const ev = eventById.get(eventId);
-    if (!ev) return;
+    if (!ev || ev.source === "contract_event") return;
     
     const oldDateStr = ev.start.split("T")[0];
     if (oldDateStr === newDateIso) return;

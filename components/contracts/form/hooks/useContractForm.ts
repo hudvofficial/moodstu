@@ -14,9 +14,14 @@ import {
 import { useContractCustomer } from "./useContractCustomer";
 import { useContractItems } from "./useContractItems";
 import { useContractFinancials } from "./useContractFinancials";
-import { showCoupleFields, showWeddingDate } from "@/types/contract-form";
+import { showCoupleFields } from "@/types/contract-form";
 import type { ContractFormData, ContractFormMode } from "@/types/contract-form";
+import type { ContractScheduleInput } from "@/types/contract-schedule";
 import type { ServiceType } from "@/types/contract";
+import {
+  ContractScheduleValidationError,
+  summarizeContractSchedules,
+} from "@/lib/contracts/contract-schedule";
 
 // ═══════════════════════════════════════════
 // useContractForm — Orchestrator
@@ -56,6 +61,50 @@ function normalizeEmployeeId(value: unknown): string {
     : "";
 }
 
+function defaultSchedules(
+  serviceType: ServiceType,
+  workDate = "",
+  weddingDate = "",
+): ContractScheduleInput[] {
+  if (serviceType === "outsource") return [];
+
+  if (serviceType === "ngay_cuoi") {
+    return [{ eventType: "ngay_to_chuc", title: "Ngày cưới", date: weddingDate || workDate, isPrimaryWeddingDate: true, sortOrder: 1 }];
+  }
+
+  const schedules: ContractScheduleInput[] = [{
+    eventType: "ngay_chup",
+    title: serviceType === "studio" ? "Studio" : "Ngày chụp",
+    date: workDate,
+    sortOrder: 1,
+  }];
+  if (serviceType === "studio" || serviceType === "combo") {
+    schedules.push({ eventType: "ngay_to_chuc", title: "Ngày cưới", date: weddingDate, isPrimaryWeddingDate: true, sortOrder: 2 });
+  }
+  return schedules;
+}
+
+function adaptSchedulesToService(serviceType: ServiceType, current: ContractScheduleInput[]) {
+  const shoots = current.filter((item) => item.eventType === "ngay_chup");
+  const ceremonies = current.filter((item) => item.eventType === "ngay_to_chuc");
+  if (serviceType === "ngay_cuoi") {
+    return (ceremonies.length ? ceremonies : defaultSchedules(serviceType)).map((item, index) => ({
+      ...item,
+      isPrimaryWeddingDate: item.isPrimaryWeddingDate || index === 0,
+      sortOrder: index + 1,
+    }));
+  }
+  const next = shoots.length ? [...shoots] : defaultSchedules(serviceType).filter((item) => item.eventType === "ngay_chup");
+  if (serviceType === "studio" || serviceType === "combo") {
+    next.push(...(
+      ceremonies.length
+        ? ceremonies
+        : defaultSchedules(serviceType).filter((item) => item.eventType === "ngay_to_chuc")
+    ));
+  }
+  return next.map((item, index) => ({ ...item, sortOrder: index + 1 }));
+}
+
 interface UseContractFormProps {
   mode: ContractFormMode;
   contractId?: string;
@@ -73,6 +122,9 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expectedUpdatedAt, setExpectedUpdatedAt] = useState<string>("");
   const [weddingDate, setWeddingDate] = useState<string>("");
+  const [schedules, setSchedules] = useState<ContractScheduleInput[]>(
+    () => defaultSchedules(DEFAULT_FORM_DATA.service_type),
+  );
 
   // [V1 PORT] Preview contract code — fetch on mount (create mode)
   const [previewCode, setPreviewCode] = useState("");
@@ -161,6 +213,9 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
   const updateField = useCallback(
     <K extends keyof ContractFormData>(field: K, value: ContractFormData[K]) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
+      if (field === "service_type") {
+        setSchedules((current) => adaptSchedulesToService(value as ServiceType, current));
+      }
       // Clear field error on change
       setErrors((prev) => {
         if (!prev[field]) return prev;
@@ -171,6 +226,69 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     },
     []
   );
+
+  const updateSchedule = useCallback((index: number, patch: Partial<ContractScheduleInput>) => {
+    setSchedules((current) => {
+      const next = current.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return patch.isPrimaryWeddingDate && item.eventType === "ngay_to_chuc"
+            ? { ...item, isPrimaryWeddingDate: false }
+            : item;
+        }
+        return { ...item, ...patch };
+      }).map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 }));
+
+      setFormData((currentForm) => ({
+        ...currentForm,
+        work_date: next.find((item) => item.eventType === "ngay_chup")?.date || "",
+      }));
+      setWeddingDate(next.find(
+        (item) => item.eventType === "ngay_to_chuc" && item.isPrimaryWeddingDate,
+      )?.date || "");
+      return next;
+    });
+    setErrors((current) => {
+      if (!current.schedules && !current.weddingDate && !current.work_date) return current;
+      const next = { ...current };
+      delete next.schedules;
+      delete next.weddingDate;
+      delete next.work_date;
+      return next;
+    });
+  }, []);
+
+  const addSchedule = useCallback((eventType: ContractScheduleInput["eventType"]) => {
+    setSchedules((current) => [...current, {
+      eventType,
+      title: eventType === "ngay_chup" ? "Ngày chụp" : "Ngày cưới",
+      date: "",
+      isPrimaryWeddingDate: eventType === "ngay_to_chuc"
+        ? !current.some((item) => item.eventType === "ngay_to_chuc" && item.isPrimaryWeddingDate)
+        : undefined,
+      sortOrder: current.length + 1,
+    }]);
+  }, []);
+
+  const removeSchedule = useCallback((index: number) => {
+    setSchedules((current) => {
+      const removedWasPrimary = current[index]?.isPrimaryWeddingDate;
+      const next = current
+        .filter((_, itemIndex) => itemIndex !== index)
+        .map((item, itemIndex) => ({ ...item, sortOrder: itemIndex + 1 }));
+      if (removedWasPrimary) {
+        const firstCeremonyIndex = next.findIndex((item) => item.eventType === "ngay_to_chuc");
+        if (firstCeremonyIndex >= 0) next[firstCeremonyIndex].isPrimaryWeddingDate = true;
+      }
+      setFormData((currentForm) => ({
+        ...currentForm,
+        work_date: next.find((item) => item.eventType === "ngay_chup")?.date || "",
+      }));
+      setWeddingDate(next.find(
+        (item) => item.eventType === "ngay_to_chuc" && item.isPrimaryWeddingDate,
+      )?.date || "");
+      return next;
+    });
+  }, []);
 
   // ── Validate form before submit ──
   const validate = useCallback((): boolean => {
@@ -183,19 +301,22 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       newErrors.items = "Phải có ít nhất 1 dịch vụ";
     }
 
+    try {
+      summarizeContractSchedules(formData.service_type, schedules);
+    } catch (error) {
+      newErrors.schedules = error instanceof ContractScheduleValidationError
+        ? error.issues[0]
+        : "Lịch trình hợp đồng không hợp lệ";
+    }
+
     const contractDate = formData.contract_date;
-    const workDate = formData.work_date;
+    const earliestOperationalDate = schedules
+      .filter((item) => item.date)
+      .map((item) => item.date)
+      .sort()[0];
 
-    if (mode === "create" && (formData.service_type === "studio" || formData.service_type === "combo") && !weddingDate) {
-      newErrors.weddingDate = "Ngày cưới là bắt buộc với hợp đồng Studio/Combo mới";
-    }
-
-    if (contractDate && workDate && workDate < contractDate) {
-      newErrors.work_date = "Ngày làm phải sau ngày ký hợp đồng";
-    }
-    
-    if (showWeddingDate(formData.service_type) && formData.service_type !== "ngay_cuoi" && weddingDate && workDate && weddingDate < workDate) {
-      newErrors.weddingDate = "Ngày cưới phải sau ngày chụp prewedding";
+    if (contractDate && earliestOperationalDate && earliestOperationalDate < contractDate) {
+      newErrors.schedules = "Ngày thực hiện phải sau hoặc bằng ngày ký hợp đồng";
     }
 
     setErrors(newErrors);
@@ -214,7 +335,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     }
 
     return !hasErrors;
-  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.work_date, weddingDate, formData.service_type, mode]);
+  }, [customer.selectedCustomer, items.items.length, formData.contract_date, formData.service_type, schedules]);
 
   // ── Submit (internal, reused by both submit + draft) ──
   const handleSubmitInternal = useCallback(async (statusOverride?: ContractFormData["status"]) => {
@@ -268,6 +389,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
           remaining_amount: financials.remainingAmount,
         },
         weddingDate: weddingDate || undefined,
+        schedules,
         existingContractId: contractId,
         expectedUpdatedAt: expectedUpdatedAt || undefined,
       };
@@ -298,7 +420,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [mode, previewCode, formData, customer.selectedCustomer, items.items, financials, contractId, expectedUpdatedAt, router, validate, weddingDate]);
+  }, [mode, previewCode, formData, customer.selectedCustomer, items.items, financials, contractId, expectedUpdatedAt, router, validate, weddingDate, schedules]);
 
   // ── Save Draft ──
   const handleSaveDraft = useCallback(async () => {
@@ -317,7 +439,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
       const result = await getContractForEdit(editId);
       if (!result.success) throw new Error(result.error);
 
-      const { contract, customer: cust, items: editItems, paidAmount, updatedAt } = result.data;
+      const { contract, customer: cust, items: editItems, schedules: editSchedules, paidAmount, updatedAt } = result.data;
 
       // Populate form data
       setFormData({
@@ -365,6 +487,14 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         });
         if (cust.wedding_date) setWeddingDate(cust.wedding_date);
       }
+      setSchedules(editSchedules.length
+        ? editSchedules
+        : defaultSchedules(contract.service_type as ServiceType, contract.work_date || "", cust?.wedding_date || ""));
+      setWeddingDate(
+        editSchedules.find((item) => item.eventType === "ngay_to_chuc" && item.isPrimaryWeddingDate)?.date ||
+        cust?.wedding_date ||
+        "",
+      );
       items.prefillItems(editItems);
       financials.prefillFinancials(contract.discount_amount || 0, paidAmount);
       setExpectedUpdatedAt(updatedAt);
@@ -385,6 +515,8 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
   // ── Reset form ──
   const resetForm = useCallback(() => {
     setFormData(DEFAULT_FORM_DATA);
+    setSchedules(defaultSchedules(DEFAULT_FORM_DATA.service_type));
+    setWeddingDate("");
     setErrors({});
     customer.clearCustomer();
     financials.resetFinancials();
@@ -404,6 +536,10 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
     shouldShowPaymentSection,
     weddingDate,
     setWeddingDate,
+    schedules,
+    updateSchedule,
+    addSchedule,
+    removeSchedule,
     // Sub-hooks (spread for component access)
     customer,
     items,

@@ -158,6 +158,15 @@ const formPaymentInfoSchema = z.object({
   notes: z.string().optional().default(""),
 });
 
+const contractScheduleSchema = z.object({
+  id: z.string().uuid().optional(),
+  eventType: z.enum(["ngay_chup", "ngay_to_chuc"]),
+  title: z.string().trim().min(1, "Tên sự kiện là bắt buộc"),
+  date: z.iso.date("Ngày sự kiện không hợp lệ"),
+  isPrimaryWeddingDate: z.boolean().optional(),
+  sortOrder: z.number().int().positive(),
+});
+
 // ─── Full Submission Schema ──────────────────────────────
 
 export const contractSubmissionSchema = z.object({
@@ -166,15 +175,58 @@ export const contractSubmissionSchema = z.object({
   paymentInfo: formPaymentInfoSchema,
   financials: contractFinancialsSchema,
   weddingDate: z.string().optional(),
+  schedules: z.array(contractScheduleSchema).optional(),
   existingContractId: z.string().optional(),
   expectedUpdatedAt: z.string().optional(), // optimistic lock
 }).superRefine((data, ctx) => {
   const requiresWeddingDate = data.formData.service_type === "studio" || data.formData.service_type === "combo";
-  if (requiresWeddingDate && !data.existingContractId && !data.weddingDate?.trim()) {
+  if (requiresWeddingDate && !data.existingContractId && !data.weddingDate?.trim() && !data.schedules?.length) {
     ctx.addIssue({
       code: "custom",
       path: ["weddingDate"],
       message: "Ngày cưới là bắt buộc với hợp đồng Studio/Combo mới",
+    });
+  }
+
+  if (!data.schedules) return;
+
+  const seen = new Set<string>();
+  const ceremonies = data.schedules.filter((item) => item.eventType === "ngay_to_chuc");
+  const shoots = data.schedules.filter((item) => item.eventType === "ngay_chup");
+  const needsCeremony = ["studio", "combo", "ngay_cuoi"].includes(data.formData.service_type);
+  const needsShoot = data.formData.service_type !== "ngay_cuoi" && data.formData.service_type !== "outsource";
+
+  data.schedules.forEach((schedule, index) => {
+    const key = `${schedule.eventType}:${schedule.date}`;
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["schedules", index, "date"],
+        message: "Không thể tạo hai sự kiện cùng loại trong cùng một ngày",
+      });
+    }
+    seen.add(key);
+  });
+
+  if (needsShoot && shoots.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["schedules"],
+      message: "Hợp đồng cần ít nhất một ngày chụp",
+    });
+  }
+  if (needsCeremony && ceremonies.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["schedules"],
+      message: "Hợp đồng cần ít nhất một ngày tổ chức",
+    });
+  }
+  if (ceremonies.length > 0 && ceremonies.filter((item) => item.isPrimaryWeddingDate).length !== 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["schedules"],
+      message: "Cần chọn đúng một ngày cưới chính",
     });
   }
 });
