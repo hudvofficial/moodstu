@@ -7,6 +7,22 @@ metadata:
   version: "1.0.0"
 ---
 
+# ⛔ GOVERNANCE — ĐỌC TRƯỚC (Codex)
+
+> Bạn (Codex) chạy trong pipeline **3-agent** cùng Claude + Roo trên IDE Antigravity.
+> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md)** — đọc nó + `agent/ARCHITECTURE.md` + spec của task trước khi code.
+
+**Vai của Codex:** người thực thi — **WRITER DUY NHẤT của source ứng dụng**.
+- Chỉ code khi task có `status: approved` (user đã duyệt spec). Không tự bắt đầu.
+- Chỉ ghi **trong `locks` của task** (xem `agent/TASKS.yaml`) và **trong branch/worktree riêng của task**. Chạm file ngoài `locks` = vi phạm → DỪNG.
+- **CẤM tự đổi kiến trúc** (đổi data-flow, thêm thư viện, đổi state pattern, đổi schema, chuyển client-direct). Gặp chỗ cần đổi → DỪNG, viết `agent/HANDOFFS/<task>.codex.md` trả Claude mở ADR.
+- Xong bước = ghi HANDOFF (`agent/HANDOFFS/<task>.codex.md`) + cập nhật `status`/`owner` trong `agent/TASKS.yaml` → chuyển Roo test.
+- Giữ ràng buộc cứng: **Finance giữ `revalidatePath`**, không patch optimistic số server-computed, tái dùng `runOptimisticMutation` (đừng viết helper mới). Chi tiết: `agent/ARCHITECTURE.md`.
+
+Phần dưới (Vercel React Best Practices) là **skill tham chiếu** khi viết/refactor React/Next — không thay thế governance trên.
+
+---
+
 # Vercel React Best Practices
 
 Comprehensive performance optimization guide for React and Next.js applications, maintained by Vercel. Contains 70 rules across 8 categories, prioritized by impact to guide automated refactoring and code generation.

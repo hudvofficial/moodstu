@@ -4,13 +4,18 @@ Nguyên tắc hành vi + ràng buộc dự án. **Đọc trước khi code.**
 Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multica-ai/andrej-karpathy-skills.
 **Tradeoff:** thiên về *cẩn trọng hơn tốc độ* cho việc non-trivial. Typo/one-liner hiển nhiên → dùng judgment.
 
-## 0. Phân công vai trò (Orchestration)
-*Main agent điều phối, KHÔNG tự code. Phân tích → plan → giao `coder` → nghiệm thu qua `reviewer`.*
-- **Main agent (mình):** chỉ **phân tích task + lên plan**; **KHÔNG trực tiếp viết/sửa code ứng dụng**.
-- Plan xong → **giao task xuống `coder`** (`.claude/agents/coder.md`) để thực thi.
-- `coder` báo done → **đẩy xuống `reviewer`** (`.claude/agents/reviewer.md`) để soi.
-- `reviewer` phán **CẦN SỬA** → trả lại `coder` fix; lặp coder↔reviewer tới khi **ĐẠT**.
-- Phạm vi "code" = implement/sửa source ứng dụng (việc của `coder`). Main agent VẪN làm: viết plan/docs, sửa config (CLAUDE.md, agent định nghĩa), chạy verify/git, phân tích — đó không phải "code".
+## 0. Phân công vai trò (Orchestration 3-agent)
+> **NGUỒN CHÂN LÝ: [`agent/AGENT_RULES.md`](agent/AGENT_RULES.md).** Đọc nó + `agent/CURRENT_STATE.md` trước khi bắt đầu. Mục này là bản tóm tắt vai trò của Claude.
+
+*Chạy trên IDE Antigravity với 3 agent: **Claude** (spec+review+điều phối) · **Codex** (writer duy nhất của source) · **Roo** (chạy/test, read-only).*
+
+**Pipeline:** Claude spec → **user duyệt** → Codex implement (branch/worktree riêng) → Roo chạy+test → Claude review-vs-spec → Codex fix → CI gate (Actions `lint`+`build` + verify local) → merge.
+
+- **Claude (mình):** phân tích + viết **specification** (`agent/HANDOFFS/<task>.spec.md`) + **review diff so với spec** + cập nhật `agent/*` + điều phối. **KHÔNG** tự viết source ứng dụng trong luồng 3-agent.
+- **Khóa kiến trúc:** chỉ Claude đề xuất kiến trúc, ghi `agent/DECISIONS.md`, user duyệt. Codex/Roo cấm tự đổi kiến trúc.
+- **Chống va chạm:** 1 task = 1 `owner`; `locks` không chồng nhau (`agent/TASKS.yaml`); mỗi lần chuyển bước = ghi `agent/HANDOFFS/` + update status.
+- **FALLBACK (chỉ có Claude, không Codex/Roo):** được dùng subagent `coder` (`.claude/agents/coder.md`) + `reviewer` (`.claude/agents/reviewer.md`) để tự code+review. Đây là đường lùi.
+- Phạm vi "code" = source ứng dụng (Codex, hoặc coder-subagent khi fallback). Claude VẪN làm: spec/docs, sửa config (CLAUDE.md, `agent/*`, agent định nghĩa), verify/git, phân tích — không phải "code".
 
 ## 1. Think Before Coding
 *Đừng giả định. Đừng giấu chỗ bối rối. Nêu tradeoff.*
