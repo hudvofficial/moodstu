@@ -10,6 +10,7 @@ import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { SlowNetworkIndicator } from "@/components/ui/slow-network-indicator";
 import { DevServiceWorkerReset } from "@/components/layout/dev-service-worker-reset";
 import { ServiceWorkerUpdateReload } from "@/components/layout/service-worker-update-reload";
+import { StaleServerActionRecovery } from "@/components/layout/stale-server-action-recovery";
 import { WebVitalsReporter } from "@/components/performance/web-vitals-reporter";
 import { SWRProvider } from "@/components/providers/swr-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -157,6 +158,7 @@ export default function RootLayout({
                 <WebVitalsReporter />
                 <DevServiceWorkerReset />
                 <ServiceWorkerUpdateReload />
+                <StaleServerActionRecovery />
                 <OfflineIndicator />
                 <SlowNetworkIndicator />
                 <SplashScreen />
@@ -176,5 +178,4 @@ export default function RootLayout({
 }
 
 // Trigger Vercel Build
-
 

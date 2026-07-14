@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { reloadCurrentBuildOnce } from "@/lib/client/stale-server-action-recovery";
 
 // Unique per deploy (NEXT_PUBLIC_BUILD_DATE is stamped once per build in
 // next.config.ts). The old key used package.json version, which often stays
@@ -13,9 +14,7 @@ const BUILD_ID =
 const RELOAD_KEY = `mood-studio-sw-reloaded:${BUILD_ID}`;
 
 function reloadOncePerBuild() {
-  if (sessionStorage.getItem(RELOAD_KEY)) return;
-  sessionStorage.setItem(RELOAD_KEY, "1");
-  window.location.reload();
+  reloadCurrentBuildOnce(RELOAD_KEY);
 }
 
 /**
