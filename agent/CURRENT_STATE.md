@@ -28,5 +28,10 @@
 ## In-flight (kiểm tra trước khi tạo task đụng cùng vùng)
 - Worktree `.worktrees/contract` @ branch `codex/contract-optimization` — Codex, contract module. Xác nhận còn sống/đã merge trước khi giao task chạm `app/**contract**`, `components/contracts/**`.
 
+## Nợ kỹ thuật đã lộ (2026-07-14, qua lần chạy CI đầu)
+- **`npm run lint` full đang ĐỎ: 27 errors + 24 warnings.** Phần lớn là SSOT (native `<button>`/`<input>` thay vì `@/components/ui`, arbitrary Tailwind `text-[...]`/`shadow-[...]`), tập trung ở `components/contracts/**`, `components/moodie/**`, `components/gallery/**`.
+- ⚠️ Trong đó có **1 lỗi thật (không chỉ style):** `components/gallery/image-viewer.tsx:267` — `useCallback` gọi **có điều kiện** (`react-hooks/rules-of-hooks`) → nguy cơ "Rendered more hooks". Nên ưu tiên xử lý (task Codex riêng).
+- CI hiện **chỉ lint file thay đổi** để nợ này không chặn PR khác. Dọn nợ = 1 task riêng (Codex), không làm gộp.
+
 ## Con số cần cập nhật (chưa có tại thời điểm này)
 - p75 LCP/INP production (Speed Insights) — **CHƯA đo** trong phiên hiện tại.

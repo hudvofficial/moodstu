@@ -84,7 +84,7 @@ spec → approved → implementing → testing → review → fixing → ci → 
 
 ## 6. CI gate — 2 tầng
 
-**Tầng 1 — GitHub Actions** (`.github/workflows/ci.yml`, job `quality`): tự chạy `npm run lint` + `npm run build` trên PR/push `main`. An toàn, không đụng DB.
+**Tầng 1 — GitHub Actions** (`.github/workflows/ci.yml`, job `quality`): lint **file thay đổi** (không chạy lint full vì repo có ~27 lỗi tồn đọng — xem `CURRENT_STATE.md`) + `npm run build`, trên PR/push `main`. An toàn, không đụng DB.
 - Chỉ **CHẶN merge thật** khi: (a) bật branch protection cho `main` yêu cầu check `quality`, **và** (b) làm việc qua **PR** (Codex push branch → PR → xanh → merge). 2 bước này do **user** làm 1 lần (xem comment đầu file workflow). Nếu còn push thẳng `main` → CI chỉ báo SAU, như Vercel.
 
 **Tầng 2 — verify local** (KHÔNG đưa lên CI vì nối thẳng Supabase + rủi ro e2e-seed-leak), chạy trước khi merge:
