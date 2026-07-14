@@ -29,8 +29,21 @@ version: 1
 updated: 2026-07-14
 
 # ---- Task đang chạy ----
-active: []
-  # (chưa có task nào tạo qua quy trình 3-agent này)
+active:
+  - id: T-20260715-image-viewer-lint
+    title: "Làm sạch lint components/gallery/image-viewer.tsx (1 bug hook + 9 SSOT)"
+    status: testing             # Codex impl xong; Claude review bắt 1 bug (heart fill) → Codex fix → chuyển Roo
+    owner: roo
+    branch: codex/image-viewer-lint
+    locks:
+      - components/gallery/image-viewer.tsx
+    spec: agent/HANDOFFS/T-20260715-image-viewer-lint.spec.md
+    verify:
+      - "npx eslint components/gallery/image-viewer.tsx  # 0 error"
+      - "npm run build"
+      - "Roo: render lightbox pixel-giống + images=[] không crash"
+    depends_on: []
+    notes: "Task dogfood pipeline lần đầu. Convert <button>→<Button> giữ UI y hệt (Roo verify)."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight:
