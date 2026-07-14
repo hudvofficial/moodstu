@@ -230,6 +230,34 @@ export default function ImageViewer({
     };
   }, []);
 
+  // Long-press ≥500ms không di chuyển → trigger download.
+  // iOS Safari TỰ hiện contextmenu "Lưu ảnh" sau ~500ms giữ tay, nên ở đây ta
+  // skip hoàn toàn (return early) để không override native UX. Non-iOS giữ nguyên.
+  const handleLongPress = useCallback(() => {
+    // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
+    // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
+    if (!showDownloadButton || !img) return;
+    // iOS detection: native contextmenu đã xử lý "Lưu ảnh" rồi → skip override
+    const isIOS = typeof navigator !== "undefined" && (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+    if (isIOS) return; // iOS native contextmenu tự xử lý "Lưu ảnh" rồi, không cần override
+    // Visual feedback: scale 0.98 ngay, reset sau 300ms
+    setLongPressActive(true);
+    setTimeout(() => setLongPressActive(false), 300);
+    // Haptic feedback (best-effort)
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(50);
+      } catch {
+        // ignore: vibration API có thể throw trên một số trình duyệt
+      }
+    }
+    // Fire download (không await để không block UI)
+    void downloadSingleImage(accessToken, img.id, img.file_name || "photo.jpg");
+  }, [showDownloadButton, img, accessToken]);
+
   if (!img) return null;
 
   const downloadFileName = img.file_name || "photo.jpg";
@@ -260,34 +288,6 @@ export default function ImageViewer({
     // Dùng downloadSingleImage lib: blob + retry + iOS Safari support (xem lib/gallery-download.ts).
     await downloadSingleImage(accessToken, img.id, downloadFileName);
   };
-
-  // Long-press ≥500ms không di chuyển → trigger download.
-  // iOS Safari TỰ hiện contextmenu "Lưu ảnh" sau ~500ms giữ tay, nên ở đây ta
-  // skip hoàn toàn (return early) để không override native UX. Non-iOS giữ nguyên.
-  const handleLongPress = useCallback(() => {
-    // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
-    // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
-    if (!showDownloadButton || !img) return;
-    // iOS detection: native contextmenu đã xử lý "Lưu ảnh" rồi → skip override
-    const isIOS = typeof navigator !== "undefined" && (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
-    if (isIOS) return; // iOS native contextmenu tự xử lý "Lưu ảnh" rồi, không cần override
-    // Visual feedback: scale 0.98 ngay, reset sau 300ms
-    setLongPressActive(true);
-    setTimeout(() => setLongPressActive(false), 300);
-    // Haptic feedback (best-effort)
-    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-      try {
-        navigator.vibrate(50);
-      } catch {
-        // ignore: vibration API có thể throw trên một số trình duyệt
-      }
-    }
-    // Fire download (không await để không block UI)
-    void downloadSingleImage(accessToken, img.id, downloadFileName);
-  }, [showDownloadButton, img, accessToken, downloadFileName]);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
     const x = e.touches[0]?.clientX;
@@ -522,7 +522,7 @@ export default function ImageViewer({
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">Ghi chú cho ảnh</h2>
-            <button
+            <Button unstyled
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -542,7 +542,7 @@ export default function ImageViewer({
               title="Đóng"
             >
               <X size={16} />
-            </button>
+            </Button>
           </div>
           <Textarea
             unstyled
@@ -575,7 +575,7 @@ export default function ImageViewer({
             </span>
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <button
+            <Button unstyled
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -591,8 +591,8 @@ export default function ImageViewer({
               }}
             >
               Huỷ
-            </button>
-            <button
+            </Button>
+            <Button unstyled
               type="button"
               onClick={handleSaveNoteNow}
               className="px-3 py-2 text-sm font-semibold"
@@ -606,7 +606,7 @@ export default function ImageViewer({
               }}
             >
               Lưu ghi chú
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -633,7 +633,7 @@ export default function ImageViewer({
             {!isViewOnly && (
               <>
                 {/* CircleCheck — chọn ảnh (is_selected) */}
-                <button
+                <Button unstyled
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -648,10 +648,10 @@ export default function ImageViewer({
                   title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                 >
                   <CircleCheck size={20} fill={img.is_selected ? "#22c55e" : "none"} />
-                </button>
+                </Button>
 
                 {/* Heart — reaction độc lập (isReacted) */}
-                <button
+                <Button unstyled
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -669,11 +669,11 @@ export default function ImageViewer({
                   title={isReacted ? "Bỏ yêu thích" : "Yêu thích"}
                   aria-disabled={!onToggleReaction}
                 >
-                  <Heart size={20} className={isReacted ? "fill-[#ff3b30] text-[#ff3b30]" : ""} />
-                </button>
+                  <Heart size={20} className={isReacted ? "fill-error text-error" : ""} />
+                </Button>
               </>
             )}
-            <button
+            <Button unstyled
               type="button"
               onClick={(e) => e.stopPropagation()}
               style={{
@@ -684,9 +684,9 @@ export default function ImageViewer({
               title="In ảnh"
             >
               <Printer size={20} />
-            </button>
+            </Button>
             {!isViewOnly && (
-              <button
+              <Button unstyled
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -704,9 +704,9 @@ export default function ImageViewer({
                 aria-disabled={!onSaveNote}
               >
                 <MessageSquare size={20} />
-              </button>
+              </Button>
             )}
-            <button
+            <Button unstyled
               type="button"
               onClick={showDownloadButton ? handleDownload : (e) => e.stopPropagation()}
               style={{
@@ -719,7 +719,7 @@ export default function ImageViewer({
               aria-disabled={!showDownloadButton}
             >
               <Download size={20} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -32,8 +32,8 @@ updated: 2026-07-14
 active:
   - id: T-20260715-image-viewer-lint
     title: "Làm sạch lint components/gallery/image-viewer.tsx (1 bug hook + 9 SSOT)"
-    status: implementing        # spec đã user duyệt 2026-07-15; giao Codex
-    owner: codex
+    status: testing             # Codex impl xong; Claude review bắt 1 bug (heart fill) → Codex fix → chuyển Roo
+    owner: roo
     branch: codex/image-viewer-lint
     locks:
       - components/gallery/image-viewer.tsx
