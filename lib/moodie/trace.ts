@@ -28,6 +28,8 @@ export type MoodieTrace = {
   fallback_used: boolean;
   fallback_reason?: "provider_unavailable" | "provider_error";
   provider_latency_ms?: number;
+  context_latency_ms?: number;
+  first_token_latency_ms?: number;
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;

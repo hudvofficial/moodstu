@@ -175,6 +175,7 @@ async function runMoodieModelEngine(params: {
     tool_names: executionPlan.prioritizedToolNames,
   });
   params.emit?.({ type: "context.started", label: "Đang đọc ngữ cảnh liên quan" });
+  const contextStartedAt = Date.now();
   const [contextPacket, attachmentContext] = await Promise.all([
     planMoodieContext({
       supabase: params.supabase,
@@ -216,6 +217,7 @@ async function runMoodieModelEngine(params: {
     research_mode: contextPacket.trace.research_mode,
     allowed_tool_names: availableToolNames,
   });
+  traceState.trace.context_latency_ms = Date.now() - contextStartedAt;
 
   const messages: ProviderMessage[] = [
     {
@@ -266,6 +268,8 @@ async function runMoodieModelEngine(params: {
   let externalResearchUsed = false;
   let backgroundResearchStarted = false;
   let correctionCount = 0;
+  let providerLatencyMs = 0;
+  let firstTokenLatencyMs: number | undefined;
 
   try {
     for (let step = 0; step < 8; step += 1) {
@@ -279,14 +283,17 @@ async function runMoodieModelEngine(params: {
         || route.research.required
         || route.orchestration.mode === "background_run"
         || toolUsedInTurn;
+      const providerStartedAt = Date.now();
       const modelResult = provider.chatStream
         ? await provider.chatStream(messages, toolDefinitions, (delta) => {
             throwIfMoodieAborted(params.signal);
+            if (firstTokenLatencyMs === undefined) firstTokenLatencyMs = Date.now() - providerStartedAt;
             streamedThisStep = true;
             if (bufferUntilFinal) bufferedText += delta;
             else params.emit?.({ type: "text.delta", delta });
           }, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined })
         : await provider.chat(messages, toolDefinitions, { signal: params.signal, toolChoice, maxOutputTokens: params.responseProfile === "voice" ? 384 : undefined });
+      providerLatencyMs += Date.now() - providerStartedAt;
       throwIfMoodieAborted(params.signal);
 
       if (!modelResult.ok) {
@@ -354,6 +361,8 @@ async function runMoodieModelEngine(params: {
           visual_schema_version: parts.length > 0 || metadataPatch.parts?.length ? 1 : undefined,
         }, traceState.finish({
           tool_call_count: traceState.trace.tools.length,
+          provider_latency_ms: providerLatencyMs,
+          first_token_latency_ms: firstTokenLatencyMs,
         })),
         };
       }

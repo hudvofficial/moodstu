@@ -156,9 +156,9 @@ export function MoodieMessageBubble({ message, pending, activeLeaf = true, statu
   return (
     <article className={`group flex w-full ${isAssistant ? "justify-start" : "justify-end"} ${!isAssistant && !pending ? "pb-7" : ""} ${isAssistant ? "" : "animate-fade-in-up"}`} style={{ contentVisibility: "auto", containIntrinsicSize: "auto 160px" }} data-moodie-answer-surface={isAssistant ? message.request_id || message.id : undefined} data-moodie-answer-state={isAssistant ? pending ? "streaming" : "completed" : undefined}>
       <div className={`flex min-w-0 ${isAssistant ? "w-full" : "max-w-[90%] flex-row-reverse"}`}>
-        <div className={`min-w-0 max-w-full ${isAssistant ? `w-full ${pending ? "" : "space-y-3"}` : "relative"}`}>
+        <div className={`min-w-0 max-w-full ${isAssistant ? `w-full ${pending ? "" : "space-y-1"}` : "relative"}`}>
           {pending && isAssistant ? <MoodieThinkingState statusLabel={statusLabel} activities={activities} streamedText={message.content} parts={streamedParts} /> : null}
-          <div className={`max-w-full text-left leading-6 ${isAssistant ? "w-full py-1 text-sm text-text-primary" : "rounded-3xl bg-black/[0.035] px-4 py-1.5 text-[15px] text-text-primary"}`}>
+          <div className={`max-w-full text-left leading-6 ${isAssistant ? "w-full pb-0.5 text-sm text-text-primary" : "rounded-3xl bg-black/[0.035] px-4 py-1.5 text-[15px] text-text-primary"}`}>
             {isAssistant ? pending ? null : <MoodieResponseContent content={message.content} suppressMetrics={suppressMetrics} suppressTables={suppressTables} /> : editing ? (
               <div className="space-y-2 py-1"><Textarea value={editValue} onChange={(event) => setEditValue(event.target.value)} rows={3} className="min-w-[280px] bg-white" autoFocus /><div className="flex justify-end gap-1.5"><Button type="button" variant="ghost" size="sm" onClick={() => { setEditing(false); setEditValue(message.content); }}><X className="mr-1 h-3.5 w-3.5" />Hủy</Button><Button type="button" size="sm" disabled={!editValue.trim()} onClick={() => { onEditResend?.(editValue.trim()); setEditing(false); }}><Check className="mr-1 h-3.5 w-3.5" />Gửi lại</Button></div></div>
             ) : <div className="space-y-2"><div className="break-words whitespace-pre-wrap">{message.content}</div>{metadata?.contexts?.length ? <div className="flex flex-wrap gap-1">{metadata.contexts.map((context) => <span key={context.id} className="inline-flex items-center gap-1 rounded-full bg-primary/8 px-2 py-0.5 text-micro text-primary"><Sparkles className="h-3 w-3" />{context.label}</span>)}</div> : null}{metadata?.attachments?.length ? <div className="flex flex-wrap gap-1">{metadata.attachments.map((attachment) => <span key={attachment.id} className="inline-flex max-w-full items-center gap-1 rounded-lg bg-white/70 px-2 py-1 text-micro text-text-secondary"><FileText className="h-3 w-3 text-primary" /><span className="max-w-40 truncate">{attachment.name}</span></span>)}</div> : null}</div>}
@@ -194,7 +194,19 @@ export function MoodieMessageBubble({ message, pending, activeLeaf = true, statu
             </div>
           ) : null}
 
-          {detailsOpen && metadata?.trace ? <div className="rounded-xl border border-border bg-bg-subtle p-3 text-caption text-text-secondary"><div className="grid gap-1 sm:grid-cols-2"><p><strong>Engine:</strong> {metadata.trace.engine}</p><p><strong>Thời gian:</strong> {metadata.trace.duration_ms}ms</p><p><strong>Công cụ:</strong> {metadata.trace.tool_call_count}</p><p><strong>Model steps:</strong> {metadata.trace.model_steps}</p></div></div> : null}
+          {detailsOpen && metadata?.trace ? (
+            <div className="rounded-xl border border-border bg-bg-subtle p-3 text-caption text-text-secondary">
+              <div className="grid gap-1 sm:grid-cols-2">
+                <p><strong>Engine:</strong> {metadata.trace.engine}</p>
+                <p><strong>Tổng thời gian:</strong> {metadata.trace.duration_ms}ms</p>
+                {metadata.trace.context_latency_ms !== undefined ? <p><strong>Chuẩn bị ngữ cảnh:</strong> {metadata.trace.context_latency_ms}ms</p> : null}
+                {metadata.trace.first_token_latency_ms !== undefined ? <p><strong>Token đầu tiên:</strong> {metadata.trace.first_token_latency_ms}ms</p> : null}
+                {metadata.trace.provider_latency_ms !== undefined ? <p><strong>Provider:</strong> {metadata.trace.provider_latency_ms}ms</p> : null}
+                <p><strong>Công cụ:</strong> {metadata.trace.tool_call_count}</p>
+                <p><strong>Model steps:</strong> {metadata.trace.model_steps}</p>
+              </div>
+            </div>
+          ) : null}
 
           {isAssistant && activeLeaf && metadata?.follow_ups?.length && onQuickPrompt ? <section className="mt-3"><h3 className="mb-2 text-caption font-medium text-text-muted">Hỏi tiếp</h3><div className="flex flex-wrap gap-1.5">{metadata.follow_ups.map((prompt) => { const display = normalizeMoodieDisplayText(prompt); return <Button key={prompt} type="button" unstyled className="max-w-full rounded-full border border-border/70 bg-white px-3 py-1.5 text-left text-caption text-text-secondary transition-colors hover:border-border hover:bg-bg-subtle hover:text-text-primary" onClick={() => onQuickPrompt(display)}><span className="block truncate">{display}</span></Button>; })}</div></section> : null}
         </div>

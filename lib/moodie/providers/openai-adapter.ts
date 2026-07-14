@@ -133,6 +133,12 @@ export class OpenAIAdapter implements MoodieProvider {
     return headers;
   }
 
+  private applyProviderOptions(body: Record<string, unknown>) {
+    if (this.baseUrl.includes("integrate.api.nvidia.com") && this.model === "minimaxai/minimax-m3") {
+      body.chat_template_kwargs = { thinking_mode: "disabled" };
+    }
+  }
+
   async chat(
     messages: ProviderMessage[],
     tools: ToolDefinition[],
@@ -146,6 +152,7 @@ export class OpenAIAdapter implements MoodieProvider {
       temperature: 0.35,
       max_tokens: options?.maxOutputTokens ?? 4096,
     };
+    this.applyProviderOptions(body);
 
     if (tools.length > 0 && options?.toolChoice !== "none") {
       body.tools = tools.map((t) => ({
@@ -234,6 +241,7 @@ export class OpenAIAdapter implements MoodieProvider {
       stream: true,
       stream_options: { include_usage: true },
     };
+    this.applyProviderOptions(body);
     if (tools.length > 0 && options?.toolChoice !== "none") {
       body.tools = tools.map((tool) => ({ type: "function", function: { ...tool.function, parameters: tool.function.parameters ?? { type: "object", properties: {} } } }));
       body.tool_choice = options?.toolChoice || "auto";

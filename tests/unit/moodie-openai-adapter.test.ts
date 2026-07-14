@@ -85,6 +85,33 @@ describe("OpenAIAdapter", () => {
       "https://integrate.api.nvidia.com/v1/chat/completions",
       expect.objectContaining({ method: "POST" }),
     );
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      chat_template_kwargs: { thinking_mode: "disabled" },
+    });
+    fetchMock.mockRestore();
+  });
+
+  it("disables hidden thinking for streamed NVIDIA MiniMax requests", async () => {
+    const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(new Response(
+      'data: {"choices":[{"delta":{"content":"OK"}}]}\n\ndata: [DONE]\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } },
+    ));
+    const provider = new OpenAIAdapter({
+      providerId: "openai_compatible",
+      baseUrl: "https://integrate.api.nvidia.com/v1",
+      apiKey: "test-key",
+      model: "minimaxai/minimax-m3",
+    });
+
+    const result = await provider.chatStream([{ role: "user", content: "ping" }], [], () => {});
+
+    expect(result.ok).toBe(true);
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      stream: true,
+      chat_template_kwargs: { thinking_mode: "disabled" },
+    });
     fetchMock.mockRestore();
   });
 

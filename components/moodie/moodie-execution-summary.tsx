@@ -62,7 +62,7 @@ export function MoodieExecutionSummary({
     : null, [timestamp]);
 
   if (!pending && !hasExecutionDetails) {
-    return timeLabel ? <div className="flex justify-end"><time className="text-micro text-text-muted" dateTime={timestamp}>{timeLabel}</time></div> : null;
+    return null;
   }
 
   return (
