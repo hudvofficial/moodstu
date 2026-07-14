@@ -107,12 +107,12 @@ const TabletTableRow = memo(function TabletTableRow({
       onClick={() => onView(c)}
       onMouseEnter={() => onHover?.(id)}
       onPointerDown={() => onHover?.(id)}
-      className={`h-24 group cursor-pointer ${isCancelled ? "opacity-50" : ""}`}
+      className={`h-16 group cursor-pointer ${isCancelled ? "opacity-50" : ""}`}
     >
       <TD className="sticky left-0 z-10 w-[124px] bg-surface group-even:bg-bg-base/40 group-hover:bg-bg-hover transition-colors py-4 px-3 font-semibold text-text-main border-r border-border">
         <span className="block truncate">{getStr(c, "contract_code")}</span>
       </TD>
-      <TD className="w-[300px] py-4 px-3">
+      <TD className="w-[220px] py-4 px-3">
         <div className="flex min-w-0 items-center gap-2">
           <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${serviceBadge.bg} ${serviceBadge.text}`}>
             {getInitials(customerName)}
@@ -127,7 +127,7 @@ const TabletTableRow = memo(function TabletTableRow({
                 {getServiceLabel(serviceType as ServiceType)}
               </span>
             </div>
-            <ContractMilestones contract={c} className="mt-1.5" />
+            <ContractMilestones contract={c} compact className="mt-1.5" />
           </div>
         </div>
       </TD>
@@ -217,7 +217,7 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   const virtualizer = useVirtualizer({
     count: contracts.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 96,
+    estimateSize: () => 64,
     overscan: 5,
   });
 
@@ -241,7 +241,7 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   return (
     <TableWrapper
       scrollRef={tableContainerRef}
-      className="min-w-[900px] table-fixed"
+      className="min-w-[800px] table-fixed"
       containerClassName="rounded-xl"
       footer={
         totalPages !== undefined && totalPages > 1 && onPageChange ? (
@@ -264,7 +264,7 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
         <THead>
           <tr>
             <TH className="sticky left-0 z-20 w-[124px] bg-bg-sidebar border-r border-border px-3">Mã HĐ</TH>
-            <TH className="w-[300px] px-3">Khách hàng / Ngày ký</TH>
+            <TH className="w-[220px] px-3">Khách hàng / Ngày ký</TH>
             <TH className="w-[170px] px-3 text-right">Tổng cộng / Còn nợ</TH>
             <TH className="w-[238px] px-3">Tình trạng</TH>
             <TH className="sticky right-0 z-20 w-[48px] bg-bg-sidebar text-center border-l border-border px-2">Đi</TH>

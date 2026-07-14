@@ -146,7 +146,7 @@ const DesktopTableRow = memo(function DesktopTableRow({
         {fmtDate(getStr(c, "contract_date") || null)}
       </TD>
       <TD>
-        <ContractMilestones contract={c} />
+        <ContractMilestones contract={c} compact />
       </TD>
 
       <TD className="text-right font-semibold text-text-main">
