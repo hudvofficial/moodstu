@@ -245,7 +245,10 @@ export default function GalleryToolbar({
 
   const hasDesktopFilters = galleries.length > 1 || rawCount > 0 || albums.length > 0;
   const mobileSecondaryStats = useMemo(
-    () => statsItems.filter((item, index) => index > 1 && (Number(item.value) > 0 || item.active)),
+    // "khách chọn" (index 2) LUÔN hiện dù = 0 — đây là chốt nghiệp vụ: nhân sự lọc đúng ảnh
+    // khách chọn để hậu kỳ/in. Ẩn khi 0 thì mobile không phân biệt được "chưa ai chọn" với
+    // "không có mục này", và mất luôn nút lọc theo ảnh đã chọn.
+    () => statsItems.filter((item, index) => index > 1 && (index === 2 || Number(item.value) > 0 || item.active)),
     [statsItems]
   );
 
