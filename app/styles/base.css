@@ -1,5 +1,18 @@
 /* Base element defaults and shared interaction states */
 
+/* Con trỏ bàn tay cho mọi phần tử bấm được.
+   Tailwind v4 ĐÃ BỎ reset `cursor: pointer` cho <button> (v3 có) → mọi <button> không mang
+   .btn/.icon-btn (buttons.css tự khai cursor) hoặc cursor-pointer thủ công đều rơi về
+   `cursor: default`. Đã dính thật: nút phân trang, tab album trang khách, changelog…
+   - Đặt trong @layer base → utility (vd cursor-not-allowed, cursor-default) LUÔN thắng.
+   - :where() giữ specificity 0; loại :disabled/[aria-disabled] để nút vô hiệu không ra bàn tay
+     (.btn:disabled vẫn tự khai cursor: not-allowed). */
+@layer base {
+  :where(button, [role="button"], summary):not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
 :where(
   a[href],
   button,
