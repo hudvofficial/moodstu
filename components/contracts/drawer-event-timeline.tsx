@@ -11,6 +11,13 @@
  */
 
 import { Calendar, MapPin, CheckCircle, Clock, Circle } from "lucide-react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { updateEventStatus } from "@/app/actions/contract-event-actions";
+import { Button } from "@/components/ui/button";
+import { contractKeys, markContractSelfMutation } from "@/lib/hooks/use-contract-queries";
+import { runOptimisticMutation } from "@/lib/optimistic-mutation";
+import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { EVENT_TYPE_MAP, TASK_STATUS_MAP } from "@/types/contract-constants";
 import type { EventType, TaskStatus } from "@/types/contract";
@@ -23,6 +30,9 @@ interface ContractEvent {
   title: string | null;
   event_date: string | null;
   end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  deadline?: string | null;
   location: string | null;
   status: string;
   notes?: string | null;
@@ -30,8 +40,22 @@ interface ContractEvent {
 }
 
 interface DrawerEventTimelineProps {
+  contractId?: string;
   events: ContractEvent[];
 }
+
+type DrawerExtraShape = Awaited<
+  ReturnType<typeof import("@/lib/client-direct/contract-drawer").fetchContractDrawerExtraClient>
+>["data"];
+
+const NEXT_STATUS: Record<
+  Exclude<TaskStatus, "da_huy">,
+  Exclude<TaskStatus, "da_huy">
+> = {
+  chua_lam: "dang_lam",
+  dang_lam: "hoan_thanh",
+  hoan_thanh: "chua_lam",
+};
 
 // ─── STATUS ICON (uses TaskStatus from SSOT) ─────
 
@@ -44,7 +68,59 @@ function getStatusIcon(status: string) {
 
 // ─── COMPONENT ───────────────────────────────────
 
-export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
+export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineProps) {
+  const queryClient = useQueryClient();
+
+  const handleStatusChange = useCallback(async (event: ContractEvent) => {
+    if (!contractId || event.status === "da_huy") return;
+
+    const currentStatus = event.status as Exclude<TaskStatus, "da_huy">;
+    const nextStatus = NEXT_STATUS[currentStatus];
+
+    await runOptimisticMutation({
+      apply: () => {
+        markContractSelfMutation();
+        queryClient.setQueryData(
+          contractKeys.drawerExtra(contractId),
+          (old: DrawerExtraShape | undefined) =>
+            old
+              ? {
+                  ...old,
+                  events: old.events.map((cachedEvent) =>
+                    cachedEvent.id === event.id
+                      ? { ...cachedEvent, status: nextStatus }
+                      : cachedEvent,
+                  ),
+                }
+              : old,
+        );
+      },
+      rollback: () => {
+        queryClient.setQueryData(
+          contractKeys.drawerExtra(contractId),
+          (old: DrawerExtraShape | undefined) =>
+            old
+              ? {
+                  ...old,
+                  events: old.events.map((cachedEvent) =>
+                    cachedEvent.id === event.id
+                      ? { ...cachedEvent, status: currentStatus }
+                      : cachedEvent,
+                  ),
+                }
+              : old,
+        );
+      },
+      action: () => updateEventStatus(event.id, nextStatus),
+      onError: (error) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Lỗi cập nhật trạng thái sự kiện",
+        );
+      },
+    });
+  }, [contractId, queryClient]);
   if (!events || events.length === 0) {
     return (
       <section className="card-base p-4">
@@ -85,6 +161,29 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
           const statusInfo = TASK_STATUS_MAP[event.status as TaskStatus];
           const statusLabel = statusInfo?.label || "Chờ";
           const isLast = idx === sortedEvents.length - 1;
+          const todayStr = new Date().toLocaleDateString("en-CA");
+          const comparisonDate = (event.deadline ?? event.event_date ?? "").slice(0, 10);
+          const isOverdue =
+            event.status !== "hoan_thanh" &&
+            event.status !== "da_huy" &&
+            comparisonDate !== "" &&
+            comparisonDate < todayStr;
+          const statusControl = event.status === "da_huy" || !contractId ? (
+            <span className="inline-flex items-center gap-1 text-tiny text-text-muted shrink-0">
+              {getStatusIcon(event.status)}
+              {statusLabel}
+            </span>
+          ) : (
+            <Button
+              unstyled
+              type="button"
+              onClick={() => void handleStatusChange(event)}
+              className="inline-flex cursor-pointer items-center gap-1 text-tiny text-text-muted shrink-0 transition-transform active:scale-95"
+            >
+              {getStatusIcon(event.status)}
+              {statusLabel}
+            </Button>
+          );
 
           return (
             <div key={event.id} className="flex gap-3">
@@ -105,14 +204,17 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
                     <span className="text-body-sm font-medium text-text-main truncate">
                       {config.label}
                     </span>
+                    {event.event_date && (
+                      <span className="text-tiny text-text-muted shrink-0">
+                        · {formatDate(event.event_date)}
+                      </span>
+                    )}
                     {event.location && (
                       <span className="text-tiny text-text-muted truncate">
                         · {event.location}
                       </span>
                     )}
-                    <span className="text-tiny text-success ml-auto shrink-0">
-                      {statusLabel}
-                    </span>
+                    <span className="ml-auto">{statusControl}</span>
                   </div>
                 </div>
               ) : (
@@ -123,20 +225,28 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
                     <span className="text-body-sm font-medium text-text-main">
                       {config.label}
                     </span>
-                    <span className="text-tiny text-text-muted ml-auto">
-                      {statusLabel}
-                    </span>
+                    <span className="ml-auto">{statusControl}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                    {event.event_date && (
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-text-muted" />
-                        <span className="text-tiny text-text-secondary">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-text-muted" />
+                      {event.event_date ? (
+                        <span className={`text-tiny ${isOverdue ? "text-error" : "text-text-secondary"}`}>
                           {formatDate(event.event_date)}
+                          {event.start_time && (
+                            <>
+                              {` · ${event.start_time.slice(0, 5)}`}
+                              {event.end_time && `–${event.end_time.slice(0, 5)}`}
+                            </>
+                          )}
                         </span>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-tiny text-text-muted italic">
+                          Chưa xếp lịch
+                        </span>
+                      )}
+                    </div>
                     {event.location && (
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-text-muted" />
@@ -145,6 +255,16 @@ export function DrawerEventTimeline({ events }: DrawerEventTimelineProps) {
                         </span>
                       </div>
                     )}
+                    {event.status !== "hoan_thanh" &&
+                      event.status !== "da_huy" &&
+                      event.deadline && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-text-muted" />
+                          <span className={`text-tiny ${isOverdue ? "text-error" : "text-text-secondary"}`}>
+                            Hạn: {formatDate(event.deadline)}
+                          </span>
+                        </div>
+                      )}
                   </div>
                 </div>
               )}

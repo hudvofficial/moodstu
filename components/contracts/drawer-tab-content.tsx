@@ -335,7 +335,10 @@ function OperationsTabs({
       ) : (
         <>
           {activeTab === "events" && (
-            <DrawerEventTimeline events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]} />
+            <DrawerEventTimeline
+              contractId={contractId}
+              events={events as unknown as React.ComponentProps<typeof DrawerEventTimeline>["events"]}
+            />
           )}
           {activeTab === "checklist" && (
             <DrawerChecklist 

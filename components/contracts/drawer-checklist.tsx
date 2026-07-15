@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { toggleChecklist } from "@/app/actions/checklist-actions";
-import { updateContractListChecklistCache, markChecklistSelfMutation } from "@/lib/hooks/use-contract-queries";
+import { updateContractListChecklistCache, markContractSelfMutation } from "@/lib/hooks/use-contract-queries";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,7 @@ export function DrawerChecklist({ contractId, items: initialItems }: DrawerCheck
 
     await runOptimisticMutation({
       apply: () => {
-        markChecklistSelfMutation(); // realtime handler bỏ qua echo của cú tick này → list không refetch
+        markContractSelfMutation(); // realtime handler bỏ qua echo của cú tick này → list không refetch
         setPendingToggles(prev => new Map(prev).set(item.id, nextCompleted));
         // Optimistic update cho LIST CACHE (Bảng bên trái nhảy instant)
         if (itemContractId) {

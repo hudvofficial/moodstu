@@ -583,7 +583,7 @@ export async function getContractDrawerExtra(id: string) {
       supabase
         .from("contract_events")
         .select(
-          `id, event_type, title, event_date, end_date, location, status, notes,
+          `id, event_type, title, event_date, end_date, start_time, end_time, deadline, location, status, notes, sort_order,
            sync_to_google, google_event_id, google_sync_status,
            google_sync_error, google_synced_at`
         )

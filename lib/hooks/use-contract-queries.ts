@@ -413,12 +413,12 @@ export async function revalidateContractCaches(queryClient: any, contractId?: st
 // realtime bỏ qua echo trong cửa sổ ngắn → bảng list không refetch/nhảy.
 let lastChecklistSelfMutationAt = 0;
 
-export function markChecklistSelfMutation() {
+export function markContractSelfMutation() {
   lastChecklistSelfMutationAt = Date.now();
 }
 
 /** Signal checklist về trong cửa sổ này = echo của chính mình → skip refetch. */
-export function isRecentChecklistSelfMutation(windowMs = 3000) {
+export function isRecentContractSelfMutation(windowMs = 3000) {
   return Date.now() - lastChecklistSelfMutationAt < windowMs;
 }
 

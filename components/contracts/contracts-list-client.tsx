@@ -37,7 +37,7 @@ import {
   useContractStats,
   prefetchContract,
   revalidateContractListCaches,
-  isRecentChecklistSelfMutation,
+  isRecentContractSelfMutation,
 } from "@/lib/hooks/use-contract-queries";
 import { preload } from "swr";
 import { fetchContractNotesClient } from "@/lib/client-direct/contract-drawer";
@@ -207,7 +207,7 @@ const ContractsListInner = memo(function ContractsListInner({
     // IM LẶNG sau khi cửa sổ khép: nếu người khác sửa TRÙNG cửa sổ thì data thật về;
     // data không đổi thì structural sharing của React Query giữ reference → không re-render.
     // (staleTime contracts = 30' nên không thể trông chờ refetch-on-focus.)
-    if (payload?.table === "contract_checklists" && isRecentChecklistSelfMutation()) {
+    if ((payload?.table === "contract_checklists" || payload?.table === "contract_events") && isRecentContractSelfMutation()) {
       if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
       checklistReconcileTimerRef.current = setTimeout(() => {
         checklistReconcileTimerRef.current = null;

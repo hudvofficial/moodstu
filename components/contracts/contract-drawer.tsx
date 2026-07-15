@@ -26,7 +26,7 @@ import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
 import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 import { useQueryClient } from "@tanstack/react-query";
-import { prefetchContractDetail, useContractDrawerExtra, contractKeys, isRecentChecklistSelfMutation } from "@/lib/hooks/use-contract-queries";
+import { prefetchContractDetail, useContractDrawerExtra, contractKeys, isRecentContractSelfMutation } from "@/lib/hooks/use-contract-queries";
 import type { RealtimePayload } from "@/hooks/use-realtime-multi";
 
 // ─── TYPES ───────────────────────────────────────
@@ -110,7 +110,7 @@ export function ContractDrawer({
       // KHÔNG refetch ngay (drawer đứng im). Hẹn 1 lần reconcile im lặng sau khi cửa sổ
       // khép: người khác sửa trùng cửa sổ thì data thật về; không đổi thì structural
       // sharing giữ reference → không re-render.
-      if (payload.table === "contract_checklists" && isRecentChecklistSelfMutation()) {
+      if ((payload.table === "contract_checklists" || payload.table === "contract_events") && isRecentContractSelfMutation()) {
         if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
         checklistReconcileTimerRef.current = setTimeout(() => {
           checklistReconcileTimerRef.current = null;

@@ -484,6 +484,25 @@ export async function generateContractEvents(
 // ─── UPDATE CONTRACT EVENT ───────────────────────
 // V1 ref: crud.ts L238-285
 // Logic: Update event metadata + auto recalc downstream dates
+export async function updateEventStatus(
+  eventId: string,
+  status: "chua_lam" | "dang_lam" | "hoan_thanh",
+) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractWriteAccess(supabase, userId);
+    // Hot path (tick từ drawer): CHỈ update status. KHÔNG revalidatePath /
+    // invalidateContractPaths / google sync / recalc — client optimistic patch
+    // + trailing reconcile lo đồng bộ (xem drawer-checklist.tsx).
+    const { error } = await supabase
+      .from("contract_events")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", eventId)
+      .neq("status", "da_huy");
+    if (error) throw new Error(`Lỗi cập nhật trạng thái sự kiện: ${error.message}`);
+    return { id: eventId, status };
+  });
+}
+
 export async function updateContractEvent(
   eventId: string,
   updates: EventUpdateFields,
