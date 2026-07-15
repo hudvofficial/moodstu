@@ -2,13 +2,13 @@
 /* eslint-disable */
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
-import { toggleImageSelection, updateClientNote } from "@/app/actions/gallery-selection-actions";
-import { getClientReactions, getReactionCounts, toggleReaction, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import { toggleImageSelection } from "@/app/actions/gallery-selection-actions";
+import { getClientReactions, getGalleryComments, getReactionCounts, toggleReaction, upsertComment, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
 import ImageViewer from "./image-viewer";
@@ -91,6 +91,12 @@ export default function PublicGalleryClient({
     gallery.id ? `gallery-reactions-${gallery.id}` : null,
     () => getReactionCounts(gallery.id),
     { fallbackData: {} }
+  );
+
+  const { data: commentsPerImage = {} } = useSWR(
+    gallery.id && accessUrl && accessToken ? `gallery-comments-${gallery.id}` : null,
+    () => getGalleryComments(gallery.id, accessUrl, accessToken),
+    { fallbackData: {} },
   );
 
   const [clientId, setClientId] = useState<string | null>(null);
@@ -311,39 +317,18 @@ export default function PublicGalleryClient({
   );
 
   const handleSaveNote = useCallback(
-    async (imageId: string, note: string) => {
+    async (imageId: string, note: string, authorName: string) => {
       // Ghi chú ảnh = chỉ dẫn hậu kỳ — cùng gate mật khẩu với chọn ảnh.
       if (gallery.needsPassword && clientCapability === "view") {
         setShowSelectPasswordModal(true);
-        return;
+        return false;
       }
-      const previousNote = images.find((i) => i.id === imageId)?.client_note || null;
-      
-      mutatePages((currentPages) => {
-        if (!currentPages) return currentPages;
-        return currentPages.map(page => ({
-          ...page,
-          images: page.images.map((img: GalleryImage) =>
-            img.id === imageId ? { ...img, client_note: note || null } : img
-          )
-        }));
-      }, false);
-
-      const res = await updateClientNote(imageId, note, accessUrl, accessToken);
-      
-      if (!res.success) {
-        mutatePages((currentPages) => {
-          if (!currentPages) return currentPages;
-          return currentPages.map(page => ({
-            ...page,
-            images: page.images.map((img: GalleryImage) =>
-              img.id === imageId ? { ...img, client_note: previousNote } : img
-            )
-          }));
-        }, false);
-      }
+      if (!clientId) return false;
+      const result = await upsertComment(imageId, gallery.id, note, authorName, clientId, accessUrl, accessToken);
+      if (result.success) await mutate(`gallery-comments-${gallery.id}`);
+      return result.success;
     },
-    [accessToken, accessUrl, images, mutatePages, gallery.needsPassword, clientCapability],
+    [accessToken, accessUrl, clientId, gallery.id, gallery.needsPassword, clientCapability],
   );
 
   // ═════════════════════════════════════════
@@ -404,6 +389,7 @@ export default function PublicGalleryClient({
           hasMore={hasMoreImages}
           publicMode={true}
           showClientNote={!isViewOnly}
+          commentsPerImage={commentsPerImage}
         />
       </div>
 
@@ -418,6 +404,8 @@ export default function PublicGalleryClient({
           onToggleReaction={handleToggleReaction}
           isReacted={Boolean(reactedImageIds.has(displayImages[viewerIndex]?.id))}
           onSaveNote={handleSaveNote}
+          accessUrl={accessUrl}
+          clientIdentifier={clientId || ""}
           mode={mode}
           accessToken={accessToken}
           totalImagesCount={activeGroup === "all" ? totalImageCount : selectedCount}

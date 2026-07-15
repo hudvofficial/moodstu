@@ -10,6 +10,12 @@ import type { GalleryImage } from "@/types/gallery";
 // Replaces 3 sequential calls: summaries + metadata + images
 // ============================================================================
 
+export interface GalleryCommentSummary {
+  author_name: string;
+  content: string;
+  updated_at: string;
+}
+
 export interface GalleryDataV2Result {
   images: GalleryImage[];
   totalCount: number;
@@ -101,7 +107,7 @@ export async function getGalleryMetadataAll(galleryId: string) {
       // 1. Reactions
       supabase.from("gallery_reactions").select("image_id, reaction_type").eq("gallery_id", galleryId),
       // 2. Comments per image
-      supabase.from("gallery_comments").select("image_id").eq("gallery_id", galleryId),
+      supabase.from("gallery_comments").select("image_id, content, author_name, updated_at").eq("gallery_id", galleryId),
       // 3. Albums
       supabase.from("gallery_albums").select("*").eq("gallery_id", galleryId).order("sort_order", { ascending: true }),
       // 4. Album image counts
@@ -122,10 +128,17 @@ export async function getGalleryMetadataAll(galleryId: string) {
 
     // Process comments
     const commentCountsPerImage: Record<string, number> = {};
+    const commentsPerImage: Record<string, GalleryCommentSummary[]> = {};
     let totalCommentCount = 0;
     if (commentsData.data) {
       for (const row of commentsData.data) {
         commentCountsPerImage[row.image_id] = (commentCountsPerImage[row.image_id] || 0) + 1;
+        commentsPerImage[row.image_id] = commentsPerImage[row.image_id] || [];
+        commentsPerImage[row.image_id].push({
+          author_name: row.author_name || "Khách",
+          content: row.content,
+          updated_at: row.updated_at,
+        });
         totalCommentCount++;
       }
     }
@@ -149,6 +162,7 @@ export async function getGalleryMetadataAll(galleryId: string) {
       reactionCounts,
       totalCommentCount,
       commentCountsPerImage,
+      commentsPerImage,
       albums: finalAlbums,
     };
   });

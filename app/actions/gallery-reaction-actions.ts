@@ -1,8 +1,10 @@
 "use server";
 
+import { withAuth, requireContractAccess } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isValidUUID } from "@/types/gallery";
-import { requirePublicGalleryImageAccess } from "./gallery-core";
+import type { GalleryCommentSummary } from "./gallery-composite-actions";
+import { requirePublicGalleryAccess, requirePublicGalleryImageAccess } from "./gallery-core";
 
 // ═══════════════════════════════════════════
 // Gallery Reaction & Comment Server Actions
@@ -25,6 +27,7 @@ export interface GalleryComment {
   author_name: string | null;
   client_identifier: string;
   created_at: string;
+  updated_at: string;
 }
 
 // ─── REACTION ACTIONS ──────────────────────
@@ -152,98 +155,104 @@ export async function getClientReactions(galleryId: string, clientIdentifier: st
 
 // ─── COMMENT ACTIONS ───────────────────────
 
-/** Get comments for an image */
-export async function getComments(imageId: string): Promise<GalleryComment[]> {
+/** Ghi chú theo ảnh cho CẢ gallery — cấp dữ liệu cho chip + preview trên grid trang khách. */
+export async function getGalleryComments(
+  galleryId: string,
+  accessUrl: string,
+  accessToken: string,
+): Promise<Record<string, GalleryCommentSummary[]>> {
   try {
+    if (!accessUrl?.trim() || !accessToken?.trim()) return {};
     const supabase = await createAdminClient();
-
+    // "view": ĐÚNG mức bảo mật hiện tại — hôm nay client_note vốn đã nằm trong payload ảnh
+    // (IMAGE_COLS) gửi cho MỌI người có link; UI mới là chỗ giấu nội dung với người không pass.
+    // KHÔNG siết thêm ngoài phạm vi task.
+    await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
     const { data, error } = await supabase
       .from("gallery_comments")
-      .select("*")
-      .eq("image_id", imageId)
+      .select("image_id, content, author_name, updated_at")
+      .eq("gallery_id", galleryId)
       .order("created_at", { ascending: true });
+    if (error) return {};
+    const map: Record<string, GalleryCommentSummary[]> = {};
+    for (const row of data || []) {
+      (map[row.image_id] ||= []).push({
+        author_name: row.author_name || "Khách",
+        content: row.content,
+        updated_at: row.updated_at,
+      });
+    }
+    return map;
+  } catch (error) {
+    console.error("getGalleryComments error:", error);
+    return {};
+  }
+}
 
-    if (error) return [];
-    return data || [];
+/** Get comments for an image */
+export async function getComments(imageId: string, accessUrl?: string, accessToken?: string): Promise<GalleryComment[]> {
+  try {
+    if (accessUrl?.trim() && accessToken?.trim()) {
+      const supabase = await createAdminClient();
+      await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
+      const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
+      if (error) return [];
+      return data || [];
+    }
+    const result = await withAuth(async (supabase, userId) => {
+      await requireContractAccess(supabase, userId);
+      const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    });
+    return result.success ? result.data : [];
   } catch (error) {
     console.error("getComments error:", error);
     return [];
   }
 }
 
-/** Add a comment to an image */
-export async function addComment(
-  imageId: string,
-  galleryId: string,
-  content: string,
-  authorName: string,
-  clientIdentifier: string
-) {
+/** Upsert a client note for an image */
+export async function upsertComment(imageId: string, galleryId: string, content: string, authorName: string, clientIdentifier: string, accessUrl: string, accessToken: string) {
   try {
-    if (!content.trim() || content.length > 500) {
-      return { success: false, error: "Nội dung comment không hợp lệ (1-500 ký tự)" };
-    }
-
+    if (!accessUrl?.trim() || !accessToken?.trim()) return { success: false as const, error: "Thiếu quyền truy cập." };
+    if (!clientIdentifier?.trim()) return { success: false as const, error: "Thiếu định danh client." };
+    const trimmed = (content || "").trim();
+    if (trimmed.length > 500) return { success: false as const, error: "Ghi chú tối đa 500 ký tự." };
     const supabase = await createAdminClient();
-
-    const { data, error } = await supabase
-      .from("gallery_comments")
-      .insert({
-        image_id: imageId,
-        gallery_id: galleryId,
-        content: content.trim(),
-        author_name: authorName.trim() || "Khách",
-        client_identifier: clientIdentifier,
-      })
-      .select()
-      .single();
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
+    // Ghi chú = chỉ dẫn hậu kỳ/in ấn → CÙNG gate với chọn ảnh (mật khẩu Mood cấp).
+    // Giữ đúng hành vi updateClientNote cũ; KHÔNG được nới xuống "view".
+    await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "select");
+    // Xoá trắng ô = xoá ghi chú của chính mình.
+    if (!trimmed) {
+      await supabase.from("gallery_comments").delete().eq("image_id", imageId).eq("client_identifier", clientIdentifier);
+      return { success: true as const, data: null };
+    }
+    const author = (authorName || "").trim().slice(0, 50) || "Khách";
+    const { data, error } = await supabase.from("gallery_comments").upsert({ image_id: imageId, gallery_id: galleryId, content: trimmed, author_name: author, client_identifier: clientIdentifier, updated_at: new Date().toISOString() }, { onConflict: "image_id,client_identifier" }).select().single();
+    if (error) return { success: false as const, error: error.message };
+    return { success: true as const, data };
   } catch (error) {
-    console.error("addComment error:", error);
-    return { success: false, error: "Không thể thêm comment" };
+    console.error("upsertComment error:", error);
+    return { success: false as const, error: error instanceof Error ? error.message : "Không thể lưu ghi chú" };
   }
 }
 
 /** Delete a comment (only the creator can delete) */
-export async function deleteComment(commentId: string, clientIdentifier: string) {
+export async function deleteComment(commentId: string, clientIdentifier: string, accessUrl: string, accessToken: string) {
   try {
+    if (!accessUrl?.trim() || !accessToken?.trim()) return { success: false as const, error: "Thiếu quyền truy cập." };
     const supabase = await createAdminClient();
-
-    const { data: comment } = await supabase
-      .from("gallery_comments")
-      .select("client_identifier")
-      .eq("id", commentId)
-      .single();
-
-    if (!comment || comment.client_identifier !== clientIdentifier) {
-      return { success: false, error: "Không có quyền xóa comment này" };
-    }
-
-    await supabase.from("gallery_comments").delete().eq("id", commentId);
-    return { success: true };
+    const { data: comment, error } = await supabase.from("gallery_comments").select("image_id, client_identifier").eq("id", commentId).single();
+    if (error || !comment) return { success: false as const, error: "Không tìm thấy ghi chú." };
+    await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), comment.image_id, "select");
+    if (comment.client_identifier !== clientIdentifier) return { success: false as const, error: "Không có quyền xóa comment này" };
+    const { error: deleteError } = await supabase.from("gallery_comments").delete().eq("id", commentId).eq("client_identifier", clientIdentifier);
+    if (deleteError) return { success: false as const, error: deleteError.message };
+    return { success: true as const };
   } catch (error) {
     console.error("deleteComment error:", error);
-    return { success: false, error: "Không thể xóa comment" };
-  }
-}
-
-/** Get total comment count for a gallery */
-export async function getGalleryCommentCount(galleryId: string): Promise<number> {
-  try {
-    const supabase = await createAdminClient();
-
-    const { count, error } = await supabase
-      .from("gallery_comments")
-      .select("id", { count: "exact", head: true })
-      .eq("gallery_id", galleryId);
-
-    if (error) return 0;
-    return count || 0;
-  } catch (error) {
-    console.error("getGalleryCommentCount error:", error);
-    return 0;
+    return { success: false as const, error: error instanceof Error ? error.message : "Không thể xóa comment" };
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { withAuth, requireContractAccess } from "@/lib/auth_utils";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import type { GalleryCommentSummary } from "@/app/actions/gallery-composite-actions";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
 import type { GalleryImage } from "@/types/gallery";
 
@@ -18,6 +19,7 @@ export interface GalleryDataCursorResult {
   loadedCount: number;
   reactionCounts: ReactionCounts;
   commentCountsPerImage: Record<string, number>;
+  commentsPerImage: Record<string, GalleryCommentSummary[]>;
   totalCommentCount: number;
   albums: (GalleryAlbum & { imageCount: number })[];
 }
@@ -71,6 +73,7 @@ export async function getGalleryDataCursor(
       loadedCount: number;
       reactionCounts: Record<string, { hearts: number; stars: number }>;
       commentCountsPerImage: Record<string, number>;
+      commentsPerImage?: Record<string, GalleryCommentSummary[]>;
       totalCommentCount: number;
       albums: (GalleryAlbum & { imageCount: number })[];
     };
@@ -83,6 +86,7 @@ export async function getGalleryDataCursor(
       loadedCount: result.loadedCount || 0,
       reactionCounts: result.reactionCounts || {},
       commentCountsPerImage: result.commentCountsPerImage || {},
+      commentsPerImage: result.commentsPerImage || {},
       totalCommentCount: result.totalCommentCount || 0,
       albums: result.albums || [],
     } as GalleryDataCursorResult;

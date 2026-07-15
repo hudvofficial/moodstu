@@ -4,10 +4,12 @@ import type { MouseEvent, TouchEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Heart, Star, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
+import type { GalleryCommentSummary } from "@/app/actions/gallery-composite-actions";
 import { downloadSingleFile } from "@/components/gallery/download-manager";
 import { Button } from "@/components/ui/button";
 import { setGalleryCoverImage } from "@/app/actions/gallery-admin-actions";
 import { toast } from "sonner";
+import { formatDate } from "@/lib/utils";
 
 // ═══════════════════════════════════════════
 // GalleryLightbox — Fullscreen image viewer
@@ -20,6 +22,7 @@ interface GalleryLightboxProps {
   galleryId?: string | null;
   coverImageId?: string | null;
   onSetCoverSuccess?: (imageId: string) => void;
+  commentsPerImage?: Record<string, GalleryCommentSummary[]>;
 }
 
 function withThumbSize(url: string, size: number): string {
@@ -61,7 +64,7 @@ async function downloadUrl(url: string, fileName: string): Promise<boolean> {
   }
 }
 
-export default function GalleryLightbox({ images, initialIdx, onClose, galleryId, coverImageId, onSetCoverSuccess }: GalleryLightboxProps) {
+export default function GalleryLightbox({ images, initialIdx, onClose, galleryId, coverImageId, onSetCoverSuccess, commentsPerImage = {} }: GalleryLightboxProps) {
   const [currentIdx, setCurrentIdx] = useState(initialIdx);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isSettingCover, setIsSettingCover] = useState(false);
@@ -85,6 +88,7 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
   const img = images[currentIdx];
 
   const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
+  const imageComments = commentsPerImage[img.id] || [];
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -341,6 +345,23 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       />
+
+      {imageComments.length > 0 && (
+        <div
+          className="absolute bottom-20 left-1/2 z-20 w-[min(420px,90vw)] -translate-x-1/2 rounded-lg bg-bg-elevated/95 p-3 text-text-primary shadow-xl backdrop-blur"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <h2 className="mb-2 text-sm font-semibold">Ghi chú của khách</h2>
+          <div className="space-y-2">
+            {imageComments.map((comment, index) => (
+              <div key={comment.updated_at + index} className="text-body-sm">
+                <p><span className="font-medium">{comment.author_name}</span> — {comment.content}</p>
+                <p className="mt-0.5 text-tiny text-text-muted">{formatDate(comment.updated_at)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Bottom bar */}
       <div

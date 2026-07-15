@@ -136,64 +136,6 @@ export async function toggleImageStar(
   }
 }
 
-export async function updateClientNote(
-  imageId: string,
-  note: string,
-  accessUrl?: string,
-  accessToken?: string,
-) {
-  try {
-    if (!imageId || !isValidUUID(imageId)) {
-      return { success: false as const, error: "ID ảnh không hợp lệ." };
-    }
-
-    if (accessUrl || accessToken) {
-      const supabase = await createAdminClient();
-      await requirePublicGalleryImageAccess(
-        supabase,
-        accessUrl || "",
-        accessToken || "",
-        imageId,
-      );
-      await updateGalleryImageNote(supabase, imageId, note);
-      return { success: true as const, data: null };
-    }
-
-    const result = await withAuth(async (supabase, userId) => {
-      await requireContractAccess(supabase, userId);
-      await updateGalleryImageNote(supabase, imageId, note);
-      return null;
-    });
-
-    if (!result.success) {
-      return { success: false as const, error: result.error };
-    }
-
-    return { success: true as const, data: null };
-  } catch (err) {
-    console.error("[updateClientNote] Error:", err);
-    return { success: false as const, error: "Lỗi server." };
-  }
-}
-
-export async function updateGalleryImageNote(
-   
-  supabase: any,
-  imageId: string,
-  note: string,
-) {
-  const trimmed = note?.trim();
-  const sanitizedNote = trimmed ? trimmed.slice(0, MAX_NOTE_LENGTH) : null;
-  const { error } = await supabase
-    .from("gallery_images")
-    .update({ client_note: sanitizedNote })
-    .eq("id", imageId);
-
-  if (error) {
-            throw new Error(`Lỗi cập nhật: ${error.message}`);
-  }
-}
-
 export async function getSelectedImages(galleryId: string) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);

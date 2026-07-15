@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import useSWR from "swr";
 import { ChevronLeft, ChevronRight, Download, Heart, X, CircleCheck, Printer, MessageSquare } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { MAX_NOTE_LENGTH } from "@/types/gallery";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { downloadSingleImage } from "@/lib/gallery-download";
+import { getComments, type GalleryComment } from "@/app/actions/gallery-reaction-actions";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider (Public)
@@ -22,11 +25,9 @@ interface ImageViewerProps {
   onToggleStar: (imageId: string) => void;
   onToggleReaction?: (imageId: string) => void;
   isReacted?: boolean;
-  onSaveNote?: (imageId: string, note: string) => void;
-  /**
-   * Pre-fill note hiện tại của ảnh. Nếu không truyền thì fallback về `img.client_note`.
-   */
-  clientNote?: string | null;
+  onSaveNote?: (imageId: string, note: string, authorName: string) => Promise<boolean>;
+  accessUrl?: string;
+  clientIdentifier?: string;
   mode?: "select" | "view";
   accessToken?: string;
   totalImagesCount?: number;
@@ -59,6 +60,11 @@ function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?
 // iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
 // Local copy từ lib/gallery-download.ts pattern — chỉ check tại runtime
 // trong handleLongPress, không lưu vào state để tránh hydration mismatch.
+function getStoredClientName(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("mood_client_name")?.trim() || "";
+}
+
 function detectIOS(): boolean {
   if (typeof navigator === "undefined") return false;
   return (
@@ -76,7 +82,8 @@ export default function ImageViewer({
   onToggleReaction,
   isReacted = false,
   onSaveNote,
-  clientNote,
+  accessUrl = "",
+  clientIdentifier = "",
   mode = "select",
   accessToken = "admin",
   totalImagesCount,
@@ -90,6 +97,9 @@ export default function ImageViewer({
   const [noteText, setNoteText] = useState<string>("");
   const [savingNote, setSavingNote] = useState(false);
   const [currentNote, setCurrentNote] = useState<string | null>(null);
+  const [clientName, setClientName] = useState(getStoredClientName);
+  const [nameInput, setNameInput] = useState(getStoredClientName);
+  const [editingName, setEditingName] = useState(() => !getStoredClientName());
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editingImageIdRef = useRef<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,6 +108,14 @@ export default function ImageViewer({
   const currentIdx = currentIndex;
   const setCurrentIdx = onIndexChange;
   const img = images[currentIdx];
+  const commentsKey = img?.id ? `gallery-comments-${img.id}` : null;
+  const { data: comments = [], mutate: mutateComments } = useSWR<GalleryComment[]>(
+    commentsKey,
+    () => img ? getComments(img.id, accessUrl, accessToken) : Promise.resolve([]),
+    { fallbackData: [] },
+  );
+  const ownComment = comments.find((comment) => comment.client_identifier === clientIdentifier);
+  const otherComments = comments.filter((comment) => comment.client_identifier !== clientIdentifier);
 
   const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
 
@@ -156,10 +174,8 @@ export default function ImageViewer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentIdx, images.length, onClose, setCurrentIdx, noteOpen]);
 
+
   // ── Sync noteText khi user chuyển ảnh ─────────────────────────────────────
-  // Chỉ sync khi image ID thay đổi (không phải khi server note thay đổi)
-  // để tránh ghi đè typing của user.
-  // Đây là use case hợp lệ: image thay đổi từ prop bên ngoài, cần sync local state.
   useEffect(() => {
     if (!img) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -169,38 +185,78 @@ export default function ImageViewer({
       return;
     }
     if (img.id !== editingImageIdRef.current) {
-      const initialNote = clientNote ?? img.client_note ?? "";
+      const initialNote = ownComment?.content || "";
       setNoteText(initialNote);
       setCurrentNote(initialNote || null);
       editingImageIdRef.current = img.id;
     }
-  }, [img?.id, img?.client_note, clientNote, img]);
+  }, [img, ownComment?.content]);
+
+  useEffect(() => {
+    if (!ownComment?.content || noteText || currentNote) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNoteText(ownComment.content);
+    setCurrentNote(ownComment.content);
+  }, [currentNote, noteText, ownComment?.content]);
+
+  const saveNote = useCallback(async (editingId: string, nextNote: string) => {
+    const authorName = (editingName ? nameInput : clientName).trim();
+    if (!authorName) {
+      toast.error("Nhập tên để Mood biết ai dặn nhé");
+      return false;
+    }
+
+    localStorage.setItem("mood_client_name", authorName);
+    setClientName(authorName);
+    setNameInput(authorName);
+    setEditingName(false);
+
+    const previousComments = comments;
+    const trimmedNote = nextNote.trim();
+    const optimisticComment: GalleryComment = {
+      id: ownComment?.id || "optimistic-" + editingId,
+      image_id: editingId,
+      gallery_id: ownComment?.gallery_id || "",
+      content: trimmedNote,
+      author_name: authorName,
+      client_identifier: clientIdentifier,
+      created_at: ownComment?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const optimisticComments = trimmedNote
+      ? [...comments.filter((comment) => comment.client_identifier !== clientIdentifier), optimisticComment]
+      : comments.filter((comment) => comment.client_identifier !== clientIdentifier);
+    await mutateComments(optimisticComments, false);
+
+    const saved = await onSaveNote?.(editingId, nextNote, authorName);
+    if (!saved) {
+      await mutateComments(previousComments, false);
+      return false;
+    }
+    await mutateComments();
+    return true;
+  }, [clientIdentifier, clientName, comments, editingName, mutateComments, nameInput, onSaveNote, ownComment]);
 
   // ── Auto-save note với debounce 800ms ─────────────────────────────────────
-  // QUAN TRỌNG: cleanup clearTimeout để tránh memory leak / state update
-  // sau khi component unmount (đóng lightbox nhanh).
   useEffect(() => {
     if (!onSaveNote) return;
     const editingId = editingImageIdRef.current;
     if (!editingId) return;
-    const initialNote = clientNote ?? img?.client_note ?? "";
-    if (noteText === initialNote) return; // Không có thay đổi
+    const initialNote = ownComment?.content || "";
+    if (noteText === initialNote) return;
 
     const timer = setTimeout(() => {
-      // Double-check: component có thể đã unmount trong lúc chờ timeout
       if (!editingImageIdRef.current) return;
       setSavingNote(true);
-      Promise.resolve()
-        .then(() => onSaveNote(editingId, noteText))
-        .then(() => {
-          // Chỉ hiển thị toast nếu vẫn đang ở cùng ảnh
-          if (editingImageIdRef.current === editingId) {
+      void saveNote(editingId, noteText)
+        .then((saved) => {
+          if (saved && editingImageIdRef.current === editingId) {
             setCurrentNote(noteText.trim() ? noteText : null);
             toast.success("Đã lưu ghi chú");
           }
         })
-        .catch((err: unknown) => {
-          console.error("[image-viewer] save note error:", err);
+        .catch((error: unknown) => {
+          console.error("[image-viewer] save note error:", error);
           toast.error("Không thể lưu ghi chú");
         })
         .finally(() => setSavingNote(false));
@@ -213,7 +269,7 @@ export default function ImageViewer({
         debounceTimerRef.current = null;
       }
     };
-  }, [noteText, onSaveNote, clientNote, img?.client_note, img]);
+  }, [noteText, onSaveNote, ownComment?.content, saveNote]);
 
   // Cleanup final khi unmount: clear timer & reset editing ref
   useEffect(() => {
@@ -361,33 +417,19 @@ export default function ImageViewer({
     border: "none",
   };
 
-  const handleSaveNoteNow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!onSaveNote) {
-      setNoteOpen(false);
-      return;
-    }
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
-
+  const handleSaveNoteNow = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!onSaveNote) { setNoteOpen(false); return; }
+    if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
     const editingId = editingImageIdRef.current ?? img.id;
     setSavingNote(true);
-    void Promise.resolve()
-      .then(() => onSaveNote(editingId, noteText))
-      .then(() => {
-        if (editingImageIdRef.current === editingId) {
-          setCurrentNote(noteText.trim() ? noteText : null);
-          toast.success("Đã lưu ghi chú");
-        }
+    void saveNote(editingId, noteText)
+      .then((saved) => {
+        if (!saved) return;
+        if (editingImageIdRef.current === editingId) { setCurrentNote(noteText.trim() ? noteText : null); toast.success("Đã lưu ghi chú"); }
         setNoteOpen(false);
       })
-      .catch((err: unknown) => {
-        console.error("[image-viewer] save note error:", err);
-        toast.error("Không thể lưu ghi chú");
-      })
+      .catch((error: unknown) => { console.error("[image-viewer] save note error:", error); toast.error("Không thể lưu ghi chú"); })
       .finally(() => setSavingNote(false));
   };
 
@@ -544,6 +586,20 @@ export default function ImageViewer({
               <X size={16} />
             </Button>
           </div>
+          {editingName || !clientName ? (
+            <Input
+              value={nameInput}
+              onChange={(event) => setNameInput(event.target.value.slice(0, 50))}
+              onClick={(event) => event.stopPropagation()}
+              label="Tên của bạn"
+              placeholder="Vd: Dịu Êm"
+              maxLength={50}
+              autoFocus
+              className="mb-3"
+            />
+          ) : (
+            <p className="mb-3 text-tiny text-text-muted">Ghi chú của {clientName} · <Button unstyled type="button" className="underline" onClick={() => setEditingName(true)}>Đổi tên</Button></p>
+          )}
           <Textarea
             unstyled
             value={noteText}
@@ -552,7 +608,6 @@ export default function ImageViewer({
             placeholder="Nhập ghi chú..."
             maxLength={MAX_NOTE_LENGTH}
             rows={4}
-            autoFocus
             className="w-full resize-none rounded-md text-base outline-none"
             style={{
               fontSize: "16px",
@@ -564,10 +619,17 @@ export default function ImageViewer({
             }}
             aria-label="Nội dung ghi chú"
           />
+          {otherComments.length > 0 && (
+            <div className="mt-3 space-y-1 rounded-md bg-bg-subtle p-2 text-body-sm text-text-secondary">
+              {otherComments.map((comment) => (
+                <p key={comment.id}><span className="font-medium">{comment.author_name || "Khách"}</span> — {comment.content}</p>
+              ))}
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between">
             <span
               className={`text-caption font-medium ${
-                noteText.length >= MAX_NOTE_LENGTH ? "text-red-500" : "text-black/45"
+                noteText.length >= MAX_NOTE_LENGTH ? "text-error" : "text-text-muted"
               }`}
             >
               {noteText.length}/{MAX_NOTE_LENGTH}

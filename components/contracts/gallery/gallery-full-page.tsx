@@ -43,7 +43,7 @@ export default function GalleryFullPage({
 }: GalleryFullPageProps) {
   const {
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
-    commentCountsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
+    commentCountsPerImage, commentsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName, showAlbumInput, watermarkOn,
     activeGallery, images, groupedImages, filteredGroups, displayImages,
     rawCount, jpgCount, selectedCount, starredCount, hasPassword, totalHearts,
     allDownloadFiles, selectedDownloadFiles, totalImageCount,
@@ -240,6 +240,8 @@ export default function GalleryFullPage({
           groups={filteredGroups}
           onImageClick={(idx: number) => setLightboxIdx(idx)}
           reactionCounts={reactionCounts}
+          commentsPerImage={commentsPerImage}
+          showClientNote
           onToggleStar={handleToggleStar}
           watermarkEnabled={watermarkOn}
           onLoadMore={loadMoreImages}
@@ -256,6 +258,7 @@ export default function GalleryFullPage({
           onClose={() => setLightboxIdx(null)}
           galleryId={activeGallery?.id}
           coverImageId={activeGallery?.cover_image_id}
+          commentsPerImage={commentsPerImage}
         />
       )}
     </div>

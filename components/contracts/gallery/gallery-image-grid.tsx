@@ -3,6 +3,7 @@
 import { CircleCheck, Heart, ImageIcon, ImageOff, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
+import type { GalleryCommentSummary } from "@/app/actions/gallery-composite-actions";
 import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
 import { useMasonryGrid } from "./use-masonry-grid";
 import { GalleryImageTile } from "./gallery-image-tile";
@@ -21,6 +22,7 @@ interface GalleryImageGridProps {
   publicMode?: boolean;
   /** Hiển thị client_note dưới tile (chỉ khi publicMode + truthy). Mặc định: false. */
   showClientNote?: boolean;
+  commentsPerImage?: Record<string, GalleryCommentSummary[]>;
 }
 
 const MIN_THUMBNAIL_SIZE = 400;
@@ -49,6 +51,7 @@ export default function GalleryImageGrid({
   hasMore: hasMoreServer,
   publicMode,
   showClientNote = false,
+  commentsPerImage = {},
 }: GalleryImageGridProps) {
   const {
     masonryRef,
@@ -221,7 +224,7 @@ export default function GalleryImageGrid({
                         </div>
                       ) : null}
 
-                      {publicMode && image.client_note && (
+                      {commentsPerImage[image.id]?.length > 0 && (
                         <div
                           className="absolute left-2 bottom-2 z-20 flex h-7 w-7 items-center justify-center rounded-full"
                           style={overlayChipStyle}
@@ -261,17 +264,17 @@ export default function GalleryImageGrid({
                         <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
 
-                      {/* Note preview - chỉ hiển thị khi publicMode + showClientNote + client_note truthy */}
-                      {publicMode && showClientNote && image.client_note && (
+                      {/* Ghi chú khách từ gallery_comments */}
+                      {showClientNote && commentsPerImage[image.id]?.[0]?.content && (
                         <div
                           className="pointer-events-none absolute bottom-0 right-12 left-0 z-20 px-3 pb-2 pt-6"
                           style={{
                             background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.7) 100%)",
                           }}
-                          title={image.client_note}
+                          title={commentsPerImage[image.id]?.[0]?.content}
                         >
                           <p className="line-clamp-1 text-xs font-medium text-white/70">
-                            {image.client_note}
+                            {commentsPerImage[image.id]?.[0]?.content}
                           </p>
                         </div>
                       )}

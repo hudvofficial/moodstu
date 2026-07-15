@@ -6,7 +6,7 @@ import { toggleImageStar } from "@/app/actions/gallery-selection-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import { getGalleryDataV2, getGalleryMetadataAll, type GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
+import { getGalleryDataV2, getGalleryMetadataAll, type GalleryCommentSummary, type GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
@@ -65,6 +65,7 @@ export function useGalleryData(
   const [reactionCounts, setReactionCounts] = useState<ReactionCounts>(seedData?.reactionCounts ?? {});
   const [commentCount, setCommentCount] = useState(seedData?.totalCommentCount ?? 0);
   const [commentCountsPerImage, setCommentCountsPerImage] = useState<Record<string, number>>(seedData?.commentCountsPerImage ?? {});
+  const [commentsPerImage, setCommentsPerImage] = useState<Record<string, GalleryCommentSummary[]>>({});
   const [activeFilter, setActiveFilter] = useState<StatsFilter>("all");
   const [albums, setAlbums] = useState<GalleryAlbum[]>(seedData?.albums ?? []);
   const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
@@ -165,7 +166,10 @@ export function useGalleryData(
     const loadGalleryData = async () => {
       // Try V2 RPC first (single call for everything) with network-aware pageSize
       console.log(`[useGalleryData] 🚀 INITIAL LOAD: pageSize=${pageSize}`);
-      const v2Result = await getGalleryDataV2(activeGalleryId, 0, pageSize);
+      const [v2Result, metadataRes] = await Promise.all([
+        getGalleryDataV2(activeGalleryId, 0, pageSize),
+        getGalleryMetadataAll(activeGalleryId),
+      ]);
 
       if (cancelled) return;
 
@@ -179,9 +183,10 @@ export function useGalleryData(
         setTotalImageCount(data.totalCount);
         setHasMoreImages(data.hasMore);
         setReactionCounts(data.reactionCounts);
-        setCommentCount(data.totalCommentCount);
-        setCommentCountsPerImage(data.commentCountsPerImage);
-        setAlbums(data.albums);
+        setCommentCount(metadataRes.success && metadataRes.data ? metadataRes.data.totalCommentCount : data.totalCommentCount);
+        setCommentCountsPerImage(metadataRes.success && metadataRes.data ? metadataRes.data.commentCountsPerImage : data.commentCountsPerImage);
+        setCommentsPerImage(metadataRes.success && metadataRes.data ? metadataRes.data.commentsPerImage : {});
+        setAlbums(metadataRes.success && metadataRes.data ? metadataRes.data.albums : data.albums);
         setCurrentPage(0);
         setLoadingMore(false);
         return;
@@ -190,10 +195,7 @@ export function useGalleryData(
       // V2 RPC failed - fallback to legacy parallel calls
       console.warn("[useGalleryData] V2 RPC unavailable, using legacy fallback");
 
-      const [imagesRes, metadataRes] = await Promise.all([
-        getGalleryImagesPaginated(activeGalleryId, 0, pageSize),
-        getGalleryMetadataAll(activeGalleryId),
-      ]);
+      const imagesRes = await getGalleryImagesPaginated(activeGalleryId, 0, pageSize);
 
       if (cancelled) return;
 
@@ -208,6 +210,7 @@ export function useGalleryData(
         setReactionCounts(metadataRes.data.reactionCounts);
         setCommentCount(metadataRes.data.totalCommentCount);
         setCommentCountsPerImage(metadataRes.data.commentCountsPerImage);
+        setCommentsPerImage(metadataRes.data.commentsPerImage);
         setAlbums(metadataRes.data.albums);
       }
 
@@ -456,7 +459,7 @@ export function useGalleryData(
   return {
     // State
     galleries, loading, activeGalleryId, fileFilter, sortBy, reactionCounts, commentCount,
-    commentCountsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName,
+    commentCountsPerImage, commentsPerImage, activeFilter, albums, activeAlbumId, viewMode, newAlbumName,
     showAlbumInput, watermarkOn,
     // Derived
     activeGallery, images, groupedImages, filteredGroups, displayImages,

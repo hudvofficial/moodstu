@@ -312,6 +312,29 @@ export function assertGalleryProof(
   });
 }
 
+export async function requirePublicGalleryAccess(
+  supabase: any,
+  accessUrl: string,
+  accessToken: string,
+  galleryId: string,
+  requiredCapability: GalleryShareCapability = "select",
+) {
+  if (!accessUrl?.trim()) {
+    throw new Error("Thieu link gallery.");
+  }
+  const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
+  if (!gallery) {
+    throw new Error("Gallery không tồn tại hoặc chưa được chia sẻ.");
+  }
+  if (!assertGalleryProof(gallery, accessToken, requiredCapability)) {
+    throw new Error("Phiên truy cập gallery không hợp lệ hoặc đã hết hạn.");
+  }
+  if (gallery.id !== galleryId) {
+    throw new Error("Gallery không khớp link chia sẻ.");
+  }
+  return { gallery };
+}
+
 export async function requirePublicGalleryImageAccess(
 
   supabase: any,
