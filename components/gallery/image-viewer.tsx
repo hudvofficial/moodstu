@@ -651,7 +651,7 @@ export default function ImageViewer({
                   title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                 >
                   <CircleCheck size={18} fill={img.is_selected ? "#22c55e" : "none"} />
-                  <span className="text-sm font-semibold whitespace-nowrap">{img.is_selected ? "Đã chọn" : "Chọn"}</span>
+                  <span className="text-sm font-medium whitespace-nowrap">{img.is_selected ? "Đã chọn" : "Chọn"}</span>
                 </Button>
 
                 {/* Heart — reaction độc lập (isReacted) */}

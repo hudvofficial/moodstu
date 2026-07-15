@@ -29,27 +29,7 @@ version: 1
 updated: 2026-07-15
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260715-gallery-password-gating
-    title: "Đảo gate mật khẩu đúng nghiệp vụ (ADR-008): tim tự do, chọn+ghi chú cần pass; kèm fix CSS --spacing-* (12 file)"
-    status: ci                   # code xong (Claude code trực tiếp theo yêu cầu user), eslint 0 lỗi, đang chờ build
-    owner: claude
-    branch: main                 # user yêu cầu Claude code thẳng, ADR-007 cho push main
-    locks:
-      - app/actions/gallery-public-actions.ts
-      - app/actions/gallery-core.ts
-      - app/actions/gallery-reaction-actions.ts
-      - components/gallery/public-gallery-client.tsx
-      - components/gallery/heart-password-modal.tsx
-      - components/contracts/gallery/gallery-settings-modal.tsx
-      - app/globals.css
-    spec: agent/HANDOFFS/T-20260715-gallery-password-gating.spec.md
-    verify:
-      - "npx eslint <file đổi>  # 0 lỗi — DONE"
-      - "npm run build"
-      - "Render: modal rộng chuẩn (hết 48px); album pass: tim tự do + chọn hiện modal"
-    depends_on: []
-    notes: "User yêu cầu Claude code trực tiếp thay vì Codex (fallback hợp lệ theo CLAUDE.md §0)."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -65,6 +45,14 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260715-gallery-password-gating
+    title: "Mật khẩu đúng nghiệp vụ ADR-008 (tim tự do, chọn+note cần pass) + fix CSS --spacing-* đè Tailwind"
+    status: merged
+    merged_commit: "dc9b1d9 + 5ffc756 (z-index/copy/center) + font pill"
+    spec: agent/HANDOFFS/T-20260715-gallery-password-gating.spec.md
+    result: "Claude code trực tiếp (user yêu cầu). Verify prod bằng đo computed style: max-w-sm 8px→384px, token cũ biến mất, z-10001 nổi trên lightbox. Modal copy tối giản + nút center + font-medium theo 2 vòng feedback user."
+    notes: "ADR-008: view-token tự do / select-token sau pass; đã kiểm không có đường leo thang quyền view→select."
+
   - id: T-20260715-gallery-hearts-visibility
     title: "Tách bạch Chọn vs Tim: pill Chọn public + stat/filter/download tim thuần + heartCount admin"
     status: merged
