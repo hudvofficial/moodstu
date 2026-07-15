@@ -14,7 +14,7 @@ interface PaginationProps {
    * Visual variant.
    * - "default" (default): generic ghost/page-number style. Used by most pages.
    * - "footer": table-footer look — subtle white bg + light border per button,
-   *              active filled with warm earth brown. Designed for the
+   *              active filled with `primary`. Designed for the
    *              contracts table footer; safe to reuse elsewhere.
    */
   variant?: "default" | "footer";
@@ -40,9 +40,12 @@ export function Pagination({
 
   const arrowCls = isFooter
     ? // footer: subtle rounded buttons (white bg + light border)
+      // cursor-pointer: bắt buộc — Tailwind v4 bỏ reset cursor:pointer cho <button>,
+      // nhánh default có nhờ .btn (buttons.css), nhánh footer không dùng .btn.
       cn(
         "rounded-md border border-border bg-bg-card text-text-primary",
         "hover:bg-bg-hover disabled:opacity-30",
+        "cursor-pointer disabled:cursor-not-allowed",
         "flex items-center justify-center transition-colors",
         arrowSizeCls,
       )
@@ -55,17 +58,17 @@ export function Pagination({
   const pageBtnCls = (isActive: boolean) =>
     isFooter
       ? cn(
-          "rounded-md font-semibold transition-colors flex items-center justify-center",
+          "rounded-md font-semibold transition-colors flex items-center justify-center cursor-pointer",
           sizeCls,
           isActive
-            ? // footer active: dark earth brown filled
-              "bg-primary-dark text-white border border-primary-dark shadow-sm"
+            ? // footer active: primary filled — cùng token với .btn-primary
+              "bg-primary text-white border border-primary shadow-sm"
             : // footer inactive: white bg + light border
               "bg-bg-card border border-border text-text-primary hover:bg-bg-hover",
         )
       : cn(
           // default: existing behavior — unchanged
-          "rounded-md font-semibold transition-all flex items-center justify-center",
+          "rounded-md font-semibold transition-all flex items-center justify-center cursor-pointer",
           sizeCls,
           isActive
             ? "bg-primary text-white shadow-sm"
