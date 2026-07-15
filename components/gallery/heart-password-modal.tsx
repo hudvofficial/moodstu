@@ -22,7 +22,6 @@ export default function HeartPasswordModal({
   isOpen,
   galleryId,
   accessUrl,
-  galleryTitle,
   onClose,
   onUnlocked,
 }: HeartPasswordModalProps) {
@@ -59,7 +58,8 @@ export default function HeartPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+    // z-[10001]: phải nổi TRÊN lightbox ImageViewer (z-modal=9999) — khách bấm Chọn trong viewer
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-5 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -67,7 +67,7 @@ export default function HeartPasswordModal({
           </div>
           <h2 className="text-lg font-semibold text-text-primary">Mật khẩu chọn ảnh</h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Nhập mật khẩu do Mood cung cấp để chọn ảnh gửi hậu kỳ cho {galleryTitle || "album này"}.
+            Quý khách vui lòng điền mật khẩu được Mood cung cấp để sử dụng chức năng chọn ảnh.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export default function HeartPasswordModal({
 
           {error ? <p className="text-center text-sm text-error">{error}</p> : null}
 
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="flex items-center justify-center gap-3 pt-1">
             <Button
               unstyled
               type="button"
