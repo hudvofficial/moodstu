@@ -25,7 +25,7 @@ export interface GalleryComment {
   gallery_id: string;
   content: string;
   author_name: string | null;
-  client_identifier: string;
+  is_mine: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -189,21 +189,31 @@ export async function getGalleryComments(
   }
 }
 
-/** Get comments for an image */
-export async function getComments(imageId: string, accessUrl?: string, accessToken?: string): Promise<GalleryComment[]> {
+/** Get comments for an image. is_mine tính ở server — KHÔNG trả client_identifier ra ngoài. */
+export async function getComments(imageId: string, accessUrl?: string, accessToken?: string, clientIdentifier?: string): Promise<GalleryComment[]> {
+  const toComment = (row: { id: string; image_id: string; gallery_id: string; content: string; author_name: string | null; client_identifier: string; created_at: string; updated_at: string }): GalleryComment => ({
+    id: row.id,
+    image_id: row.image_id,
+    gallery_id: row.gallery_id,
+    content: row.content,
+    author_name: row.author_name,
+    is_mine: !!clientIdentifier && row.client_identifier === clientIdentifier,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  });
   try {
     if (accessUrl?.trim() && accessToken?.trim()) {
       const supabase = await createAdminClient();
       await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
       const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
       if (error) return [];
-      return data || [];
+      return (data || []).map(toComment);
     }
     const result = await withAuth(async (supabase, userId) => {
       await requireContractAccess(supabase, userId);
       const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(toComment);
     });
     return result.success ? result.data : [];
   } catch (error) {

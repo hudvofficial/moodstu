@@ -111,11 +111,11 @@ export default function ImageViewer({
   const commentsKey = img?.id ? `gallery-comments-${img.id}` : null;
   const { data: comments = [], mutate: mutateComments } = useSWR<GalleryComment[]>(
     commentsKey,
-    () => img ? getComments(img.id, accessUrl, accessToken) : Promise.resolve([]),
+    () => img ? getComments(img.id, accessUrl, accessToken, clientIdentifier) : Promise.resolve([]),
     { fallbackData: [] },
   );
-  const ownComment = comments.find((comment) => comment.client_identifier === clientIdentifier);
-  const otherComments = comments.filter((comment) => comment.client_identifier !== clientIdentifier);
+  const ownComment = comments.find((comment) => comment.is_mine);
+  const otherComments = comments.filter((comment) => !comment.is_mine);
 
   const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
 
@@ -219,13 +219,13 @@ export default function ImageViewer({
       gallery_id: ownComment?.gallery_id || "",
       content: trimmedNote,
       author_name: authorName,
-      client_identifier: clientIdentifier,
+      is_mine: true,
       created_at: ownComment?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     const optimisticComments = trimmedNote
-      ? [...comments.filter((comment) => comment.client_identifier !== clientIdentifier), optimisticComment]
-      : comments.filter((comment) => comment.client_identifier !== clientIdentifier);
+      ? [...comments.filter((comment) => !comment.is_mine), optimisticComment]
+      : comments.filter((comment) => !comment.is_mine);
     await mutateComments(optimisticComments, false);
 
     const saved = await onSaveNote?.(editingId, nextNote, authorName);
@@ -235,7 +235,7 @@ export default function ImageViewer({
     }
     await mutateComments();
     return true;
-  }, [clientIdentifier, clientName, comments, editingName, mutateComments, nameInput, onSaveNote, ownComment]);
+  }, [clientName, comments, editingName, mutateComments, nameInput, onSaveNote, ownComment]);
 
   // ── Auto-save note với debounce 800ms ─────────────────────────────────────
   useEffect(() => {
