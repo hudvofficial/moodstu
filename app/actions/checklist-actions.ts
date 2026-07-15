@@ -43,7 +43,10 @@ export async function toggleChecklist(id: string, is_completed: boolean) {
     if (error) throw new Error(`Lỗi cập nhật checklist: ${error.message}`);
     if (!data) throw new Error("Không tìm thấy checklist item");
 
-    revalidatePath(`/contracts/${data.contract_id}`);
+    // KHÔNG revalidatePath ở đây: đây là hot path (mỗi cú tick), revalidatePath trong
+    // server action ép Next render lại RSC của CẢ trang hiện tại (/contracts SSR JOIN nặng)
+    // → lag rõ rệt khi tick liên tiếp. List + drawer + detail đã sync bằng optimistic
+    // patch (updateContractListChecklistCache) + realtime contract_checklists + React Query.
     return data;
   });
 }
