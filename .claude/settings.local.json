@@ -26,19 +26,23 @@
       "WebFetch(domain:coroot.com)",
       "WebFetch(domain:docs.coroot.com)",
       "WebSearch",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git log *)"
     ]
   },
+  "enabledMcpjsonServers": [
+    "chrome-devtools"
+  ],
   "hooks": {
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "shell": "bash",
             "command": "echo '# QUY TẮC DỰ ÁN — CLAUDE.md (đọc & tuân thủ TRƯỚC khi làm bất kỳ việc gì với project mood-studio):'; echo; cat 'C:/Users/Admin/Desktop/Ai/mood saas/mood-studio/CLAUDE.md' 2>/dev/null || true",
-            "statusMessage": "Nạp quy tắc CLAUDE.md",
-            "timeout": 10
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "Nạp quy tắc CLAUDE.md"
           }
         ]
       }
