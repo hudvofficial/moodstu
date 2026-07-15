@@ -216,6 +216,10 @@ const DesktopTable = memo(function DesktopTable({
     // Tablet (md, 768+): hiện bảng dạng block (page tự cuộn). Desktop (lg): flex-fill + sticky scroll.
     <div className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
       <TableWrapper
+        // flex-initial (thay flex-1 mặc định): card cao theo NỘI DUNG — hàng ít thì footer
+        // ôm sát hàng cuối, không ghim đáy viewport để lại khoảng trống; hàng nhiều vẫn
+        // bị cap bởi parent (min-h-0) → cuộn trong bảng như cũ.
+        containerClassName="lg:flex-initial"
         footer={
           totalPages !== undefined && totalPages > 1 && onPageChange ? (
             <div className="bg-bg-card border-t border-border px-5 py-3.5 flex items-center justify-between shrink-0">
