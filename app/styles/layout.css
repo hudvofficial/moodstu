@@ -44,7 +44,9 @@
 
 @media (min-width: 1024px) {
   .main-container {
-    padding: var(--space-sm) var(--space-xl) var(--space-xl);
+    /* Đáy 16px: <main> đã bỏ padding-bottom ở lg nên đây là chủ padding đáy DUY NHẤT
+       (trước: main 24px + container 32px = 56px chết, trong khi mép trên chỉ 8px). */
+    padding: var(--space-sm) var(--space-xl) var(--space-base);
     gap: var(--space-xl);
   }
 }

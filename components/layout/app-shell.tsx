@@ -137,7 +137,8 @@ export function AppShell({ children, role, userName }: AppShellProps) {
                   ? "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 pb-4 lg:px-6 lg:py-6"
                   : isGalleryView
                     ? "pt-0 lg:pb-6"
-                    : "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 md:px-6 md:pb-6 lg:px-6 lg:pb-6",
+                    // lg:pb-0 — padding đáy do .main-container lo (1 chủ duy nhất), tránh cộng dồn 24+32=56px.
+                  : "px-2 max-lg:pt-[calc(var(--header-mobile-h)+env(safe-area-inset-top))] lg:pt-0 md:px-6 md:pb-6 lg:px-6 lg:pb-0",
               "bg-linear-to-tr from-primary/5 via-transparent to-accent/5"
             )}>
               <PullToRefreshProvider
