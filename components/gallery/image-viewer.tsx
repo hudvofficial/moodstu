@@ -650,7 +650,8 @@ export default function ImageViewer({
                   aria-label={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                   title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                 >
-                  <CircleCheck size={18} fill={img.is_selected ? "#22c55e" : "none"} />
+                  {/* fill xanh + stroke trắng: tick ✓ trắng nổi trong chấm xanh (stroke mặc định ăn theo color xanh → tick tàng hình) */}
+                  <CircleCheck size={18} fill={img.is_selected ? "#22c55e" : "none"} stroke={img.is_selected ? "#ffffff" : "currentColor"} />
                   <span className="text-sm font-medium whitespace-nowrap">{img.is_selected ? "Đã chọn" : "Chọn"}</span>
                 </Button>
 
