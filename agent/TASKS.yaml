@@ -26,31 +26,31 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-07-14
+updated: 2026-07-15
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260715-image-viewer-lint
-    title: "Làm sạch lint components/gallery/image-viewer.tsx (1 bug hook + 9 SSOT)"
-    status: testing             # Codex impl xong; Claude review bắt 1 bug (heart fill) → Codex fix → chuyển Roo
-    owner: roo
-    branch: codex/image-viewer-lint
-    locks:
-      - components/gallery/image-viewer.tsx
-    spec: agent/HANDOFFS/T-20260715-image-viewer-lint.spec.md
-    verify:
-      - "npx eslint components/gallery/image-viewer.tsx  # 0 error"
-      - "npm run build"
-      - "Roo: render lightbox pixel-giống + images=[] không crash"
-    depends_on: []
-    notes: "Task dogfood pipeline lần đầu. Convert <button>→<Button> giữ UI y hệt (Roo verify)."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
-known_inflight:
-  - branch: codex/contract-optimization
-    worktree: .worktrees/contract
+known_inflight: []
+
+# ---- Đã bỏ (abandoned) ----
+abandoned:
+  - branch: codex/contract-optimization   # đã xoá
+    worktree: .worktrees/contract          # đã gỡ
     area: contract module
-    action_required: "Xác nhận đã merge hay còn sống trước khi giao task chạm contracts."
+    date: 2026-07-15
+    recovery_tag: abandoned/contract-optimization-20260715   # git checkout tag này để khôi phục
+    reason: "User quyết BỎ HẲN 2026-07-15. Việc dở (6 file source + migration reactivate_contract_atomic) snapshot vào WIP commit 2b838a7 dưới tag khôi phục — không mất."
 
 # ---- Đã xong ----
-done: []
+done:
+  - id: T-20260715-image-viewer-lint
+    title: "Làm sạch lint components/gallery/image-viewer.tsx (1 bug hook + 9 SSOT)"
+    status: merged
+    branch: codex/image-viewer-lint    # remote branch còn sống — có thể xoá
+    merged_pr: 5
+    merged_commit: 146f6e1             # Merge PR #5 → main (fix 675dced)
+    spec: agent/HANDOFFS/T-20260715-image-viewer-lint.spec.md
+    result: "Codex impl → Claude review bắt regression heart-fill → Codex fix → CI quality xanh → user merge. Merged: fill-error text-error, 0 native <button>, hook bug đã sửa."
+    notes: "Dogfood pipeline 3-agent lần đầu — end-to-end OK. Review layer bắt được bug lint+build đều bỏ lọt."

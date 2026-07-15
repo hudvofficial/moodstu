@@ -53,14 +53,15 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - **Exact paths:** mọi bước phải có file path cụ thể + code thực tế nếu là code step.
 - **No placeholders:** cấm "TBD", "TODO", "implement later", "add appropriate error handling", "similar to Task N". Mỗi bước phải đủ thông tin để execute mà không cần đoán.
 - **Self-review trước khi trình user:** (1) spec coverage — mỗi yêu cầu có task? (2) placeholder scan — có pattern cấm không? (3) type consistency — tên hàm/type ở task sau match task trước? Sai → fix inline.
-- **Test gate trước merge/deploy:** verify pass (render/Network/build) → rồi mới merge hoặc `npx vercel --prod`. Không merge code chưa verify.
+- **Test gate trước merge/deploy:** verify pass (render/Network/build) → rồi mới merge. Không merge code chưa verify. (Deploy = merge vào `main`, xem mục Ràng buộc.)
 
 ---
 
 ## Ràng buộc dự án (cứng)
-- **Sáng kiến perf đang chạy:** `plans/260603-native-feel-performance/PLAN.md`. **Đọc `plans/260603-native-feel-performance/LESSONS.md` trước mỗi task** (nhật ký lỗi + checklist).
+- **Perf: coi như "đủ tốt" — KHÔNG mở lại đợt perf diện rộng** (chốt ADR-005, `agent/DECISIONS.md`). `plans/260603-native-feel-performance/PLAN.md` đã **lỗi thời**, chỉ đọc để tham khảo lịch sử. Muốn làm perf tiếp → **đo trước** (Speed Insights + `perf:*`), chỉ sửa cái số đo chỉ ra, và mở ADR riêng. **`plans/260603-native-feel-performance/LESSONS.md` thì VẪN đọc trước mỗi task** — nhật ký lỗi + checklist còn giá trị.
 - **Tách module, không liên đới** — 1 task / 1 module; file shared (`lib/swr.ts`, `bottom-nav.tsx`, `server-cache-invalidation.ts`) chỉ **additive** hoặc verify đa module.
 - **Finance: GIỮ `revalidatePath`** (FinanceRealtimeRefresh chỉ là chuông báo READ additive — số luôn từ server, xem LESSONS A17). Optimistic **KHÔNG patch giá trị server tính lại** (mã tự sinh, recalc totals, tồn kho, status atomic) → "đóng modal + revalidate".
 - **Verify trước deploy:** CSS/layout → render + screenshot chrome-devtools **TRƯỚC** deploy. **Deploy = `git push origin main`** (Vercel auto-deploy nhánh main); KHÔNG dùng `npx vercel --prod` (CLI chưa auth, không có `VERCEL_TOKEN`).
-- **Node:** prepend `C:\Users\Admin\.nodejs\...` vào PATH rồi mới `pnpm`.
+- **Node:** đã có sẵn trên PATH (`C:\Program Files\nodejs`, v24). Gọi thẳng `node` / `npx` / `npm`. *(Chỗ cũ ghi prepend `C:\Users\Admin\.nodejs\...` là SAI — thư mục đó rỗng.)*
+- **Package manager: dùng `npm`** cho verify local (`npm run lint`, `npm run build`) — khớp CI (`npm ci`). ⚠️ **Repo có CẢ `package-lock.json` lẫn `pnpm-lock.yaml`**: CI chạy npm, còn Vercel deploy tự bắt `pnpm-lock.yaml` → hai bên có thể cài cây phụ thuộc **khác nhau** (đã từng cháy: commit `1fa1a38 fix(deploy): sync pnpm lockfile for Google GenAI`). Thêm/đổi dependency → **cập nhật CẢ HAI lockfile**, nếu không CI xanh mà prod vẫn vỡ.
 - **Responsive 3-tier** (chốt 2026-06-06, xem `plans/260606-tablet-design-layer/PLAN.md` + `lib/breakpoints.ts`): Phone `<768px` (base) · Tablet `768–1023px` (`md:`) · Desktop `≥1024px` (`lg:`). Layout density (bảng↔card, 1↔2 cột) toggle ở **`md:`**; chrome full-width giữ `lg:`; overlay/modal căn giữa ở `sm:` (640px). Verify mọi đổi responsive @768px + @1023px.
