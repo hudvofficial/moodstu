@@ -6,7 +6,7 @@
 .section-title {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--space-sm);
   font-size: var(--font-size-body-sm);
   font-weight: 700;
   color: var(--color-primary);

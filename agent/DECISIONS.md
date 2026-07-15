@@ -50,3 +50,13 @@
 - **Hệ quả — điều PHẢI nhớ:** không còn cơ chế **cưỡng chế** nào ngăn code hỏng vào `main`; kỷ luật verify giờ **tự giác**. Lưới còn lại: Vercel chặn build hỏng (lỗi *build*), Claude review chặn lỗi *hành vi*. CI chỉ báo sau.
 - **Bằng chứng review là tầng có giá trị nhất:** task dogfood T-20260715-image-viewer-lint — Codex làm mất `fill-` ở icon Heart (đỏ đặc → rỗng ruột). **Lint xanh, build xanh, CI xanh.** Chỉ review-vs-spec bắt được. Gate tự động sẽ **không bao giờ** bắt được lỗi loại này.
 - **Mở lại khi nào:** có người thứ 2 commit vào repo, hoặc xảy ra sự cố thật do push thẳng. Bật lại ~2 phút (tạo ruleset require check `quality`) → mở ADR mới.
+
+## ADR-008 — Gallery public: access model 2 tầng (view-token tự do · select-token sau mật khẩu)
+- **Ngày:** 2026-07-15 · **Trạng thái:** Accepted (user chốt nghiệp vụ nguyên văn)
+- **Nghiệp vụ (lời user):** *"album ngoài giao cô dâu, chú rể, thì họ còn share cho người thân, bạn bè, chúng ta chỉ cần pass khi họ bấm chọn (vì hình họ chọn nhân sự mood phải lọc ra để hậu kì, hoặc in ấn nên chỉ dâu rể có pass mà admin cung cấp mới đc chọn), còn lại xem thì vẫn đc"*
+- **Ma trận quyền:** Xem = tự do · Thả tim = tự do (xã giao) · **Chọn ảnh + Ghi chú = cần mật khẩu** (input hậu kỳ/in ấn, chỉ dâu rể).
+- **Trước đó code làm NGƯỢC:** tim bị hỏi pass (modal "Mật khẩu thả tim"), chọn thì fail im lặng. `PasswordGate` (chặn xem) là dead code — đúng chủ đích nghiệp vụ nên KHÔNG nối.
+- **Thiết kế:** album có pass → `getPublicGallery` cấp **view-token** miễn phí (`buildGalleryAccessToken(data,"view")`); nhập đúng pass (`verifyGalleryPassword`) → **select-token**. Capability so khớp EXACT trong `lib/gallery-access.ts` (KHÔNG đụng — download routes dựa vào); tim chấp nhận view-token bằng 2 lần verify trong `toggleReaction`. Client gate chọn/ghi chú bằng `clientCapability === "view"` (decode sẵn có).
+- **Đổi tên UI:** modal → "Mật khẩu chọn ảnh"; toggle admin → "Yêu cầu mật khẩu khi chọn ảnh" (label cũ "Bảo vệ album bằng mật khẩu" gây hiểu nhầm là chặn xem).
+- **Hệ quả phụ:** khách chưa nhập pass trên album có pass sẽ KHÔNG thấy nút download trong viewer (view-token → showDownloadButton ẩn) — hợp lý, ghi nhận.
+- **Kèm ADR-nhỏ (CSS):** token `--spacing-*` của dự án đụng namespace spacing scale Tailwind v4 → mọi `max-w-sm/md/lg/xl` = 8-32px (18 chỗ vỡ). Đã rename toàn cục `--spacing-*` → `--space-*` (7 token, 12 file) + `min-h-xl` → `min-h-8` (date-picker). CẤM define `--spacing-*`/`--container-*`/namespace utility Tailwind trong `@theme` từ nay.

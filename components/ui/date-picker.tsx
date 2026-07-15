@@ -243,7 +243,7 @@ export default function DatePicker({
     >
       {/* Header */}
       <div
-        className={`relative flex items-center justify-between ${compact ? "mb-2 min-h-7" : "mb-2 min-h-xl"}`}
+        className={`relative flex items-center justify-between ${compact ? "mb-2 min-h-7" : "mb-2 min-h-8"}`}
       >
         {viewMode === "day" ? (
           <button

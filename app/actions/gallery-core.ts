@@ -313,11 +313,12 @@ export function assertGalleryProof(
 }
 
 export async function requirePublicGalleryImageAccess(
-   
+
   supabase: any,
   accessUrl: string,
   accessToken: string,
   imageId: string,
+  requiredCapability: GalleryShareCapability = "select",
 ) {
   if (!accessUrl?.trim()) {
     throw new Error("Thieu link gallery.");
@@ -328,7 +329,7 @@ export async function requirePublicGalleryImageAccess(
         throw new Error("Gallery không tồn tại hoặc chưa được chia sẻ.");
   }
 
-  if (!assertGalleryProof(gallery, accessToken, "select")) {
+  if (!assertGalleryProof(gallery, accessToken, requiredCapability)) {
         throw new Error("Phiên truy cập gallery không hợp lệ hoặc đã hết hạn.");
   }
 

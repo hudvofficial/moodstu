@@ -125,15 +125,15 @@
   --text-tiny: 10px;
 
   /* ── Spacing scale (4-8-12-16-24-32) ── */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-base: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
 
   /* ── Layout spacing (SSOT: header → content gap) ── */
-  --spacing-main-y: 12px; /* cộng với main py-4=16px → total 28px */
+  --space-main-y: 12px; /* cộng với main py-4=16px → total 28px */
 
   /* ── Z-Index Scale (SSOT: quản lý tập trung) ── */
   --z-modal: 9999;

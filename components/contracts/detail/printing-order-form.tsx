@@ -43,9 +43,9 @@ const emptyItem = (): PrintItem => ({
 });
 
 const printingItemTableStyle = {
-  "--printing-order-action-col": "var(--spacing-xl)",
-  "--printing-order-money-col": "calc(var(--spacing-xl) * 3)",
-  "--printing-order-qty-col": "calc(var(--spacing-xl) * 2)",
+  "--printing-order-action-col": "var(--space-xl)",
+  "--printing-order-money-col": "calc(var(--space-xl) * 3)",
+  "--printing-order-qty-col": "calc(var(--space-xl) * 2)",
 } as CSSProperties;
 
 const printingItemGridStyle = {

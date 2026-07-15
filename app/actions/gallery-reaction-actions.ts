@@ -49,12 +49,15 @@ export async function toggleReaction(
 
     const supabase = await createAdminClient();
 
-    const { gallery } = await requirePublicGalleryImageAccess(
-      supabase,
-      accessUrl.trim(),
-      accessToken.trim(),
-      imageId,
-    );
+    // Tim = hành động xã giao, KHÔNG cần mật khẩu (nghiệp vụ chốt 15/07):
+    // chấp nhận VIEW-token (album có pass) LẪN token đầy đủ (album không pass).
+    let access;
+    try {
+      access = await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
+    } catch {
+      access = await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId);
+    }
+    const { gallery } = access;
 
     if (gallery.id !== galleryId) {
       return { success: false, action: "error" as const, error: "Image does not belong to gallery" };

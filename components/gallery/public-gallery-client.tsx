@@ -27,6 +27,7 @@ interface Gallery {
   title: string | null;
   access_url?: string | null;
   accessToken?: string;
+  needsPassword?: boolean;
   capability?: "select" | "view" | "download";
   status: string | null;
   selection_deadline: string | null;
@@ -53,8 +54,8 @@ export default function PublicGalleryClient({
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<"all" | "selected">("all");
   const [heartAccessToken, setHeartAccessToken] = useState(gallery.accessToken || "");
-  const [showHeartPasswordModal, setShowHeartPasswordModal] = useState(false);
-  const [pendingHeartImageId, setPendingHeartImageId] = useState<string | null>(null);
+  const [showSelectPasswordModal, setShowSelectPasswordModal] = useState(false);
+  const [pendingSelectImageId, setPendingSelectImageId] = useState<string | null>(null);
   const isViewOnly = mode === "view";
   const accessUrl = gallery.access_url || "";
   const accessToken = heartAccessToken;
@@ -99,7 +100,10 @@ export default function PublicGalleryClient({
   }, [getClientId]);
 
   useEffect(() => {
-    if (gallery.accessToken || !gallery.id || !accessUrl) return;
+    if (!gallery.id || !accessUrl) return;
+    // Album có pass: server chỉ cấp view-token — khôi phục SELECT-token đã lưu (dâu rể từng nhập pass)
+    // để không phải nhập lại. Album không pass: token đầy đủ có sẵn, khỏi khôi phục.
+    if (gallery.accessToken && !gallery.needsPassword) return;
     const saved = sessionStorage.getItem(STORAGE_KEY_PREFIX + gallery.id);
     if (!saved) return;
 
@@ -112,7 +116,7 @@ export default function PublicGalleryClient({
       sessionStorage.setItem(STORAGE_KEY_PREFIX + gallery.id, res.data.accessToken);
       setHeartAccessToken(res.data.accessToken);
     });
-  }, [accessUrl, gallery.accessToken, gallery.id]);
+  }, [accessUrl, gallery.accessToken, gallery.id, gallery.needsPassword]);
 
   const { data: clientReactions = {}, mutate: mutateClientReactions } = useSWR<Record<string, { heart: boolean; star: boolean }>>(
     gallery.id && clientId ? `gallery-client-reactions-${gallery.id}-${clientId}` : null,
@@ -191,8 +195,15 @@ export default function PublicGalleryClient({
 
   // ─── Toggle star (selection) ──────────────────
   const handleToggleStar = useCallback(
-    async (imageId: string, _currentSelected?: boolean) => {
+    async (imageId: string, _currentSelected?: boolean, tokenOverride?: string) => {
       if (isViewOnly) return;
+      // Chọn ảnh = input hậu kỳ/in ấn — album có mật khẩu thì CHỈ dâu rể (có pass admin cấp) mới chọn được.
+      // tokenOverride: dùng ngay select-token vừa nhận sau khi nhập pass (state chưa kịp flush).
+      if (!tokenOverride && gallery.needsPassword && clientCapability === "view") {
+        setPendingSelectImageId(imageId);
+        setShowSelectPasswordModal(true);
+        return;
+      }
       const img = images.find((i) => i.id === imageId);
       if (!img) return;
 
@@ -219,7 +230,7 @@ export default function PublicGalleryClient({
         imageId,
         newSelected,
         accessUrl,
-        accessToken,
+        tokenOverride || accessToken,
       );
       
       if (!res.success) {
@@ -241,7 +252,7 @@ export default function PublicGalleryClient({
       
       setTogglingIds((prev) => { const next = new Set(prev); next.delete(imageId); return next; });
     },
-    [accessToken, accessUrl, images, isViewOnly, selectedCount, totalImageCount, mutateStats],
+    [accessToken, accessUrl, images, isViewOnly, selectedCount, totalImageCount, mutateStats, gallery.needsPassword, clientCapability],
   );
 
 
@@ -291,12 +302,9 @@ export default function PublicGalleryClient({
 
   const handleToggleReaction = useCallback(
     async (imageId: string) => {
-      if (!accessToken) {
-        setPendingHeartImageId(imageId);
-        setShowHeartPasswordModal(true);
-        return;
-      }
-
+      // Tim = xã giao — người thân/bạn bè thả tự do, KHÔNG hỏi mật khẩu (nghiệp vụ chốt 15/07).
+      // Album có pass: server đã cấp view-token nên tim vẫn hoạt động.
+      if (!accessToken) return;
       await performToggleReaction(imageId, accessToken);
     },
     [accessToken, performToggleReaction],
@@ -304,6 +312,11 @@ export default function PublicGalleryClient({
 
   const handleSaveNote = useCallback(
     async (imageId: string, note: string) => {
+      // Ghi chú ảnh = chỉ dẫn hậu kỳ — cùng gate mật khẩu với chọn ảnh.
+      if (gallery.needsPassword && clientCapability === "view") {
+        setShowSelectPasswordModal(true);
+        return;
+      }
       const previousNote = images.find((i) => i.id === imageId)?.client_note || null;
       
       mutatePages((currentPages) => {
@@ -330,7 +343,7 @@ export default function PublicGalleryClient({
         }, false);
       }
     },
-    [accessToken, accessUrl, images, mutatePages],
+    [accessToken, accessUrl, images, mutatePages, gallery.needsPassword, clientCapability],
   );
 
   // ═════════════════════════════════════════
@@ -422,21 +435,22 @@ export default function PublicGalleryClient({
       )}
 
       <HeartPasswordModal
-        isOpen={showHeartPasswordModal}
+        isOpen={showSelectPasswordModal}
         galleryId={gallery.id}
         accessUrl={accessUrl}
         galleryTitle={gallery.title}
         onClose={() => {
-          setShowHeartPasswordModal(false);
-          setPendingHeartImageId(null);
+          setShowSelectPasswordModal(false);
+          setPendingSelectImageId(null);
         }}
         onUnlocked={async (unlockedGallery) => {
           const nextToken = unlockedGallery.accessToken || "";
           setHeartAccessToken(nextToken);
-          if (pendingHeartImageId && nextToken) {
-            const targetImageId = pendingHeartImageId;
-            setPendingHeartImageId(null);
-            await performToggleReaction(targetImageId, nextToken);
+          if (pendingSelectImageId && nextToken) {
+            // Retry lượt CHỌN đang chờ bằng select-token vừa nhận (state chưa kịp flush → truyền thẳng)
+            const targetImageId = pendingSelectImageId;
+            setPendingSelectImageId(null);
+            await handleToggleStar(targetImageId, undefined, nextToken);
           }
         }}
       />

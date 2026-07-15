@@ -31,8 +31,8 @@
     /* Longhand: cho phép Tailwind pl- pr- override từng phía */
     padding-top: 10px;
     padding-bottom: 10px;
-    padding-left: var(--spacing-base);
-    padding-right: var(--spacing-base);
+    padding-left: var(--space-base);
+    padding-right: var(--space-base);
     min-height: 44px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
@@ -118,7 +118,7 @@
   height: 44px;
   padding-top: 0;
   padding-bottom: 0;
-  padding-right: var(--spacing-base);
+  padding-right: var(--space-base);
   border-radius: var(--radius-md);
   border: none;
   background: var(--color-bg-input);

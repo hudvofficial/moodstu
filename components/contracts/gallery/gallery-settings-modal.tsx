@@ -38,6 +38,7 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
   // only on `gallery?.id` (primitive) to avoid resetting on every realtime update.
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync form từ prop khi mở modal là use case hợp lệ (cùng pattern image-viewer)
     setTitle(gallery.title || "");
     setCustomSlug(gallery.custom_slug || "");
     setClientName(gallery.client_name || "");
@@ -184,7 +185,7 @@ export function GallerySettingsModal({ isOpen, onClose, gallery, onSave }: Galle
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-text-secondary">Bảo vệ album bằng mật khẩu</span>
+            <span className="text-sm font-medium text-text-secondary">Yêu cầu mật khẩu khi chọn ảnh</span>
             <Switch checked={isProtectPassword} onCheckedChange={setIsProtectPassword} />
           </div>
           {isProtectPassword && (

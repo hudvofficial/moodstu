@@ -29,7 +29,27 @@ version: 1
 updated: 2026-07-15
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260715-gallery-password-gating
+    title: "Đảo gate mật khẩu đúng nghiệp vụ (ADR-008): tim tự do, chọn+ghi chú cần pass; kèm fix CSS --spacing-* (12 file)"
+    status: ci                   # code xong (Claude code trực tiếp theo yêu cầu user), eslint 0 lỗi, đang chờ build
+    owner: claude
+    branch: main                 # user yêu cầu Claude code thẳng, ADR-007 cho push main
+    locks:
+      - app/actions/gallery-public-actions.ts
+      - app/actions/gallery-core.ts
+      - app/actions/gallery-reaction-actions.ts
+      - components/gallery/public-gallery-client.tsx
+      - components/gallery/heart-password-modal.tsx
+      - components/contracts/gallery/gallery-settings-modal.tsx
+      - app/globals.css
+    spec: agent/HANDOFFS/T-20260715-gallery-password-gating.spec.md
+    verify:
+      - "npx eslint <file đổi>  # 0 lỗi — DONE"
+      - "npm run build"
+      - "Render: modal rộng chuẩn (hết 48px); album pass: tim tự do + chọn hiện modal"
+    depends_on: []
+    notes: "User yêu cầu Claude code trực tiếp thay vì Codex (fallback hợp lệ theo CLAUDE.md §0)."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []

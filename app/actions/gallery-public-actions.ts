@@ -49,7 +49,9 @@ export async function getPublicGallery(accessUrl: string) {
         selection_deadline: data.selection_deadline,
         access_url: getGalleryPublicSlug(data),
         capability: getGalleryCapability(data),
-        accessToken: galleryHasPassword(data) ? undefined : buildGalleryAccessToken(data),
+        // Album có mật khẩu: vẫn cấp VIEW-token miễn phí (xem + thả tim tự do — nghiệp vụ chốt 15/07).
+        // SELECT-token (chọn ảnh/ghi chú — input hậu kỳ) chỉ cấp sau khi nhập đúng pass (verifyGalleryPassword).
+        accessToken: galleryHasPassword(data) ? buildGalleryAccessToken(data, "view") : buildGalleryAccessToken(data),
         gallery_images: page.images,
         imageCount: page.totalCount,
         selectedCount,

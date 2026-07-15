@@ -78,7 +78,7 @@ export function FullpageFormShell({
             - ultra-wide (>=1536): max-w-[110rem] (1760)
        */}
       <div className="detail-shell-page flex-1">
-        <div className="pb-24 lg:pb-6" style={{ paddingTop: 'var(--spacing-main-y)' }}>
+        <div className="pb-24 lg:pb-6" style={{ paddingTop: 'var(--space-main-y)' }}>
           {rightPanel ? (
             <TwoColumnGrid
               rightPanel={

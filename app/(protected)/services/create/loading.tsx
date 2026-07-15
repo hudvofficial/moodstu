@@ -11,7 +11,7 @@ export default function CreateServiceLoading() {
         </div>
       </div>
 
-      <div className="pb-24 lg:pb-6" style={{ paddingTop: "var(--spacing-main-y)" }}>
+      <div className="pb-24 lg:pb-6" style={{ paddingTop: "var(--space-main-y)" }}>
         <div className="detail-grid">
           <div className="detail-main space-y-6 min-w-0">
             <SkeletonCard className="rounded-soft-2xl" />

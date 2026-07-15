@@ -407,9 +407,9 @@ export default function ImageViewer({
         <div
           className="grid grid-cols-3 items-center px-4 py-3"
           style={{
-            paddingTop: "calc(var(--spacing-base) + env(safe-area-inset-top))",
-            paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
-            paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+            paddingTop: "calc(var(--space-base) + env(safe-area-inset-top))",
+            paddingLeft: "calc(var(--space-base) + env(safe-area-inset-left))",
+            paddingRight: "calc(var(--space-base) + env(safe-area-inset-right))",
           }}
         >
           {/* Left: Trống */}
@@ -457,7 +457,7 @@ export default function ImageViewer({
           style={{
             top: "50%",
             transform: "translateY(-50%)",
-            left: "calc(var(--spacing-base) + env(safe-area-inset-left))",
+            left: "calc(var(--space-base) + env(safe-area-inset-left))",
             width: "var(--icon-container-sm)",
             height: "var(--icon-container-sm)",
             borderRadius: "var(--radius-md)",
@@ -479,7 +479,7 @@ export default function ImageViewer({
           style={{
             top: "50%",
             transform: "translateY(-50%)",
-            right: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+            right: "calc(var(--space-base) + env(safe-area-inset-right))",
             width: "var(--icon-container-sm)",
             height: "var(--icon-container-sm)",
             borderRadius: "var(--radius-md)",
@@ -619,9 +619,9 @@ export default function ImageViewer({
         <div
           className="flex flex-col items-center gap-3 px-4 pt-4"
           style={{
-            paddingBottom: "calc(var(--spacing-base) + env(safe-area-inset-bottom))",
-            paddingLeft: "calc(var(--spacing-base) + env(safe-area-inset-left))",
-            paddingRight: "calc(var(--spacing-base) + env(safe-area-inset-right))",
+            paddingBottom: "calc(var(--space-base) + env(safe-area-inset-bottom))",
+            paddingLeft: "calc(var(--space-base) + env(safe-area-inset-left))",
+            paddingRight: "calc(var(--space-base) + env(safe-area-inset-right))",
           }}
         >
           <div className="flex w-full items-center justify-start">
