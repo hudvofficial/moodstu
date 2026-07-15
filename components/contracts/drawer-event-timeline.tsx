@@ -14,6 +14,7 @@ import { Calendar, MapPin, CheckCircle, Clock, Circle } from "lucide-react";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateEventStatus } from "@/app/actions/contract-event-actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { contractKeys, markContractSelfMutation } from "@/lib/hooks/use-contract-queries";
 import { runOptimisticMutation } from "@/lib/optimistic-mutation";
@@ -168,20 +169,18 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
             event.status !== "da_huy" &&
             comparisonDate !== "" &&
             comparisonDate < todayStr;
+          // Badge đồng bộ style với status hợp đồng; icon trạng thái đã có ở stepper trái.
+          const statusVariant = statusInfo?.variant === "muted" ? "neutral" : statusInfo?.variant ?? "neutral";
           const statusControl = event.status === "da_huy" || !contractId ? (
-            <span className="inline-flex items-center gap-1 text-tiny text-text-muted shrink-0">
-              {getStatusIcon(event.status)}
-              {statusLabel}
-            </span>
+            <Badge variant={statusVariant}>{statusLabel}</Badge>
           ) : (
             <Button
               unstyled
               type="button"
               onClick={() => void handleStatusChange(event)}
-              className="inline-flex cursor-pointer items-center gap-1 text-tiny text-text-muted shrink-0 transition-transform active:scale-95"
+              className="cursor-pointer shrink-0 transition-transform active:scale-95"
             >
-              {getStatusIcon(event.status)}
-              {statusLabel}
+              <Badge variant={statusVariant}>{statusLabel}</Badge>
             </Button>
           );
 
