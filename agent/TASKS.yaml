@@ -29,7 +29,18 @@ version: 1
 updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260716-gallery-note-read-gate
+    title: "Khách không thấy ghi chú của chính mình: 2 hàm đọc gate 'view' trần từ chối select-token (regression d45ea00)"
+    status: implementing
+    owner: codex
+    locks:
+      - app/actions/gallery-reaction-actions.ts   # CHỈ getGalleryComments + getComments
+    spec: agent/HANDOFFS/T-20260716-gallery-note-read-gate.spec.md
+    verify:
+      - npm run build
+    depends_on: [T-20260716-comment-identifier-leak]
+    notes: "REGRESSION d45ea00 (16/07), đo được trên prod: replay getComments cho ảnh có note bằng select-token thật → []. Nhân quả: capability so EXACT (gallery-access.ts:99) + album không pass cấp select-token (gallery-core.ts:105) + getComments gate 'view' trần → từ chối → catch nuốt thành []. Ghi (upsertComment gate 'select') vẫn OK → khách viết được mà không đọc lại được. Fix = TÁI DÙNG pattern try/catch của toggleReaction (:55-62, đã duyệt 15/07), KHÔNG cần ADR: chấp nhận token quyền CAO hơn, lõi EXACT match ADR-008 giữ nguyên."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []

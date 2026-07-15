@@ -164,10 +164,15 @@ export async function getGalleryComments(
   try {
     if (!accessUrl?.trim() || !accessToken?.trim()) return {};
     const supabase = await createAdminClient();
-    // "view": ĐÚNG mức bảo mật hiện tại — hôm nay client_note vốn đã nằm trong payload ảnh
-    // (IMAGE_COLS) gửi cho MỌI người có link; UI mới là chỗ giấu nội dung với người không pass.
-    // KHÔNG siết thêm ngoài phạm vi task.
-    await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
+    // Đọc ghi chú = mức "view" (ai có link đều đọc được — client_note vốn đã nằm trong
+    // payload ảnh IMAGE_COLS cho mọi người có link). NHƯNG album KHÔNG mật khẩu cấp thẳng
+    // select-token, mà so capability là EXACT → gate "view" trần sẽ từ chối chính nó.
+    // Chấp nhận CẢ HAI như toggleReaction: view-token (album có pass) lẫn token đầy đủ.
+    try {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
+    } catch {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId);
+    }
     const { data, error } = await supabase
       .from("gallery_comments")
       .select("image_id, content, author_name, updated_at")
@@ -204,7 +209,12 @@ export async function getComments(imageId: string, accessUrl?: string, accessTok
   try {
     if (accessUrl?.trim() && accessToken?.trim()) {
       const supabase = await createAdminClient();
-      await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
+      // Chấp nhận view-token (album có pass) LẪN token đầy đủ (album không pass) — xem toggleReaction.
+      try {
+        await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
+      } catch {
+        await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId);
+      }
       const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
       if (error) return [];
       return (data || []).map(toComment);
