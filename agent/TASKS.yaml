@@ -26,10 +26,35 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-07-15
+updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260716-gallery-metadata-dedup
+    title: "Cắt double-fetch metadata gallery: đường thành công dùng V3 + 1 query nạc commentsPerImage (bỏ 3/4 query metadata)"
+    status: implementing
+    owner: codex
+    locks:
+      - app/actions/gallery-composite-actions.ts        # chỉ THÊM getGalleryCommentContentAll
+      - components/contracts/gallery/use-gallery-data.ts # chỉ sửa loadGalleryData
+    spec: agent/HANDOFFS/T-20260716-gallery-metadata-dedup.spec.md
+    verify:
+      - npm run build
+    depends_on: [T-20260716-gallery-notes-to-comments]
+    notes: "Perf đo prod: admin gallery LCP 2.59s; mỗi lần đổi album chạy V2 RPC + getGalleryMetadataAll(4 query) song song, nhưng V3 RPC đã đọc gallery_comments nên 3/4 query metadata thừa. Chỉ commentsPerImage (nội dung) là V3 thiếu → lấy 1 query nạc. metadata GIỮ cho fallback. KHÔNG migration, KHÔNG prod DB. Rủi ro review: albums giờ từ V3 — verify tab+count khớp."
+
+  - id: T-20260716-comment-identifier-leak
+    title: "Vá lỗ khách sửa/xoá được ghi chú khách khác: getComments bỏ client_identifier, trả is_mine (server tính)"
+    status: approved
+    owner: claude
+    locks:
+      - app/actions/gallery-reaction-actions.ts   # chỉ interface GalleryComment + getComments
+      - components/gallery/image-viewer.tsx        # chỉ chỗ dùng client_identifier
+    spec: agent/HANDOFFS/T-20260716-comment-identifier-leak.spec.md
+    verify:
+      - npm run build
+    depends_on: [T-20260716-gallery-notes-to-comments]
+    notes: "Audit 16/07 P2 nhưng đụng feature d45ea00. getComments lộ client_identifier MỌI người → khách A ghi đè/xoá note khách B. Fix: server tính is_mine, không trả identifier; mutation dùng identifier của chính người gọi nên tự-scope. QUEUE SAU B (serialize Codex review, dù file không chồng B)."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -73,20 +98,8 @@ done:
 
   - id: T-20260716-gallery-notes-to-comments
     title: "Ghi chú khách: cột client_note (1/ảnh, admin không thấy) → bảng gallery_comments (upsert theo người, có tên)"
-    status: in_progress
-    owner: codex
+    status: merged
+    merged_commit: d45ea00
     spec: agent/HANDOFFS/T-20260716-gallery-notes-to-comments.spec.md
-    locks:
-      - supabase/migrations/20260716000000_gallery_comments_upsert.sql
-      - app/actions/gallery-reaction-actions.ts
-      - app/actions/gallery-selection-actions.ts
-      - app/actions/gallery-composite-actions.ts
-      - app/actions/gallery-cursor-actions.ts
-      - components/gallery/image-viewer.tsx
-      - components/gallery/public-gallery-client.tsx
-      - components/contracts/gallery/gallery-image-grid.tsx
-      - components/contracts/gallery/gallery-lightbox.tsx
-      - components/contracts/gallery/use-gallery-data.ts        # spec v2 — Codex chặn đúng ở vòng 1
-      - components/contracts/gallery/gallery-full-page.tsx      # spec v2 — Codex chặn đúng ở vòng 1
-    result: "(đang chạy — vòng 1 Codex chặn vì spec thiếu 2 lock, Claude sửa spec v2 rồi giao lại)"
-    notes: "Bug prod: 148 ghi chú in ấn của khách (HĐ-2026-0028: 126) vô hình với xưởng — admin đếm/lọc theo gallery_comments (0 dòng) còn khách ghi vào client_note. 4 action comment cũ HỞ BẢO MẬT (admin client, không gate) → task này siết luôn: ghi = capability 'select' (mật khẩu), đọc = 'view' (giữ hành vi cũ). User chốt: có hỏi tên (nhớ localStorage) + mỗi người 1 ghi chú/ảnh sửa được của mình. ĐỤNG DATA THẬT: Codex CHỈ viết file migration, Claude tự chạy + verify."
+    result: "Codex impl (3 vòng: chặn spec thiếu lock → review bắt 3 lỗi R1-R3 → fix) → Claude tự chạy migration 20260716000000 (backfill 148 note) + verify prod: 126 Bình luận (từ 0) + filter 126 ảnh + 31 chip + preview 'In lớn'. client_note giữ nguyên 148 dòng làm backup."
+    notes: "Bug prod: 148 ghi chú in ấn của khách (HĐ-2026-0028: 126) vô hình với xưởng — admin đếm/lọc theo gallery_comments (0 dòng) còn khách ghi vào client_note. 4 action comment cũ HỞ BẢO MẬT (admin client, không gate) → task này siết: ghi = capability 'select' (mật khẩu), đọc = 'view'. User chốt: có hỏi tên (nhớ localStorage) + mỗi người 1 ghi chú/ảnh sửa được của mình. CÒN TỒN (audit 16/07): getComments public vẫn lộ client_identifier → khách sửa được note khách khác (P2); rate-limit verifyGalleryPassword (P1)."

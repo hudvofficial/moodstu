@@ -167,3 +167,29 @@ export async function getGalleryMetadataAll(galleryId: string) {
     };
   });
 }
+
+/**
+ * Chỉ lấy NỘI DUNG ghi chú theo ảnh cho cả gallery (admin).
+ * V3 RPC đã cấp reaction/comment counts + albums; commentsPerImage là phần DUY NHẤT V3 thiếu.
+ * Tách riêng để đường thành công KHÔNG phải gọi getGalleryMetadataAll (4 query) — chỉ 1 query.
+ */
+export async function getGalleryCommentContentAll(galleryId: string) {
+  return withAuth(async (supabase, userId) => {
+    await requireContractAccess(supabase, userId);
+    const { data, error } = await supabase
+      .from("gallery_comments")
+      .select("image_id, content, author_name, updated_at")
+      .eq("gallery_id", galleryId)
+      .order("created_at", { ascending: true });
+    if (error) return {} as Record<string, GalleryCommentSummary[]>;
+    const map: Record<string, GalleryCommentSummary[]> = {};
+    for (const row of data || []) {
+      (map[row.image_id] ||= []).push({
+        author_name: row.author_name || "Khách",
+        content: row.content,
+        updated_at: row.updated_at,
+      });
+    }
+    return map;
+  });
+}

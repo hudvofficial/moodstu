@@ -6,7 +6,7 @@ import { toggleImageStar } from "@/app/actions/gallery-selection-actions";
 import { getGalleryImagesPaginated } from "@/app/actions/gallery-image-helpers";
 import { type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { createAlbum, getAlbumsByGallery, type GalleryAlbum } from "@/app/actions/gallery-album-actions";
-import { getGalleryDataV2, getGalleryMetadataAll, type GalleryCommentSummary, type GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
+import { getGalleryDataV2, getGalleryMetadataAll, getGalleryCommentContentAll, type GalleryCommentSummary, type GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 import type { GalleryImage, GalleryShareDetails, GallerySummary } from "@/types/gallery";
 import { type FileFilter, type StatsFilter, groupByFileGroup } from "./gallery-helpers";
 import { type SortOption } from "./gallery-sort-dropdown";
@@ -164,38 +164,39 @@ export function useGalleryData(
     setActiveFilter("all");
 
     const loadGalleryData = async () => {
-      // Try V2 RPC first (single call for everything) with network-aware pageSize
-      console.log(`[useGalleryData] 🚀 INITIAL LOAD: pageSize=${pageSize}`);
-      const [v2Result, metadataRes] = await Promise.all([
+      // Hot path: V3 RPC đã trả reactionCounts + comment counts + albums (RPC đọc gallery_comments).
+      // Chỉ commentsPerImage (nội dung) là V3 KHÔNG có → lấy riêng 1 query nhẹ,
+      // KHÔNG gọi getGalleryMetadataAll (4 query) trên đường thành công.
+      const [v2Result, commentsContentRes] = await Promise.all([
         getGalleryDataV2(activeGalleryId, 0, pageSize),
-        getGalleryMetadataAll(activeGalleryId),
+        getGalleryCommentContentAll(activeGalleryId),
       ]);
 
       if (cancelled) return;
 
-      console.log('[useGalleryData] V2 Result:', v2Result);
-
       if (v2Result.success && v2Result.data) {
-        // V2 RPC succeeded - use combined data
+        // V2/V3 RPC thành công — dùng thẳng, chỉ ghép commentsPerImage từ query nạc.
         const data = v2Result.data;
-        console.log(`[useGalleryData] ✅ V2 RPC SUCCESS: ${data.images.length}/${data.totalCount} images, hasMore=${data.hasMore}, pageSize=${data.pageSize}`);
+        const commentsContent = commentsContentRes.success && commentsContentRes.data ? commentsContentRes.data : {};
         setPaginatedImages(data.images);
         setTotalImageCount(data.totalCount);
         setHasMoreImages(data.hasMore);
         setReactionCounts(data.reactionCounts);
-        setCommentCount(metadataRes.success && metadataRes.data ? metadataRes.data.totalCommentCount : data.totalCommentCount);
-        setCommentCountsPerImage(metadataRes.success && metadataRes.data ? metadataRes.data.commentCountsPerImage : data.commentCountsPerImage);
-        setCommentsPerImage(metadataRes.success && metadataRes.data ? metadataRes.data.commentsPerImage : {});
-        setAlbums(metadataRes.success && metadataRes.data ? metadataRes.data.albums : data.albums);
+        setCommentCount(data.totalCommentCount);
+        setCommentCountsPerImage(data.commentCountsPerImage);
+        setCommentsPerImage(commentsContent);
+        setAlbums(data.albums);
         setCurrentPage(0);
         setLoadingMore(false);
         return;
       }
 
-      // V2 RPC failed - fallback to legacy parallel calls
+      // V2/V3 RPC không dùng được → fallback đầy đủ (metadata cấp reactions+albums+counts qua query rời).
       console.warn("[useGalleryData] V2 RPC unavailable, using legacy fallback");
-
-      const imagesRes = await getGalleryImagesPaginated(activeGalleryId, 0, pageSize);
+      const [imagesRes, metadataRes] = await Promise.all([
+        getGalleryImagesPaginated(activeGalleryId, 0, pageSize),
+        getGalleryMetadataAll(activeGalleryId),
+      ]);
 
       if (cancelled) return;
 
