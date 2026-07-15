@@ -29,32 +29,7 @@ version: 1
 updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260716-gallery-metadata-dedup
-    title: "Cắt double-fetch metadata gallery: đường thành công dùng V3 + 1 query nạc commentsPerImage (bỏ 3/4 query metadata)"
-    status: implementing
-    owner: codex
-    locks:
-      - app/actions/gallery-composite-actions.ts        # chỉ THÊM getGalleryCommentContentAll
-      - components/contracts/gallery/use-gallery-data.ts # chỉ sửa loadGalleryData
-    spec: agent/HANDOFFS/T-20260716-gallery-metadata-dedup.spec.md
-    verify:
-      - npm run build
-    depends_on: [T-20260716-gallery-notes-to-comments]
-    notes: "Perf đo prod: admin gallery LCP 2.59s; mỗi lần đổi album chạy V2 RPC + getGalleryMetadataAll(4 query) song song, nhưng V3 RPC đã đọc gallery_comments nên 3/4 query metadata thừa. Chỉ commentsPerImage (nội dung) là V3 thiếu → lấy 1 query nạc. metadata GIỮ cho fallback. KHÔNG migration, KHÔNG prod DB. Rủi ro review: albums giờ từ V3 — verify tab+count khớp."
-
-  - id: T-20260716-comment-identifier-leak
-    title: "Vá lỗ khách sửa/xoá được ghi chú khách khác: getComments bỏ client_identifier, trả is_mine (server tính)"
-    status: approved
-    owner: claude
-    locks:
-      - app/actions/gallery-reaction-actions.ts   # chỉ interface GalleryComment + getComments
-      - components/gallery/image-viewer.tsx        # chỉ chỗ dùng client_identifier
-    spec: agent/HANDOFFS/T-20260716-comment-identifier-leak.spec.md
-    verify:
-      - npm run build
-    depends_on: [T-20260716-gallery-notes-to-comments]
-    notes: "Audit 16/07 P2 nhưng đụng feature d45ea00. getComments lộ client_identifier MỌI người → khách A ghi đè/xoá note khách B. Fix: server tính is_mine, không trả identifier; mutation dùng identifier của chính người gọi nên tự-scope. QUEUE SAU B (serialize Codex review, dù file không chồng B)."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -70,6 +45,22 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260716-comment-identifier-leak
+    title: "Vá lỗ khách sửa/xoá được ghi chú khách khác: getComments bỏ client_identifier, trả is_mine"
+    status: merged
+    merged_commit: 0158631
+    spec: agent/HANDOFFS/T-20260716-comment-identifier-leak.spec.md
+    result: "Codex impl khớp spec 6/6; Claude review + tự eslint/build (bắt 1 warning dep thừa clientIdentifier → Codex resume dọn) → push. Verify prod: replay getComments cho ảnh có note qua đường admin → response CÓ is_mine=true + nội dung 'In lớn', KHÔNG có client_identifier. Lỗ view-token holder đọc identifier người khác đã bịt."
+    notes: "Exploit thật ở view-token (link free, không pass): trước đây getComments trả client_identifier MỌI người → đọc rồi upsert/delete mạo danh. QUAN SÁT NGOÀI LỀ (chưa xử, ngoài scope): getComments gate 'view' EXACT match (gallery-core.ts:99) → select-token bị từ chối → có thể note không hiện trong lightbox cho khách đã nhập pass. Cần xác nhận app truyền view-token hay select-token cho đọc; nếu select thì đây là bug d45ea00 (KHÔNG phải A2)."
+
+  - id: T-20260716-gallery-metadata-dedup
+    title: "Cắt double-fetch metadata gallery: đường thành công dùng V3 + 1 query nạc commentsPerImage"
+    status: merged
+    merged_commit: 79b9fd9
+    spec: agent/HANDOFFS/T-20260716-gallery-metadata-dedup.spec.md
+    result: "Codex impl 2 file khớp spec 100%; Claude review diff + tự eslint(0)+build(pass); push main; verify prod: 3 tab album 197/9/585 khớp DB (albums từ V3 OK — rủi ro chính pass), 126 Bình luận không đổi, preview 'In lớn' render (commentsPerImage qua query nạc). Đường thành công bỏ getGalleryMetadataAll(4 query)→getGalleryCommentContentAll(1 query); metadata giữ cho fallback."
+    notes: "Perf: cắt 3/4 query DB mỗi lần đổi album. V3 RPC đã đọc gallery_comments nên counts/albums/reactions từ V3 = đúng. KHÔNG migration."
+
   - id: T-20260715-gallery-password-gating
     title: "Mật khẩu đúng nghiệp vụ ADR-008 (tim tự do, chọn+note cần pass) + fix CSS --spacing-* đè Tailwind"
     status: merged
