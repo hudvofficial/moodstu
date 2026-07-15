@@ -7,7 +7,7 @@
  * V2: DrawerContent + OperationsTabs extracted to drawer-tab-content.tsx
  */
 
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Printer,
@@ -26,7 +26,7 @@ import { useRealtimeMulti } from "@/hooks/use-realtime-multi";
 import type { RealtimeMultiConfig } from "@/hooks/use-realtime-multi";
 import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 import { useQueryClient } from "@tanstack/react-query";
-import { prefetchContractDetail, useContractDrawerExtra, contractKeys, updateContractListChecklistCache } from "@/lib/hooks/use-contract-queries";
+import { prefetchContractDetail, useContractDrawerExtra, contractKeys, isRecentChecklistSelfMutation } from "@/lib/hooks/use-contract-queries";
 import type { RealtimePayload } from "@/hooks/use-realtime-multi";
 
 // ─── TYPES ───────────────────────────────────────
@@ -98,19 +98,27 @@ export function ContractDrawer({
   const { events, checklists, workTasks, paymentPlans, isLoadingExtra } =
     useContractDrawerExtra(isOpen ? contractId : null, drawerPlaceholder);
 
+  const checklistReconcileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
+  }, []);
+
   const handleDrawerRealtime = useCallback((payload: RealtimePayload) => {
     if (contractId) {
-      // Patch checklist real-time without refetching if possible
-      if (payload.table === "contract_checklists" && payload.eventType === "UPDATE") {
-        const row = payload.new;
-        const cid = typeof row.contract_id === "string" ? row.contract_id : contractId;
-        const cidStr = typeof row.id === "string" ? row.id : "";
-        if (cid && cidStr && typeof row.is_completed === "boolean") {
-          updateContractListChecklistCache(queryClient, cid, cidStr, row.is_completed);
-          return; // Skip full invalidate on pure checklist update
-        }
+      // Signal (Signal ≠ Data) không mang row data → không patch được từ payload.
+      // Tick checklist của chính mình đã sync đủ (optimistic patch + server confirm) —
+      // KHÔNG refetch ngay (drawer đứng im). Hẹn 1 lần reconcile im lặng sau khi cửa sổ
+      // khép: người khác sửa trùng cửa sổ thì data thật về; không đổi thì structural
+      // sharing giữ reference → không re-render.
+      if (payload.table === "contract_checklists" && isRecentChecklistSelfMutation()) {
+        if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
+        checklistReconcileTimerRef.current = setTimeout(() => {
+          checklistReconcileTimerRef.current = null;
+          void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) });
+        }, 3500);
+        return;
       }
-      
+
       void queryClient.invalidateQueries({ queryKey: contractKeys.drawerExtra(contractId) });
       void queryClient.invalidateQueries({ queryKey: contractKeys.detail(contractId) });
     }

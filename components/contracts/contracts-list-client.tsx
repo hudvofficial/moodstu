@@ -12,7 +12,9 @@ import {
   Suspense,
   useCallback,
   useDeferredValue,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePullToRefreshCallback } from "@/contexts/pull-to-refresh-context";
@@ -35,7 +37,7 @@ import {
   useContractStats,
   prefetchContract,
   revalidateContractListCaches,
-  updateContractListChecklistCache,
+  isRecentChecklistSelfMutation,
 } from "@/lib/hooks/use-contract-queries";
 import { preload } from "swr";
 import { fetchContractNotesClient } from "@/lib/client-direct/contract-drawer";
@@ -193,14 +195,25 @@ const ContractsListInner = memo(function ContractsListInner({
   }, [queryClient]);
 
   // 📡 Realtime — auto-refresh on INSERT/UPDATE/DELETE by any user
+  const checklistReconcileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
+  }, []);
+
   const handleContractRealtime = useCallback((payload?: RealtimePayload) => {
-    // Nếu payload là checklit update, ta tự patch local cache siêu tốc thay vì gọi refetch
-    if (payload?.table === "contract_checklists" && payload.eventType === "UPDATE") {
-      const row = payload.new;
-      if (row.contract_id && row.id && typeof row.is_completed === "boolean") {
-        updateContractListChecklistCache(queryClient, row.contract_id as string, row.id as string, row.is_completed as boolean);
-        return; // Skip refetching whole list
-      }
+    // Signal (pattern Signal ≠ Data) KHÔNG mang row data → không thể patch từ payload.
+    // Tick checklist của CHÍNH MÌNH đã sync đủ (optimistic patch + server confirm) —
+    // echo dội về không refetch NGAY (bảng đứng im). Nhưng vẫn hẹn 1 lần reconcile
+    // IM LẶNG sau khi cửa sổ khép: nếu người khác sửa TRÙNG cửa sổ thì data thật về;
+    // data không đổi thì structural sharing của React Query giữ reference → không re-render.
+    // (staleTime contracts = 30' nên không thể trông chờ refetch-on-focus.)
+    if (payload?.table === "contract_checklists" && isRecentChecklistSelfMutation()) {
+      if (checklistReconcileTimerRef.current) clearTimeout(checklistReconcileTimerRef.current);
+      checklistReconcileTimerRef.current = setTimeout(() => {
+        checklistReconcileTimerRef.current = null;
+        void revalidateContractListCaches(queryClient);
+      }, 3500);
+      return;
     }
     void revalidateContractListCaches(queryClient);
   }, [queryClient]);

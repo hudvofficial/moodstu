@@ -406,6 +406,22 @@ export async function revalidateContractCaches(queryClient: any, contractId?: st
   }
 }
 
+// ─── Self-echo suppression cho checklist realtime ───────────────────
+// Signal realtime (pattern Signal ≠ Data) không mang row data → không thể patch
+// từ signal. Nhưng tick của CHÍNH MÌNH đã sync đủ (optimistic patch + server
+// confirm) — echo dội về chỉ có ích cho máy khác. Đánh dấu lúc tick để handler
+// realtime bỏ qua echo trong cửa sổ ngắn → bảng list không refetch/nhảy.
+let lastChecklistSelfMutationAt = 0;
+
+export function markChecklistSelfMutation() {
+  lastChecklistSelfMutationAt = Date.now();
+}
+
+/** Signal checklist về trong cửa sổ này = echo của chính mình → skip refetch. */
+export function isRecentChecklistSelfMutation(windowMs = 3000) {
+  return Date.now() - lastChecklistSelfMutationAt < windowMs;
+}
+
 export async function revalidateContractListCaches(queryClient: any) {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: contractKeys.lists() }),
