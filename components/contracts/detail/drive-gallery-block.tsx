@@ -37,6 +37,7 @@ interface GalleryRow {
   shared_at: string | null;
   imageCount: number;
   selectedCount: number;
+  heartCount?: number;
   hasPassword: boolean;
   custom_slug?: string | null;
   shareLinks?: GalleryShareLink[];
@@ -233,7 +234,11 @@ export default function DriveGalleryBlock({ contractId, initialGalleries }: Driv
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-body-sm font-medium text-text-primary block truncate">{info.label}</span>
-                    <span className="text-caption text-text-muted block truncate">{g.imageCount} ảnh{g.selectedCount > 0 ? ` · ❤️ ${g.selectedCount}` : ""}</span>
+                    <span className="text-caption text-text-muted block truncate">
+                      {g.imageCount} ảnh
+                      {g.selectedCount > 0 ? ` · ✓ ${g.selectedCount} chọn` : ""}
+                      {(g.heartCount || 0) > 0 ? ` · ❤️ ${g.heartCount} tim` : ""}
+                    </span>
                   </div>
                 </div>
 

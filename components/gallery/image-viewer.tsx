@@ -635,19 +635,23 @@ export default function ImageViewer({
                 {/* CircleCheck — chọn ảnh (is_selected) */}
                 <Button unstyled
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleStar(img.id);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); onToggleStar(img.id); }}
                   style={{
                     ...actionButtonStyle,
-                    background: img.is_selected ? "rgba(34,197,94,0.22)" : actionButtonStyle.background,
+                    width: "auto",
+                    borderRadius: 9999, // pill rộng — borderRadius 50% của actionButtonStyle sẽ thành elip
+                    paddingLeft: 14,
+                    paddingRight: 14,
+                    gap: 6,
+                    background: img.is_selected ? "rgba(34,197,94,0.28)" : actionButtonStyle.background,
                     color: img.is_selected ? "#22c55e" : actionButtonStyle.color,
+                    boxShadow: img.is_selected ? "0 0 14px rgba(34,197,94,0.35)" : undefined,
                   }}
                   aria-label={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                   title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                 >
-                  <CircleCheck size={20} fill={img.is_selected ? "#22c55e" : "none"} />
+                  <CircleCheck size={18} fill={img.is_selected ? "#22c55e" : "none"} />
+                  <span className="text-sm font-semibold whitespace-nowrap">{img.is_selected ? "Đã chọn" : "Chọn"}</span>
                 </Button>
 
                 {/* Heart — reaction độc lập (isReacted) */}

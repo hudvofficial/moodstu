@@ -402,11 +402,24 @@ export async function getGallerySummariesByContract(contractId: string) {
       return [] as GallerySummary[];
     }
 
+    // Đếm tim (reactions) per gallery — additive, 1 query
+    const galleryIds = data.map((g: any) => g.id);
+    const { data: heartRows } = await supabase
+      .from("gallery_reactions")
+      .select("gallery_id")
+      .in("gallery_id", galleryIds)
+      .eq("reaction_type", "heart");
+    const heartMap: Record<string, number> = {};
+    for (const row of heartRows || []) {
+      heartMap[row.gallery_id] = (heartMap[row.gallery_id] || 0) + 1;
+    }
+
     // Transform RPC result to GallerySummary format
     const summaries = data.map((gallery: any) => ({
       ...gallery,
       imageCount: gallery.image_count || 0,
       selectedCount: gallery.selected_count || 0,
+      heartCount: heartMap[gallery.id] || 0,
       coverImageUrl: gallery.cover_thumbnail || null,
       hasPassword: Boolean(gallery.password_hash || gallery.password),
       shareLinks: gallery.share_links || [],

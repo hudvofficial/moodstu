@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GripVertical, Heart, ImageIcon, Star } from "lucide-react";
+import { CircleCheck, GripVertical, Heart, ImageIcon, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
@@ -186,7 +186,7 @@ export default function GalleryImageList({
                   </span>
                 ) : image.is_selected ? (
                   <span className="inline-flex items-center" title="Khách chọn">
-                    <Heart size={14} className="fill-error text-error" />
+                    <CircleCheck size={14} className="fill-success/20 text-success" />
                   </span>
                 ) : null}
               </div>

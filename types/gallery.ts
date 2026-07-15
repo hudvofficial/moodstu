@@ -92,6 +92,7 @@ export interface Gallery {
 export interface GallerySummary extends Omit<Gallery, "gallery_images"> {
   imageCount: number;
   selectedCount: number;
+  heartCount?: number;
   coverImageUrl: string | null;
   hasPassword: boolean;
   shareLinks?: GalleryShareLink[];

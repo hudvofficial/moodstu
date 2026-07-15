@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   Camera,
+  CircleCheck,
   Eye,
   EyeOff,
   Globe,
@@ -187,8 +188,16 @@ export default function GalleryToolbar({
       onClick: () => onSetActiveFilter(activeFilter === "starred" ? "all" : "starred"),
     },
     {
-      icon: Heart,
+      icon: CircleCheck,
       label: "khách chọn",
+      value: String(selectedCount),
+      tone: "success",
+      active: activeFilter === "selected",
+      onClick: () => onSetActiveFilter(activeFilter === "selected" ? "all" : "selected"),
+    },
+    {
+      icon: Heart,
+      label: "thả tim",
       value: String(totalHearts),
       tone: "error",
       active: activeFilter === "hearted",
@@ -202,7 +211,7 @@ export default function GalleryToolbar({
       active: activeFilter === "commented",
       onClick: () => onSetActiveFilter(activeFilter === "commented" ? "all" : "commented"),
     },
-  ]), [activeFilter, commentCount, onSetActiveFilter, starredCount, totalHearts, totalImageCount, images.length]);
+  ]), [activeFilter, commentCount, onSetActiveFilter, selectedCount, starredCount, totalHearts, totalImageCount, images.length]);
 
   const galleryTabs = useMemo(
     () => galleries.map((gallery) => ({

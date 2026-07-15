@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { Heart, ImageIcon, ImageOff, MessageSquare, Star } from "lucide-react";
+import { CircleCheck, Heart, ImageIcon, ImageOff, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { getResponsiveThumbnailUrl, type ImageGroup } from "./gallery-helpers";
@@ -188,8 +188,12 @@ export default function GalleryImageGrid({
                             }
                             onToggleStar?.(image.id, !!image.is_starred);
                           }}
-                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${(isAdmin ? image.is_starred : isClientReacted) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                          style={publicMode ? {} : overlayChipStyle}
+                          className={`absolute ${publicMode ? 'right-2 bottom-2' : 'left-2 top-2'} z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${
+                            publicMode
+                              ? (isClientReacted ? "opacity-100" : "opacity-90")
+                              : (image.is_starred ? "opacity-100" : "opacity-0 group-hover:opacity-100")
+                          }`}
+                          style={publicMode ? { background: "rgba(0,0,0,0.28)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" } : overlayChipStyle}
                           title={publicMode ? (isClientReacted ? "Bỏ yêu thích" : "Yêu thích") : (image.is_starred ? "Bỏ đề xuất" : "Đánh dấu đề xuất")}
                         >
                           {publicMode ? (
@@ -231,7 +235,7 @@ export default function GalleryImageGrid({
                         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
                           {image.is_selected && (
                             <span className="flex h-5 items-center justify-center rounded-full px-2" style={overlayChipStyle} title="Khách chọn">
-                              <Heart size={12} className="fill-error text-error" />
+                              <CircleCheck size={12} className="fill-success/20 text-success" />
                             </span>
                           )}
                           {groupHeartCount > 0 && (

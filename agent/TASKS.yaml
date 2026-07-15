@@ -29,7 +29,25 @@ version: 1
 updated: 2026-07-15
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260715-gallery-hearts-visibility
+    title: "Khách thả tim admin không thấy: nút Chọn mờ nhạt (public) + thiếu UI tim (admin detail)"
+    status: implementing         # user chốt "tim là tim, chọn là chọn" 15/07 → giao Codex
+    owner: codex
+    branch: codex/gallery-hearts-visibility
+    locks:
+      - components/gallery/image-viewer.tsx
+      - components/contracts/gallery/gallery-image-grid.tsx
+      - components/contracts/detail/drive-gallery-block.tsx
+      - app/actions/gallery-admin-actions.ts
+      - types/gallery.ts
+    spec: agent/HANDOFFS/T-20260715-gallery-hearts-visibility.spec.md
+    verify:
+      - "npx eslint <5 file>  # 0 lỗi mới"
+      - "npm run build"
+      - "Render @375/768/1023: tile heart hiện không hover, pill Chọn, card admin hiện tim"
+    depends_on: []
+    notes: "Root cause verify bằng query prod RO: 53 tim/0 chọn nhiều gallery. 2 hệ dữ liệu chọn≠tim, UI trộn icon."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
