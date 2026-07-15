@@ -172,7 +172,11 @@ export default function ProgressBadge({ tasks = [] }: { tasks: WorkProgressTask[
       </div>
 
       {/* Hover Tooltip — auto-flip */}
-      <div className={`absolute left-1/2 -translate-x-1/2 w-56 bg-bg-card rounded-lg shadow-xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all duration-200 z-50 p-3 text-left ${
+      {/* PHẢI ẩn bằng `hidden` (display:none), KHÔNG dùng invisible/opacity-0: tooltip ẩn
+          kiểu invisible vẫn nằm trong layout → tooltip của các dòng cuối thò xuống dưới đáy
+          <table>, cộng ~120px vào scrollHeight của vùng cuộn → bảng cuộn tới đáy còn hở
+          một khoảng trắng. Đổi lại là mất fade 200ms (tooltip hiện tức thì). */}
+      <div className={`absolute left-1/2 -translate-x-1/2 w-56 bg-bg-card rounded-lg shadow-xl hidden group-hover/tooltip:block z-50 p-3 text-left ${
         flipUp ? "bottom-full mb-2" : "top-full mt-2"
       }`}>
         <div className="space-y-3">
