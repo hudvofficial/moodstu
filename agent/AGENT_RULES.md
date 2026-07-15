@@ -82,17 +82,21 @@ spec → approved → implementing → testing → review → fixing → ci → 
 
 ---
 
-## 6. CI gate — 2 tầng
+## 6. Verify — 2 tầng (KHÔNG có cổng chặn tự động)
 
-**Tầng 1 — GitHub Actions** (`.github/workflows/ci.yml`, job `quality`): lint **file thay đổi** (không chạy lint full vì repo có ~27 lỗi tồn đọng — xem `CURRENT_STATE.md`) + `npm run build`, trên PR/push `main`. An toàn, không đụng DB.
-- Chỉ **CHẶN merge thật** khi: (a) bật branch protection cho `main` yêu cầu check `quality`, **và** (b) làm việc qua **PR** (Codex push branch → PR → xanh → merge). 2 bước này do **user** làm 1 lần (xem comment đầu file workflow). Nếu còn push thẳng `main` → CI chỉ báo SAU, như Vercel.
+> **Chốt 2026-07-15 (ADR-007): branch protection ruleset đã GỠ.** `main` nhận push thẳng như trước.
+> Không còn cơ chế nào *cưỡng chế* chặn code hỏng vào `main`. Kỷ luật dưới đây là **tự giác**.
 
-**Tầng 2 — verify local** (KHÔNG đưa lên CI vì nối thẳng Supabase + rủi ro e2e-seed-leak), chạy trước khi merge:
+**Tầng 1 — GitHub Actions** (`.github/workflows/ci.yml`, job `quality`): lint **file thay đổi** (không lint full vì repo có ~27 lỗi tồn đọng — xem `CURRENT_STATE.md`) + `npm run build`. Chạy trên PR **và** trên push `main`. An toàn, không đụng DB.
+- **Là chuông báo, KHÔNG phải cổng.** Nó báo đỏ *sau khi* code đã vào `main`. Đỏ → sửa ngay, đừng để đó.
+- Lưới an toàn thật cho prod là **Vercel**: build hỏng → **không deploy**, prod giữ bản cũ. Nhưng Vercel chỉ bắt lỗi *build*, không bắt lỗi *hành vi*.
+
+**Tầng 2 — verify local** (KHÔNG đưa lên CI vì nối thẳng Supabase + rủi ro e2e-seed-leak), chạy **trước khi push**:
 - `npm run verify:<module>` của module bị đụng — **bắt buộc** (Claude/Roo chạy)
 - `npm run test:e2e:<x>` nếu task chạm runtime — Roo chạy (dừng dev server trước, tránh khóa port)
-- Đổi CSS/layout → render + screenshot chrome-devtools **trước** merge
+- Đổi CSS/layout → render + screenshot chrome-devtools **trước** push
 
-Chưa xanh cả 2 tầng → không `merged`. Vercel build (sau push) chỉ là lưới build-error, **không thay** gate này.
+**Thứ duy nhất bắt được lỗi hành vi là review của Claude** (diff vs spec) — không tự động, không thay thế được. Task dogfood đầu tiên đã chứng minh: heart mất `fill-` → lint xanh, build xanh, chỉ review bắt được. Vì vậy §4 (review-vs-spec) là bắt buộc, kể cả khi CI xanh.
 
 ---
 

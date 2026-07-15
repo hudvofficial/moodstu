@@ -53,7 +53,7 @@ Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multi
 - **Exact paths:** mọi bước phải có file path cụ thể + code thực tế nếu là code step.
 - **No placeholders:** cấm "TBD", "TODO", "implement later", "add appropriate error handling", "similar to Task N". Mỗi bước phải đủ thông tin để execute mà không cần đoán.
 - **Self-review trước khi trình user:** (1) spec coverage — mỗi yêu cầu có task? (2) placeholder scan — có pattern cấm không? (3) type consistency — tên hàm/type ở task sau match task trước? Sai → fix inline.
-- **Test gate trước merge/deploy:** verify pass (render/Network/build) → rồi mới merge. Không merge code chưa verify. (Deploy = merge vào `main`, xem mục Ràng buộc.)
+- **Verify trước khi push:** verify pass (render/Network/build) → rồi mới push. ⚠️ **Không còn cổng tự động nào chặn** (ADR-007 gỡ branch protection) — `push main` = deploy thẳng. Kỷ luật này giờ **tự giác**; Vercel chỉ chặn build hỏng, không chặn lỗi hành vi.
 
 ---
 

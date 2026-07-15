@@ -1,17 +1,18 @@
-# CI — cổng chặn code hỏng TRƯỚC khi vào main.
+# CI — CHUÔNG BÁO code hỏng. KHÔNG phải cổng chặn.
+#
+# Chốt 2026-07-15 (ADR-007): branch protection ruleset đã GỠ — main nhận push thẳng.
+# Workflow này chạy trên PR *và* trên push main, nhưng KHÔNG chặn gì cả: nó báo đỏ
+# SAU khi code đã vào main. Đỏ → sửa ngay. Lưới an toàn thật cho prod là Vercel
+# (build hỏng thì không deploy, prod giữ bản cũ) — nhưng Vercel chỉ bắt lỗi BUILD,
+# không bắt lỗi HÀNH VI. Thứ bắt lỗi hành vi là review của Claude. Xem AGENT_RULES.md §6.
 #
 # Phủ (an toàn, không cần DB): lint FILE THAY ĐỔI + build (build tự typecheck qua tsc của Next).
 # KHÔNG chạy verify:*/e2e ở đây — chúng nối thẳng Supabase (dev/prod chung 1 DB) và
-# e2e từng rò seed vào prod → để Roo/Claude chạy LOCAL. Xem agent/AGENT_RULES.md §6.
+# e2e từng rò seed vào prod → để Roo/Claude chạy LOCAL.
 #
 # LƯU Ý nợ lint: repo hiện có ~27 lỗi lint TỒN ĐỌNG (SSOT: native <button>/<input>,
 # arbitrary Tailwind, rules-of-hooks, Date.now purity...). Vì vậy CI CHỈ lint file
-# thay đổi trong PR — code MỚI phải sạch, nợ cũ dọn ở task riêng (không chặn PR khác).
-#
-# Để CI THỰC SỰ CHẶN merge, cần (chỉ bạn làm được, 1 lần):
-#   1. GitHub → Settings → Branches → Add rule cho `main`:
-#      "Require status checks to pass" → chọn "quality".
-#   2. Làm việc theo PR: Codex push branch → mở PR → CI xanh → merge vào main → Vercel deploy.
+# thay đổi — code MỚI phải sạch, nợ cũ dọn ở task riêng.
 
 name: CI
 

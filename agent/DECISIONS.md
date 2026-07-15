@@ -38,3 +38,15 @@
   2. **Claude giao Codex qua plugin** `/codex:rescue` (subagent `codex:codex-rescue`) — không còn copy-paste sang panel. Vẫn giữ single-writer=Codex + branch riêng + PR/CI.
   3. **Effort-per-task:** giữ global `max`; Claude ép `--effort medium` cho task cơ học, `max` cho task khó. KHÔNG sửa global config.
 - **Chưa làm (footgun):** global filesystem MCP trỏ nhầm project — KHÔNG tự sửa global config của user; chỉ ghi nhận. Nếu write_file lỗi lại → cân nhắc sửa với sự đồng ý user.
+
+## ADR-007 — Gỡ branch protection: `main` nhận push thẳng; CI là chuông báo, không phải cổng
+- **Ngày:** 2026-07-15 · **Trạng thái:** Accepted · **Supersedes** phần "CI gate chặn merge" của ADR-001
+- **Bối cảnh:** Ruleset `main` (id 18942214 — require PR + require check `quality`, 0 approval, no bypass) dựng sáng 2026-07-15, đã **gỡ chiều cùng ngày** theo quyết định của user. Lý do, đo bằng thực tế 1 ngày chạy:
+  1. **Gate chưa bắt được gì.** Cả 2 PR (#5, #6) CI xanh ngay lần đầu. Không có lần nào gate ngăn được lỗi.
+  2. **Chi phí thật, đổ lên user.** Mọi thay đổi — kể cả docs Claude tự viết — phải branch → PR → chờ CI → **user bấm Merge**. Guardrail chặn agent tự merge PR của chính nó (đúng), nên user thành nút bấm thủ công cho mọi task.
+  3. **Trùng lặp:** Vercel vốn **không deploy build hỏng** → prod đã được che khỏi lỗi build mà không cần gate.
+  4. **Vi phạm chính CLAUDE.md §2 (Simplicity First):** thêm cơ chế cho rủi ro chưa từng xảy ra.
+- **Quyết định:** Gỡ ruleset. `main` nhận push thẳng, **deploy = `git push origin main`** như trước. Giữ nguyên: workflow `ci.yml` (chạy trên PR *và* push main, báo đỏ nhưng không chặn), verify local tầng 2, và **review-vs-spec của Claude**.
+- **Hệ quả — điều PHẢI nhớ:** không còn cơ chế **cưỡng chế** nào ngăn code hỏng vào `main`; kỷ luật verify giờ **tự giác**. Lưới còn lại: Vercel chặn build hỏng (lỗi *build*), Claude review chặn lỗi *hành vi*. CI chỉ báo sau.
+- **Bằng chứng review là tầng có giá trị nhất:** task dogfood T-20260715-image-viewer-lint — Codex làm mất `fill-` ở icon Heart (đỏ đặc → rỗng ruột). **Lint xanh, build xanh, CI xanh.** Chỉ review-vs-spec bắt được. Gate tự động sẽ **không bao giờ** bắt được lỗi loại này.
+- **Mở lại khi nào:** có người thứ 2 commit vào repo, hoặc xảy ra sự cố thật do push thẳng. Bật lại ~2 phút (tạo ruleset require check `quality`) → mở ADR mới.
