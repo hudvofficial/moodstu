@@ -2,6 +2,7 @@
 
 import { memo, useState, useCallback } from "react";
 import { ChevronDown, ChevronUp, FileText, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { TableWrapper, THead, TBody, TH, TD, TR } from "@/components/ui/table";
 import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS, SERVICE_UNIT_LABELS } from "@/types/service-constants";
@@ -122,16 +123,16 @@ const ServiceTableRow = memo(function ServiceTableRow({
         </TD>
         <TD className="w-24 text-center">
           <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <button
+            <Button
+              unstyled
               onClick={(e) => { e.stopPropagation(); onQuote(); }}
               className="btn-icon"
               title="Báo giá"
             >
               <FileText className="w-4 h-4" />
-            </button>
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <button
+            </Button>
+            <Button
+              unstyled
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               onMouseEnter={onPrefetch}
               onFocus={onPrefetch}
@@ -139,7 +140,7 @@ const ServiceTableRow = memo(function ServiceTableRow({
               title="Chỉnh sửa"
             >
               <Pencil className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </TD>
       </TR>

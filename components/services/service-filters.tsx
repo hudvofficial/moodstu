@@ -5,6 +5,7 @@ import { LayoutGrid, List, Settings } from "lucide-react";
 import type { ServiceCategory } from "@/types/service";
 import type { ViewMode } from "@/types/service-constants";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import { TierSwitch } from "@/components/ui/tier-switch";
 
@@ -59,8 +60,8 @@ function ServiceFiltersInner({
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex items-center bg-elevated p-1 rounded-md shadow-xs">
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <button
+            <Button
+              unstyled
               onClick={() => onViewModeChange("list")}
               className={cn(
                 "btn-icon min-w-8! w-8! h-8!",
@@ -71,9 +72,9 @@ function ServiceFiltersInner({
               aria-label="Danh sách"
             >
               <List className="w-4 h-4" />
-            </button>
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <button
+            </Button>
+            <Button
+              unstyled
               onClick={() => onViewModeChange("grid")}
               className={cn(
                 "btn-icon min-w-8! w-8! h-8!",
@@ -84,18 +85,18 @@ function ServiceFiltersInner({
               aria-label="Lưới"
             >
               <LayoutGrid className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
 
           {/* Category manager */}
-          {/* eslint-disable-next-line react/forbid-elements */}
-          <button
+          <Button
+            unstyled
             onClick={onOpenCategoryManager}
             className="btn-icon"
             aria-label="Quản lý danh mục"
           >
             <Settings className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </div>
       }

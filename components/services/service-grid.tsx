@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { FileText, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ServiceRecord } from "@/types/service";
 import { SERVICE_TYPE_LABELS } from "@/types/service-constants";
 import type { ServiceType } from "@/types/service-constants";
@@ -47,22 +48,24 @@ function ServiceGridInner({ services, onQuote, onEdit, onPrefetch }: Props) {
 
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-center pb-3 gap-2">
-                {/* eslint-disable-next-line react/forbid-elements */}
-                <button
+                {/* Pill nổi trên ảnh khi hover — style riêng, design system không có variant
+                    nền trắng mờ trên ảnh; giữ nguyên class, chỉ đổi sang <Button unstyled>. */}
+                <Button
+                  unstyled
                   onClick={() => onQuote(service)}
                   className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-caption font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <FileText className="w-3 h-3" /> Báo giá
-                </button>
-                {/* eslint-disable-next-line react/forbid-elements */}
-                <button
+                </Button>
+                <Button
+                  unstyled
                   onClick={() => onEdit(service.id)}
                   onMouseEnter={() => onPrefetch?.(service.id)}
                   onFocus={() => onPrefetch?.(service.id)}
                   className="px-3 py-1.5 bg-white/90 backdrop-blur-xs rounded-lg text-caption font-medium text-text-main flex items-center gap-1 hover:bg-white transition-colors"
                 >
                   <Pencil className="w-3 h-3" /> Sửa
-                </button>
+                </Button>
               </div>
             </div>
 
