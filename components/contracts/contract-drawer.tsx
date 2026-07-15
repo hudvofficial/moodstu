@@ -141,11 +141,9 @@ export function ContractDrawer({
   const status = contract?.status || "cho_xu_ly";
   
   const titleBadge = (
-    <ContractStatusBadge 
-      contractId={contractId} 
-      currentStatus={status} 
-      remainingAmount={contract?.remaining_amount || 0}
-      unfinishedTasksCount={(workTasks as DrawerWorkTask[] || contract?.work_tasks || []).filter(t => t.status !== "hoan_thanh" && t.status !== "da_huy").length}
+    <ContractStatusBadge
+      contractId={contractId}
+      currentStatus={status}
     />
   );
 
@@ -215,13 +213,9 @@ import { handleContractStatusUpdate } from "@/lib/contracts/update-contract-stat
 function ContractStatusBadge({
   contractId,
   currentStatus,
-  remainingAmount = 0,
-  unfinishedTasksCount = 0
 }: {
   contractId: string | null;
   currentStatus: string;
-  remainingAmount?: number;
-  unfinishedTasksCount?: number;
 }) {
   const queryClient = useQueryClient();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
@@ -279,33 +273,21 @@ function ContractStatusBadge({
         options={options}
         variant="compact"
         onUpdate={async (newStatus) => {
-          const debt = Number(remainingAmount) || 0;
-          const tasks = Number(unfinishedTasksCount) || 0;
-
-          if (newStatus === "hoan_thanh" && (debt > 0 || tasks > 0)) {
-            let msg = `CẢNH BÁO: Hợp đồng này`;
-            if (debt > 0) msg += ` đang còn nợ ${debt.toLocaleString("vi-VN")}đ`;
-            if (debt > 0 && tasks > 0) msg += ` và`;
-            if (tasks > 0) msg += ` còn ${tasks} công việc chưa xong`;
-            msg += `.\n\nBạn có chắc chắn muốn chuyển sang trạng thái Hoàn thành không?`;
-            
-            // Delaying the modal state update slightly to ensure Radix UI finishes closing
-            // and restoring focus from the SelectStatus dropdown.
-            await new Promise(r => setTimeout(r, 50));
-            const isConfirmed = await showConfirm(msg);
-
-            if (!isConfirmed) {
-              setOptimisticStatus(currentStatus);
-              throw new Error("USER_CANCELLED");
-            }
-          }
-
+          // Cảnh báo nợ/việc dở giờ do SERVER quyết (số tươi từ DB) qua handler chung —
+          // bỏ pre-check client (data từ list JOIN có thể cũ). Dialog đẹp truyền qua `confirm`.
           setOptimisticStatus(newStatus as ContractStatus);
           await handleContractStatusUpdate({
             contractId,
             newStatus: newStatus as ContractStatus,
             queryClient,
             onFailure: () => setOptimisticStatus(currentStatus),
+            confirm: async (msg) => {
+              // Chờ Radix đóng dropdown + trả focus xong rồi mới mở dialog
+              await new Promise((r) => setTimeout(r, 50));
+              const ok = await showConfirm(msg);
+              if (!ok) setOptimisticStatus(currentStatus);
+              return ok;
+            },
           });
         }}
       />

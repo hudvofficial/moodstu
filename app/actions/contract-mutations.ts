@@ -328,6 +328,7 @@ export async function updateContractStatus(
   id: string,
   newStatus: ContractStatus,
   adminOverride = false,
+  confirmedWarnings = false,
 ) {
   return withAuth(async (supabase, userId) => {
     const access = await requireContractDestructiveAccess(supabase, userId);
@@ -338,7 +339,7 @@ export async function updateContractStatus(
 
     const { data: current, error: fetchErr } = await supabase
       .from("contracts")
-      .select("status")
+      .select("status, remaining_amount")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -359,10 +360,25 @@ export async function updateContractStatus(
         );
       }
 
-      if (newStatus === "hoan_thanh") {
-        // Ghi chú: Đã gỡ bỏ logic chặn "còn nợ" và "còn task chưa xong".
-        // Thực tế studio có thể hoàn thành dịch vụ (trạng thái Hợp đồng)
-        // độc lập với trạng thái tài chính (còn nợ) hoặc task.
+      if (newStatus === "hoan_thanh" && !confirmedWarnings) {
+        // Cảnh báo MỀM (không cấm cứng — studio có thể hoàn thành độc lập với
+        // tài chính/task, quyết định cũ giữ nguyên). Server là nguồn chân lý:
+        // số nợ + việc dở lấy TƯƠI từ DB, mọi UI đều phải hiện confirm rồi gọi
+        // lại với confirmedWarnings=true — hết cửa lách ở từng nút UI riêng lẻ.
+        const debt = Number(current.remaining_amount) || 0;
+        const { count: unfinishedTasks } = await supabase
+          .from("work_tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("contract_id", id)
+          .not("status", "in", "(hoan_thanh,da_huy)");
+
+        if (debt > 0 || (unfinishedTasks || 0) > 0) {
+          return {
+            needsConfirmation: true as const,
+            debt,
+            unfinishedTasks: unfinishedTasks || 0,
+          };
+        }
       }
     }
 

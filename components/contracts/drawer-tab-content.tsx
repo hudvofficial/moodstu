@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Phone,
   MapPin,
   Banknote,
   ExternalLink,
+  Images,
+  CircleCheck,
+  Heart,
+  ChevronRight,
 } from "lucide-react";
+import { useGalleriesQuery } from "@/hooks/use-gallery-queries";
 import { DrawerEventTimeline } from "@/components/contracts/drawer-event-timeline";
 import { DrawerAssignments } from "@/components/contracts/drawer-assignments";
 import { DrawerNotes } from "@/components/contracts/drawer-notes";
@@ -212,6 +218,9 @@ export function DrawerContent({
         isLoading={isLoadingExtra}
       />
 
+      {/* ── Section: Album ảnh (mắt xích chụp → khách chọn → hậu kỳ) ── */}
+      {c.id && <AlbumStatusCard contractId={c.id} />}
+
       {/* ── Section: Ghi chú ── */}
       {c.id && <DrawerNotes contractId={c.id} initialNotes={c.contract_notes} />}
 
@@ -223,6 +232,51 @@ export function DrawerContent({
         </Button>
       </div>
     </div>
+  );
+}
+
+// ─── ALBUM STATUS CARD ───────────────────────────
+// Mắt xích nghiệp vụ: chụp xong → ảnh lên album → KHÁCH CHỌN → hậu kỳ.
+// Admin liếc drawer biết ngay cần nhắc khách chọn hay đẩy hậu kỳ (ADR-008:
+// ✓ chọn = is_selected, ❤️ tim = gallery_reactions — 2 hệ độc lập, không gộp).
+
+function AlbumStatusCard({ contractId }: { contractId: string }) {
+  const { data: galleries = [] } = useGalleriesQuery(contractId);
+
+  if (!galleries.length) return null;
+
+  const totalImages = galleries.reduce((sum: number, g: { imageCount?: number }) => sum + (g.imageCount || 0), 0);
+  const totalSelected = galleries.reduce((sum: number, g: { selectedCount?: number }) => sum + (g.selectedCount || 0), 0);
+  const totalHearts = galleries.reduce((sum: number, g: { heartCount?: number }) => sum + (g.heartCount || 0), 0);
+
+  if (totalImages === 0) return null;
+
+  return (
+    <Link
+      href={`/contracts/${contractId}/gallery`}
+      className="card-base flex items-center gap-3 p-4 transition-colors hover:bg-bg-hover/40 group"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info/10">
+        <Images className="h-4 w-4 text-info" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <span className="text-caption font-semibold uppercase tracking-wide text-text-secondary block">
+          Album ảnh
+        </span>
+        <span className="text-body-sm text-text-main flex items-center gap-2 flex-wrap">
+          <span className="font-bold">{totalImages} ảnh</span>
+          <span className={`inline-flex items-center gap-1 ${totalSelected > 0 ? "text-success" : "text-text-muted"}`}>
+            <CircleCheck className="h-3.5 w-3.5" />
+            {totalSelected} chọn
+          </span>
+          <span className={`inline-flex items-center gap-1 ${totalHearts > 0 ? "text-error" : "text-text-muted"}`}>
+            <Heart className={`h-3.5 w-3.5 ${totalHearts > 0 ? "fill-error" : ""}`} />
+            {totalHearts} tim
+          </span>
+        </span>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5" />
+    </Link>
   );
 }
 
