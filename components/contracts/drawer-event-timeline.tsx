@@ -10,7 +10,7 @@
  * SSOT: All display labels from types/contract-constants.ts
  */
 
-import { Calendar, MapPin, CheckCircle, Clock, Circle } from "lucide-react";
+import { CheckCircle, Clock, Circle } from "lucide-react";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateEventStatus } from "@/app/actions/contract-event-actions";
@@ -194,79 +194,41 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
                 )}
               </div>
 
-              {/* Content */}
-              {event.status === "hoan_thanh" ? (
-                /* Compact: completed events → 1 dòng */
-                <div className={`flex-1 ${isLast ? "" : "pb-2"}`}>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm leading-none shrink-0">{config.icon}</span>
-                    <span className="text-body-sm font-medium text-text-main truncate">
-                      {config.label}
+              {/* Content — 1 dòng cho mọi trạng thái (tiết kiệm chiều cao drawer) */}
+              <div className={`flex-1 min-w-0 ${isLast ? "" : "pb-2"}`}>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-sm leading-none shrink-0">{config.icon}</span>
+                  <span className="text-body-sm font-medium text-text-main truncate">
+                    {config.label}
+                  </span>
+                  {event.event_date ? (
+                    <span className={`text-tiny shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
+                      · {formatDate(event.event_date)}
+                      {event.start_time && ` ${event.start_time.slice(0, 5)}`}
+                      {event.start_time && event.end_time && `–${event.end_time.slice(0, 5)}`}
                     </span>
-                    {event.event_date && (
-                      <span className="text-tiny text-text-muted shrink-0">
-                        · {formatDate(event.event_date)}
+                  ) : (
+                    event.status !== "hoan_thanh" && (
+                      <span className="text-tiny text-text-muted italic shrink-0">
+                        · Chưa xếp lịch
+                      </span>
+                    )
+                  )}
+                  {event.status !== "hoan_thanh" &&
+                    event.status !== "da_huy" &&
+                    event.deadline && (
+                      <span className={`text-tiny shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
+                        · Hạn {formatDate(event.deadline)}
                       </span>
                     )}
-                    {event.location && (
-                      <span className="text-tiny text-text-muted truncate">
-                        · {event.location}
-                      </span>
-                    )}
-                    <span className="ml-auto">{statusControl}</span>
-                  </div>
-                </div>
-              ) : (
-                /* Full: pending/in-progress events → title + date + location */
-                <div className={`flex-1 ${isLast ? "" : "pb-2"}`}>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-sm leading-none">{config.icon}</span>
-                    <span className="text-body-sm font-medium text-text-main">
-                      {config.label}
+                  {event.location && (
+                    <span className="text-tiny text-text-muted truncate">
+                      · {event.location}
                     </span>
-                    <span className="ml-auto">{statusControl}</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-text-muted" />
-                      {event.event_date ? (
-                        <span className={`text-tiny ${isOverdue ? "text-error" : "text-text-secondary"}`}>
-                          {formatDate(event.event_date)}
-                          {event.start_time && (
-                            <>
-                              {` · ${event.start_time.slice(0, 5)}`}
-                              {event.end_time && `–${event.end_time.slice(0, 5)}`}
-                            </>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-tiny text-text-muted italic">
-                          Chưa xếp lịch
-                        </span>
-                      )}
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-text-muted" />
-                        <span className="text-tiny text-text-secondary truncate max-w-45">
-                          {event.location}
-                        </span>
-                      </div>
-                    )}
-                    {event.status !== "hoan_thanh" &&
-                      event.status !== "da_huy" &&
-                      event.deadline && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-text-muted" />
-                          <span className={`text-tiny ${isOverdue ? "text-error" : "text-text-secondary"}`}>
-                            Hạn: {formatDate(event.deadline)}
-                          </span>
-                        </div>
-                      )}
-                  </div>
+                  )}
+                  <span className="ml-auto shrink-0">{statusControl}</span>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
