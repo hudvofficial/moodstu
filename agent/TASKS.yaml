@@ -29,18 +29,7 @@ version: 1
 updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260716-gallery-note-read-gate
-    title: "Khách không thấy ghi chú của chính mình: 2 hàm đọc gate 'view' trần từ chối select-token (regression d45ea00)"
-    status: implementing
-    owner: codex
-    locks:
-      - app/actions/gallery-reaction-actions.ts   # CHỈ getGalleryComments + getComments
-    spec: agent/HANDOFFS/T-20260716-gallery-note-read-gate.spec.md
-    verify:
-      - npm run build
-    depends_on: [T-20260716-comment-identifier-leak]
-    notes: "REGRESSION d45ea00 (16/07), đo được trên prod: replay getComments cho ảnh có note bằng select-token thật → []. Nhân quả: capability so EXACT (gallery-access.ts:99) + album không pass cấp select-token (gallery-core.ts:105) + getComments gate 'view' trần → từ chối → catch nuốt thành []. Ghi (upsertComment gate 'select') vẫn OK → khách viết được mà không đọc lại được. Fix = TÁI DÙNG pattern try/catch của toggleReaction (:55-62, đã duyệt 15/07), KHÔNG cần ADR: chấp nhận token quyền CAO hơn, lõi EXACT match ADR-008 giữ nguyên."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -56,6 +45,14 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260716-gallery-note-read-gate
+    title: "Khách không thấy ghi chú của chính mình: 2 hàm đọc gate 'view' trần từ chối select-token (regression d45ea00)"
+    status: merged
+    merged_commit: 7966bc7
+    spec: agent/HANDOFFS/T-20260716-gallery-note-read-gate.spec.md
+    result: "Codex impl khớp spec 2/2 hàm; Claude review + tự eslint(0)/build(pass) → push. Verify prod bằng CHÍNH request đã bắt bug: select-token + ảnh c25cfd2c → TRƯỚC [] / SAU trả {content:'In lớn', is_mine:false} và KHÔNG có client_identifier (A2 còn nguyên); token bậy vẫn bị từ chối [] (không nới lỏng)."
+    notes: "BÀI HỌC: gate capability so EXACT → 'view' trần TỪ CHỐI select-token (token quyền cao hơn). Album không mật khẩu mặc định cấp select-token → mọi hàm public gate 'view' trần đều chết câm vì catch nuốt lỗi thành []/{}. Pattern đúng đã có sẵn ở toggleReaction:55-62 (try 'view' → catch → gate mặc định). Ghi/xoá giữ 'select'. Lỗi bị che vì catch nuốt lỗi — cân nhắc log thay vì nuốt."
+
   - id: T-20260716-comment-identifier-leak
     title: "Vá lỗ khách sửa/xoá được ghi chú khách khác: getComments bỏ client_identifier, trả is_mine"
     status: merged
