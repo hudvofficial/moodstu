@@ -49,6 +49,12 @@ const eslintConfig = defineConfig([
     "public/swe-worker-*.js",
     "public/swe-worker-*.js.map",
     "tmp/**",
+    // Artifact của Playwright: bundle của THƯ VIỆN (trace viewer), không phải code mình.
+    // Đã gitignore (.gitignore:15-16) + không git track → CI (checkout sạch) không bao giờ thấy.
+    // Không ignore ở đây thì `npx eslint .` local phình 195 lỗi / 2779 warning trong khi nợ
+    // THẬT chỉ ~30 → nhiễu đó khiến lỗi thật trông như hạt cát và dễ bị bỏ qua.
+    "playwright-report/**",
+    "test-results/**",
     ".openclaw/**",
     "*.js",
     "test-query-*.mjs",
