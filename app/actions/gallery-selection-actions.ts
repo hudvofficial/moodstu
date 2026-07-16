@@ -176,7 +176,7 @@ export async function getPublicSelectedImages(
     }
     const { data, error } = await supabase
       .from("gallery_images")
-      .select("id, file_name, drive_file_id, client_note")
+      .select("id, file_name, drive_file_id")
       .eq("gallery_id", galleryId)
       .eq("is_selected", true)
       .order("sort_order", { ascending: true });

@@ -145,6 +145,13 @@ export default function PublicGalleryClient({
     { fallbackData: [] },
   );
 
+  // Số ảnh đã chọn CÓ ghi chú — đếm từ gallery_comments (commentsPerImage đã fetch sẵn ở trên),
+  // KHÔNG từ cột client_note cũ: d45ea00 đã ngừng ghi cột đó nên ghi chú MỚI không bao giờ được đếm.
+  const notedCount = useMemo(
+    () => selectedImages.filter((i) => (commentsPerImage[i.id]?.length ?? 0) > 0).length,
+    [selectedImages, commentsPerImage],
+  );
+
   const selectedCount = stats?.selectedCount || 0;
   const totalImageCount = stats?.imageCount || 0;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
@@ -428,6 +435,7 @@ export default function PublicGalleryClient({
           totalCount={totalImageCount}
           selectedImages={selectedImages}
           accessToken={accessToken}
+          notedCount={notedCount}
         />
       )}
 

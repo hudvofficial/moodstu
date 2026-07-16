@@ -15,7 +15,6 @@ interface SelectedImage {
   id: string;
   drive_file_id: string | null;
   file_name: string | null;
-  client_note?: string | null;
 }
 
 interface BatchImage {
@@ -28,6 +27,9 @@ interface SelectionSummaryProps {
   totalCount: number;
   selectedImages?: SelectedImage[];
   accessToken?: string;
+  /** Số ảnh đã chọn CÓ ghi chú — tính từ bảng gallery_comments ở trang cha.
+   *  KHÔNG đếm từ cột client_note (đã ngừng ghi từ d45ea00 → ghi chú mới không bao giờ được đếm). */
+  notedCount?: number;
 }
 
 export default function SelectionSummary({
@@ -35,13 +37,13 @@ export default function SelectionSummary({
   totalCount,
   selectedImages = [],
   accessToken = "admin",
+  notedCount = 0,
 }: SelectionSummaryProps) {
   const [downloading, setDownloading] = useState(false);
 
   if (selectedCount === 0) return null;
 
   const downloadableImages = selectedImages.filter((i) => i.drive_file_id);
-  const notedCount = selectedImages.filter((i) => i.client_note?.trim()).length;
 
   // Download logic — native download
   const handleBatchDownload = async () => {
