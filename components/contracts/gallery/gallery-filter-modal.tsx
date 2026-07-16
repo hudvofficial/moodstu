@@ -194,6 +194,19 @@ export default function GalleryFilterModal({
                           <li className="flex justify-between"><span>Tìm thấy:</span> <span className="font-semibold text-success">{scanResult.found} / {totalSelected}</span></li>
                           <li className="flex justify-between"><span>Thiếu:</span> <span className="font-semibold text-error">{scanResult.missing.length}</span></li>
                         </ul>
+                        {/* Ảnh khách chọn mà không có trong thư mục gốc = ảnh đó KHÔNG được giao.
+                            Chỉ hiện con số thì thợ phải tự mò — liệt kê thẳng tên ra. */}
+                        {scanResult.missing.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <p className="font-semibold text-error mb-1.5">Không tìm thấy trong thư mục gốc — sẽ KHÔNG được copy:</p>
+                            <ul className="max-h-28 overflow-y-auto space-y-0.5 text-text-muted">
+                              {scanResult.missing.map((name) => (
+                                <li key={name} className="truncate">• {name}</li>
+                              ))}
+                            </ul>
+                            <p className="text-text-muted mt-1.5">Kiểm tra lại thư mục gốc nếu bạn cần đủ {totalSelected} ảnh.</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -215,11 +228,11 @@ export default function GalleryFilterModal({
                   {/* Tùy chọn mở rộng */}
                   <div className="pt-2 opacity-50 transition-opacity data-[active=true]:opacity-100" data-active={!!sourceHandle}>
                     <label className="flex items-start gap-2 cursor-pointer">
-                      <Checkbox 
-                        checked={includeRaw} 
-                        onChange={(e: any) => setIncludeRaw(e.target.checked)} 
-                        className="mt-0.5" 
-                        disabled={isCopying}
+                      <Checkbox
+                        checked={includeRaw}
+                        onChange={(e: any) => setIncludeRaw(e.target.checked)}
+                        className="mt-0.5"
+                        disabled={!sourceHandle || isCopying}
                       />
                       <div>
                         <span className="text-body-sm font-medium text-text-primary block">
@@ -259,7 +272,15 @@ export default function GalleryFilterModal({
                           <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
                           <div>
                             <p className="font-semibold">Đã copy xong!</p>
-                            <p>Đã bỏ qua (skipped) {copyProgress.skipped} file trùng lặp.</p>
+                            {copyProgress.skipped > 0 && (
+                              <p>Đã bỏ qua {copyProgress.skipped} file trùng lặp (đã có sẵn ở thư mục đích).</p>
+                            )}
+                            {/* Copy xong nhưng vẫn thiếu ảnh thì PHẢI nói — đừng để "xong" nghĩa là "đủ". */}
+                            {scanResult && scanResult.missing.length > 0 && (
+                              <p className="text-error font-medium">
+                                Lưu ý: {scanResult.missing.length} ảnh khách chọn không có trong thư mục gốc nên chưa được copy.
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}

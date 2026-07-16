@@ -11,7 +11,10 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         ref={ref}
         type="checkbox"
         className={cn(
-          "peer h-4 w-4 appearance-none rounded-md border border-border bg-white checked:bg-primary/10 checked:border-primary transition-all focus:outline-none cursor-pointer",
+          // rounded-sm (6px) chứ KHÔNG rounded-md: --radius-md = 8px = đúng nửa cạnh ô 16px
+          // → checkbox thành hình tròn, không phân biệt được với <Radio> (rounded-full).
+          // shrink-0: trong label flex, ô bị bóp 16px → 12,6px nếu thiếu.
+          "peer h-4 w-4 shrink-0 appearance-none rounded-sm border border-border bg-white checked:bg-primary/10 checked:border-primary transition-all focus:outline-none cursor-pointer",
           className,
         )}
         {...props}
