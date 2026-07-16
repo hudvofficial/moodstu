@@ -29,20 +29,7 @@ version: 1
 updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260716-mobile-download-ux
-    title: "Khách chọn 9 tải về 5 (mất ảnh) + ZIP client-side sập iPhone + popup iOS bị chặn báo thành công giả"
-    status: implementing
-    owner: codex
-    locks:
-      - app/actions/gallery-selection-actions.ts     # chỉ THÊM getPublicSelectedImages + 1 import
-      - components/gallery/public-gallery-client.tsx  # chỉ nguồn selectedImages
-      - components/gallery/selection-summary.tsx      # chỉ handleBatchDownload + detectPlatform
-    spec: agent/HANDOFFS/T-20260716-mobile-download-ux.spec.md
-    verify:
-      - npm run build
-    depends_on: [T-20260716-gallery-note-read-gate]
-    notes: "⛔ RÀNG BUỘC CỨNG: KHÔNG cho byte ảnh qua Vercel (user đã sập prod 1 lần) — chỉ JSON metadata; ảnh vẫn browser↔lh3 trực tiếp. Đo prod: chọn 9 mà nút hiện 'Tải 5' vì lọc từ ảnh đã load (200/585); ảnh gốc 15,54MB → JSZip 50 ảnh ~1,5GB → Safari giết tab ở 200-400MB. Research 16/07: Pixieset zip ở SERVER + khuyên khách dùng máy tính; iPhone 1 ảnh = mở tab + nhấn giữ (mood-studio ĐÃ đúng chuẩn này ở image-viewer). User chốt: mobile chọn nhiều → toast gợi ý máy tính; KHÔNG làm cổng thanh toán. Tái dùng dead code có sẵn: getSelectedImages(admin) → viết bản public; lib/detect-platform.ts detectPlatform() (phân biệt cả webview Zalo/FB)."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -58,6 +45,14 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260716-mobile-download-ux
+    title: "Khách chọn 9 tải về 5 (mất ảnh) + ZIP client-side sập iPhone + popup iOS bị chặn báo thành công giả"
+    status: merged
+    merged_commit: a2124d3
+    spec: agent/HANDOFFS/T-20260716-mobile-download-ux.spec.md
+    result: "Codex impl khớp spec 3/3 file; Claude review + tự eslint(0 lỗi 0 warning)+build(pass) → push. Verify prod viewport phone: KHÔNG cuộn mà nút đã hiện 'Tải 9 ảnh' (trước: 'Tải 5'); ép UA iPhone → bấm tải ra TOAST gợi ý máy tính, 0 ảnh gốc được tải (không zip); UA desktop → ZIP vẫn chạy đúng. BĂNG THÔNG: chỉ 30KB qua stu.moodwedding.com (logo.png + CSS/JS), 34 ảnh đều từ googleusercontent → 0 byte ảnh qua Vercel."
+    notes: "BẪY VERIFY: emulate viewport KHÔNG đổi User-Agent → detectPlatform() vẫn trả 'desktop' → test guard mobile báo sai (mình suýt kết luận nhầm). Phải truyền userAgent iPhone vào emulate. CÒN TỒN: chip 💬 thanh đáy vẫn đọc cột client_note cũ → chỉ đếm ghi chú legacy (sót của d45ea00, chưa sửa). Cổng thanh toán vẫn bypass được bằng sửa =s2048→=s0 (user chốt không có nhu cầu sửa)."
+
   - id: T-20260716-gallery-note-read-gate
     title: "Khách không thấy ghi chú của chính mình: 2 hàm đọc gate 'view' trần từ chối select-token (regression d45ea00)"
     status: merged
