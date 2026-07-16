@@ -11,7 +11,7 @@ import {
   MAX_NOTE_LENGTH,
 } from "@/types/gallery";
 
-import { requirePublicGalleryImageAccess, updateGalleryImageSelection, fetchGalleryImageCount } from "./gallery-core";
+import { requirePublicGalleryAccess, requirePublicGalleryImageAccess, updateGalleryImageSelection, fetchGalleryImageCount } from "./gallery-core";
 
 export async function toggleImageSelection(
   imageId: string,
@@ -153,6 +153,39 @@ export async function getSelectedImages(galleryId: string) {
 
     return data || [];
   });
+}
+
+/**
+ * Ảnh khách đã CHỌN của cả gallery — bản public (khách không login).
+ * Bản admin `getSelectedImages` ở trên khoá withAuth nên trang khách gọi không được.
+ * CHỈ trả JSON metadata (id/tên/drive_file_id) — KHÔNG truyền byte ảnh qua server.
+ */
+export async function getPublicSelectedImages(
+  galleryId: string,
+  accessUrl: string,
+  accessToken: string,
+) {
+  try {
+    if (!accessUrl?.trim() || !accessToken?.trim()) return [];
+    const supabase = await createAdminClient();
+    // Chấp nhận view-token (album có pass) LẪN token đầy đủ (album không pass) — xem toggleReaction.
+    try {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
+    } catch {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId);
+    }
+    const { data, error } = await supabase
+      .from("gallery_images")
+      .select("id, file_name, drive_file_id, client_note")
+      .eq("gallery_id", galleryId)
+      .eq("is_selected", true)
+      .order("sort_order", { ascending: true });
+    if (error) return [];
+    return data || [];
+  } catch (error) {
+    console.error("getPublicSelectedImages error:", error);
+    return [];
+  }
 }
 
 export async function createSelectionBatchFromCurrentSelection(

@@ -7,7 +7,7 @@ import useSWRInfinite from "swr/infinite";
 import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
-import { toggleImageSelection } from "@/app/actions/gallery-selection-actions";
+import { getPublicSelectedImages, toggleImageSelection } from "@/app/actions/gallery-selection-actions";
 import { getClientReactions, getGalleryComments, getReactionCounts, toggleReaction, upsertComment, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
@@ -137,6 +137,14 @@ export default function PublicGalleryClient({
     { fallbackData: { selectedCount: gallery.selectedCount || 0, imageCount: gallery.imageCount || (gallery.gallery_images?.length || 0) } }
   );
 
+  // SWR: ẢNH ĐÃ CHỌN của CẢ gallery (server) — KHÔNG lọc từ ảnh đã load,
+  // vì khách chưa cuộn hết thì thiếu ảnh → nút "Tải N" báo sai và tải sót.
+  const { data: selectedImages = [], mutate: mutateSelectedImages } = useSWR(
+    gallery.id && accessUrl && accessToken ? `gallery-selected-${gallery.id}` : null,
+    () => getPublicSelectedImages(gallery.id, accessUrl, accessToken),
+    { fallbackData: [] },
+  );
+
   const selectedCount = stats?.selectedCount || 0;
   const totalImageCount = stats?.imageCount || 0;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
@@ -254,11 +262,12 @@ export default function PublicGalleryClient({
       } else if (res.newSelectedCount !== undefined) {
         // Sync with exact server count
         mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: res.newSelectedCount }), false);
+        void mutateSelectedImages();
       }
       
       setTogglingIds((prev) => { const next = new Set(prev); next.delete(imageId); return next; });
     },
-    [accessToken, accessUrl, images, isViewOnly, selectedCount, totalImageCount, mutateStats, gallery.needsPassword, clientCapability],
+    [accessToken, accessUrl, images, isViewOnly, selectedCount, totalImageCount, mutateStats, mutateSelectedImages, gallery.needsPassword, clientCapability],
   );
 
 
@@ -417,7 +426,7 @@ export default function PublicGalleryClient({
         <SelectionSummary
           selectedCount={selectedCount}
           totalCount={totalImageCount}
-          selectedImages={images.filter((i) => i.is_selected)}
+          selectedImages={selectedImages}
           accessToken={accessToken}
         />
       )}

@@ -29,7 +29,20 @@ version: 1
 updated: 2026-07-16
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260716-mobile-download-ux
+    title: "Khách chọn 9 tải về 5 (mất ảnh) + ZIP client-side sập iPhone + popup iOS bị chặn báo thành công giả"
+    status: implementing
+    owner: codex
+    locks:
+      - app/actions/gallery-selection-actions.ts     # chỉ THÊM getPublicSelectedImages + 1 import
+      - components/gallery/public-gallery-client.tsx  # chỉ nguồn selectedImages
+      - components/gallery/selection-summary.tsx      # chỉ handleBatchDownload + detectPlatform
+    spec: agent/HANDOFFS/T-20260716-mobile-download-ux.spec.md
+    verify:
+      - npm run build
+    depends_on: [T-20260716-gallery-note-read-gate]
+    notes: "⛔ RÀNG BUỘC CỨNG: KHÔNG cho byte ảnh qua Vercel (user đã sập prod 1 lần) — chỉ JSON metadata; ảnh vẫn browser↔lh3 trực tiếp. Đo prod: chọn 9 mà nút hiện 'Tải 5' vì lọc từ ảnh đã load (200/585); ảnh gốc 15,54MB → JSZip 50 ảnh ~1,5GB → Safari giết tab ở 200-400MB. Research 16/07: Pixieset zip ở SERVER + khuyên khách dùng máy tính; iPhone 1 ảnh = mở tab + nhấn giữ (mood-studio ĐÃ đúng chuẩn này ở image-viewer). User chốt: mobile chọn nhiều → toast gợi ý máy tính; KHÔNG làm cổng thanh toán. Tái dùng dead code có sẵn: getSelectedImages(admin) → viết bản public; lib/detect-platform.ts detectPlatform() (phân biệt cả webview Zalo/FB)."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []

@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Star, Download, Loader2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { detectPlatform } from "@/lib/detect-platform";
 
 // ═══════════════════════════════════════════
 // SelectionSummary — Fixed bottom bar + batch download
@@ -42,18 +43,23 @@ export default function SelectionSummary({
   const downloadableImages = selectedImages.filter((i) => i.drive_file_id);
   const notedCount = selectedImages.filter((i) => i.client_note?.trim()).length;
 
-  // iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
-  const detectIOS = (): boolean => {
-    if (typeof navigator === "undefined") return false;
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
-  };
-
   // Download logic — native download
   const handleBatchDownload = async () => {
     if (downloadableImages.length === 0) return;
+
+    const platform = detectPlatform();
+    const isIOS = platform === "ios-safari" || platform === "ios-webview";
+    const isMobile = platform !== "desktop";
+
+    // MOBILE + nhiều ảnh: KHÔNG zip. JSZip nạp ảnh gốc (15,5MB/ảnh) vào RAM →
+    // 50 ảnh ~1,5GB → Safari giết tab. Chuẩn ngành (Pixieset): khuyên dùng máy tính.
+    if (isMobile && downloadableImages.length > 1) {
+      toast.info(
+        `Điện thoại chỉ tải được từng ảnh. Mở album trên máy tính để tải cả ${downloadableImages.length} ảnh, hoặc mở từng ảnh rồi nhấn giữ để lưu.`,
+        { duration: 7000 },
+      );
+      return;
+    }
 
     if (downloadableImages.length > 50) {
       toast.error(`Vui lòng tải tối đa 50 ảnh mỗi lần. Bạn đang chọn ${downloadableImages.length} ảnh.`);
@@ -61,7 +67,6 @@ export default function SelectionSummary({
     }
 
     setDownloading(true);
-    const isIOS = detectIOS();
 
     if (downloadableImages.length > 1) {
       // ─── Batch ZIP download (giữ nguyên JSZip) ────────────────────────
@@ -123,19 +128,24 @@ export default function SelectionSummary({
       const fileName = img.file_name || "photo.jpg";
 
       if (isIOS) {
+        // PHẢI mở tab TRƯỚC khi await: iOS Safari huỷ user-gesture sau await → popup bị chặn.
+        // Giống image-viewer.tsx:326. KHÔNG đảo thứ tự 2 dòng này.
+        const tab = window.open("", "_blank");
         const toastId = toast.loading("Đang chuẩn bị ảnh...");
         try {
           const response = await fetch(url);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const data = await response.json();
           if (!data.url) throw new Error("No direct URL returned");
-          window.open(data.url, "_blank", "noopener,noreferrer");
+          if (!tab) throw new Error("Popup bị chặn");
+          tab.location.href = data.url;
           toast.info('Nhấn giữ ảnh → chọn "Lưu hình ảnh"', {
             id: toastId,
             duration: 5000,
           });
         } catch (error) {
           console.error("[selection-download][ios] Error:", error);
+          tab?.close();
           toast.error("Không chuẩn bị được ảnh tải xuống. Vui lòng thử lại.", { id: toastId });
         } finally {
           setDownloading(false);
