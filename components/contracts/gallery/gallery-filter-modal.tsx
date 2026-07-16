@@ -34,8 +34,15 @@ export default function GalleryFilterModal({
 
   // Reset active tab when the modal opens or the default changes. Depend only
   // on `defaultTab` (primitive) to avoid resetting on every realtime update.
+  //
+  // ⚠️ PHẢI GIỮ useEffect. ĐỪNG "sửa lint" bằng cách đổi lại thành chỉnh-state-trong-render
+  // (pattern `prevReset`): pattern đó ĐÃ bị gỡ ở 3961e926 (21/06, audit 8 fix có
+  // cross-review) vì nó làm modal RESET TAB mỗi lần có realtime update — khách đang
+  // ở tab Export Pack thì bị đá về tab mặc định. Lint rule set-state-in-effect là
+  // giá phải trả cho việc diệt bug đó → disable có chủ đích, không phải cẩu thả.
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- xem ghi chú ⚠️ ở trên
     setActiveTab(defaultTab);
   }, [isOpen, defaultTab]);
 
