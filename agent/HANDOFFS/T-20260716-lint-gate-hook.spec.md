@@ -107,29 +107,37 @@ exit 0
 
 ---
 
-## Task C — Đăng ký hook (`.claude/settings.json`, file MỚI)
+## Task C — Đăng ký hook (SỬA 16/07: vào `.claude/settings.local.json`, KHÔNG phải `settings.json`)
+
+> **⚠️ SỬA so với plan gốc — user duyệt bằng lời trước khi làm:** plan gốc định tạo
+> `.claude/settings.json`. Khi vào làm mới phát hiện: `settings.local.json` **ĐÃ CÓ** key
+> `hooks` (chứa `UserPromptSubmit` nạp CLAUDE.md mỗi lượt). Nếu tạo `settings.json` riêng
+> mà harness override cả key `hooks` thay vì merge sâu → hook của mình bị nuốt im lặng =
+> cổng giả. Nên cắm vào **đúng chỗ hook dự án đang chạy được** = `settings.local.json`,
+> **THÊM** `PreToolUse` cạnh `UserPromptSubmit` (không đụng `UserPromptSubmit`/`permissions`).
+
+Thêm khối `PreToolUse` vào `hooks` sẵn có (bám format hook cũ: `shell: bash`, đường tuyệt đối):
 
 ```json
-{
-  "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
+            "command": "sh 'C:/Users/Admin/Desktop/Ai/mood saas/mood-studio/.claude/hooks/pre-push-lint.sh'",
+            "shell": "bash",
             "timeout": 120,
-            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-push-lint.sh\""
+            "statusMessage": "Kiểm lint trước khi push"
           }
         ]
       }
     ]
-  }
-}
 ```
 
-**Vì sao `settings.json` (mới) chứ không nhét vào `settings.local.json`:** theo tài liệu, `settings.json` = **cấu hình dự án, commit cho cả team**; `.local.json` = cá nhân/máy. Đây là **kỷ luật của dự án** nên thuộc `settings.json`. `settings.local.json` hiện **không có** key `hooks` → **không xung đột** (local chỉ đè khi trùng key).
-**KHÔNG động** `settings.local.json` (nó đang giữ `permissions`, ngoài phạm vi).
+**Lưu ý `.claude/hooks/` đang bị gitignore** (`.gitignore:97`) → script + hook này chỉ bảo
+vệ **máy này**, không theo repo. Muốn cả team có → phải bỏ dòng gitignore đó (đổi quy ước
+sẵn có → KHÔNG tự ý, cần user chốt riêng).
 
 **Vì sao KHÔNG dùng trường `if: "Bash(git push *)"`:** tài liệu trả về **mâu thuẫn** về vị trí đặt (`if` trong hook object hay ngang `matcher`). Đặt sai → hook **im lặng không chạy** = cổng giả. Tự lọc trong script thì **chắc chắn chạy**, giá phải trả chỉ là ~1ms/lệnh Bash. Chọn cái chắc.
 
