@@ -60,3 +60,9 @@
 - **Đổi tên UI:** modal → "Mật khẩu chọn ảnh"; toggle admin → "Yêu cầu mật khẩu khi chọn ảnh" (label cũ "Bảo vệ album bằng mật khẩu" gây hiểu nhầm là chặn xem).
 - **Hệ quả phụ:** khách chưa nhập pass trên album có pass sẽ KHÔNG thấy nút download trong viewer (view-token → showDownloadButton ẩn) — hợp lý, ghi nhận.
 - **Kèm ADR-nhỏ (CSS):** token `--spacing-*` của dự án đụng namespace spacing scale Tailwind v4 → mọi `max-w-sm/md/lg/xl` = 8-32px (18 chỗ vỡ). Đã rename toàn cục `--spacing-*` → `--space-*` (7 token, 12 file) + `min-h-xl` → `min-h-8` (date-picker). CẤM define `--spacing-*`/`--container-*`/namespace utility Tailwind trong `@theme` từ nay.
+
+## ADR-009 — Moodie memory: recency dùng `last_used_at`, không phải `updated_at`
+- **Ngày:** 2026-07-17 · **Trạng thái:** Accepted (tuning nhỏ, không đổi kiến trúc/schema)
+- **Bối cảnh:** Deep-research kiến trúc memory agent (Generative Agents, Mem0, MemGPT — 16/07) đối chiếu với code thật cho thấy RPC `match_moodie_memories` ([20260712100000](../supabase/migrations/20260712100000_moodie_memory_hybrid_retrieval.sql)) **đã có sẵn** công thức recency+importance+relevance kiểu Generative Agents, nhưng số hạng recency dùng `m.updated_at` (lần sửa cuối) thay vì `last_used_at` (lần truy hồi cuối, đã có cột từ 20260711180000 nhưng chưa bao giờ dùng trong scoring) — memory dùng liên tục không được củng cố thứ hạng.
+- **Quyết định:** Đổi đúng 1 dòng công thức: recency = `coalesce(m.last_used_at, m.updated_at)` thay vì `m.updated_at`. KHÔNG thêm số hạng `use_count`/tần suất riêng — không hệ thống nào trong research khảo sát dùng frequency độc lập, thêm vào sẽ là suy đoán không căn cứ (vi phạm Simplicity First).
+- **Task:** T-20260717-moodie-memory-recency-last-used (`agent/TASKS.yaml`).
