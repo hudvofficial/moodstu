@@ -48,6 +48,7 @@ done:
   - id: T-20260717-moodie-voice-error-state
     title: "Voice overlay: status=error hiện y hệt listening (label + màu chấm) → tách riêng"
     status: merged
+    merged_commit: 8c149f3
     spec: agent/HANDOFFS/T-20260717-moodie-voice-error-state.spec.md
     result: "Diff khớp spec 100% (Claude tự git diff, không tin báo cáo subagent) — đúng 2 điểm: label thêm nhánh error='Lỗi kết nối', dot màu thêm nhánh error='bg-error' (không animate-pulse). Giữ nguyên style \\uXXXX escape có sẵn của file. Verify tự chạy lại độc lập: eslint 0 lỗi, npm run build exit code 0 (log riêng). KHÔNG tái hiện được trạng thái error qua chrome-devtools thật (onError đóng overlay gần như ngay lập tức) — chấp nhận verify bằng đọc code + build xanh cho thay đổi cơ học 2 dòng, đúng như spec đã dự trù."
     notes: "Task 1/3 chuỗi cải thiện voice UX (user so sánh Iris — thiếu lời chào + UI kết nối không rõ). Codex CLI lỗi hạ tầng LẦN 3 trong phiên (404 credential, cùng chữ ký lỗi lần 1 Task A) → chuyển fallback coder ngay, không retry (đúng theo memory đã ghi). Task 2 (chime âm thanh) và Task 3 (lời chào giọng nói kiểu Iris — bơm system-event text lúc onopen) sẽ làm tiếp, tách riêng."
