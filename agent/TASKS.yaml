@@ -49,6 +49,7 @@ done:
   - id: T-20260717-auth-employee-context-retry-timeout
     title: "Retry 'upstream request timeout' khi tải hồ sơ nhân viên (bug Sentry, lặp lại nhiều lần/nhiều user)"
     status: merged
+    merged_commit: 37dcb84
     spec: agent/HANDOFFS/T-20260717-auth-employee-context-retry-timeout.spec.md
     result: "Diff khớp spec 100% (Claude tự git diff, không tin báo cáo subagent — subagent chết giữa chừng do session limit sau khi ghi file + chạy eslint, chưa kịp build). lib/auth_utils.ts: đổi tên isRetryableSchemaCacheError → isRetryableEmployeeContextError + export + thêm điều kiện 'upstream request timeout', cập nhật 1 call site. tests/unit/auth-utils-retryable-error.test.ts mới (mock next/headers ở đầu file). Verify tự chạy lại độc lập ĐỦ 3 bước: jest 3/3 pass, eslint 0 lỗi, npm run build exit code 0."
     notes: "Root cause: retry loop trong getEmployeeByAuthUserId chỉ retry lỗi schema-cache (PGRST002/003/'schema cache'/'retrying'), KHÔNG bắt 'upstream request timeout' (lỗi hạ tầng Vercel↔Supabase thoáng qua thật gặp trên prod) → thoát ngay lần đầu, bỏ qua 3 lần retry 150/450/900ms. Fix mở rộng đúng lớp lỗi đó. THEO DÕI: user cần kiểm Sentry issue dbb3f7a... sau khi deploy xem còn tái diễn không (không tự động hoá được). Codex CLI vẫn lỗi hạ tầng cả phiên → dùng coder fallback; coder cũng chết do session limit nhưng đã ghi xong file trước khi chết, Claude tự verify + deploy."
