@@ -49,6 +49,7 @@ done:
   - id: T-20260717-moodie-voice-connect-greeting
     title: "Lời chào giọng nói khi kết nối voice thành công (bơm system-event, tái dùng sendSystemEvent/sendClientContent)"
     status: merged
+    merged_commit: 9837aad
     spec: agent/HANDOFFS/T-20260717-moodie-voice-connect-greeting.spec.md
     result: "Diff khớp spec 100% (Claude tự git diff, không tin báo cáo subagent) — voice-live-config.ts: đúng 1 dòng rule mới trong systemInstruction (dùng chung cả 2 provider qua buildMoodieOpenAIRealtimeSessionConfig tái sử dụng text); use-moodie-live-voice.ts: đúng 5 điểm (hằng VOICE_SESSION_START_EVENT, hàm sendSessionStartGreeting với delay 300ms + guard stoppedRef, 2 điểm gọi trong onOpen/onopen cùng guard !silent với chime, thêm vào dependency array của connect). Verify tự chạy lại độc lập: eslint 0 lỗi trên cả 2 file, npm run build exit code 0. KHÔNG test được hành vi model tự chào thật qua browser (cần mic permission + provider API key thật + tốn phí gọi model) — chấp nhận verify tĩnh, đúng như spec dự trù cho hành vi phụ thuộc runtime model."
     notes: "Task 3/3 (CUỐI) chuỗi voice UX bắt đầu từ so sánh với Iris (17/07): Task 1 error-state (8c149f3), Task 2 chime+lint (93f03bb/d2b0725), Task 3 lời chào (task này). Toàn bộ chuỗi dùng fallback coder — Codex CLI lỗi hạ tầng 100% (4/4 lần thử, 2 chữ ký lỗi khác nhau, đều ghi vào memory hermes-local-ai-infra-map). Delay 300ms là quyết định thiết kế tự đưa ra (không đoán mò SDK @google/genai nội bộ), đã nêu rõ trong spec cho user biết trước khi duyệt."
