@@ -30,6 +30,7 @@ updated: 2026-07-17
 
 # ---- Task đang chạy ----
 active: []
+    notes: "Task 2/3 chuỗi voice UX (Task 1 error-state đã merged 8c149f3). Tái dùng cờ silent có sẵn trong connect() để không chime lại khi reconnect ngầm sau goAway — học từ Iris. User duyệt qua AskUserQuestion 17/07. Task 3 (lời chào giọng nói, bơm system-event lúc onopen, tái dùng sendClientContent/sendSystemEvent đã có sẵn cho task-store update) làm tiếp sau. Codex CLI lỗi hạ tầng lần 4 trong phiên (404 credential, cùng chữ ký) → chuyển fallback coder-subagent ngay."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -45,6 +46,12 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260717-moodie-voice-connected-chime
+    title: "Chime 2 nốt báo đã kết nối voice thật (không phát lại khi reconnect ngầm) + dọn lint nợ có sẵn"
+    status: merged
+    spec: agent/HANDOFFS/T-20260717-moodie-voice-connected-chime.spec.md
+    result: "Diff khớp spec 100% (Claude tự git diff, không tin báo cáo subagent) — 1 file mới (voice-chime.ts, 2 nốt C5→E5 Web Audio oscillator, try/catch bảo vệ), hooks/use-moodie-live-voice.ts: import + 2 điểm gọi chime (guard !silent, tái dùng playbackContextRef có sẵn) + 3 điểm bọc useEffect (Task 3 bổ sung — dọn 7 lỗi eslint react-hooks/refs có sẵn từ trước, verify bằng git stash xác nhận không phải do chime gây ra). Verify tự chạy lại độc lập: eslint 0 lỗi (exit 0), npm run build exit code 0. KHÔNG nghe thử thật qua browser (cần mic permission) — chấp nhận verify tĩnh cho thay đổi audio/effect nhỏ, đúng như spec dự trù."
+    notes: "Task 2/3 chuỗi voice UX. Codex CLI lỗi hạ tầng 4/4 lần trong phiên (404 credential) → toàn bộ dùng fallback coder. Phát hiện giữa chừng: file có 7 lỗi eslint react-hooks/refs có sẵn — theo luật cứng 'eslint đỏ là không push, động file nào nhận cổng file đó' (từng vi phạm 16/07), đã hỏi user qua AskUserQuestion, user chọn sửa luôn (bọc useEffect, không đổi hành vi). Task 3 còn lại (lời chào giọng nói, bơm system-event lúc onopen, tái dùng sendClientContent/sendSystemEvent đã có sẵn) sẽ làm tiếp."
   - id: T-20260717-moodie-voice-error-state
     title: "Voice overlay: status=error hiện y hệt listening (label + màu chấm) → tách riêng"
     status: merged

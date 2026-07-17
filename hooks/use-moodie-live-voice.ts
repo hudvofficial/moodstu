@@ -11,6 +11,7 @@ import {
 } from "@/lib/moodie/live-audio";
 import { isExplicitMoodieVoiceConfirmation } from "@/lib/moodie/voice-confirmation";
 import type { OpenAIRealtimeWebRTCClient } from "@/lib/moodie/realtime/openai-webrtc-client";
+import { playMoodieConnectedChime } from "@/lib/moodie/voice-chime";
 
 type VoiceStatus = "idle" | "connecting" | "listening" | "speaking" | "error";
 type TranscriptRole = "user" | "model";
@@ -135,11 +136,13 @@ export function useMoodieLiveVoice({
   const activeRunStateRef = useRef(new Map<string, string>());
   const askMoodieRequestsRef = useRef(new Map<string, Promise<AskResponse>>());
 
-  conversationIdRef.current = conversationId;
-  onConversationIdRef.current = onConversationId;
-  onTranscriptRef.current = onTranscript;
-  onErrorRef.current = onError;
-  onEngineFallbackRef.current = onEngineFallback;
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+    onConversationIdRef.current = onConversationId;
+    onTranscriptRef.current = onTranscript;
+    onErrorRef.current = onError;
+    onEngineFallbackRef.current = onEngineFallback;
+  });
 
   const emitTelemetry = useCallback((eventType: string, details?: { transcriptDelta?: string; metrics?: Record<string, number>; error?: string; includeTurn?: boolean }) => {
     const sessionId = voiceSessionIdRef.current;
@@ -515,6 +518,7 @@ export function useMoodieLiveVoice({
               if (connectTimeoutRef.current !== null) clearTimeout(connectTimeoutRef.current);
               connectTimeoutRef.current = null;
               emitTelemetry("session.connected", { includeTurn: false });
+              if (!silent) playMoodieConnectedChime(playbackContextRef.current ?? undefined);
               setStatus("listening");
             },
             onClose: () => { if (!stoppedRef.current) reportError(new Error("OpenAI Realtime disconnected")); },
@@ -577,6 +581,7 @@ export function useMoodieLiveVoice({
                   connectTimeoutRef.current = null;
                 }
                 emitTelemetry(silent ? "session.resumed" : "session.connected", { includeTurn: false });
+                if (!silent) playMoodieConnectedChime(playbackContextRef.current ?? undefined);
                 setStatus("listening");
               }
             },
@@ -613,7 +618,9 @@ export function useMoodieLiveVoice({
     },
     [closeSession, emitTelemetry, fallbackToCascade, handleMessage, handleToolCall, reportError],
   );
-  connectRef.current = connect;
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const startCapture = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -716,7 +723,9 @@ export function useMoodieLiveVoice({
     fallbackTriggeredRef.current = false;
     setStatus("idle");
   }, [closeSession, emitTelemetry, flushPlayback, stopLevelMeter]);
-  stopRef.current = stop;
+  useEffect(() => {
+    stopRef.current = stop;
+  }, [stop]);
 
   const start = useCallback(async () => {
     stop();
