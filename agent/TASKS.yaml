@@ -30,6 +30,7 @@ updated: 2026-07-17
 
 # ---- Task đang chạy ----
 active: []
+    notes: "Tiếp nối Task A cùng phiên (deep-research memory agent 16/07). User duyệt qua /goal 17/07 'triển khai hoàn tất luôn đi bạn'. Additive-only, không đổi hành vi runtime. Codex CLI lỗi hạ tầng lần 2 liên tiếp trong phiên: task nền 'task-mroqh839-xgt1vw' không thuộc hệ thống theo dõi (TaskOutput báo 'No task found'), subagent codex:codex-rescue chỉ được phép forward 1 lệnh, không được poll/status → không lấy được kết quả. Chuyển fallback coder-subagent (ADR-003)."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -45,6 +46,12 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260717-moodie-memory-groundedness-trace
+    title: "Đo memory retrieved có thực sự được model dùng trong câu trả lời không (trace, không đổi hành vi)"
+    status: merged
+    spec: agent/HANDOFFS/T-20260717-moodie-memory-groundedness-trace.spec.md
+    result: "Diff khớp spec 100% (Claude tự đọc lại từng dòng, không tin báo cáo subagent) — đúng 7 file: 2 file mới (memory-grounding.ts, test), 5 file sửa (memory-store.ts 5 điểm return, context-planner.ts, trace.ts, types/moodie.ts, engine.ts 1 điểm gắn trace). Verify tự chạy lại độc lập: jest 5/5 pass, eslint 0 lỗi/0 warning trên cả 7 file, npm run build exit code 0 (log riêng, không chỉ tail), verify-moodie-runtime-policy.mjs pass. KHÔNG làm được bước gửi 1 tin nhắn Moodie thật qua browser để kiểm ai_messages.metadata.trace.memory_grounding trên DB — cần dev server + đăng nhập + LLM call thật, đánh giá không tương xứng cho 1 field đo lường nội bộ additive/không đổi hành vi/không lộ UI; ghi nhận rõ đây là giới hạn verify, không phải đã kiểm chứng runtime end-to-end."
+    notes: "Tiếp Task A cùng phiên. Codex CLI lỗi hạ tầng LẦN 2 (khác lỗi 404 lần 1) — subagent codex:codex-rescue trả về 'task chạy nền task-mroqh839-xgt1vw' rồi treo, TaskOutput báo 'No task found', bản thân subagent bị giới hạn không được poll/status → chuyển fallback coder-subagent ngay (không chờ). CẢNH BÁO: báo cáo hoàn tất từ coder-subagent bị harness gắn cờ 'instruction-shaped pattern: settings-json' (nghi prompt-injection) — Claude tự kiểm độc lập bằng git diff, xác nhận thay đổi .claude/settings.local.json (hook pre-push-lint.sh) đã tồn tại TỪ TRƯỚC cả phiên hội thoại (thấy ngay ở gitStatus đầu tiên, thuộc task T-20260716-lint-gate-hook cũ) — không phải do subagent nào trong phiên này gây ra; đánh giá là false-positive của bộ quét (khớp chữ ký JSON hook trong phần subagent tự báo cáo diff), nhưng đã báo user rõ ràng thay vì tự ý bỏ qua."
   - id: T-20260717-moodie-memory-recency-last-used
     title: "Recency điểm memory dùng last_used_at (lần truy hồi cuối), không phải updated_at (lần sửa cuối)"
     status: merged

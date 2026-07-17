@@ -14,6 +14,7 @@ export type MoodieContextPacket = {
   identity: string;
   conversationSummary: string;
   memory: string;
+  memoryRecords: Array<{ id: string; content: string }>;
   workingMemory: string;
   retrieval: { summary: string; hasContext: boolean };
   trace: {
@@ -42,7 +43,7 @@ export async function planMoodieContext(params: {
 }) : Promise<MoodieContextPacket> {
   const identity = buildMoodieAuthenticatedUserPrompt(params.userContext);
   const conversationSummary = buildMoodieConversationSummaryContext(params.conversationSummary);
-  const [memory, workingMemory, retrieval, braveConfig, browserConfig] = await Promise.all([
+  const [memoryResult, workingMemory, retrieval, braveConfig, browserConfig] = await Promise.all([
     loadMoodieMemoryContext({
       supabase: params.supabase,
       userId: params.userContext.id,
@@ -69,13 +70,14 @@ export async function planMoodieContext(params: {
   return {
     identity,
     conversationSummary,
-    memory,
+    memory: memoryResult.context,
+    memoryRecords: memoryResult.records,
     workingMemory,
     retrieval,
     trace: {
       identity_context_used: Boolean(identity),
       conversation_summary_used: Boolean(conversationSummary),
-      memory_context_used: Boolean(memory),
+      memory_context_used: Boolean(memoryResult.context),
       working_memory_used: Boolean(workingMemory),
       retrieval_context_used: retrieval.hasContext,
       research_required: Boolean(params.route?.research.required),

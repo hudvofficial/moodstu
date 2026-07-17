@@ -35,6 +35,7 @@ export type MoodieTrace = {
   total_tokens?: number;
   fallback_latency_ms?: number;
   tools: MoodieToolTrace[];
+  memory_grounding?: { retrieved_count: number; grounded_count: number; ungrounded_ids?: string[] };
   error?: string;
 };
 

@@ -17,6 +17,7 @@ import { normalizeMoodieToolOutput } from "@/lib/moodie/tool-output-normalizer";
 import { planMoodieContext } from "@/lib/moodie/context-planner";
 import { planMoodieExecution } from "@/lib/moodie/tool-planner";
 import { attachMoodieTrace, createMoodieTrace } from "@/lib/moodie/trace";
+import { summarizeMoodieMemoryGrounding } from "@/lib/moodie/memory-grounding";
 import { buildMoodieAgentInstruction, selectMoodieAgent } from "@/lib/moodie/agents/profiles";
 import { planMoodieSafeNavigation } from "@/lib/moodie/action-planner";
 import { planMoodieWorkflow } from "@/lib/moodie/execution-plan-v2";
@@ -363,6 +364,7 @@ async function runMoodieModelEngine(params: {
           tool_call_count: traceState.trace.tools.length,
           provider_latency_ms: providerLatencyMs,
           first_token_latency_ms: firstTokenLatencyMs,
+          memory_grounding: summarizeMoodieMemoryGrounding(contextPacket.memoryRecords, finalContent),
         })),
         };
       }

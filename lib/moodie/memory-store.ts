@@ -34,8 +34,8 @@ export async function loadMoodieMemoryContext(params: {
   userId?: string;
   conversationId?: string;
   prompt?: string;
-}) {
-  if (!params.userId) return "";
+}): Promise<{ context: string; records: Array<{ id: string; content: string }> }> {
+  if (!params.userId) return { context: "", records: [] };
 
   const now = new Date().toISOString();
   try {
@@ -60,7 +60,7 @@ export async function loadMoodieMemoryContext(params: {
         await Promise.all((matched || []).map((memory) => params.supabase.from("moodie_memories")
           .update({ last_used_at: usedAt, use_count: memory.use_count + 1 }).eq("id", memory.id))).catch(() => {});
       }
-      return buildMoodieMemoryContext(ranked);
+      return { context: buildMoodieMemoryContext(ranked), records: ranked.map((memory) => ({ id: memory.id, content: memory.content })) };
     }
 
     const userQuery = params.supabase
@@ -96,7 +96,7 @@ export async function loadMoodieMemoryContext(params: {
       : Promise.resolve({ data: [], error: null });
 
     const [userResult, studioResult, conversationResult] = await Promise.all([userQuery, studioQuery, conversationQuery]);
-    if (userResult.error || studioResult.error || conversationResult.error) return "";
+    if (userResult.error || studioResult.error || conversationResult.error) return { context: "", records: [] };
 
     const memories = [
       ...(conversationResult.data || []),
@@ -136,9 +136,9 @@ export async function loadMoodieMemoryContext(params: {
       const usedAt = new Date().toISOString();
       await Promise.all(ranked.map((memory) => params.supabase.from("moodie_memories").update({ last_used_at: usedAt, use_count: memory.useCount + 1 }).eq("id", memory.id))).catch(() => {});
     }
-    return buildMoodieMemoryContext(ranked);
+    return { context: buildMoodieMemoryContext(ranked), records: ranked.map((memory) => ({ id: memory.id, content: memory.content })) };
   } catch {
-    return "";
+    return { context: "", records: [] };
   }
 }
 
