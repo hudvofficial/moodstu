@@ -523,18 +523,20 @@ export function MoodieVoiceOverlay({
 
   const label = status === "connecting"
     ? "\u0110ang k\u1ebft n\u1ed1i"
-    : status === "speaking"
-      ? "Moodie \u0111ang n\u00f3i"
-      : muted
-        ? "\u0110\u00e3 t\u1eaft ti\u1ebfng"
-        : "\u0110ang nghe";
+    : status === "error"
+      ? "L\u1ed7i k\u1ebft n\u1ed1i"
+      : status === "speaking"
+        ? "Moodie \u0111ang n\u00f3i"
+        : muted
+          ? "\u0110\u00e3 t\u1eaft ti\u1ebfng"
+          : "\u0110ang nghe";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-neutral-950/60 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onCloseRef.current(); }}>
       <section className="moodie-voice-panel flex flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-neutral-950 text-white shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" aria-label="Trò chuyện bằng giọng nói">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : status === "connecting" ? "bg-warning animate-pulse" : "bg-success animate-pulse"}`} aria-hidden="true" />
+            <span className={`h-2 w-2 rounded-full ${muted ? "bg-white/35" : status === "connecting" ? "bg-warning animate-pulse" : status === "error" ? "bg-error" : "bg-success animate-pulse"}`} aria-hidden="true" />
             <p className="text-sm font-semibold">Moodie</p>
           </div>
         <Button type="button" unstyled className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20" onClick={() => onCloseRef.current()} aria-label="\u0110\u00f3ng ch\u1ebf \u0111\u1ed9 gi\u1ecdng n\u00f3i">
