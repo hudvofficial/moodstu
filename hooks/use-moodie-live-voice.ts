@@ -80,6 +80,9 @@ type LiveSession = {
   close(): void;
 };
 
+const VOICE_SESSION_START_EVENT =
+  "[MOODIE_SYSTEM_EVENT — phiên giọng nói vừa bắt đầu, không phải lời người dùng] Hãy chủ động cất tiếng chào người dùng ngay, ngắn gọn và tự nhiên (1-2 câu), dùng tên/vai trò người dùng nếu đã biết từ ngữ cảnh xác thực, rồi hỏi có thể giúp gì. Đừng chờ người dùng nói trước, đừng lặp lại lời chào này nếu phiên đã từng chào.";
+
 export function useMoodieLiveVoice({
   conversationId,
   onConversationId,
@@ -274,6 +277,20 @@ export function useMoodieLiveVoice({
     }
     setStatus("speaking");
   }, [emitTelemetry]);
+
+  const sendSessionStartGreeting = useCallback(() => {
+    window.setTimeout(() => {
+      if (stoppedRef.current) return;
+      if (providerRef.current === "openai") {
+        openAIClientRef.current?.sendSystemEvent(VOICE_SESSION_START_EVENT);
+      } else {
+        sessionRef.current?.sendClientContent?.({
+          turns: [{ role: "user", parts: [{ text: VOICE_SESSION_START_EVENT }] }],
+          turnComplete: true,
+        });
+      }
+    }, 300);
+  }, []);
 
   const handleToolCall = useCallback(async (call: FunctionCall) => {
     if (!call.id || !call.name) return;
@@ -518,7 +535,10 @@ export function useMoodieLiveVoice({
               if (connectTimeoutRef.current !== null) clearTimeout(connectTimeoutRef.current);
               connectTimeoutRef.current = null;
               emitTelemetry("session.connected", { includeTurn: false });
-              if (!silent) playMoodieConnectedChime(playbackContextRef.current ?? undefined);
+              if (!silent) {
+                playMoodieConnectedChime(playbackContextRef.current ?? undefined);
+                sendSessionStartGreeting();
+              }
               setStatus("listening");
             },
             onClose: () => { if (!stoppedRef.current) reportError(new Error("OpenAI Realtime disconnected")); },
@@ -581,7 +601,10 @@ export function useMoodieLiveVoice({
                   connectTimeoutRef.current = null;
                 }
                 emitTelemetry(silent ? "session.resumed" : "session.connected", { includeTurn: false });
-                if (!silent) playMoodieConnectedChime(playbackContextRef.current ?? undefined);
+                if (!silent) {
+                  playMoodieConnectedChime(playbackContextRef.current ?? undefined);
+                  sendSessionStartGreeting();
+                }
                 setStatus("listening");
               }
             },
@@ -616,7 +639,7 @@ export function useMoodieLiveVoice({
         reportError(value);
       }
     },
-    [closeSession, emitTelemetry, fallbackToCascade, handleMessage, handleToolCall, reportError],
+    [closeSession, emitTelemetry, fallbackToCascade, handleMessage, handleToolCall, reportError, sendSessionStartGreeting],
   );
   useEffect(() => {
     connectRef.current = connect;
