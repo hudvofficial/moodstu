@@ -98,14 +98,15 @@ function isActiveEmployeeContext(employee: EmployeeContextRecord | null) {
   return !!employee && !employee.deleted_at && employee.status === "active";
 }
 
-function isRetryableSchemaCacheError(error: { code?: string; message?: string } | null) {
+export function isRetryableEmployeeContextError(error: { code?: string; message?: string } | null) {
   if (!error) return false;
   const message = error.message?.toLowerCase() || "";
   return (
     error.code === "PGRST002" ||
     error.code === "PGRST003" ||
     message.includes("schema cache") ||
-    message.includes("retrying")
+    message.includes("retrying") ||
+    message.includes("upstream request timeout")
   );
 }
 
@@ -129,7 +130,7 @@ async function getEmployeeByAuthUserId(
     if (!error) return (data as EmployeeContextRecord | null) ?? null;
 
     lastError = error;
-    if (!isRetryableSchemaCacheError(error) || attempt === EMPLOYEE_CONTEXT_RETRY_DELAYS_MS.length) {
+    if (!isRetryableEmployeeContextError(error) || attempt === EMPLOYEE_CONTEXT_RETRY_DELAYS_MS.length) {
       break;
     }
 

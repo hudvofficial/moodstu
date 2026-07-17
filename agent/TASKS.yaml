@@ -30,7 +30,7 @@ updated: 2026-07-17
 
 # ---- Task đang chạy ----
 active: []
-    notes: "Task 3/3 (cuối) chuỗi voice UX. Task 1 (error-state) merged 8c149f3, Task 2 (chime + dọn lint) merged 93f03bb/d2b0725. Delay 300ms trước khi gửi cho Gemini — phòng race sessionRef.current chưa gán kịp lúc onopen fire, không kiểm chứng được nội bộ SDK @google/genai. Tái dùng cờ silent để không chào lại khi reconnect ngầm. User duyệt qua AskUserQuestion 17/07."
+    notes: "Bug report Sentry 17/07: isRetryableSchemaCacheError chỉ bắt PGRST002/003/schema-cache/retrying, KHÔNG bắt 'upstream request timeout' thật gặp trên prod → retry loop thoát ngay lần đầu, bỏ qua 3 lần retry đã thiết kế. Đổi tên hàm thành isRetryableEmployeeContextError (chỉ dùng 1 chỗ, an toàn), export để test, thêm điều kiện. User duyệt qua AskUserQuestion 17/07."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -46,6 +46,12 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260717-auth-employee-context-retry-timeout
+    title: "Retry 'upstream request timeout' khi tải hồ sơ nhân viên (bug Sentry, lặp lại nhiều lần/nhiều user)"
+    status: merged
+    spec: agent/HANDOFFS/T-20260717-auth-employee-context-retry-timeout.spec.md
+    result: "Diff khớp spec 100% (Claude tự git diff, không tin báo cáo subagent — subagent chết giữa chừng do session limit sau khi ghi file + chạy eslint, chưa kịp build). lib/auth_utils.ts: đổi tên isRetryableSchemaCacheError → isRetryableEmployeeContextError + export + thêm điều kiện 'upstream request timeout', cập nhật 1 call site. tests/unit/auth-utils-retryable-error.test.ts mới (mock next/headers ở đầu file). Verify tự chạy lại độc lập ĐỦ 3 bước: jest 3/3 pass, eslint 0 lỗi, npm run build exit code 0."
+    notes: "Root cause: retry loop trong getEmployeeByAuthUserId chỉ retry lỗi schema-cache (PGRST002/003/'schema cache'/'retrying'), KHÔNG bắt 'upstream request timeout' (lỗi hạ tầng Vercel↔Supabase thoáng qua thật gặp trên prod) → thoát ngay lần đầu, bỏ qua 3 lần retry 150/450/900ms. Fix mở rộng đúng lớp lỗi đó. THEO DÕI: user cần kiểm Sentry issue dbb3f7a... sau khi deploy xem còn tái diễn không (không tự động hoá được). Codex CLI vẫn lỗi hạ tầng cả phiên → dùng coder fallback; coder cũng chết do session limit nhưng đã ghi xong file trước khi chết, Claude tự verify + deploy."
   - id: T-20260717-moodie-voice-connect-greeting
     title: "Lời chào giọng nói khi kết nối voice thành công (bơm system-event, tái dùng sendSystemEvent/sendClientContent)"
     status: merged
