@@ -128,7 +128,14 @@ export async function getPublicGalleryImagesPaginated(
       return { success: false as const, error: "Gallery không tồn tại." };
     }
 
-    if (accessToken && !assertGalleryProof(gallery, accessToken)) {
+    // Đọc ảnh = mức "view": album có mật khẩu phát view-token cho khách chưa nhập pass
+    // (nghiệp vụ 15/07), còn capability so EXACT → gate mặc định ("select") từ chối view-token
+    // → khách kẹt ở 30 ảnh SSR đầu. Nhận CẢ HAI như getGalleryComments/toggleReaction.
+    if (
+      accessToken &&
+      !assertGalleryProof(gallery, accessToken, "view") &&
+      !assertGalleryProof(gallery, accessToken)
+    ) {
       return {
         success: false as const,
         error: "Phiên truy cập gallery đã hết hạn.",
