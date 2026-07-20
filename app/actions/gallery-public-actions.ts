@@ -200,6 +200,32 @@ export async function verifyGalleryPassword(
       };
     }
 
+    // Chống brute-force (audit 20/07): >10 lần sai / 15 phút theo gallery → khóa tạm.
+    // Best-effort qua bảng gallery_password_attempts (service-role only); lỗi đọc/ghi
+    // bảng đếm KHÔNG chặn đăng nhập hợp lệ.
+    const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+    const ATTEMPT_MAX_FAILS = 10;
+    const { data: attempts } = await supabase
+      .from("gallery_password_attempts")
+      .select("window_start, fail_count")
+      .eq("gallery_id", galleryId)
+      .maybeSingle();
+    const attemptsInWindow = attempts
+      && Date.now() - new Date(attempts.window_start).getTime() < ATTEMPT_WINDOW_MS;
+    if (attemptsInWindow && attempts.fail_count >= ATTEMPT_MAX_FAILS) {
+      return {
+        success: false as const,
+        error: "Sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.",
+      };
+    }
+    const recordFailedAttempt = async () => {
+      await supabase.from("gallery_password_attempts").upsert({
+        gallery_id: galleryId,
+        window_start: attemptsInWindow ? attempts.window_start : new Date().toISOString(),
+        fail_count: attemptsInWindow ? attempts.fail_count + 1 : 1,
+      });
+    };
+
     if (data.password_hash) {
       const { data: verified, error: verifyError } = await supabase.rpc(
         "verify_gallery_password",
@@ -214,10 +240,16 @@ export async function verifyGalleryPassword(
       }
 
       if (!verified) {
+        await recordFailedAttempt();
         return { success: false as const, error: "Mật khẩu không đúng." };
       }
     } else if (galleryHasPassword(data)) {
+      await recordFailedAttempt();
       return { success: false as const, error: "Mật khẩu không đúng." };
+    }
+
+    if (attempts) {
+      await supabase.from("gallery_password_attempts").delete().eq("gallery_id", galleryId);
     }
 
     const [page, selectedCount] = await Promise.all([

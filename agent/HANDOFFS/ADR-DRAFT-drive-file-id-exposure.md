@@ -9,8 +9,8 @@
 ### Phương án A — Chấp nhận, ghi nhận chính thức (0 ngày công)
 Ghi vào DECISIONS: "cổng tải chỉ là UX-gate, không phải security-gate; ảnh Drive share public là chấp nhận rủi ro". Xong. **Được:** không tốn công, không risk regression. **Mất:** khách rành kỹ thuật tải ảnh gốc không trả tiền; watermark vô nghĩa với họ.
 
-### Phương án B — Giấu `drive_file_id` khỏi payload public (~1 ngày công, KHUYẾN NGHỊ)
-Bỏ `drive_file_id` khỏi `IMAGE_COLS` public (giữ cho admin); UI khách đang dùng nó ở đâu thì chuyển sang gọi route download đã gate (route tự tra `drive_file_id` từ DB theo imageId — đã làm sẵn ở gallery-download). Cần rà: `image-viewer.tsx:132` (`showDownloadButton` check `img.drive_file_id`) → thay bằng flag boolean server trả (`can_download`). **Được:** đóng đường vòng chính, không đụng Drive. **Mất:** ai đã lưu URL lh3 từ trước vẫn tải được (ảnh vẫn public trên Drive) — chỉ chặn khách "mới biết mánh".
+### ~~Phương án B — Giấu `drive_file_id` khỏi payload public~~ **VÔ HIỆU — RÚT LẠI (scope 21/07)**
+Khi scope chi tiết phát hiện: `image_url`/`thumbnail_url` mà khách BẮT BUỘC nhận để hiển thị ảnh có dạng `lh3.googleusercontent.com/d/<fileId>=sN` — **fileId nằm sẵn trong chính URL ảnh** (gallery-helpers.ts:53-55 còn tự extract nó bằng regex `\/d\/([^/?]+)`), và đổi `=sN` → `=s0` là ra ảnh gốc. Giấu cột `drive_file_id` không đóng được gì — bảo mật hình thức. Đã báo user 21/07, khuyến nghị chuyển sang A (ghi nhận) hoặc C (đổi cách serve ảnh) nếu doanh thu tải ảnh gốc đáng kể.
 
 ### Phương án C — Đổi cách share Drive (nhiều ngày công, đụng vận hành)
 Ảnh Drive chuyển sang restricted; mọi ảnh serve qua proxy có token (route stream từ Drive API bằng OAuth studio). **Được:** kín thật sự. **Mất:** đổi quy trình upload/share của studio, tốn băng thông Vercel, risk cao — chỉ đáng nếu doanh thu tải ảnh gốc là nguồn thu quan trọng.
