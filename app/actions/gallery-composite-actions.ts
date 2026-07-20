@@ -181,7 +181,7 @@ export async function getGalleryCommentContentAll(galleryId: string) {
       .select("image_id, content, author_name, updated_at")
       .eq("gallery_id", galleryId)
       .order("created_at", { ascending: true });
-    if (error) return {} as Record<string, GalleryCommentSummary[]>;
+    if (error) { console.error("getGalleryCommentContentAll query error:", error.message); return {} as Record<string, GalleryCommentSummary[]>; }
     const map: Record<string, GalleryCommentSummary[]> = {};
     for (const row of data || []) {
       (map[row.image_id] ||= []).push({

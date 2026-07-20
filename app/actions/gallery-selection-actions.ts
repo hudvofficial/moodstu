@@ -31,6 +31,8 @@ export async function toggleImageSelection(
         accessUrl || "",
         accessToken || "",
         imageId,
+        "select",
+        { enforceDeadline: true },
       );
       await updateGalleryImageSelection(supabase, imageId, selected);
       const newSelectedCount = await fetchGalleryImageCount(supabase, gallery.id, { selectedOnly: true });
@@ -89,6 +91,8 @@ export async function toggleImageStar(
         accessUrl || "",
         accessToken || "",
         imageId,
+        "select",
+        { enforceDeadline: true },
       );
       const { error } = await supabase
         .from("gallery_images")
@@ -180,7 +184,7 @@ export async function getPublicSelectedImages(
       .eq("gallery_id", galleryId)
       .eq("is_selected", true)
       .order("sort_order", { ascending: true });
-    if (error) return [];
+    if (error) { console.error("getPublicSelectedImages query error:", error.message); return []; }
     return data || [];
   } catch (error) {
     console.error("getPublicSelectedImages error:", error);

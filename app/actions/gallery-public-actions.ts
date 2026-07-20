@@ -132,7 +132,6 @@ export async function getPublicGalleryImagesPaginated(
     // (nghiệp vụ 15/07), còn capability so EXACT → gate mặc định ("select") từ chối view-token
     // → khách kẹt ở 30 ảnh SSR đầu. Nhận CẢ HAI như getGalleryComments/toggleReaction.
     if (
-      accessToken &&
       !assertGalleryProof(gallery, accessToken, "view") &&
       !assertGalleryProof(gallery, accessToken)
     ) {

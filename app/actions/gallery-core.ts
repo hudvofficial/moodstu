@@ -342,6 +342,7 @@ export async function requirePublicGalleryImageAccess(
   accessToken: string,
   imageId: string,
   requiredCapability: GalleryShareCapability = "select",
+  options: { enforceDeadline?: boolean } = {},
 ) {
   if (!accessUrl?.trim()) {
     throw new Error("Thieu link gallery.");
@@ -356,7 +357,10 @@ export async function requirePublicGalleryImageAccess(
         throw new Error("Phiên truy cập gallery không hợp lệ hoặc đã hết hạn.");
   }
 
-  if (isSelectionClosed(gallery.selection_deadline)) {
+  // Deadline chỉ khóa INPUT HẬU KỲ (chọn/bỏ chọn, ghi/xóa note) — caller ghi truyền
+  // enforceDeadline: true. Đọc note + thả tim là xã giao, không bị deadline (audit 20/07:
+  // check nằm trần ở đây từng chặn cả getComments/toggleReaction, chết câm sau deadline).
+  if (options.enforceDeadline && isSelectionClosed(gallery.selection_deadline)) {
         throw new Error("Album đã hết hạn chọn ảnh.");
   }
 

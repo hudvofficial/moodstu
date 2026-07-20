@@ -110,7 +110,8 @@ export async function getReactionCounts(galleryId: string): Promise<ReactionCoun
       .select("image_id, reaction_type")
       .eq("gallery_id", galleryId);
 
-    if (error || !data) return {};
+    if (error) { console.error("getReactionCounts query error:", error.message); return {}; }
+    if (!data) return {};
 
     const counts: ReactionCounts = {};
     for (const row of data) {
@@ -138,7 +139,8 @@ export async function getClientReactions(galleryId: string, clientIdentifier: st
       .eq("gallery_id", galleryId)
       .eq("client_identifier", clientIdentifier);
 
-    if (error || !data) return {};
+    if (error) { console.error("getClientReactions query error:", error.message); return {}; }
+    if (!data) return {};
 
     const reactions: { [imageId: string]: { heart: boolean; star: boolean } } = {};
     for (const row of data) {
@@ -178,7 +180,7 @@ export async function getGalleryComments(
       .select("image_id, content, author_name, updated_at")
       .eq("gallery_id", galleryId)
       .order("created_at", { ascending: true });
-    if (error) return {};
+    if (error) { console.error("getGalleryComments query error:", error.message); return {}; }
     const map: Record<string, GalleryCommentSummary[]> = {};
     for (const row of data || []) {
       (map[row.image_id] ||= []).push({
@@ -216,7 +218,7 @@ export async function getComments(imageId: string, accessUrl?: string, accessTok
         await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId);
       }
       const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
-      if (error) return [];
+      if (error) { console.error("getComments query error:", error.message); return []; }
       return (data || []).map(toComment);
     }
     const result = await withAuth(async (supabase, userId) => {
@@ -242,14 +244,14 @@ export async function upsertComment(imageId: string, galleryId: string, content:
     const supabase = await createAdminClient();
     // Ghi chú = chỉ dẫn hậu kỳ/in ấn → CÙNG gate với chọn ảnh (mật khẩu Mood cấp).
     // Giữ đúng hành vi updateClientNote cũ; KHÔNG được nới xuống "view".
-    await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "select");
+    const { gallery } = await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "select", { enforceDeadline: true });
     // Xoá trắng ô = xoá ghi chú của chính mình.
     if (!trimmed) {
       await supabase.from("gallery_comments").delete().eq("image_id", imageId).eq("client_identifier", clientIdentifier);
       return { success: true as const, data: null };
     }
     const author = (authorName || "").trim().slice(0, 50) || "Khách";
-    const { data, error } = await supabase.from("gallery_comments").upsert({ image_id: imageId, gallery_id: galleryId, content: trimmed, author_name: author, client_identifier: clientIdentifier, updated_at: new Date().toISOString() }, { onConflict: "image_id,client_identifier" }).select().single();
+    const { data, error } = await supabase.from("gallery_comments").upsert({ image_id: imageId, gallery_id: gallery.id, content: trimmed, author_name: author, client_identifier: clientIdentifier, updated_at: new Date().toISOString() }, { onConflict: "image_id,client_identifier" }).select().single();
     if (error) return { success: false as const, error: error.message };
     return { success: true as const, data };
   } catch (error) {
@@ -265,7 +267,7 @@ export async function deleteComment(commentId: string, clientIdentifier: string,
     const supabase = await createAdminClient();
     const { data: comment, error } = await supabase.from("gallery_comments").select("image_id, client_identifier").eq("id", commentId).single();
     if (error || !comment) return { success: false as const, error: "Không tìm thấy ghi chú." };
-    await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), comment.image_id, "select");
+    await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), comment.image_id, "select", { enforceDeadline: true });
     if (comment.client_identifier !== clientIdentifier) return { success: false as const, error: "Không có quyền xóa comment này" };
     const { error: deleteError } = await supabase.from("gallery_comments").delete().eq("id", commentId).eq("client_identifier", clientIdentifier);
     if (deleteError) return { success: false as const, error: deleteError.message };
@@ -286,7 +288,8 @@ export async function getCommentCountsPerImage(galleryId: string): Promise<Recor
       .select("image_id")
       .eq("gallery_id", galleryId);
 
-    if (error || !data) return {};
+    if (error) { console.error("getCommentCountsPerImage query error:", error.message); return {}; }
+    if (!data) return {};
 
     const counts: Record<string, number> = {};
     for (const row of data) {

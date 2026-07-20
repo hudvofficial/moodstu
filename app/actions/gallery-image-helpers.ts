@@ -61,8 +61,9 @@ async function getCachedGalleryImages(galleryId: string) {
         .order("created_at", { ascending: true });
       
       if (error) {
-        console.error("Lỗi lấy danh sách ảnh từ cache:", error);
-        return [];
+        // throw thay vì trả [] — unstable_cache KHÔNG cache kết quả throw;
+        // trả [] sẽ bị cache 2h thành "album 0 ảnh" cho Download Manager.
+        throw new Error(`Lỗi lấy danh sách ảnh gallery: ${error.message}`);
       }
       return data || [];
     },
