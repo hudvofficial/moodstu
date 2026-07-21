@@ -105,8 +105,6 @@ export default function ImageViewer({
   const editingImageIdRef = useRef<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartTimeRef = useRef<number>(0);
-  // Src ảnh đang hiển thị, chụp tại touchstart — cho đường share-sheet ios-webview
-  const touchImgSrcRef = useRef<string>("");
 
   const currentIdx = currentIndex;
   const setCurrentIdx = onIndexChange;
@@ -296,32 +294,12 @@ export default function ImageViewer({
     // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
     // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
     if (!showDownloadButton || !img) return;
+    // iOS (Safari lẫn in-app WebView): nhường menu nhấn-giữ native của trình duyệt —
+    // callout đã LUÔN bật (xem style img). Root cause lịch sử: không phải WebView thiếu
+    // menu, mà là WebkitTouchCallout:"none" theo showDownloadButton tắt nó với view-token.
+    // KHÔNG chen share-sheet/toast vào gesture native (bài học 21/07).
     const platform = detectPlatform();
-    // Safari iOS thật: nhường menu nhấn-giữ native "Lưu ảnh" (ổn định từ ee6d5db 21/06).
-    if (platform === "ios-safari") return;
-    // WebView trong app (Messenger/Zalo): KHÔNG có menu lưu ảnh khi nhấn giữ trang web
-    // (user xác nhận trên máy thật 21/07, DOM đã loại trừ overlay/callout). Đường duy nhất
-    // là share sheet iOS: fetch bản ĐANG HIỂN THỊ (=s2048, nhẹ — giữ user-activation cho
-    // navigator.share) → khách bấm "Lưu ảnh" trong sheet. Không share được → hướng dẫn Safari.
-    if (platform === "ios-webview") {
-      const displaySrc = touchImgSrcRef.current;
-      const fileName = img.file_name || "photo.jpg";
-      void (async () => {
-        try {
-          if (!displaySrc || typeof navigator.share !== "function") throw new Error("share-unavailable");
-          const blob = await (await fetch(displaySrc)).blob();
-          const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
-          if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
-            throw new Error("file-share-unavailable");
-          }
-          await navigator.share({ files: [file] });
-        } catch (error) {
-          if ((error as Error)?.name === "AbortError") return; // khách tự đóng share sheet
-          toast.info("Trình duyệt trong ứng dụng không lưu được ảnh trực tiếp. Bấm nút ⋯ (góc màn hình) → 'Mở bằng trình duyệt' rồi tải nhé.", { duration: 6000 });
-        }
-      })();
-      return;
-    }
+    if (platform === "ios-safari" || platform === "ios-webview") return;
     // Visual feedback: scale 0.98 ngay, reset sau 300ms
     setLongPressActive(true);
     setTimeout(() => setLongPressActive(false), 300);
@@ -385,7 +363,6 @@ export default function ImageViewer({
     if (typeof x === "number") setTouchStartX(x);
     if (typeof y === "number") setTouchStartY(y);
     touchStartTimeRef.current = Date.now();
-    touchImgSrcRef.current = e.currentTarget.currentSrc || e.currentTarget.src || "";
 
     // Clear any pending long-press timer
     if (longPressTimerRef.current) {
@@ -578,7 +555,11 @@ export default function ImageViewer({
         className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{
           borderRadius: "var(--radius-lg)",
-          WebkitTouchCallout: showDownloadButton ? "default" : "none",
+          // LUÔN bật menu nhấn-giữ native (Safari + WebView Messenger/Zalo đều tôn trọng
+          // thuộc tính này). Điều kiện cũ theo showDownloadButton (17120c6) đã TẮT nhấn giữ
+          // cho khách view-token từ khi album có mật khẩu (dc9b1d9) — sai nghiệp vụ ADR-008:
+          // "xem thì vẫn được, chỉ cần pass khi bấm CHỌN"; lưu bản hiển thị là hành vi XEM.
+          WebkitTouchCallout: "default",
         }}
         decoding="async"
         onClick={(e) => e.stopPropagation()}
