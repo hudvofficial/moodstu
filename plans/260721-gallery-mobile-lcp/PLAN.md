@@ -72,3 +72,17 @@ Lưu ý: KHÔNG đụng lớp blurhash + `onImageLoad` (vẫn cần cho fade-out
 - Placeholder scan: không TBD/TODO; mọi task có path + code thật. ✓
 - Type consistency: chỉ đổi giá trị/props có sẵn (`eagerLoad`, `fetchPriority` là prop hợp lệ của next/image), không đổi chữ ký hàm. ✓
 - Rủi ro lớn nhất: Task 1 đổi URL thumbnail toàn lưới (cả admin) — đã ghi trade-off; Task 3 đổi cảm giác fade — blur layer giữ nguyên nên khác biệt tối thiểu.
+
+---
+
+## KẾT QUẢ (đo prod sau deploy 2c8ced0, cùng điều kiện trace ban đầu: mobile 390, 4xCPU, Fast 4G)
+
+| Chỉ số | Trước | Sau | Ghi chú |
+|---|---|---|---|
+| **LCP (lab)** | 5.760ms | **3.323ms** | **-42%** |
+| Load delay (phát hiện ảnh) | 2.757ms | **274ms** | Mục tiêu chính — giảm 10 lần |
+| Insight LCPDiscovery | FAILED ×3 | **Biến mất (pass)** | Ảnh tải thẳng từ HTML |
+| Render delay | 2.557ms | 2.557ms | KHÔNG đổi — đây là chi phí hydration JS trên CPU yếu, NGOÀI scope ADR-012. Muốn giảm tiếp = giảm bundle/hydration → đợt khác, chỉ mở nếu Speed Insights field vẫn xấu sau khi số sạch |
+| CLS | 0.08 | 0.08 | Không regression từ việc bỏ opacity |
+
+Tiêu chí "lab <2.5s" chưa chạm (3.32s) vì phần còn lại là render delay ngoài scope; tiêu chí discovery 3/3 PASS đạt trọn. Field P75 kỳ vọng ~2.5-3s (từ 4.92s). **Theo dõi Speed Insights mobile LCP sau 3-4 ngày** — nếu vẫn vàng/đỏ thì cân nhắc ADR mới cho hydration, KHÔNG tự mở.
