@@ -294,15 +294,11 @@ export default function ImageViewer({
     // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
     // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
     if (!showDownloadButton || !img) return;
+    // iOS (cả Safari lẫn in-app WebView): nhường menu nhấn-giữ của trình duyệt,
+    // KHÔNG can thiệp (hành vi ổn định từ ee6d5db 21/06 — user xác nhận 21/07 Messenger
+    // có menu lưu ảnh riêng; toast chen vào chỉ gây rối, đã revert).
     const platform = detectPlatform();
-    // Safari iOS thật: native contextmenu "Lưu ảnh" đã xử lý sau ~500ms giữ tay → skip override
-    if (platform === "ios-safari") return;
-    // In-app browser iOS (Messenger/Zalo/FB...): KHÔNG có menu "Lưu ảnh" native và cũng chặn
-    // window.open → nhấn giữ chết câm. Hướng dẫn thoát ra Safari (Messenger có nút ⋯ → Mở bằng trình duyệt).
-    if (platform === "ios-webview") {
-      toast.info("Trình duyệt trong ứng dụng không lưu được ảnh. Bấm nút ⋯ (góc màn hình) → 'Mở bằng trình duyệt' rồi tải nhé.", { duration: 6000 });
-      return;
-    }
+    if (platform === "ios-safari" || platform === "ios-webview") return;
     // Visual feedback: scale 0.98 ngay, reset sau 300ms
     setLongPressActive(true);
     setTimeout(() => setLongPressActive(false), 300);
