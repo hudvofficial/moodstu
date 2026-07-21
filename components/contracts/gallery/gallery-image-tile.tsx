@@ -68,8 +68,9 @@ export function GalleryImageTile({
         alt={image.file_name || "Photo"}
         fill
         sizes={`${Math.round(columnWidth)}px`}
-        className={`object-cover transition-all duration-500 group-hover:scale-[1.025] ${imageLoaded ? "opacity-100" : "opacity-0"}`}
+        className="object-cover transition-all duration-500 group-hover:scale-[1.025]"
         priority={eagerLoad}
+        fetchPriority={eagerLoad ? "high" : undefined}
         placeholder={image.blur_data_url ? "blur" : "empty"}
         blurDataURL={image.blur_data_url || undefined}
         quality={85}

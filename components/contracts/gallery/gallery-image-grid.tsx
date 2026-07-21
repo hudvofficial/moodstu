@@ -25,19 +25,6 @@ interface GalleryImageGridProps {
   commentsPerImage?: Record<string, GalleryCommentSummary[]>;
 }
 
-const MIN_THUMBNAIL_SIZE = 400;
-const MAX_THUMBNAIL_SIZE = 1200;
-
-function resolveThumbnailSize(columnWidth: number): number {
-  if (typeof window === "undefined") return 600;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  return Math.min(
-    MAX_THUMBNAIL_SIZE,
-    Math.max(MIN_THUMBNAIL_SIZE, Math.ceil((columnWidth * dpr) / 100) * 100),
-  );
-}
-
 export default function GalleryImageGrid({
   groups,
   onImageClick,
@@ -106,13 +93,16 @@ export default function GalleryImageGrid({
                 // Admin + public both load the lh3 sized URL directly (tile marks lh3 unoptimized).
                 // Do NOT route public through the /api/drive-download proxy: it 302-redirects to lh3,
                 // and Next.js /_next/image cannot optimize a redirect -> 400 on every tile (broken gallery).
+                // Cỡ CỐ ĐỊNH =s600 (ADR-012): src SSR === src client — columnWidth đổi sau hydration
+                // (SSR giả định 5 cột desktop, mobile đo lại 2 cột) từng làm src đổi → img node bị thay
+                // → trình duyệt vứt ảnh HTML, tải lại bằng JS (load delay 2.76s trong trace LCP).
                 const imageSrc = getResponsiveThumbnailUrl(
                   image.thumbnail_url,
                   image.image_url,
-                  resolveThumbnailSize(columnWidth),
+                  600,
                 );
-                // Reduce eager load to minimum to save LCP bandwidth
-                const eagerLoad = index < Math.max(columnCount, 3);
+                // Eager phủ ~2 hàng đầu (mobile 2 cột × 2 hàng lẫn desktop) — ADR-012
+                const eagerLoad = index < Math.max(columnCount * 2, 4);
                 const overlayChipStyle = {
                   backgroundColor: "var(--gallery-admin-overlay-chip)",
                   color: "var(--color-text-primary)",
