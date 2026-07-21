@@ -81,3 +81,11 @@
 - **Quyết định:** Chấp nhận. 2 route download (`gallery-download`, `gallery-download-batch`) với gate view/unlock/payment giữ nguyên vai trò **UX-gate** — hướng khách phổ thông đi đúng luồng trả tiền; KHÔNG coi là security-gate. Phù hợp nghiệp vụ ADR-008 (album chia sẻ tự do cho người thân). Đóng kín thật (Drive restricted + proxy token) chỉ mở lại nếu thu tiền tải ảnh gốc thành nguồn thu quan trọng → ADR mới.
 - **Đã làm kèm (cùng đợt audit):** rate-limit `verifyGalleryPassword` 10 sai/15min/gallery (bảng `gallery_password_attempts`, service-role only, verified e2e prod 21/07, commit `1d5a2ca`); các fix HIGH/MEDIUM khác ở commit `26f3eaf`.
 - **Điều PHẢI nhớ:** đừng ai "vá" lại kiểu giấu `drive_file_id` — vô nghĩa chừng nào ảnh còn serve thẳng từ lh3.
+
+## ADR-012 — Gallery public: tối ưu LCP mobile theo số đo Speed Insights (đúng phạm vi ADR-005)
+- **Ngày:** 2026-07-21 · **Trạng thái:** Accepted (user duyệt sau khi xem số đo; yêu cầu lên plan trước khi code)
+- **Số đo (Speed Insights 7 ngày + trace lab tái hiện):** Mobile LCP P75 = 4.92s (đỏ); trace mobile 4xCPU/Fast-4G: LCP 5.76s = TTFB 0.44s (tốt) + **load delay 2.76s** + tải ảnh 1ms + **render delay 2.56s**. LCPDiscovery 3/3 FAILED: ảnh LCP bị coi là script-injected, loading=lazy, không fetchpriority.
+- **Root cause (đã trace tới dòng):** (1) `imageSrc` phụ thuộc `columnWidth` runtime (gallery-image-grid.tsx:110-113) → SSR giả định 5 cột desktop, client mobile 2 cột → src đổi sau hydration → img node bị thay, trình duyệt vứt ảnh HTML tải lại bằng JS; (2) `eagerLoad = index < max(columnCount,3)` → mobile chỉ 3 ảnh eager, lại thiếu fetchpriority trong HTML thực tế; (3) img `opacity-0` chờ onLoad JS mới hiện → paint LCP buộc đợi JS.
+- **Quyết định:** sửa đúng 3 điểm trên trong module gallery grid (shared admin+public → verify cả 2), theo plan `plans/260721-gallery-mobile-lcp/PLAN.md`. Học albumse: thumbnail dùng MỘT cỡ cố định (họ dùng w601 cho mọi ảnh) → src ổn định tuyệt đối giữa SSR/client.
+- **Không làm:** /dashboard TTFB 5.69s (admin-only, task riêng khi cần); desktop TTFB tổng (số gộp nhiễu giai đoạn bug).
+- **Success criteria:** trace lab cùng điều kiện: LCP < 2.5s + LCPDiscovery 3/3 PASS; render OK @390/@768/@1280 cả public lẫn admin gallery; Speed Insights mobile LCP xanh sau vài ngày.
