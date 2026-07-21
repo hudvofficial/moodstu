@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { detectPlatform } from "@/lib/detect-platform";
 import { downloadSingleImage } from "@/lib/gallery-download";
 import { getComments, type GalleryComment } from "@/app/actions/gallery-reaction-actions";
 
@@ -293,12 +294,15 @@ export default function ImageViewer({
     // Guard TRƯỚC: nếu không được phép download (vd capability="view") thì return luôn,
     // kể cả trên iOS — không cho native "Lưu ảnh" lộ ra khi user không có quyền.
     if (!showDownloadButton || !img) return;
-    // iOS detection: native contextmenu đã xử lý "Lưu ảnh" rồi → skip override
-    const isIOS = typeof navigator !== "undefined" && (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
-    if (isIOS) return; // iOS native contextmenu tự xử lý "Lưu ảnh" rồi, không cần override
+    const platform = detectPlatform();
+    // Safari iOS thật: native contextmenu "Lưu ảnh" đã xử lý sau ~500ms giữ tay → skip override
+    if (platform === "ios-safari") return;
+    // In-app browser iOS (Messenger/Zalo/FB...): KHÔNG có menu "Lưu ảnh" native và cũng chặn
+    // window.open → nhấn giữ chết câm. Hướng dẫn thoát ra Safari (Messenger có nút ⋯ → Mở bằng trình duyệt).
+    if (platform === "ios-webview") {
+      toast.info("Trình duyệt trong ứng dụng không lưu được ảnh. Bấm nút ⋯ (góc màn hình) → 'Mở bằng trình duyệt' rồi tải nhé.", { duration: 6000 });
+      return;
+    }
     // Visual feedback: scale 0.98 ngay, reset sau 300ms
     setLongPressActive(true);
     setTimeout(() => setLongPressActive(false), 300);
@@ -323,15 +327,26 @@ export default function ImageViewer({
     if (!showDownloadButton) return;
 
     if (detectIOS()) {
+      // In-app browser (Messenger/Zalo/FB...) chặn window.open → nút tải chết câm.
+      // Không có cách tải trực tiếp trong WebView đó — hướng dẫn thoát ra Safari.
+      if (detectPlatform() === "ios-webview") {
+        toast.info("Trình duyệt trong ứng dụng không lưu được ảnh. Bấm nút ⋯ (góc màn hình) → 'Mở bằng trình duyệt' rồi tải nhé.", { duration: 6000 });
+        return;
+      }
       const tab = window.open("", "_blank");
+      if (!tab) {
+        // Popup bị chặn (kể cả Safari thật khi user bật chặn popup)
+        toast.info("Trình duyệt chặn mở tab ảnh. Cho phép popup cho trang này rồi thử lại nhé.", { duration: 6000 });
+        return;
+      }
       try {
         const response = await fetch(`/api/gallery-download/${accessToken}/${img.id}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (tab && data.url) {
+        if (data.url) {
           tab.location.href = data.url;
-        } else if (tab) {
+        } else {
           tab.close();
         }
       } catch (error) {
