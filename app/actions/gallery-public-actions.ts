@@ -51,7 +51,12 @@ export async function getPublicGallery(accessUrl: string) {
         capability: getGalleryCapability(data),
         // Album có mật khẩu: vẫn cấp VIEW-token miễn phí (xem + thả tim tự do — nghiệp vụ chốt 15/07).
         // SELECT-token (chọn ảnh/ghi chú — input hậu kỳ) chỉ cấp sau khi nhập đúng pass (verifyGalleryPassword).
-        accessToken: galleryHasPassword(data) ? buildGalleryAccessToken(data, "view") : buildGalleryAccessToken(data),
+        // CHỈ hạ khi capability là "select": mật khẩu bảo vệ CHỌN, không bảo vệ TẢI — link share
+        // "download"/"view" phát đúng capability của link (server còn cổng unlock/payment riêng);
+        // hạ blanket từng làm link download chết trên album có pass (bug 21/07: 0 nút tải).
+        accessToken: galleryHasPassword(data) && getGalleryCapability(data) === "select"
+          ? buildGalleryAccessToken(data, "view")
+          : buildGalleryAccessToken(data),
         gallery_images: page.images,
         imageCount: page.totalCount,
         selectedCount,
