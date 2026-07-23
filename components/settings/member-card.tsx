@@ -81,7 +81,7 @@ export default function MemberCard({
           isCurrentUser ? "bg-primary/5 ring-1 ring-primary/20" : "bg-bg-card"
         } ${isPending ? "opacity-60 pointer-events-none" : ""}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -97,7 +97,7 @@ export default function MemberCard({
             </div>
           )}
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-32">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-text-primary truncate">
                 {displayName}
@@ -109,9 +109,9 @@ export default function MemberCard({
             <p className="text-xs text-text-muted truncate">{user.email}</p>
 
             {linked ? (
-              <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex min-w-0 items-center gap-1 mt-0.5">
                 <Shield className="w-3 h-3 text-text-muted shrink-0" />
-                <span className="text-tiny text-text-muted">
+                <span className="truncate text-tiny text-text-muted">
                   {ROLE_LABELS[linked.role]} · {linked.status}
                 </span>
               </div>
@@ -135,7 +135,7 @@ export default function MemberCard({
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             <div className="relative w-32 shrink-0">
               <SelectForm
                 value={selectedRole}
