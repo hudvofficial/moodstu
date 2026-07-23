@@ -29,7 +29,21 @@ version: 1
 updated: 2026-07-23
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260723-drive-proxy-size-trap
+    title: "Gỡ 2 helper trả URL /api/drive-download thiếu ?size (bẫy nạp nguyên file gốc 15 MB làm thumbnail)"
+    status: spec
+    owner: claude
+    branch: codex/drive-proxy-size-trap
+    locks:
+      - lib/google-drive.ts
+      - components/contracts/gallery/gallery-helpers.ts
+    spec: agent/HANDOFFS/T-20260723-drive-proxy-size-trap.spec.md
+    verify:
+      - npx eslint lib/google-drive.ts components/contracts/gallery/gallery-helpers.ts
+      - npm run build
+    depends_on: []
+    notes: "Tiếp sau 01a2ca8 (proxy nhận ?size, lưới truyền ?size=600, đo thật 15.028 KB → 92 KB). ?size là TUỲ CHỌN nên bẫy chỉ đóng hẳn khi không còn helper nào trả URL proxy trần. Cả 2 chỗ đã xác minh dead: getDriveDownloadUrl 0 nơi gọi toàn repo; tham số useProxy có 3 caller nhưng cả 3 chỉ truyền 3 đối số. GIỮ mặc định =s0 của route — đó là đường tải ảnh gốc, không phải bug."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
