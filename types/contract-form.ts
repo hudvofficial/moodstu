@@ -36,7 +36,6 @@ export interface ContractFormData {
   work_date: string;
   delivery_date: string;
   status: ContractStatus;
-  description: string;
   notes: string;
   assigned_to: string;
   // Couple convenience fields

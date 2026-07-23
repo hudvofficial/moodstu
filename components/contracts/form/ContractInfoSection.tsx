@@ -236,18 +236,7 @@ export function ContractInfoSection({
 
 
 
-      {/* Description */}
-      <Field label="Mô tả">
-        <Textarea unstyled
-          value={formData.description}
-          onChange={(e) => updateField("description", e.target.value)}
-          placeholder="Mô tả gói dịch vụ, yêu cầu đặc biệt..."
-          rows={3}
-          className="input-base resize-none"
-        />
-      </Field>
-
-      {/* Notes — gộp từ S6, ghi chú nội bộ */}
+      {/* Notes — ghi chú nội bộ, KHÔNG in ra hợp đồng (xem migration 20260723000000) */}
       <Field label="Ghi chú nội bộ">
         <Textarea unstyled
           value={formData.notes}

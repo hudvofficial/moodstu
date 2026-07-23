@@ -282,9 +282,6 @@ export default function ContractTemplate({
             italic
             span={2}
           />
-          {contract.notes && (
-            <InfoField label="Ghi chú" value={contract.notes} allowWrap span={2} />
-          )}
         </div>
       </div>
 

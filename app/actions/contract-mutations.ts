@@ -108,7 +108,6 @@ export async function createContract(rawData: unknown) {
       work_date: scheduleSummary?.primaryWorkDate || data.formData.work_date || null,
       delivery_date: data.formData.delivery_date || null,
       status: data.formData.status,
-      description: data.formData.description || null,
       notes: data.formData.notes || null,
       total_amount: data.financials.total_amount,
       discount_amount: data.financials.discount_amount,
