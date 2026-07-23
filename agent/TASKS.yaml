@@ -29,21 +29,7 @@ version: 1
 updated: 2026-07-23
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260723-drive-proxy-size-trap
-    title: "Gỡ 2 helper trả URL /api/drive-download thiếu ?size (bẫy nạp nguyên file gốc 15 MB làm thumbnail)"
-    status: spec
-    owner: claude
-    branch: codex/drive-proxy-size-trap
-    locks:
-      - lib/google-drive.ts
-      - components/contracts/gallery/gallery-helpers.ts
-    spec: agent/HANDOFFS/T-20260723-drive-proxy-size-trap.spec.md
-    verify:
-      - npx eslint lib/google-drive.ts components/contracts/gallery/gallery-helpers.ts
-      - npm run build
-    depends_on: []
-    notes: "Tiếp sau 01a2ca8 (proxy nhận ?size, lưới truyền ?size=600, đo thật 15.028 KB → 92 KB). ?size là TUỲ CHỌN nên bẫy chỉ đóng hẳn khi không còn helper nào trả URL proxy trần. Cả 2 chỗ đã xác minh dead: getDriveDownloadUrl 0 nơi gọi toàn repo; tham số useProxy có 3 caller nhưng cả 3 chỉ truyền 3 đối số. GIỮ mặc định =s0 của route — đó là đường tải ảnh gốc, không phải bug."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -59,6 +45,13 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260723-drive-proxy-size-trap
+    title: "Gỡ 2 helper trả URL /api/drive-download thiếu ?size (bẫy nạp nguyên file gốc 15 MB làm thumbnail)"
+    status: merged
+    merged_commit: 1477090
+    spec: agent/HANDOFFS/T-20260723-drive-proxy-size-trap.spec.md
+    result: "User duyệt spec rồi yêu cầu Claude tự làm, KHÔNG qua Codex. Diff khớp spec đúng 2 task, 2 file, không dòng thừa (Claude tự git diff đối chiếu). Verify đủ 5 bước: eslint 0; build 0 (build là cổng TS — gọi sai hàm/thừa đối số sẽ đỏ); grep getDriveDownloadUrl rỗng; grep useProxy rỗng; render /gallery/amtgzexYOnXG @390x844x3 cho khong_co_size=0, 30/30 ô đã tải đều dùng =s600, 0 ô 'Lỗi nguồn Drive', ảnh chụp xác nhận lưới bình thường."
+    notes: "Đóng nốt bẫy vá một nửa ở 01a2ca8. ?size là TUỲ CHỌN (cố ý — đường tải ảnh gốc phải giữ =s0), nên bẫy chỉ đóng hẳn khi không còn helper nào trả URL proxy trần. Xác minh dead trước khi xoá: getDriveDownloadUrl 0 nơi gọi toàn repo (grep nền quét cả worktree/scripts/tests xác nhận lại lần 2); useProxy có 3 caller nhưng cả 3 chỉ truyền 3 đối số. GIỮ getDriveThumbnailUrl + getDriveImageUrl (5 call site). CÒN TỒN, user CHƯA quyết: (1) components/gallery/gallery-virtual-grid.tsx cả file không ai import, chứa bản sao thứ 2 của getResponsiveThumbnailUrl; (2) scripts/test-url-helper.mjs bản sao thứ 3, không npm script nào gọi; (3) gallery-image-grid-pinterest.tsx USE_PINTEREST=false nhưng vẫn vào bundle gửi khách; (4) 2 worktree cũ ở .claude/worktrees/ làm grep toàn repo timeout. GỐC RỄ: logic dựng URL ảnh có 3 bản sao ở 3 nơi → vá 1 chỗ vẫn hở chỗ khác."
   - id: T-20260723-settings-member-card-overflow
     title: "Thẻ thành viên (Cài đặt): cột tên/email bị bóp còn 18px, chữ 'Admin · active' đè lên ô chọn quyền"
     status: merged
