@@ -208,10 +208,13 @@ export function useMasonryGrid({ groups, hasMoreServer, loadingMore, onLoadMore,
       return;
     }
 
-    // Level 1 fail (lh3 raw) → thử proxy server (Drive API alt=media fallback)
+    // Level 1 fail (lh3 raw) → thử proxy server.
+    // PHẢI truyền ?size: không có nó proxy redirect sang =s0 = nguyên file gốc (~15 MB)
+    // chỉ để vẽ một ô thumbnail 600px → đốt data di động của khách. 600 khớp cỡ
+    // thumbnail lưới đang dùng (ADR-012).
     if (level === 1 && driveFileId) {
       retryLevelsRef.current.set(fileGroup, 2);
-      element.src = `/api/drive-download/${driveFileId}`;
+      element.src = `/api/drive-download/${driveFileId}?size=600`;
       return;
     }
 
