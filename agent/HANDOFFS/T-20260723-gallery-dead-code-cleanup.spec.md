@@ -72,6 +72,8 @@ Nghĩa là wrapper tồn tại chỉ để phục vụ một cái cờ đã cứ
 
 `resolveThumbnailSize` xuất hiện 2 lần, nhưng là **2 bản khai báo cục bộ nằm trong chính 2 file sắp xoá** (`gallery-image-grid-pinterest.tsx:26`, `gallery-virtual-grid.tsx:22`). Xoá file là mất luôn, không ai khác dùng.
 
+Riêng `app/actions/gallery-masonry-layout.ts` đã kiểm **theo TÊN HÀM** chứ không chỉ theo đường dẫn file — grep `calculateMasonryLayout|filterVisiblePositions|getResponsiveColumnCount|MasonryPosition|MasonryLayoutResult` toàn bộ `*.ts/*.tsx`: ngoài chính nó, **chỉ `use-masonry-pinterest.ts` tham chiếu**. Không có nơi nào khác gọi lẻ một hàm trong đó.
+
 ## 3. Files touched
 
 Xoá hẳn 5 file:

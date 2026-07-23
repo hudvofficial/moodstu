@@ -137,6 +137,13 @@ Verify: `git worktree list` chỉ còn repo chính (+ `vscode-not-working-febdc2
 
 ## 7. Câu hỏi mở / rủi ro
 
-- **`git apply` có thể xung đột.** Cả 2 worktree đứng ở `fcc71b6`, còn `main` giờ ở `a521109` — đã qua nhiều commit gallery (`6cb9a26`, `2c8ced0`, `48672c8`, `01a2ca8`, `1477090`). Nếu vùng code quanh diff đã đổi thì patch trượt. Spec cố ý bắt DỪNG thay vì để tự chế.
+- ~~`git apply` có thể xung đột.~~ **ĐÃ KIỂM — không còn là rủi ro.** Chạy dry-run thật:
+  ```
+  git apply --check /tmp/salvage-a.patch   → ÁP ĐƯỢC SẠCH   (patch 55 dòng)
+  git apply --check /tmp/salvage-b.patch   → ÁP ĐƯỢC SẠCH   (patch 29 dòng)
+  ```
+  Dù worktree đứng ở `fcc71b6` còn `main` đã ở `a521109`, vùng code quanh 2 diff chưa bị đụng. Nhánh "DỪNG khi xung đột" ở Task 1/2 vẫn giữ làm lưới an toàn phòng khi `main` đi tiếp trước lúc thực thi.
+
+- **Kiểu import `toast` — đã kiểm, KHÔNG lệch chuẩn.** Cả 2 patch dùng `import { toast } from "sonner"`. Dự án có 2 lối: `sonner` (98 chỗ) và `@/lib/toast-manager` (19 chỗ); `sonner` là dependency trực tiếp (`^2.0.7`) và là lối phổ biến hơn → giữ nguyên như patch, không phải sửa.
 - **Chưa kiểm được nhánh lỗi của (B).** Muốn thấy toast thật thì phải ép `upsertComment` fail (ví dụ đặt album quá hạn chọn ảnh). Tôi không tự đổi dữ liệu nghiệp vụ của album khách để test. Nếu user muốn kiểm tận mắt thì cần một album nháp.
 - **Không rõ 2 worktree này còn dùng vào việc gì khác.** Chúng do phiên Claude trước tạo ra; ngoài 2 file trên thì cây làm việc sạch. Nhưng đây là môi trường máy user nên Task 3 vẫn phải hỏi lại.
