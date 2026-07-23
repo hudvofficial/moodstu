@@ -35,8 +35,7 @@
     padding-right: var(--space-base);
     min-height: 44px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
+    background: var(--color-bg-input);
     font-size: var(--font-size-body-sm);
     color: var(--color-text-primary);
     outline: none;
@@ -50,8 +49,8 @@
   }
 
   .input-base:focus {
-    border-color: var(--color-border);
-    box-shadow: none;
+    background: var(--color-bg-card);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-interactive) 25%, transparent);
   }
 
   .input-base:disabled {
@@ -65,10 +64,9 @@
     margin-left: auto;
   }
 
-  /* Input selected state — V1 pattern: border highlight + bg tint */
+  /* Input selected state — V2: bg tint + text, không border (Lesson #64) */
   /* Dùng khi customer / item đã được chọn từ dropdown */
   .input-selected {
-    border-color: var(--color-interactive);
     background: rgba(207, 103, 23, 0.05); /* interactive/5 */
     color: var(--color-interactive);
     font-weight: 600;
@@ -102,7 +100,6 @@
 ────────────────────────────────────────────────────────────────── */
 .input-base[data-state="open"],
 .input-base[data-state="open"]:focus {
-  border-color: var(--color-border);
   background: var(--color-bg-card);
   box-shadow: none;
 }
@@ -200,13 +197,11 @@
    6. VALIDATION STATES
    ══════════════════════════════════════ */
 
-/* Input error state */
-.input-error {
-  border-color: var(--color-error) !important;
-}
+/* Input error state — V2: bg tint + ring đỏ, không border (Lesson #64) */
+.input-error,
 .input-error:focus {
-  border-color: var(--color-error) !important;
-  box-shadow: none !important;
+  background: color-mix(in srgb, var(--color-error) 6%, transparent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-error) 35%, transparent) !important;
 }
 
 /* Error text — form validation messages */

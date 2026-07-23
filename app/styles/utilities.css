@@ -92,17 +92,21 @@
 }
 
 /* Form focus reset: final cascade override for form controls and
-   form-like triggers that reuse `.input-base` (Select, DatePicker). */
-:is(input, select, textarea, .input-base):is(:focus, :focus-visible, [data-state="open"]) {
-  border-color: var(--color-border) !important;
+   form-like triggers that reuse `.input-base` (Select, DatePicker).
+   Chỉ dập outline UA + ring của Tailwind — KHÔNG dập box-shadow, vì ring
+   focus của `.input-base:focus` (forms.css) chính là box-shadow. */
+:is(input, select, textarea, .input-base):is(:focus, :focus-visible) {
   outline: none !important;
-  box-shadow: none !important;
   --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
 
-:is(input, select, textarea, .input-base).input-error:is(:focus, :focus-visible) {
-  border-color: var(--color-error) !important;
+/* Select/DatePicker đang mở: giữ nguyên, không ring (dropdown đã là chỉ báo) */
+:is(select, .input-base)[data-state="open"] {
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
 
 /* ══════════════════════════════════════
