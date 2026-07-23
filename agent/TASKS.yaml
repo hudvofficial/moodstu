@@ -29,8 +29,20 @@ version: 1
 updated: 2026-07-17
 
 # ---- Task đang chạy ----
-active: []
-    notes: "Bug report Sentry 17/07: isRetryableSchemaCacheError chỉ bắt PGRST002/003/schema-cache/retrying, KHÔNG bắt 'upstream request timeout' thật gặp trên prod → retry loop thoát ngay lần đầu, bỏ qua 3 lần retry đã thiết kế. Đổi tên hàm thành isRetryableEmployeeContextError (chỉ dùng 1 chỗ, an toàn), export để test, thêm điều kiện. User duyệt qua AskUserQuestion 17/07."
+active:
+  - id: T-20260723-settings-member-card-overflow
+    title: "Thẻ thành viên (Cài đặt): cột tên/email bị bóp còn 18px, chữ 'Admin · active' đè lên ô chọn quyền"
+    status: spec
+    owner: claude
+    branch: codex/settings-member-card-overflow
+    locks:
+      - components/settings/member-card.tsx
+    spec: agent/HANDOFFS/T-20260723-settings-member-card-overflow.spec.md
+    verify:
+      - npx eslint components/settings/member-card.tsx
+      - npm run build
+    depends_on: []
+    notes: "Lỗi CÓ SẴN, không phải do đợt bỏ border 23/07 — đã chứng minh bằng cách tiêm lại đúng CSS border cũ trên trang thật, số đo giống hệt (cột thông tin 18px, chồng lấn 16px). Root cause: cụm phải cố định 168px (select w-32 + nút 32 + gap) cộng avatar 40 vượt bề ngang thẻ 286px ở sidebar desktop → cột flex-1 min-w-0 co còn 18px, dòng 'ROLE · status' không có truncate nên tràn đè lên select. Bẫy: bề ngang thẻ KHÔNG tương quan breakpoint viewport (desktop 286px hẹp, tablet 666px rộng) → cấm sửa bằng md:/lg:."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
