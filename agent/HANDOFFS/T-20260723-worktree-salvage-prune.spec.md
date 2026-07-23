@@ -33,6 +33,18 @@ Hai hàm `fetchAllSelectedDownloadFiles` và `fetchAllHeartedDownloadFiles` đan
 **(B)** `trusting-dijkstra-c5e0c4` → `components/gallery/public-gallery-client.tsx` (+9 −2)
 `upsertComment` thất bại thì chỉ `return result.success` — viewer rollback im lặng, khách không biết vì sao ghi chú không lưu (ví dụ album đã quá hạn chọn ảnh). Diff thêm `toast.error(result.error)` với `id` cố định để retry không xếp chồng toast.
 
+### Đã quét CẠN, không sót đường mất dữ liệu nào khác
+Lần kiểm đầu tôi cắt `head -5` nên chưa đủ căn cứ. Đã chạy lại đầy đủ trên **cả 3** thư mục:
+
+| Kiểm | elated-jones | trusting-dijkstra | vscode-not-working |
+|---|---|---|---|
+| `git status --short` (không cắt) | đúng 1 file `M` | đúng 1 file `M` | sạch |
+| `git diff --cached` (staged) | rỗng | rỗng | rỗng |
+| `git stash list` | rỗng | rỗng | rỗng |
+| `git ls-files --others --exclude-standard` (chưa track) | rỗng | rỗng | rỗng |
+
+**Nhánh không có commit riêng:** `git log main..<branch>` rỗng cho cả hai, và `git merge-base --is-ancestor <branch> main` đều đúng → `fcc71b6` nằm trọn trong lịch sử `main`. Nên **thứ duy nhất sẽ mất khi gỡ là 2 thay đổi working-tree ở trên**, không có commit nào bị chôn.
+
 ### Xác nhận chưa có trên main
 ```
 grep -c "toast.error" components/contracts/gallery/use-gallery-data.ts   → 0

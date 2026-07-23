@@ -29,10 +29,18 @@ export default USE_PINTEREST ? GalleryImageGridPinterest : GalleryImageGridOrigi
 ```
 Cờ `false` cứng → nhánh Pinterest **không bao giờ render**. Nhưng câu `import` vẫn còn, nên bundler vẫn gói nó vào.
 
-**Bằng chứng đo được** (không phải suy luận): lấy chuỗi class chỉ tồn tại trong file Pinterest — `"max-w-full truncate px-3 text-micro font-medium"` — rồi grep bundle client đã build:
-```
-1 file chứa: .next/static/chunks/7260-0e8f77e05f9ea258.js  (20 KB)
-```
+**Bằng chứng đo được, trên build PROD SẠCH** (`rm -rf .next && npm run build`, xác nhận không còn `.next/dev`):
+
+| Marker | Số file chunk chứa |
+|---|---|
+| *(đối chứng)* `absolute right-2 top-2 z-10 flex items-center gap-1` — của lưới ĐANG CHẠY | 2 |
+| *(đối chứng)* `flex h-5 items-center justify-center rounded-full px-2` — của lưới ĐANG CHẠY | 1 |
+| **riêng Pinterest** `max-w-full truncate px-3 text-micro font-medium` | **1** |
+| **riêng Pinterest** `text-micro opacity-60` | **1** |
+
+Đối chứng có mặt đúng như kỳ vọng → phép đo đáng tin; và 2 marker **chỉ tồn tại trong file Pinterest** cũng có mặt → nó **thật sự bị đóng gói vào bundle prod gửi khách**.
+
+> ⚠️ Lần đo ĐẦU TIÊN của tôi **không hợp lệ**: `.next` lúc đó lẫn cả artefact dev (`.next/dev` tồn tại), mà dev **không tree-shake** nên có mặt trong đó không chứng minh được gì. Bảng trên là số đo lại sau khi xoá sạch `.next` và build prod thuần.
 Chuỗi phụ thuộc chết theo, mỗi mắt xích **chỉ có đúng 1 nơi gọi là mắt xích trước nó**:
 ```
 gallery-image-grid-pinterest.tsx (271 dòng)
@@ -50,6 +58,15 @@ Nó import `@tanstack/react-virtual`, nhưng gói này còn **2 consumer khác**
 ### c) `scripts/test-url-helper.mjs` (75 dòng) — bản sao thứ 3
 
 Script rời, tự chứa một bản copy của `getResponsiveThumbnailUrl` (bản còn nhánh `useProxy` đã bị xoá ở `1477090`). Không có npm script nào trỏ tới (grep `test-url-helper` trong `package.json` → rỗng).
+
+### c-bis) Ai thật sự dùng wrapper `gallery-image-grid-index` — CHỈ 1 nơi
+
+```
+components/gallery/public-gallery-client.tsx:13   ← album CÔNG KHAI, nơi duy nhất
+```
+Giao diện **admin KHÔNG đi qua wrapper**: `components/contracts/gallery/gallery-full-page.tsx:9` import **thẳng** `./gallery-image-grid`.
+
+Nghĩa là wrapper tồn tại chỉ để phục vụ một cái cờ đã cứng `false`. Sau task này nó thành một file re-export 1 dòng — chấp nhận được (xem §7 để biết vì sao chưa xoá hẳn).
 
 ### d) Không có hàm dùng chung nào bị mồ côi
 
@@ -127,11 +144,22 @@ Verify ngay: `npm run build` → exit 0.
    grep -rn "use-masonry-pinterest\|useMasonryPinterest" --include=*.ts --include=*.tsx components/ app/
    grep -rn "gallery-masonry-layout\|calculateMasonryLayout" --include=*.ts --include=*.tsx components/ app/ lib/
    ```
-4. **Chỉ số quan trọng nhất — Pinterest phải RỜI KHỎI bundle.** Sau khi build lại, lệnh này phải in ra `0`:
+4. **Chỉ số quan trọng nhất — Pinterest phải RỜI KHỎI bundle.**
+   **BẮT BUỘC build sạch trước khi đo**, nếu không sẽ đo nhầm artefact dev (dev không tree-shake):
+   ```
+   rm -rf .next && npm run build
+   ls -d .next/dev 2>/dev/null && echo "SAI: vẫn còn dev" || echo "OK: prod thuần"
+   ```
+   Rồi cả 2 lệnh dưới phải in ra `0` (trước khi sửa: mỗi lệnh in `1`):
    ```
    grep -rl -F "max-w-full truncate px-3 text-micro font-medium" .next/static/chunks/ | wc -l
+   grep -rl -F "text-micro opacity-60" .next/static/chunks/ | wc -l
    ```
-   (Trước khi sửa, lệnh này in ra `1`. Đây là bằng chứng bundle gửi khách đã nhẹ đi, không phải suy đoán.)
+   Và 2 lệnh đối chứng dưới phải **vẫn > 0** (nếu về 0 thì đã xoá nhầm lưới đang chạy):
+   ```
+   grep -rl -F "absolute right-2 top-2 z-10 flex items-center gap-1" .next/static/chunks/ | wc -l
+   grep -rl -F "flex h-5 items-center justify-center rounded-full px-2" .next/static/chunks/ | wc -l
+   ```
 5. Chỉ còn **1 bản** `getResponsiveThumbnailUrl` trong repo — lệnh này phải in ra đúng `1`:
    ```
    grep -rn "function getResponsiveThumbnailUrl" --include=*.ts --include=*.tsx --include=*.mjs . | grep -v node_modules | grep -v "\.claude/worktrees" | wc -l
@@ -143,7 +171,8 @@ Verify ngay: `npm run build` → exit 0.
      oLoi: document.body.innerText.split('Lỗi nguồn Drive').length - 1,
    })
    ```
-7. Mở thêm 1 album ở giao diện admin (`/contracts/<id>` → tab Album) để chắc lưới phía admin — cùng dùng `gallery-image-grid-index` — không vỡ.
+7. Mở 1 album ở giao diện admin (`/contracts/<id>` → tab Album) — smoke test.
+   *Lưu ý:* admin **KHÔNG** đi qua `gallery-image-grid-index` (nó import thẳng `./gallery-image-grid` tại `gallery-full-page.tsx:9`), nên về lý thuyết Task 3 không chạm tới admin. Vẫn mở để chắc, vì Task 4 xoá file nằm trong cùng thư mục `components/contracts/gallery/`.
 
 ## 6. Ràng buộc / cạm bẫy phải giữ
 
@@ -156,4 +185,12 @@ Verify ngay: `npm run build` → exit 0.
 
 - **Mất khả năng bật lại Pinterest.** Bản này từng được viết để dùng `width`/`height` có sẵn trong DB, tính layout trước nên không giật khi ảnh tải. Xoá đi là mất luôn đường lùi đó; muốn quay lại phải lấy từ git history (commit trước `1477090`). Đánh giá: cờ đã `false` rất lâu và bản CSS Grid đã qua đợt tối ưu LCP ADR-012, nên khả năng quay lại thấp — nhưng đây là mất mát thật, không phải dọn rác thuần tuý.
 - **Chưa đo được phần KB mà riêng Pinterest chiếm.** Tôi chỉ chứng minh được nó *nằm trong* chunk `7260-*.js` (20 KB tổng, còn chứa thứ khác). Con số "giảm bao nhiêu KB" chỉ biết chắc sau khi build lại ở bước verify 4.
+- **Có phương án SẠCH HƠN nhưng đang bị luật khoá chặn — cần bạn chọn.**
+  Sau Task 3, `gallery-image-grid-index.tsx` chỉ còn là file re-export 1 dòng, tức một lớp trung gian vô nghĩa. Sạch hơn là: cho `public-gallery-client.tsx:13` import thẳng `./gallery-image-grid` (đúng cách admin đang làm ở `gallery-full-page.tsx:9`) rồi **xoá hẳn wrapper**.
+  **Nhưng** `components/gallery/public-gallery-client.tsx` đang nằm trong `locks` của task `T-20260723-worktree-salvage-prune` → 2 task chưa merged mà locks giao nhau là **vi phạm AGENT_RULES §3**.
+  Hai đường đi:
+  - **(i)** Làm task worktree TRƯỚC cho merged, rồi task này nhận thêm lock `public-gallery-client.tsx` và xoá luôn wrapper. Sạch nhất, nhưng phải chờ.
+  - **(ii)** Giữ nguyên spec này (wrapper thành re-export 1 dòng), mở task nhỏ dọn wrapper sau. Không vướng khoá, đổi lại còn nợ 1 file thừa.
+  Spec hiện tại đang viết theo **(ii)**.
+
 - **Ngoài phạm vi task này:** 2 worktree cũ ở `.claude/worktrees/` chiếm **5.2 GB** đĩa và **đều có thay đổi chưa commit chưa hề có trên main**. Đã tách thành task riêng `T-20260723-worktree-salvage-prune` vì bản chất khác hẳn (cứu việc dở + dọn môi trường, không phải xoá dead code).
