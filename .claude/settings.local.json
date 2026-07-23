@@ -46,6 +46,20 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh 'C:/Users/Admin/Desktop/Ai/mood saas/mood-studio/.claude/hooks/pre-push-lint.sh'",
+            "shell": "bash",
+            "timeout": 120,
+            "statusMessage": "Kiểm lint trước khi push"
+          }
+        ]
+      }
     ]
   }
 }
