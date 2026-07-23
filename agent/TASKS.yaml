@@ -29,7 +29,39 @@ version: 1
 updated: 2026-07-23
 
 # ---- Task đang chạy ----
-active: []
+active:
+  - id: T-20260723-gallery-dead-code-cleanup
+    title: "Gỡ 5 file gallery chết — chuỗi Pinterest 3 file ĐANG nằm trong bundle gửi khách"
+    status: spec
+    owner: claude
+    branch: codex/gallery-dead-code-cleanup
+    locks:
+      - scripts/test-url-helper.mjs
+      - components/gallery/gallery-virtual-grid.tsx
+      - components/contracts/gallery/gallery-image-grid-pinterest.tsx
+      - components/contracts/gallery/use-masonry-pinterest.ts
+      - components/contracts/gallery/gallery-image-grid-index.tsx
+      - app/actions/gallery-masonry-layout.ts
+    spec: agent/HANDOFFS/T-20260723-gallery-dead-code-cleanup.spec.md
+    verify:
+      - npx eslint components/contracts/gallery/gallery-image-grid-index.tsx
+      - npm run build
+    depends_on: []
+    notes: "Gốc rễ: logic dựng URL ảnh có 3 bản sao ở 3 nơi → vá bẫy ?size ở 01a2ca8+1477090 vẫn còn 2 bản ngoài tầm vá; task này rút còn 1. ĐO ĐƯỢC (không suy đoán): chuỗi class riêng của Pinterest nằm trong .next/static/chunks/7260-0e8f77e05f9ea258.js (20 KB) dù USE_PINTEREST=false nên chưa từng chạy. Chuỗi chết: pinterest → use-masonry-pinterest → app/actions/gallery-masonry-layout, mỗi mắt xích chỉ có 1 nơi gọi là mắt xích trước. resolveThumbnailSize là bản CỤC BỘ trong chính 2 file bị xoá → không mồ côi ai. @tanstack/react-virtual còn 2 consumer khác → KHÔNG đụng lockfile. Rủi ro thật: mất đường lùi bật lại Pinterest (lấy lại từ git history nếu cần)."
+  - id: T-20260723-worktree-salvage-prune
+    title: "Cứu 2 thay đổi chưa commit trong worktree cũ, rồi mới gỡ (thu hồi 5.2 GB)"
+    status: spec
+    owner: claude
+    branch: codex/worktree-salvage
+    locks:
+      - components/contracts/gallery/use-gallery-data.ts
+      - components/gallery/public-gallery-client.tsx
+    spec: agent/HANDOFFS/T-20260723-worktree-salvage-prune.spec.md
+    verify:
+      - npx eslint components/contracts/gallery/use-gallery-data.ts components/gallery/public-gallery-client.tsx
+      - npm run build
+    depends_on: []
+    notes: "CỨU TRƯỚC, GỠ SAU — không được đảo. 2 worktree ở .claude/worktrees/ (2.3 GB + 2.9 GB) đều giữ thay đổi CHƯA COMMIT và CHƯA có trên main (grep toast.error trên main = 0 ở cả 2 file). Cả hai đều vá cùng một lớp bệnh: nuốt lỗi rồi trả rỗng khiến triệu chứng giống trạng thái bình thường (Download Manager '0 file'; lưu ghi chú fail im lặng). Task 3 (gỡ worktree) ĐỘNG VÀO MÔI TRƯỜNG MÁY USER → phải hỏi xác nhận riêng dù spec đã duyệt; worktree remove --force là mất vĩnh viễn phần chưa commit. Rủi ro: git apply có thể xung đột vì worktree đứng ở fcc71b6 còn main đã ở a521109 — spec bắt DỪNG chứ không tự chế."
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
