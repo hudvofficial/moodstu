@@ -45,11 +45,6 @@ export function getDriveImageUrl(fileId: string): string {
   return `https://lh3.googleusercontent.com/d/${fileId}`;
 }
 
-/** Build download URL via our proxy API */
-export function getDriveDownloadUrl(fileId: string): string {
-  return `/api/drive-download/${fileId}`;
-}
-
 // ─── File Grouping ─────────────────────────────────
 
 /**

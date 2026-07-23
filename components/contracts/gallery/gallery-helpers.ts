@@ -35,34 +35,24 @@ export function isRawFile(filename: string): boolean {
 }
 
 /**
- * Get responsive thumbnail URL with fallback to proxy
+ * Get responsive thumbnail URL
  *
  * Strategy:
- * 1. Proxy mode: use /api/drive-download for same-origin loading
- * 2. Prefer lh3.googleusercontent.com (whitelisted in next.config.ts)
- * 3. Fallback to drive.google.com/thumbnail (requires <img> tag or config update)
+ * 1. Prefer lh3.googleusercontent.com (whitelisted in next.config.ts)
+ * 2. Fallback to drive.google.com/thumbnail (requires <img> tag or config update)
+ *
+ * KHÔNG trả URL /api/drive-download ở đây: proxy đó mặc định redirect sang =s0
+ * (nguyên file gốc ~15 MB). Muốn dùng proxy làm thumbnail thì PHẢI tự truyền
+ * ?size=N — xem use-masonry-grid.ts, commit 01a2ca8.
  */
 export function getResponsiveThumbnailUrl(
   thumbnailUrl: string | null,
   imageUrl: string,
   targetSize: number,
-  useProxy: boolean = false
 ): string {
-  // Strategy 1: Use proxy for same-origin loading (public mode)
-  if (useProxy) {
-    const fileIdMatch =
-      thumbnailUrl?.match(/[?&]id=([^&]+)/) ||
-      imageUrl?.match(/\/d\/([^/?]+)/);
-    const fileId = fileIdMatch?.[1] || fileIdMatch?.[2];
-
-    if (fileId) {
-      return `/api/drive-download/${fileId}`;
-    }
-  }
-
   const normalizedSize = Math.max(200, Math.round(targetSize));
 
-  // Strategy 2: Prefer lh3.googleusercontent.com (already whitelisted for Next.js Image)
+  // Strategy 1: Prefer lh3.googleusercontent.com (already whitelisted for Next.js Image)
   // lh3 URLs support =sXXX parameter for responsive sizing
   if (imageUrl && /lh3\.googleusercontent\.com/i.test(imageUrl)) {
     // Remove existing size param if present
@@ -70,7 +60,7 @@ export function getResponsiveThumbnailUrl(
     return `${baseUrl}=s${normalizedSize}`;
   }
 
-  // Strategy 3: Fallback to drive.google.com/thumbnail
+  // Strategy 2: Fallback to drive.google.com/thumbnail
   // Note: Requires drive.google.com in next.config.ts remotePatterns OR using <img> tag
   if (!thumbnailUrl) return imageUrl;
 
