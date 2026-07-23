@@ -186,7 +186,7 @@ export function ContractInfoSection({
 
         <div className="mt-3 space-y-2">
           {schedules.map((schedule, index) => (
-            <div data-testid="contract-schedule-row" key={schedule.id || `${schedule.eventType}-${index}`} className="grid gap-3 rounded-lg bg-bg-card px-3 py-3 shadow-xs md:grid-cols-[110px_minmax(160px,1fr)_minmax(180px,1fr)_auto] md:items-end">
+            <div data-testid="contract-schedule-row" key={schedule.id || `${schedule.eventType}-${index}`} className="grid gap-3 rounded-lg bg-bg-card px-3 py-3 shadow-xs md:grid-cols-[88px_minmax(120px,1fr)_minmax(150px,1fr)_auto] md:items-end">
               <div>
                 <span className="label-base">Loại mốc</span>
                 <span className="inline-flex min-h-10 w-full items-center text-sm font-medium text-text-secondary">
@@ -218,7 +218,7 @@ export function ContractInfoSection({
                     unstyled
                     type="button"
                     onClick={() => updateSchedule(index, { isPrimaryWeddingDate: true })}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${schedule.isPrimaryWeddingDate ? "bg-interactive/10 text-interactive" : "bg-bg-hover text-text-muted hover:text-text-primary"}`}
+                    className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${schedule.isPrimaryWeddingDate ? "bg-interactive/10 text-interactive" : "bg-bg-hover text-text-muted hover:text-text-primary"}`}
                     aria-pressed={schedule.isPrimaryWeddingDate}
                   >
                     {schedule.isPrimaryWeddingDate ? "Ngày chính" : "Chọn chính"}
