@@ -44,18 +44,21 @@ function withThumbSize(url: string, size: number): string {
   return url;
 }
 
-function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?: string } {
-  if (!image) return { src: "" };
+// `full` = bản GỐC (=s0). Menu "Lưu ảnh" native của iOS lưu đúng số byte mà thẻ <img>
+// đã tải, nên muốn nhấn-giữ ra ảnh gốc thì chính thẻ <img> phải đang giữ bản gốc.
+// Xem useEffect nạp nền bên dưới: mở ảnh hiện bản nhẹ trước, gốc thay vào khi tải xong.
+function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?: string; full: string } {
+  if (!image) return { src: "", full: "" };
   // Ưu tiên dùng image_url (lh3) để tránh lỗi redirect chéo tên miền trên mobile Safari
   const base = image.image_url || image.thumbnail_url;
-  if (!base) return { src: "" };
+  if (!base) return { src: "", full: "" };
 
   const canResize = /sz=s\d+/.test(base) || /=s\d+/.test(base) || base.includes("lh3.googleusercontent.com");
-  if (!canResize) return { src: base };
+  if (!canResize) return { src: base, full: base };
 
   const mobile = withThumbSize(base, 1200);
   const desktop = withThumbSize(base, 2048);
-  return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w` };
+  return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w`, full: withThumbSize(base, 0) };
 }
 
 // iOS device detection (iPad/iPhone/iPod + iPad Pro desktop mode)
@@ -118,7 +121,34 @@ export default function ImageViewer({
   const ownComment = comments.find((comment) => comment.is_mine);
   const otherComments = comments.filter((comment) => !comment.is_mine);
 
-  const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
+  const { src, srcSet, full } = useMemo(() => getPreviewUrls(img), [img]);
+
+  // Nạp nền bản gốc (=s0) rồi thay vào thẻ <img>, để nhấn-giữ lưu được ảnh gốc.
+  // Hiện bản nhẹ trước nên tốc độ mở ảnh không đổi; chỉ đổi thứ nằm trong <img> sau vài giây.
+  // State gắn KHÓA theo url gốc (mỗi ảnh 1 url riêng) thay vì reset trong effect —
+  // tránh setState đồng bộ trong effect (react-hooks/set-state-in-effect).
+  const [fullState, setFullState] = useState<{ key: string; ok: boolean } | null>(null);
+  const needsUpgrade = Boolean(full && full !== src);
+  const fullSrc = needsUpgrade && fullState?.key === full && fullState.ok ? full : null;
+  const loadingFull = needsUpgrade && fullState?.key !== full;
+
+  useEffect(() => {
+    if (!full || full === src) return;
+    let cancelled = false;
+    const loader = new window.Image();
+    loader.onload = () => {
+      if (!cancelled) setFullState({ key: full, ok: true });
+    };
+    loader.onerror = () => {
+      if (!cancelled) setFullState({ key: full, ok: false });
+    };
+    loader.src = full;
+    return () => {
+      cancelled = true;
+      loader.onload = null;
+      loader.onerror = null;
+    };
+  }, [full, src]);
 
   // Decode capability from token if not admin
   let clientCapability = "select";
@@ -548,9 +578,9 @@ export default function ImageViewer({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={img.id}
-        src={src}
-        srcSet={srcSet}
-        sizes="(max-width: 768px) 100vw, 95vw"
+        src={fullSrc || src}
+        srcSet={fullSrc ? undefined : srcSet}
+        sizes={fullSrc ? undefined : "(max-width: 768px) 100vw, 95vw"}
         alt={img.file_name || "Photo"}
         className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{
@@ -567,6 +597,21 @@ export default function ImageViewer({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       />
+
+      {/* Nhấn giữ chỉ lưu được ảnh gốc SAU khi bản gốc nạp xong — báo cho khách biết
+          để không lưu nhầm bản nhẹ rồi tưởng ảnh mờ. */}
+      {loadingFull && showDownloadButton && (
+        <div
+          className="pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 px-3 py-1.5 text-xs font-medium"
+          style={{
+            background: "rgba(0,0,0,0.55)",
+            color: "rgba(255,255,255,0.92)",
+            borderRadius: "9999px",
+          }}
+        >
+          Đang tải ảnh gốc…
+        </div>
+      )}
 
       {noteOpen && onSaveNote && !isViewOnly && (
         <div
