@@ -31,17 +31,20 @@ function withThumbSize(url: string, size: number): string {
   return url;
 }
 
-function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?: string } {
-  if (!image) return { src: "" };
-  if (!image.thumbnail_url) return { src: image.image_url };
+// `full` = bản GỐC (=s0). Ảnh hiển thị chỉ =s2048; chuột-phải "Lưu ảnh" / nhấn giữ
+// sẽ lưu đúng số byte thẻ <img> đang giữ, nên muốn lưu ra gốc thì phải nạp nền =s0
+// rồi thay vào <img> (xem useEffect bên dưới). Nút Tải riêng đã dùng =s0 sẵn.
+function getPreviewUrls(image: GalleryImage | undefined): { src: string; srcSet?: string; full: string } {
+  if (!image) return { src: "", full: "" };
+  if (!image.thumbnail_url) return { src: image.image_url, full: image.image_url };
 
   const base = image.thumbnail_url;
   const canResize = /sz=s\d+/.test(base) || /=s\d+/.test(base);
-  if (!canResize) return { src: base };
+  if (!canResize) return { src: base, full: base };
 
   const mobile = withThumbSize(base, 1200);
   const desktop = withThumbSize(base, 2048);
-  return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w` };
+  return { src: desktop, srcSet: `${mobile} 1200w, ${desktop} 2048w`, full: withThumbSize(base, 0) };
 }
 
 async function downloadUrl(url: string, fileName: string): Promise<boolean> {
@@ -87,8 +90,25 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
 
   const img = images[currentIdx];
 
-  const { src, srcSet } = useMemo(() => getPreviewUrls(img), [img]);
+  const { src, srcSet, full } = useMemo(() => getPreviewUrls(img), [img]);
   const imageComments = commentsPerImage[img.id] || [];
+
+  // Nạp nền bản gốc (=s0) rồi thay vào <img>, để chuột-phải "Lưu ảnh"/nhấn giữ ra bản gốc.
+  // Hiện bản nhẹ trước nên tốc độ mở không đổi. State gắn KHÓA theo url gốc thay vì
+  // reset trong effect — tránh setState đồng bộ trong effect (react-hooks/set-state-in-effect).
+  const [fullState, setFullState] = useState<{ key: string; ok: boolean } | null>(null);
+  const needsUpgrade = Boolean(full && full !== src);
+  const displaySrc = needsUpgrade && fullState?.key === full && fullState.ok ? full : src;
+
+  useEffect(() => {
+    if (!full || full === src) return;
+    let cancelled = false;
+    const loader = new window.Image();
+    loader.onload = () => { if (!cancelled) setFullState({ key: full, ok: true }); };
+    loader.onerror = () => { if (!cancelled) setFullState({ key: full, ok: false }); };
+    loader.src = full;
+    return () => { cancelled = true; loader.onload = null; loader.onerror = null; };
+  }, [full, src]);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -334,9 +354,9 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={img.id}
-        src={src}
-        srcSet={srcSet}
-        sizes="(max-width: 768px) 100vw, 95vw"
+        src={displaySrc}
+        srcSet={displaySrc === full ? undefined : srcSet}
+        sizes={displaySrc === full ? undefined : "(max-width: 768px) 100vw, 95vw"}
         alt={img.file_name || "Photo"}
         className="max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw]"
         style={{ borderRadius: "var(--radius-lg)" }}
