@@ -164,8 +164,8 @@ export function ContractInfoSection({
         />
       </div>
 
-      <div className="rounded-xl border border-border-subtle bg-surface/40">
-        <div className="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl bg-bg-hover/50 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-text-primary">Lịch trình thực hiện</p>
             <p className="mt-0.5 text-xs text-text-muted">Mỗi ngày là một sự kiện độc lập để theo dõi công việc và đồng bộ lịch.</p>
@@ -184,9 +184,9 @@ export function ContractInfoSection({
           </div>
         </div>
 
-        <div className="divide-y divide-border-subtle">
+        <div className="mt-3 space-y-2">
           {schedules.map((schedule, index) => (
-            <div data-testid="contract-schedule-row" key={schedule.id || `${schedule.eventType}-${index}`} className="grid gap-3 px-4 py-3 md:grid-cols-[110px_minmax(160px,1fr)_minmax(180px,1fr)_auto] md:items-end">
+            <div data-testid="contract-schedule-row" key={schedule.id || `${schedule.eventType}-${index}`} className="grid gap-3 rounded-lg bg-bg-card px-3 py-3 shadow-xs md:grid-cols-[110px_minmax(160px,1fr)_minmax(180px,1fr)_auto] md:items-end">
               <div>
                 <span className="label-base">Loại mốc</span>
                 <span className="inline-flex min-h-10 w-full items-center text-sm font-medium text-text-secondary">
@@ -218,7 +218,7 @@ export function ContractInfoSection({
                     unstyled
                     type="button"
                     onClick={() => updateSchedule(index, { isPrimaryWeddingDate: true })}
-                    className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${schedule.isPrimaryWeddingDate ? "border-interactive bg-interactive/10 text-interactive" : "border-border-subtle text-text-muted hover:text-text-primary"}`}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${schedule.isPrimaryWeddingDate ? "bg-interactive/10 text-interactive" : "bg-bg-hover text-text-muted hover:text-text-primary"}`}
                     aria-pressed={schedule.isPrimaryWeddingDate}
                   >
                     {schedule.isPrimaryWeddingDate ? "Ngày chính" : "Chọn chính"}
@@ -231,7 +231,7 @@ export function ContractInfoSection({
             </div>
           ))}
         </div>
-        {scheduleError ? <p className="error-text px-4 pb-3">{scheduleError}</p> : null}
+        {scheduleError ? <p className="error-text mt-2">{scheduleError}</p> : null}
       </div>
 
 
