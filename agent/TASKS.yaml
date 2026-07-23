@@ -26,23 +26,10 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-07-17
+updated: 2026-07-23
 
 # ---- Task đang chạy ----
-active:
-  - id: T-20260723-settings-member-card-overflow
-    title: "Thẻ thành viên (Cài đặt): cột tên/email bị bóp còn 18px, chữ 'Admin · active' đè lên ô chọn quyền"
-    status: spec
-    owner: claude
-    branch: codex/settings-member-card-overflow
-    locks:
-      - components/settings/member-card.tsx
-    spec: agent/HANDOFFS/T-20260723-settings-member-card-overflow.spec.md
-    verify:
-      - npx eslint components/settings/member-card.tsx
-      - npm run build
-    depends_on: []
-    notes: "Lỗi CÓ SẴN, không phải do đợt bỏ border 23/07 — đã chứng minh bằng cách tiêm lại đúng CSS border cũ trên trang thật, số đo giống hệt (cột thông tin 18px, chồng lấn 16px). Root cause: cụm phải cố định 168px (select w-32 + nút 32 + gap) cộng avatar 40 vượt bề ngang thẻ 286px ở sidebar desktop → cột flex-1 min-w-0 co còn 18px, dòng 'ROLE · status' không có truncate nên tràn đè lên select. Bẫy: bề ngang thẻ KHÔNG tương quan breakpoint viewport (desktop 286px hẹp, tablet 666px rộng) → cấm sửa bằng md:/lg:."
+active: []
 
 # ---- Cần đối chiếu (in-flight ngoài quy trình, backfill quyền sở hữu nếu resume) ----
 known_inflight: []
@@ -58,6 +45,13 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260723-settings-member-card-overflow
+    title: "Thẻ thành viên (Cài đặt): cột tên/email bị bóp còn 18px, chữ 'Admin · active' đè lên ô chọn quyền"
+    status: merged
+    merged_commit: 866d878
+    spec: agent/HANDOFFS/T-20260723-settings-member-card-overflow.spec.md
+    result: "User yêu cầu Claude tự triển khai, KHÔNG qua Codex. Diff khớp spec 4/4 điểm, đúng 1 file, không thừa dòng nào (Claude tự git diff đối chiếu). Verify độc lập ĐỦ: eslint exit 0, npm run build exit 0, và đo lại chrome-devtools ở cả 3 viewport khớp CHÍNH XÁC bảng kỳ vọng viết sẵn trong spec trước khi code — 1440: cột thông tin 18→210px, hàng 83→97px; 375: 37→229px, 83→97px; 768: 398px/53px KHÔNG đổi (vẫn 1 dòng); overlaps=false cả 3. Chụp màn hình @1440 xác nhận mắt đọc được đủ tên + email + dòng quyền của cả 2 thành viên."
+    notes: "Lỗi CÓ SẴN, KHÔNG do đợt bỏ border 23/07 — chứng minh bằng cách tiêm lại đúng CSS border cũ (.input-base border 1px + nền trắng) lên trang đang chạy rồi đo lại: giống hệt từng pixel (cột 18px, chồng 16px). Hình học không phụ thuộc border vì mọi thứ là border-box. BÀI HỌC GIỮ LẠI: bề ngang thẻ KHÔNG tương quan breakpoint viewport — ở lg (≥1024) thẻ nằm trong .detail-sidebar 4/10 cột nên hẹp 286px, ở md (768) layout 1 cột nên rộng 666px → sửa bằng md:/lg: là hỏng đúng chiều ngược lại. Giải pháp không dùng breakpoint nào: flex-wrap + sàn min-w-32 + ml-auto + truncate, tự đúng ở mọi bề ngang. Đánh đổi có chủ đích: desktop + phone thẻ cao thêm 14px vì select xuống dòng 2. CÒN TỒN: TASKS.yaml trước task này không parse được (notes mồ côi dòng 33 sót từ T-20260717 khi chuyển sang done) — đã gỡ."
   - id: T-20260717-auth-employee-context-retry-timeout
     title: "Retry 'upstream request timeout' khi tải hồ sơ nhân viên (bug Sentry, lặp lại nhiều lần/nhiều user)"
     status: merged
