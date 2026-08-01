@@ -73,8 +73,10 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
   const [unit, setUnit] = useState<InventoryUnit | "">(
     (editItem?.unit as InventoryUnit) || "",
   );
-  const [minStock, setMinStock] = useState(editItem?.min_stock ?? 5);
-  const [initialStock, setInitialStock] = useState(0);
+  const [minStock, setMinStock] = useState(
+    editItem?.min_stock != null ? String(editItem.min_stock) : "",
+  );
+  const [initialStock, setInitialStock] = useState("");
   const [purchasePrice, setPurchasePrice] = useState(
     editItem?.purchase_price || editItem?.average_unit_price || 0,
   );
@@ -106,7 +108,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
       name: name.trim(),
       category,
       unit,
-      min_stock: minStock,
+      min_stock: Number(minStock) || 0,
       purchase_price: purchasePrice,
       sale_price: salePrice,
       supplier: supplier.trim() || undefined,
@@ -140,11 +142,11 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
     startTransition(async () => {
       const result = await createInventoryItem({
         ...formData,
-        initial_stock: initialStock,
+        initial_stock: Number(initialStock) || 0,
         initial_unit_cost: purchasePrice,
       });
       if (result && "success" in result && result.success) {
-        toast.success("Đã nhập kho vật tư mới");
+        toast.success("Đã thêm vật tư mới");
         await invalidateInventoryAfterWrite();
       } else {
         const errMsg = result && "error" in result ? result.error : "Có lỗi xảy ra";
@@ -157,7 +159,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
     <UnifiedModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? "Sửa vật tư" : "Nhập kho mới"}
+      title={isEdit ? "Sửa vật tư" : "Khai báo vật tư mới"}
       size="xl"
       footer={
         <div className="grid grid-cols-2 gap-3 w-full">
@@ -165,7 +167,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
             Hủy
           </Button>
           <Button type="button" onClick={(event) => handleSubmit(event)} disabled={isPending} className="h-12">
-            {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Nhập kho"}
+            {isPending ? "Đang lưu..." : isEdit ? "Cập nhật" : "Lưu vật tư"}
           </Button>
         </div>
       }
@@ -205,7 +207,7 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
 
         <div className="form-grid-2col">
           <div>
-            <label className="label-base">Giá nhập TB</label>
+            <label className="label-base">Giá nhập</label>
             <CurrencyInput value={purchasePrice} onChange={setPurchasePrice} />
           </div>
           <div>
@@ -217,12 +219,13 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
         <div className="form-grid-2col">
           {!isEdit && (
             <div>
-              <label className="label-base">Số lượng tồn</label>
+              <label className="label-base">Tồn ban đầu</label>
               <Input
                 type="number"
                 min={0}
                 value={initialStock}
-                onChange={(event) => setInitialStock(Number(event.target.value))}
+                onChange={(event) => setInitialStock(event.target.value)}
+                placeholder="0"
               />
             </div>
           )}
@@ -232,8 +235,9 @@ export function InventoryFormModal({ isOpen, onClose, editItem }: InventoryFormM
               type="number"
               min={0}
               value={minStock}
-              onChange={(event) => setMinStock(Number(event.target.value))}
+              onChange={(event) => setMinStock(event.target.value)}
               className="text-danger"
+              placeholder="0"
             />
           </div>
         </div>
