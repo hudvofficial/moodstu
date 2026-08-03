@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Plus } from "lucide-react";
 import { getServiceCategories, getServices } from "@/app/actions/service-queries";
@@ -113,7 +113,7 @@ export default function ServicesListClient({
       ? {
           fallbackData: initialServicesPayload,
           revalidateOnFocus: false,
-          revalidateOnMount: false,
+          revalidateOnMount: true,
         }
       : undefined,
   );
@@ -121,10 +121,26 @@ export default function ServicesListClient({
     cacheKeys.categories(),
     loadCategories,
     categories
-      ? { fallbackData: categories, revalidateOnFocus: false, revalidateOnMount: false }
+      ? { fallbackData: categories, revalidateOnFocus: false, revalidateOnMount: true }
       : undefined,
   );
   const mutateServices = servicesQuery.mutate;
+  const mutateCategories = categoriesQuery.mutate;
+
+  // Server (force-dynamic + revalidatePath sau create/update/delete) là nguồn chân lý.
+  // SWR cache là module-level, sống xuyên điều hướng client → khi quay lại /services
+  // sau khi tạo dịch vụ ở /services/create, cache cũ che mất props tươi. Seed lại cache
+  // từ props server mỗi khi props đổi để list phản ánh ngay dữ liệu mới (không chờ refetch).
+  useEffect(() => {
+    if (initialServicesPayload) {
+      void mutateServices(initialServicesPayload, { revalidate: false });
+    }
+  }, [initialServicesPayload, mutateServices]);
+  useEffect(() => {
+    if (categories) {
+      void mutateCategories(categories, { revalidate: false });
+    }
+  }, [categories, mutateCategories]);
   const refreshServiceCaches = useCallback(() => {
     void invalidateServiceAfterWrite();
   }, []);
