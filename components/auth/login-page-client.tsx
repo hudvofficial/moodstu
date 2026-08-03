@@ -189,7 +189,7 @@ export default function LoginPageClient() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-text-muted hover:text-text-primary"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 !p-0 !h-auto !w-auto text-text-muted hover:text-text-primary hover:bg-transparent transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
