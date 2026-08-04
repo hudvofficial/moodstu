@@ -215,11 +215,14 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
           </Button>
           {showSalary && (
             <div className="form-grid-2col mt-3">
-              <div>
-                <label className="label-base">Lương cơ bản</label>
-                <Input className="w-full" type="number" min="0" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" disabled={submitting} />
-                {errors.base_salary && <p className="error-text">{errors.base_salary}</p>}
-              </div>
+              {/* CTV trả theo job → không có lương cứng; ẩn field này cho CTV */}
+              {form.role !== "ctv" && (
+                <div>
+                  <label className="label-base">Lương cơ bản</label>
+                  <Input className="w-full" type="number" min="0" value={form.base_salary} onChange={(e) => { setField("base_salary", e.target.value); setErrors((p) => ({ ...p, base_salary: "" })); }} placeholder="10000000" disabled={submitting} />
+                  {errors.base_salary && <p className="error-text">{errors.base_salary}</p>}
+                </div>
+              )}
               <div>
                 <label className="label-base">Ngân hàng</label>
                 <Input className="w-full" value={form.bank_name} onChange={(e) => setField("bank_name", e.target.value)} placeholder="Vietcombank" disabled={submitting} />

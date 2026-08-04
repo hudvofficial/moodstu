@@ -71,7 +71,10 @@ export default function EmployeeDetailPage({
   ];
 
   const salaryItems = [
-    { label: "Lương cơ bản", value: salary.base_salary ? formatVnd(salary.base_salary) : null },
+    // CTV trả theo job → không có lương cứng; ẩn dòng "Lương cơ bản" cho CTV
+    ...(employee.role === "ctv"
+      ? []
+      : [{ label: "Lương cơ bản", value: salary.base_salary ? formatVnd(salary.base_salary) : null }]),
     { label: "Ngân hàng", value: salary.bank_name || null },
     { label: "Số tài khoản", value: salary.bank_account_no || null },
     { label: "Tên tài khoản", value: salary.bank_account_name || null },

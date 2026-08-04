@@ -209,13 +209,18 @@ export default function EmployeeDetailDrawer({
 
   const salaryItems = detail
     ? [
-        {
-          label: "Lương cơ bản",
-          value:
-            typeof salary.base_salary === "number"
-              ? formatVnd(salary.base_salary)
-              : null,
-        },
+        // CTV trả theo job → không có lương cứng; ẩn dòng "Lương cơ bản" cho CTV
+        ...(detail.role === "ctv"
+          ? []
+          : [
+              {
+                label: "Lương cơ bản",
+                value:
+                  typeof salary.base_salary === "number"
+                    ? formatVnd(salary.base_salary)
+                    : null,
+              },
+            ]),
         { label: "Ngân hàng", value: salary.bank_name || null },
         { label: "Số tài khoản", value: salary.bank_account_no || null },
         { label: "Tên tài khoản", value: salary.bank_account_name || null },
