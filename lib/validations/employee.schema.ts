@@ -13,17 +13,20 @@ export const employeeStatusSchema = z.enum(["active", "inactive"], {
 
 export const employeeSalaryInfoSchema = z
   .object({
-    base_salary: z.number().nonnegative("Lương không được âm").optional(),
-    bank_name: z.string().max(100, "Tên ngân hàng tối đa 100 ký tự").optional(),
+    // nullable: cho phép gửi null để XOÁ field đã lưu (merge server áp null)
+    base_salary: z.number().nonnegative("Lương không được âm").nullable().optional(),
+    bank_name: z.string().max(100, "Tên ngân hàng tối đa 100 ký tự").nullable().optional(),
     bank_account_no: z
       .string()
       .max(50, "Số tài khoản tối đa 50 ký tự")
+      .nullable()
       .optional(),
     bank_account_name: z
       .string()
       .max(100, "Tên tài khoản tối đa 100 ký tự")
+      .nullable()
       .optional(),
-    branch: z.string().max(100, "Chi nhánh tối đa 100 ký tự").optional(),
+    branch: z.string().max(100, "Chi nhánh tối đa 100 ký tự").nullable().optional(),
   })
   .passthrough();
 

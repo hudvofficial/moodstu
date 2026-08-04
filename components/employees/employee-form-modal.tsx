@@ -97,15 +97,16 @@ export default function EmployeeFormModal({ isOpen, onClose, onSaved, editEmploy
         start_date: form.start_date || null,
       };
 
-      // Salary → salary_info JSONB
-      if (form.base_salary || form.bank_name || form.bank_account_no || form.bank_account_name) {
-        payload.salary_info = {
-          ...(form.base_salary ? { base_salary: Number(form.base_salary) } : {}),
-          ...(form.bank_name ? { bank_name: form.bank_name } : {}),
-          ...(form.bank_account_no ? { bank_account_no: form.bank_account_no } : {}),
-          ...(form.bank_account_name ? { bank_account_name: form.bank_account_name } : {}),
-        };
-      }
+      // Salary → salary_info JSONB.
+      // Luôn gửi đủ 4 field (rỗng → null) để cho phép XOÁ giá trị đã lưu — nếu chỉ
+      // gửi field non-empty, server merge {...existing, ...new} sẽ giữ lại giá trị cũ
+      // (không xoá được). Các key khác của salary_info (vd branch) vẫn được merge giữ.
+      payload.salary_info = {
+        base_salary: form.base_salary ? Number(form.base_salary) : null,
+        bank_name: form.bank_name.trim() || null,
+        bank_account_no: form.bank_account_no.trim() || null,
+        bank_account_name: form.bank_account_name.trim() || null,
+      };
 
       // Instant close — đóng modal ngay, chạy server action ngầm
       onClose();
