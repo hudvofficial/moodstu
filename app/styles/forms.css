@@ -125,7 +125,8 @@
   padding-right: var(--space-base);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-bg-input);
+  background: var(--color-bg-hover);
+  box-shadow: var(--shadow-xs), inset 0 0 0 1px var(--color-border);
   font-size: var(--font-size-body-sm);
   color: var(--color-text-primary);
   outline: none;
@@ -138,7 +139,7 @@
 .search-input:focus {
   outline: none;
   border: none;
-  box-shadow: none;
+  box-shadow: var(--shadow-xs), inset 0 0 0 1px var(--color-primary);
 }
 
 /* ══════════════════════════════════════

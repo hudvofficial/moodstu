@@ -265,12 +265,24 @@ export function Header({
                     placeholder={searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className={`search-input pr-14 ${searchTerm ? "pl-4" : "pl-9"}`}
+                    className={`search-input ${searchTerm ? "pl-4 pr-9" : "pl-9 pr-14"}`}
                   />
-                  <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none flex items-center gap-0.5">
-                    <span className="kbd-badge">⌘</span>
-                    <span className="kbd-badge">K</span>
-                  </div>
+                  {searchTerm ? (
+                    <Button
+                      unstyled
+                      type="button"
+                      onClick={handleClearSearch}
+                      aria-label="Xóa tìm kiếm"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-0.5 text-text-muted transition-colors hover:bg-bg-hover hover:text-text-primary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  ) : (
+                    <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none flex items-center gap-0.5">
+                      <span className="kbd-badge">⌘</span>
+                      <span className="kbd-badge">K</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
