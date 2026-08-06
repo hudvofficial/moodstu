@@ -35,6 +35,12 @@ Sentry.init({
     "ZaloJSInterface",
     "fb_xd_fragment",
     "__gCrWeb",
+    // next-pwa (next.config.ts `register: true`) gọi workbox.register() không
+    // .catch(); in-app browser từ chối đăng ký SW → rejection lọt vào Sentry.
+    // Chỉ mất offline cache của PWA, trang vẫn chạy bình thường.
+    // Regex NEO 2 đầu: ignoreErrors match theo substring nên chuỗi "Rejected"
+    // trần sẽ nuốt nhầm mọi lỗi khác có chữ này.
+    /^Rejected$/,
   ],
 
   // Before sending an error, add context
