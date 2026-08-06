@@ -77,6 +77,13 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260806-gallery-filter-mode
+    title: "Modal Lọc ảnh: 3 radio là UI chết → chọn thật Khách chọn / Thả tim / Cả hai, áp cho cả 3 tab"
+    status: merged
+    merged_commit: 091d40b
+    spec: agent/HANDOFFS/T-20260806-gallery-filter-mode.spec.md
+    result: "User duyệt spec rồi yêu cầu Claude tự code, KHÔNG qua Codex. 9 task/5 file đúng spec. Verify: eslint 5 file exit 0; npm run build exit 0; render thật localhost:3000 gallery hoaikha-thihiu (163 khách chọn/159 tim) — đổi radio cho ra ĐÚNG 163 / 159 / 166, khớp ground truth query thẳng DB (chon_jpg_drive=163, tim=159, union=166, overlap=156); radio hiện + giữ lựa chọn ở CẢ 3 tab (checkedIndex không đổi khi chuyển tab); screenshot @1024 và @390 + đo @768 không tràn ngang, nút Bắt đầu lọc trong khung. Lặp lại ĐÚNG 3 nhánh query mới của initDriveCopyJob bằng supabase-js trên DB thật: selected=163 rows, hearted=159 (.in với 159 UUID chạy được, không lỗi URL/cú pháp), both=166 — khớp số client. CHƯA chạy copy Drive thật (tạo folder+shortcut trên Drive khách, khó lùi) → để user bấm 1 lần trên gallery test."
+    notes: "Root cause đo được: Radio name='filterType' không state/không onChange và handleCopyDrive không đọc → 3 lựa chọn chỉ là trang trí. Server initDriveCopyJob tự query union(is_selected OR heart) bỏ qua danh sách client, còn Local/Export dùng fetchAllHeartedDownloadFiles (CHỈ tim) → (1) số hiển thị 159 lệch với union server copy ≥163, (2) 2 tab kia bỏ sót ảnh khách chọn không tim. Bug phụ bắt thêm: server không lọc drive_file_id nên ảnh thiếu id vào filesToCopy → fail chắc chắn + phồng total_count. Mặc định chốt = 'Ảnh khách chọn' (đổi hành vi mặc định cũ, user duyệt). 'Ảnh có tag' vẫn disabled vì gallery_images KHÔNG có cột tag (cột tags là của bảng galleries); 'Ảnh có bình luận' làm được (gallery_comments) nhưng ngoài phạm vi. BẪY GIỮ LẠI: query đếm bằng supabase-js bị PostgREST chặn 1000 dòng/request bất kể .limit() → lần đầu ra số sai (chọn 96/tim 112), phải phân trang .range() mới ra đúng 163/159."
   - id: T-20260806-sentry-sw-register-noise
     title: "Lọc noise Sentry 'Error: Rejected' — next-pwa gọi workbox.register() không .catch()"
     status: merged
