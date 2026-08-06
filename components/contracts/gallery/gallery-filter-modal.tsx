@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Download, CheckCircle2, AlertCircle } from "lucide-react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { TabsFilter } from "@/components/ui/tabs-filter";
@@ -12,11 +12,25 @@ import { isFileSystemAccessSupported, scanDirectoryForFiles, copyFileBetweenHand
 import { generateExportPack } from "@/lib/utils/export-pack-generator";
 import { toast } from "sonner";
 import { GalleryFilterDriveTab } from "./tabs/gallery-filter-drive-tab";
+import type { GalleryFilterFile, GalleryFilterMode } from "@/types/gallery";
+
+const FILTER_MODE_OPTIONS: { value: GalleryFilterMode; label: string }[] = [
+  { value: "selected", label: "Ảnh khách chọn" },
+  { value: "hearted", label: "Ảnh yêu thích (thả tim)" },
+  { value: "both", label: "Cả hai (khách chọn + thả tim)" },
+];
+
+const FILTER_MODE_LABELS: Record<GalleryFilterMode, string> = {
+  selected: "khách chọn",
+  hearted: "khách thả tim",
+  both: "khách chọn hoặc thả tim",
+};
 
 interface GalleryFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedJpgNames: string[];
+  heartedFiles: GalleryFilterFile[];
+  clientSelectedFiles: GalleryFilterFile[];
   contractId: string;
   galleryId: string | null;
   defaultTab?: "drive" | "local" | "export";
@@ -25,7 +39,8 @@ interface GalleryFilterModalProps {
 export default function GalleryFilterModal({
   isOpen,
   onClose,
-  selectedJpgNames,
+  heartedFiles,
+  clientSelectedFiles,
   contractId,
   galleryId,
   defaultTab = "local",
@@ -54,6 +69,30 @@ export default function GalleryFilterModal({
   
   const [scanResult, setScanResult] = useState<{ found: number; missing: string[] } | null>(null);
   const [copyProgress, setCopyProgress] = useState({ current: 0, total: 0, skipped: 0 });
+
+  const [filterMode, setFilterMode] = useState<GalleryFilterMode>("selected");
+
+  // Danh sách file hiệu lực theo chế độ đang chọn. Khử trùng theo imageId vì 1 ảnh
+  // có thể vừa được khách chọn vừa được thả tim — nếu không, chế độ "Cả hai" sẽ
+  // đếm đôi và copy đôi.
+  const selectedJpgNames = useMemo(() => {
+    const source =
+      filterMode === "hearted"
+        ? heartedFiles
+        : filterMode === "selected"
+          ? clientSelectedFiles
+          : [...clientSelectedFiles, ...heartedFiles];
+
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const file of source) {
+      if (seen.has(file.imageId)) continue;
+      seen.add(file.imageId);
+      if (!file.fileName || !/\.(jpe?g)$/i.test(file.fileName)) continue;
+      names.push(file.fileName);
+    }
+    return names;
+  }, [filterMode, heartedFiles, clientSelectedFiles]);
 
   const totalSelected = selectedJpgNames.length;
   const isSupported = isFileSystemAccessSupported();
@@ -153,7 +192,7 @@ export default function GalleryFilterModal({
       isOpen={isOpen}
       onClose={handleClose}
       title={activeTab === "drive" ? "Lọc ảnh vào Google Drive" : activeTab === "export" ? "Xuất gói lọc ảnh" : "Lọc & Copy Ảnh Đã Chọn"}
-      description={`Có tổng cộng ${totalSelected} file JPG được chọn. Chọn phương thức lọc dưới đây.`}
+      description={`Có tổng cộng ${totalSelected} file JPG ${FILTER_MODE_LABELS[filterMode]}. Chọn phương thức lọc dưới đây.`}
     >
       <div className="space-y-4">
         <TabsFilter
@@ -167,6 +206,34 @@ export default function GalleryFilterModal({
           variant="pills"
           className="w-full"
         />
+
+        {/* Nguồn ảnh — áp cho CẢ 3 tab. Trước đây khối radio này nằm trong tab Drive
+            và là UI chết: không state, không onChange, handleCopyDrive không đọc. */}
+        <div className="space-y-3">
+          <h4 className="text-body-sm font-semibold text-text-primary">Vui lòng chọn mục bạn muốn lọc</h4>
+          <div className="space-y-3">
+            {FILTER_MODE_OPTIONS.map((option) => (
+              <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                <Radio
+                  name="filterMode"
+                  value={option.value}
+                  checked={filterMode === option.value}
+                  onChange={() => setFilterMode(option.value)}
+                  disabled={isCopying}
+                />
+                <span className="text-body-sm text-text-primary">{option.label}</span>
+              </label>
+            ))}
+            <label className="flex items-center gap-3 cursor-not-allowed opacity-50">
+              <Radio name="filterMode" disabled />
+              <span className="text-body-sm text-text-primary">Ảnh có bình luận</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-not-allowed opacity-50">
+              <Radio name="filterMode" disabled />
+              <span className="text-body-sm text-text-primary">Ảnh có tag</span>
+            </label>
+          </div>
+        </div>
 
         <div className="p-1 max-h-[50vh] overflow-y-auto">
           {/* LOCAL TAB */}
@@ -305,6 +372,7 @@ export default function GalleryFilterModal({
               galleryId={galleryId}
               contractId={contractId}
               contractName={contractId}
+              filterMode={filterMode}
             />
           )}
 

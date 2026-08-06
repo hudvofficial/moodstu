@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Radio } from "@/components/ui/radio";
 import { initDriveCopyJob, processDriveCopyChunk, finalizeDriveCopyJob } from "@/app/actions/gallery-drive-actions";
 import { toast } from "sonner";
+import type { GalleryFilterMode } from "@/types/gallery";
 
 interface GalleryFilterDriveTabProps {
   totalSelected: number;
   galleryId: string | null;
   contractId: string;
   contractName: string;
+  filterMode: GalleryFilterMode;
 }
 
 export function GalleryFilterDriveTab({
@@ -17,6 +18,7 @@ export function GalleryFilterDriveTab({
   galleryId,
   contractId,
   contractName,
+  filterMode,
 }: GalleryFilterDriveTabProps) {
   // Ô trống để user tự đặt tên — server fallback "Selected - <contract_code>" nếu submit empty
   // (xem initDriveCopyJob ở gallery-drive-actions.ts).
@@ -33,7 +35,7 @@ export function GalleryFilterDriveTab({
     setDriveDestUrl(null);
     
     try {
-      const initRes = await initDriveCopyJob(galleryId, contractId, driveFolderName);
+      const initRes = await initDriveCopyJob(galleryId, contractId, driveFolderName, filterMode);
       
       if (!initRes.success) {
         toast.error(initRes.error || "Lỗi khởi tạo job");
@@ -130,24 +132,6 @@ export function GalleryFilterDriveTab({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 p-2">
-      <div className="space-y-4">
-        <h4 className="text-body-sm font-semibold text-text-primary">Vui lòng chọn mục bạn muốn lọc</h4>
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <Radio name="filterType" defaultChecked />
-            <span className="text-body-sm text-text-primary">Ảnh yêu thích</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-not-allowed opacity-50">
-            <Radio name="filterType" disabled />
-            <span className="text-body-sm text-text-primary">Ảnh có bình luận</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-not-allowed opacity-50">
-            <Radio name="filterType" disabled />
-            <span className="text-body-sm text-text-primary">Ảnh có tag</span>
-          </label>
-        </div>
-      </div>
-
       <div className="space-y-2">
         <label className="text-body-sm font-semibold text-text-primary">Nhập tên thư mục chứa các file ảnh đã lọc</label>
         <Input

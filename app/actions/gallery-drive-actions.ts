@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import type { GalleryFilterMode } from "@/types/gallery";
 import { revalidatePath } from "next/cache";
 import {
   parseDriveFolderUrl, fetchDriveFiles, fetchDriveSubfolders,
@@ -229,7 +230,12 @@ export async function getDeliveryDate(contractId: string) {
 }
 
 // --- initDriveCopyJob ---------------------------------------
-export async function initDriveCopyJob(galleryId: string, contractId: string, destFolderName: string) {
+export async function initDriveCopyJob(
+  galleryId: string,
+  contractId: string,
+  destFolderName: string,
+  filterMode: GalleryFilterMode = "both",
+) {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
 
@@ -269,35 +275,54 @@ export async function initDriveCopyJob(galleryId: string, contractId: string, de
       return { error: "Gallery chưa có link Drive gốc" };
     }
 
-    const { data: heartReactions, error: reactionsError } = await supabase
-      .from("gallery_reactions")
-      .select("image_id")
-      .eq("gallery_id", galleryId)
-      .eq("reaction_type", "heart");
+    // filterMode quyết định nguồn ảnh — PHẢI khớp với danh sách client đang hiển thị
+    // trong modal, nếu không số đếm trên UI sẽ lệch với số file thật sự copy.
+    const NO_MATCH_UUID = "00000000-0000-0000-0000-000000000000";
+    let reactionHeartedIds: string[] = [];
 
-    if (reactionsError) throw new Error("Failed to load hearted images");
+    if (filterMode !== "selected") {
+      const { data: heartReactions, error: reactionsError } = await supabase
+        .from("gallery_reactions")
+        .select("image_id")
+        .eq("gallery_id", galleryId)
+        .eq("reaction_type", "heart");
 
-    const reactionHeartedIds = (heartReactions || []).map((row) => row.image_id).filter(Boolean);
+      if (reactionsError) throw new Error("Failed to load hearted images");
 
-    const { data: images, error: imagesError } = await supabase
+      reactionHeartedIds = (heartReactions || []).map((row) => row.image_id).filter(Boolean);
+    }
+
+    const heartedIdList = reactionHeartedIds.length > 0 ? reactionHeartedIds.join(",") : NO_MATCH_UUID;
+
+    let imagesQuery = supabase
       .from("gallery_images")
       .select("id, drive_file_id, file_name, sort_order, created_at, is_selected")
-      .eq("gallery_id", galleryId)
-      .or(`is_selected.eq.true,id.in.(${reactionHeartedIds.length > 0 ? reactionHeartedIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
+      .eq("gallery_id", galleryId);
+
+    if (filterMode === "selected") {
+      imagesQuery = imagesQuery.eq("is_selected", true);
+    } else if (filterMode === "hearted") {
+      imagesQuery = imagesQuery.in("id", reactionHeartedIds.length > 0 ? reactionHeartedIds : [NO_MATCH_UUID]);
+    } else {
+      imagesQuery = imagesQuery.or(`is_selected.eq.true,id.in.(${heartedIdList})`);
+    }
+
+    const { data: images, error: imagesError } = await imagesQuery
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
-    if (imagesError) throw new Error("Failed to load hearted gallery images");
-    if (!images || images.length === 0) return { error: "No hearted images found" };
-    // Filter JPG/JPEG files (case-insensitive).
+    if (imagesError) throw new Error("Failed to load gallery images");
+    if (!images || images.length === 0) return { error: "Không có ảnh nào khớp mục đã chọn" };
+    // Chỉ giữ JPG/JPEG (không phân biệt hoa thường) và ảnh CÓ drive_file_id — ảnh
+    // thiếu drive_file_id chắc chắn fail khi tạo shortcut và làm phồng total_count.
     const jpgImages = images.filter((img) => {
-      if (!img.file_name) return false;
+      if (!img.file_name || !img.drive_file_id) return false;
       const lower = img.file_name.toLowerCase();
       return lower.endsWith(".jpg") || lower.endsWith(".jpeg");
     });
 
     if (jpgImages.length === 0) {
-      return { error: "Không tìm thấy file định dạng JPG/JPEG trong các ảnh khách đã chọn" };
+      return { error: "Không tìm thấy file định dạng JPG/JPEG trong các ảnh khớp mục đã chọn" };
     }
 
     const finalFolderName = destFolderName.trim() || `Selected - ${contractCode}`;

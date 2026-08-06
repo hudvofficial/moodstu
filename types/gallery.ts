@@ -209,3 +209,12 @@ export function isValidUUID(id: string): boolean {
 }
 
 export const MAX_NOTE_LENGTH = 500;
+
+/** Nguồn ảnh cho modal "Lọc ảnh": khách bấm chọn (is_selected), khách thả tim (gallery_reactions), hoặc cả hai. */
+export type GalleryFilterMode = "selected" | "hearted" | "both";
+
+/** 1 file ứng viên để lọc — imageId dùng để khử trùng khi hợp 2 nguồn. */
+export interface GalleryFilterFile {
+  imageId: string;
+  fileName: string;
+}

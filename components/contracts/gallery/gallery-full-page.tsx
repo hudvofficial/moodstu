@@ -18,7 +18,7 @@ import { useGalleryData } from "./use-gallery-data";
 import { useSetHeaderSlots } from "@/contexts/header-slots-context";
 import { FOLDER_LABELS } from "./gallery-helpers";
 import { useNetworkQuality } from "@/hooks/use-network-quality";
-import type { GallerySummary } from "@/types/gallery";
+import type { GallerySummary, GalleryFilterFile } from "@/types/gallery";
 import type { GalleryDataV2Result } from "@/app/actions/gallery-composite-actions";
 
 // ------------------------------------------------------------
@@ -79,7 +79,8 @@ export default function GalleryFullPage({
   const [filterTab, setFilterTab] = useState<"drive" | "local" | "export">("local");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { openModal } = useModal();
-  const [fullSelectedJpgNames, setFullSelectedJpgNames] = useState<string[]>([]);
+  const [heartedFiles, setHeartedFiles] = useState<GalleryFilterFile[]>([]);
+  const [clientSelectedFiles, setClientSelectedFiles] = useState<GalleryFilterFile[]>([]);
 
   // Share modal handler
   const handleOpenShare = () => {
@@ -102,15 +103,19 @@ export default function GalleryFullPage({
     if (tab) setFilterTab(tab);
     setIsFilterModalOpen(true);
     
-    // Fetch full list of hearted JPGs directly from DB to bypass pagination limits
+    // Nạp thẳng từ DB để không dính giới hạn pagination. Nạp CẢ HAI nguồn vì
+    // modal cho đổi qua lại giữa "khách chọn" / "thả tim" / "cả hai" — lọc đuôi
+    // JPG để trong modal (một chỗ duy nhất).
     try {
-      const files = await fetchAllHeartedDownloadFiles();
-      const jpgNames = files
-        .filter((f: { fileName: string }) => f.fileName && /\.(jpe?g)$/i.test(f.fileName))
-        .map((f: { fileName: string }) => f.fileName);
-      setFullSelectedJpgNames(jpgNames);
+      const [hearted, selected] = await Promise.all([
+        fetchAllHeartedDownloadFiles(),
+        fetchAllSelectedDownloadFiles(),
+      ]);
+      setHeartedFiles(hearted);
+      setClientSelectedFiles(selected);
     } catch (e) {
-      console.error("Lỗi lấy danh sách JPG tim", e);
+      console.error("Lỗi lấy danh sách ảnh để lọc", e);
+      toast.error("Không lấy được danh sách ảnh để lọc. Đóng modal và thử lại.");
     }
   };
 
@@ -192,7 +197,8 @@ export default function GalleryFullPage({
       <GalleryFilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        selectedJpgNames={fullSelectedJpgNames}
+        heartedFiles={heartedFiles}
+        clientSelectedFiles={clientSelectedFiles}
         contractId={contractId}
         galleryId={activeGalleryId}
         defaultTab={filterTab}
