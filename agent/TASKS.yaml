@@ -26,7 +26,7 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-07-23
+updated: 2026-08-06
 
 # ---- Task đang chạy ----
 active:
@@ -77,6 +77,13 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260806-sentry-sw-register-noise
+    title: "Lọc noise Sentry 'Error: Rejected' — next-pwa gọi workbox.register() không .catch()"
+    status: merged
+    merged_commit: 9a549a9
+    spec: agent/HANDOFFS/T-20260806-sentry-sw-register-noise.spec.md
+    result: "User yêu cầu Claude viết spec rồi tự làm, KHÔNG qua Codex. Diff đúng 1 file, 1 phần tử mảng + comment, khớp spec. Verify đủ 3 bước: eslint instrumentation-client.ts exit 0; npm run build exit 0 (kèm PWA artifact check pass); chạy chính helper của Sentry (getPossibleEventMessages + stringMatchesSomePattern trong @sentry/core) để chứng minh /^Rejected$/ lọc đúng event 'Error: Rejected' mà KHÔNG lọc 'SecurityError: Failed to register a ServiceWorker...' lẫn 'Error: Payment Rejected by gateway'. Không xác nhận được ngay hiệu quả trên prod — phải xem số event mới của issue sau vài ngày."
+    notes: "ĐO ĐƯỢC: source dự án không có chỗ nào gọi serviceWorker.register (3 chỗ chạm SW đều là getRegistration/update/ready và đã có .catch); nguồn duy nhất là next.config.ts:213 register:true → @ducanh2912/next-pwa/dist/sw-entry.js chạy window.workbox.register() trần → unhandledrejection. Sentry client init nằm ở instrumentation-client.ts, KHÔNG có file sentry.client.config.ts. SUY RA CHƯA ĐỐI CHỨNG: fbclid + frame <anonymous> ⇒ in-app browser Facebook/Messenger từ chối SW — cách vá không phụ thuộc giả thuyết này (lọc theo chữ ký lỗi). Tác động người dùng = 0: /gallery là trang public read, SW chỉ lo offline cache + push của PWA. Bẫy: ignoreErrors match SUBSTRING với pattern kiểu string → phải dùng regex neo 2 đầu. Đã loại phương án register:false + tự register có try/catch (phải viết lại wiring workbox-window của cả PWA, rủi ro treo build cũ)."
   - id: T-20260723-drive-proxy-size-trap
     title: "Gỡ 2 helper trả URL /api/drive-download thiếu ?size (bẫy nạp nguyên file gốc 15 MB làm thumbnail)"
     status: merged
