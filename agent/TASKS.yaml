@@ -26,7 +26,7 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-08-06
+updated: 2026-08-07
 
 # ---- Task đang chạy ----
 active:
@@ -77,6 +77,13 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260807-lightbox-instant-placeholder
+    title: "Mở ảnh bị 'chớp' (khung đen 0,3–2,3s): hiện ngay ảnh lưới =s600 + hoãn nạp bản gốc =s0"
+    status: merged
+    merged_commit: 27f25a0
+    spec: agent/HANDOFFS/T-20260807-lightbox-instant-placeholder.spec.md
+    result: "User báo lỗi, hỏi lại xác nhận triệu chứng = màn đen rồi ảnh mới bung (không phải ảnh hiện rồi nháy). Claude tự code, user duyệt spec + chốt 2 lựa chọn (giữ =s0 nhưng hoãn; áp cả 2 file). Verify: eslint 0, build 0, và đo lại bằng đúng phương pháp đã tìm ra bug — admin @1440 dialog hiện 395ms + ảnh vẽ CÙNG frame (trống 0ms, trước: 334/1319/2337ms), khung giữ 540x810 suốt 3 nấc; khách @390 ảnh vẽ 221ms, request =s0 start 790ms > =s1200 end 777ms (hoãn đúng), chuyển ảnh next 0 frame trống; @768 thẻ 615x922 đúng tỉ lệ, không tràn ngang; screenshot @1440 + @390 mắt thấy ảnh ngay. CHƯA verify trên prod sau deploy."
+    notes: "ĐO ĐƯỢC (prod, Chrome 1440): mỗi lần mở 1 ảnh tải SONG SONG =s2048 (450 KB, 2100ms) + =s0 (4730x7092, ~19,4 MB, 2507ms), cả hai start t≈106ms, trong khi khung chỉ 540x810 → comment cũ 'hiện bản nhẹ trước nên tốc độ mở không đổi' (commit 2e4ea54) SAI. Tải riêng =s2048 vẫn 1613ms → hoãn =s0 thôi không đủ, phải có ảnh chờ. Ảnh lưới =s600 dựng bằng getResponsiveThumbnailUrl(thumbnail_url, image_url, 600) — gọi ĐÚNG hàm đó mới trùng URL lưới và hit cache (đo: load 0ms). ĐÃ LOẠI TRỪ: không phải nháy do đổi src sang =s0 — theo dõi từng frame, chiều cao <img> giữ 810px, layout-shift rỗng, CLS 0.00. BẪY BẮT ĐƯỢC LÚC VERIFY: đặt ảnh chờ xong thì desktop hiện 400x600 rồi nở lên 540x810 (md:w-auto lấy kích thước nội tại) → phải thêm md:h-[90vh]; mobile không dính vì đã khoá w-[100vw]. Loader nền phải set CẢ srcset lẫn sizes giống thẻ thật, nếu không trình duyệt chọn candidate khác (mobile =s1200) → tải 2 lần. CÒN TỒN: vẫn tải ~19,4 MB/ảnh (user chốt giữ để chuột-phải/nhấn-giữ lưu ra file gốc); sizes='95vw' sai với ảnh dọc (khung thật 540px) — task riêng nếu muốn."
   - id: T-20260806-gallery-filter-mode
     title: "Modal Lọc ảnh: 3 radio là UI chết → chọn thật Khách chọn / Thả tim / Cả hai, áp cho cả 3 tab"
     status: merged
