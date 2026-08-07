@@ -394,6 +394,8 @@ done:
       log Loading more trang 4,5,6,7,8,9 mỗi trang ĐÚNG 1 lần liên tục không nhảy; guard chặn
       đúng các cú kích trong lúc in-flight (BLOCKED ALREADY_LOADING); đổi gallery trong cùng
       phiên (hợp đồng 0de6f1ed, tab "Nhà Gái") → trang reset về 1,2. eslint 0 · tsc 0 · build 0.
+      VERIFY PROD sau deploy 2026-08-08 (81ebd77..571d359): chip 95 khi vào VÀ sau cuộn hết;
+      state 501, DOM 501 ô = 501 ảnh phân biệt, 0 trùng; trang 4,5,6,7,8 mỗi trang đúng 1 lần.
     notes: >
       KHÔNG đụng use-masonry-grid.ts (2 nguồn kích là hợp lệ, chống trùng là việc của hàm nạp).
       Dead state currentPage giữ nguyên. User verify tạm: employees row + auth user + cred file
