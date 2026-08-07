@@ -4,7 +4,7 @@ import { withAuth, requireContractAccess } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isValidUUID } from "@/types/gallery";
 import type { GalleryCommentSummary } from "./gallery-composite-actions";
-import { requirePublicGalleryAccess, requirePublicGalleryImageAccess } from "./gallery-core";
+import { requirePublicGalleryAccess, requirePublicGalleryImageAccess, selectAllRows } from "./gallery-core";
 
 // ═══════════════════════════════════════════
 // Gallery Reaction & Comment Server Actions
@@ -105,13 +105,16 @@ export async function getReactionCounts(galleryId: string): Promise<ReactionCoun
   try {
     const supabase = await createAdminClient();
 
-    const { data, error } = await supabase
-      .from("gallery_reactions")
-      .select("image_id, reaction_type")
-      .eq("gallery_id", galleryId);
-
-    if (error) { console.error("getReactionCounts query error:", error.message); return {}; }
-    if (!data) return {};
+    // selectAllRows: PostgREST cắt 1000 dòng/request IM LẶNG — gallery vượt
+    // 1000 lượt reaction sẽ đếm thiếu nếu select 1 phát.
+    const data = await selectAllRows<{ image_id: string; reaction_type: string }>((from, to) =>
+      supabase
+        .from("gallery_reactions")
+        .select("image_id, reaction_type")
+        .eq("gallery_id", galleryId)
+        .order("id")
+        .range(from, to),
+    );
 
     const counts: ReactionCounts = {};
     for (const row of data) {

@@ -12,6 +12,7 @@ import {
 import { generateAccessUrl } from "@/types/gallery";
 import { backfillGalleryDimensionsInternal } from "@/lib/gallery/image-dimensions";
 import { backfillGalleryBlurhashesInternal } from "@/lib/gallery/blurhash";
+import { selectAllRows } from "./gallery-core";
 
 // ------------------------------------------------------------
 // Gallery Drive Actions - Multi-folder, tracking, delivery
@@ -279,42 +280,50 @@ export async function initDriveCopyJob(
 
     // filterMode quyết định nguồn ảnh — PHẢI khớp với danh sách client đang hiển thị
     // trong modal, nếu không số đếm trên UI sẽ lệch với số file thật sự copy.
-    const NO_MATCH_UUID = "00000000-0000-0000-0000-000000000000";
     let reactionHeartedIds: string[] = [];
 
     if (filterMode !== "selected") {
-      const { data: heartReactions, error: reactionsError } = await supabase
-        .from("gallery_reactions")
-        .select("image_id")
+      // selectAllRows: vượt trần 1000 lượt reaction của PostgREST.
+      const heartReactions = await selectAllRows<{ image_id: string }>((from, to) =>
+        supabase
+          .from("gallery_reactions")
+          .select("image_id")
+          .eq("gallery_id", galleryId)
+          .eq("reaction_type", "heart")
+          .order("id")
+          .range(from, to),
+      );
+
+      reactionHeartedIds = heartReactions.map((row) => row.image_id).filter(Boolean);
+    }
+
+    // Lấy TOÀN BỘ ảnh gallery rồi lọc trong JS bằng Set — pattern như
+    // getAllHeartedImagesForAction. Bản cũ dùng .in("id", <danh sách id>) /
+    // .or(id.in.(…)): 500 id = URL 19.670 ký tự → PostgREST trả
+    // "HTTP headers exceeded server limits (typically 16KB)" khi gallery có
+    // hơn ~400 ảnh tim. selectAllRows đồng thời né trần 1000 ảnh/select.
+    const allImages = await selectAllRows<{
+      id: string; drive_file_id: string | null; file_name: string | null;
+      sort_order: number | null; created_at: string | null; is_selected: boolean | null;
+    }>((from, to) =>
+      supabase
+        .from("gallery_images")
+        .select("id, drive_file_id, file_name, sort_order, created_at, is_selected")
         .eq("gallery_id", galleryId)
-        .eq("reaction_type", "heart");
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+        .order("id")
+        .range(from, to),
+    );
 
-      if (reactionsError) throw new Error("Failed to load hearted images");
+    const heartedSet = new Set(reactionHeartedIds);
+    const images = allImages.filter((img) =>
+      filterMode === "selected" ? !!img.is_selected
+      : filterMode === "hearted" ? heartedSet.has(img.id)
+      : !!img.is_selected || heartedSet.has(img.id),
+    );
 
-      reactionHeartedIds = (heartReactions || []).map((row) => row.image_id).filter(Boolean);
-    }
-
-    const heartedIdList = reactionHeartedIds.length > 0 ? reactionHeartedIds.join(",") : NO_MATCH_UUID;
-
-    let imagesQuery = supabase
-      .from("gallery_images")
-      .select("id, drive_file_id, file_name, sort_order, created_at, is_selected")
-      .eq("gallery_id", galleryId);
-
-    if (filterMode === "selected") {
-      imagesQuery = imagesQuery.eq("is_selected", true);
-    } else if (filterMode === "hearted") {
-      imagesQuery = imagesQuery.in("id", reactionHeartedIds.length > 0 ? reactionHeartedIds : [NO_MATCH_UUID]);
-    } else {
-      imagesQuery = imagesQuery.or(`is_selected.eq.true,id.in.(${heartedIdList})`);
-    }
-
-    const { data: images, error: imagesError } = await imagesQuery
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    if (imagesError) throw new Error("Failed to load gallery images");
-    if (!images || images.length === 0) return { error: "Không có ảnh nào khớp mục đã chọn" };
+    if (images.length === 0) return { error: "Không có ảnh nào khớp mục đã chọn" };
     // Chỉ giữ JPG/JPEG (không phân biệt hoa thường) và ảnh CÓ drive_file_id — ảnh
     // thiếu drive_file_id chắc chắn fail khi tạo shortcut và làm phồng total_count.
     const jpgImages = images.filter((img) => {

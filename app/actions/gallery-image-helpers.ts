@@ -6,6 +6,7 @@ import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import type { GalleryImage } from "@/types/gallery";
+import { selectAllRows } from "./gallery-core";
 
 // ═══════════════════════════════════════════
 // Gallery Image Server Actions — Pagination
@@ -55,19 +56,25 @@ async function getCachedGalleryImages(galleryId: string) {
   const fetcher = unstable_cache(
     async (id: string) => {
       const supabase = await createAdminClient();
-      const { data, error } = await supabase
-        .from("gallery_images")
-        .select("id, file_name, drive_file_id, is_selected, selected_at, sort_order")
-        .eq("gallery_id", id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-      
-      if (error) {
-        // throw thay vì trả [] — unstable_cache KHÔNG cache kết quả throw;
-        // trả [] sẽ bị cache 2h thành "album 0 ảnh" cho Download Manager.
-        throw new Error(`Lỗi lấy danh sách ảnh gallery: ${error.message}`);
-      }
-      return data || [];
+      // selectAllRows: PostgREST cắt 1000 dòng IM LẶNG — album vượt 1000 ảnh sẽ
+      // thiếu ảnh trong Download Manager + modal lọc (album lớn nhất đã 780).
+      // Helper throw khi lỗi — giữ đúng tính chất "throw thay vì trả []":
+      // unstable_cache KHÔNG cache kết quả throw; trả [] sẽ bị cache 2h thành
+      // "album 0 ảnh" cho Download Manager.
+      const data = await selectAllRows<{
+        id: string; file_name: string | null; drive_file_id: string | null;
+        is_selected: boolean | null; selected_at: string | null; sort_order: number | null;
+      }>((from, to) =>
+        supabase
+          .from("gallery_images")
+          .select("id, file_name, drive_file_id, is_selected, selected_at, sort_order")
+          .eq("gallery_id", id)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true })
+          .order("id")
+          .range(from, to),
+      );
+      return data;
     },
     [`gallery-images-download-${galleryId}`],
     {

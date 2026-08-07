@@ -801,3 +801,27 @@ export async function prepareGallerySharePayload(
 
   return prepareGalleryShareFallback(supabase, galleryId, userId, profiler);
 }
+
+/**
+ * Lấy TOÀN BỘ dòng của một query, vượt trần 1000 dòng/request của PostgREST
+ * (supabase-js cắt ở 1000 IM LẶNG kể cả khi .limit() lớn hơn — xem
+ * vault/60-bay/bay-du-lieu.md mục 1).
+ * - buildQuery PHẢI tạo builder MỚI mỗi lần gọi (builder không tái dùng được
+ *   sau .range()).
+ * - Query PHẢI có .order() ổn định (thêm .order("id") làm tiebreaker) — không
+ *   thì phân trang không xác định, có thể sót/trùng dòng giữa các trang.
+ */
+export async function selectAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return rows;
+}

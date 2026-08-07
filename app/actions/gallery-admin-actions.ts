@@ -19,7 +19,7 @@ import {
   isValidUUID,
 } from "@/types/gallery";
 
-import { GallerySettingsPayload, createGalleryShareProfiler, assertGalleryProof, fetchGalleryCoverImage, fetchAllGalleryImages, ensureAllGalleryShareLinks, prepareGallerySharePayload } from "./gallery-core";
+import { GallerySettingsPayload, createGalleryShareProfiler, assertGalleryProof, fetchGalleryCoverImage, fetchAllGalleryImages, ensureAllGalleryShareLinks, prepareGallerySharePayload, selectAllRows } from "./gallery-core";
 import { backfillGalleryDimensionsInternal } from "@/lib/gallery/image-dimensions";
 import { backfillGalleryBlurhashesInternal } from "@/lib/gallery/blurhash";
 import { fetchSharedGalleryByAccessUrl } from "./gallery-actions";
@@ -408,15 +408,20 @@ export async function getGallerySummariesByContract(contractId: string) {
       return [] as GallerySummary[];
     }
 
-    // Đếm tim (reactions) per gallery — additive, 1 query
+    // Đếm tim (reactions) per gallery — selectAllRows vì 1 select gộp MỌI gallery
+    // của hợp đồng: vượt 1000 lượt tim là heartCount đếm thiếu im lặng (trần PostgREST).
     const galleryIds = data.map((g: any) => g.id);
-    const { data: heartRows } = await supabase
-      .from("gallery_reactions")
-      .select("gallery_id")
-      .in("gallery_id", galleryIds)
-      .eq("reaction_type", "heart");
+    const heartRows = await selectAllRows<{ gallery_id: string }>((from, to) =>
+      supabase
+        .from("gallery_reactions")
+        .select("gallery_id")
+        .in("gallery_id", galleryIds)
+        .eq("reaction_type", "heart")
+        .order("id")
+        .range(from, to),
+    );
     const heartMap: Record<string, number> = {};
-    for (const row of heartRows || []) {
+    for (const row of heartRows) {
       heartMap[row.gallery_id] = (heartMap[row.gallery_id] || 0) + 1;
     }
 
