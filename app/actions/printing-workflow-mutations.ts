@@ -8,6 +8,8 @@
  */
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import { withPrintingAccess } from "@/lib/auth_utils";
 import type {
@@ -17,6 +19,18 @@ import type {
   OrderPayment,
   InventoryReservation,
 } from "@/types/printing";
+
+/**
+ * Module In ấn dùng từ vựng riêng cho phương thức thanh toán
+ * (`cash | transfer | card | other`, xem types/printing.ts) trong khi cột
+ * `expenses.payment_method` là enum `payment_method_enum` chỉ có 2 giá trị.
+ * Quy về 2 nhóm: tiền mặt và không-tiền-mặt.
+ */
+function toPaymentMethodEnum(
+  method: "cash" | "transfer" | "card" | "other",
+): Database["public"]["Enums"]["payment_method_enum"] {
+  return method === "cash" ? "tien_mat" : "chuyen_khoan";
+}
 
 // ─── HELPER: Get order with validation ──────────────────
 
@@ -38,7 +52,7 @@ async function getOrderWithValidation(supabase: any, orderId: string) {
 // ─── 1. RECORD DEPOSIT PAYMENT ──────────────────────────
 
 export async function recordDepositPayment(input: RecordDepositPaymentInput) {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { orderId, depositAmount, paymentMethod, paymentDate, notes } = input;
 
     // Validate input
@@ -154,7 +168,7 @@ export async function recordDepositPayment(input: RecordDepositPaymentInput) {
 // ─── 2. START PRODUCTION (Reserve Inventory) ────────────
 
 export async function startProduction(input: StartProductionInput) {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { orderId, expiresInDays = 7 } = input;
 
     // Get order with items
@@ -190,9 +204,9 @@ export async function startProduction(input: StartProductionInput) {
         continue;
       }
 
-      if (stockView.available_stock < item.quantity) {
+      if ((stockView.available_stock ?? 0) < item.quantity) {
         errors.push(
-          `${stockView.name}: Tồn khả dụng ${stockView.available_stock}, cần ${item.quantity}`
+          `${stockView.name}: Tồn khả dụng ${stockView.available_stock ?? 0}, cần ${item.quantity}`
         );
         continue;
       }
@@ -220,7 +234,8 @@ export async function startProduction(input: StartProductionInput) {
         continue;
       }
 
-      reservations.push(reservation);
+      // inventory_reservations.status là text (không enum) → DB trả string|null
+      reservations.push(reservation as InventoryReservation);
     }
 
     if (errors.length > 0) {
@@ -276,7 +291,7 @@ export async function startProduction(input: StartProductionInput) {
 // ─── 3. COMPLETE PRODUCTION (Stock Out) ─────────────────
 
 export async function completeProduction(input: CompleteProductionInput) {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { orderId, manualStockOut = false, adjustedItems } = input;
 
     // Get order
@@ -468,7 +483,7 @@ export async function recordFinalPayment(input: {
   paymentDate?: string;
   notes?: string;
 }) {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { orderId, finalAmount, paymentMethod, paymentDate, notes } = input;
 
     // Validate
@@ -496,9 +511,9 @@ export async function recordFinalPayment(input: {
       throw new Error("Không tìm thấy thông tin thanh toán");
     }
 
-    if (finalAmount < summary.remaining) {
+    if (finalAmount < (summary.remaining ?? 0)) {
       throw new Error(
-        `Số tiền chưa đủ tất toán. Còn lại: ${summary.remaining}`
+        `Số tiền chưa đủ tất toán. Còn lại: ${summary.remaining ?? 0}`
       );
     }
 
@@ -544,7 +559,7 @@ export async function recordFinalPayment(input: {
     }
 
     // 3. Update order
-    const newPaidAmount = summary.total_paid + finalAmount;
+    const newPaidAmount = (summary.total_paid ?? 0) + finalAmount;
     const { error: updateError } = await supabase
       .from("printing_orders")
       .update({
@@ -601,7 +616,7 @@ export async function cancelOrder(input: {
   refundAmount?: number;
   refundMethod?: "cash" | "transfer" | "card" | "other";
 }) {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { orderId, reason, refundAmount = 0, refundMethod = "cash" } = input;
 
     if (!reason.trim()) {
@@ -657,32 +672,23 @@ export async function cancelOrder(input: {
         }
 
         // Update item stock
-        const { error: updateStockError } = await supabase.rpc(
-          "increment_inventory_stock",
-          {
-            item_id: txn.item_id,
-            delta: txn.quantity,
-          }
-        );
+        // RPC increment_inventory_stock KHÔNG tồn tại trong DB (404 PGRST202) — trước đây
+        // lời gọi luôn lỗi rồi rơi xuống nhánh fallback này, nên bỏ hẳn lời gọi chết.
+        const { data: item } = await supabase
+          .from("inventory_items")
+          .select("current_stock")
+          .eq("id", txn.item_id)
+          .single();
 
-        if (updateStockError) {
-          // Fallback: manual update
-          const { data: item } = await supabase
+        if (item) {
+          await supabase
             .from("inventory_items")
-            .select("current_stock")
-            .eq("id", txn.item_id)
-            .single();
-
-          if (item) {
-            await supabase
-              .from("inventory_items")
-              .update({
-                current_stock: item.current_stock + txn.quantity,
-                updated_at: new Date().toISOString(),
-                updated_by: userId,
-              })
-              .eq("id", txn.item_id);
-          }
+            .update({
+              current_stock: (item.current_stock ?? 0) + txn.quantity,
+              updated_at: new Date().toISOString(),
+              updated_by: userId,
+            })
+            .eq("id", txn.item_id);
         }
       }
     } else if (inventoryStatus === "reserved") {
@@ -703,14 +709,14 @@ export async function cancelOrder(input: {
       const { data: expense, error: expenseError } = await supabase
         .from("expenses")
         .insert({
+          // expenses KHÔNG có expense_type / category_name / notes / updated_by —
+          // 4 cột này từng làm insert trả 400 PGRST204 nên khoản hoàn tiền không được ghi.
           expense_date: new Date().toISOString().split("T")[0],
-          expense_type: "other",
-          payment_method: refundMethod,
+          payment_method: toPaymentMethodEnum(refundMethod),
           amount: refundAmount,
-          category_name: "Hoàn tiền hủy đơn",
-          notes: `Hoàn tiền đơn in #${order.order_code}: ${reason}`,
+          description: `Hoàn tiền hủy đơn in #${order.order_code}: ${reason}`,
+          printing_order_id: orderId,
           created_by: userId,
-          updated_by: userId,
         })
         .select("id")
         .single();

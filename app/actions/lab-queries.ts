@@ -1,6 +1,8 @@
 "use server";
 
 import { withPrintingAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type {
   Lab,
   LabDetail,
@@ -91,7 +93,7 @@ function mapLabRows(params: {
 }
 
 export async function fetchLabsList(): Promise<ActionResult<Lab[]>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("printing_lab_overview");
 
     if (error) {
@@ -117,7 +119,7 @@ export async function fetchLabsList(): Promise<ActionResult<Lab[]>> {
 }
 
 export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const [labResult, servicesResult, paymentsResult] =
       await Promise.all([
         supabase
@@ -167,7 +169,7 @@ export async function getLabDetail(id: string): Promise<ActionResult<LabDetail>>
 }
 
 export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("labs")
       .select("id, lab_name")
@@ -184,7 +186,7 @@ export async function getLabOptions(): Promise<ActionResult<LabOption[]>> {
 }
 
 export async function getLabServices(labId: string): Promise<ActionResult<LabService[]>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error} = await supabase
       .from("lab_services")
       .select("id, lab_id, item_name, cost_price, created_at, updated_at")
@@ -218,7 +220,7 @@ function getFirstRelation<T extends RelationRecord>(
 export async function fetchLabUnpaidOrders(
   labId: string
 ): Promise<ActionResult<LabUnpaidOrder[]>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     if (!labId?.trim()) {
       throw new Error("Lab ID is required");
     }
@@ -304,7 +306,7 @@ export async function fetchLabPaymentHistory(
   labId: string,
   params?: { page?: number; pageSize?: number }
 ): Promise<ActionResult<LabPaymentHistoryPage>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     if (!labId?.trim()) {
       throw new Error("Lab ID is required");
     }

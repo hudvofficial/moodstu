@@ -167,9 +167,10 @@ export interface OrderPayment {
   payment_date: string;
   payment_method: PaymentMethod;
   notes: string | null;
-  created_at: string;
+  // created_at/updated_at NULLABLE trong DB
+  created_at: string | null;
   created_by: string | null;
-  updated_at: string;
+  updated_at: string | null;
   updated_by: string | null;
 }
 
@@ -178,13 +179,14 @@ export interface InventoryReservation {
   item_id: string;
   order_id: string;
   reserved_quantity: number;
-  reserved_at: string;
+  // các cột dưới đều NULLABLE trong DB — khai đúng để khớp kiểu sinh từ schema
+  reserved_at: string | null;
   expires_at: string | null;
-  status: ReservationStatus;
+  status: ReservationStatus | null;
   notes: string | null;
   created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   // Joined fields (optional)
   item_name?: string;
   item_code?: string;
@@ -257,7 +259,7 @@ export interface LabUnpaidOrder {
   totalAmount: number;
   allocatedAmount: number;     // Already paid amount to lab
   remainingAmount: number;      // Still owed to lab
-  orderDate: string;
+  orderDate: string | null; // printing_orders.order_date NULLABLE
   status: PrintingOrderStatus;
 }
 

@@ -1,6 +1,8 @@
 "use server";
 
 import { withPrintingAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { printingFiltersSchema } from "@/lib/validations/printing.schema";
 import type {
   PrintingFilters,
@@ -144,7 +146,7 @@ export async function fetchPrintingOrders(
     };
   }
 
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const filters = parsedFilters.data;
     const page = filters.page || 1;
     const pageSize = filters.pageSize || PRINTING_PAGE_SIZE;
@@ -223,7 +225,7 @@ export async function fetchPrintingOrders(
 export async function getPrintingOrderStats(): Promise<
   ActionResult<PrintingStats>
 > {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("printing_stats");
 
     if (error) {
@@ -264,7 +266,7 @@ export async function getPrintingBootstrap(
     return { success: false, error: parsedFilters.error.issues[0]?.message || "Bo loc khong hop le" };
   }
 
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const f = parsedFilters.data;
     const page = f.page || 1;
     const pageSize = f.pageSize || PRINTING_PAGE_SIZE;
@@ -346,7 +348,7 @@ export async function getPrintingBootstrap(
 export async function getPrintingOrderDetail(
   id: string,
 ): Promise<ActionResult<PrintingOrderDetail>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("printing_orders")
       .select(buildPrintingSelect())
@@ -393,7 +395,7 @@ export async function getPrintingOrderDetail(
  * Get payment summary for an order
  */
 export async function getOrderPaymentSummary(orderId: string) {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("order_payment_summary")
       .select("*")
@@ -421,7 +423,7 @@ export async function getOrderPaymentSummary(orderId: string) {
  * Get payment history for an order
  */
 export async function getOrderPaymentHistory(orderId: string) {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("order_payments")
       .select("*")

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
 import { withInventoryAccess, withAuth, requireInventoryAccess } from "@/lib/auth_utils";
@@ -41,7 +42,7 @@ export async function createInventoryItem(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const data = parsed.data;
     const hasManualCode = Boolean(data.item_code?.trim());
     let lastError: { code?: string; message?: string } | null = null;
@@ -84,9 +85,9 @@ export async function createInventoryItem(rawData: unknown) {
               p_item_id: created.id,
               p_quantity: data.initial_stock,
               p_unit_cost: initialUnitCost,
-              p_supplier: normalizeOptionalText(data.supplier),
+              p_supplier: normalizeOptionalText(data.supplier) ?? undefined,
               p_reason: "Nhập kho ban đầu",
-              p_notes: normalizeOptionalText(data.notes),
+              p_notes: normalizeOptionalText(data.notes) ?? undefined,
               p_user_id: userId,
             },
           );
@@ -142,11 +143,13 @@ export async function updateInventoryItem(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { id, updated_at, data } = parsed.data;
-    const updatePayload: Record<string, unknown> = { ...data };
-    delete updatePayload.initial_stock;
-    delete updatePayload.initial_unit_cost;
+    // initial_stock/initial_unit_cost là field của form, không phải cột inventory_items
+    const { initial_stock, initial_unit_cost, ...updatableFields } = data;
+    void initial_stock;
+    void initial_unit_cost;
+    const updatePayload: Database["public"]["Tables"]["inventory_items"]["Update"] = { ...updatableFields };
 
     if ("name" in data && typeof data.name === "string") {
       updatePayload.name = data.name.trim();
@@ -203,7 +206,7 @@ export async function deleteInventoryItem(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: existing, error: existingError } = await supabase
       .from("inventory_items")
       .select("id, name, item_code, current_stock")
@@ -277,15 +280,15 @@ export async function stockIn(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { itemId, quantity, unitCost, supplier, reason, notes } = parsed.data;
     const { data, error } = await supabase.rpc("inventory_stock_in_atomic", {
       p_item_id: itemId,
       p_quantity: quantity,
       p_unit_cost: unitCost,
-      p_supplier: supplier?.trim() || null,
-      p_reason: reason?.trim() || null,
-      p_notes: notes?.trim() || null,
+      p_supplier: supplier?.trim() || undefined,
+      p_reason: reason?.trim() || undefined,
+      p_notes: notes?.trim() || undefined,
       p_user_id: userId,
     });
 
@@ -320,7 +323,7 @@ export async function stockOut(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const {
       itemId,
       quantity,
@@ -343,11 +346,11 @@ export async function stockOut(rawData: unknown) {
     const { data, error } = await supabase.rpc("inventory_stock_out_atomic", {
       p_item_id: itemId,
       p_quantity: quantity,
-      p_contract_id: contractId || null,
-      p_reason: reason?.trim() || null,
-      p_customer_name: customerName?.trim() || null,
-      p_customer_phone: customerPhone?.trim() || null,
-      p_notes: notes?.trim() || null,
+      p_contract_id: contractId || undefined,
+      p_reason: reason?.trim() || undefined,
+      p_customer_name: customerName?.trim() || undefined,
+      p_customer_phone: customerPhone?.trim() || undefined,
+      p_notes: notes?.trim() || undefined,
       p_user_id: userId,
     });
 
@@ -382,7 +385,7 @@ export async function createInventoryRetailSale(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const input = parsed.data;
     const receiptAmount = input.quantity * input.saleUnitPrice;
     const customerAddress = normalizeOptionalText(input.customerAddress);
@@ -455,7 +458,7 @@ export async function createInventoryContractAddonSale(rawData: unknown) {
     };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const input = parsed.data;
     const totalAmount = input.quantity * input.saleUnitPrice;
     const noteLines = [
@@ -532,7 +535,7 @@ export async function addFulfillmentTransaction(input: {
   unitCost: number;
   paymentMethod: "cash" | "transfer" | "card";
 }) {
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const paymentDate = new Date().toISOString().split("T")[0];
 
     const { data, error } = await supabase.rpc("add_fulfillment_transaction_atomic", {
@@ -540,7 +543,8 @@ export async function addFulfillmentTransaction(input: {
       p_new_item_id: input.itemId,
       p_quantity: input.quantity,
       p_sale_unit_price: input.unitCost,
-      p_payment_method: input.paymentMethod,
+      // cột enum payment_method_enum chỉ có tien_mat/chuyen_khoan — quy về 2 nhóm
+      p_payment_method: input.paymentMethod === "cash" ? "tien_mat" : "chuyen_khoan",
       p_payment_date: paymentDate,
       p_user_id: userId,
     });
@@ -576,7 +580,7 @@ export async function deleteInventoryTransaction(transactionId: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withInventoryAccess(async (supabase, userId) => {
+  return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
     // Fetch transaction details
     const { data: txn, error: fetchError } = await supabase
       .from("inventory_transactions")
@@ -629,7 +633,7 @@ export async function deleteInventoryTransaction(transactionId: string) {
     // Fetch current stock first
     const { data: itemData } = await supabase
       .from("inventory_items")
-      .select("current_stock")
+      .select("current_stock, name")
       .eq("id", txn.item_id)
       .single();
 
@@ -651,7 +655,7 @@ export async function deleteInventoryTransaction(transactionId: string) {
       tableName: "inventory_transactions",
       recordId: parsedId.data,
       oldData: txn,
-      description: `Xóa giao dịch kho: ${txn.item_name || txn.item_id}`,
+      description: `Xóa giao dịch kho: ${itemData?.name || txn.item_id}`,
       severity: "WARNING",
       source: "server_action",
     });
@@ -662,6 +666,9 @@ export async function deleteInventoryTransaction(transactionId: string) {
   });
 }
 
+/** Payload của yêu cầu sửa phát sinh — lưu jsonb nên phải tự khai kiểu khi đọc lại. */
+type FulfillmentUpdatePayload = { quantity?: number; sale_unit_price?: number };
+
 const approvalRequestSchema = z.object({
   target_id: z.string().uuid(),
   action_type: z.enum(["delete_fulfillment", "update_fulfillment"]),
@@ -670,7 +677,7 @@ const approvalRequestSchema = z.object({
 });
 
 export async function requestFulfillmentAction(input: z.infer<typeof approvalRequestSchema>) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireInventoryAccess(supabase, userId);
     
     // If Admin/Manager -> execute directly
@@ -682,10 +689,14 @@ export async function requestFulfillmentAction(input: z.infer<typeof approvalReq
         });
         if (error) throw new Error(`Lỗi xoá phát sinh: ${error.message}`);
       } else {
+        const payload = (input.payload ?? {}) as FulfillmentUpdatePayload;
+        if (payload.quantity == null || payload.sale_unit_price == null) {
+          throw new Error("Thiếu số lượng / đơn giá để sửa phát sinh.");
+        }
         const { error } = await supabase.rpc("update_fulfillment_transaction_atomic", {
           p_txn_id: input.target_id,
-          p_new_quantity: input.payload.quantity,
-          p_new_unit_price: input.payload.sale_unit_price,
+          p_new_quantity: payload.quantity,
+          p_new_unit_price: payload.sale_unit_price,
           p_user_id: userId
         });
         if (error) throw new Error(`Lỗi sửa phát sinh: ${error.message}`);
@@ -734,7 +745,7 @@ export async function requestFulfillmentAction(input: z.infer<typeof approvalReq
 }
 
 export async function approveFulfillmentRequest(requestId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireInventoryAccess(supabase, userId);
     
     if (role !== "admin" && role !== "manager") {
@@ -757,10 +768,14 @@ export async function approveFulfillmentRequest(requestId: string) {
       });
       if (error) throw new Error(`Lỗi duyệt xoá phát sinh: ${error.message}`);
     } else if (request.action_type === "update_fulfillment") {
+      const payload = (request.payload ?? {}) as FulfillmentUpdatePayload;
+      if (payload.quantity == null || payload.sale_unit_price == null) {
+        throw new Error("Yêu cầu thiếu số lượng / đơn giá, không duyệt được.");
+      }
       const { error } = await supabase.rpc("update_fulfillment_transaction_atomic", {
         p_txn_id: request.target_id,
-        p_new_quantity: request.payload.quantity,
-        p_new_unit_price: request.payload.sale_unit_price,
+        p_new_quantity: payload.quantity,
+        p_new_unit_price: payload.sale_unit_price,
         p_user_id: userId
       });
       if (error) throw new Error(`Lỗi duyệt sửa phát sinh: ${error.message}`);
@@ -814,7 +829,7 @@ export async function approveFulfillmentRequest(requestId: string) {
 }
 
 export async function rejectFulfillmentRequest(requestId: string, reviewNotes: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireInventoryAccess(supabase, userId);
     
     if (role !== "admin" && role !== "manager") {

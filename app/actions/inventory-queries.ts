@@ -1,6 +1,8 @@
 "use server";
 
 import { withInventoryAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
 import {
   inventoryListFiltersSchema,
@@ -83,18 +85,18 @@ export async function fetchInventoryList(
 
   return profileAction("inventory.fetchInventoryList", async () =>
     unwrapActionResult(
-      await withInventoryAccess(async (supabase) => {
+      await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
         const page = parsed.data.page || 1;
         const { data, error } = await supabase.rpc("inventory_list", {
           p_search: normalizeSearch(parsed.data.search),
           p_category:
             parsed.data.category && parsed.data.category !== "all"
               ? parsed.data.category
-              : null,
+              : undefined,
           p_status:
             parsed.data.status && parsed.data.status !== "all"
               ? parsed.data.status
-              : null,
+              : undefined,
           p_sort: parsed.data.sort || "newest",
           p_page: page,
           p_limit: INVENTORY_PAGE_SIZE,
@@ -123,7 +125,7 @@ export async function fetchInventoryDetail(id: string): Promise<InventoryDetail 
 
   return profileAction("inventory.fetchInventoryDetail", async () =>
     unwrapActionResult(
-      await withInventoryAccess(async (supabase) => {
+      await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
         // 🚀 Phase 04: Try new single-RPC pattern first
         const { data: v2Data, error: v2Error } = await supabase.rpc("inventory_detail_v2", {
           p_item_id: parsedId.data,
@@ -186,7 +188,7 @@ export async function fetchTransactionHistory(
 
   return profileAction("inventory.fetchTransactionHistory", async () =>
     unwrapActionResult(
-      await withInventoryAccess(async (supabase) => {
+      await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
         const page = parsed.data.page || 1;
         const from = (page - 1) * TRANSACTION_PAGE_SIZE;
         const to = from + TRANSACTION_PAGE_SIZE - 1;
@@ -236,7 +238,7 @@ export async function fetchTransactionHistory(
 export async function getInventoryStats(): Promise<InventoryStats> {
   return profileAction("inventory.getInventoryStats", async () =>
     unwrapActionResult(
-      await withInventoryAccess(async (supabase) => {
+      await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
         const { data, error } = await supabase.rpc("inventory_stats");
         if (error) throw new Error(`Không thể tải thống kê kho: ${error.message}`);
         return normalizeStats(data);
@@ -248,7 +250,7 @@ export async function getInventoryStats(): Promise<InventoryStats> {
 
 export async function getNextInventoryCode(): Promise<string> {
   return unwrapActionResult(
-    await withInventoryAccess(async (supabase) => {
+    await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       const { data, error } = await supabase.rpc("nextval_inventory_code");
       if (error) throw new Error(`Không thể tạo mã vật tư: ${error.message}`);
       return String(data);
@@ -268,7 +270,7 @@ export interface InventorySaleOption {
 
 export async function fetchInventoryForSale(): Promise<InventorySaleOption[]> {
   return unwrapActionResult(
-    await withInventoryAccess(async (supabase) => {
+    await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       const { data, error } = await supabase
         .from("inventory_items")
         .select("id, name, item_code, current_stock, sale_price, unit")
@@ -289,7 +291,7 @@ export async function fetchInventoryContractOptions(
   search?: string,
 ): Promise<InventoryContractOption[]> {
   return unwrapActionResult(
-    await withInventoryAccess(async (supabase) => {
+    await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       const term = normalizeSearch(search);
       let query = supabase
         .from("contracts")
@@ -329,7 +331,7 @@ export async function fetchInventoryPickerItems(
   }
 
   return unwrapActionResult(
-    await withInventoryAccess(async (supabase) => {
+    await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       const page = parsed.data.page || 1;
       const limit = parsed.data.limit || 30;
       const from = (page - 1) * limit;
@@ -371,7 +373,7 @@ export async function fetchInventoryPickerItems(
 export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTransaction[]> {
   return profileAction("inventory.fetchOrderFulfillments", async () =>
     unwrapActionResult(
-      await withInventoryAccess(async (supabase) => {
+      await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
         const { data, error } = await supabase
           .from("inventory_transactions")
           .select(`
@@ -402,14 +404,15 @@ export async function fetchOrderFulfillments(txnId: string): Promise<InventoryTr
 }
 
 export interface ApprovalRequestFilters {
-  status: string;
+  /** khớp approval_status_enum + sentinel "all" */
+  status: "all" | "pending" | "approved" | "rejected";
   page: number;
   pageSize: number;
 }
 
 export async function getApprovalRequests(filters: ApprovalRequestFilters = { status: 'all', page: 1, pageSize: 20 }) {
   return profileAction("getApprovalRequests", () =>
-    withInventoryAccess(async (supabase) => {
+    withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       let query = supabase
         .from("approval_requests")
         .select(`

@@ -1,6 +1,8 @@
 "use server";
 
 import { withPrintingAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import {
   invalidateContractPaths,
@@ -57,7 +59,7 @@ export async function createPrintingOrder(
     };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const input = parsed.data;
     const totalAmount = calculateTotalAmount(input.items);
 
@@ -110,11 +112,12 @@ export async function updatePrintingOrder(
     };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const totalAmount = calculateTotalAmount(parsed.data.items);
     const { data, error } = await supabase.rpc("update_printing_order_atomic", {
       p_actor_id: userId,
-      p_expected_updated_at: expectedUpdatedAt ?? null,
+      // tham số KHÔNG có DEFAULT nên generator khai bắt buộc, nhưng Postgres nhận NULL
+      p_expected_updated_at: (expectedUpdatedAt ?? null) as string,
       p_order: parsed.data,
       p_order_id: id,
     });
@@ -166,7 +169,7 @@ export async function updatePrintingOrderStatus(
     return fromIdx >= 0 && toIdx >= 0 && toIdx < fromIdx;
   };
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: current, error: currentError } = await supabase
       .from("printing_orders")
       .select("id, order_code, status, received_date")
@@ -197,7 +200,7 @@ export async function updatePrintingOrderStatus(
     }
 
     const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = {
+    const updateData: Database["public"]["Tables"]["printing_orders"]["Update"] = {
       status: parsedStatus.data,
       updated_at: now,
       updated_by: userId,
@@ -263,7 +266,7 @@ export async function updatePrintingOrderStatus(
 export async function deletePrintingOrder(
   id: string,
 ): Promise<ActionResult<null>> {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { data, error } = await supabase.rpc("delete_printing_order_atomic", {
       p_actor_id: userId,
       p_order_id: id,

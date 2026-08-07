@@ -381,7 +381,7 @@ export function LabPaymentModal({
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-text-main">{order.orderCode}</span>
                         <span className="text-xs text-text-muted">
-                          {new Date(order.orderDate).toLocaleDateString("vi-VN")}
+                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString("vi-VN") : "—"}
                         </span>
                       </div>
                       <div className="text-sm text-text-muted mt-0.5">

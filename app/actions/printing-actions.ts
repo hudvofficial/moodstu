@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withPrintingAccess } from "@/lib/auth_utils";
 import { getLabOptions as getLabOptionsImpl, getLabServices as getLabServicesImpl } from "./lab-queries";
 import {
@@ -42,7 +44,7 @@ export async function updatePrintOrderFileUrl(orderId: string, fileUrl: string |
     }
   }
 
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("printing_orders")
       .update({ print_file_url: fileUrl?.trim() || null })

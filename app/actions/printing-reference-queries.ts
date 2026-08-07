@@ -1,6 +1,8 @@
 "use server";
 
 import { withPrintingAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type { ContractOption, LabDebtData, LabDebtEntry } from "@/types/printing";
 
 type ActionResult<T = null> =
@@ -31,7 +33,7 @@ function escapeLikePattern(input: string): string {
 export async function getContractOptions(
   search?: string,
 ): Promise<ActionResult<ContractOption[]>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const term = search?.trim();
 
     if (!term) {
@@ -90,7 +92,7 @@ export async function getLabDebts(options?: {
   fromDate?: string;
   limit?: number;
 }): Promise<ActionResult<LabDebtData>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("finance_lab_debt_summary");
 
     if (error) {

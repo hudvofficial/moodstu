@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import type { ApprovalRequestFilters } from "@/app/actions/inventory-queries";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Loader2, Check, X, ShieldAlert, FileText } from "lucide-react";
@@ -24,7 +25,7 @@ const STATUS_TABS = [
 ];
 
 export function ApprovalRequestsTab({ userRole }: { userRole: string }) {
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState<ApprovalRequestFilters["status"]>("all");
   const [page, setPage] = useState(1);
   const [actionItem, setActionItem] = useState<{ id: string, type: "approve" | "reject" } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -105,7 +106,7 @@ export function ApprovalRequestsTab({ userRole }: { userRole: string }) {
             tabs={STATUS_TABS}
             activeTab={status}
             onChange={(val) => {
-              setStatus(val);
+              setStatus(val as ApprovalRequestFilters["status"]);
               setPage(1);
             }}
             variant="pills"

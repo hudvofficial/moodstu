@@ -17,7 +17,7 @@ interface PaymentHistoryItem {
   paymentDate: string;
   paymentMethod: "cash" | "transfer" | "card" | "other";
   notes: string | null;
-  createdAt: string;
+  createdAt: string | null; // order_payments.created_at NULLABLE
 }
 
 interface PaymentHistorySectionProps {

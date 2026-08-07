@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withPrintingAccess } from "@/lib/auth_utils";
 import { fireAuditLog } from "@/lib/audit";
 import {
@@ -27,7 +29,7 @@ export async function createLab(rawData: unknown): Promise<ActionResult<Lab>> {
     };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const now = new Date().toISOString();
     const { data, error } = await supabase
       .from("labs")
@@ -85,7 +87,7 @@ export async function updateLab(
     };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { error } = await supabase
       .from("labs")
       .update({
@@ -115,7 +117,7 @@ export async function updateLab(
 }
 
 export async function deleteLab(id: string): Promise<ActionResult<null>> {
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { count, error: usageError } = await supabase
       .from("printing_orders")
       .select("id", { count: "exact", head: true })
@@ -168,7 +170,7 @@ export async function toggleLabStatus(
     return { success: false, error: "Trang thai lab khong hop le" };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { error } = await supabase
       .from("labs")
       .update({
@@ -208,7 +210,7 @@ export async function createLabService(
     };
   }
 
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const now = new Date().toISOString();
     const { error } = await supabase.from("lab_services").insert({
       ...parsed.data,
@@ -245,7 +247,7 @@ export async function updateLabService(
     };
   }
 
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { error } = await supabase
       .from("lab_services")
       .update({
@@ -274,7 +276,7 @@ export async function updateLabService(
 export async function deleteLabService(
   id: string,
 ): Promise<ActionResult<null>> {
-  return withPrintingAccess(async (supabase) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
     const { error } = await supabase.from("lab_services").delete().eq("id", id);
 
     if (error) {
@@ -305,13 +307,15 @@ export async function recordLabPayment(
     };
   }
 
-  return withPrintingAccess(async (supabase, userId) => {
+  return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { error } = await supabase.rpc("record_lab_payment_atomic", {
       p_actor_id: userId,
       p_allocations: parsed.data.allocations ?? [],
       p_amount: parsed.data.amount,
       p_lab_id: parsed.data.lab_id,
-      p_note: parsed.data.note,
+      // p_note là text KHÔNG có DEFAULT → generator khai thành `string` bắt buộc,
+      // nhưng Postgres vẫn nhận NULL. Ép kiểu để giữ nguyên hành vi cũ.
+      p_note: parsed.data.note as string,
       p_payment_method: parsed.data.payment_method,
     });
 

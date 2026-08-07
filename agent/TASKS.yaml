@@ -340,3 +340,36 @@ done:
       Ghi nhận: `contracts.status` là **varchar chứ không phải enum** — DB không ràng buộc giá
       trị, app tự giữ kỷ luật bằng ContractStatus. Dùng `as ContractStatus` cùng kiểu với dòng
       `service_type as ServiceType` ngay trên.
+
+  - id: T-20260807-typed-client-inventory-printing
+    title: "ADR-013 Phase 3 — gắn generic Database cho Vật tư + In ấn/Lab"
+    status: done
+    owner: claude
+    locks: ["app/actions/{inventory,printing,lab}-*.ts", "types/printing.ts", "components/inventory/approval-requests-tab.tsx", "components/printing/**"]
+    spec: agent/DECISIONS.md ADR-013
+    result: >
+      9 file action khai SupabaseClient<Database> tại callback (54 callback). Đo được 32 lỗi
+      (3 trong đó là TS2339 = đọc cột/hàm không tồn tại), sửa hết về 0.
+      Verify: tsc 0 · eslint 0 · verify:inventory pass · verify:printing pass · build pass.
+    notes: >
+      **BUG THẬT 1 — hoàn tiền khi huỷ đơn in KHÔNG được ghi vào chi phí**
+      (printing-workflow-mutations.ts cancelOrder): insert vào `expenses` dùng 4 cột KHÔNG tồn
+      tại (`expense_type`, `category_name`, `notes`, `updated_by`) + `payment_method` giá trị
+      tiếng Anh trong khi cột là enum. Verify bằng POST thật: HTTP 400 PGRST204
+      "Could not find the 'category_name' column of 'expenses'". Code chỉ dùng error để bỏ qua
+      bước liên kết (`if (!expenseError && expense)`) nên nuốt lỗi im lặng. Bằng chứng chưa từng
+      chạy được: bảng `order_payments` có 0 dòng. ĐÃ SỬA → từ nay hoàn tiền sẽ tạo dòng expenses
+      thật (ghi `description` + `printing_order_id`).
+      **BUG THẬT 2 — RPC `increment_inventory_stock` KHÔNG tồn tại** (404 PGRST202), gọi ở luồng
+      hoàn kho khi huỷ đơn. May là có nhánh fallback cập nhật thủ công nên tồn kho vẫn đúng —
+      lời gọi chết chỉ tốn 1 round trip mỗi giao dịch. Đã bỏ hẳn, giữ fallback.
+      **BUG 3 — audit log xoá giao dịch kho in ra UUID thay vì tên**: đọc `txn.item_name` nhưng
+      `inventory_transactions` không có cột đó. Lấy `inventory_items.name` từ query đã có sẵn.
+      **BUG 4 — "sửa phát sinh" (update_fulfillment) hỏng hoàn toàn**: UI gửi payload RỖNG
+      (comment tự nhận là "MVP placeholder") → `p_new_quantity`/`p_new_unit_price` undefined →
+      404 PGRST202. Đã thêm guard báo lỗi tiếng Việt rõ ràng thay vì lỗi PostgREST. **Tính năng
+      vẫn chưa dùng được — cần làm form nhập, hoặc gỡ nút.**
+      Ghi nhận kiến trúc: module In ấn dùng từ vựng `cash|transfer|card|other` còn DB dùng enum
+      `tien_mat|chuyen_khoan`. Thêm `toPaymentMethodEnum()` quy về 2 nhóm (cash→tien_mat, còn
+      lại→chuyen_khoan). `order_payments.payment_method` là text nên vẫn nhận tiếng Anh — hai
+      bảng đang lưu hai từ vựng khác nhau, nên thống nhất trong task riêng.
