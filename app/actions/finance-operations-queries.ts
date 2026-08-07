@@ -1,6 +1,8 @@
 "use server";
 
 import { withFinanceRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, monthWindowOptional, relationText } from "@/lib/finance-utils";
 import { getTodayInTimeZone } from "@/lib/studio-date";
@@ -180,7 +182,7 @@ function investmentBookValue(row: {
 }
 
 export async function checkFinancePeriodLocked(date: string) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("is_period_locked", { p_date: date });
     if (error && isMissingRpcError(error)) {
       const { data: close, error: closeError } = await supabase
@@ -197,7 +199,7 @@ export async function checkFinancePeriodLocked(date: string) {
 }
 
 export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all") {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     let query = supabase
       .from("transaction_categories")
       .select("id, name, type, category_code, is_default, updated_at")
@@ -213,7 +215,7 @@ export async function fetchFinanceCategories(type: "thu" | "chi" | "all" = "all"
 }
 
 export async function fetchContractOptions(limit = 60) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const safeLimit = Math.min(MAX_SEARCH_LIMIT, Math.max(1, Math.trunc(Number(limit) || 60)));
     const { data, error } = await supabase
       .from("contracts")
@@ -235,15 +237,15 @@ export async function fetchContractOptions(limit = 60) {
 }
 
 export async function fetchReceipts(params: MonthYearPageParams & { search?: string; receiptType?: string } = {}) {
-  return profileAction("finance.fetchReceipts", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.fetchReceipts", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     const sanitizedSearch = params.search ? sanitizePostgrestSearch(params.search) : "";
     const { data: rpcData, error: rpcError } = await supabase.rpc("finance_receipt_documents", {
-      p_month: params.month ?? null,
-      p_year: params.year ?? null,
-      p_receipt_type: params.receiptType && params.receiptType !== "all" ? params.receiptType : null,
-      p_search: sanitizedSearch || null,
+      p_month: params.month ?? undefined,
+      p_year: params.year ?? undefined,
+      p_receipt_type: params.receiptType && params.receiptType !== "all" ? params.receiptType : undefined,
+      p_search: sanitizedSearch || undefined,
       p_limit: size,
       p_offset: from,
     });
@@ -344,11 +346,11 @@ export interface ReceiptStats {
 }
 
 export async function fetchReceiptStats(month?: number, year?: number) {
-  return profileAction("finance.fetchReceiptStats", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.fetchReceiptStats", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc("finance_receipt_document_stats", {
-        p_month: month ?? null,
-        p_year: year ?? null,
+        p_month: month ?? undefined,
+        p_year: year ?? undefined,
       })
       .maybeSingle();
 
@@ -407,7 +409,7 @@ export async function fetchReceiptStats(month?: number, year?: number) {
 }
 
 export async function fetchExpenses(params: MonthYearPageParams & { approval?: ApprovalFilter } = {}) {
-  return profileAction("finance.fetchExpenses", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.fetchExpenses", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize);
     const window = monthWindowOptional(params.month, params.year);
     let query = supabase
@@ -456,11 +458,11 @@ export interface ExpenseStats {
 }
 
 export async function fetchExpenseStats(month?: number, year?: number) {
-  return profileAction("finance.fetchExpenseStats", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.fetchExpenseStats", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc("finance_expense_stats", {
-        p_month: month ?? null,
-        p_year: year ?? null,
+        p_month: month ?? undefined,
+        p_year: year ?? undefined,
       })
       .maybeSingle();
 
@@ -505,7 +507,7 @@ export async function fetchExpenseStats(month?: number, year?: number) {
 }
 
 export async function fetchDebts(params: { page?: number; pageSize?: number } = {}) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
     const { data, error, count } = await supabase
       .from("debts")
@@ -575,7 +577,7 @@ function mapDebtStatsRow(row: Record<string, unknown> | null | undefined): DebtS
 }
 
 export async function fetchDebtStats() {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data: rpcData, error: rpcError } = await supabase
       .rpc("finance_debt_stats")
       .maybeSingle();
@@ -647,7 +649,7 @@ export interface CreditCardOption {
 }
 
 export async function fetchCreditCards() {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("credit_cards")
       .select("id, bank_name, last_4, statement_day, due_day, credit_limit, updated_at")
@@ -660,7 +662,7 @@ export async function fetchCreditCards() {
 }
 
 export async function fetchLabDebts() {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("finance_lab_debt_summary");
     if (error) throw new Error(`Loi tai cong no lab: ${error.message}`);
     return (data || []) as LabDebtItem[];
@@ -668,7 +670,7 @@ export async function fetchLabDebts() {
 }
 
 export async function fetchFixedCosts() {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("fixed_costs")
       .select("id, cost_code, cost_name, cost_type, monthly_amount, deposit_amount, start_date, end_date, description, updated_at")
@@ -681,7 +683,7 @@ export async function fetchFixedCosts() {
 }
 
 export async function fetchInvestments() {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("investments")
       .select("id, name, category, serial_number, purchase_date, purchase_price, linked_revenue, salvage_value, useful_life_months, depreciation_method, status, condition, location, next_maintenance_date, updated_at")
@@ -703,7 +705,7 @@ export async function fetchInvestments() {
 }
 
 export async function fetchSalaries(month: number, year: number) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const [rowsResult, summaryResult] = await Promise.all([
       supabase
         .from("employee_salaries")
@@ -766,7 +768,7 @@ export async function fetchSalaries(month: number, year: number) {
 export async function fetchGoals(
   params: { page?: number; pageSize?: number; includeContributions?: boolean } = {},
 ) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
     const { data, error, count } = params.includeContributions
       ? await supabase
@@ -841,7 +843,7 @@ export interface GoalsCashflowData {
 }
 
 export async function fetchGoalsCashflow(params: { month?: number; year?: number } = {}) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const today = getTodayInTimeZone();
     const year = params.year || Number(today.slice(0, 4));
     const month = params.month || Number(today.slice(5, 7));
@@ -932,7 +934,7 @@ export async function fetchGoalContributions(
   goalId: string,
   params: { page?: number; pageSize?: number } = {},
 ) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     if (!goalId?.trim()) throw new Error("Goal ID khong hop le");
 
     const { current, size, from, to } = pageWindow(params.page, params.pageSize || 20);
@@ -966,7 +968,7 @@ export async function fetchGoalContributions(
 // ─── RECEIPT DETAIL ─────────────────────────
 
 export async function getReceiptDetail(id: string) {
-  return profileAction("finance.getReceiptDetail", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.getReceiptDetail", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const routeId = normalizeReceiptRouteId(id);
 
     if (isPaymentReceiptId(routeId)) {
@@ -992,7 +994,7 @@ export async function getReceiptDetail(id: string) {
         receipt_type: paymentReceiptType(payment.payment_stage, (payment as Record<string, unknown>).is_contract_adjustment),
         payment_type: payment.payment_method,
         contract_id: payment.contract_id,
-        contract_code: contract?.contract_code || null,
+        contract_code: relationText(contract, "contract_code"),
         customer_name: relationText(contract?.customer, "full_name"),
         receipt_amount: payment.amount || 0,
         total_amount: Number(contract?.total_amount) || 0,
@@ -1029,7 +1031,7 @@ export async function getReceiptDetail(id: string) {
 // ─── EXPENSE DETAIL ─────────────────────────
 
 export async function getExpenseDetail(id: string) {
-  return profileAction("finance.getExpenseDetail", () => withFinanceRead(async (supabase) => {
+  return profileAction("finance.getExpenseDetail", () => withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data: expense, error } = await supabase
       .from("expenses")
       .select(`
@@ -1077,7 +1079,7 @@ export async function getExpenseDetail(id: string) {
 // ═══════════════ DEBT PAYMENT HISTORY ═══════════════
 
 export async function fetchDebtPaymentHistory(debtId: string) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     // 1. Lấy danh sách phiếu thu liên quan
     const { data: receipts, error: rError } = await supabase
       .from("receipts")

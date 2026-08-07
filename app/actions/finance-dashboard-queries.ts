@@ -1,6 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
@@ -100,7 +101,7 @@ function mapLedgerRows(
 async function withFinanceRead<T>(
   action: (supabase: SupabaseClient, userId: string) => Promise<T>,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
     return action(supabase, userId);
   });
@@ -589,8 +590,8 @@ async function queryContractProfitReport(
   const pageSize = filters.pageSize || 10;
   const { data, error } = await supabase.rpc("finance_contract_profit_report", {
     p_status: filters.status || "all",
-    p_from: filters.fromDate || null,
-    p_to: filters.toDate || null,
+    p_from: filters.fromDate || undefined,
+    p_to: filters.toDate || undefined,
     p_page: page,
     p_page_size: pageSize,
   });
@@ -664,8 +665,8 @@ async function queryLedger(
   const { data, error } = await supabase.rpc("finance_ledger", {
     p_page: safeParams.page,
     p_page_size: safeParams.pageSize,
-    p_month: safeParams.month || null,
-    p_year: safeParams.year || null,
+    p_month: safeParams.month || undefined,
+    p_year: safeParams.year || undefined,
     p_type: safeParams.type,
   });
 
@@ -679,7 +680,7 @@ async function queryLedger(
 
 export async function getDashboardMetrics(month: number, year: number) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -705,7 +706,7 @@ export async function getDashboardMetrics(month: number, year: number) {
 
 export async function getRevenueByMonth(year: number) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const { data, error } = await supabase.rpc("finance_revenue_by_month", {
@@ -726,7 +727,7 @@ export async function getRevenueByMonth(year: number) {
 
 export async function getServiceDistribution(month: number, year: number) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const { data, error } = await supabase.rpc("finance_service_distribution", {
@@ -748,7 +749,7 @@ export async function getServiceDistribution(month: number, year: number) {
 
 export async function getUpcomingContracts(limit: number = 5) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const today = new Date().toISOString().split("T")[0];
@@ -767,7 +768,7 @@ export async function getUpcomingContracts(limit: number = 5) {
 
 export async function getPendingCollections(limit: number = 5) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -785,15 +786,15 @@ export async function getPendingCollections(limit: number = 5) {
 
 export async function getContractProfitReport(filters: ContractProfitReportParams = {}) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const page = filters.page || 1;
     const pageSize = filters.pageSize || 10;
     const { data, error } = await supabase.rpc("finance_contract_profit_report", {
       p_status: filters.status || "all",
-      p_from: filters.fromDate || null,
-      p_to: filters.toDate || null,
+      p_from: filters.fromDate || undefined,
+      p_to: filters.toDate || undefined,
       p_page: page,
       p_page_size: pageSize,
     });
@@ -842,7 +843,7 @@ export async function fetchLedger(params: {
   type?: "in" | "out" | "all";
 }) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
     const safeParams = normalizeLedgerParams(params);
 
@@ -864,8 +865,8 @@ export async function fetchLedger(params: {
     const { data, error } = await supabase.rpc("finance_ledger", {
       p_page: safeParams.page,
       p_page_size: safeParams.pageSize,
-      p_month: safeParams.month || null,
-      p_year: safeParams.year || null,
+      p_month: safeParams.month || undefined,
+      p_year: safeParams.year || undefined,
       p_type: safeParams.type,
     });
 
@@ -883,7 +884,7 @@ export async function fetchLedger(params: {
 
 export async function getFinanceDashboardBootstrap(month: number, year: number) {
   return profileAction("finance.dashboardBootstrap", () =>
-    withFinanceRead(async (supabase) => {
+    withFinanceRead(async (supabase: SupabaseClient<Database>) => {
       const metrics = await profileAction(
         "finance.dashboardBootstrap.metrics",
         () => queryDashboardMetrics(supabase, month, year),
@@ -904,7 +905,7 @@ export async function getFinanceDashboardBootstrap(month: number, year: number) 
 
 export async function getContractFinanceDetails(contractId: string) {
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
     const { data: contract, error: contractErr } = await supabase

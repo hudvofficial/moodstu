@@ -91,7 +91,7 @@
 - **Success criteria:** trace lab cùng điều kiện: LCP < 2.5s + LCPDiscovery 3/3 PASS; render OK @390/@768/@1280 cả public lẫn admin gallery; Speed Insights mobile LCP xanh sau vài ngày.
 
 ## ADR-013 — Gắn generic `Database` cho Supabase client: làm từng module, KHÔNG làm một lượt
-- **Ngày:** 2026-08-07 · **Trạng thái:** **Proposed — chờ user duyệt** (chỉ hướng đi; chưa cho phép Codex/Claude bắt đầu sửa)
+- **Ngày:** 2026-08-07 · **Trạng thái:** **Accepted** (user duyệt 2026-08-07). Phase 1 = module Finance.
 - **Bối cảnh:** `types/database.types.ts` vừa được sinh lại khớp DB (T-20260807-regen-database-types). Nhưng type **không bảo vệ phần lớn app**: `createAdminClient()` (`lib/supabase/server.ts:37`) gọi `createServerClient(...)` không generic, và `lib/auth_utils.ts` khai tham số là `SupabaseClient` trần → `SupabaseClient<any>`. Chỉ nhánh Moodie + 4 file `lib/` (`studio-info`, `system-settings`, `settings-studio-admin`, `productivity-transforms`) tự khai `SupabaseClient<Database>`.
 - **Đo (thí nghiệm đã hoàn tác, working tree sạch):** gắn `createServerClient<Database>` + đổi `SupabaseClient` → `SupabaseClient<Database>` trong `auth_utils.ts` rồi `npx tsc --noEmit`:
   - baseline **0 lỗi** → sau khi gắn **232 lỗi / 68 file**

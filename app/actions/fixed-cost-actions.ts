@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { writeAuditLog } from "@/lib/audit";
 import { withAdmin } from "@/lib/auth_utils";
 import { createFixedCostSchema, updateFixedCostSchema } from "@/lib/validations/finance.schema";
@@ -20,7 +22,7 @@ export async function createFixedCost(input: {
   end_date?: string | null;
   description?: string | null;
 }) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // W1: Zod validation (replaces normalizeFixedCost)
     const parsed = createFixedCostSchema.safeParse(input);
     if (!parsed.success) {
@@ -76,7 +78,7 @@ export async function updateFixedCost(
   },
   expectedUpdatedAt?: string | null,
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // W1: Zod partial validation
     const parsed = updateFixedCostSchema.safeParse(input);
     if (!parsed.success) {
@@ -137,7 +139,7 @@ export async function updateFixedCost(
 }
 
 export async function deleteFixedCost(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("fixed_costs")
       .select("cost_code, cost_name, monthly_amount, start_date")

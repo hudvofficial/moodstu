@@ -20,7 +20,7 @@ interface DebtPaymentModalProps {
 
 export function DebtPaymentModal({ isOpen, onClose, debt }: DebtPaymentModalProps) {
   const [amount, setAmount] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("chuyen_khoan");
+  const [paymentMethod, setPaymentMethod] = useState<"tien_mat" | "chuyen_khoan">("chuyen_khoan");
   const [note, setNote] = useState<string>("");
   const [loading, setLoading] = useState(false);
 

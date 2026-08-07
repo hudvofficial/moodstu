@@ -3,6 +3,7 @@
 import { withFinanceRead } from "@/lib/auth_utils";
 import { asNumber, asString, isMissingRpcError } from "@/lib/finance-utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   getReportRevenueLabel,
   getReportServiceLabel,
@@ -168,7 +169,7 @@ function normalizeReportsSnapshotPayload(
 }
 
 export async function getReportsSnapshot(filters: ReportFiltersInput) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const safeFilters = reportFiltersSchema.parse(filters);
     const range = getReportRange(safeFilters);
 

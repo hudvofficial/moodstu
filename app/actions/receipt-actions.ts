@@ -1,6 +1,8 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { checkPeriodLock, isMissingRpcError } from "@/lib/finance-utils";
@@ -42,7 +44,7 @@ export interface SaleItem {
 // ─── DELETE RECEIPT ───────────────────────────
 
 export async function deleteReceipt(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     if (id.startsWith("payment:")) {
       throw new Error("Phieu thu hop dong duoc tao tu thanh toan hop dong. Vui long xu ly tu chi tiet hop dong.");
     }
@@ -93,7 +95,7 @@ export async function deleteReceipt(id: string) {
 // ─── CREATE RECEIPT ──────────────────────────
 
 export async function createReceipt(input: CreateReceiptInput) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // 1. Validate
     const parsed = createReceiptSchema.safeParse(input);
     if (!parsed.success) {
@@ -182,7 +184,7 @@ export async function createReceipt(input: CreateReceiptInput) {
 // ─── UPDATE RECEIPT ──────────────────────────
 
 export async function updateReceipt(input: z.infer<typeof updateReceiptWithLockSchema>) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     if (String(input.id || "").startsWith("payment:")) {
       throw new Error("Phieu thu hop dong duoc tao tu thanh toan hop dong. Vui long xu ly tu chi tiet hop dong.");
     }
@@ -228,7 +230,7 @@ export async function updateReceipt(input: z.infer<typeof updateReceiptWithLockS
     }
 
     // Prepare update payload
-    const updatePayload: Record<string, string | number | null> = {
+    const updatePayload: Database["public"]["Tables"]["receipts"]["Update"] = {
       updated_at: new Date().toISOString(),
       updated_by: userId,
     };
@@ -287,7 +289,7 @@ export async function createSaleReceipt(input: {
   customer_name?: string;
   customer_phone?: string;
 }) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     if (!input.receipt_amount || input.receipt_amount <= 0) throw new Error("Số tiền thu phải lớn hơn 0");
     if (!input.sale_items || input.sale_items.length === 0) throw new Error("Vui lòng thêm ít nhất 1 vật tư");
     

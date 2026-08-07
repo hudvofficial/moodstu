@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { writeAuditLog } from "@/lib/audit";
 import { withAdmin } from "@/lib/auth_utils";
 import { createCategorySchema, updateCategorySchema } from "@/lib/validations/finance.schema";
@@ -25,7 +27,7 @@ export async function createFinanceCategory(input: {
   type: "thu" | "chi";
   category_code?: string;
 }) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // W6: Zod validation (audit fix)
     const parsed = createCategorySchema.safeParse(input);
     if (!parsed.success) {
@@ -64,7 +66,7 @@ export async function updateFinanceCategory(
   id: string,
   input: { name: string; type: "thu" | "chi"; category_code?: string },
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // W6: Zod validation (audit fix)
     const parsed = updateCategorySchema.safeParse(input);
     if (!parsed.success) {
@@ -110,7 +112,7 @@ export async function updateFinanceCategory(
 }
 
 export async function deleteFinanceCategory(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("transaction_categories")
       .select("name, type, is_default")

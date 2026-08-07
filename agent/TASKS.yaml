@@ -287,3 +287,31 @@ done:
       Bài học đã ghi vault: CREATE OR REPLACE không thay được hàm khác chữ ký (bay-trien-khai.md);
       migration ship kèm code nhưng không apply — kiểm bằng pg_proc/pg_indexes chứ đừng tin thư mục
       migrations (bay-trien-khai.md); xây hạ tầng cho rủi ro concurrency không tồn tại (bay-du-lieu.md).
+
+  - id: T-20260807-typed-client-finance
+    title: "ADR-013 Phase 1 — gắn generic Database cho module Finance"
+    status: done
+    owner: claude
+    locks: ["app/actions/finance-*.ts", "app/actions/{debt,expense,receipt,fixed-cost,goal-budget,investment}-actions.ts", "types/finance-operations.ts", "components/finance/debts/debt-payment-modal.tsx", "app/(protected)/finance/receipts/[id]/page.tsx"]
+    result: >
+      13 file action finance khai SupabaseClient<Database> tại callback (71 callback), KHÔNG đụng
+      lib/auth_utils.ts theo đúng ADR-013. Đo được 35 lỗi, sửa hết về 0.
+      Phân loại: 16 TS2322 (RPC arg null→undefined + type app lệch) · 9 TS2345 (payload
+      Record<string,unknown> → dùng type Insert/Update sinh từ schema) · 6 TS2352 (cast Json →
+      as unknown as T) · 4 TS2769 (SWR fallbackData lệch type action trả về).
+      **0 lỗi TS2339** — finance không có chỗ nào đọc cột không tồn tại (khác export-actions).
+      Verify: tsc 0 · eslint 0 trên 16 file đổi · build pass.
+    notes: >
+      3 bug tiềm ẩn lộ ra và đã vá:
+      (1) expense-actions generateMonthlyFixedCosts: fixed_costs.monthly_amount NULLABLE nhưng
+      expenses.amount NOT NULL → cost thiếu số tiền làm totalAmount thành NaN rồi insert vỡ.
+      Vá bằng type predicate lọc bỏ. Bảng fixed_costs đang rỗng nên chưa nổ.
+      (2) payDebt nhận paymentMethod: string trong khi expenses.payment_method là enum
+      payment_method_enum → chuỗi lạ sẽ gây 22P02. Siết về "tien_mat" | "chuyen_khoan"
+      (UI chỉ set 2 giá trị đó, đã kiểm).
+      (3) receipts/[id]/page in phiếu: new Date(receipt.created_at) với created_at nullable →
+      null cho ra 1970. Thêm guard.
+      Đổi có ảnh hưởng hành vi đã kiểm chứng: mọi RPC đổi null→undefined đều DEFAULT NULL
+      (tra pg_get_function_arguments); contract_code chuyển sang relationText khác ở chỗ chuỗi
+      rỗng — query DB xác nhận 54/54 contract_code đều không rỗng, không null.
+      ExpenseListItem.payment_method đổi string → union enum cho khớp schema.

@@ -1,6 +1,8 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createInvestmentSchema, updateInvestmentSchema } from "@/lib/validations/finance.schema";
@@ -42,7 +44,7 @@ export interface UpdateInvestmentInput extends Partial<CreateInvestmentInput> {
 // ─── CREATE ───────────────────────────────────
 
 export async function createInvestment(input: CreateInvestmentInput) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // H2: Zod validation
     const parsed = createInvestmentSchema.safeParse(input);
     if (!parsed.success) {
@@ -89,7 +91,7 @@ export async function updateInvestment(
   input: UpdateInvestmentInput,
   expectedUpdatedAt?: string
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // H2: Zod partial validation
     const parsed = updateInvestmentSchema.safeParse(input);
     if (!parsed.success) {
@@ -142,7 +144,7 @@ export async function updateInvestment(
 // ─── DELETE ───────────────────────────────────
 
 export async function deleteInvestment(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("investments")
       .select("name, purchase_price, status, purchase_date")
@@ -183,7 +185,7 @@ export async function addMaintenanceLog(
   investmentId: string,
   input: { maintenance_date: string; description?: string; cost?: number; performed_by?: string }
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     if (!input.maintenance_date) throw new Error("Ngày bảo trì là bắt buộc");
 
     const { error: logError } = await supabase.from("investment_maintenance_logs").insert({

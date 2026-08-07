@@ -1,6 +1,8 @@
 "use server";
 
 import { withFinanceRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { asNumber, asString } from "@/lib/finance-utils";
 import type { CashflowTimelinePoint } from "@/types/reports";
 
@@ -21,7 +23,7 @@ function assertTimelineRange(startDate: string, endDate: string) {
 }
 
 export async function getCashflowTimeline(startDate: string, endDate: string) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     assertTimelineRange(startDate, endDate);
 
     const { data, error } = await supabase.rpc("finance_cashflow_timeline", {

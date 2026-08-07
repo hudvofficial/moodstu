@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { withAdmin, withFinanceRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { writeAuditLog } from "@/lib/audit";
 import { createExpenseSchema, updateExpenseSchema } from "@/lib/validations/finance.schema";
 import { checkPeriodLock } from "@/lib/finance-utils";
@@ -25,7 +27,7 @@ export interface CreateExpenseInput {
 
 // ─── APPROVE EXPENSE ─────────────────────
 export async function approveExpense(id: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // 1. Check if expense exists and period is locked
     const { data: expense } = await supabase
       .from("expenses")
@@ -60,7 +62,7 @@ export async function approveExpense(id: string) {
 
 // ─── CREATE EXPENSE ──────────────────────
 export async function createExpense(input: CreateExpenseInput) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // 1. Zod validation
     const parsed = createExpenseSchema.safeParse(input);
     if (!parsed.success) {
@@ -104,7 +106,7 @@ export async function updateExpense(
   input: Partial<CreateExpenseInput>,
   expectedUpdatedAt?: string | null
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // 1. Zod validation
     const parsed = updateExpenseSchema.safeParse(input);
     if (!parsed.success) {
@@ -173,7 +175,7 @@ export async function updateExpense(
 
 // ─── DELETE EXPENSE ──────────────────────
 export async function deleteExpense(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // 1. Fetch old data + lock check
     const { data: oldData } = await supabase
       .from("expenses")
@@ -218,7 +220,7 @@ export async function deleteExpense(id: string) {
 
 // ─── GET EXPENSES BY CONTRACT ────────────
 export async function getExpensesByContract(contractId: string) {
-  return withFinanceRead(async (supabase) => {
+  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("expenses")
       .select(
@@ -242,7 +244,7 @@ interface GenerateResult {
 }
 
 export async function generateMonthlyFixedCosts(month: number, year: number) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2024 || year > 2030) {
       throw new Error("Thang/nam khong hop le.");
     }
@@ -262,7 +264,10 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
     const firstDayOfMonth = new Date(year, month - 1, 1);
     const lastDayOfMonth = new Date(year, month, 0);
 
-    const activeCosts = costs.filter((c) => {
+    const activeCosts = costs.filter((c): c is typeof c & { monthly_amount: number } => {
+      // monthly_amount nullable trong DB nhưng expenses.amount NOT NULL —
+      // chi phí cố định chưa có số tiền thì không sinh được phiếu chi.
+      if (c.monthly_amount == null) return false;
       const start = c.start_date ? new Date(c.start_date) : null;
       const end = c.end_date ? new Date(c.end_date) : null;
       if (start && start > lastDayOfMonth) return false;
@@ -291,7 +296,7 @@ export async function generateMonthlyFixedCosts(month: number, year: number) {
     let createdCount = 0;
     let skippedCount = 0;
     let totalAmount = 0;
-    const newExpenses: Record<string, unknown>[] = [];
+    const newExpenses: Database["public"]["Tables"]["expenses"]["Insert"][] = [];
 
     for (const cost of activeCosts) {
       const tag = `[Auto-Fixed] ${cost.cost_code} - Tháng ${month}/${year}`;

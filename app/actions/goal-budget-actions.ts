@@ -1,6 +1,8 @@
 "use server";
 
 import { withAdmin, withFinanceRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createGoalSchema, updateGoalSchema, upsertBudgetSchema } from "@/lib/validations/finance.schema";
@@ -15,7 +17,7 @@ import type { BudgetActualItem } from "@/types/finance-operations";
 // ═══════════════ FINANCIAL GOALS ═══════════════
 
 export async function createGoal(input: { name: string; target_amount: number; deadline?: string; icon?: string; color?: string; notes?: string }) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsed = createGoalSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Dữ liệu không hợp lệ: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
@@ -43,7 +45,7 @@ export async function updateGoal(
   input: { name?: string; target_amount?: number; deadline?: string; icon?: string; color?: string; notes?: string; status?: string },
   expectedUpdatedAt?: string
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsed = updateGoalSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Dữ liệu không hợp lệ: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
@@ -61,7 +63,7 @@ export async function updateGoal(
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang.");
     }
 
-    const updateData: Record<string, string | number | null> = { ...input, updated_at: new Date().toISOString() };
+    const updateData: Database["public"]["Tables"]["financial_goals"]["Update"] = { ...input, updated_at: new Date().toISOString() };
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
     if (parsed.data.target_amount !== undefined) updateData.target_amount = parsed.data.target_amount;
     if (parsed.data.deadline !== undefined) updateData.deadline = parsed.data.deadline;
@@ -91,7 +93,7 @@ export async function updateGoal(
 }
 
 export async function deleteGoal(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("financial_goals")
       .select("name, target_amount")
@@ -116,7 +118,7 @@ export async function deleteGoal(id: string) {
 
 /** Add contribution (atomic RPC) */
 export async function addContribution(goalId: string, amount: number, notes?: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     if (!goalId?.trim()) throw new Error("Goal ID không hợp lệ");
     if (!amount || amount <= 0) throw new Error("Số tiền phải lớn hơn 0");
 
@@ -142,7 +144,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
       throw new Error("Muc tieu da huy, khong the gop them.");
     }
 
-    const { error } = await supabase.rpc("contribute_to_goal", { p_goal_id: goalId, p_amount: amount, p_notes: notes || null });
+    const { error } = await supabase.rpc("contribute_to_goal", { p_goal_id: goalId, p_amount: amount, p_notes: notes || undefined });
     if (error && isMissingRpcError(error)) {
       const { data: goal, error: goalError } = await supabase
         .from("financial_goals")
@@ -164,7 +166,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
       if (insertError) throw new Error(`Khong the ghi nhan gop von: ${insertError.message}`);
 
       const newCurrent = (goal.current_amount || 0) + amount;
-      const updateData: Record<string, string | number> = {
+      const updateData: Database["public"]["Tables"]["financial_goals"]["Update"] = {
         current_amount: newCurrent,
         updated_at: new Date().toISOString(),
       };
@@ -193,7 +195,7 @@ export async function addContribution(goalId: string, amount: number, notes?: st
 
 /** Undo contribution (24h window — Atomic RPC) */
 export async function undoContribution(contributionId: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     if (!contributionId?.trim()) throw new Error("Contribution ID không hợp lệ");
 
     // Single atomic RPC: validate 24h → delete → decrement → revert status
@@ -224,7 +226,7 @@ export async function undoContribution(contributionId: string) {
       if (deleteError) throw new Error(`Khong the hoan tac gop von: ${deleteError.message}`);
 
       const newCurrent = Math.max(0, (goal.current_amount || 0) - (contribution.amount || 0));
-      const updateData: Record<string, string | number> = {
+      const updateData: Database["public"]["Tables"]["financial_goals"]["Update"] = {
         current_amount: newCurrent,
         updated_at: new Date().toISOString(),
       };
@@ -267,7 +269,7 @@ export async function undoContribution(contributionId: string) {
 // ═══════════════ BUDGETS ═══════════════
 
 export async function upsertBudget(input: { category_name: string; budget_amount: number; period_month: number; period_year: number; notes?: string }) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsed = upsertBudgetSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Dữ liệu không hợp lệ: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
@@ -297,7 +299,7 @@ export async function upsertBudget(input: { category_name: string; budget_amount
 }
 
 export async function deleteBudget(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("budgets")
       .select("category_name, period_month, period_year")

@@ -56,7 +56,8 @@ export interface ReceiptListItem {
 export interface ExpenseListItem {
   id: string;
   expense_date: string;
-  payment_method: string;
+  /** DB là enum payment_method_enum — khai đúng để khớp kiểu sinh từ schema. */
+  payment_method: "tien_mat" | "chuyen_khoan";
   category_id: string | null;
   category_name: string | null;
   amount: number;

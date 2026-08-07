@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withAdmin } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError } from "@/lib/finance-utils";
 import { createCloseSchema } from "@/lib/validations/finance.schema";
+import type { CloseDetailData, CloseListItem } from "@/types/finance-operations";
 
 type AdminSupabase = Parameters<Parameters<typeof withAdmin>[0]>[0];
 
@@ -120,7 +123,7 @@ function revalidateCloseRoutes(closeId?: string) {
 }
 
 export async function createMonthlyClose(period: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = createCloseSchema.safeParse({ period });
     if (!parsed.success) {
       throw new Error(`Du lieu khong hop le: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`);
@@ -185,7 +188,7 @@ export async function createMonthlyClose(period: string) {
 }
 
 export async function advanceCloseTask(closeId: string, stepNumber: number, newStatus: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const nextStatus = normalizeCloseTaskStatus(newStatus);
     const { error } = await supabase.rpc("advance_close_task", {
       p_close_id: closeId,
@@ -244,7 +247,7 @@ export async function advanceCloseTask(closeId: string, stepNumber: number, newS
       }
 
       const now = new Date().toISOString();
-      const taskUpdate: Record<string, string | null> = {
+      const taskUpdate: Database["public"]["Tables"]["finance_close_tasks"]["Update"] = {
         status: nextStatus,
         updated_at: now,
       };
@@ -261,7 +264,7 @@ export async function advanceCloseTask(closeId: string, stepNumber: number, newS
         throw new Error(`Khong the cap nhat buoc chot so: ${taskError.message}`);
       }
 
-      const closeUpdate: Record<string, unknown> = stepNumber === 8 && nextStatus === "hoan_thanh"
+      const closeUpdate: Database["public"]["Tables"]["finance_monthly_closes"]["Update"] = stepNumber === 8 && nextStatus === "hoan_thanh"
         ? {
             status: "locked",
             locked_by: userId,
@@ -339,7 +342,7 @@ async function resolveEmployeeNames(
 }
 
 export async function getCloseDetail(closeId: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: close, error } = await supabase
       .from("finance_monthly_closes")
       .select("*")
@@ -367,7 +370,7 @@ export async function getCloseDetail(closeId: string) {
     ];
     const nameMap = await resolveEmployeeNames(supabase, userIds);
 
-    return {
+    const detail: CloseDetailData = {
       close: {
         ...close,
         locked_user_name: close.locked_by ? (nameMap[close.locked_by] ?? null) : null,
@@ -378,11 +381,12 @@ export async function getCloseDetail(closeId: string) {
         assignee_name: task.assignee_id ? (nameMap[task.assignee_id] ?? null) : null,
       })),
     };
+    return detail;
   });
 }
 
 export async function listCloses(year?: number) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     let query = supabase
       .from("finance_monthly_closes")
       .select("*")
@@ -400,7 +404,7 @@ export async function listCloses(year?: number) {
     const userIds = (data || []).map((close) => close.locked_by);
     const nameMap = await resolveEmployeeNames(supabase, userIds);
 
-    return (data || []).map((close) => ({
+    return (data || []).map((close): CloseListItem => ({
       ...close,
       locked_user_name: close.locked_by ? (nameMap[close.locked_by] ?? null) : null,
     }));

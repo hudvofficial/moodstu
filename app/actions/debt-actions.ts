@@ -1,6 +1,8 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { createCreditCardSchema, createDebtSchema, updateCreditCardSchema, updateDebtSchema } from "@/lib/validations/finance.schema";
@@ -56,7 +58,7 @@ function deriveDebtStatus(amount: number, paidAmount: number) {
 // ═══════════════════ DEBTS ═══════════════════
 
 export async function createDebt(input: DebtInput) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // 1. Zod validation
     const parsed = createDebtSchema.safeParse(input);
     if (!parsed.success) {
@@ -116,7 +118,7 @@ export async function updateDebt(
   input: Partial<DebtInput>,
   expectedUpdatedAt?: string
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // 1. Zod partial validation
     const parsed = updateDebtSchema.safeParse(input);
     if (!parsed.success) {
@@ -145,7 +147,7 @@ export async function updateDebt(
     }
 
     // 3. Update
-    const dbUpdateData: Record<string, unknown> = { ...updateData, updated_at: new Date().toISOString() };
+    const dbUpdateData: Database["public"]["Tables"]["debts"]["Update"] = { ...updateData, updated_at: new Date().toISOString() };
     if (updateData.type) {
       dbUpdateData.type = updateData.type === "Phải thu" ? "receivable" : "payable";
     }
@@ -204,12 +206,12 @@ export async function payDebt(
   id: string,
   paymentData: {
     amount: number;
-    paymentMethod: string;
+    paymentMethod: "tien_mat" | "chuyen_khoan";
     categoryId?: string;
     note?: string;
   }
 ) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const { amount, paymentMethod, categoryId, note } = paymentData;
     if (amount <= 0) throw new Error("Số tiền thanh toán phải lớn hơn 0");
 
@@ -235,7 +237,7 @@ export async function payDebt(
     const newStatus = deriveDebtStatus(totalAmount, newPaidAmount);
     
     // 3. Update Debt
-    const updateData: Record<string, unknown> = {
+    const updateData: Database["public"]["Tables"]["debts"]["Update"] = {
       paid_amount: newPaidAmount,
       remaining: newRemaining,
       status: newStatus,
@@ -297,7 +299,7 @@ export async function payDebt(
 }
 
 export async function deleteDebt(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("debts")
       .select("amount, entity_name, type, due_date")
@@ -332,7 +334,7 @@ export async function deleteDebt(id: string) {
 }
 
 export async function markInstallmentPaid(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     if (!id?.trim()) throw new Error("Debt ID khong hop le");
 
     const { data: debt, error: fetchError } = await supabase
@@ -361,7 +363,7 @@ export async function markInstallmentPaid(id: string) {
     const newRemaining = Math.max(0, totalAmount - newPaidAmount);
     const isComplete = newPaid >= debt.installment_total || newRemaining <= 0;
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Database["public"]["Tables"]["debts"]["Update"] = {
       installment_paid: newPaid,
       paid_amount: newPaidAmount,
       remaining: newRemaining,
@@ -393,7 +395,7 @@ export async function markInstallmentPaid(id: string) {
 // ═══════════════ CREDIT CARDS ═══════════════
 
 export async function createCreditCard(input: CreditCardInput) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsed = createCreditCardSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Du lieu khong hop le: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
@@ -429,7 +431,7 @@ export async function updateCreditCard(
   input: Partial<CreditCardInput>,
   expectedUpdatedAt?: string | null,
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsed = updateCreditCardSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(`Du lieu khong hop le: ${parsed.error.issues.map((e: { message: string }) => e.message).join(", ")}`);
@@ -474,7 +476,7 @@ export async function updateCreditCard(
 }
 
 export async function deleteCreditCard(id: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: oldData } = await supabase
       .from("credit_cards")
       .select("bank_name, last_4")
