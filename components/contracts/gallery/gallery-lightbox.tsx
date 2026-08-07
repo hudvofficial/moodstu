@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { setGalleryCoverImage } from "@/app/actions/gallery-admin-actions";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
+import { getResponsiveThumbnailUrl } from "./gallery-helpers";
 
 // ═══════════════════════════════════════════
 // GalleryLightbox — Fullscreen image viewer
@@ -24,6 +25,10 @@ interface GalleryLightboxProps {
   onSetCoverSuccess?: (imageId: string) => void;
   commentsPerImage?: Record<string, GalleryCommentSummary[]>;
 }
+
+// Loader nền PHẢI dùng đúng chuỗi sizes của thẻ <img> thật, nếu không trình duyệt
+// chọn candidate khác trong srcSet → tải 2 lần, gắn vào thẻ vẫn trắng.
+const PREVIEW_SIZES = "(max-width: 768px) 100vw, 95vw";
 
 function withThumbSize(url: string, size: number): string {
   if (/sz=s\d+/.test(url)) return url.replace(/sz=s\d+/, `sz=s${size}`);
@@ -93,22 +98,52 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
   const { src, srcSet, full } = useMemo(() => getPreviewUrls(img), [img]);
   const imageComments = commentsPerImage[img.id] || [];
 
+  // Ảnh chờ = ĐÚNG url ô lưới đang dùng (=s600) → đã nằm trong cache trình duyệt nên vẽ
+  // ngay (đo prod: load 0ms, transferSize 0). Trước đây thẻ <img> trống 0,3–2,3s vì bản
+  // =s2048 phải tải mới hoàn toàn — đó là cái "chớp" user thấy khi mở ảnh.
+  const placeholder = useMemo(
+    () => getResponsiveThumbnailUrl(img.thumbnail_url, img.image_url, 600),
+    [img],
+  );
+
+  // Nạp nền bản xem rồi mới gắn vào thẻ — đổi src trực tiếp sẽ có khoảnh khắc thẻ rỗng.
+  const [previewState, setPreviewState] = useState<{ key: string; ok: boolean } | null>(null);
+  const previewReady = Boolean(src) && previewState?.key === src && previewState.ok;
+
+  useEffect(() => {
+    if (!src || src === placeholder) return;
+    let cancelled = false;
+    const loader = new window.Image();
+    if (srcSet) {
+      loader.sizes = PREVIEW_SIZES;
+      loader.srcset = srcSet;
+    }
+    loader.onload = () => { if (!cancelled) setPreviewState({ key: src, ok: true }); };
+    loader.onerror = () => { if (!cancelled) setPreviewState({ key: src, ok: false }); };
+    loader.src = src;
+    return () => { cancelled = true; loader.onload = null; loader.onerror = null; };
+  }, [src, srcSet, placeholder]);
+
   // Nạp nền bản gốc (=s0) rồi thay vào <img>, để chuột-phải "Lưu ảnh"/nhấn giữ ra bản gốc.
-  // Hiện bản nhẹ trước nên tốc độ mở không đổi. State gắn KHÓA theo url gốc thay vì
+  // HOÃN tới khi bản xem đã hiện: đo prod cho thấy bản gốc 19,4 MB chạy SONG SONG với bản
+  // 450 KB ngay từ đầu và giành băng thông của nó. State gắn KHÓA theo url gốc thay vì
   // reset trong effect — tránh setState đồng bộ trong effect (react-hooks/set-state-in-effect).
   const [fullState, setFullState] = useState<{ key: string; ok: boolean } | null>(null);
   const needsUpgrade = Boolean(full && full !== src);
-  const displaySrc = needsUpgrade && fullState?.key === full && fullState.ok ? full : src;
+  const displaySrc = needsUpgrade && fullState?.key === full && fullState.ok
+    ? full
+    : previewReady ? src : placeholder;
 
   useEffect(() => {
     if (!full || full === src) return;
+    if (!previewReady) return;
     let cancelled = false;
     const loader = new window.Image();
     loader.onload = () => { if (!cancelled) setFullState({ key: full, ok: true }); };
     loader.onerror = () => { if (!cancelled) setFullState({ key: full, ok: false }); };
     loader.src = full;
     return () => { cancelled = true; loader.onload = null; loader.onerror = null; };
-  }, [full, src]);
+  }, [full, src, previewReady]);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -355,10 +390,14 @@ export default function GalleryLightbox({ images, initialIdx, onClose, galleryId
       <img
         key={img.id}
         src={displaySrc}
-        srcSet={displaySrc === full ? undefined : srcSet}
-        sizes={displaySrc === full ? undefined : "(max-width: 768px) 100vw, 95vw"}
+        srcSet={displaySrc === src ? srcSet : undefined}
+        sizes={displaySrc === src ? PREVIEW_SIZES : undefined}
         alt={img.file_name || "Photo"}
-        className="max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw]"
+        // md:h-[90vh]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
+        // Không có nó, ảnh chờ (=s600) hiện ở 400×600 rồi NỞ lên 540×810 khi bản 2048 vào —
+        // đo được, và một cú nhảy cỡ cũng khó chịu y như khung đen. Mobile giữ nguyên: đã
+        // khoá w-[100vw] nên hai bản cùng bề ngang, không nhảy.
+        className="max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:h-[90vh] md:w-auto md:max-w-[95vw]"
         style={{ borderRadius: "var(--radius-lg)" }}
         decoding="async"
         onClick={(e) => e.stopPropagation()}

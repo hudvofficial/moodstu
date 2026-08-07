@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { detectPlatform } from "@/lib/detect-platform";
 import { downloadSingleImage } from "@/lib/gallery-download";
 import { getComments, type GalleryComment } from "@/app/actions/gallery-reaction-actions";
+import { getResponsiveThumbnailUrl } from "@/components/contracts/gallery/gallery-helpers";
 
 // ═══════════════════════════════════════════
 // ImageViewer — Full-screen gallery slider (Public)
@@ -33,6 +34,10 @@ interface ImageViewerProps {
   accessToken?: string;
   totalImagesCount?: number;
 }
+
+// Loader nền PHẢI dùng đúng chuỗi sizes của thẻ <img> thật, nếu không trình duyệt
+// chọn candidate khác trong srcSet → tải 2 lần, gắn vào thẻ vẫn trắng.
+const PREVIEW_SIZES = "(max-width: 768px) 100vw, 95vw";
 
 function withThumbSize(url: string, size: number): string {
   if (/sz=s\d+/.test(url)) return url.replace(/sz=s\d+/, `sz=s${size}`);
@@ -123,8 +128,43 @@ export default function ImageViewer({
 
   const { src, srcSet, full } = useMemo(() => getPreviewUrls(img), [img]);
 
+  // Ảnh chờ = ĐÚNG url ô lưới đang dùng (=s600) → đã nằm trong cache trình duyệt nên vẽ
+  // ngay (đo prod: load 0ms, transferSize 0). Trước đây thẻ <img> trống 0,3–2,3s vì bản
+  // =s2048 phải tải mới hoàn toàn — khách thấy màn đen rồi ảnh mới bung ra.
+  const placeholder = useMemo(
+    () => (img ? getResponsiveThumbnailUrl(img.thumbnail_url, img.image_url, 600) : ""),
+    [img],
+  );
+
+  // Nạp nền bản xem rồi mới gắn vào thẻ — đổi src trực tiếp sẽ có khoảnh khắc thẻ rỗng.
+  const [previewState, setPreviewState] = useState<{ key: string; ok: boolean } | null>(null);
+  const previewReady = Boolean(src) && previewState?.key === src && previewState.ok;
+
+  useEffect(() => {
+    if (!src || src === placeholder) return;
+    let cancelled = false;
+    const loader = new window.Image();
+    if (srcSet) {
+      loader.sizes = PREVIEW_SIZES;
+      loader.srcset = srcSet;
+    }
+    loader.onload = () => {
+      if (!cancelled) setPreviewState({ key: src, ok: true });
+    };
+    loader.onerror = () => {
+      if (!cancelled) setPreviewState({ key: src, ok: false });
+    };
+    loader.src = src;
+    return () => {
+      cancelled = true;
+      loader.onload = null;
+      loader.onerror = null;
+    };
+  }, [src, srcSet, placeholder]);
+
   // Nạp nền bản gốc (=s0) rồi thay vào thẻ <img>, để nhấn-giữ lưu được ảnh gốc.
-  // Hiện bản nhẹ trước nên tốc độ mở ảnh không đổi; chỉ đổi thứ nằm trong <img> sau vài giây.
+  // HOÃN tới khi bản xem đã hiện: đo prod cho thấy bản gốc 19,4 MB chạy SONG SONG với bản
+  // 450 KB ngay từ đầu và giành băng thông của nó — khách 4G lãnh đủ.
   // State gắn KHÓA theo url gốc (mỗi ảnh 1 url riêng) thay vì reset trong effect —
   // tránh setState đồng bộ trong effect (react-hooks/set-state-in-effect).
   const [fullState, setFullState] = useState<{ key: string; ok: boolean } | null>(null);
@@ -134,6 +174,7 @@ export default function ImageViewer({
 
   useEffect(() => {
     if (!full || full === src) return;
+    if (!previewReady) return;
     let cancelled = false;
     const loader = new window.Image();
     loader.onload = () => {
@@ -148,7 +189,7 @@ export default function ImageViewer({
       loader.onload = null;
       loader.onerror = null;
     };
-  }, [full, src]);
+  }, [full, src, previewReady]);
 
   // Decode capability from token if not admin
   let clientCapability = "select";
@@ -578,11 +619,14 @@ export default function ImageViewer({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={img.id}
-        src={fullSrc || src}
-        srcSet={fullSrc ? undefined : srcSet}
-        sizes={fullSrc ? undefined : "(max-width: 768px) 100vw, 95vw"}
+        src={fullSrc || (previewReady ? src : placeholder)}
+        srcSet={!fullSrc && previewReady ? srcSet : undefined}
+        sizes={!fullSrc && previewReady ? PREVIEW_SIZES : undefined}
         alt={img.file_name || "Photo"}
-        className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
+        // md:h-[90vh]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
+        // Không có nó, ảnh chờ (=s600) hiện nhỏ rồi NỞ ra khi bản xem vào. Mobile giữ nguyên:
+        // đã khoá w-[100vw] nên hai bản cùng bề ngang, không nhảy.
+        className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:h-[90vh] md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{
           borderRadius: "var(--radius-lg)",
           // LUÔN bật menu nhấn-giữ native (Safari + WebView Messenger/Zalo đều tôn trọng
