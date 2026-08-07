@@ -87,6 +87,17 @@ export function useGalleryData(
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalImageCount, setTotalImageCount] = useState(seedData?.totalCount ?? 0);
 
+  // Điều phối nạp trang bằng ref, KHÔNG bằng state: có 2 nguồn kích onLoadMore
+  // (use-masonry-grid.ts:120 intersection + :146 auto-trigger) và chốt chặn bằng
+  // state `loadingMore` không chặn được 2 lời gọi trong CÙNG một tick — đo được
+  // trên prod: 2 lần "Loading more nextPage=5" liên tiếp, append trùng 60 ảnh,
+  // rồi nhảy thẳng sang trang 7 làm mất trọn trang 6.
+  const isLoadingMoreRef = useRef(false);
+  const nextPageRef = useRef(1);
+  // pageSize đổi theo chất lượng mạng (30/50/60). Chốt lại theo phiên nạp để
+  // offset = page × pageSize luôn khớp với các trang đã lấy.
+  const loadPageSizeRef = useRef(pageSize);
+
   // ─── Handlers ───────────────────────────
 
   const handleWatermarkToggle = () => {
@@ -162,6 +173,10 @@ export function useGalleryData(
     setLoadingMore(true);
     setActiveAlbumId(null);
     setActiveFilter("all");
+    // Trang 0 do effect này nạp → lần load-more đầu tiên là trang 1.
+    isLoadingMoreRef.current = false;
+    nextPageRef.current = 1;
+    loadPageSizeRef.current = pageSize;
 
     const loadGalleryData = async () => {
       // Hot path: V3 RPC đã trả reactionCounts + comment counts + albums (RPC đọc gallery_comments).
@@ -224,46 +239,64 @@ export function useGalleryData(
   }, [activeGalleryId]);
 
   const loadMoreImages = useCallback(async () => {
-    if (!activeGalleryId || loadingMore || !hasMoreImages) {
+    // Chốt chặn PHẢI là ref: state `loadingMore` chỉ đổi ở lần render sau nên
+    // 2 lời gọi trong cùng một tick đều lọt qua (đo được trên prod).
+    if (!activeGalleryId || isLoadingMoreRef.current || !hasMoreImages) {
       console.log('[useGalleryData] 🚫 LOAD MORE BLOCKED:', {
         activeGalleryId,
-        loadingMore,
+        loadingMore: isLoadingMoreRef.current,
         hasMoreImages,
         currentImages: paginatedImages.length,
         totalCount: totalImageCount,
-        reason: !activeGalleryId ? 'NO_GALLERY' : loadingMore ? 'ALREADY_LOADING' : 'NO_MORE_DATA'
+        reason: !activeGalleryId ? 'NO_GALLERY' : isLoadingMoreRef.current ? 'ALREADY_LOADING' : 'NO_MORE_DATA'
       });
       return;
     }
+    isLoadingMoreRef.current = true;
     console.log('[useGalleryData] 🔄 LOAD MORE STARTING...');
     setLoadingMore(true);
 
-    // Calculate exact page based on loaded images to avoid overlapping offsets when pageSize changes
-    const nextPage = Math.floor(paginatedImages.length / pageSize);
-    console.log('[useGalleryData] Loading more:', { nextPage, pageSize, currentLoaded: paginatedImages.length });
+    // Số trang đi theo ref, KHÔNG suy ra từ độ dài mảng: mảng có thể ngắn hơn
+    // (khử trùng) hoặc dài hơn (bug cũ) → tính lại là nhảy cóc, mất trọn 1 trang.
+    const nextPage = nextPageRef.current;
+    const size = loadPageSizeRef.current;
+    console.log('[useGalleryData] Loading more:', { nextPage, pageSize: size, currentLoaded: paginatedImages.length });
 
-    const res = await getGalleryImagesPaginated(activeGalleryId, nextPage, pageSize);
+    try {
+      const res = await getGalleryImagesPaginated(activeGalleryId, nextPage, size);
 
-    if (res.success && res.data) {
-      // Filter duplicates in case the math still caused an overlap
-      const newImages = res.data.images.filter(
-        (newImg) => !paginatedImages.some((existingImg) => existingImg.id === newImg.id)
-      );
+      if (res.success && res.data) {
+        const fetched = res.data.images;
 
-      console.log('[useGalleryData] Loaded more:', {
-        fetched: res.data.images.length,
-        afterDedup: newImages.length,
-        newTotal: paginatedImages.length + newImages.length,
-        hasMore: res.data.hasMore,
-      });
+        // Khử trùng BÊN TRONG updater — so với `prev` là trạng thái mới nhất,
+        // không phải ảnh chụp cũ trong closure.
+        setPaginatedImages((prev) => {
+          const seen = new Set(prev.map((img) => img.id));
+          const merged = [...prev];
+          for (const img of fetched) {
+            if (seen.has(img.id)) continue;
+            seen.add(img.id);
+            merged.push(img);
+          }
+          return merged;
+        });
 
-      setPaginatedImages((prev) => [...prev, ...newImages]);
-      setTotalImageCount(res.data.totalCount);
-      setHasMoreImages(res.data.hasMore);
-      setCurrentPage(nextPage);
+        console.log('[useGalleryData] Loaded more:', {
+          page: nextPage,
+          fetched: fetched.length,
+          hasMore: res.data.hasMore,
+        });
+
+        nextPageRef.current = nextPage + 1;
+        setTotalImageCount(res.data.totalCount);
+        setHasMoreImages(res.data.hasMore);
+        setCurrentPage(nextPage);
+      }
+    } finally {
+      isLoadingMoreRef.current = false;
+      setLoadingMore(false);
     }
-    setLoadingMore(false);
-  }, [activeGalleryId, loadingMore, hasMoreImages, paginatedImages, pageSize, totalImageCount]);
+  }, [activeGalleryId, hasMoreImages, paginatedImages.length, totalImageCount]);
 
   const images = useMemo(() => paginatedImages, [paginatedImages]);
   const groupedImages = groupByFileGroup(images);
@@ -376,10 +409,16 @@ export function useGalleryData(
   const rawCount = groupedImages.filter((g) => g.hasRaw).length;
   const jpgCount = groupedImages.filter((g) => g.hasJpg).length;
   const selectedCount = activeGallery?.selectedCount ?? images.filter((i) => i.is_selected).length;
+  // ⚠️ Vẫn đếm trên `images` = các trang ĐÃ TẢI nên phụ thuộc mức độ cuộn.
+  // Chưa sửa được bằng dữ liệu sẵn có: RPC get_gallery_data_v3 không trả tổng số
+  // ảnh is_starred. Xem T-20260807-gallery-pagination-race §3(a).
   const starredCount = images.filter((i) => i.is_starred).length;
   const hasPassword = activeGallery?.hasPassword ?? !!(activeGallery?.password_hash || activeGallery?.password);
   const effectiveTotalImageCount = totalImageCount || activeGallery?.imageCount || images.length;
-  const totalHearts = images.filter((img) => (reactionCounts[img.id]?.hearts || 0) > 0).length;
+  // Đếm trên reactionCounts (RPC trả cho TOÀN gallery) chứ không trên `images`
+  // (chỉ là các trang đã tải) — nếu không, con số đổi theo mức độ cuộn: đo được
+  // 67 khi vừa vào, 102 sau khi cuộn, trong khi sự thật là 95.
+  const totalHearts = Object.values(reactionCounts).filter((c) => c.hearts > 0).length;
 
   // ─── Star toggle (Admin đề xuất ảnh) ──────
   const handleToggleStar = useCallback(async (imageId: string, currentStarred: boolean) => {

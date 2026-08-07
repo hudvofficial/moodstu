@@ -373,3 +373,29 @@ done:
       `tien_mat|chuyen_khoan`. Thêm `toPaymentMethodEnum()` quy về 2 nhóm (cash→tien_mat, còn
       lại→chuyen_khoan). `order_payments.payment_method` là text nên vẫn nhận tiếng Anh — hai
       bảng đang lưu hai từ vựng khác nhau, nên thống nhất trong task riêng.
+
+  - id: T-20260807-gallery-pagination-race
+    title: "Lưới ảnh admin: hết nạp trùng trang / nhảy cóc trang / chip Thả tim nhảy số"
+    status: done
+    owner: claude
+    locks: ["components/contracts/gallery/use-gallery-data.ts"]
+    spec: agent/HANDOFFS/T-20260807-gallery-pagination-race.spec.md
+    result: >
+      Sửa 3 lỗi chồng nhau trong use-gallery-data.ts: (1) chốt chặn load-more chuyển từ state
+      sang isLoadingMoreRef — state không chặn được 2 lời gọi cùng tick; (2) khử trùng chuyển
+      vào BÊN TRONG setPaginatedImages(prev => ...) thay vì so với snapshot closure; (3) số
+      trang đi theo nextPageRef thay vì suy từ paginatedImages.length (mảng phồng → nhảy cóc
+      trang); kèm loadPageSizeRef chốt cỡ trang theo phiên. Chip "Thả tim" đếm trên
+      reactionCounts (RPC trả toàn gallery) thay vì các trang đã tải.
+      User chốt A3+B3: starredCount để task sau (đã ghi comment cạm bẫy), nhãn tim giữ nguyên.
+      VERIFY trên dev local (gallery CD Kim Chuẩn 501 ảnh/95 tim, login bằng user verify tạm
+      tạo qua service role, xoá ngay sau đo): chip 95 NGAY khi vào và 95 sau khi cuộn hết
+      (trước sửa: 67→102); DOM 501 ô = 501 ảnh phân biệt, 0 trùng (trước: 540 ô/420 ảnh);
+      log Loading more trang 4,5,6,7,8,9 mỗi trang ĐÚNG 1 lần liên tục không nhảy; guard chặn
+      đúng các cú kích trong lúc in-flight (BLOCKED ALREADY_LOADING); đổi gallery trong cùng
+      phiên (hợp đồng 0de6f1ed, tab "Nhà Gái") → trang reset về 1,2. eslint 0 · tsc 0 · build 0.
+    notes: >
+      KHÔNG đụng use-masonry-grid.ts (2 nguồn kích là hợp lệ, chống trùng là việc của hàm nạp).
+      Dead state currentPage giữ nguyên. User verify tạm: employees row + auth user + cred file
+      đã xoá sạch (kiểm count=0). Còn treo cùng họ: getReactionCounts + đếm tim admin chưa
+      phân trang (trần 1000 dòng); chế độ lọc "tim" .in('id',...) vỡ ở ~400 id (header 16KB).
