@@ -1,6 +1,9 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
+import type { AddonCategory } from "@/types/addon-history";
 
 // ═══════════════════════════════════════════
 // Addon History Actions — Search + Upsert
@@ -11,15 +14,15 @@ import { withAuth } from "@/lib/auth_utils";
 export interface AddonHistoryItem {
   id: string;
   addon_name: string;
-  addon_category: string;
+  addon_category: AddonCategory;
   last_price: number;
   usage_count: number;
 }
 
-export async function searchAddonHistory(term: string, category?: string): Promise<AddonHistoryItem[]> {
+export async function searchAddonHistory(term: string, category?: AddonCategory): Promise<AddonHistoryItem[]> {
   if (!term || term.length < 2) return [];
 
-  const result = await withAuth(async (supabase) => {
+  const result = await withAuth(async (supabase: SupabaseClient<Database>) => {
     let query = supabase
       .from("addon_history")
       .select("id, addon_name, addon_category, last_price, usage_count")
@@ -27,7 +30,7 @@ export async function searchAddonHistory(term: string, category?: string): Promi
       .order("usage_count", { ascending: false })
       .limit(5);
 
-    if (category && category !== "other") query = query.eq("addon_category", category);
+    if (category) query = query.eq("addon_category", category);
     const { data, error } = await query;
     if (error) throw error;
     return (data as AddonHistoryItem[]) || [];
@@ -37,10 +40,10 @@ export async function searchAddonHistory(term: string, category?: string): Promi
   return result.data;
 }
 
-export async function upsertAddonHistory(name: string, category: string, price: number): Promise<void> {
+export async function upsertAddonHistory(name: string, category: AddonCategory, price: number): Promise<void> {
   if (!name.trim()) return;
 
-  await withAuth(async (supabase) => {
+  await withAuth(async (supabase: SupabaseClient<Database>) => {
     const { data: existing } = await supabase
       .from("addon_history")
       .select("id, usage_count")
@@ -49,7 +52,7 @@ export async function upsertAddonHistory(name: string, category: string, price: 
       .single();
 
     if (existing) {
-      await supabase.from("addon_history").update({ last_price: price, usage_count: existing.usage_count + 1, updated_at: new Date().toISOString() }).eq("id", existing.id);
+      await supabase.from("addon_history").update({ last_price: price, usage_count: (existing.usage_count ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", existing.id);
     } else {
       await supabase.from("addon_history").insert({ addon_name: name.trim(), addon_category: category, last_price: price, usage_count: 1 });
     }

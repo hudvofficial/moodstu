@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractDestructiveAccess, requirePaymentRecordAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { writeAuditLog } from "@/lib/audit";
 import { isMissingRpcError, checkPeriodLock } from "@/lib/finance-utils";
 import { invalidateContractPaths } from "@/lib/server-cache-invalidation";
@@ -58,7 +60,7 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
 
   const paymentInput = parsed.data;
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requirePaymentRecordAccess(supabase, userId);
     // W3: Period lock — TRƯỚC mutation (audit fix)
     await checkPeriodLock(supabase, paymentInput.paymentDate);
@@ -70,10 +72,10 @@ export async function createPaymentReceipt(input: CreatePaymentInput) {
       p_amount: paymentInput.amount,
       p_payment_method: paymentInput.paymentMethod,
       p_payment_date: paymentInput.paymentDate,
-      p_payment_stage: paymentInput.paymentStage || null,
-      p_category_id: paymentInput.categoryId || null,
-      p_notes: paymentInput.notes || null,
-      p_payment_plan_id: paymentInput.paymentPlanId || null,
+      p_payment_stage: paymentInput.paymentStage || undefined,
+      p_category_id: paymentInput.categoryId || undefined,
+      p_notes: paymentInput.notes || undefined,
+      p_payment_plan_id: paymentInput.paymentPlanId || undefined,
       p_update_total: paymentInput.updateTotal,
       p_created_by: userId,
     });
@@ -127,7 +129,7 @@ export async function voidContractPayment(input: VoidPaymentInput) {
     return { success: false as const, error: "Lý do hủy phiếu thu phải có ít nhất 5 ký tự" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
 
     const { data, error } = await supabase.rpc("void_contract_payment_v2", {
@@ -176,7 +178,7 @@ export async function voidContractPayment(input: VoidPaymentInput) {
 
 /** Get transaction categories for receipt form */
 export async function getTransactionCategories(type: "thu" | "chi" = "thu") {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requirePaymentRecordAccess(supabase, userId);
 
     const { data, error } = await supabase

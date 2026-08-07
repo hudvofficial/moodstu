@@ -17,7 +17,7 @@ import { useContractFinancials } from "./useContractFinancials";
 import { showCoupleFields } from "@/types/contract-form";
 import type { ContractFormData, ContractFormMode } from "@/types/contract-form";
 import type { ContractScheduleInput } from "@/types/contract-schedule";
-import type { ServiceType } from "@/types/contract";
+import type { ContractStatus, ServiceType } from "@/types/contract";
 import {
   ContractScheduleValidationError,
   summarizeContractSchedules,
@@ -449,7 +449,7 @@ export function useContractForm({ mode, contractId }: UseContractFormProps) {
         contract_date: contract.contract_date || "",
         work_date: contract.work_date || "",
         delivery_date: contract.delivery_date || "",
-        status: contract.status,
+        status: contract.status as ContractStatus,
         notes: contract.notes || "",
         assigned_to: normalizeEmployeeId(contract.assigned_to),
         bride_name: cust?.bride_name || "",

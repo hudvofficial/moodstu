@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 // ═══════════════════════════════════════════
 // Contract Profit Calculator — V2
@@ -30,7 +32,7 @@ export interface ContractProfitData {
 }
 
 export async function getContractProfit(contractId: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     // Run ALL queries in parallel for speed
     const [contractRes, tasksRes, printsRes, expensesRes] = await Promise.all([
       // 1. Contract revenue
@@ -114,7 +116,7 @@ export async function getContractProfit(contractId: string) {
 
 // ─── Batch: Multiple contracts profit ────
 export async function getContractsProfitBatch(contractIds: string[]) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     if (contractIds.length === 0) return [];
 
     const CHUNK_SIZE = 50;

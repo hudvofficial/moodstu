@@ -8,6 +8,8 @@
  */
 
 import { requireContractAccess, withAuth, withAuthRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
 import type {
@@ -21,8 +23,11 @@ import type {
   Payment,
   DressReservationRow,
   PrintingOrder,
+  ItemType,
+  ExportType,
 } from "@/types/contract";
 import type { ContractItemFormData } from "@/types/contract-form";
+import type { AddonCategory } from "@/types/addon-history";
 import type { ContractScheduleInput } from "@/types/contract-schedule";
 import { mapPaymentPlans } from "@/lib/contracts/payment-plans";
 
@@ -230,7 +235,7 @@ async function getContractListFromRpc(
 
 export async function getNextContractCode() {
   // ⚡ withAuthRead: read-only preview — mã thật vẫn do server sinh lúc submit.
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const year = new Date().getFullYear();
@@ -260,7 +265,7 @@ export async function getNextContractCode() {
 export async function getContractList(filters: ContractFilters) {
   // ⚡ withAuthRead: local JWT verify thay vì network getUser() — cùng pattern
   // getContractDetail. Middleware đã gate mọi request bằng getClaims().
-  return profileAction("contracts.getContractList", () => withAuthRead(async (supabase, userId) => {
+  return profileAction("contracts.getContractList", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const rpcPayload = await getContractListFromRpc(supabase, filters);
@@ -420,7 +425,7 @@ export async function getContractList(filters: ContractFilters) {
 }
 
 export async function getContractPageBootstrap(filters: ContractFilters) {
-  return profileAction("contracts.getContractPageBootstrap", () => withAuthRead(async (supabase, userId) => {
+  return profileAction("contracts.getContractPageBootstrap", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
     const [list, stats] = await Promise.all([
       getContractListFromRpc(supabase, filters),
@@ -435,7 +440,7 @@ export async function getContractPageBootstrap(filters: ContractFilters) {
 
 export async function getContractStats() {
   // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
-  return profileAction("contracts.getContractStats", () => withAuthRead(async (supabase, userId) => {
+  return profileAction("contracts.getContractStats", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const rpcStats = await getContractStatsFromRpc(supabase);
@@ -521,7 +526,7 @@ export async function getContractDetail(id: string) {
   // ⚡ withAuthRead: local JWT verify (getClaims) instead of network getUser() —
   // cuts a redundant GoTrue round-trip (~200-800ms on mobile) from the detail load.
   // Authorization still enforced by requireContractAccess (employee/role DB lookup).
-  return profileAction("contracts.getContractDetail", () => withAuthRead(async (supabase, userId) => {
+  return profileAction("contracts.getContractDetail", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     // ⚡ A/B test: v3 (single-query LATERAL) vs v2 (sequential)
     // Feature flag: NEXT_PUBLIC_RPC_V3=true to enable v3
     const useV3 = process.env.NEXT_PUBLIC_RPC_V3 === "true";
@@ -571,7 +576,7 @@ import { unstable_noStore as noStore } from "next/cache";
 export async function getContractDrawerExtra(id: string) {
   noStore();
   // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
-  return profileAction("contracts.getContractDrawerExtra", () => withAuthRead(async (supabase, userId) => {
+  return profileAction("contracts.getContractDrawerExtra", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const [
@@ -630,7 +635,7 @@ export async function getContractDrawerExtra(id: string) {
 
 export async function getContractForEdit(contractId: string) {
   // ⚡ withAuthRead: local JWT verify — xem ghi chú ở getContractList.
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     // Independent reads are started together to avoid a server-side waterfall.
@@ -684,10 +689,10 @@ export async function getContractForEdit(contractId: string) {
         service_id: (item.service_id as string) || null,
         dress_id: (item.dress_id as string) || null,
         item_name: item.item_name as string,
-        type: item.type as string,
-        export_type: (item.export_type as string) || null,
+        type: item.type as ItemType,
+        export_type: (item.export_type as ExportType) || null,
         is_addon: (item.is_addon as boolean) || false,
-        addon_category: (item.addon_category as string) || null,
+        addon_category: (item.addon_category as AddonCategory) || null,
         quantity: item.quantity as number,
         unit_price: item.unit_price as number,
         original_price: (item.original_price as number) || null,

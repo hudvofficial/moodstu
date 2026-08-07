@@ -6,6 +6,8 @@ import {
   withAuth,
 } from "@/lib/auth_utils";
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 // ═══════════════════════════════════════════
 // Checklist Actions — CRUD for contract checklists
@@ -14,7 +16,7 @@ import { revalidatePath } from "next/cache";
 
 /** Get all checklist items for a contract */
 export async function getContractChecklists(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -30,7 +32,7 @@ export async function getContractChecklists(contractId: string) {
 
 /** Toggle a checklist item (optimistic-friendly) */
 export async function toggleChecklist(id: string, is_completed: boolean) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -98,7 +100,7 @@ export async function _generateChecklistsInternal(
 
 /** Auto-generate checklists from templates for a new contract */
 export async function generateChecklists(contractId: string, serviceType: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const result = await _generateChecklistsInternal(supabase, contractId, serviceType);
     revalidatePath(`/contracts/${contractId}`);

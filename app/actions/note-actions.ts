@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -10,7 +12,7 @@ import { revalidatePath } from "next/cache";
 
 /** Get all notes for a contract */
 export async function getContractNotes(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -30,7 +32,7 @@ export async function addContractNote(contractId: string, content: string) {
     return { success: false as const, error: "Nội dung không được trống" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const now = new Date().toISOString();
@@ -56,7 +58,7 @@ export async function addContractNote(contractId: string, content: string) {
 
 /** Delete a contract note */
 export async function deleteContractNote(noteId: string, contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { error } = await supabase

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   requireContractDestructiveAccess,
   requireFinanceAccess,
@@ -132,7 +134,7 @@ async function loadRefundSummary(supabase: AdminSupabase, contractId: string) {
 }
 
 export async function getContractRefundSummary(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
     await requireFinanceAccess(supabase, userId);
     return loadRefundSummary(supabase, contractId);
@@ -153,7 +155,7 @@ export async function createContractRefundExpense(input: CreateContractRefundInp
     return { success: false as const, error: "Hình thức chi không hợp lệ" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
     await requireFinanceAccess(supabase, userId);
     await checkPeriodLock(supabase, refundDate);

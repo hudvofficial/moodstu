@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractDestructiveAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { after } from "next/server";
 import { fireAuditLog } from "@/lib/audit";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -104,7 +106,7 @@ export async function cancelContract(
     return { success: false as const, error: "Lý do hủy là bắt buộc" };
   }
 
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
     const googleTargets = await getContractGoogleSyncTargets(supabase, contractId);
 
@@ -143,7 +145,7 @@ export async function cancelContract(
 // ─── deleteContract (Atomic RPC — Soft Delete ALL) ──────────────
 // Uses DB-level transaction, consistent soft delete strategy (C2 fix)
 export async function deleteContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
     const googleTargets = await getContractGoogleSyncTargets(supabase, contractId);
 
@@ -182,7 +184,7 @@ export async function deleteContract(contractId: string) {
 // Reverse a cancellation — set back to cho_xu_ly
 // W2 fix: also reactivate cancelled payment_plans
 export async function reactivateContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
 
     const now = new Date().toISOString();
@@ -244,9 +246,10 @@ export async function reactivateContract(contractId: string) {
       .eq("status", "da_huy");
 
     // W2 fix: Reactivate payment plans that were cancelled with the contract
+    // (payment_plans KHÔNG có cột updated_at — gửi kèm sẽ làm PostgREST trả 400 PGRST204)
     await supabase
       .from("payment_plans")
-      .update({ status: "pending", updated_at: now })
+      .update({ status: "pending" })
       .eq("contract_id", contractId)
       .eq("status", "cancelled");
 

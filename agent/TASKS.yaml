@@ -315,3 +315,28 @@ done:
       (tra pg_get_function_arguments); contract_code chuyển sang relationText khác ở chỗ chuỗi
       rỗng — query DB xác nhận 54/54 contract_code đều không rỗng, không null.
       ExpenseListItem.payment_method đổi string → union enum cho khớp schema.
+
+  - id: T-20260807-typed-client-contracts
+    title: "ADR-013 Phase 2 — gắn generic Database cho module Hợp đồng"
+    status: done
+    owner: claude
+    locks: ["app/actions/contract-*.ts", "app/actions/{checklist,addon,note,payment}-actions.ts", "app/actions/contract-queries.ts", "components/contracts/form/hooks/useContractForm.ts"]
+    spec: agent/DECISIONS.md ADR-013
+    result: >
+      10 file action hợp đồng khai SupabaseClient<Database> tại callback (32 callback).
+      Đo được 18 lỗi, sửa hết về 0. Verify: tsc 0 · eslint 0 · verify:contracts pass · build pass.
+    notes: >
+      **BUG THẬT bắt được — luồng kích hoạt lại hợp đồng đã huỷ (contract-lifecycle.ts:251):**
+      code ghi `updated_at` vào `payment_plans` nhưng bảng đó KHÔNG có cột này. Verify bằng
+      PATCH thật: HTTP 400 PGRST204 "Could not find the 'updated_at' column of 'payment_plans'".
+      Lời gọi không kiểm error → nuốt lỗi im lặng → khôi phục hợp đồng xong thì kế hoạch thanh
+      toán VẪN ở trạng thái cancelled. Đã bỏ `updated_at`. Grep xác nhận đây là chỗ DUY NHẤT
+      ghi updated_at vào payment_plans.
+      Các sửa khác: addon-actions siết `category: string` → `AddonCategory` (type đã có sẵn,
+      khớp addon_category_enum) + usage_count nullable; contract-event-actions sort_order
+      nullable → `?? 0` (đúng DB default); RPC arg null→undefined ở save_contract_atomic +
+      process_contract_payment_v2 (đã tra, đều DEFAULT NULL); contract-queries ép đúng
+      ItemType/ExportType/AddonCategory thay vì `as string`.
+      Ghi nhận: `contracts.status` là **varchar chứ không phải enum** — DB không ràng buộc giá
+      trị, app tự giữ kỷ luật bằng ContractStatus. Dùng `as ContractStatus` cùng kiểu với dòng
+      `service_type as ServiceType` ngay trên.

@@ -5,6 +5,7 @@ import {
   requireContractWriteAccess,
   withAuth,
 } from "@/lib/auth_utils";
+import type { Database } from "@/types/database.types";
 import { after } from "next/server";
 import { fireAuditLog } from "@/lib/audit";
 import {
@@ -472,7 +473,7 @@ export async function generateContractEvents(
   workDate?: string | null,
   weddingDate?: string | null,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const result = await _generateContractEventsInternal(supabase, contractId, serviceType, workDate, weddingDate);
     for (const eventId of result.eventIds) scheduleEventGoogleSync(eventId);
@@ -488,7 +489,7 @@ export async function updateEventStatus(
   eventId: string,
   status: "chua_lam" | "dang_lam" | "hoan_thanh",
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
     // Hot path (tick từ drawer): CHỈ update status. KHÔNG revalidatePath /
     // invalidateContractPaths / google sync / recalc — client optimistic patch
@@ -507,7 +508,7 @@ export async function updateContractEvent(
   eventId: string,
   updates: EventUpdateFields,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -528,7 +529,7 @@ export async function updateContractEvent(
       await recalculateDownstreamDates(
         supabase,
         data.contract_id,
-        data.sort_order,
+        data.sort_order ?? 0, // cột nullable, DB default 0
         updates.event_date,
       );
     }
@@ -660,7 +661,7 @@ export async function addContractEvent(input: {
   location?: string;
   notes?: string;
 }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     if (!input.contractId) throw new Error("Thiếu contract ID");
@@ -717,7 +718,7 @@ export async function addContractEvent(input: {
 // Admin/manager can remove a contract timeline milestone.
 // Protect completed/task-linked milestones so deleting a date never destroys work history.
 export async function deleteContractEvent(eventId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
 
     if (!eventId) throw new Error("Thiếu event ID");

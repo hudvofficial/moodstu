@@ -6,6 +6,8 @@ import {
   withAuth,
 } from "@/lib/auth_utils";
 import { after } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import { profileAction } from "@/lib/action-profiler";
 import { contractSubmissionSchema } from "@/lib/validations/contract.schema";
@@ -91,7 +93,7 @@ export async function createContract(rawData: unknown) {
   const data = parsed.data;
   const isEdit = Boolean(data.existingContractId);
 
-  return profileAction("contracts.createContract", () => withAuth(async (supabase, userId) => {
+  return profileAction("contracts.createContract", () => withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     const scheduleSummary = data.schedules
@@ -179,8 +181,8 @@ export async function createContract(rawData: unknown) {
       p_customer: customerPayload,
       p_items: itemPayload,
       p_initial_payment: initialPayment,
-      p_existing_contract_id: data.existingContractId || null,
-      p_expected_updated_at: data.expectedUpdatedAt || null,
+      p_existing_contract_id: data.existingContractId || undefined,
+      p_expected_updated_at: data.expectedUpdatedAt || undefined,
       p_actor_id: userId,
     });
 
@@ -329,7 +331,7 @@ export async function updateContractStatus(
   adminOverride = false,
   confirmedWarnings = false,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const access = await requireContractDestructiveAccess(supabase, userId);
 
     if (adminOverride && !["admin", "manager"].includes(access.role)) {
