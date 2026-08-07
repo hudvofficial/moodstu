@@ -431,3 +431,28 @@ done:
       CHƯA LÀM (4b): gallery-core.ts còn 6 tham số supabase:any; gallery-public-actions +
       gallery-reaction-actions còn 15 chỗ createAdminClient() trần (đường công khai không qua
       withAuth) — cần verify render cả 2 mặt tiền khi làm.
+
+  - id: T-20260808-no-3-mon
+    title: "Trả 3 món nợ: sửa phát sinh kho (A) · trần 1000 dòng + 16KB gallery (B)"
+    status: done
+    owner: claude
+    locks: ["supabase/migrations/20260808*.sql", "components/inventory/order-details-drawer.tsx", "app/actions/gallery-{core,reaction-actions,admin-actions,image-helpers,drive-actions}.ts"]
+    spec: agent/HANDOFFS/T-20260808-no-3-mon.spec.md
+    result: >
+      A (commit riêng): tính năng phát sinh kho chưa từng chạy end-to-end (prod 0 phát sinh) —
+      e2e add→update→delete với dữ liệu vứt bỏ moi ra 3 bug RPC: update ghi cột không tồn tại
+      (inventory_transactions.updated_at/by + payments.updated_by), add nhánh bán lẻ truyền
+      category_id='' vào cột uuid (22P02), delete xoá receipts trước txn con còn FK (23503).
+      3 migration 20260808{100000,110000,120000} đã apply; e2e re-run PASS từng bước
+      (stock 10→8→7→10, receipt 2000→4500→xoá, dọn 0/0/0). UI: nút Sửa hết stub — form 2 ô
+      prefill, validate, payload thật.
+      B (commit riêng): helper selectAllRows (phân trang .range + .order(id) bắt buộc) áp cho
+      getReactionCounts, đếm tim admin, getCachedGalleryImages, initDriveCopyJob; drive copy bỏ
+      .in()/.or() → lọc Set trong JS. Chứng minh pageSize=50 GIỐNG TỪNG PHẦN TỬ query 1 phát
+      (501 ảnh + 116 reaction); 3 mode lọc khớp DB (0/95/95); render public dev = 501·116.
+    notes: >
+      Số bug "chưa từng chạy được" của riêng tính năng phát sinh giờ là 4 (payload rỗng UI +
+      3 RPC). Mẫu quen: code/RPC viết theo schema tưởng tượng, chưa ai bấm nên chưa ai biết.
+      Chưa verify UI click-through form Sửa (chỉ e2e tầng RPC + tsc/eslint; payload key khớp
+      guard đã đọc đối chiếu tay). Drive copy thật vẫn chưa chạy (tạo folder Drive khách).
+      getGalleryMetadataAll (fallback khi v3 vắng) vẫn select 1 phát — cố ý bỏ qua, v3 đang có.
