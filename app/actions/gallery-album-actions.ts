@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 // ═══════════════════════════════════════════
 // Gallery Album Server Actions
@@ -13,14 +15,15 @@ export interface GalleryAlbum {
   title: string;
   description: string | null;
   cover_image_id: string | null;
-  sort_order: number;
-  created_at: string;
+  // 2 cột dưới NULLABLE trong DB — khai đúng để khớp kiểu sinh từ schema
+  sort_order: number | null;
+  created_at: string | null;
   image_count?: number;
 }
 
 /** Create a new album in a gallery */
 export async function createAlbum(galleryId: string, title: string, description?: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     // Get max sort_order
@@ -53,10 +56,10 @@ export async function updateAlbum(
   albumId: string,
   updates: { title?: string; description?: string; cover_image_id?: string | null }
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Database["public"]["Tables"]["gallery_albums"]["Update"] = {};
     if (updates.title !== undefined) updateData.title = updates.title.trim();
     if (updates.description !== undefined) updateData.description = updates.description?.trim() || null;
     if (updates.cover_image_id !== undefined) updateData.cover_image_id = updates.cover_image_id;
@@ -73,7 +76,7 @@ export async function updateAlbum(
 
 /** Delete an album (images go back to null album) */
 export async function deleteAlbum(albumId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     // Images with this album_id will be set to null via ON DELETE SET NULL
@@ -89,7 +92,7 @@ export async function deleteAlbum(albumId: string) {
 
 /** Get all albums for a gallery with image counts */
 export async function getAlbumsByGallery(galleryId: string): Promise<GalleryAlbum[]> {
-  const result = await withAuth(async (supabase, userId) => {
+  const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: albums, error } = await supabase
@@ -129,7 +132,7 @@ export async function getAlbumsByGallery(galleryId: string): Promise<GalleryAlbu
 
 /** Assign images to an album */
 export async function assignImagesToAlbum(imageIds: string[], albumId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { error } = await supabase
@@ -144,7 +147,7 @@ export async function assignImagesToAlbum(imageIds: string[], albumId: string) {
 
 /** Remove images from their album (set album_id to null) */
 export async function removeImagesFromAlbum(imageIds: string[]) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { error } = await supabase

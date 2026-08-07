@@ -399,3 +399,33 @@ done:
       Dead state currentPage giữ nguyên. User verify tạm: employees row + auth user + cred file
       đã xoá sạch (kiểm count=0). Còn treo cùng họ: getReactionCounts + đếm tim admin chưa
       phân trang (trần 1000 dòng); chế độ lọc "tim" .in('id',...) vỡ ở ~400 id (header 16KB).
+
+  - id: T-20260808-typed-client-gallery-4a
+    title: "ADR-013 Phase 4a — gắn generic Database cho gallery (nhánh withAuth) + vá job tracking Drive"
+    status: done
+    owner: claude
+    locks: ["app/actions/gallery-{admin,album,composite,dimensions,drive,image-helpers,selection}-actions.ts", "app/actions/blurhash-actions.ts", "types/gallery.ts"]
+    spec: agent/DECISIONS.md ADR-013
+    result: >
+      8 file action gallery khai SupabaseClient<Database> (42 callback). 16 lỗi → 0.
+      Verify: tsc 0 · eslint 0 · build pass.
+    notes: >
+      **BUG THẬT — tracking job "Lọc ảnh vào Drive" chết từ ngày đầu.** Bảng gallery_filter_jobs
+      thật (migration 20260520090100) có folder_id/folder_name/total_files/copied_files; code
+      (cả insert ở gallery-drive-actions lẫn gallery-selection-actions, update finalize, select
+      progress, và interface GalleryFilterJob) viết theo một schema TƯỞNG TƯỢNG
+      (job_type/total_count/processed_count/batch_id/…). Insert PGRST204 bị nuốt (error không
+      destructure) → jobId luôn undefined → finalize không bao giờ chạy → bảng 0 dòng. Chức năng
+      CHÉP Drive vẫn chạy được nhờ lỗi bị nuốt — chỉ tracking/lịch sử là chết.
+      ĐÃ SỬA: insert/finalize/progress viết theo cột thật (folder_id=destFolderId, total_files,
+      copied_files, error_log jsonb khi có fail) + log error thay vì nuốt; interface
+      GalleryFilterJob viết lại theo schema thật. createGalleryFilterJob (0 nơi gọi, schema batch
+      không thể map sang bảng thật vì folder_id NOT NULL) → giữ hàm nhưng throw tường minh với
+      lý do (hành vi cũ cũng luôn throw, chỉ khác message PGRST204 khó hiểu).
+      **BUG TIỀM ẨN:** galleries.allow_comments/allow_download NOT NULL nhưng
+      GallerySettingsPayload cho phép null → truyền null là 23502; đổi guard !== undefined thành
+      != null. set_gallery_password p_password không DEFAULT → cast (…|| null) as string như
+      pattern lab-mutations. GalleryAlbum.sort_order/created_at khai đúng nullable theo DB.
+      CHƯA LÀM (4b): gallery-core.ts còn 6 tham số supabase:any; gallery-public-actions +
+      gallery-reaction-actions còn 15 chỗ createAdminClient() trần (đường công khai không qua
+      withAuth) — cần verify render cả 2 mặt tiền khi làm.

@@ -174,22 +174,23 @@ export interface GallerySelectionBatchItem {
   created_at: string;
 }
 
+/**
+ * Khớp schema THẬT của bảng gallery_filter_jobs (migration 20260520090100).
+ * Bản cũ của interface này mô tả một schema tưởng tượng (batch_id/job_type/
+ * total_count/…) chưa từng tồn tại trong DB — code ghi theo nó đều PGRST204.
+ */
 export interface GalleryFilterJob {
   id: string;
   gallery_id: string;
-  batch_id: string | null;
-  job_type: GalleryFilterJobType;
-  status: GalleryFilterJobStatus;
-  total_count: number;
-  processed_count: number;
-  success_count: number;
-  failed_count: number;
-  target_url: string | null;
-  manifest_url: string | null;
-  error: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  folder_id: string;
+  folder_name: string | null;
+  status: string;
+  total_files: number;
+  copied_files: number;
+  current_file_name: string | null;
+  error_log: unknown;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // ─── Helpers ───────────────────────────────

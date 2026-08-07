@@ -1,6 +1,8 @@
 ﻿"use server";
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type { GalleryFilterMode } from "@/types/gallery";
 import { revalidatePath } from "next/cache";
 import {
@@ -22,7 +24,7 @@ export async function createMultiFolderGalleries(
   contractId: string,
   parentDriveUrl: string,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const parentFolderId = parseDriveFolderUrl(parentDriveUrl);
@@ -133,7 +135,7 @@ export async function updateDriveFolderUrl(
   galleryId: string,
   newDriveUrl: string,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const folderId = parseDriveFolderUrl(newDriveUrl);
@@ -162,7 +164,7 @@ export async function updateDriveFolderUrl(
 // --- getRetouchProgress -------------------------------------
 // Compare selected original images against edited images.
 export async function getRetouchProgress(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: galleries } = await supabase
@@ -208,7 +210,7 @@ export async function getRetouchProgress(contractId: string) {
 // --- getDeliveryDate ----------------------------------------
 // Get delivery date from the hau_ky contract event.
 export async function getDeliveryDate(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -236,7 +238,7 @@ export async function initDriveCopyJob(
   destFolderName: string,
   filterMode: GalleryFilterMode = "both",
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: contractData } = await supabase
@@ -337,20 +339,26 @@ export async function initDriveCopyJob(
       return { error: `Lỗi tạo thư mục: ${msg}` };
     }
 
-    const { data: job } = await supabase
+    // Schema THẬT của gallery_filter_jobs (migration 20260520090100):
+    // folder_id/folder_name/total_files/copied_files — KHÔNG có job_type/total_count/
+    // processed_count/…. Bản cũ ghi cột tưởng tượng → PGRST204 bị nuốt (error không
+    // destructure) → job luôn null, tracking chết từ ngày đầu (bảng 0 dòng).
+    const { data: job, error: jobError } = await supabase
       .from("gallery_filter_jobs")
       .insert({
         gallery_id: galleryId,
-        job_type: "copy_selected_jpg",
+        folder_id: destFolderId,
+        folder_name: finalFolderName,
         status: "processing",
-        total_count: jpgImages.length,
-        processed_count: 0,
-        success_count: 0,
-        failed_count: 0,
-        target_url: `https://drive.google.com/drive/folders/${destFolderId}`,
+        total_files: jpgImages.length,
+        copied_files: 0,
       })
       .select("id")
       .single();
+    if (jobError) {
+      // Không chặn luồng copy — tracking là phụ trợ; nhưng phải NGHE thấy lỗi.
+      console.error("[initDriveCopyJob] Không tạo được job tracking:", jobError.message);
+    }
 
     return { 
       success: true, 
@@ -375,7 +383,7 @@ export async function processDriveCopyChunk(
   filesChunk: Array<{ id: string, drive_file_id: string | null, name: string | null }>,
   accessToken: string,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     const { createDriveShortcut } = await import("@/lib/google-drive-oauth");
     const { getValidGoogleToken } = await import("@/lib/google-auth");
 
@@ -442,22 +450,24 @@ export async function finalizeDriveCopyJob(
   failedCount: number,
   totalCount: number,
 ) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     const processed = successCount + failedCount;
     const status = processed >= totalCount
       ? (successCount > 0 ? "completed" : "failed")
       : "failed"; // Client ended early, for example QUOTA_EXCEEDED.
 
-    await supabase
+    // Cột thật: copied_files (không có processed/success/failed_count riêng);
+    // chi tiết lỗi dồn vào error_log jsonb.
+    const { error } = await supabase
       .from("gallery_filter_jobs")
       .update({
-        processed_count: processed,
-        success_count: successCount,
-        failed_count: failedCount,
+        copied_files: successCount,
         status,
+        error_log: failedCount > 0 ? { failed_count: failedCount, processed, total: totalCount } : null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
+    if (error) console.error("[finalizeDriveCopyJob] Không cập nhật được job:", error.message);
 
     return { success: true };
   });
@@ -466,12 +476,12 @@ export async function finalizeDriveCopyJob(
 
 // --- getGalleryFilterJobProgress ----------------------------
 export async function getGalleryFilterJobProgress(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
       .from("gallery_filter_jobs")
-      .select("id, status, total_count, processed_count, success_count, failed_count, target_url, updated_at")
+      .select("id, status, total_files, copied_files, current_file_name, folder_id, updated_at")
       .eq("gallery_id", galleryId)
       .order("created_at", { ascending: false })
       .limit(1)

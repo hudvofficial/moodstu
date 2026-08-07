@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withAdmin } from "@/lib/auth_utils";
 import { backfillGalleryDimensionsInternal } from "@/lib/gallery/image-dimensions";
 
@@ -10,7 +12,7 @@ export async function backfillGalleryDimensions(galleryId: string) {
   const parsed = galleryIdSchema.safeParse(galleryId);
   if (!parsed.success) return { success: false as const, error: "Invalid gallery ID" };
 
-  const result = await withAdmin(async (supabase) =>
+  const result = await withAdmin(async (supabase: SupabaseClient<Database>) =>
     backfillGalleryDimensionsInternal(supabase, parsed.data),
   );
   if (!result.success) return result;
@@ -18,7 +20,7 @@ export async function backfillGalleryDimensions(galleryId: string) {
 }
 
 export async function backfillAllDimensions() {
-  const result = await withAdmin(async (supabase) => {
+  const result = await withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data: galleries, error } = await supabase
       .from("galleries")
       .select("id, title")

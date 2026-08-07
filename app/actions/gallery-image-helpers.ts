@@ -1,6 +1,8 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import type { GalleryImage } from "@/types/gallery";
@@ -17,7 +19,7 @@ export async function getGalleryImagesPaginated(
   page: number,
   pageSize = 200,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const from = page * pageSize;
@@ -79,7 +81,7 @@ async function getCachedGalleryImages(galleryId: string) {
 
 /** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh được chọn (Bỏ qua pagination) */
 export async function getAllSelectedImagesForAction(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const allImages = await getCachedGalleryImages(galleryId);
@@ -101,7 +103,7 @@ export async function getAllSelectedImagesForAction(galleryId: string) {
 
 /** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh được khách thả tim */
 export async function getAllHeartedImagesForAction(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const [allImages, reactionsResult] = await Promise.all([
@@ -131,7 +133,7 @@ export async function getAllHeartedImagesForAction(galleryId: string) {
 
 /** Lấy danh sách id, file_name, drive_file_id của TẤT CẢ ảnh (Bỏ qua pagination) */
 export async function getAllImagesForAction(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const allImages = await getCachedGalleryImages(galleryId);

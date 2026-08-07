@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth, requireContractAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type { ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import type { GalleryAlbum } from "@/app/actions/gallery-album-actions";
 import type { GalleryImage } from "@/types/gallery";
@@ -34,7 +36,7 @@ export async function getGalleryDataV2(
   page = 0,
   pageSize = 200
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     // Try V3 (V2 + blur fields). Fallback V2 nếu function chưa có trên server.
@@ -67,7 +69,7 @@ export async function getGalleryDataV2(
     if (!data) return null;
 
     // Parse RPC response (shape identical v2/v3 — blur fields chỉ thêm vào image objects, optional)
-    const result = data as {
+    const result = data as unknown as {
       images: GalleryImage[];
       totalCount: number;
       hasMore: boolean;
@@ -100,7 +102,7 @@ export async function getGalleryDataV2(
  * Tối ưu hoá Network Waterfall và N+1 Query.
  */
 export async function getGalleryMetadataAll(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const [reactionsData, commentsData, albumsData, albumCountsData] = await Promise.all([
@@ -174,7 +176,7 @@ export async function getGalleryMetadataAll(galleryId: string) {
  * Tách riêng để đường thành công KHÔNG phải gọi getGalleryMetadataAll (4 query) — chỉ 1 query.
  */
 export async function getGalleryCommentContentAll(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
     const { data, error } = await supabase
       .from("gallery_comments")

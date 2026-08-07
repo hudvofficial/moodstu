@@ -1,10 +1,11 @@
 "use server";
 
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
-  type GalleryFilterJob,
   type GalleryFilterJobType,
   type GallerySelectionBatch,
   isValidUUID,
@@ -45,7 +46,7 @@ export async function toggleImageSelection(
       return { success: true as const, data: null, newSelectedCount };
     }
 
-    const result = await withAuth(async (supabase, userId) => {
+    const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
       await requireContractAccess(supabase, userId);
       const { data: image } = await supabase.from("gallery_images").select("gallery_id").eq("id", imageId).maybeSingle();
       await updateGalleryImageSelection(supabase, imageId, selected);
@@ -111,7 +112,7 @@ export async function toggleImageStar(
     }
 
         // Admin path: phải có contract access mới được đánh dấu sao.
-    const result = await withAuth(async (supabase, userId) => {
+    const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
       await requireContractAccess(supabase, userId);
       const { error } = await supabase
         .from("gallery_images")
@@ -141,7 +142,7 @@ export async function toggleImageStar(
 }
 
 export async function getSelectedImages(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -196,7 +197,7 @@ export async function createSelectionBatchFromCurrentSelection(
   galleryId: string,
   createdByClient?: string,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
@@ -273,7 +274,7 @@ export async function createGalleryFilterJob(
   jobType: GalleryFilterJobType,
   batchId?: string | null,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
@@ -302,24 +303,17 @@ export async function createGalleryFilterJob(
       totalCount = count || 0;
     }
 
-    const { data: job, error } = await supabase
-      .from("gallery_filter_jobs")
-      .insert({
-        gallery_id: galleryId,
-        batch_id: batchId || null,
-        job_type: jobType,
-        status: "queued",
-        total_count: totalCount,
-        created_by: userId,
-      })
-      .select("*")
-      .single();
-
-    if (error || !job) {
-            throw new Error(`Không thể tạo job lọc ảnh: ${error?.message || "Unknown"}`);
-    }
-
-    return job as GalleryFilterJob;
+    // ⚠️ DEAD-END có chủ đích: hàm này (0 nơi gọi) được viết theo một schema
+    // gallery_filter_jobs KHÔNG tồn tại (batch_id/job_type/created_by/total_count —
+    // bảng thật chỉ có folder_id/folder_name/total_files/copied_files, và folder_id
+    // NOT NULL không có ở ngữ cảnh batch). Trước đây insert luôn fail PGRST204 rồi
+    // throw — giữ nguyên hành vi "luôn throw" nhưng nói thẳng lý do.
+    // Muốn dùng batch job thật: mở migration thêm cột, xem vault/30-du-lieu/luoc-do-gallery.
+    void totalCount;
+    void userId;
+    throw new Error(
+      `Job lọc ảnh theo batch chưa được hỗ trợ (schema gallery_filter_jobs không có batch/job_type). jobType=${jobType}`,
+    );
   });
 }
 
@@ -328,7 +322,7 @@ export async function reorderImages(orderedIds: string[]) {
         return { success: false as const, error: "Danh sách rỗng." };
   }
 
-  const result = await withAuth(async (supabase, userId) => {
+  const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const updates = orderedIds.map((id, index) =>

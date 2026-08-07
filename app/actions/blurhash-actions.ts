@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withAdmin, withAuth } from "@/lib/auth_utils";
 import {
   backfillGalleryBlurhashesInternal,
@@ -12,7 +14,7 @@ const uuidSchema = z.string().uuid();
 export async function updateImageBlurHash(imageId: string, imageUrl: string) {
   const parsedId = uuidSchema.safeParse(imageId);
   if (!parsedId.success) return { success: false as const, error: "Invalid image ID" };
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     const result = await generateGalleryBlurHash(imageUrl);
     const { error } = await supabase
       .from("gallery_images")

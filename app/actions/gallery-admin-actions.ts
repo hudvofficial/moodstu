@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractAccess, withAuth, withAuthRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -37,7 +39,7 @@ export async function createGallery(
     selection_limit?: number | null;
   }
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const folderId = parseDriveFolderUrl(driveUrl);
@@ -119,7 +121,7 @@ export async function createGallery(
 }
 
 export async function deleteGallery(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: gallery, error: galleryError } = await supabase
@@ -159,22 +161,22 @@ export async function updateGallerySettings(
   galleryId: string,
   settings: GallerySettingsPayload,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const slug = settings.custom_slug
       ? settings.custom_slug.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "")
       : null;
 
-    const updatePayload: Record<string, unknown> = {};
+    const updatePayload: Database["public"]["Tables"]["galleries"]["Update"] = {};
     if (settings.title !== undefined) updatePayload.title = settings.title;
     if (settings.custom_slug !== undefined) updatePayload.custom_slug = slug || null;
     if (settings.client_name !== undefined) updatePayload.client_name = settings.client_name;
     if (settings.tags !== undefined) updatePayload.tags = settings.tags;
-    if (settings.allow_comments !== undefined) updatePayload.allow_comments = settings.allow_comments;
+    if (settings.allow_comments != null) updatePayload.allow_comments = settings.allow_comments; // cột NOT NULL — null sẽ 23502
     if (settings.enable_watermark !== undefined) updatePayload.enable_watermark = settings.enable_watermark;
     if (settings.show_namecard !== undefined) updatePayload.show_namecard = settings.show_namecard;
-    if (settings.allow_download !== undefined) updatePayload.allow_download = settings.allow_download;
+    if (settings.allow_download != null) updatePayload.allow_download = settings.allow_download; // cột NOT NULL — null sẽ 23502
     if (settings.selection_limit !== undefined) updatePayload.selection_limit = settings.selection_limit;
 
     if (Object.keys(updatePayload).length > 0) {
@@ -194,7 +196,8 @@ export async function updateGallerySettings(
     if (settings.password !== undefined) {
       const { error: passwordError } = await supabase.rpc("set_gallery_password", {
         p_gallery_id: galleryId,
-        p_password: settings.password?.trim() || null,
+        // p_password text KHÔNG có DEFAULT → generator khai bắt buộc, Postgres vẫn nhận NULL
+        p_password: (settings.password?.trim() || null) as string,
       });
 
       if (passwordError) {
@@ -209,7 +212,7 @@ export async function setGalleryPassword(
   galleryId: string,
   password: string | null,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
@@ -218,7 +221,8 @@ export async function setGalleryPassword(
 
     const { data, error } = await supabase.rpc("set_gallery_password", {
       p_gallery_id: galleryId,
-      p_password: password?.trim() || null,
+      // p_password text KHÔNG có DEFAULT → generator khai bắt buộc, Postgres vẫn nhận NULL
+      p_password: (password?.trim() || null) as string,
     });
 
     if (error) {
@@ -277,7 +281,7 @@ export async function setGalleryCoverImage(
       return { success: true as const, data: null };
     }
 
-    const result = await withAuth(async (supabase, userId) => {
+    const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
       await requireContractAccess(supabase, userId);
       const { data: updatedGallery, error } = await supabase
         .from("galleries")
@@ -311,7 +315,7 @@ export async function setGalleryCoverImage(
 }
 
 export async function syncDriveFolder(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: gallery, error: galleryError } = await supabase
@@ -382,14 +386,16 @@ export async function syncDriveFolder(galleryId: string) {
 
 export async function getGallerySummariesByContract(contractId: string) {
   // Fast read path: withAuthRead skips redundant network getUser().
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     // Optimized: single RPC call replaces four queries.
     const startTime = performance.now();
-    const { data, error } = await supabase.rpc("get_gallery_summaries_by_contract", {
+    const { data: rpcData, error } = await supabase.rpc("get_gallery_summaries_by_contract", {
       p_contract_id: contractId
     });
+    // RPC trả jsonb → shape do SQL quyết định, tự khai mảng
+    const data = rpcData as unknown as any[] | null;
     const duration = Math.round(performance.now() - startTime);
 
     console.log(`[Gallery RPC] get_gallery_summaries_by_contract in ${duration}ms (${data?.length || 0} galleries)`);
@@ -430,7 +436,7 @@ export async function getGallerySummariesByContract(contractId: string) {
 }
 
 export async function getGalleriesByContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data: galleries, error } = await supabase
@@ -470,7 +476,7 @@ export async function getGalleriesByContract(contractId: string) {
 }
 
 export async function getGalleryByContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -491,7 +497,7 @@ export async function getGalleryByContract(contractId: string) {
 }
 
 export async function shareGallery(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const profiler = createGalleryShareProfiler("shareGallery");
     await requireContractAccess(supabase, userId);
     profiler.mark("auth");
@@ -533,7 +539,7 @@ export async function shareGallery(galleryId: string) {
 }
 
 export async function prepareGalleryShare(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const profiler = createGalleryShareProfiler("prepareGalleryShare");
     await requireContractAccess(supabase, userId);
     profiler.mark("auth");
@@ -555,7 +561,7 @@ export async function prepareGalleryShare(galleryId: string) {
 }
 
 export async function ensureGalleryShareLinks(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     if (!galleryId || !isValidUUID(galleryId)) {
