@@ -47,9 +47,15 @@ Script: `scripts/test-rpc-v3.mjs`.
 
 Kiểm `pg_policies` tồn tại là chưa đủ — đã lọt một lần. Phân biệt khi debug: `403` = grant/permission trong policy · `200 + rỗng` = RLS lọc đúng. → [[bao-mat-du-lieu-rls]]
 
-## `types/database.types.ts` đang lệch DB
+## `types/database.types.ts` trôi khỏi DB nếu quên sinh lại
 
-Thiếu **16 bảng** so với DB thật. Đừng lấy file này làm nguồn chân lý về schema. → [[canh-bao-schema]]
+Từng lệch 16 bảng / 15 RPC vì không ai sinh lại sau migration. Đã đồng bộ 2026-08-07.
+
+**Sau mỗi migration chạy cả hai:** `npm run db:types` + `node scripts/vault-gen-schema.mjs`.
+
+⚠️ Script `db:types` ghi ra `.tmp` rồi mới đổi tên — **đừng rút gọn thành `> types/database.types.ts`**. Shell cắt rỗng file *trước khi* lệnh chạy, nên lệnh lỗi (ví dụ `supabase` không có trên PATH) là mất trắng file. Đã dẫm.
+
+→ [[canh-bao-schema]]
 
 ## Không còn cổng tự động nào chặn push
 

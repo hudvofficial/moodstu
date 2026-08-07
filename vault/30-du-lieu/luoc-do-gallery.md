@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Lược đồ DB — Gallery ảnh
 
-> Sinh tự động từ **DB production thật**, không phải từ `types/database.types.ts` (file đó đang thiếu bảng — xem [[canh-bao-schema]]).
+> Sinh tự động từ **DB production thật** (không phải từ `types/database.types.ts`). Sau mỗi migration nhớ chạy cả `npm run db:types` — xem [[canh-bao-schema]].
 
 Module liên quan: [[gallery]]
 
@@ -15,7 +15,7 @@ Module liên quan: [[gallery]]
 |---|---:|---|---:|
 | `galleries` | 76 | ✅ | 1 |
 | `gallery_images` | 17704 | ✅ | 1 |
-| `gallery_reactions` | 1228 | ✅ | 0 |
+| `gallery_reactions` | 1229 | ✅ | 0 |
 | `gallery_comments` | 169 | ✅ | 0 |
 | `gallery_share_links` | 219 | ✅ | 1 |
 | `gallery_albums` | 0 | ✅ | 0 |
@@ -130,7 +130,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_reactions`
 
-1228 dòng · RLS bật · 0 policy
+1229 dòng · RLS bật · 0 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

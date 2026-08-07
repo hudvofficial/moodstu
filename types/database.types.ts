@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       addon_history: {
@@ -124,7 +99,15 @@ export type Database = {
           user_id?: string
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_active_leaf_message_id_fkey"
+            columns: ["active_leaf_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_messages: {
         Row: {
@@ -171,6 +154,13 @@ export type Database = {
             referencedRelation: "ai_conversations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ai_turns: {
@@ -187,7 +177,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          attempt_count?: number
           completed_at?: string | null
           conversation_id?: string | null
           error?: string | null
@@ -200,7 +189,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          attempt_count?: number
           completed_at?: string | null
           conversation_id?: string | null
           error?: string | null
@@ -222,442 +210,51 @@ export type Database = {
           },
         ]
       }
-      moodie_message_feedback: {
+      approval_requests: {
         Row: {
-          conversation_id: string
+          action_type: string
           created_at: string
           id: string
-          message_id: string
-          note: string | null
-          rating: number
+          module: string
+          payload: Json | null
+          reason: string
+          requested_by: string
+          review_notes: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["approval_status_enum"]
+          target_id: string
           updated_at: string
-          user_id: string
         }
         Insert: {
-          conversation_id: string
+          action_type: string
           created_at?: string
           id?: string
-          message_id: string
-          note?: string | null
-          rating: number
+          module: string
+          payload?: Json | null
+          reason: string
+          requested_by: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status_enum"]
+          target_id: string
           updated_at?: string
-          user_id: string
         }
         Update: {
-          conversation_id?: string
+          action_type?: string
           created_at?: string
           id?: string
-          message_id?: string
-          note?: string | null
-          rating?: number
+          module?: string
+          payload?: Json | null
+          reason?: string
+          requested_by?: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status_enum"]
+          target_id?: string
           updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "moodie_message_feedback_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "moodie_message_feedback_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "ai_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      moodie_agent_runs: {
-        Row: {
-          attempt_count: number
-          completed_at: string | null
-          confirmation_expires_at: string | null
-          confirmation_token_hash: string | null
-          confirmed_at: string | null
-          confirmed_by: string | null
-          conversation_id: string | null
-          created_at: string
-          error: string | null
-          id: string
-          idempotency_key: string | null
-          heartbeat_at: string | null
-          kind: string
-          lease_expires_at: string | null
-          lease_owner: string | null
-          lease_token: string | null
-          max_attempts: number
-          next_attempt_at: string | null
-          parent_turn_id: string | null
-          progress: number
-          request: Json
-          requires_confirmation: boolean
-          result: Json | null
-          source_refs: Json
-          started_at: string | null
-          status: string
-          title: string
-          updated_at: string
-          user_id: string
-          voice_session_id: string | null
-        }
-        Insert: {
-          attempt_count?: number
-          completed_at?: string | null
-          confirmation_expires_at?: string | null
-          confirmation_token_hash?: string | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          error?: string | null
-          id?: string
-          idempotency_key?: string | null
-          heartbeat_at?: string | null
-          kind: string
-          lease_expires_at?: string | null
-          lease_owner?: string | null
-          lease_token?: string | null
-          max_attempts?: number
-          next_attempt_at?: string | null
-          parent_turn_id?: string | null
-          progress?: number
-          request?: Json
-          requires_confirmation?: boolean
-          result?: Json | null
-          source_refs?: Json
-          started_at?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          user_id: string
-          voice_session_id?: string | null
-        }
-        Update: {
-          attempt_count?: number
-          completed_at?: string | null
-          confirmation_expires_at?: string | null
-          confirmation_token_hash?: string | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          conversation_id?: string | null
-          error?: string | null
-          idempotency_key?: string | null
-          heartbeat_at?: string | null
-          kind?: string
-          lease_expires_at?: string | null
-          lease_owner?: string | null
-          lease_token?: string | null
-          max_attempts?: number
-          next_attempt_at?: string | null
-          parent_turn_id?: string | null
-          progress?: number
-          request?: Json
-          requires_confirmation?: boolean
-          result?: Json | null
-          source_refs?: Json
-          started_at?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-          voice_session_id?: string | null
         }
         Relationships: []
       }
-      moodie_agent_run_events: {
-        Row: {
-          created_at: string
-          event_type: string
-          id: number
-          message: string | null
-          payload: Json
-          run_id: string
-          sequence: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_type: string
-          id?: number
-          message?: string | null
-          payload?: Json
-          run_id: string
-          sequence: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          event_type?: string
-          id?: number
-          message?: string | null
-          payload?: Json
-          run_id?: string
-          sequence?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      moodie_voice_sessions: {
-        Row: {
-          client_metadata: Json
-          connected_at: string | null
-          conversation_id: string | null
-          created_at: string
-          ended_at: string | null
-          engine: string
-          error: string | null
-          id: string
-          last_event_at: string
-          memory_packet_version: number
-          model: string
-          policy_version: number
-          reconnect_count: number
-          started_at: string
-          status: string
-          updated_at: string
-          user_id: string
-          voice: string
-        }
-        Insert: {
-          client_metadata?: Json
-          connected_at?: string | null
-          conversation_id?: string | null
-          created_at?: string
-          ended_at?: string | null
-          engine?: string
-          error?: string | null
-          id?: string
-          last_event_at?: string
-          memory_packet_version?: number
-          model: string
-          policy_version?: number
-          reconnect_count?: number
-          started_at?: string
-          status?: string
-          updated_at?: string
-          user_id: string
-          voice: string
-        }
-        Update: {
-          client_metadata?: Json
-          connected_at?: string | null
-          conversation_id?: string | null
-          ended_at?: string | null
-          engine?: string
-          error?: string | null
-          last_event_at?: string
-          memory_packet_version?: number
-          model?: string
-          policy_version?: number
-          reconnect_count?: number
-          status?: string
-          updated_at?: string
-          voice?: string
-        }
-        Relationships: []
-      }
-      moodie_voice_turns: {
-        Row: {
-          assistant_transcript: string | null
-          completed_at: string | null
-          created_at: string
-          delegated_run_ids: string[]
-          first_assistant_audio_at: string | null
-          first_input_at: string | null
-          first_input_transcript_at: string | null
-          id: string
-          interrupted: boolean
-          metrics: Json
-          playback_started_at: string | null
-          sequence: number
-          session_id: string
-          updated_at: string
-          user_id: string
-          user_transcript: string | null
-        }
-        Insert: {
-          assistant_transcript?: string | null
-          completed_at?: string | null
-          created_at?: string
-          delegated_run_ids?: string[]
-          first_assistant_audio_at?: string | null
-          first_input_at?: string | null
-          first_input_transcript_at?: string | null
-          id?: string
-          interrupted?: boolean
-          metrics?: Json
-          playback_started_at?: string | null
-          sequence: number
-          session_id: string
-          updated_at?: string
-          user_id: string
-          user_transcript?: string | null
-        }
-        Update: {
-          assistant_transcript?: string | null
-          completed_at?: string | null
-          delegated_run_ids?: string[]
-          first_assistant_audio_at?: string | null
-          first_input_at?: string | null
-          first_input_transcript_at?: string | null
-          interrupted?: boolean
-          metrics?: Json
-          playback_started_at?: string | null
-          updated_at?: string
-          user_transcript?: string | null
-        }
-        Relationships: []
-      }
-      moodie_voice_events: {
-        Row: {
-          created_at: string
-          event_type: string
-          id: number
-          occurred_at: string
-          payload: Json
-          sequence: number
-          session_id: string
-          turn_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_type: string
-          id?: number
-          occurred_at?: string
-          payload?: Json
-          sequence: number
-          session_id: string
-          turn_id?: string | null
-          user_id: string
-        }
-        Update: {
-          event_type?: string
-          occurred_at?: string
-          payload?: Json
-          sequence?: number
-          turn_id?: string | null
-        }
-        Relationships: []
-      }
-      moodie_memories: {
-        Row: {
-          confidence: number
-          consolidated_into_memory_id: string | null
-          content: string
-          conversation_id: string | null
-          created_at: string
-          embedding: Json | null
-          embedding_model: string | null
-          embedding_updated_at: string | null
-          archived_reason: string | null
-          deleted_at: string | null
-          expires_at: string | null
-          id: string
-          importance: number
-          last_confirmed_at: string | null
-          last_used_at: string | null
-          memory_type: string
-          predicate: string | null
-          reconfirmation_interval_days: number | null
-          review_after: string | null
-          scope: string
-          source_message_id: string | null
-          source_message_ids: string[]
-          source_voice_turn_id: string | null
-          status: string
-          subject: string | null
-          supersedes_memory_id: string | null
-          updated_at: string
-          use_count: number
-          user_id: string | null
-          value: Json | null
-        }
-        Insert: {
-          confidence?: number
-          consolidated_into_memory_id?: string | null
-          content: string
-          conversation_id?: string | null
-          created_at?: string
-          embedding?: Json | null
-          embedding_model?: string | null
-          embedding_updated_at?: string | null
-          archived_reason?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          importance?: number
-          last_confirmed_at?: string | null
-          last_used_at?: string | null
-          memory_type: string
-          predicate?: string | null
-          reconfirmation_interval_days?: number | null
-          review_after?: string | null
-          scope: string
-          source_message_id?: string | null
-          source_message_ids?: string[]
-          source_voice_turn_id?: string | null
-          status?: string
-          subject?: string | null
-          supersedes_memory_id?: string | null
-          updated_at?: string
-          use_count?: number
-          user_id?: string | null
-          value?: Json | null
-        }
-        Update: {
-          confidence?: number
-          consolidated_into_memory_id?: string | null
-          content?: string
-          conversation_id?: string | null
-          created_at?: string
-          embedding?: Json | null
-          embedding_model?: string | null
-          embedding_updated_at?: string | null
-          archived_reason?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          importance?: number
-          last_confirmed_at?: string | null
-          last_used_at?: string | null
-          memory_type?: string
-          predicate?: string | null
-          reconfirmation_interval_days?: number | null
-          review_after?: string | null
-          scope?: string
-          source_message_id?: string | null
-          source_message_ids?: string[]
-          source_voice_turn_id?: string | null
-          status?: string
-          subject?: string | null
-          supersedes_memory_id?: string | null
-          updated_at?: string
-          use_count?: number
-          user_id?: string | null
-          value?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "moodie_memories_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "ai_conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "moodie_memories_source_message_id_fkey"
-            columns: ["source_message_id"]
-            isOneToOne: false
-            referencedRelation: "ai_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-
       attendance: {
         Row: {
           attendance_code: string | null
@@ -731,6 +328,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "attendance_work_shift_id_fkey"
             columns: ["work_shift_id"]
             isOneToOne: false
@@ -797,6 +401,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1354,10 +965,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_leads_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1806,6 +1431,8 @@ export type Database = {
       dresses: {
         Row: {
           average_unit_price: number | null
+          blur_data_url: string | null
+          blur_hash: string | null
           category: string | null
           color: string | null
           condition: string | null
@@ -1829,6 +1456,8 @@ export type Database = {
         }
         Insert: {
           average_unit_price?: number | null
+          blur_data_url?: string | null
+          blur_hash?: string | null
           category?: string | null
           color?: string | null
           condition?: string | null
@@ -1852,6 +1481,8 @@ export type Database = {
         }
         Update: {
           average_unit_price?: number | null
+          blur_data_url?: string | null
+          blur_hash?: string | null
           category?: string | null
           color?: string | null
           condition?: string | null
@@ -1966,6 +1597,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
           {
@@ -2118,6 +1756,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_current_holder_fkey"
+            columns: ["current_holder"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       evaluations: {
@@ -2172,6 +1817,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
           {
@@ -2234,6 +1886,7 @@ export type Database = {
           contract_id: string | null
           created_at: string | null
           created_by: string | null
+          debt_id: string | null
           deleted_at: string | null
           description: string | null
           expense_date: string
@@ -2243,6 +1896,7 @@ export type Database = {
           printing_order_id: string | null
           recipient: string | null
           updated_at: string | null
+          work_task_id: string | null
         }
         Insert: {
           amount: number
@@ -2251,6 +1905,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          debt_id?: string | null
           deleted_at?: string | null
           description?: string | null
           expense_date?: string
@@ -2260,6 +1915,7 @@ export type Database = {
           printing_order_id?: string | null
           recipient?: string | null
           updated_at?: string | null
+          work_task_id?: string | null
         }
         Update: {
           amount?: number
@@ -2268,6 +1924,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          debt_id?: string | null
           deleted_at?: string | null
           description?: string | null
           expense_date?: string
@@ -2277,6 +1934,7 @@ export type Database = {
           printing_order_id?: string | null
           recipient?: string | null
           updated_at?: string | null
+          work_task_id?: string | null
         }
         Relationships: [
           {
@@ -2294,10 +1952,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expenses_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_printing_order_id_fkey"
+            columns: ["printing_order_id"]
+            isOneToOne: false
+            referencedRelation: "order_payment_summary"
+            referencedColumns: ["order_id"]
+          },
+          {
             foreignKeyName: "expenses_printing_order_id_fkey"
             columns: ["printing_order_id"]
             isOneToOne: false
             referencedRelation: "printing_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_work_task_id_fkey"
+            columns: ["work_task_id"]
+            isOneToOne: false
+            referencedRelation: "work_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -2658,6 +2337,7 @@ export type Database = {
           gallery_id: string
           id: string
           image_id: string
+          updated_at: string
         }
         Insert: {
           author_name?: string | null
@@ -2667,6 +2347,7 @@ export type Database = {
           gallery_id: string
           id?: string
           image_id: string
+          updated_at?: string
         }
         Update: {
           author_name?: string | null
@@ -2676,6 +2357,7 @@ export type Database = {
           gallery_id?: string
           id?: string
           image_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -2747,54 +2429,66 @@ export type Database = {
       gallery_images: {
         Row: {
           album_id: string | null
+          blur_data_url: string | null
+          blur_hash: string | null
           client_note: string | null
           created_at: string | null
           drive_file_id: string | null
           file_group: string | null
           file_name: string | null
           gallery_id: string
+          height: number | null
           id: string
           image_url: string
           is_selected: boolean | null
           is_starred: boolean | null
           selected_at: string | null
-          starred_at: string | null
           sort_order: number | null
+          starred_at: string | null
           thumbnail_url: string | null
+          width: number | null
         }
         Insert: {
           album_id?: string | null
+          blur_data_url?: string | null
+          blur_hash?: string | null
           client_note?: string | null
           created_at?: string | null
           drive_file_id?: string | null
           file_group?: string | null
           file_name?: string | null
           gallery_id: string
+          height?: number | null
           id?: string
           image_url: string
           is_selected?: boolean | null
           is_starred?: boolean | null
           selected_at?: string | null
-          starred_at?: string | null
           sort_order?: number | null
+          starred_at?: string | null
           thumbnail_url?: string | null
+          width?: number | null
         }
         Update: {
           album_id?: string | null
+          blur_data_url?: string | null
+          blur_hash?: string | null
           client_note?: string | null
           created_at?: string | null
           drive_file_id?: string | null
           file_group?: string | null
           file_name?: string | null
           gallery_id?: string
+          height?: number | null
           id?: string
           image_url?: string
           is_selected?: boolean | null
           is_starred?: boolean | null
           selected_at?: string | null
-          starred_at?: string | null
           sort_order?: number | null
+          starred_at?: string | null
           thumbnail_url?: string | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -2808,6 +2502,32 @@ export type Database = {
             foreignKeyName: "gallery_images_gallery_id_fkey"
             columns: ["gallery_id"]
             isOneToOne: false
+            referencedRelation: "galleries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_password_attempts: {
+        Row: {
+          fail_count: number
+          gallery_id: string
+          window_start: string
+        }
+        Insert: {
+          fail_count?: number
+          gallery_id: string
+          window_start?: string
+        }
+        Update: {
+          fail_count?: number
+          gallery_id?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_password_attempts_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: true
             referencedRelation: "galleries"
             referencedColumns: ["id"]
           },
@@ -3039,6 +2759,45 @@ export type Database = {
           },
         ]
       }
+      google_sync_queue: {
+        Row: {
+          action: string
+          attempts: number
+          created_at: string
+          google_event_id: string | null
+          id: string
+          idempotency_key: string | null
+          payload: Json | null
+          schedule_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          attempts?: number
+          created_at?: string
+          google_event_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json | null
+          schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          created_at?: string
+          google_event_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          payload?: Json | null
+          schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integrity_reports: {
         Row: {
           checks: Json | null
@@ -3138,6 +2897,77 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_reservations: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          item_id: string
+          notes: string | null
+          order_id: string
+          reserved_at: string | null
+          reserved_quantity: number
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          item_id: string
+          notes?: string | null
+          order_id: string
+          reserved_at?: string | null
+          reserved_quantity: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          item_id?: string
+          notes?: string | null
+          order_id?: string
+          reserved_at?: string | null
+          reserved_quantity?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_available_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_payment_summary"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "printing_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_transactions: {
         Row: {
           contract_code: string | null
@@ -3148,14 +2978,18 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           id: string
+          is_rollback: boolean | null
           item_id: string
           notes: string | null
+          parent_transaction_id: string | null
           payment_method: string | null
           performed_by: string | null
           printing_order_id: string | null
           quantity: number
           reason: string | null
           receipt_id: string | null
+          reservation_id: string | null
+          rolled_back_txn_id: string | null
           sale_total: number | null
           sale_unit_price: number | null
           source_id: string | null
@@ -3174,14 +3008,18 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           id?: string
+          is_rollback?: boolean | null
           item_id: string
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_method?: string | null
           performed_by?: string | null
           printing_order_id?: string | null
           quantity?: number
           reason?: string | null
           receipt_id?: string | null
+          reservation_id?: string | null
+          rolled_back_txn_id?: string | null
           sale_total?: number | null
           sale_unit_price?: number | null
           source_id?: string | null
@@ -3200,14 +3038,18 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           id?: string
+          is_rollback?: boolean | null
           item_id?: string
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_method?: string | null
           performed_by?: string | null
           printing_order_id?: string | null
           quantity?: number
           reason?: string | null
           receipt_id?: string | null
+          reservation_id?: string | null
+          rolled_back_txn_id?: string | null
           sale_total?: number | null
           sale_unit_price?: number | null
           source_id?: string | null
@@ -3229,7 +3071,21 @@ export type Database = {
             foreignKeyName: "inventory_transactions_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "inventory_available_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -3237,6 +3093,20 @@ export type Database = {
             columns: ["receipt_id"]
             isOneToOne: false
             referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_rolled_back_txn_id_fkey"
+            columns: ["rolled_back_txn_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -3383,6 +3253,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lab_payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_payment_allocations_printing_order_id_fkey"
+            columns: ["printing_order_id"]
+            isOneToOne: false
+            referencedRelation: "order_payment_summary"
+            referencedColumns: ["order_id"]
           },
           {
             foreignKeyName: "lab_payment_allocations_printing_order_id_fkey"
@@ -3583,6 +3460,755 @@ export type Database = {
         }
         Relationships: []
       }
+      moodie_action_approvals: {
+        Row: {
+          action_kind: string
+          action_label: string
+          approved_at: string | null
+          conversation_id: string | null
+          created_at: string
+          executed_at: string | null
+          expires_at: string
+          id: string
+          payload: Json
+          risk: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_kind: string
+          action_label: string
+          approved_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          executed_at?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          risk: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_kind?: string
+          action_label?: string
+          approved_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          executed_at?: string | null
+          expires_at?: string
+          id?: string
+          payload?: Json
+          risk?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_action_approvals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_agent_run_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: number
+          message: string | null
+          payload: Json
+          run_id: string
+          sequence: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: number
+          message?: string | null
+          payload?: Json
+          run_id: string
+          sequence: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: number
+          message?: string | null
+          payload?: Json
+          run_id?: string
+          sequence?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_agent_run_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_agent_runs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          confirmation_expires_at: string | null
+          confirmation_token_hash: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          heartbeat_at: string | null
+          id: string
+          idempotency_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          parent_turn_id: string | null
+          progress: number
+          request: Json
+          requires_confirmation: boolean
+          result: Json | null
+          source_refs: Json
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          voice_session_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          confirmation_expires_at?: string | null
+          confirmation_token_hash?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          parent_turn_id?: string | null
+          progress?: number
+          request?: Json
+          requires_confirmation?: boolean
+          result?: Json | null
+          source_refs?: Json
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          voice_session_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          confirmation_expires_at?: string | null
+          confirmation_token_hash?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          parent_turn_id?: string | null
+          progress?: number
+          request?: Json
+          requires_confirmation?: boolean
+          result?: Json | null
+          source_refs?: Json
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          voice_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_agent_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_agent_runs_parent_turn_id_fkey"
+            columns: ["parent_turn_id"]
+            isOneToOne: false
+            referencedRelation: "ai_turns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_agent_runs_voice_session_id_fkey"
+            columns: ["voice_session_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_voice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_brave_audit_events: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          estimated_cost_microusd: number
+          id: string
+          mode: string
+          query_fingerprint: string
+          result_count: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          estimated_cost_microusd?: number
+          id?: string
+          mode: string
+          query_fingerprint: string
+          result_count?: number
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          estimated_cost_microusd?: number
+          id?: string
+          mode?: string
+          query_fingerprint?: string
+          result_count?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moodie_brave_usage_daily: {
+        Row: {
+          call_count: number
+          estimated_cost_microusd: number
+          result_count: number
+          updated_at: string
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          call_count?: number
+          estimated_cost_microusd?: number
+          result_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          call_count?: number
+          estimated_cost_microusd?: number
+          result_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      moodie_memories: {
+        Row: {
+          archived_reason: string | null
+          confidence: number
+          consolidated_into_memory_id: string | null
+          content: string
+          conversation_id: string | null
+          created_at: string
+          deleted_at: string | null
+          embedding: Json | null
+          embedding_model: string | null
+          embedding_updated_at: string | null
+          expires_at: string | null
+          id: string
+          importance: number
+          last_confirmed_at: string | null
+          last_used_at: string | null
+          memory_type: string
+          predicate: string | null
+          reconfirmation_interval_days: number | null
+          review_after: string | null
+          scope: string
+          source_message_id: string | null
+          source_message_ids: string[]
+          source_voice_turn_id: string | null
+          status: string
+          subject: string | null
+          supersedes_memory_id: string | null
+          updated_at: string
+          use_count: number
+          user_id: string | null
+          value: Json | null
+        }
+        Insert: {
+          archived_reason?: string | null
+          confidence?: number
+          consolidated_into_memory_id?: string | null
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          embedding?: Json | null
+          embedding_model?: string | null
+          embedding_updated_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance?: number
+          last_confirmed_at?: string | null
+          last_used_at?: string | null
+          memory_type: string
+          predicate?: string | null
+          reconfirmation_interval_days?: number | null
+          review_after?: string | null
+          scope: string
+          source_message_id?: string | null
+          source_message_ids?: string[]
+          source_voice_turn_id?: string | null
+          status?: string
+          subject?: string | null
+          supersedes_memory_id?: string | null
+          updated_at?: string
+          use_count?: number
+          user_id?: string | null
+          value?: Json | null
+        }
+        Update: {
+          archived_reason?: string | null
+          confidence?: number
+          consolidated_into_memory_id?: string | null
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          embedding?: Json | null
+          embedding_model?: string | null
+          embedding_updated_at?: string | null
+          expires_at?: string | null
+          id?: string
+          importance?: number
+          last_confirmed_at?: string | null
+          last_used_at?: string | null
+          memory_type?: string
+          predicate?: string | null
+          reconfirmation_interval_days?: number | null
+          review_after?: string | null
+          scope?: string
+          source_message_id?: string | null
+          source_message_ids?: string[]
+          source_voice_turn_id?: string | null
+          status?: string
+          subject?: string | null
+          supersedes_memory_id?: string | null
+          updated_at?: string
+          use_count?: number
+          user_id?: string | null
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_memories_consolidated_into_memory_id_fkey"
+            columns: ["consolidated_into_memory_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memories_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memories_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memories_source_voice_turn_id_fkey"
+            columns: ["source_voice_turn_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_voice_turns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memories_supersedes_memory_id_fkey"
+            columns: ["supersedes_memory_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_memory_relations: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          relation_type: string
+          source_memory_id: string
+          target_memory_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          relation_type: string
+          source_memory_id: string
+          target_memory_id: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          relation_type?: string
+          source_memory_id?: string
+          target_memory_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_memory_relations_source_memory_id_fkey"
+            columns: ["source_memory_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_memory_relations_target_memory_id_fkey"
+            columns: ["target_memory_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_memories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_message_feedback: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_id: string
+          note: string | null
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_id: string
+          note?: string | null
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          note?: string | null
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_message_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_message_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_observations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          outcome_summary: string | null
+          prompt_summary: string
+          reflected_at: string | null
+          route_intent: string | null
+          succeeded: boolean
+          tool_names: string[]
+          turn_id: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          outcome_summary?: string | null
+          prompt_summary: string
+          reflected_at?: string | null
+          route_intent?: string | null
+          succeeded?: boolean
+          tool_names?: string[]
+          turn_id?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          outcome_summary?: string | null
+          prompt_summary?: string
+          reflected_at?: string | null
+          route_intent?: string | null
+          succeeded?: boolean
+          tool_names?: string[]
+          turn_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_observations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_voice_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: number
+          occurred_at: string
+          payload: Json
+          sequence: number
+          session_id: string
+          turn_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: number
+          occurred_at?: string
+          payload?: Json
+          sequence: number
+          session_id: string
+          turn_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: number
+          occurred_at?: string
+          payload?: Json
+          sequence?: number
+          session_id?: string
+          turn_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_voice_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_voice_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodie_voice_events_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_voice_turns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_voice_sessions: {
+        Row: {
+          client_metadata: Json
+          connected_at: string | null
+          conversation_id: string | null
+          created_at: string
+          ended_at: string | null
+          engine: string
+          error: string | null
+          id: string
+          last_event_at: string
+          memory_packet_version: number
+          model: string
+          policy_version: number
+          reconnect_count: number
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          voice: string
+        }
+        Insert: {
+          client_metadata?: Json
+          connected_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          engine?: string
+          error?: string | null
+          id?: string
+          last_event_at?: string
+          memory_packet_version?: number
+          model: string
+          policy_version?: number
+          reconnect_count?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          voice: string
+        }
+        Update: {
+          client_metadata?: Json
+          connected_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          engine?: string
+          error?: string | null
+          id?: string
+          last_event_at?: string
+          memory_packet_version?: number
+          model?: string
+          policy_version?: number
+          reconnect_count?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          voice?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_voice_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moodie_voice_turns: {
+        Row: {
+          assistant_transcript: string | null
+          completed_at: string | null
+          created_at: string
+          delegated_run_ids: string[]
+          first_assistant_audio_at: string | null
+          first_input_at: string | null
+          first_input_transcript_at: string | null
+          id: string
+          interrupted: boolean
+          metrics: Json
+          playback_started_at: string | null
+          sequence: number
+          session_id: string
+          updated_at: string
+          user_id: string
+          user_transcript: string | null
+        }
+        Insert: {
+          assistant_transcript?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delegated_run_ids?: string[]
+          first_assistant_audio_at?: string | null
+          first_input_at?: string | null
+          first_input_transcript_at?: string | null
+          id?: string
+          interrupted?: boolean
+          metrics?: Json
+          playback_started_at?: string | null
+          sequence: number
+          session_id: string
+          updated_at?: string
+          user_id: string
+          user_transcript?: string | null
+        }
+        Update: {
+          assistant_transcript?: string | null
+          completed_at?: string | null
+          created_at?: string
+          delegated_run_ids?: string[]
+          first_assistant_audio_at?: string | null
+          first_input_at?: string | null
+          first_input_transcript_at?: string | null
+          id?: string
+          interrupted?: boolean
+          metrics?: Json
+          playback_started_at?: string | null
+          sequence?: number
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+          user_transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodie_voice_turns_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "moodie_voice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           deadline_reminder: boolean | null
@@ -3617,6 +4243,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: true
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_preferences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3666,6 +4299,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notification_queue_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
@@ -3708,6 +4348,90 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          payment_date: string
+          payment_id: string | null
+          payment_method: string
+          payment_type: string
+          receipt_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          payment_date: string
+          payment_id?: string | null
+          payment_method: string
+          payment_type: string
+          receipt_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          payment_date?: string
+          payment_id?: string | null
+          payment_method?: string
+          payment_type?: string
+          receipt_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_payment_summary"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "printing_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_payments_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
             referencedColumns: ["id"]
           },
         ]
@@ -3959,69 +4683,150 @@ export type Database = {
         }
         Relationships: []
       }
+      printing_order_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: string
+          id: string
+          order_id: string
+          reason: string | null
+          source: string
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status: string
+          id?: string
+          order_id: string
+          reason?: string | null
+          source?: string
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string
+          id?: string
+          order_id?: string
+          reason?: string | null
+          source?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printing_order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_payment_summary"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "printing_order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "printing_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       printing_orders: {
         Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
           contract_id: string | null
           created_at: string | null
           created_by: string | null
           deleted_at: string | null
+          delivered_at: string | null
           delivered_date: string | null
+          deposit_amount: number | null
           expected_date: string | null
+          final_amount: number | null
           id: string
+          inventory_status: string | null
+          issue_reason: string | null
+          issue_reported_at: string | null
+          issue_reported_by: string | null
           items: Json | null
           lab_id: string | null
           notes: string | null
           order_code: string | null
           order_date: string | null
+          paid_amount: number | null
           payment_status: string | null
+          print_file_url: string | null
           received_date: string | null
+          remaining_amount: number | null
           status: string | null
           total_amount: number | null
           updated_at: string | null
           updated_by: string | null
-          print_file_url: string | null
         }
         Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
+          delivered_at?: string | null
           delivered_date?: string | null
+          deposit_amount?: number | null
           expected_date?: string | null
+          final_amount?: number | null
           id?: string
+          inventory_status?: string | null
+          issue_reason?: string | null
+          issue_reported_at?: string | null
+          issue_reported_by?: string | null
           items?: Json | null
           lab_id?: string | null
           notes?: string | null
           order_code?: string | null
           order_date?: string | null
+          paid_amount?: number | null
           payment_status?: string | null
+          print_file_url?: string | null
           received_date?: string | null
+          remaining_amount?: number | null
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
-          print_file_url?: string | null
         }
         Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
+          delivered_at?: string | null
           delivered_date?: string | null
+          deposit_amount?: number | null
           expected_date?: string | null
+          final_amount?: number | null
           id?: string
+          inventory_status?: string | null
+          issue_reason?: string | null
+          issue_reported_at?: string | null
+          issue_reported_by?: string | null
           items?: Json | null
           lab_id?: string | null
           notes?: string | null
           order_code?: string | null
           order_date?: string | null
+          paid_amount?: number | null
           payment_status?: string | null
+          print_file_url?: string | null
           received_date?: string | null
+          remaining_amount?: number | null
           status?: string | null
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
-          print_file_url?: string | null
         }
         Relationships: [
           {
@@ -4088,6 +4893,75 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          employee_id: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          employee_id: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          employee_id?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      realtime_signals: {
+        Row: {
+          changed_at: string
+          id: number
+          op: string
+          table_name: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: never
+          op: string
+          table_name: string
+        }
+        Update: {
+          changed_at?: string
+          id?: never
+          op?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           category_id: string | null
@@ -4098,6 +4972,7 @@ export type Database = {
           created_by: string | null
           customer_name: string | null
           customer_phone: string | null
+          debt_id: string | null
           deleted_at: string | null
           id: string
           notes: string | null
@@ -4121,6 +4996,7 @@ export type Database = {
           created_by?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          debt_id?: string | null
           deleted_at?: string | null
           id?: string
           notes?: string | null
@@ -4144,6 +5020,7 @@ export type Database = {
           created_by?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          debt_id?: string | null
           deleted_at?: string | null
           id?: string
           notes?: string | null
@@ -4164,6 +5041,13 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
             referencedColumns: ["id"]
           },
         ]
@@ -4229,10 +5113,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "requests_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "requests_requester_id_fkey"
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4343,6 +5241,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4636,6 +5541,128 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_payment_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          payment_id: string
+          work_task_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id: string
+          work_task_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id?: string
+          work_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payment_allocations_work_task_id_fkey"
+            columns: ["work_task_id"]
+            isOneToOne: false
+            referencedRelation: "work_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          note: string | null
+          payment_date: string
+          payment_method: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          note?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          note?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_payments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          service_type: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          service_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          service_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       work_shifts: {
         Row: {
           created_at: string | null
@@ -4692,6 +5719,7 @@ export type Database = {
           start_time: string | null
           status: string | null
           updated_at: string | null
+          vendor_id: string | null
           work_type: Database["public"]["Enums"]["work_type_enum"]
         }
         Insert: {
@@ -4710,6 +5738,7 @@ export type Database = {
           start_time?: string | null
           status?: string | null
           updated_at?: string | null
+          vendor_id?: string | null
           work_type: Database["public"]["Enums"]["work_type_enum"]
         }
         Update: {
@@ -4728,6 +5757,7 @@ export type Database = {
           start_time?: string | null
           status?: string | null
           updated_at?: string | null
+          vendor_id?: string | null
           work_type?: Database["public"]["Enums"]["work_type_enum"]
         }
         Relationships: [
@@ -4736,6 +5766,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
           {
@@ -4752,10 +5789,71 @@ export type Database = {
             referencedRelation: "contract_events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_tasks_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
+      employees_public: {
+        Row: {
+          avatar_url: string | null
+          department: string | null
+          full_name: string | null
+          id: string | null
+          position: string | null
+          status: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          department?: string | null
+          full_name?: string | null
+          id?: string | null
+          position?: string | null
+          status?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          department?: string | null
+          full_name?: string | null
+          id?: string | null
+          position?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      inventory_available_stock: {
+        Row: {
+          available_stock: number | null
+          current_stock: number | null
+          id: string | null
+          item_code: string | null
+          min_stock: number | null
+          name: string | null
+          reserved_quantity: number | null
+          stock_status: string | null
+          unit: string | null
+        }
+        Relationships: []
+      }
+      order_payment_summary: {
+        Row: {
+          adjustment_amount: number | null
+          deposit_paid: number | null
+          final_paid: number | null
+          order_id: string | null
+          refund_amount: number | null
+          remaining: number | null
+          total_amount: number | null
+          total_paid: number | null
+        }
+        Relationships: []
+      }
       payment_plan_states: {
         Row: {
           amount: number | null
@@ -4790,48 +5888,17 @@ export type Database = {
       }
     }
     Functions: {
-      moodie_jsonb_cosine_similarity: {
-        Args: { a: Json; b: Json }
-        Returns: number
-      }
-      match_moodie_memories: {
-        Args: { p_user_id: string; p_conversation_id?: string | null; p_query_text?: string; p_query_embedding?: Json | null; p_limit?: number }
-        Returns: {
-          id: string
-          scope: string
-          memory_type: string
-          content: string
-          subject: string | null
-          predicate: string | null
-          importance: number
-          updated_at: string
-          use_count: number
-          score: number
-        }[]
-      }
-      finalize_moodie_memory_consolidation: {
-        Args: { p_user_id: string; p_source_ids: string[]; p_content: string; p_value?: Json; p_confidence?: number; p_importance?: number }
-        Returns: string
-      }
-      maintain_moodie_memory_lifecycle: {
-        Args: { p_limit?: number }
-        Returns: { expired_count: number; reconfirm_count: number }[]
-      }
-      claim_moodie_agent_run: {
-        Args: { p_worker_id: string; p_lease_seconds?: number }
-        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
-      }
-      heartbeat_moodie_agent_run: {
-        Args: { p_run_id: string; p_lease_token: string; p_progress?: number | null; p_lease_seconds?: number }
-        Returns: boolean
-      }
-      retry_moodie_agent_run: {
-        Args: { p_run_id: string; p_lease_token: string; p_error: string; p_delay_seconds?: number }
-        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
-      }
-      finish_moodie_agent_run: {
-        Args: { p_run_id: string; p_lease_token: string; p_status: string; p_result?: Json | null; p_error?: string | null; p_source_refs?: Json }
-        Returns: Database["public"]["Tables"]["moodie_agent_runs"]["Row"][]
+      add_fulfillment_transaction_atomic: {
+        Args: {
+          p_new_item_id: string
+          p_parent_txn_id: string
+          p_payment_date: string
+          p_payment_method: Database["public"]["Enums"]["payment_method_enum"]
+          p_quantity: number
+          p_sale_unit_price: number
+          p_user_id: string
+        }
+        Returns: Json
       }
       advance_close_task: {
         Args: {
@@ -4890,6 +5957,47 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_moodie_agent_run: {
+        Args: { p_lease_seconds?: number; p_worker_id: string }
+        Returns: {
+          attempt_count: number
+          completed_at: string | null
+          confirmation_expires_at: string | null
+          confirmation_token_hash: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          heartbeat_at: string | null
+          id: string
+          idempotency_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          parent_turn_id: string | null
+          progress: number
+          request: Json
+          requires_confirmation: boolean
+          result: Json | null
+          source_refs: Json
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          voice_session_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "moodie_agent_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       contract_payment_health_checks: {
         Args: never
         Returns: {
@@ -4914,6 +6022,17 @@ export type Database = {
           outstanding: number
           pending: number
           revenue: number
+          total: number
+        }[]
+      }
+      contract_stats_simple: {
+        Args: never
+        Returns: {
+          active: number
+          completed: number
+          last_month: number
+          pending: number
+          this_month: number
           total: number
         }[]
       }
@@ -5030,6 +6149,10 @@ export type Database = {
         Args: { p_dress_id: string; p_user_id?: string }
         Returns: Json
       }
+      delete_fulfillment_transaction_atomic: {
+        Args: { p_txn_id: string; p_user_id: string }
+        Returns: Json
+      }
       delete_printing_order_atomic: {
         Args: { p_actor_id: string; p_order_id: string }
         Returns: Json
@@ -5069,6 +6192,18 @@ export type Database = {
           total: number
         }[]
       }
+      expire_old_reservations: { Args: never; Returns: number }
+      finalize_moodie_memory_consolidation: {
+        Args: {
+          p_confidence?: number
+          p_content: string
+          p_importance?: number
+          p_source_ids: string[]
+          p_user_id: string
+          p_value?: Json
+        }
+        Returns: string
+      }
       finance_cashflow_timeline: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
@@ -5093,7 +6228,6 @@ export type Database = {
           discount: number
           expense_cost: number
           id: string
-          inventory_cost: number
           package_revenue: number
           paid_amount: number
           print_cost: number
@@ -5266,6 +6400,69 @@ export type Database = {
           value: number
         }[]
       }
+      finance_vendor_debt_summary: {
+        Args: never
+        Returns: {
+          last_payment_date: string
+          last_task_date: string
+          remaining: number
+          service_type: string
+          task_count: number
+          total_cost: number
+          total_paid: number
+          vendor_id: string
+          vendor_name: string
+          vendor_phone: string
+        }[]
+      }
+      finish_moodie_agent_run: {
+        Args: {
+          p_error?: string
+          p_lease_token: string
+          p_result?: Json
+          p_run_id: string
+          p_source_refs?: Json
+          p_status: string
+        }
+        Returns: {
+          attempt_count: number
+          completed_at: string | null
+          confirmation_expires_at: string | null
+          confirmation_token_hash: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          heartbeat_at: string | null
+          id: string
+          idempotency_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          parent_turn_id: string | null
+          progress: number
+          request: Json
+          requires_confirmation: boolean
+          result: Json | null
+          source_refs: Json
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          voice_session_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "moodie_agent_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_budget_vs_actual: {
         Args: { p_month: number; p_year: number }
         Returns: Json
@@ -5273,6 +6470,7 @@ export type Database = {
       get_cashflow_forecast: { Args: { p_days?: number }; Returns: Json }
       get_contract_balance: { Args: { p_contract_id: string }; Returns: Json }
       get_contract_detail_v2: { Args: { p_contract_id: string }; Returns: Json }
+      get_contract_detail_v3: { Args: { p_contract_id: string }; Returns: Json }
       get_contract_list_v2: {
         Args: {
           p_end_date?: string
@@ -5293,6 +6491,13 @@ export type Database = {
       get_current_employee_role: {
         Args: never
         Returns: Database["public"]["Enums"]["employee_role_enum"]
+      }
+      get_customer_ltv: {
+        Args: { p_ids: string[] }
+        Returns: {
+          customer_id: string
+          ltv: number
+        }[]
       }
       get_employee_job_details: {
         Args: {
@@ -5335,6 +6540,20 @@ export type Database = {
         Returns: Json
       }
       get_finance_intelligence: { Args: never; Returns: Json }
+      get_gallery_data_v2:
+        | { Args: { p_gallery_id: string }; Returns: Json }
+        | {
+            Args: { p_gallery_id: string; p_limit?: number; p_offset?: number }
+            Returns: Json
+          }
+      get_gallery_data_v3: {
+        Args: { p_gallery_id: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      get_gallery_summaries_by_contract: {
+        Args: { p_contract_id: string }
+        Returns: Json
+      }
       get_my_employee_job_details: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: {
@@ -5371,6 +6590,15 @@ export type Database = {
         }[]
       }
       get_receivable_aging: { Args: never; Returns: Json }
+      heartbeat_moodie_agent_run: {
+        Args: {
+          p_lease_seconds?: number
+          p_lease_token: string
+          p_progress?: number
+          p_run_id: string
+        }
+        Returns: boolean
+      }
       inventory_detail_v2: { Args: { p_item_id: string }; Returns: Json }
       inventory_item_transaction_totals: {
         Args: { p_item_id: string }
@@ -5413,6 +6641,7 @@ export type Database = {
         }
         Returns: Json
       }
+      is_active_employee: { Args: never; Returns: boolean }
       is_dress_available: {
         Args: {
           p_dress_id: string
@@ -5424,9 +6653,41 @@ export type Database = {
         Returns: boolean
       }
       is_period_locked: { Args: { p_date: string }; Returns: boolean }
+      maintain_moodie_memory_lifecycle: {
+        Args: { p_limit?: number }
+        Returns: {
+          expired_count: number
+          reconfirm_count: number
+        }[]
+      }
       mark_dress_cleaned_atomic: {
         Args: { p_dress_id: string; p_user_id?: string }
         Returns: Json
+      }
+      match_moodie_memories: {
+        Args: {
+          p_conversation_id?: string
+          p_limit?: number
+          p_query_embedding?: Json
+          p_query_text?: string
+          p_user_id: string
+        }
+        Returns: {
+          content: string
+          id: string
+          importance: number
+          memory_type: string
+          predicate: string
+          scope: string
+          score: number
+          subject: string
+          updated_at: string
+          use_count: number
+        }[]
+      }
+      moodie_jsonb_cosine_similarity: {
+        Args: { a: Json; b: Json }
+        Returns: number
       }
       next_employee_code: { Args: never; Returns: string }
       nextval_customer_code: { Args: never; Returns: number }
@@ -5470,9 +6731,14 @@ export type Database = {
         Args: never
         Returns: {
           cho_xu_ly: number
+          da_giao: number
+          da_huy: number
           da_in: number
           da_nhan: number
           dang_in: number
+          dat_coc: number
+          hoan_thanh: number
+          huy_don: number
           total: number
           total_cost: number
           unpaid_cost: number
@@ -5522,6 +6788,18 @@ export type Database = {
         }
         Returns: Json
       }
+      record_vendor_payment_atomic: {
+        Args: {
+          p_actor_id: string
+          p_allocations: Json
+          p_amount: number
+          p_note: string
+          p_payment_date: string
+          p_payment_method: string
+          p_vendor_id: string
+        }
+        Returns: Json
+      }
       refresh_dress_status: { Args: { p_dress_id: string }; Returns: undefined }
       refresh_dress_status_atomic: {
         Args: { p_dress_id: string; p_user_id?: string }
@@ -5531,7 +6809,20 @@ export type Database = {
         Args: { p_reservation_id: string; p_user_id?: string }
         Returns: Json
       }
+      reserve_moodie_brave_call: {
+        Args: {
+          p_daily_limit?: number
+          p_estimated_cost_microusd?: number
+          p_studio_daily_limit?: number
+          p_user_id: string
+        }
+        Returns: {
+          studio_call_count: number
+          user_call_count: number
+        }[]
+      }
       resolve_printing_expense_category_id: { Args: never; Returns: string }
+      resolve_vendor_expense_category_id: { Args: never; Returns: string }
       restore_inventory_from_transaction: {
         Args: {
           p_actor_id?: string
@@ -5540,6 +6831,52 @@ export type Database = {
           p_source_type: string
         }
         Returns: undefined
+      }
+      retry_moodie_agent_run: {
+        Args: {
+          p_delay_seconds?: number
+          p_error: string
+          p_lease_token: string
+          p_run_id: string
+        }
+        Returns: {
+          attempt_count: number
+          completed_at: string | null
+          confirmation_expires_at: string | null
+          confirmation_token_hash: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          conversation_id: string | null
+          created_at: string
+          error: string | null
+          heartbeat_at: string | null
+          id: string
+          idempotency_key: string | null
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          parent_turn_id: string | null
+          progress: number
+          request: Json
+          requires_confirmation: boolean
+          result: Json | null
+          source_refs: Json
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          voice_session_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "moodie_agent_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       return_dress_rental_atomic: {
         Args: {
@@ -5596,6 +6933,15 @@ export type Database = {
         Args: { p_reservation_id: string; p_status: string; p_user_id?: string }
         Returns: Json
       }
+      update_fulfillment_transaction_atomic: {
+        Args: {
+          p_new_quantity: number
+          p_new_unit_price: number
+          p_txn_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       update_printing_order_atomic: {
         Args: {
           p_actor_id: string
@@ -5607,6 +6953,10 @@ export type Database = {
       }
       upsert_printing_expense: {
         Args: { p_actor_id: string; p_printing_order_id: string }
+        Returns: string
+      }
+      upsert_vendor_expense: {
+        Args: { p_actor_id: string; p_work_task_id: string }
         Returns: string
       }
       verify_gallery_password: {
@@ -5625,6 +6975,7 @@ export type Database = {
         | "phu_kien"
         | "them_gio"
         | "khac"
+      approval_status_enum: "pending" | "approved" | "rejected"
       employee_role_enum: "admin" | "manager" | "sale" | "media" | "ctv"
       event_type_enum:
         | "chuan_bi"
@@ -5663,8 +7014,8 @@ export type Database = {
         | "couple"
         | "ky_yeu"
         | "media"
-        | "outsource"
         | "khac"
+        | "outsource"
       severity_enum: "INFO" | "WARNING" | "ERROR" | "CRITICAL"
       transaction_type_enum: "hop_dong" | "hoa_don"
       work_type_enum:
@@ -5806,9 +7157,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       addon_category_enum: [
@@ -5818,6 +7166,7 @@ export const Constants = {
         "them_gio",
         "khac",
       ],
+      approval_status_enum: ["pending", "approved", "rejected"],
       employee_role_enum: ["admin", "manager", "sale", "media", "ctv"],
       event_type_enum: [
         "chuan_bi",
@@ -5859,8 +7208,8 @@ export const Constants = {
         "couple",
         "ky_yeu",
         "media",
-        "outsource",
         "khac",
+        "outsource",
       ],
       severity_enum: ["INFO", "WARNING", "ERROR", "CRITICAL"],
       transaction_type_enum: ["hop_dong", "hoa_don"],

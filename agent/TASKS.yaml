@@ -236,3 +236,27 @@ done:
       và 30 hàm so với DB (ghi ở vault/30-du-lieu/canh-bao-schema.md).
       Số liệu vận hành thật: 54 hợp đồng (~14-19/tháng), 76 gallery / 17.704 ảnh (max 780), 2 tài khoản đăng nhập.
       docs/ARCHITECTURE.md + docs/CODEBASE_MAP.md đã gắn banner LỖI THỜI trỏ sang vault (giữ để tra lịch sử).
+
+  - id: T-20260807-regen-database-types
+    title: "Sinh lại types/database.types.ts khớp DB (+16 bảng, +3 view, +15 RPC, +1 enum)"
+    status: done
+    owner: claude
+    locks: ["types/database.types.ts", "lib/moodie/memory-store.ts", "lib/moodie/runs/worker.ts", "package.json", "vault/30-du-lieu/**", "vault/60-bay/bay-trien-khai.md", "scripts/vault-gen-schema.mjs"]
+    spec: agent/HANDOFFS/T-20260807-regen-database-types.spec.md
+    result: >
+      82→98 bảng, 1→4 view, 115→130 RPC, 15→16 enum. Không mất bảng/cột/hàm nào.
+      Đo trước khi sửa: 0 cột lệch nullable, 0 hàm lệch tham số → thay file là thuần cộng thêm.
+      Thử nghiệm tsc: baseline 0 lỗi → sau thay 3 lỗi (đều Moodie, RPC arg có DEFAULT đổi từ
+      nullable sang optional). Sửa 3 dòng: memory-store.ts:46 (|| null → || undefined),
+      worker.ts:59 + :113 (bỏ ?? null). Cả 3 tham số đều DEFAULT NULL nên hành vi không đổi.
+      Verify: tsc 0 lỗi · eslint 3 file exit 0 · verify:moodie-runtime pass · npm run build pass.
+      Thêm `npm run db:types`, chạy lại cho file giống hệt (byte-identical) → tái lập được.
+    notes: >
+      Dùng `--project-id` (Management API, token supabase login) — KHÔNG dùng `--db-url` vì cần Docker.
+      Bẫy đã dẫm khi làm: viết script dạng `> types/database.types.ts` thì shell cắt rỗng file TRƯỚC
+      khi lệnh chạy → `supabase` không có trên PATH làm mất trắng file; script cuối dùng npx + .tmp + rename.
+      Hai chỗ types vẫn không phủ: get_gallery_data_v2 (2 overload nên CLI bỏ qua, gallery-composite-actions.ts:42
+      dùng làm fallback khi tắt NEXT_PUBLIC_RPC_V3) và 14 trigger function (PostgREST không phơi ra — đúng).
+      Phát hiện phụ chưa xử lý: app/actions/gallery-cursor-actions.ts:52 gọi RPC `get_gallery_data_cursor`
+      KHÔNG tồn tại trong DB; file không được import ở đâu nên chưa nổ (dead code — nêu, không xoá).
+      Type chỉ bảo vệ nhánh Moodie + vài file lib/ vì phần lớn action dùng client không gắn generic.

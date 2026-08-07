@@ -131,7 +131,7 @@ for (const [slug, g] of Object.entries(GROUPS)) {
   L.push("");
   L.push(`# Lược đồ DB — ${g.title}`);
   L.push("");
-  L.push(`> Sinh tự động từ **DB production thật**, không phải từ \`types/database.types.ts\` (file đó đang thiếu bảng — xem [[canh-bao-schema]]).`);
+  L.push(`> Sinh tự động từ **DB production thật** (không phải từ \`types/database.types.ts\`). Sau mỗi migration nhớ chạy cả \`npm run db:types\` — xem [[canh-bao-schema]].`);
   L.push("");
   L.push(`Module liên quan: [[${slug}]]`);
   L.push("");

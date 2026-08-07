@@ -64,7 +64,7 @@ Chi tiết + xu hướng: [[so-lieu-van-hanh]]
 - [[ban-do-server-action]] — 91 file action → bảng/RPC
 - [[bang-doc-ghi]] — **bảng → ai đọc/ai ghi**; tra trước khi lo chuyện đồng thời
 - [[rpc-va-enum]] — 144 hàm Postgres + enum
-- [[canh-bao-schema]] — chỗ schema lệch với code/types
+- [[canh-bao-schema]] — cách giữ `database.types.ts` khớp DB + hai chỗ types không phủ được
 
 ## Bẫy & quyết định
 

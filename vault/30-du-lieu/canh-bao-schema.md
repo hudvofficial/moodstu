@@ -8,28 +8,38 @@ cap-nhat: 2026-08-07
 
 Đo bằng cách diff `types/database.types.ts` với DB production ngày 2026-08-07.
 
-## ⚠️ `types/database.types.ts` ĐANG LỆCH DB
+## `types/database.types.ts` — đã đồng bộ 2026-08-07
 
-**Đừng dùng file này làm nguồn chân lý về schema.** Dùng `30-du-lieu/luoc-do-*.md` (sinh từ DB thật) hoặc query trực tiếp:
+Trước đó file này lệch DB rất xa (82 bảng / 1 view / 115 RPC). Đã sinh lại, hiện khớp DB:
+**98 bảng · 4 view · 130 RPC · 16 enum.**
+
+### Giữ đồng bộ như thế nào
 
 ```bash
-node scripts/db-q.mjs "SELECT column_name, udt_name FROM information_schema.columns WHERE table_name='<bang>' ORDER BY ordinal_position"
+npm run db:types                    # sinh lại từ DB production (Management API)
+node scripts/vault-gen-schema.mjs   # sinh lại note lược đồ trong vault
 ```
 
-### 16 bảng có trong DB, thiếu trong types
+**Chạy CẢ HAI sau mỗi migration.** Hai lệnh đọc cùng một DB nhưng phục vụ hai chỗ khác nhau: một cho TypeScript, một cho người/agent đọc.
 
-`approval_requests` · `gallery_password_attempts` · `google_sync_queue` · `inventory_reservations` · `moodie_action_approvals` · `moodie_brave_audit_events` · `moodie_brave_usage_daily` · `moodie_memory_relations` · `moodie_observations` · `order_payments` · `printing_order_status_history` · `push_subscriptions` · `realtime_signals` · **`vendors`** · **`vendor_payments`** · **`vendor_payment_allocations`**
+⚠️ **Đừng dùng `supabase gen types --db-url`** — biến thể đó cần Docker (máy này không chạy Docker Desktop). Bản `--project-id` đi qua Management API với token `supabase login`, không cần Docker.
 
-Đáng chú ý: cả cụm **nhà cung cấp** ([[nha-cung-cap]]) và bảng tín hiệu **`realtime_signals`** (lõi của cơ chế Signal≠Data) đều vắng mặt.
+⚠️ Script `db:types` sinh ra file `.tmp` rồi mới đổi tên. Đừng rút gọn thành `> types/database.types.ts` — shell cắt rỗng file **trước khi** lệnh chạy, nên lệnh lỗi là mất luôn file. Đã dẫm.
 
-### 30 hàm có trong DB, thiếu trong types
+### Hai chỗ types vẫn KHÔNG phủ được
 
-Gồm nhiều hàm đang chạy thật:
-`upsert_vendor_expense` · `record_vendor_payment_atomic` · `finance_vendor_debt_summary` · `resolve_vendor_expense_category_id` · `get_gallery_data_v2` / `v3` · `get_gallery_summaries_by_contract` · `get_contract_detail_v3` · `contract_stats_simple` · `add_/update_/delete_fulfillment_transaction_atomic` · `emit_realtime_signal` · `is_active_employee` · `log_audit_action` · `expire_old_reservations` · `get_customer_ltv` · `restore_inventory_on_contract_payment_void` · `restore_inventory_on_receipt_void` · `reserve_moodie_brave_call` · `rls_auto_enable` · `sync_ai_conversation_message_count` · các trigger function (`trg_*`, `handle_new_user`, `update_updated_at_column`…)
+**1. `get_gallery_data_v2` — hàm overload nên bị bỏ qua.**
+DB có 2 bản: `get_gallery_data_v2(p_gallery_id uuid)` và `get_gallery_data_v2(p_gallery_id uuid, p_limit int, p_offset int)`. Supabase CLI bỏ qua hàm overload → types có `v3` nhưng không có `v2`.
+`app/actions/gallery-composite-actions.ts:42` dùng `v2` làm fallback khi tắt `NEXT_PUBLIC_RPC_V3` — vẫn chạy được vì file đó dùng client không gắn generic. Muốn phủ thì phải drop overload 1 tham số.
 
-Không có bảng nào **thừa** trong types. Hai hàm `show_limit`/`show_trgm` là của extension `pg_trgm`, bỏ qua.
+**2. Trigger function không bao giờ có trong types.**
+14 hàm trả `trigger`/`event_trigger` (`emit_realtime_signal`, `handle_new_user`, `log_audit_action`, `trg_*`, `update_updated_at_column`…) — PostgREST không phơi ra, nên **vắng mặt là đúng**, không phải lệch. Tra chúng ở [[rpc-va-enum]].
 
-**Kết luận:** file types được sinh ra ở một thời điểm rồi ngừng cập nhật; DB đã đi tiếp. Chạm bảng/hàm trong danh sách trên thì phải tự khai kiểu, TypeScript sẽ không giúp.
+### Type chỉ bảo vệ được một phần app
+
+Phần lớn server action dùng `createAdminClient()` trả `SupabaseClient` **trần, không generic** → `Database` không áp vào. Chỉ nhánh [[moodie-ai]] và vài file `lib/` (`studio-info`, `system-settings`, `settings-studio-admin`, `productivity-transforms`) dùng `SupabaseClient<Database>`.
+
+Nghĩa là: sinh lại types **không** tự động bắt lỗi ở contracts/finance/gallery. Muốn thế phải gắn generic cho client — dự án riêng, cần ADR (sẽ đẻ ra hàng trăm lỗi type cần sửa từng module).
 
 ## Cột dễ đoán nhầm
 

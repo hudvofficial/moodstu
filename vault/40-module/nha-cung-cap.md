@@ -34,7 +34,7 @@ Script chẩn đoán còn giữ: `scripts/vendor-expense-diagnostic.mjs`, `vendo
 
 [[luoc-do-nha-cung-cap]] — `vendors` · `vendor_payments` · `vendor_payment_allocations`
 
-⚠️ Ba bảng này **không có trong `types/database.types.ts`** (file types đang lệch DB) → [[canh-bao-schema]].
+Ba bảng này từng **vắng mặt trong `types/database.types.ts`** suốt một thời gian dài; đã bổ sung ngày 2026-08-07 → [[canh-bao-schema]].
 
 ## Liên quan
 

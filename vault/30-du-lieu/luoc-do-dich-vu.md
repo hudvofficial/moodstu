@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Lược đồ DB — Dịch vụ & báo giá
 
-> Sinh tự động từ **DB production thật**, không phải từ `types/database.types.ts` (file đó đang thiếu bảng — xem [[canh-bao-schema]]).
+> Sinh tự động từ **DB production thật** (không phải từ `types/database.types.ts`). Sau mỗi migration nhớ chạy cả `npm run db:types` — xem [[canh-bao-schema]].
 
 Module liên quan: [[dich-vu]]
 

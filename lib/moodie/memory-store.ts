@@ -43,7 +43,7 @@ export async function loadMoodieMemoryContext(params: {
     const queryEmbedding = queryEmbeddingResult?.vector || null;
     const { data: matched, error: matchError } = await params.supabase.rpc("match_moodie_memories", {
       p_user_id: params.userId,
-      p_conversation_id: params.conversationId || null,
+      p_conversation_id: params.conversationId || undefined,
       p_query_text: params.prompt || "",
       p_query_embedding: queryEmbedding,
       p_limit: 5,

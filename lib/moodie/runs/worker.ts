@@ -56,7 +56,7 @@ export async function heartbeatMoodieAgentRun(input: {
   const { data, error } = await input.supabase.rpc("heartbeat_moodie_agent_run", {
     p_run_id: input.runId,
     p_lease_token: input.leaseToken,
-    p_progress: input.progress ?? null,
+    p_progress: input.progress,
     p_lease_seconds: input.leaseSeconds ?? 60,
   });
   if (error) throw new Error(error.message);
@@ -110,7 +110,7 @@ async function finish(input: {
     p_lease_token: input.run.lease_token,
     p_status: input.status,
     p_result: input.result ?? null,
-    p_error: input.error ?? null,
+    p_error: input.error,
     p_source_refs: input.sourceRefs || [],
   });
   if (error) throw new Error(error.message);
