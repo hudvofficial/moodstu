@@ -51,6 +51,9 @@ export function OrderDetailsDrawer({
   const [actionItem, setActionItem] = useState<{ id: string, type: "delete_fulfillment" | "update_fulfillment" } | null>(null);
   const [reason, setReason] = useState("");
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  // Form sửa phát sinh — string state để ô số xoá trắng không búng về 0 (Number("")===0)
+  const [editQty, setEditQty] = useState("");
+  const [editPrice, setEditPrice] = useState("");
 
   const { fulfillments, isLoading, mutate } = useOrderFulfillments(txn?.id);
 
@@ -127,10 +130,19 @@ export function OrderDetailsDrawer({
   const handleActionConfirm = async () => {
     if (!actionItem) return;
     const isDirect = userRole === "admin" || userRole === "manager";
-    
+
     if (!isDirect && !reason.trim()) {
       toast.error("Vui lòng nhập lý do");
       return;
+    }
+
+    if (actionItem.type === "update_fulfillment") {
+      const qty = Number(editQty);
+      const price = Number(editPrice);
+      if (!Number.isInteger(qty) || qty <= 0 || !Number.isFinite(price) || price < 0) {
+        toast.error("Số lượng phải > 0 và đơn giá không âm.");
+        return;
+      }
     }
 
     setIsSubmittingAction(true);
@@ -139,9 +151,9 @@ export function OrderDetailsDrawer({
         target_id: actionItem.id,
         action_type: actionItem.type,
         reason: isDirect ? "Direct action" : reason.trim(),
-        payload: actionItem.type === "update_fulfillment" ? { 
-          // For MVP Edit, we don't implement full form here, just a placeholder. 
-        } : undefined
+        payload: actionItem.type === "update_fulfillment"
+          ? { quantity: Number(editQty), sale_unit_price: Number(editPrice) }
+          : undefined
       });
       
       if (!res.success) {
@@ -155,6 +167,8 @@ export function OrderDetailsDrawer({
       }
       setActionItem(null);
       setReason("");
+      setEditQty("");
+      setEditPrice("");
       mutate();
     } catch (err: any) {
       toast.error(err.message || "Đã có lỗi xảy ra");
@@ -313,11 +327,15 @@ export function OrderDetailsDrawer({
                             <Printer className="w-3.5 h-3.5" />
                           </Button>
                         )}
-                        <Button 
-                          unstyled 
-                          onClick={() => toast.info('Tính năng chỉnh sửa phát sinh đang được hoàn thiện, vui lòng xoá tạo lại nếu cần')}
+                        <Button
+                          unstyled
+                          onClick={() => {
+                            setEditQty(String(f.quantity ?? ""));
+                            setEditPrice(String(f.sale_unit_price ?? f.unit_cost ?? ""));
+                            setActionItem({ id: f.id, type: "update_fulfillment" });
+                          }}
                           className="text-text-muted hover:text-interactive p-1.5 bg-bg-base/50 hover:bg-interactive-light/50 rounded-md border border-border/50 hover:border-interactive/50 transition-all"
-                          title="Chỉnh sửa"
+                          title={userRole === "admin" || userRole === "manager" ? "Chỉnh sửa" : "Yêu cầu chỉnh sửa"}
                         >
                           <Edit2 className="size-3.5" />
                         </Button>
@@ -456,18 +474,45 @@ export function OrderDetailsDrawer({
       {/* Action Modal (Delete/Edit) */}
       <UnifiedModal 
         isOpen={!!actionItem} 
-        onClose={() => setActionItem(null)}
+        onClose={() => { setActionItem(null); setEditQty(""); setEditPrice(""); }}
         title={actionItem?.type === "delete_fulfillment" 
           ? (userRole === "admin" || userRole === "manager" ? "Xác nhận xoá phát sinh" : "Yêu cầu xoá phát sinh")
           : "Cập nhật phát sinh"}
       >
         <div className="space-y-4">
           <p className="text-body-sm text-text-secondary">
-            {userRole === "admin" || userRole === "manager" 
+            {userRole === "admin" || userRole === "manager"
               ? "Bạn có chắc chắn muốn thực hiện hành động này? Hệ thống sẽ tự động điều chỉnh lại số lượng tồn kho và công nợ."
               : "Vui lòng nhập lý do để Quản lý phê duyệt yêu cầu của bạn."}
           </p>
-          
+
+          {actionItem?.type === "update_fulfillment" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-body-sm font-medium text-text-primary">Số lượng</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={editQty}
+                  onChange={(e) => setEditQty(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-body-sm font-medium text-text-primary">Đơn giá</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
           {userRole !== "admin" && userRole !== "manager" && (
             <div className="space-y-2">
               <label className="text-body-sm font-medium text-text-primary">Lý do (Bắt buộc)</label>
@@ -482,7 +527,7 @@ export function OrderDetailsDrawer({
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setActionItem(null)} disabled={isSubmittingAction}>Hủy</Button>
             <Button 
-              variant={userRole === "admin" || userRole === "manager" ? "danger" : "interactive"} 
+              variant={actionItem?.type === "delete_fulfillment" && (userRole === "admin" || userRole === "manager") ? "danger" : "interactive"} 
               onClick={handleActionConfirm} 
               disabled={isSubmittingAction || (userRole !== "admin" && userRole !== "manager" && !reason.trim())}
             >
