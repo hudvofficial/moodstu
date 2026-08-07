@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 144 hàm
+# Danh mục RPC — 143 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -100,7 +100,6 @@ cap-nhat: 2026-08-07
 | Hàm | Tham số | Trả về | SECURITY DEFINER |
 |---|---|---|---|
 | `get_gallery_data_v2` | p_gallery_id uuid, p_limit integer, p_offset integer | jsonb |  |
-| `get_gallery_data_v2` | p_gallery_id uuid | jsonb |  |
 | `get_gallery_data_v3` | p_gallery_id uuid, p_limit integer, p_offset integer | jsonb |  |
 | `prepare_gallery_share` | p_gallery_id uuid, p_user_id uuid | jsonb | ⚠️ có |
 | `set_gallery_password` | p_gallery_id uuid, p_password text | jsonb | ⚠️ có |

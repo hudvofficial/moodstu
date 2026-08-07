@@ -79,6 +79,8 @@ Từng viết vào spec rằng phân trang offset "có thể lệch nếu có ng
 
 **Luật:** trước khi ghi một rủi ro concurrency vào spec, **grep xem ai thật sự ghi được vào bảng đó** ([[bang-doc-ghi]]). Không có tác nhân thứ hai → **xoá hẳn ghi chú**, đừng để lại dạng "khả năng thấp". Rủi ro tưởng tượng đẩy giải pháp nặng hơn mức cần.
 
+**Đã tốn tiền thật một lần:** commit `f1b96d6` (29/05) xây nguyên Phase 3 "cursor-based pagination" cho gallery với lý do ghi trong code — *"Prevents data shift when images are uploaded during browsing"*. Vấn đề đó **không tồn tại** vì chỉ admin upload được. Kết cục: 197 dòng SQL + 90 dòng action, migration chưa từng apply, action không ai import, tồn tại 70 ngày rồi bị xoá ngày 2026-08-07 mà không mất gì.
+
 ## 14. Seed E2E rò vào production
 
 Test E2E chạy trên DB chung; dọn dẹp chỉ ở `afterAll` → fail một lần là nhân sự "E2E" active lọt vào mọi picker thật.

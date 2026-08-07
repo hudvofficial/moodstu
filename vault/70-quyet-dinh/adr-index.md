@@ -24,6 +24,7 @@ Note này là mục lục + tóm tắt điều **phải nhớ**.
 | 010 | 17/07 | Moodie: **HOÃN** contradiction detection | Lúc quyết định chỉ có 1 memory active toàn hệ thống. Mở lại khi **đo được** near-duplicate. Ưu tiên fix rẻ (vocabulary đóng cho predicate) trước khi thêm LLM call |
 | **011** | 21/07 | **Cổng tải ảnh gốc = UX-gate, không phải security-gate** | Chấp nhận lộ ảnh gốc qua URL `lh3` (`=s0`). **Đừng vá bằng cách giấu `drive_file_id`** — fileId nằm sẵn trong URL. Đóng kín thật chỉ mở lại nếu thu tiền tải ảnh thành nguồn thu chính |
 | 012 | 21/07 | Gallery public: tối ưu LCP mobile theo số đo | Trong phạm vi ADR-005 (có số đo mới sửa). Nguyên tắc: thumbnail **một cỡ cố định** |
+| **013** | 07/08 | **Gắn generic `Database` cho Supabase client — từng module, KHÔNG một lượt** · *Proposed, chờ duyệt* | Đo được: gắn một lượt = **232 lỗi / 68 file**, trong đó **57 lỗi là đọc cột không tồn tại**. Đã bắt được bug thật ngay lần đo đầu (`export-actions.ts` 4/5 export trả HTTP 400). Thứ tự: finance → contracts → inventory/printing → gallery → còn lại. Khai `SupabaseClient<Database>` tại **từng action file**, chỉ đổi `auth_utils.ts` ở bước cuối |
 
 ## ADR-nhỏ kèm ADR-008 (CSS)
 

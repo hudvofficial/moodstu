@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Server action → bảng/RPC
 
-91 file. Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
+89 file. Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
 
 | File | Bảng | RPC |
 |---|---|---|
@@ -36,7 +36,6 @@ cap-nhat: 2026-08-07
 | `employee-mutations.ts` | `employees` | `next_employee_code` |
 | `employee-queries.ts` | `employees` | `employee_stats` `next_employee_code` |
 | `expense-actions.ts` | `expenses` `fixed_costs` `transaction_categories` |  |
-| `export-actions.ts` | `contracts` `expenses` `receipts` `employees` `customers` | `finance_receipt_documents` |
 | `finance-cashflow-timeline.ts` |  | `finance_cashflow_timeline` |
 | `finance-category-actions.ts` | `transaction_categories` `receipts` `expenses` |  |
 | `finance-close-actions.ts` | `payments` `receipts` `expenses` `monthly_salaries` `fixed_costs` `finance_monthly_closes` `finance_close_tasks` `employees` | `advance_close_task` |
@@ -50,7 +49,6 @@ cap-nhat: 2026-08-07
 | `gallery-album-actions.ts` | `gallery_albums` `gallery_images` |  |
 | `gallery-composite-actions.ts` | `gallery_reactions` `gallery_comments` `gallery_albums` `gallery_images` |  |
 | `gallery-core.ts` | `gallery_share_links` `galleries` `gallery_images` | `prepare_gallery_share` |
-| `gallery-cursor-actions.ts` |  | `get_gallery_data_cursor` |
 | `gallery-dimensions-actions.ts` | `galleries` |  |
 | `gallery-drive-actions.ts` | `galleries` `gallery_images` `contract_events` `contracts` `studio_info` `gallery_reactions` `gallery_filter_jobs` |  |
 | `gallery-image-helpers.ts` | `gallery_images` `gallery_reactions` |  |

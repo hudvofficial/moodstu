@@ -26,14 +26,21 @@ node scripts/vault-gen-schema.mjs   # sinh lại note lược đồ trong vault
 
 ⚠️ Script `db:types` sinh ra file `.tmp` rồi mới đổi tên. Đừng rút gọn thành `> types/database.types.ts` — shell cắt rỗng file **trước khi** lệnh chạy, nên lệnh lỗi là mất luôn file. Đã dẫm.
 
-### Hai chỗ types vẫn KHÔNG phủ được
+### Một chỗ types vẫn KHÔNG phủ được
 
-**1. `get_gallery_data_v2` — hàm overload nên bị bỏ qua.**
-DB có 2 bản: `get_gallery_data_v2(p_gallery_id uuid)` và `get_gallery_data_v2(p_gallery_id uuid, p_limit int, p_offset int)`. Supabase CLI bỏ qua hàm overload → types có `v3` nhưng không có `v2`.
-`app/actions/gallery-composite-actions.ts:42` dùng `v2` làm fallback khi tắt `NEXT_PUBLIC_RPC_V3` — vẫn chạy được vì file đó dùng client không gắn generic. Muốn phủ thì phải drop overload 1 tham số.
-
-**2. Trigger function không bao giờ có trong types.**
+**Trigger function không bao giờ có trong types.**
 14 hàm trả `trigger`/`event_trigger` (`emit_realtime_signal`, `handle_new_user`, `log_audit_action`, `trg_*`, `update_updated_at_column`…) — PostgREST không phơi ra, nên **vắng mặt là đúng**, không phải lệch. Tra chúng ở [[rpc-va-enum]].
+
+### ⚠️ Hàm overload làm CLI bỏ qua cả hàm
+
+`supabase gen types` **bỏ qua hoàn toàn** hàm có nhiều overload — không sinh bản nào cả, cũng không cảnh báo.
+
+Đã dẫm với `get_gallery_data_v2`: migration `20260529000001` dùng `CREATE OR REPLACE` nhưng đổi chữ ký (thêm `p_limit`, `p_offset`) → Postgres tạo **hàm mới**, bản 1 tham số vẫn sống. Hậu quả nặng hơn chuyện types: bản 3 tham số có `DEFAULT` nên lời gọi 1 tham số khớp cả hai → PostgREST trả **HTTP 300 `PGRST203`**. Đã gỡ bằng `20260807000000`.
+
+**Quy tắc:** đổi chữ ký một hàm thì phải `DROP FUNCTION` bản cũ, `CREATE OR REPLACE` **không** thay được hàm khác chữ ký. Kiểm nhanh hàm trùng tên:
+```bash
+node scripts/db-q.mjs "SELECT proname, count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace AND n.nspname='public' GROUP BY 1 HAVING count(*)>1"
+```
 
 ### Type chỉ bảo vệ được một phần app
 

@@ -260,3 +260,30 @@ done:
       Phát hiện phụ chưa xử lý: app/actions/gallery-cursor-actions.ts:52 gọi RPC `get_gallery_data_cursor`
       KHÔNG tồn tại trong DB; file không được import ở đâu nên chưa nổ (dead code — nêu, không xoá).
       Type chỉ bảo vệ nhánh Moodie + vài file lib/ vì phần lớn action dùng client không gắn generic.
+
+  - id: T-20260807-cleanup-3-ton-dong
+    title: "Dọn 3 tồn đọng sau khi sinh lại types: overload v2, cursor pagination chết, export-actions hỏng"
+    status: done
+    owner: claude
+    locks: ["supabase/migrations/20260807000000_*.sql", "supabase/migrations/20260529000002_*.sql", "app/actions/gallery-cursor-actions.ts", "app/actions/export-actions.ts", "types/database.types.ts", "agent/DECISIONS.md", "vault/**"]
+    spec: agent/HANDOFFS/T-20260807-trace-3-ton-dong.spec.md
+    result: >
+      (1) DROP get_gallery_data_v2(uuid) qua migration 20260807000000. Overload sinh ra vì
+      20260529000001 dùng CREATE OR REPLACE nhưng đổi chữ ký. Đo trước: gọi 1 tham số → HTTP 300
+      PGRST203. Đo sau: gọi 1 tham số → HTTP 200 (rơi vào bản 3 tham số dùng DEFAULT 200/0),
+      gọi 3 tham số vẫn 200. db:types sinh lại: 130→131 RPC, get_gallery_data_v2 đã vào types.
+      (2) Xoá app/actions/gallery-cursor-actions.ts + migration 20260529000002 (chưa từng apply —
+      kiểm cả function lẫn index idx_gallery_images_cursor đều vắng). Lý do nghiệp vụ: cursor
+      pagination chống "data shift khi có người upload lúc khách cuộn", mà chỉ admin upload được.
+      (3) Xoá app/actions/export-actions.ts: 0 nơi import, 4/5 nhánh select cột không tồn tại
+      (contracts.customer_name, expenses.category_name, employees.base_salary, customers.customer_name
+      → HTTP 400 42703, đã verify bằng request PostgREST thật). /reports đã có export Excel chạy
+      được (components/reports/reports-export.ts) nên không mất chức năng.
+      (4) ADR-013 Proposed: gắn generic Database từng module, không một lượt (đo được 232 lỗi/68 file).
+      Verify: tsc 0 lỗi · eslint 0 · build pass · 0 wikilink gãy · 0 hàm overload còn lại trong DB.
+    notes: >
+      Xoá file vượt luật CLAUDE.md §3 "dead code thì nêu, đừng xoá" — user duyệt tường minh.
+      Hoàn tác được bằng git revert; migration 20260529000002 nằm trong lịch sử git nếu cần dựng lại.
+      Bài học đã ghi vault: CREATE OR REPLACE không thay được hàm khác chữ ký (bay-trien-khai.md);
+      migration ship kèm code nhưng không apply — kiểm bằng pg_proc/pg_indexes chứ đừng tin thư mục
+      migrations (bay-trien-khai.md); xây hạ tầng cho rủi ro concurrency không tồn tại (bay-du-lieu.md).

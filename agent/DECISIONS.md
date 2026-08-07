@@ -89,3 +89,21 @@
 - **Quyết định:** sửa đúng 3 điểm trên trong module gallery grid (shared admin+public → verify cả 2), theo plan `plans/260721-gallery-mobile-lcp/PLAN.md`. Học albumse: thumbnail dùng MỘT cỡ cố định (họ dùng w601 cho mọi ảnh) → src ổn định tuyệt đối giữa SSR/client.
 - **Không làm:** /dashboard TTFB 5.69s (admin-only, task riêng khi cần); desktop TTFB tổng (số gộp nhiễu giai đoạn bug).
 - **Success criteria:** trace lab cùng điều kiện: LCP < 2.5s + LCPDiscovery 3/3 PASS; render OK @390/@768/@1280 cả public lẫn admin gallery; Speed Insights mobile LCP xanh sau vài ngày.
+
+## ADR-013 — Gắn generic `Database` cho Supabase client: làm từng module, KHÔNG làm một lượt
+- **Ngày:** 2026-08-07 · **Trạng thái:** **Proposed — chờ user duyệt** (chỉ hướng đi; chưa cho phép Codex/Claude bắt đầu sửa)
+- **Bối cảnh:** `types/database.types.ts` vừa được sinh lại khớp DB (T-20260807-regen-database-types). Nhưng type **không bảo vệ phần lớn app**: `createAdminClient()` (`lib/supabase/server.ts:37`) gọi `createServerClient(...)` không generic, và `lib/auth_utils.ts` khai tham số là `SupabaseClient` trần → `SupabaseClient<any>`. Chỉ nhánh Moodie + 4 file `lib/` (`studio-info`, `system-settings`, `settings-studio-admin`, `productivity-transforms`) tự khai `SupabaseClient<Database>`.
+- **Đo (thí nghiệm đã hoàn tác, working tree sạch):** gắn `createServerClient<Database>` + đổi `SupabaseClient` → `SupabaseClient<Database>` trong `auth_utils.ts` rồi `npx tsc --noEmit`:
+  - baseline **0 lỗi** → sau khi gắn **232 lỗi / 68 file**
+  - phân bố: TS2322 93 (chủ yếu `null` vs `undefined`) · **TS2339 57 (truy cập cột KHÔNG tồn tại)** · TS2345 51 · TS18047 11 · khác 20
+  - nặng nhất: `export-actions.ts` 43 · `inventory-mutations.ts` 17 · `salary-actions.ts` 10 · `finance-operations-queries.ts` 8 · `work-task-actions.ts` 7 · `printing-workflow-mutations.ts` 7 · `gallery-admin-actions.ts` 7
+- **Bằng chứng việc này có giá trị thật, không phải dọn dẹp thẩm mỹ:** 57 lỗi TS2339 dẫn thẳng tới một bug đã xác minh bằng request PostgREST thật — `app/actions/export-actions.ts` select cột không tồn tại ở **4/5** nhánh (`contracts.customer_name`, `expenses.category_name`, `employees.base_salary`, `customers.customer_name` → HTTP 400 `42703`). Code đó `if (error) throw error` nên hỏng hoàn toàn, không phải suy giảm âm thầm. Không ai kêu vì `exportToCSV` không được gọi ở đâu (đã xoá trong T-20260807-cleanup-3-ton-dong — `/reports` có bản export Excel khác đang chạy).
+- **Quyết định (đề xuất):**
+  1. **KHÔNG** gắn generic một lượt ở `lib/auth_utils.ts`. 232 lỗi trong một PR là công thức bỏ sót — nhất là 57 lỗi TS2339, mỗi cái phải điều tra riêng vì có thể là một `export-actions` khác.
+  2. Đi **từng module một**, mỗi module một task, thứ tự theo mức rủi ro dữ liệu: **finance → contracts → inventory/printing → gallery → phần còn lại**.
+  3. Cách gắn: khai `SupabaseClient<Database>` **tại từng action file** (tham số của callback `withAuth`), KHÔNG đổi chữ ký `auth_utils.ts` cho tới khi module cuối cùng xong. Như vậy mỗi task tự cô lập, `tsc` luôn xanh giữa các task.
+  4. Bước cuối (sau khi mọi module xanh): đổi `createServerClient` → `createServerClient<Database>` + `SupabaseClient` → `SupabaseClient<Database>` trong `auth_utils.ts`, để không ai lùi lại được.
+  5. Mỗi task **phải phân loại lỗi trước khi sửa**: `null↔undefined` = cơ học; **TS2339 = dừng lại, query DB xác minh cột, coi như bug tiềm ẩn** cho tới khi chứng minh ngược lại.
+- **Vì sao không hoãn hẳn:** khác với các đề xuất "dọn dẹp" thông thường, cái này **đã bắt được bug thật ngay trong lần đo đầu tiên**. Không phải suy đoán theo tinh thần ADR-005 — có bằng chứng đo được.
+- **Vì sao không làm ngay toàn bộ:** vi phạm "1 task / 1 module" (CLAUDE.md) và không có cổng tự động nào chặn nữa (ADR-007) → PR 68 file là rủi ro thật.
+- **Chưa quyết:** có gắn generic cho `createClient()` (client vai người dùng, dùng ở SSR/browser) hay chỉ `createAdminClient()`. Quyết khi làm tới module đầu tiên.

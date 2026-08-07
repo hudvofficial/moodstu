@@ -71,7 +71,7 @@ Chi tiết + xu hướng: [[so-lieu-van-hanh]]
 - [[bay-du-lieu]] — cache, optimistic, phân trang, cột lệch
 - [[bay-ui-react]] — React Compiler, hooks, layout, ảnh
 - [[bay-trien-khai]] — lockfile, migration, dev server, verify
-- [[adr-index]] — 12 ADR đã chốt
+- [[adr-index]] — 12 ADR đã chốt + ADR-013 đang chờ duyệt
 
 ## Vận hành
 

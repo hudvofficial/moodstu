@@ -6540,12 +6540,10 @@ export type Database = {
         Returns: Json
       }
       get_finance_intelligence: { Args: never; Returns: Json }
-      get_gallery_data_v2:
-        | { Args: { p_gallery_id: string }; Returns: Json }
-        | {
-            Args: { p_gallery_id: string; p_limit?: number; p_offset?: number }
-            Returns: Json
-          }
+      get_gallery_data_v2: {
+        Args: { p_gallery_id: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       get_gallery_data_v3: {
         Args: { p_gallery_id: string; p_limit?: number; p_offset?: number }
         Returns: Json

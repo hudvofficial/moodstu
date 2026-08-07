@@ -36,6 +36,22 @@ Dev server còn khoá theo thư mục project → phải dừng dev trước khi
 Không truyền tham số thì nó chạy **file phase1 hardcode cũ**. Phải truyền tên file.
 Thông báo `Created: order_payments...` là **text thừa in cứng**, không phải kết quả thật → verify bằng `pg_indexes` / query thật.
 
+## Migration ship kèm code nhưng KHÔNG được apply
+
+Commit `f1b96d6` ship 2 migration cùng lúc: `20260529000001` đã apply, `20260529000002` **chưa từng chạy** (kiểm cả function lẫn index đều vắng). Consumer của migration thứ hai vẫn được merge → code gọi RPC không tồn tại, nằm im 70 ngày vì tình cờ không ai import.
+
+**Kiểm nhanh một migration đã apply chưa** — đừng tin thư mục `migrations/`, hỏi DB:
+```bash
+node scripts/db-q.mjs "SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace AND n.nspname='public' WHERE proname='<ten_ham>'"
+node scripts/db-q.mjs "SELECT indexname FROM pg_indexes WHERE schemaname='public' AND indexname='<ten_index>'"
+```
+
+## `CREATE OR REPLACE` không thay được hàm khác chữ ký
+
+Đổi tham số của một hàm rồi `CREATE OR REPLACE` → Postgres tạo **hàm mới**, bản cũ vẫn sống thành overload ngoài ý muốn. Nếu bản mới có tham số `DEFAULT`, lời gọi thiếu tham số khớp cả hai → PostgREST trả **HTTP 300 `PGRST203`**. Và `supabase gen types` **bỏ qua luôn** hàm bị overload.
+
+Đổi chữ ký thì phải `DROP FUNCTION` bản cũ. Rà hàm trùng tên: xem [[canh-bao-schema]].
+
 ## Migration RPC thay thế phải deep-compare
 
 `get_contract_detail_v3` từng **tái sinh đúng bug `labs.name`** mà v2 đã fix — vì viết sau nhưng không kế thừa fix.

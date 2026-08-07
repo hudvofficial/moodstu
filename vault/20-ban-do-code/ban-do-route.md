@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Bản đồ route → action → bảng
 
-60 trang · 25 API route · 91 file server action
+60 trang · 25 API route · 89 file server action
 
 > Cột **Bảng/RPC** là *tất cả* bảng chạm được qua đồ thị import (kể cả gián tiếp qua component con), nên rộng hơn cái route thật sự dùng. Dùng để **khoanh vùng ảnh hưởng**, không phải để kết luận "route này chỉ đọc bảng X".
 
