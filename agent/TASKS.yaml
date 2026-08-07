@@ -219,3 +219,20 @@ done:
     spec: agent/HANDOFFS/T-20260716-gallery-notes-to-comments.spec.md
     result: "Codex impl (3 vòng: chặn spec thiếu lock → review bắt 3 lỗi R1-R3 → fix) → Claude tự chạy migration 20260716000000 (backfill 148 note) + verify prod: 126 Bình luận (từ 0) + filter 126 ảnh + 31 chip + preview 'In lớn'. client_note giữ nguyên 148 dòng làm backup."
     notes: "Bug prod: 148 ghi chú in ấn của khách (HĐ-2026-0028: 126) vô hình với xưởng — admin đếm/lọc theo gallery_comments (0 dòng) còn khách ghi vào client_note. 4 action comment cũ HỞ BẢO MẬT (admin client, không gate) → task này siết: ghi = capability 'select' (mật khẩu), đọc = 'view'. User chốt: có hỏi tên (nhớ localStorage) + mỗi người 1 ghi chú/ảnh sửa được của mình. CÒN TỒN (audit 16/07): getComments public vẫn lộ client_identifier → khách sửa được note khách khác (P2); rate-limit verifyGalleryPassword (P1)."
+
+  - id: T-20260807-vault-obsidian
+    title: "Dựng vault/ — bộ nhớ thứ 2 cho toàn hệ thống (Obsidian, đọc được cả bằng agent)"
+    status: done
+    owner: claude
+    locks: ["vault/**", "scripts/vault-gen-*.mjs", "docs/ARCHITECTURE.md", "docs/CODEBASE_MAP.md", "agent/ARCHITECTURE.md", "agent/PROJECT_BRIEF.md", "CLAUDE.md"]
+    result: >
+      47 note. 25 note viết tay (nền tảng 7 · module 12 · luồng 3 · bẫy 3 · ADR index · vận hành 2 · cảnh báo schema)
+      + 16 note sinh tự động (12 lược đồ DB theo module + rpc-va-enum + 3 bản đồ code).
+      2 script sinh lại: scripts/vault-gen-schema.mjs (introspect DB thật qua pooler),
+      scripts/vault-gen-codemap.mjs (đi theo import graph). 0 wikilink gãy.
+    notes: >
+      Nguồn: quét DB production thật (98 bảng, 144 hàm, RLS, FK, trigger, index) + import graph 992 file
+      + gạn LESSONS.md A1-A18 + 12 ADR + memory Claude. Phát hiện kèm: types/database.types.ts thiếu 16 bảng
+      và 30 hàm so với DB (ghi ở vault/30-du-lieu/canh-bao-schema.md).
+      Số liệu vận hành thật: 54 hợp đồng (~14-19/tháng), 76 gallery / 17.704 ảnh (max 780), 2 tài khoản đăng nhập.
+      docs/ARCHITECTURE.md + docs/CODEBASE_MAP.md đã gắn banner LỖI THỜI trỏ sang vault (giữ để tra lịch sử).

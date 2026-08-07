@@ -1,6 +1,12 @@
 # CLAUDE.md — mood-studio
 
 Nguyên tắc hành vi + ràng buộc dự án. **Đọc trước khi code.**
+
+> 📚 **Hệ thống mood-studio được mô tả đầy đủ trong [`vault/`](vault/README.md) — nguồn chân lý về kiến trúc & nghiệp vụ.**
+> Vào việc lạ → mở [`vault/00-INDEX.md`](vault/00-INDEX.md) trước. Sửa module X → đọc `vault/40-module/X.md` + `vault/30-du-lieu/luoc-do-X.md`.
+> Cần biết ai ghi vào bảng nào → [`vault/20-ban-do-code/bang-doc-ghi.md`](vault/20-ban-do-code/bang-doc-ghi.md).
+> Trước khi viết spec → [`vault/60-bay/`](vault/60-bay/). Tài liệu trong `docs/` đã cũ hơn vault; mâu thuẫn thì tin vault.
+> Vault sinh lại được: `node scripts/vault-gen-schema.mjs` + `node scripts/vault-gen-codemap.mjs`.
 Nguồn 4 nguyên tắc: Karpathy-inspired guidelines (MIT) — github.com/multica-ai/andrej-karpathy-skills.
 **Tradeoff:** thiên về *cẩn trọng hơn tốc độ* cho việc non-trivial. Typo/one-liner hiển nhiên → dùng judgment.
 

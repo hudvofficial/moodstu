@@ -1,6 +1,9 @@
 # PROJECT_BRIEF.md — mood-studio
 
 > Bản mô tả ổn định. Đổi hiếm. Ai cũng đọc để có bối cảnh chung.
+>
+> 📚 **Mô tả đầy đủ hệ thống nằm ở [`vault/`](../vault/README.md)** ([`00-INDEX`](../vault/00-INDEX.md)). File này chỉ là tóm tắt 1 trang.
+> Số liệu quy mô thật (bao nhiêu hợp đồng/tháng, bảng nào lớn): [`vault/80-van-hanh/so-lieu-van-hanh.md`](../vault/80-van-hanh/so-lieu-van-hanh.md).
 
 ## Là gì
 Phần mềm quản trị **studio chụp ảnh/cưới** (SaaS nội bộ): hợp đồng, tài chính,

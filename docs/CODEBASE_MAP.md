@@ -1,5 +1,14 @@
 # Mood Studio Codebase Map
 
+> ## ⚠️ LỖI THỜI — giữ để tra lịch sử
+>
+> **Thay bằng bản đồ sinh tự động:** [`vault/20-ban-do-code/`](../vault/20-ban-do-code/) —
+> [`ban-do-route.md`](../vault/20-ban-do-code/ban-do-route.md) (route → action → bảng) ·
+> [`ban-do-server-action.md`](../vault/20-ban-do-code/ban-do-server-action.md) ·
+> [`bang-doc-ghi.md`](../vault/20-ban-do-code/bang-doc-ghi.md) (bảng → ai đọc/ghi).
+>
+> Bản đồ trong vault đi theo import graph thật và sinh lại được bằng `node scripts/vault-gen-codemap.mjs`. File này viết tay, đã cũ. Mâu thuẫn → **tin vault**.
+
 Tài liệu này tổng hợp kết quả Batch 1 và Batch 2 thành một bản đồ mã nguồn ngắn gọn, dễ quét, ưu tiên theo module và trách nhiệm.
 
 ## 1. Infrastructure

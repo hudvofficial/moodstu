@@ -3,6 +3,9 @@
 > Đây là những thứ **CẤM đổi khi chưa có entry trong `DECISIONS.md` + user duyệt**.
 > Codex/Roo gặp chỗ buộc phải đổi một trong các mục dưới → **DỪNG**, viết HANDOFF trả Claude.
 > `CLAUDE.md → "Ràng buộc dự án (cứng)"` là canonical; file này là bản đồ + đánh dấu mục nào cần DECISION.
+>
+> 📚 **Chi tiết hệ thống đã chuyển sang [`vault/`](../vault/README.md)** — bắt đầu ở [`vault/00-INDEX.md`](../vault/00-INDEX.md).
+> File này giữ nguyên vai trò: **danh sách bất biến cần DECISION**. Vault mô tả *hệ thống là gì*; file này quy định *cái gì cấm đổi*.
 
 ## Bản đồ module & thư viện data (không đồng nhất — đừng generalize)
 

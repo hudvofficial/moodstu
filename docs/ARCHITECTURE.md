@@ -1,5 +1,12 @@
 # Mood Studio — System Architecture
 
+> ## ⚠️ LỖI THỜI — giữ để tra lịch sử
+>
+> **Nguồn chân lý mới: [`vault/`](../vault/README.md)** — cụ thể [`vault/10-nen-tang/kien-truc-tong-quan.md`](../vault/10-nen-tang/kien-truc-tong-quan.md) và [`vault/00-INDEX.md`](../vault/00-INDEX.md).
+>
+> File này chụp ảnh hệ thống ngày 2026-07-04 và **không còn được cập nhật**. Vault được sinh lại từ DB + import graph thật (`node scripts/vault-gen-schema.mjs`, `node scripts/vault-gen-codemap.mjs`).
+> Nếu file này mâu thuẫn với vault → **tin vault**.
+
 > Generated: 2026-07-04 · Codex consult (344k tokens) · Source of truth: live codebase scan
 
 ---
