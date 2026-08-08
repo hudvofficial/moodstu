@@ -1,6 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   getAuthenticatedUserContext,
   withAdmin,
@@ -16,6 +18,7 @@ import {
 } from "@/lib/system-settings";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
   type NotificationPreferences,
   type SettingsPageData,
   type StudioInfo,
@@ -40,7 +43,7 @@ async function getOrCreateNotificationPreferences(
   }
 
   if (data) {
-    return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...data };
+    return mergeNotificationPreferences(data);
   }
 
   const { data: created, error: createError } = await supabase
@@ -66,7 +69,7 @@ async function getOrCreateNotificationPreferences(
     );
   }
 
-  return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...created };
+  return mergeNotificationPreferences(created);
 }
 
 async function getInitialAuthUsers(
@@ -166,7 +169,7 @@ export async function getMoodieGeminiModelOptions(
 }
 
 export async function getStudioInfo() {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     const data = await getOrCreateStudioInfo(supabase);
     return {
       ...(data as StudioInfo),

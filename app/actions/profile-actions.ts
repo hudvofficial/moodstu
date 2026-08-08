@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import { withAuth, withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
 import {
@@ -10,7 +12,7 @@ import {
 import { normalizeEmployeeRole } from "@/types/roles";
 
 export async function initializeProfile() {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: existing, error: existingError } = await supabase
       .from("employees")
       .select("id")
@@ -121,7 +123,7 @@ export async function updateProfile(rawData: {
   phone?: string;
   gender?: string;
 }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = profileSchema.safeParse(rawData);
     if (!parsed.success) {
       const firstError =
@@ -131,9 +133,9 @@ export async function updateProfile(rawData: {
 
     const { full_name, phone, gender } = parsed.data;
 
-    const updateData: Record<string, string | null> = { full_name };
+    const updateData: Database["public"]["Tables"]["employees"]["Update"] = { full_name };
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
-    if (gender !== undefined) updateData.gender = gender?.trim() || null;
+    if (gender !== undefined) updateData.gender = (gender?.trim() || null) as Database["public"]["Enums"]["gender_enum"] | null;
 
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
@@ -171,7 +173,7 @@ export async function updateProfile(rawData: {
 }
 
 export async function uploadAvatar(formData: FormData) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const file = formData.get("avatar") as File;
     if (!file || file.size === 0) throw new Error("Chưa chọn ảnh");
     if (file.size > 2 * 1024 * 1024) {
@@ -246,7 +248,7 @@ export async function updateAdminProfileFields(rawData: {
 
     const { employee_id, department, position } = parsed.data;
 
-    const updateData: Record<string, string | null> = {};
+    const updateData: Database["public"]["Tables"]["employees"]["Update"] = {};
     if (department !== undefined) updateData.department = department?.trim() || null;
     if (position !== undefined) updateData.position = position?.trim() || null;
 

@@ -1,5 +1,7 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   requireContractAccess,
   requireContractWriteAccess,
@@ -87,7 +89,7 @@ async function assertTaskBelongsToEvent(
 // ═══════════════════════════════════════════
 
 export async function getTasksByEvent(eventId: string) {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const { data, error } = await supabase
@@ -182,7 +184,7 @@ export async function _generateWorkTasksInternal(
 }
 
 export async function generateWorkTasksForContract(contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const result = await _generateWorkTasksInternal(supabase, contractId, userId);
     invalidateContractPaths(contractId, { detail: true, productivity: true });
@@ -195,7 +197,7 @@ export async function addTask(input: {
   assignedTo?: string; vendorId?: string; deadline?: string; startDate?: string;
   startTime?: string; endTime?: string; cost?: number; notes?: string;
 }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     if (!input.eventId) throw new Error("Thiếu event ID");
@@ -266,7 +268,7 @@ export async function addTask(input: {
 }
 
 export async function deleteTask(taskId: string, eventId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     if (!taskId) throw new Error("Thiếu task ID");
@@ -275,23 +277,23 @@ export async function deleteTask(taskId: string, eventId: string) {
       .from("work_tasks")
       .delete()
       .eq("id", taskId)
-      .eq("event_id", task.event_id);
+      .eq("event_id", task.event_id as string);
     if (error) throw new Error(`Lỗi xóa task: ${error.message}`);
 
     fireAuditLog({ action: "DELETE", tableName: "work_tasks", recordId: taskId, description: `Xóa task #${taskId.substring(0, 8)}`, severity: "WARNING" });
 
-    await checkAndCompleteEvent(supabase, task.event_id);
+    await checkAndCompleteEvent(supabase, task.event_id as string);
     invalidateContractPaths(task.contract_id, { detail: true, productivity: true });
     return null;
   });
 }
 
 export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, eventId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
     const task = await assertTaskBelongsToEvent(supabase, taskId, eventId);
 
-    const updates: Record<string, string | null> = { status: newStatus };
+    const updates: Database["public"]["Tables"]["work_tasks"]["Update"] = { status: newStatus };
     if (newStatus === "hoan_thanh") updates.completion_date = new Date().toISOString();
     else updates.completion_date = null;
 
@@ -299,8 +301,8 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
       .from("work_tasks")
       .update(updates)
       .eq("id", taskId)
-      .eq("event_id", task.event_id)
-      .eq("contract_id", task.contract_id);
+      .eq("event_id", task.event_id as string)
+      .eq("contract_id", task.contract_id as string);
     if (error) throw new Error(`Lỗi cập nhật status: ${error.message}`);
 
     // Auto-create/update vendor expense if task is assigned to vendor
@@ -332,14 +334,14 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
     }
 
     fireAuditLog({ action: "UPDATE", tableName: "work_tasks", recordId: taskId, description: `Task status → ${newStatus}` });
-    await checkAndCompleteEvent(supabase, task.event_id);
+    await checkAndCompleteEvent(supabase, task.event_id as string);
     invalidateContractPaths(task.contract_id, { detail: true, productivity: true });
     return null;
   });
 }
 
 export async function copyTasksFromPreviousEvent(currentEventId: string, contractId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractWriteAccess(supabase, userId);
 
     // 1. Get current event to know its sort_order
@@ -366,8 +368,8 @@ export async function copyTasksFromPreviousEvent(currentEventId: string, contrac
       throw new Error("Không có sự kiện nào trước đó để copy");
     }
 
-    let sourceEventId = null;
-    let sourceTasks = [];
+    let sourceEventId: string | null = null;
+    let sourceTasks: Database["public"]["Tables"]["work_tasks"]["Row"][] = [];
 
     // Check recent previous events for tasks
     for (const prev of previousEvents) {

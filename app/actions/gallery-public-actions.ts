@@ -423,7 +423,7 @@ export async function getPublicGalleryWithAccess(
 }
 
 export async function getGalleryShareDetails(galleryId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const profiler = createGalleryShareProfiler("getGalleryShareDetails");
     await requireContractAccess(supabase, userId);
     profiler.mark("auth");
@@ -448,7 +448,8 @@ export async function getGalleryShareDetails(galleryId: string) {
 
     return {
       galleryId: gallery.id,
-      status: gallery.status,
+      // galleries.status nullable (default draft) — coerce tại ranh giới
+      status: gallery.status ?? "draft",
       title: gallery.title,
       accessUrl: gallery.access_url,
       hasPassword: !!(gallery.password_hash || gallery.password),

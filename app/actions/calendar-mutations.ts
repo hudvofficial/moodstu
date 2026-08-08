@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { withAuth } from "@/lib/auth_utils";
 import {
@@ -138,7 +139,7 @@ export async function updateDragDropDate(
   newDateIso: string,
   oldDateIso?: string,
 ): Promise<ActionResult<boolean>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = z.object({
       eventId: z.string().trim().min(1, "Thiếu ID sự kiện"),
       source: z.enum(["schedule", "task", "google"], { error: "Nguồn sự kiện không hợp lệ" }),
@@ -154,7 +155,7 @@ export async function updateDragDropDate(
 
     if (parsed.source === "schedule") {
       const oldRecord = await requireCalendarScheduleEditable(supabase, access, parsed.eventId);
-      const updates: Record<string, string> = { event_date: parsed.newDateIso };
+      const updates: Database["public"]["Tables"]["schedules"]["Update"] = { event_date: parsed.newDateIso };
       const shiftedEndDate = shiftEndDateByStoredDuration(
         oldRecord.event_date,
         oldRecord.end_date,
@@ -166,7 +167,7 @@ export async function updateDragDropDate(
       if (error) throw new Error(`Thao tác ghi database thất bại: ${error.message}`);
 
       if (oldRecord.google_event_id) {
-        const googleDates = buildGoogleEventDates(updates.event_date, updates.end_date);
+        const googleDates = buildGoogleEventDates(parsed.newDateIso, updates.end_date ?? null);
         const syncWarning = await enqueueGoogleSync(supabase, {
           schedule_id: parsed.eventId,
           google_event_id: oldRecord.google_event_id,
@@ -190,7 +191,7 @@ export async function updateDragDropDate(
     const taskDateField = task.deadline ? "deadline" : "start_date";
     const { error } = await supabase
       .from("work_tasks")
-      .update({ [taskDateField]: nextDeadline })
+      .update(taskDateField === "deadline" ? { deadline: nextDeadline } : { start_date: nextDeadline })
       .eq("id", parsed.eventId);
 
     if (error) throw new Error(`Cập nhật nhiệm vụ thất bại: ${error.message}`);
@@ -243,7 +244,7 @@ const calendarScheduleSchema = z.object({
 export async function createCalendarEvent(
   payload: CalendarSchedulePayload,
 ): Promise<ActionResult<{ id: string; warning?: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = calendarScheduleSchema.parse(payload);
     const access = await requireCalendarAccess(supabase, userId, "chỉnh sửa dữ liệu lịch");
     await requireCalendarTargetEmployee(supabase, access, parsed.employee_id);
@@ -293,7 +294,7 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   payload: CalendarSchedulePayload,
 ): Promise<ActionResult<{ success: boolean; warning?: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = calendarScheduleSchema.parse(payload);
     if (!parsed.eventId) throw new Error("Thiếu ID sự kiện");
 
@@ -355,7 +356,7 @@ export async function updateCalendarEvent(
 export async function deleteCalendarEvent(
   eventId: string,
 ): Promise<ActionResult<{ success: boolean; warning?: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const validEventId = z.string().trim().min(1, "Thiếu ID sự kiện").parse(eventId);
     const access = await requireCalendarAccess(supabase, userId, "thao tác dữ liệu lịch");
     const oldRecord = await requireCalendarScheduleEditable(supabase, access, validEventId);

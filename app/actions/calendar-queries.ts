@@ -1,6 +1,7 @@
 "use server";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withAuth } from "@/lib/auth_utils";
 import {
   requireCalendarAccess,
@@ -433,7 +434,7 @@ export async function fetchCalendarEvents(
   year: number,
   viewMode: CalendarViewMode = "month",
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu lịch studio");
     try {
       return await fetchCalendarEventsRpc(supabase, access, month, year, viewMode);
@@ -449,7 +450,7 @@ export async function fetchCalendarGoogleEvents(
   year: number,
   viewMode: CalendarViewMode = "month",
 ): Promise<ActionResult<UnifiedCalendarEvent[]>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const access = await requireCalendarAccess(supabase, userId, "truy cập dữ liệu Google Calendar");
     const { startDate, endExclusiveDate } = getCalendarWindow(month, year, viewMode);
 
@@ -519,7 +520,7 @@ export async function fetchCalendarGoogleEvents(
 }
 
 export async function fetchCalendarFilterEmployees(): Promise<ActionResult<{ id: string; full_name: string }[]>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCalendarAccess(supabase, userId, "tải nhân sự");
 
     const { data, error } = await supabase
@@ -536,7 +537,7 @@ export async function fetchCalendarFilterEmployees(): Promise<ActionResult<{ id:
 }
 
 export async function checkGoogleCalendarStatus(): Promise<ActionResult<boolean>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCalendarAccess(supabase, userId, "truy cập dữ liệu lịch");
 
     const { data, error } = await supabase

@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog, logError } from "@/lib/audit";
 
@@ -20,12 +22,14 @@ interface ScheduleUpdateInput extends ScheduleInput {
 
 // ─── SCHEDULE CRUD ───────────────────────────────
 
+// ⚠️ FILE KHÔNG CÓ NƠI GỌI (calendar dùng calendar-mutations.ts). Bản cũ còn ghi
+// schedule_date/color — cột thật là event_date/color_id; đã sửa cho đúng schema.
 export async function createSchedule(input: ScheduleInput) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: newEvent, error } = await supabase.from("schedules").insert({
-      event_type: input.eventType, schedule_date: input.scheduleDate, end_date: input.endDate,
-      contract_id: input.contractId || null, employee_id: input.employeeId || null,
-      notes: input.notes || null, color: input.colorId || null, status: input.status || "cho_xu_ly",
+      event_type: input.eventType ?? "khac", event_date: input.scheduleDate, end_date: input.endDate,
+      contract_id: input.contractId || null, employee_id: input.employeeId as string, // cột NOT NULL — file 0 nơi gọi, giữ nguyên hành vi cũ (null sẽ 23502)
+      notes: input.notes || null, color_id: input.colorId || "blue", status: input.status || "cho_xu_ly",
       created_by: userId,
     }).select("id").single();
 
@@ -41,13 +45,13 @@ export async function createSchedule(input: ScheduleInput) {
 }
 
 export async function updateSchedule(input: ScheduleUpdateInput) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     if (!input.id) throw new Error("Thiếu schedule ID");
 
     const { error } = await supabase.from("schedules").update({
-      event_type: input.eventType, schedule_date: input.scheduleDate, end_date: input.endDate,
-      contract_id: input.contractId || null, employee_id: input.employeeId || null,
-      notes: input.notes || null, color: input.colorId || null, status: input.status,
+      event_type: input.eventType ?? "khac", event_date: input.scheduleDate, end_date: input.endDate,
+      contract_id: input.contractId || null, employee_id: input.employeeId as string, // cột NOT NULL — file 0 nơi gọi, giữ nguyên hành vi cũ (null sẽ 23502)
+      notes: input.notes || null, color_id: input.colorId || undefined, status: input.status,
       updated_at: new Date().toISOString(),
     }).eq("id", input.id);
 
@@ -63,7 +67,7 @@ export async function updateSchedule(input: ScheduleUpdateInput) {
 }
 
 export async function deleteSchedule(scheduleId: string, googleEventId?: string) {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     if (!scheduleId) throw new Error("Thiếu schedule ID");
 
     const { error } = await supabase.from("schedules").delete().eq("id", scheduleId);

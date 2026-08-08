@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import {
   requireCalendarAccess,
@@ -148,7 +150,7 @@ export async function assignCalendarTask(
   taskId: string,
   assignToEmployeeId: string,
 ): Promise<ActionResult<boolean>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = z.object({
       taskId: z.string().trim().min(1, "Thiếu ID công việc"),
       assignToEmployeeId: z.string().trim().min(1, "Thiếu ID nhân sự nhận việc"),
@@ -175,7 +177,7 @@ export async function checkEmployeeAvailability(
   endDateIso?: string | null,
   excludeCurrentId?: string,
 ): Promise<ActionResult<{ hasConflict: boolean; conflicts: CalendarConflict[] }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = z.object({
       employeeId: z.string().trim().min(1, "Thiếu ID nhân sự"),
       dateIso: isoDateSchema,
@@ -251,7 +253,7 @@ export async function updateCalendarTaskDetails(
     assigned_to?: string;
   },
 ): Promise<ActionResult<{ updated: boolean; autoPrintTriggered: boolean }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const validTaskId = z.string().trim().min(1, "Thiếu ID công việc").parse(taskId);
     const validatedUpdates = z.object({
       status: z.enum(TASK_STATUS_VALUES, { error: "Trạng thái không hợp lệ" }).optional(),
@@ -263,7 +265,7 @@ export async function updateCalendarTaskDetails(
     const access = await requireCalendarAccess(supabase, userId, "thao tác dữ liệu lịch");
     const oldTask = await requireCalendarTaskEditable(supabase, access, validTaskId);
 
-    const updatePayload: Record<string, string> = {};
+    const updatePayload: Database["public"]["Tables"]["work_tasks"]["Update"] = {};
     if (validatedUpdates.status) updatePayload.status = validatedUpdates.status;
     if (validatedUpdates.deadline) updatePayload.deadline = toDateKey(validatedUpdates.deadline);
     if (validatedUpdates.start_date) updatePayload.start_date = toDateKey(validatedUpdates.start_date);

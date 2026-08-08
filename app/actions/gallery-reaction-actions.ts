@@ -227,7 +227,7 @@ export async function getComments(imageId: string, accessUrl?: string, accessTok
       if (error) { console.error("getComments query error:", error.message); return []; }
       return (data || []).map(toComment);
     }
-    const result = await withAuth(async (supabase, userId) => {
+    const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
       await requireContractAccess(supabase, userId);
       const { data, error } = await supabase.from("gallery_comments").select("id, image_id, gallery_id, content, author_name, client_identifier, created_at, updated_at").eq("image_id", imageId).order("created_at", { ascending: true });
       if (error) throw error;

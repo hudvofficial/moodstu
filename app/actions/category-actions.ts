@@ -1,6 +1,7 @@
 "use server";
 
 import { fireAuditLog } from "@/lib/audit";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   requireContractAccess,
   withAuth,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/validations/service.schema";
 import { revalidatePath } from "next/cache";
 import type { ItemType } from "@/types/contract";
-import type { Json } from "@/types/database.types";
+import type { Database, Json } from "@/types/database.types";
 
 type CatalogItemType = Exclude<ItemType, "phat_sinh">;
 type QuickCreateItemType = Exclude<ItemType, "trang_phuc" | "phat_sinh">;
@@ -56,7 +57,7 @@ function normalizeRpcService(value: Json | null) {
 }
 
 export async function upsertCategory(data: { id?: string; name: string; icon?: string }) {
-  return withServicesAccess(async (supabase) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>) => {
     const parsed = categoryUpsertSchema.safeParse(data);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message || "Danh muc khong hop le");
@@ -100,7 +101,7 @@ export async function upsertCategory(data: { id?: string; name: string; icon?: s
 }
 
 export async function deleteCategory(id: string) {
-  return withServicesAccess(async (supabase) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>) => {
     const parsed = categoryDeleteSchema.parse({ id });
     const { count, error: checkError } = await supabase
       .from("services")
@@ -128,7 +129,7 @@ export async function deleteCategory(id: string) {
 }
 
 export async function getAvailableServices(search?: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     let query = supabase
@@ -160,7 +161,7 @@ export async function getAvailableServices(search?: string) {
 }
 
 export async function getAvailableCatalogItems(itemType: CatalogItemType, search?: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
     const normalizedType = normalizeCatalogType(itemType);
     const sanitized = sanitizeCatalogSearch(search);
@@ -241,7 +242,7 @@ export async function quickCreateService(serviceData: {
   selling_price: number;
   cost_price?: number;
 }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
     const parsed = quickCreateServiceSchema.safeParse(serviceData);
     if (!parsed.success) {
@@ -264,8 +265,8 @@ export async function quickCreateService(serviceData: {
 
     const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
       p_actor_id: userId,
-      p_bundle_items: null,
-      p_expected_updated_at: null,
+      p_bundle_items: undefined,
+      p_expected_updated_at: undefined,
       p_service: servicePayload as Json,
     });
 

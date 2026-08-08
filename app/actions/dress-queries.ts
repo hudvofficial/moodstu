@@ -1,6 +1,8 @@
 "use server";
 
 import { withDressesAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type {
   DressDetail,
   DressFilters,
@@ -53,7 +55,7 @@ function isMissingRpc(error: { message?: string; code?: string } | null) {
 export async function fetchDressList(
   filters: DressFilters = {},
 ): Promise<{ data: DressItem[]; count: number }> {
-  const result = await withDressesAccess(async (supabase) => {
+  const result = await withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const page = pageNumber(filters.page);
     const sort = normalizeSort(filters.sort);
     const category = filters.category && filters.category !== "all" ? filters.category : undefined;
@@ -61,9 +63,9 @@ export async function fetchDressList(
     const search = cleanText(filters.search);
 
     const rpc = await supabase.rpc("dress_list", {
-      p_search: search ?? null,
-      p_category: category ?? null,
-      p_status: status ?? null,
+      p_search: search ?? undefined,
+      p_category: category ?? undefined,
+      p_status: status ?? undefined,
       p_sort: sort,
       p_page: page,
       p_limit: DRESS_PAGE_SIZE,
@@ -127,7 +129,7 @@ export async function fetchDressList(
 }
 
 export async function fetchDressDetail(id: string): Promise<DressDetail | null> {
-  const result = await withDressesAccess(async (supabase) => {
+  const result = await withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const [itemRes, reservationsRes] = await Promise.all([
       supabase
         .from("dresses")
@@ -160,7 +162,7 @@ export async function fetchDressDetail(id: string): Promise<DressDetail | null> 
 }
 
 export async function getDressStats(): Promise<DressStats> {
-  const result = await withDressesAccess(async (supabase) => {
+  const result = await withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const rpc = await supabase.rpc("dress_stats");
 
     if (!rpc.error && rpc.data && typeof rpc.data === "object") {
@@ -204,13 +206,13 @@ export async function getDressAvailability(
   startDate: string,
   endDate: string,
 ): Promise<boolean> {
-  const result = await withDressesAccess(async (supabase) => {
+  const result = await withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const rpc = await supabase.rpc("is_dress_available", {
       p_dress_id: itemId,
       p_start_date: startDate,
       p_end_date: endDate,
-      p_exclude_reservation_id: null,
-      p_exclude_rental_id: null,
+      p_exclude_reservation_id: undefined,
+      p_exclude_rental_id: undefined,
     });
 
     if (!rpc.error) return rpc.data === true;
@@ -258,7 +260,7 @@ export async function getDressAvailability(
 export async function fetchRentalHistory(
   filters: RentalHistoryFilters = {},
 ): Promise<{ data: RentalHistoryRow[]; count: number }> {
-  const result = await withDressesAccess(async (supabase) => {
+  const result = await withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const page = pageNumber(filters.page);
     const from = (page - 1) * RENTAL_HISTORY_PAGE_SIZE;
     const to = from + RENTAL_HISTORY_PAGE_SIZE - 1;
@@ -287,7 +289,7 @@ export async function fetchRentalHistory(
 }
 
 export async function getAvailableItems() {
-  return withDressesAccess(async (supabase) => {
+  return withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("dresses")
       .select("id, name, item_code, category, size, color, rental_price, image_url")

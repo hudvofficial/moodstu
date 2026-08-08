@@ -1,6 +1,8 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 const PAGE_SIZE = 20;
 
@@ -8,7 +10,7 @@ export async function fetchAuditLogs(
   page: number = 1,
   typeFilter?: string,
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -22,7 +24,7 @@ export async function fetchAuditLogs(
       .range(from, to);
 
     if (typeFilter && typeFilter !== "all") {
-      query = query.eq("log_type", typeFilter);
+      query = query.eq("log_type", typeFilter as Database["public"]["Enums"]["log_type_enum"]);
     }
 
     const { data, count, error } = await query;

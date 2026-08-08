@@ -1,6 +1,8 @@
 "use server";
 
 import { profileAction } from "@/lib/action-profiler";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withServicesAccess } from "@/lib/auth_utils";
 import { sanitizeSearch } from "@/lib/utils/service-utils";
 import {
@@ -17,7 +19,7 @@ const DEFAULT_LIMIT = 50;
 
 export async function getServices(filters: ServiceFilters = {}) {
   return profileAction("services.getServices", () =>
-    withServicesAccess(async (supabase) => {
+    withServicesAccess(async (supabase: SupabaseClient<Database>) => {
       const parsed = serviceFiltersSchema.safeParse(filters);
       if (!parsed.success) {
         throw new Error(parsed.error.issues[0]?.message || "Bo loc khong hop le");
@@ -67,7 +69,7 @@ export async function getServices(filters: ServiceFilters = {}) {
 
 export async function getServiceById(id: string) {
   return profileAction("services.getServiceById", () =>
-    withServicesAccess(async (supabase) => {
+    withServicesAccess(async (supabase: SupabaseClient<Database>) => {
       const serviceId = serviceIdSchema.parse(id);
       const { data, error } = await supabase
         .from("services")
@@ -84,7 +86,7 @@ export async function getServiceById(id: string) {
 
 export async function getServiceCategories() {
   return profileAction("services.getServiceCategories", () =>
-    withServicesAccess(async (supabase) => {
+    withServicesAccess(async (supabase: SupabaseClient<Database>) => {
       const { data, error } = await supabase
         .from("service_categories")
         .select("*")
@@ -98,7 +100,7 @@ export async function getServiceCategories() {
 }
 
 export async function getBundleItems(parentServiceId: string) {
-  return withServicesAccess(async (supabase) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>) => {
     const serviceId = serviceIdSchema.parse(parentServiceId);
     const { data, error } = await supabase
       .from("service_bundles")
@@ -114,7 +116,7 @@ export async function getBundleItems(parentServiceId: string) {
 }
 
 export async function searchServicesForBundle(query: string, excludeId?: string) {
-  return withServicesAccess(async (supabase) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>) => {
     const sanitized = sanitizeSearch(String(query || "").slice(0, 100));
     if (!sanitized) return [];
 

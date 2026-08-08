@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { ZodCustomerCreate, ZodCustomerUpdate, ZodUuidId, ZodCustomerFilter, ZodCustomerSearch } from "@/lib/validations/crm.schema";
@@ -59,7 +61,7 @@ function normalizePhone(phone: string): string {
 export async function getCustomers(params: {
   search?: string; page?: number; pageSize?: number; source?: string; tags?: string;
 }): Promise<ActionResult<{ customers: unknown[]; total: number; totalPages: number; page: number; pageSize: number }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     
     const parsed = ZodCustomerFilter.safeParse(params);
@@ -104,7 +106,7 @@ export async function getCustomers(params: {
 // ----------------------------------------------------
 
 export async function getCustomerById(id: string): Promise<ActionResult<{ customer: unknown; contracts: unknown[]; lifetimeValue: number }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     
     const parsed = ZodUuidId.safeParse({ id });
@@ -124,7 +126,7 @@ export async function getCustomerById(id: string): Promise<ActionResult<{ custom
 // ----------------------------------------------------
 
 export async function createCustomer(data: unknown): Promise<ActionResult<{ customer_id: string; duplicate?: boolean; customer_name?: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee } = await requireCrmAccess(supabase, userId);
     const parsed = ZodCustomerCreate.safeParse(data);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -155,7 +157,7 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
       alt_phone: tData.alt_phone?.trim() || null, 
       email: tData.email?.trim() || null, 
       address: tData.address?.trim() || null,
-      gender: tData.gender || null, 
+      gender: (tData.gender || null) as Database["public"]["Enums"]["gender_enum"] | null, 
       date_of_birth: tData.date_of_birth || null, 
       wedding_date: tData.wedding_date || null,
       bride_name: tData.bride_name?.trim() || null, 
@@ -206,7 +208,7 @@ export async function createCustomer(data: unknown): Promise<ActionResult<{ cust
 // ----------------------------------------------------
 
 export async function updateCustomer(id: string, data: unknown): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     
     // Pass ID to merged object for Zod validation mapping
@@ -223,13 +225,13 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
       throw new Error("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang");
     }
 
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updateData: Database["public"]["Tables"]["customers"]["Update"] = { updated_at: new Date().toISOString() };
     if (tData.full_name !== undefined) updateData.full_name = tData.full_name.trim();
     if (tData.phone !== undefined) updateData.phone = tData.phone.trim() || null;
     if (tData.alt_phone !== undefined) updateData.alt_phone = tData.alt_phone.trim() || null;
     if (tData.email !== undefined) updateData.email = tData.email.trim() || null;
     if (tData.address !== undefined) updateData.address = tData.address?.trim() || null;
-    if (tData.gender !== undefined) updateData.gender = tData.gender || null;
+    if (tData.gender !== undefined) updateData.gender = (tData.gender || null) as Database["public"]["Enums"]["gender_enum"] | null;
     if (tData.date_of_birth !== undefined) updateData.date_of_birth = tData.date_of_birth || null;
     if (tData.wedding_date !== undefined) updateData.wedding_date = tData.wedding_date || null;
     if (tData.bride_name !== undefined) updateData.bride_name = tData.bride_name?.trim() || null;
@@ -261,7 +263,7 @@ export async function updateCustomer(id: string, data: unknown): Promise<ActionR
 // ----------------------------------------------------
 
 export async function deleteCustomer(id: string): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireCrmAccess(supabase, userId);
     
     if (role !== "admin" && role !== "manager") {
@@ -301,7 +303,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult<null>> {
 // ----------------------------------------------------
 
 export async function getCustomerStats(): Promise<ActionResult<{ total: number; newThisMonth: number; avgLifetimeValue: number }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
 
     const { data, error } = await supabase.rpc("get_crm_customer_stats");
@@ -327,7 +329,7 @@ export async function getCustomerStats(): Promise<ActionResult<{ total: number; 
 // ----------------------------------------------------
 
 export async function searchCustomers(query: string): Promise<ActionResult<unknown[]>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
 
     const parsed = ZodCustomerSearch.safeParse({ query });

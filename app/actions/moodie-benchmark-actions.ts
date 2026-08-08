@@ -92,7 +92,7 @@ async function persistBenchmarkReport(
 }
 
 export async function runMoodieBenchmark(caseIds?: string[]) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const selectedCases = selectCases(caseIds);
     if (selectedCases.length === 0) {
     throw new Error("Không có tình huống kiểm thử hợp lệ");
@@ -164,7 +164,7 @@ function isBenchmarkReport(value: Json | null): value is Json & Record<string, J
 }
 
 export async function getMoodieBenchmarkDashboard(limit = 20) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("audit_logs")
       .select("record_id, created_at, new_data")

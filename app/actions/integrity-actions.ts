@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth, withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 
 // ═══════════════════════════════════════════
@@ -10,7 +12,7 @@ import { revalidatePath } from "next/cache";
 // ═══════════════════════════════════════════
 
 export async function fetchIntegrityReports() {
-  return withAuth(async (supabase) => {
+  return withAuth(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("integrity_reports")
       .select("id, scan_date, status, checks, total_issues, warning_count, info_count, created_at")
@@ -22,7 +24,7 @@ export async function fetchIntegrityReports() {
 }
 
 export async function runManualIntegrityScan() {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { error } = await supabase.rpc("run_integrity_scan");
     if (error) throw new Error(`Lỗi chạy quét: ${error.message}`);
     revalidatePath("/settings/audit-logs");

@@ -1,6 +1,7 @@
 "use server";
 
 import { fireAuditLog } from "@/lib/audit";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { withServicesAccess } from "@/lib/auth_utils";
 import { generateServiceCode } from "@/lib/utils/service-utils";
 import { revalidatePath } from "next/cache";
@@ -11,7 +12,7 @@ import {
   serviceUpdateSchema,
 } from "@/lib/validations/service.schema";
 import type { BundleItemInput } from "@/lib/validations/service.schema";
-import type { Json } from "@/types/database.types";
+import type { Database, Json } from "@/types/database.types";
 
 type ServiceRpcResult = {
   id: string;
@@ -71,7 +72,7 @@ export async function createService(
   rawData: Record<string, unknown>,
   bundleItems?: BundleItemInput[],
 ) {
-  return withServicesAccess(async (supabase, userId) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = serviceCreateSchema.safeParse(rawData);
     if (!parsed.success) {
       throw new Error(`Du lieu khong hop le: ${validationMessage(parsed.error)}`);
@@ -89,8 +90,8 @@ export async function createService(
 
     const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
       p_actor_id: userId,
-      p_bundle_items: bundleItems === undefined ? null : normalizeBundleItems(bundleItems),
-      p_expected_updated_at: null,
+      p_bundle_items: bundleItems === undefined ? undefined : normalizeBundleItems(bundleItems),
+      p_expected_updated_at: undefined,
       p_service: servicePayload as Json,
     });
 
@@ -117,7 +118,7 @@ export async function updateService(
   rawData: Record<string, unknown>,
   bundleItems?: BundleItemInput[],
 ) {
-  return withServicesAccess(async (supabase, userId) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = serviceUpdateSchema.safeParse(rawData);
     if (!parsed.success) {
       throw new Error(`Du lieu khong hop le: ${validationMessage(parsed.error)}`);
@@ -135,7 +136,7 @@ export async function updateService(
 
     const { data: rpcData, error } = await supabase.rpc("save_service_atomic", {
       p_actor_id: userId,
-      p_bundle_items: bundleItems === undefined ? null : normalizeBundleItems(bundleItems),
+      p_bundle_items: bundleItems === undefined ? undefined : normalizeBundleItems(bundleItems),
       p_expected_updated_at: updated_at,
       p_service: servicePayload as Json,
     });
@@ -161,7 +162,7 @@ export async function updateService(
 }
 
 export async function deleteService(id: string) {
-  return withServicesAccess(async (supabase, userId) => {
+  return withServicesAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const serviceId = serviceIdSchema.parse(id);
     const { data: rpcData, error } = await supabase.rpc("delete_service_atomic", {
       p_actor_id: userId,

@@ -1,4 +1,5 @@
 import type { withAuth } from "@/lib/auth_utils";
+import type { Database } from "@/types/database.types";
 
 type AdminSupabase = Parameters<Parameters<typeof withAuth>[0]>[0];
 
@@ -35,7 +36,7 @@ export async function upsertAddonHistoryItems(
   );
 
   const now = new Date().toISOString();
-  const toInsert: Array<Record<string, unknown>> = [];
+  const toInsert: Database["public"]["Tables"]["addon_history"]["Insert"][] = [];
   const updatePromises: Array<PromiseLike<{ error: { message?: string } | null }>> = [];
 
   for (const key of lookupKeys) {
@@ -55,7 +56,7 @@ export async function upsertAddonHistoryItems(
     } else {
       toInsert.push({
         addon_name: key.name,
-        addon_category: key.category,
+        addon_category: key.category as Database["public"]["Enums"]["addon_category_enum"],
         last_price: key.price,
         usage_count: 1,
         last_used_at: now,

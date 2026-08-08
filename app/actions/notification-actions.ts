@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import { withAuth, withAdmin } from "@/lib/auth_utils";
 import { notificationPrefsSchema } from "@/lib/validations/settings.schema";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
   type NotificationPreferences,
 } from "@/types/settings";
 
@@ -52,7 +55,7 @@ async function getOrCreatePreferences(
   }
 
   if (data) {
-    return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...data };
+    return mergeNotificationPreferences(data);
   }
 
   const { data: created, error: createError } = await supabase
@@ -78,11 +81,11 @@ async function getOrCreatePreferences(
     );
   }
 
-  return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...created };
+  return mergeNotificationPreferences(created);
 }
 
 export async function getUnreadCount(): Promise<number> {
-  const result = await withAuth(async (supabase, userId) => {
+  const result = await withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) return 0;
 
@@ -99,7 +102,7 @@ export async function getUnreadCount(): Promise<number> {
 }
 
 export async function getNotifications(offset: number = 0, limit: number = 20) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) throw new Error("Chưa đăng nhập");
 
@@ -119,7 +122,7 @@ export async function getNotifications(offset: number = 0, limit: number = 20) {
 }
 
 export async function markAsRead(id: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) throw new Error("Không tìm thấy nhân viên");
 
@@ -135,7 +138,7 @@ export async function markAsRead(id: string) {
 }
 
 export async function markAllAsRead() {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) throw new Error("Không tìm thấy nhân viên");
 
@@ -151,7 +154,7 @@ export async function markAllAsRead() {
 }
 
 export async function getNotificationPreferences() {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) throw new Error("Chưa đăng nhập");
 
@@ -162,7 +165,7 @@ export async function getNotificationPreferences() {
 export async function updateNotificationPreferences(
   rawPrefs: Record<string, boolean>,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const employeeId = await getEmployeeId(supabase, userId);
     if (!employeeId) throw new Error("Không tìm thấy nhân viên");
 

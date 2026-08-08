@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { SupabaseClient, type User } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import {
   AUTH_PROXY_SOURCE_HEADER,
@@ -115,7 +116,7 @@ function wait(ms: number) {
 }
 
 async function getEmployeeByAuthUserId(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<EmployeeContextRecord | null> {
   let lastError: { code?: string; message?: string } | null = null;
@@ -216,7 +217,7 @@ const canCurrentUserManageSettings = cache(
 );
 
 export async function syncAuthIdentity(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
   updates: {
     fullName?: string | null;
@@ -261,7 +262,7 @@ export async function syncAuthIdentity(
 }
 
 async function bootstrapEmployeeProfile(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   user: User,
 ): Promise<EmployeeContextRecord> {
   const email = user.email || "unknown";
@@ -398,7 +399,7 @@ export async function getAuthenticatedUserContext(options?: {
 }
 
 export async function withAuth<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
     const user = await getVerifiedUser();
@@ -433,7 +434,7 @@ export async function withAuth<T>(
  * writes and privileged/bootstrap flows where the full getUser() is warranted.
  */
 export async function withAuthRead<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
     const user = await getClaimsUser();
@@ -457,7 +458,7 @@ export async function withAuthRead<T>(
 }
 
 export async function withAdmin<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   try {
     const user = await getVerifiedUser();
@@ -488,7 +489,7 @@ export async function withAdmin<T>(
 }
 
 async function resolveActiveUserRole(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<{ employee: EmployeeContextRecord | null; role: Role }> {
   const employee = await getEmployeeContextByAuthUserId(userId);
@@ -519,7 +520,7 @@ async function resolveActiveUserRole(
 }
 
 export async function requireSettingsAdminAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const employee = await getEmployeeByAuthUserId(supabase, userId);
@@ -540,7 +541,7 @@ export async function requireSettingsAdminAccess(
  * Throws an error if the user lacks the 'crm' permission.
  * Expected to be caught by the withAuth wrapper.
  */
-export async function requireCrmAccess(supabase: SupabaseClient, userId: string) {
+export async function requireCrmAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!employee) {
@@ -558,7 +559,7 @@ export async function requireCrmAccess(supabase: SupabaseClient, userId: string)
  * Gatekeeper function for Moodie server actions.
  * Moodie is user-facing, but skill access is still constrained by shell role.
  */
-export async function requireMoodieAccess(supabase: SupabaseClient, userId: string) {
+export async function requireMoodieAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!employee) {
@@ -577,7 +578,7 @@ export async function requireMoodieAccess(supabase: SupabaseClient, userId: stri
  * Finance reads use the admin client for RPC/service-role access, so each action
  * must still enforce app-level finance permission after authentication.
  */
-export async function requireFinanceAccess(supabase: SupabaseClient, userId: string) {
+export async function requireFinanceAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "finance")) {
@@ -588,7 +589,7 @@ export async function requireFinanceAccess(supabase: SupabaseClient, userId: str
 }
 
 export async function withFinanceRead<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireFinanceAccess(supabase, userId);
@@ -601,7 +602,7 @@ export async function withFinanceRead<T>(
  * Printing actions use the admin client after authentication, so the module
  * permission must be enforced inside each action, not only at the route level.
  */
-export async function requirePrintingAccess(supabase: SupabaseClient, userId: string) {
+export async function requirePrintingAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "printing")) {
@@ -612,7 +613,7 @@ export async function requirePrintingAccess(supabase: SupabaseClient, userId: st
 }
 
 export async function withPrintingAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requirePrintingAccess(supabase, userId);
@@ -625,7 +626,7 @@ export async function withPrintingAccess<T>(
  * Services actions use the admin client after authentication, so app-level
  * module permission must be enforced before every read/write.
  */
-export async function requireServicesAccess(supabase: SupabaseClient, userId: string) {
+export async function requireServicesAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "services")) {
@@ -636,7 +637,7 @@ export async function requireServicesAccess(supabase: SupabaseClient, userId: st
 }
 
 export async function withServicesAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireServicesAccess(supabase, userId);
@@ -649,7 +650,7 @@ export async function withServicesAccess<T>(
  * Inventory uses the admin client after authentication, so every action must
  * enforce module permission explicitly instead of relying on route guards.
  */
-export async function requireInventoryAccess(supabase: SupabaseClient, userId: string) {
+export async function requireInventoryAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "inventory")) {
@@ -660,7 +661,7 @@ export async function requireInventoryAccess(supabase: SupabaseClient, userId: s
 }
 
 export async function withInventoryAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireInventoryAccess(supabase, userId);
@@ -673,7 +674,7 @@ export async function withInventoryAccess<T>(
  * Dresses actions use the admin client after authentication, so every action
  * must enforce module permission explicitly instead of relying on route guards.
  */
-export async function requireDressesAccess(supabase: SupabaseClient, userId: string) {
+export async function requireDressesAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "dresses")) {
@@ -684,7 +685,7 @@ export async function requireDressesAccess(supabase: SupabaseClient, userId: str
 }
 
 export async function requireDressesBookingAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await requireDressesAccess(supabase, userId);
@@ -701,7 +702,7 @@ export async function requireDressesBookingAccess(
 }
 
 export async function requireDressesCatalogWriteAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await requireDressesAccess(supabase, userId);
@@ -714,7 +715,7 @@ export async function requireDressesCatalogWriteAccess(
 }
 
 export async function withDressesAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireDressesAccess(supabase, userId);
@@ -723,7 +724,7 @@ export async function withDressesAccess<T>(
 }
 
 export async function withDressesBookingAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireDressesBookingAccess(supabase, userId);
@@ -732,7 +733,7 @@ export async function withDressesBookingAccess<T>(
 }
 
 export async function withDressesCatalogWriteAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireDressesCatalogWriteAccess(supabase, userId);
@@ -740,7 +741,7 @@ export async function withDressesCatalogWriteAccess<T>(
   });
 }
 
-export async function requireEmployeesAccess(supabase: SupabaseClient, userId: string) {
+export async function requireEmployeesAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "employees")) {
@@ -751,7 +752,7 @@ export async function requireEmployeesAccess(supabase: SupabaseClient, userId: s
 }
 
 export async function requireEmployeesWriteAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await requireEmployeesAccess(supabase, userId);
@@ -764,7 +765,7 @@ export async function requireEmployeesWriteAccess(
 }
 
 export async function requireEmployeeDirectoryAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await resolveActiveUserRole(supabase, userId);
@@ -777,7 +778,7 @@ export async function requireEmployeeDirectoryAccess(
 }
 
 export async function withEmployeesAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireEmployeesAccess(supabase, userId);
@@ -786,7 +787,7 @@ export async function withEmployeesAccess<T>(
 }
 
 export async function withEmployeesWriteAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireEmployeesWriteAccess(supabase, userId);
@@ -795,7 +796,7 @@ export async function withEmployeesWriteAccess<T>(
 }
 
 export async function withEmployeeDirectoryAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireEmployeeDirectoryAccess(supabase, userId);
@@ -808,7 +809,7 @@ export async function withEmployeeDirectoryAccess<T>(
  * Contract actions use the admin client after authentication, so they must
  * enforce module permission explicitly instead of relying on RLS.
  */
-export async function requireContractAccess(supabase: SupabaseClient, userId: string) {
+export async function requireContractAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!canAccess(role, "contracts")) {
@@ -819,7 +820,7 @@ export async function requireContractAccess(supabase: SupabaseClient, userId: st
 }
 
 export async function requireContractWriteAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await requireContractAccess(supabase, userId);
@@ -836,7 +837,7 @@ export async function requireContractWriteAccess(
 }
 
 export async function requireContractDestructiveAccess(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   const context = await requireContractAccess(supabase, userId);
@@ -849,7 +850,7 @@ export async function requireContractDestructiveAccess(
 }
 
 export async function withContractAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireContractAccess(supabase, userId);
@@ -858,7 +859,7 @@ export async function withContractAccess<T>(
 }
 
 export async function withContractWriteAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireContractWriteAccess(supabase, userId);
@@ -867,7 +868,7 @@ export async function withContractWriteAccess<T>(
 }
 
 export async function withContractDestructiveAccess<T>(
-  action: (supabase: SupabaseClient, userId: string) => Promise<T>,
+  action: (supabase: SupabaseClient<Database>, userId: string) => Promise<T>,
 ): Promise<ActionResult<T>> {
   return withAuth(async (supabase, userId) => {
     await requireContractDestructiveAccess(supabase, userId);
@@ -880,7 +881,7 @@ export async function withContractDestructiveAccess<T>(
  * Sales can collect contract payments from the contract detail workflow, while
  * media/viewer roles must not be able to create finance-impacting receipts.
  */
-export async function requirePaymentRecordAccess(supabase: SupabaseClient, userId: string) {
+export async function requirePaymentRecordAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (role !== "admin" && role !== "manager" && role !== "sale") {
@@ -894,7 +895,7 @@ export async function requirePaymentRecordAccess(supabase: SupabaseClient, userI
  * Gatekeeper cho Moodie code tools (get_repo_map, read_file, grep_code...).
  * Chỉ admin mới được phép explore codebase qua moodie.
  */
-export async function requireCodebaseAccess(supabase: SupabaseClient, userId: string) {
+export async function requireCodebaseAccess(supabase: SupabaseClient<Database>, userId: string) {
   const { employee, role } = await resolveActiveUserRole(supabase, userId);
 
   if (!employee) {

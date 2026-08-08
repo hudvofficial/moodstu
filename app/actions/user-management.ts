@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { withAdmin, syncAuthIdentity } from "@/lib/auth_utils";
@@ -21,8 +23,8 @@ export type AuthUserWithEmployee = {
     email: string | null;
     role: EmployeeRole;
     avatar_url: string | null;
-    auth_user_id: string;
-    status: string;
+    auth_user_id: string | null; // employees.auth_user_id NULLABLE trong DB
+    status: string | null;
   } | null;
   suggested_employee: {
     id: string;
@@ -47,7 +49,7 @@ const roleSchema = z.enum(["admin", "manager", "sale", "media", "ctv"], {
 const uuidSchema = z.string().uuid("ID không hợp lệ");
 
 export async function getAuthUsers(params?: { page?: number; perPage?: number }) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const page = Math.max(1, Math.trunc(Number(params?.page) || 1));
     const perPage = Math.min(50, Math.max(1, Math.trunc(Number(params?.perPage) || 25)));
     const [authResult, employeeResult] = await Promise.all([
@@ -108,7 +110,7 @@ export async function getAuthUsers(params?: { page?: number; perPage?: number })
 }
 
 export async function updateUserRole(authUserId: string, newRole: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error(parsedId.error.issues[0]?.message);
     if (parsedId.data === userId) {
@@ -151,7 +153,7 @@ export async function linkUserToEmployee(
   authUserId: string,
   employeeId: string,
 ) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const parsedAuth = uuidSchema.safeParse(authUserId);
     if (!parsedAuth.success) throw new Error("Auth ID không hợp lệ");
 
@@ -214,7 +216,7 @@ export async function linkUserToEmployee(
 }
 
 export async function unlinkUserFromEmployee(authUserId: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsedId = uuidSchema.safeParse(authUserId);
     if (!parsedId.success) throw new Error("Auth ID không hợp lệ");
 
@@ -263,7 +265,7 @@ export async function unlinkUserFromEmployee(authUserId: string) {
 }
 
 export async function getUnlinkedEmployees() {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("employees")
       .select("id, full_name, email, role, avatar_url")

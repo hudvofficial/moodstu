@@ -128,7 +128,7 @@ export function GhostScanWidget({ initialData, variant = "sidebar" }: GhostScanW
   );
 
   if (variant === "button") {
-    const hasWarnings = latest && (latest.total_issues > 0 || latest.warning_count > 0);
+    const hasWarnings = latest && ((latest.total_issues ?? 0) > 0 || (latest.warning_count ?? 0) > 0);
     return (
       <>
         <Button

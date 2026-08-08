@@ -1,6 +1,8 @@
 "use server";
 
 import { fireAuditLog } from "@/lib/audit";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { withAuth, withAuthRead, requireMoodieAccess } from "@/lib/auth_utils";
 import { validateMoodieMemoryCandidate } from "@/lib/moodie/memory-policy";
@@ -8,7 +10,7 @@ import { moodieMemoryReviewPolicy } from "@/lib/moodie/memory-lifecycle";
 import type { MoodieMemoryCandidate, MoodieMemoryStatus } from "@/lib/moodie/memory-policy";
 
 export async function exportMoodieMemories() {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireMoodieAccess(supabase, userId);
     const { data, error } = await supabase.from("moodie_memories")
       .select("id, scope, memory_type, content, confidence, importance, status, subject, predicate, value, source_message_ids, source_voice_turn_id, supersedes_memory_id, consolidated_into_memory_id, expires_at, review_after, last_confirmed_at, created_at, updated_at")
@@ -23,7 +25,7 @@ export async function exportMoodieMemories() {
 }
 
 export async function eraseAllMoodieMemories(confirmation: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireMoodieAccess(supabase, userId);
     if (confirmation.trim() !== "XÓA TOÀN BỘ MEMORY") throw new Error("Câu xác nhận không chính xác");
     const { count, error } = await supabase.from("moodie_memories")
@@ -41,7 +43,7 @@ export async function eraseAllMoodieMemories(confirmation: string) {
 }
 
 export async function listMoodieMemories() {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireMoodieAccess(supabase, userId);
     const { data, error } = await supabase
       .from("moodie_memories")
@@ -56,7 +58,7 @@ export async function listMoodieMemories() {
 }
 
 export async function updateMoodieMemoryContent(memoryId: string, content: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
     if (!/^[0-9a-f-]{36}$/i.test(memoryId)) throw new Error("Memory id không hợp lệ");
     const normalized = content.replace(/\s+/g, " ").trim();
@@ -91,7 +93,7 @@ export async function updateMoodieMemoryContent(memoryId: string, content: strin
 }
 
 export async function proposeMoodieMemory(candidate: MoodieMemoryCandidate) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
     const validation = validateMoodieMemoryCandidate(candidate);
     if (!validation.ok) throw new Error("Memory không hợp lệ: " + validation.reason);
@@ -127,7 +129,7 @@ export async function proposeMoodieMemory(candidate: MoodieMemoryCandidate) {
 }
 
 export async function updateMoodieMemoryStatus(memoryId: string, status: MoodieMemoryStatus) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
     if (!/^[0-9a-f-]{36}$/i.test(memoryId)) throw new Error("Memory id không hợp lệ");
     if (!["active", "archived", "deleted"].includes(status)) throw new Error("Memory status không hợp lệ");

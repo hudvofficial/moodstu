@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import type { LeadStatus } from "@/types/crm";
 import { VALID_LEAD_TRANSITIONS } from "@/types/crm";
@@ -24,7 +26,7 @@ type ActionResult<T = null> =
 // ----------------------------------------------------
 
 export async function moveLeadToStage(leadId: string, newStatus: LeadStatus): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadMoveStage.safeParse({ id: leadId, newStatus });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -59,7 +61,7 @@ export async function moveLeadToStage(leadId: string, newStatus: LeadStatus): Pr
 }
 
 export async function updateDealValue(leadId: string, dealValue: number): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadUpdateDealValue.safeParse({ id: leadId, dealValue });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -86,7 +88,7 @@ export async function updateDealValue(leadId: string, dealValue: number): Promis
 }
 
 export async function updateLeadScore(leadId: string, score: number): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadUpdateScore.safeParse({ id: leadId, score });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -113,7 +115,7 @@ export async function updateLeadScore(leadId: string, score: number): Promise<Ac
 }
 
 export async function updateLeadTags(leadId: string, tags: string[]): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadUpdateTags.safeParse({ id: leadId, tags });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -140,7 +142,7 @@ export async function updateLeadTags(leadId: string, tags: string[]): Promise<Ac
 }
 
 export async function assignLead(leadId: string, employeeId: string | null): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadAssign.safeParse({ id: leadId, employeeId });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -181,7 +183,7 @@ export async function assignLead(leadId: string, employeeId: string | null): Pro
 }
 
 export async function markLeadAsLost(leadId: string, reason: string): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadMarkLost.safeParse({ id: leadId, reason });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -190,7 +192,7 @@ export async function markLeadAsLost(leadId: string, reason: string): Promise<Ac
     if (oldError || !oldData) throw new Error("Không tìm thấy lead hoặc lead đã bị xóa");
 
     const updatedNotes = [oldData.notes || "", `\n[${format(new Date(), "yyyy-MM-dd")}] Huỷ: ${parsed.data.reason}`].join("").trim();
-    const updateData = { 
+    const updateData: Database["public"]["Tables"]["crm_leads"]["Update"] = { 
       status: "huy", 
       lost_reason: parsed.data.reason,
       notes: updatedNotes, 
@@ -216,7 +218,7 @@ export async function markLeadAsLost(leadId: string, reason: string): Promise<Ac
 // ----------------------------------------------------
 
 export async function convertLeadToCustomer(leadId: string): Promise<ActionResult<{ url: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadConvertToCustomer.safeParse({ id: leadId });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -271,7 +273,7 @@ export async function convertLeadToCustomer(leadId: string): Promise<ActionResul
 // ----------------------------------------------------
 
 export async function addCareLog(leadId: string, content: string, type: string = "Ghi chú"): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireCrmAccess(supabase, userId);
     const parsed = ZodAddCareLog.safeParse({ id: leadId, content, type });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");

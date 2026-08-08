@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════
 
 import { createServerClient } from "@supabase/ssr";
+import type { Database } from "@/types/database.types";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
@@ -11,7 +12,7 @@ import { cache } from "react";
 export const createClient = cache(async () => {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -35,7 +36,7 @@ export const createClient = cache(async () => {
 
 // Admin client — bypasses RLS. Use ONLY in Server Actions after manual auth check.
 export const createAdminClient = cache(async () => {
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {

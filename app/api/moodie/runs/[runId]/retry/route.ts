@@ -24,7 +24,7 @@ export async function POST(_request: Request, context: { params: Promise<{ runId
       conversationId: previous.conversation_id || undefined,
       voiceSessionId: previous.voice_session_id || undefined,
       parentTurnId: previous.parent_turn_id || undefined,
-      kind: previous.kind,
+      kind: previous.kind as "action" | "task" | "research",
       title: previous.title,
       readOnly: previous.kind !== "action",
       request: (previous.request && typeof previous.request === "object" ? previous.request : {}) as Record<string, unknown>,

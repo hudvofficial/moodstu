@@ -1,6 +1,8 @@
 "use server";
 
 import { withDressesAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import type { DressRental } from "@/types/dress";
 
 export type { DressRental } from "@/types/dress";
@@ -27,7 +29,7 @@ function isMissingRpc(error: { message?: string; code?: string } | null) {
 }
 
 export async function fetchRentalsByItem(itemId: string) {
-  return withDressesAccess(async (supabase) => {
+  return withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("dress_rentals")
       .select("*")
@@ -47,7 +49,7 @@ export async function fetchAllRentals(filters?: {
   page?: number;
   pageSize?: number;
 }) {
-  return withDressesAccess(async (supabase) => {
+  return withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const page = cleanPage(filters?.page);
     const pageSize = cleanPageSize(filters?.pageSize);
     const status =
@@ -56,11 +58,11 @@ export async function fetchAllRentals(filters?: {
     const itemId = filters?.itemId || undefined;
 
     const rpc = await supabase.rpc("dress_rental_list", {
-      p_status: status ?? null,
-      p_search: search ?? null,
+      p_status: status ?? undefined,
+      p_search: search ?? undefined,
       p_page: page,
       p_limit: pageSize,
-      p_item_id: itemId ?? null,
+      p_item_id: itemId ?? undefined,
     });
 
     if (!rpc.error && rpc.data && typeof rpc.data === "object") {
@@ -121,7 +123,7 @@ export async function fetchAllRentals(filters?: {
 }
 
 export async function fetchActiveRental(itemId: string) {
-  return withDressesAccess(async (supabase) => {
+  return withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("dress_rentals")
       .select("*")

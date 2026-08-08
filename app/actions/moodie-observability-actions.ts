@@ -1,11 +1,12 @@
 ﻿"use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseMoodieMessageMeta } from "@/lib/moodie/records";
-import type { Json } from "@/types/database.types";
+import type { Database, Json } from "@/types/database.types";
 
 export async function getMoodieObservabilityReport(limit = 120) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("ai_messages")
       .select("id, created_at, metadata")

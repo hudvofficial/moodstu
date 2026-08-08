@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { withAdmin } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
 import { checkPeriodLock } from "@/lib/finance-utils";
@@ -103,7 +105,7 @@ export async function recordVendorPayment(
 
   const input = parsed.data;
 
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // Check period lock
     await checkPeriodLock(supabase, input.payment_date);
 
@@ -134,7 +136,8 @@ export async function recordVendorPayment(
       p_amount: input.amount,
       p_payment_method: input.payment_method,
       p_payment_date: input.payment_date,
-      p_note: input.note || null,
+      // p_note text KHÔNG có DEFAULT → generator khai bắt buộc, Postgres vẫn nhận NULL
+      p_note: (input.note || null) as string,
       p_allocations: allocationsJson,
       p_actor_id: userId,
     });
@@ -142,12 +145,14 @@ export async function recordVendorPayment(
     if (error || !result) {
       throw new Error(`Không thể ghi nhận thanh toán: ${error?.message || "Unknown"}`);
     }
+    // RPC trả jsonb → shape do SQL quyết định
+    const paymentResult = result as unknown as { payment_id: string; allocated_amount: number; unallocated_amount: number };
 
     // Audit log
     await writeAuditLog({
       action: "CREATE",
       tableName: "vendor_payments",
-      recordId: result.payment_id,
+      recordId: paymentResult.payment_id,
       description: `Thanh toán ${input.amount.toLocaleString()}đ cho vendor ${vendor.full_name}`,
     });
 
@@ -157,9 +162,9 @@ export async function recordVendorPayment(
     revalidatePath("/finance/dashboard");
 
     return {
-      payment_id: result.payment_id,
-      allocated_amount: result.allocated_amount,
-      unallocated_amount: result.unallocated_amount,
+      payment_id: paymentResult.payment_id,
+      allocated_amount: paymentResult.allocated_amount,
+      unallocated_amount: paymentResult.unallocated_amount,
     };
   });
 }
@@ -168,7 +173,7 @@ export async function recordVendorPayment(
  * Fetch vendor debt summary (vendors with unpaid balances)
  */
 export async function fetchVendorDebtSummary(): Promise<ActionResult<VendorDebtItem[]>> {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("finance_vendor_debt_summary");
 
     if (error) {
@@ -192,7 +197,7 @@ export async function fetchVendorUnpaidTasks(
     };
   }
 
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // Get completed work_tasks for this vendor
     const { data: tasks, error: tasksError } = await supabase
       .from("work_tasks")
@@ -258,10 +263,10 @@ export async function fetchVendorUnpaidTasks(
 export interface VendorPaymentHistoryItem {
   id: string;
   amount: number;
-  payment_method: string;
+  payment_method: string | null; // vendor_payments.payment_method NULLABLE trong DB
   payment_date: string;
   note: string | null;
-  created_at: string;
+  created_at: string | null; // vendor_payments.created_at NULLABLE trong DB
   created_by: string | null;
 }
 
@@ -282,7 +287,7 @@ export async function fetchVendorPaymentHistory(
     };
   }
 
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("vendor_payments")
       .select(
@@ -321,7 +326,7 @@ export async function voidVendorPayment(
 
   const { payment_id } = parsed.data;
 
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     // Fetch payment to check date for period lock and vendor name for audit
     const { data: payment, error: fetchError } = await supabase
       .from("vendor_payments")

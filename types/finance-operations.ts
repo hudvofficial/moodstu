@@ -1,3 +1,4 @@
+import type { Json } from "./database.types";
 import type { PaginatedResult } from "@/types/finance-dashboard";
 
 export type ActionResult<T> =
@@ -257,7 +258,7 @@ export interface IntegrityReportItem {
   id: string;
   scan_date: string | null;
   status: string | null;
-  checks: unknown;
+  checks: Json; // jsonb — khớp kiểu sinh từ schema
   total_issues: number | null;
   warning_count: number | null;
   info_count: number | null;

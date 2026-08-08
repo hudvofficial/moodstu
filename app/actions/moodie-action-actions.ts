@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { syncDriveFolder, shareGallery } from "@/app/actions/gallery-admin-actions";
 import { fireAuditLog } from "@/lib/audit";
 import { requireCalendarAccess } from "@/lib/calendar-auth";
@@ -14,7 +16,7 @@ const actionSchema = z.object({
 });
 
 export async function requestMoodieActionApproval(input: z.infer<typeof actionSchema>) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = actionSchema.parse(input);
     if (parsed.kind === "sync_google_calendar") {
       await requireCalendarAccess(supabase, userId, "đồng bộ Google Calendar từ Moodie");
@@ -44,31 +46,36 @@ export async function requestMoodieActionApproval(input: z.infer<typeof actionSc
   });
 }
 
+// Schema THẬT của schedules: tiêu đề nằm ở event_type, mô tả ở notes,
+// KHÔNG có title/description/start_time/end_time (sự kiện cả-ngày).
+// Bản cũ select 4 cột không tồn tại → "Không thể tải lịch: column ... does not exist"
+// → duyệt đồng bộ Google Calendar từ Moodie chưa từng chạy được.
+// Payload dựng giống đường chuẩn createCalendarEvent (calendar-mutations.ts):
+// all-day, end date CỘNG 1 NGÀY vì Google coi end là exclusive.
+function addOneDayDateKey(dateKey: string) {
+  const d = new Date(`${dateKey}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split("T")[0];
+}
+
 function googleCalendarPayload(schedule: {
-  title: string | null;
-  description: string | null;
+  event_type: string | null;
+  notes: string | null;
   location: string | null;
   event_date: string;
   end_date: string | null;
-  start_time: string | null;
-  end_time: string | null;
 }) {
-  const allDay = !schedule.start_time;
   return {
-    summary: schedule.title || "Lịch studio",
-    description: schedule.description || undefined,
+    summary: schedule.event_type || "Lịch studio",
+    description: schedule.notes || undefined,
     location: schedule.location || undefined,
-    start: allDay
-      ? { date: schedule.event_date }
-      : { dateTime: `${schedule.event_date}T${schedule.start_time}`, timeZone: "Asia/Ho_Chi_Minh" },
-    end: allDay
-      ? { date: schedule.end_date || schedule.event_date }
-      : { dateTime: `${schedule.end_date || schedule.event_date}T${schedule.end_time || schedule.start_time}`, timeZone: "Asia/Ho_Chi_Minh" },
+    start: { date: schedule.event_date },
+    end: { date: addOneDayDateKey(schedule.end_date || schedule.event_date) },
   };
 }
 
 export async function approveAndExecuteMoodieAction(approvalId: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const id = z.string().uuid().parse(approvalId);
     const { data: approval, error } = await supabase
       .from("moodie_action_approvals")
@@ -99,7 +106,7 @@ export async function approveAndExecuteMoodieAction(approvalId: string) {
       await requireCalendarAccess(supabase, userId, "đồng bộ Google Calendar từ Moodie");
       const { data: schedule, error: scheduleError } = await supabase
         .from("schedules")
-        .select("id, google_event_id, title, description, location, event_date, end_date, start_time, end_time")
+        .select("id, google_event_id, event_type, notes, location, event_date, end_date")
         .eq("id", targetId)
         .single();
       if (scheduleError) throw new Error(`Không thể tải lịch: ${scheduleError.message}`);

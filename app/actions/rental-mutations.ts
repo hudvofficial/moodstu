@@ -1,6 +1,8 @@
 "use server";
 
 import { withDressesBookingAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog } from "@/lib/audit";
 import { createRentalSchema, returnDressSchema } from "@/lib/validations/rental.schema";
@@ -26,20 +28,20 @@ export async function createRental(rawData: unknown) {
     };
   }
 
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const data = parsed.data;
 
     const rpc = await supabase.rpc("create_standalone_dress_rental_atomic", {
       p_item_id: data.item_id,
-      p_contract_id: data.contract_id || null,
+      p_contract_id: data.contract_id || undefined,
       p_customer_name: data.customer_name,
       p_phone: data.phone,
       p_pickup_date: data.pickup_date,
       p_return_date: data.return_date,
       p_rental_price: data.rental_price,
       p_deposit: data.deposit,
-      p_accessories: data.accessories || null,
-      p_notes: data.notes || null,
+      p_accessories: data.accessories || undefined,
+      p_notes: data.notes || undefined,
       p_user_id: userId,
     });
 
@@ -131,7 +133,7 @@ export async function createRental(rawData: unknown) {
 }
 
 export async function startRental(rentalId: string) {
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const rpc = await supabase.rpc("start_dress_rental_atomic", {
       p_rental_id: rentalId,
       p_user_id: userId,
@@ -185,7 +187,7 @@ export async function returnDressRental(rawData: unknown) {
     };
   }
 
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const data = parsed.data;
 
     const rpc = await supabase.rpc("return_dress_rental_atomic", {
@@ -193,7 +195,7 @@ export async function returnDressRental(rawData: unknown) {
       p_return_condition: data.return_condition,
       p_damage_fee: data.damage_fee,
       p_deposit_returned: data.deposit_returned,
-      p_notes: data.notes || null,
+      p_notes: data.notes || undefined,
       p_user_id: userId,
     });
 
@@ -245,7 +247,7 @@ export async function returnDressRental(rawData: unknown) {
 }
 
 export async function markCleaned(itemId: string) {
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const rpc = await supabase.rpc("mark_dress_cleaned_atomic", {
       p_dress_id: itemId,
       p_user_id: userId,
@@ -289,7 +291,7 @@ export async function markCleaned(itemId: string) {
 }
 
 export async function cancelRental(rentalId: string) {
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const rpc = await supabase.rpc("cancel_dress_rental_atomic", {
       p_rental_id: rentalId,
       p_user_id: userId,
@@ -335,7 +337,7 @@ export async function cancelRental(rentalId: string) {
 }
 
 export async function refundDeposit(rentalId: string) {
-  return withDressesBookingAccess(async (supabase) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>) => {
     const { error } = await supabase
       .from("dress_rentals")
       .update({ deposit_returned: true, updated_at: new Date().toISOString() })

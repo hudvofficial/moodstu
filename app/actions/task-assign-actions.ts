@@ -1,6 +1,7 @@
 "use server";
 
 import { withAuth } from "@/lib/auth_utils";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { fireAuditLog, logError } from "@/lib/audit";
 import { ROLE_PERMISSIONS, normalizeRole } from "@/types/roles";
@@ -64,7 +65,7 @@ function revalidateTaskViews() {
 // ─── ASSIGN TASK ──────────────────────────
 
 export async function assignTask(input: { taskId: string; employeeId: string; cost?: number }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const context = await getTaskMutationContext(supabase, userId);
     if (!input.taskId || !input.employeeId) throw new Error("Thieu taskId hoac employeeId");
     const currentAssignee = await getTaskAssignee(supabase, input.taskId);
@@ -89,7 +90,7 @@ export async function assignTask(input: { taskId: string; employeeId: string; co
 // ─── UPDATE TASK DEADLINE (drag & drop) ───
 
 export async function updateTaskDeadline(input: { taskId: string; newDeadline: string }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const context = await getTaskMutationContext(supabase, userId);
     if (!input.taskId || !input.newDeadline) throw new Error("Thieu taskId hoac deadline");
     const currentAssignee = await getTaskAssignee(supabase, input.taskId);
@@ -108,7 +109,7 @@ export async function updateTaskDeadline(input: { taskId: string; newDeadline: s
 // ─── UPDATE TASK DETAILS ──────────────────
 
 export async function updateTaskDetails(input: { taskId: string; newDeadline: string; assigneeId?: string; status: string }) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const context = await getTaskMutationContext(supabase, userId);
     if (!input.taskId) throw new Error("Thieu taskId");
     const currentAssignee = await getTaskAssignee(supabase, input.taskId);
@@ -143,7 +144,7 @@ export async function updateTaskDetails(input: { taskId: string; newDeadline: st
 // ─── CHECK EMPLOYEE AVAILABILITY ──────────
 
 export async function checkEmployeeAvailability(employeeId: string, targetDate: string, ignoreTaskId?: string) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const context = await getTaskMutationContext(supabase, userId);
     if (!context.isGlobalAdmin && employeeId !== context.employee.id) {
       throw new Error("Ban khong co quyen xem lich cua nguoi khac");

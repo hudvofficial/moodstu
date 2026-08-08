@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   withEmployeeDirectoryAccess,
   withEmployeesAccess,
@@ -44,7 +46,7 @@ function normalizeSearch(value: string | undefined) {
 
 export async function getEmployeeList(params: EmployeeListParams = {}) {
   return profileAction("employees.getEmployeeList", () =>
-    withEmployeesAccess(async (supabase) => {
+    withEmployeesAccess(async (supabase: SupabaseClient<Database>) => {
       const page = normalizePage(params.page);
       const pageSize = normalizePageSize(params.pageSize);
       const from = (page - 1) * pageSize;
@@ -85,7 +87,7 @@ export async function getEmployeeList(params: EmployeeListParams = {}) {
       }
 
       if (params.role && params.role !== "all" && employeeRoles.has(params.role)) {
-        query = query.eq("role", params.role);
+        query = query.eq("role", params.role as Database["public"]["Enums"]["employee_role_enum"]);
       }
 
       const sortMap: Record<string, { column: string; ascending: boolean }> = {
@@ -119,7 +121,7 @@ export async function getEmployeeById(id: string) {
       return { success: false as const, error: parsedId.error.issues[0]?.message };
     }
 
-    return withEmployeesAccess(async (supabase) => {
+    return withEmployeesAccess(async (supabase: SupabaseClient<Database>) => {
       const { data, error } = await supabase
         .from("employees")
         .select("*")
@@ -134,7 +136,7 @@ export async function getEmployeeById(id: string) {
 
 export async function getEmployeeStats() {
   return profileAction("employees.getEmployeeStats", () =>
-    withEmployeesAccess(async (supabase) => {
+    withEmployeesAccess(async (supabase: SupabaseClient<Database>) => {
       const { data: rpcData, error: rpcError } = await supabase
         .rpc("employee_stats")
         .maybeSingle();
@@ -192,7 +194,7 @@ export async function getEmployeeStats() {
 }
 
 export async function getNextEmployeeCode() {
-  return withEmployeesWriteAccess(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase.rpc("next_employee_code");
     if (error) throw new Error(`Không thể tạo mã nhân viên: ${error.message}`);
     return String(data);
@@ -200,7 +202,7 @@ export async function getNextEmployeeCode() {
 }
 
 export async function getActiveEmployees() {
-  return withEmployeeDirectoryAccess(async (supabase) => {
+  return withEmployeeDirectoryAccess(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("employees")
       .select("id, full_name, avatar_url, department, position")

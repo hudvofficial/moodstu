@@ -205,8 +205,8 @@ async function getContractListFromRpc(
     p_service_type: filters.service || "all",
     p_sort: filters.sort || "newest",
     p_time_filter: filters.time || "all",
-    p_start_date: filters.startDate || null,
-    p_end_date: filters.endDate || null,
+    p_start_date: filters.startDate || undefined,
+    p_end_date: filters.endDate || undefined,
     p_page: page,
     p_page_size: 20,
   });

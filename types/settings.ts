@@ -121,6 +121,28 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   system_alerts: true,
 };
 
+/** Ghép row DB (các cột boolean NULLABLE) với default — trả về prefs không-null. */
+export function mergeNotificationPreferences(row: {
+  employee_id?: string | null;
+  onsite_reminder?: boolean | null;
+  deadline_reminder?: boolean | null;
+  overdue_alert?: boolean | null;
+  task_assignment?: boolean | null;
+  system_alerts?: boolean | null;
+  updated_at?: string | null;
+} | null | undefined): NotificationPreferences {
+  return {
+    employee_id: row?.employee_id ?? undefined,
+    onsite_reminder: row?.onsite_reminder ?? DEFAULT_NOTIFICATION_PREFERENCES.onsite_reminder,
+    deadline_reminder: row?.deadline_reminder ?? DEFAULT_NOTIFICATION_PREFERENCES.deadline_reminder,
+    overdue_alert: row?.overdue_alert ?? DEFAULT_NOTIFICATION_PREFERENCES.overdue_alert,
+    task_assignment: row?.task_assignment ?? DEFAULT_NOTIFICATION_PREFERENCES.task_assignment,
+    system_alerts: row?.system_alerts ?? DEFAULT_NOTIFICATION_PREFERENCES.system_alerts,
+    updated_at: row?.updated_at ?? undefined,
+  };
+}
+
+
 export interface SettingsPageData {
   employee: EmployeeProfile;
   notificationPrefs: NotificationPreferences;

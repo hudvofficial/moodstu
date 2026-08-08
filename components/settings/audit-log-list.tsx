@@ -34,7 +34,7 @@ interface AuditLog {
   log_type: string | null;
   severity: string | null;
   source: string | null;
-  created_at: string;
+  created_at: string | null; // audit_logs.created_at NULLABLE trong DB
   employee: AuditLogEmployee | AuditLogEmployee[] | null;
 }
 
@@ -151,7 +151,7 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5 text-text-secondary text-caption">
                       <Clock className="w-3.5 h-3.5" />
-                      {formatLogTime(log.created_at)}
+                      {log.created_at ? formatLogTime(log.created_at) : "—"}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {log.log_type && <Badge variant="neutral">{log.log_type}</Badge>}
@@ -208,7 +208,7 @@ export default function AuditLogList({ initialLogs, totalCount, pageSize }: Audi
                     <TD className="text-text-secondary text-caption whitespace-nowrap">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        {formatLogTime(log.created_at)}
+                        {log.created_at ? formatLogTime(log.created_at) : "—"}
                       </span>
                     </TD>
                     <TD>

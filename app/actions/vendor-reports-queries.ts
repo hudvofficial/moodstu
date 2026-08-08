@@ -1,6 +1,8 @@
 "use server";
 
 import { withFinanceRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
 import { monthWindow } from "@/lib/finance-utils";
 
@@ -25,7 +27,7 @@ export interface VendorCostSummary {
 
 export async function fetchVendorCosts(month: number, year: number) {
   return profileAction("finance.fetchVendorCosts", () =>
-    withFinanceRead(async (supabase) => {
+    withFinanceRead(async (supabase: SupabaseClient<Database>) => {
       const window = monthWindow(month, year);
 
       // Query work_tasks WHERE vendor_id IS NOT NULL AND status='hoan_thanh'

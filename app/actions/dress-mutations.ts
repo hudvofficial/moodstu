@@ -1,5 +1,7 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
   withDressesAccess,
   withDressesBookingAccess,
@@ -70,7 +72,7 @@ async function fallbackRefreshDressStatus(
 ) {
   const rpc = await supabase.rpc("refresh_dress_status_atomic", {
     p_dress_id: dressId,
-    p_user_id: userId ?? null,
+    p_user_id: userId ?? undefined,
   });
 
   if (!rpc.error || !isMissingRpc(rpc.error)) return;
@@ -112,7 +114,7 @@ async function fallbackRefreshDressStatus(
 }
 
 export async function checkItemCodeExists(code: string, excludeId?: string) {
-  return withDressesAccess(async (supabase) => {
+  return withDressesAccess(async (supabase: SupabaseClient<Database>) => {
     let query = supabase
       .from("dresses")
       .select("id")
@@ -137,7 +139,7 @@ export async function createDress(rawData: unknown) {
     };
   }
 
-  return withDressesCatalogWriteAccess(async (supabase, userId) => {
+  return withDressesCatalogWriteAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const data = parsed.data;
     let itemCode = data.item_code?.trim();
 
@@ -226,7 +228,7 @@ export async function updateDress(rawData: unknown) {
     };
   }
 
-  return withDressesCatalogWriteAccess(async (supabase, userId) => {
+  return withDressesCatalogWriteAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { id, updated_at, data } = parsed.data;
 
     const { data: current, error: fetchError } = await supabase
@@ -279,7 +281,7 @@ export async function updateDress(rawData: unknown) {
 export async function deleteDress(id: string) {
   if (!id) return { success: false as const, error: "ID khong hop le" };
 
-  return withDressesCatalogWriteAccess(async (supabase, userId) => {
+  return withDressesCatalogWriteAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const rpc = await supabase.rpc("delete_dress_atomic", {
       p_dress_id: id,
       p_user_id: userId,
@@ -347,21 +349,21 @@ export async function reserveDressForContract(rawData: unknown) {
     };
   }
 
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const input = parsed.data;
     const now = new Date().toISOString();
 
     const rpc = await supabase.rpc("create_dress_contract_reservation_atomic", {
       p_dress_id: input.dressId,
       p_contract_id: input.contractId,
-      p_contract_item_id: input.contractItemId || null,
-      p_customer_id: input.customerId || null,
+      p_contract_item_id: input.contractItemId || undefined,
+      p_customer_id: input.customerId || undefined,
       p_start_date: input.startDate,
       p_end_date: input.endDate,
-      p_export_type: input.exportType || null,
+      p_export_type: input.exportType || undefined,
       p_is_addon: input.isAddon,
       p_rental_price: input.rentalPrice,
-      p_notes: input.notes || null,
+      p_notes: input.notes || undefined,
       p_user_id: userId,
     });
 
@@ -472,7 +474,7 @@ export async function updateReservationStatus(
 ) {
   if (!reservationId) return { success: false as const, error: "ID khong hop le" };
 
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const validStatuses = ["reserved", "in_use", "rented", "returned", "cancelled"];
     if (!validStatuses.includes(status)) {
       throw new Error("Trang thai trang phuc khong hop le");
@@ -512,7 +514,7 @@ export async function updateReservationStatus(
 export async function releaseReservation(reservationId: string) {
   if (!reservationId) return { success: false as const, error: "ID khong hop le" };
 
-  return withDressesBookingAccess(async (supabase, userId) => {
+  return withDressesBookingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const rpc = await supabase.rpc("release_dress_reservation_atomic", {
       p_reservation_id: reservationId,
       p_user_id: userId,
@@ -567,7 +569,7 @@ export async function releaseReservation(reservationId: string) {
 }
 
 export async function uploadDressImage(formData: FormData) {
-  return withDressesCatalogWriteAccess(async (supabase) => {
+  return withDressesCatalogWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const file = formData.get("file") as File | null;
 
     if (!file || file.size === 0) throw new Error("Chua chon anh");
@@ -592,7 +594,7 @@ export async function uploadDressImage(formData: FormData) {
 }
 
 export async function deleteDressImage(imageUrl: string) {
-  return withDressesCatalogWriteAccess(async (supabase) => {
+  return withDressesCatalogWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const path = extractDressStoragePath(imageUrl);
     if (!path) return null;
 

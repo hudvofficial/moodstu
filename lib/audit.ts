@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database.types";
 
 // ═══════════════════════════════════════════
 // Audit System — V2 port from V1 lib/audit.ts
@@ -68,8 +69,8 @@ export async function writeAuditLog(params: BaseLogParams) {
       action: params.action,
       table_name: params.tableName,
       record_id: params.recordId || null,
-      old_data: params.oldData || null,
-      new_data: params.newData || null,
+      old_data: (params.oldData || null) as Json,
+      new_data: (params.newData || null) as Json,
       description: params.description || null,
       log_type: params.logType || "GENERAL",
       severity: params.severity || "INFO",

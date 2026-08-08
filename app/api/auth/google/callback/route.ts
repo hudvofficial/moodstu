@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { Json } from "@/types/database.types";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit";
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
     if (studioInfo) {
       const { error: updateError } = await adminClient
         .from("studio_info")
-        .update({ google_oauth: encryptedAuth })
+        .update({ google_oauth: encryptedAuth as Json })
         .eq("id", studioInfo.id);
 
       if (updateError) throw updateError;
@@ -170,7 +171,7 @@ export async function GET(request: Request) {
     } else {
       const { data: created, error: insertError } = await adminClient
         .from("studio_info")
-        .insert([{ name: "Mood Studio", google_oauth: encryptedAuth }])
+        .insert([{ name: "Mood Studio", google_oauth: encryptedAuth as Json }])
         .select("id")
         .single();
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { fireAuditLog } from "@/lib/audit";
@@ -106,7 +107,7 @@ export async function createEmployee(payload: EmployeePayload) {
     };
   }
 
-  return withEmployeesWriteAccess(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const data = normalizeEmptyStrings(
       sanitizePayload(parsed.data as EmployeePayload),
     );
@@ -118,7 +119,7 @@ export async function createEmployee(payload: EmployeePayload) {
 
       const { data: created, error } = await supabase
         .from("employees")
-        .insert(data)
+        .insert(data as Database["public"]["Tables"]["employees"]["Insert"])
         .select("id, full_name, employee_code")
         .single();
 
@@ -168,7 +169,7 @@ export async function updateEmployee(
     };
   }
 
-  return withEmployeesWriteAccess(async (supabase, userId) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const data = normalizeEmptyStrings(
       sanitizePayload(parsed.data as EmployeePayload),
     );
@@ -256,7 +257,7 @@ export async function softDeleteEmployee(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withEmployeesWriteAccess(async (supabase, userId) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: emp, error: currentError } = await supabase
       .from("employees")
       .select("id, full_name, employee_code, role, auth_user_id, status, deleted_at")
@@ -307,7 +308,7 @@ export async function restoreEmployee(id: string) {
     return { success: false as const, error: parsedId.error.issues[0]?.message };
   }
 
-  return withEmployeesWriteAccess(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const { data: emp, error: currentError } = await supabase
       .from("employees")
       .select("id, full_name, role, auth_user_id, status, deleted_at")
@@ -363,7 +364,7 @@ export async function updateEmployeeNotes(id: string, notes: string | null) {
     };
   }
 
-  return withEmployeesWriteAccess(async (supabase) => {
+  return withEmployeesWriteAccess(async (supabase: SupabaseClient<Database>) => {
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("employees")

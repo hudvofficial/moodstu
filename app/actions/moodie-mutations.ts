@@ -266,7 +266,7 @@ export async function sendMoodieMessage(
   emit?: (event: MoodieEngineEvent) => void,
   signal?: AbortSignal,
 ) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const throwIfAborted = () => {
       if (signal?.aborted) throw new DOMException("Đã dừng phản hồi", "AbortError");
     };
@@ -449,12 +449,13 @@ export async function sendMoodieMessage(
         conversation_id: conversation.id,
         role: "assistant",
         content: result.content,
+        // metadata jsonb — cast qua unknown vì MoodieActivityEntry/SourceV2 không khai index signature
         metadata: {
           ...result.metadata,
           response_ui_version: 2,
           activity_history: activityHistory,
           sources_v2: sourcesV2,
-        },
+        } as unknown as Json,
         parent_message_id: userMessage?.id || null,
         revision: (siblingCount || 0) + 1,
         request_id: requestId,
@@ -562,7 +563,7 @@ export async function sendMoodieMessage(
 }
 
 export async function submitMoodieFeedback(rawInput: unknown) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieFeedbackSchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Feedback kh\u00f4ng h\u1ee3p l\u1ec7");
     await requireMoodieAccess(supabase, userId);
@@ -607,7 +608,7 @@ export async function submitMoodieFeedback(rawInput: unknown) {
 }
 
 export async function deleteMoodieMessage(rawInput: unknown) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieDeleteMessageSchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
     await requireMoodieAccess(supabase, userId);
@@ -648,7 +649,7 @@ export async function deleteMoodieMessage(rawInput: unknown) {
 }
 
 export async function renameMoodieConversation(rawInput: unknown) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieRenameConversationSchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "D\u1eef li\u1ec7u kh\u00f4ng h\u1ee3p l\u1ec7");
 
@@ -695,7 +696,7 @@ export async function renameMoodieConversation(rawInput: unknown) {
 }
 
 export async function deleteMoodieConversation(rawInput: unknown) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieDeleteConversationSchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "D\u1eef li\u1ec7u kh\u00f4ng h\u1ee3p l\u1ec7");
 

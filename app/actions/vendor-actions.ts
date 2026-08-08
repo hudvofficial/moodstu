@@ -1,6 +1,8 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { withAuth, withAdmin, withAuthRead } from "@/lib/auth_utils";
 import { writeAuditLog } from "@/lib/audit";
@@ -37,7 +39,7 @@ function normalizeName(name: string) {
 }
 
 export async function getActiveVendors() {
-  return withAuthRead(async (supabase) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("vendors")
       .select("id, full_name, phone, service_type, status")
@@ -51,7 +53,7 @@ export async function getActiveVendors() {
 }
 
 export async function quickAddVendor(input: z.infer<typeof quickAddSchema>) {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = quickAddSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -110,7 +112,7 @@ export async function quickAddVendor(input: z.infer<typeof quickAddSchema>) {
  * Admin: Get all vendors including inactive (for management list)
  */
 export async function getAllVendors() {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     const { data, error } = await supabase
       .from("vendors")
       .select("id, full_name, phone, service_type, status, created_at, updated_at")
@@ -126,13 +128,13 @@ export async function getAllVendors() {
  * Admin: Update vendor info
  */
 export async function updateVendor(input: z.infer<typeof vendorUpdateSchema>) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = vendorUpdateSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
     }
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Database["public"]["Tables"]["vendors"]["Update"] = {
       full_name: normalizeName(parsed.data.full_name),
       phone: normalizePhone(parsed.data.phone),
       service_type: parsed.data.service_type?.trim() || null,
@@ -167,7 +169,7 @@ export async function updateVendor(input: z.infer<typeof vendorUpdateSchema>) {
  * Tasks keep vendor_id for historical reference but vendor won't appear in active lists.
  */
 export async function deleteVendor(vendorId: string) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = vendorIdSchema.safeParse(vendorId);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message || "ID không hợp lệ");
@@ -212,7 +214,7 @@ export async function deleteVendor(vendorId: string) {
  * then soft-deletes the merged vendor.
  */
 export async function mergeVendors(input: z.infer<typeof mergeVendorsSchema>) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = mergeVendorsSchema.safeParse(input);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");

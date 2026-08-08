@@ -1,6 +1,7 @@
 "use server";
 
 import { withAuth, requireCrmAccess } from "@/lib/auth_utils";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LeadStatus, CrmLead } from "@/types/crm";
@@ -157,7 +158,7 @@ async function queryLeads(
 }
 
 export async function getLeads(params: LeadFilterParams): Promise<ActionResult<LeadListResult>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     return queryLeads(supabase, role, employee.id, params);
   });
@@ -166,7 +167,7 @@ export async function getLeads(params: LeadFilterParams): Promise<ActionResult<L
 // ----------------------------------------------------
 
 export async function createLead(data: unknown): Promise<ActionResult<{ lead_id: string }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     const parsed = ZodLeadCreate.safeParse(data);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
@@ -201,7 +202,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
       source: tData.source || null, 
       needs: tData.needs?.trim() || null, 
       address: tData.address?.trim() || null,
-      potential: tData.potential || null, 
+      potential: (tData.potential || null) as Database["public"]["Enums"]["lead_potential_enum"] | null, 
       status: "moi" as LeadStatus, 
       notes: tData.notes?.trim() || null,
       social_link: tData.social_link?.trim() || null, 
@@ -236,7 +237,7 @@ export async function createLead(data: unknown): Promise<ActionResult<{ lead_id:
 // ─── UPDATE LEAD ──────────────────────────────
 
 export async function updateLead(id: string, data: unknown): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     
     // We expect the client to pass the id and data together for Zod parsing
@@ -266,14 +267,14 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
     }
 
     const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { updated_at: now };
+    const updateData: Database["public"]["Tables"]["crm_leads"]["Update"] = { updated_at: now };
     if (tData.contact_name !== undefined) updateData.contact_name = tData.contact_name.trim();
     if (tData.phone !== undefined) updateData.phone = tData.phone.trim() || null;
     if (tData.email !== undefined) updateData.email = tData.email.trim() || null;
     if (tData.source !== undefined) updateData.source = tData.source || null;
     if (tData.needs !== undefined) updateData.needs = tData.needs?.trim() || null;
     if (tData.address !== undefined) updateData.address = tData.address?.trim() || null;
-    if (tData.potential !== undefined) updateData.potential = tData.potential || null;
+    if (tData.potential !== undefined) updateData.potential = (tData.potential || null) as Database["public"]["Enums"]["lead_potential_enum"] | null;
     if (tData.status !== undefined) {
       const oldStatus = (oldData.status || "moi") as LeadStatus;
       assertLeadStatusTransitionAllowed(oldStatus, tData.status);
@@ -303,7 +304,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
       .from("crm_leads")
       .update(updateData)
       .eq("id", tData.id)
-      .eq("updated_at", oldData.updated_at)
+      .eq("updated_at", oldData.updated_at as string)
       .select("id");
     if (error) throw error;
     if (!updatedRows || updatedRows.length === 0) {
@@ -328,7 +329,7 @@ export async function updateLead(id: string, data: unknown): Promise<ActionResul
 // ----------------------------------------------------
 
 export async function deleteLead(id: string): Promise<ActionResult<null>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
 
     if (role !== "admin" && role !== "manager") {
@@ -367,7 +368,7 @@ export async function deleteLead(id: string): Promise<ActionResult<null>> {
 // ----------------------------------------------------
 
 export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee: actor, role } = await requireCrmAccess(supabase, userId);
     const parsed = ZodUuidId.safeParse({ id });
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "ID không hợp lệ");
@@ -385,7 +386,7 @@ export async function getLeadById(id: string): Promise<ActionResult<CrmLead>> {
     // 🔒 Sale may only open their own / unassigned leads.
     assertLeadVisibleToRole(role, actor.id, (data as { assigned_to?: string | null }).assigned_to);
 
-    return data as CrmLead;
+    return data as unknown as CrmLead;
   });
 }
 
@@ -444,7 +445,7 @@ async function getLeadStatsScoped(
 }
 
 export async function getLeadStats(): Promise<ActionResult<LeadStatsResult>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     return getLeadStatsScoped(supabase, role, employee.id);
   });
@@ -457,7 +458,7 @@ export async function getLeadStats(): Promise<ActionResult<LeadStatsResult>> {
 export async function getLeadsBootstrap(
   params: LeadFilterParams,
 ): Promise<ActionResult<LeadListResult & { stats: LeadStatsResult }>> {
-  return withAuth(async (supabase, userId) => {
+  return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     const { employee, role } = await requireCrmAccess(supabase, userId);
     const [list, stats] = await Promise.all([
       queryLeads(supabase, role, employee.id, params),

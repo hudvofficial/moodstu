@@ -1,6 +1,7 @@
 "use server";
 
 import { withAdmin } from "@/lib/auth_utils";
+import type { Database } from "@/types/database.types";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit";
 import { checkPeriodLock, firstDayOfMonth } from "@/lib/finance-utils";
@@ -23,7 +24,8 @@ type WorkProgressRow = {
   assigned_to: string | null;
   vendor_id?: string | null;
   cost: number | null;
-  contracts: Array<{ contract_code?: string | null }> | null;
+  // join nhiều-về-một: PostgREST trả OBJECT, không phải mảng — bản cũ truy cập [0] nên mã HĐ luôn ra "Không mã"
+  contracts: { contract_code: string | null } | null;
 };
 
 async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalaryId: string) {
@@ -82,7 +84,7 @@ async function recalculateEmployeeSalary(supabase: SupabaseClient, employeeSalar
 }
 
 export async function addSalaryAdjustment(data: AdjustmentData) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     if (data.amount <= 0) throw new Error("Số tiền điều chỉnh phải > 0");
     if (!data.reason?.trim()) throw new Error("Lý do không được để trống");
 
@@ -119,7 +121,7 @@ export async function addSalaryAdjustment(data: AdjustmentData) {
 }
 
 export async function deleteSalaryAdjustment(id: string, salaryId: string) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     // W3: Period lock — TRƯỚC mutation (C1 audit fix)
     const { data: salaryRecord } = await supabase.from("employee_salaries").select("month, year").eq("id", salaryId).single();
     if (salaryRecord) {
@@ -154,7 +156,7 @@ export async function deleteSalaryAdjustment(id: string, salaryId: string) {
 }
 
 export async function payEmployeeSalaryAction(salaryId: string, amount: number, paymentMethod: "tien_mat" | "chuyen_khoan" = "chuyen_khoan") {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     if (amount <= 0) throw new Error("Số tiền thanh toán phải > 0");
     const { data: salaryRecord } = await supabase.from("employee_salaries").select("*, employees(full_name)").eq("id", salaryId).single();
     if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
@@ -162,7 +164,7 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number, 
     await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
 
     const currentPaid = Number(salaryRecord.paid_amount) || 0;
-    const currentRemaining = Number(salaryRecord.remaining_amount ?? salaryRecord.net_salary - currentPaid) || 0;
+    const currentRemaining = Number(salaryRecord.remaining_amount ?? (salaryRecord.net_salary ?? 0) - currentPaid) || 0;
     if (currentRemaining <= 0) {
       throw new Error("Bang luong nay da duoc thanh toan het.");
     }
@@ -210,9 +212,13 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number, 
 }
 
 export async function deleteEmployeeMonthlySalaryAction(salaryId: string) {
-  return withAdmin(async (supabase) => {
-    const { data: salaryRecord } = await supabase.from("employee_salaries").select("month, year, employee_name, monthly_salary_id").eq("id", salaryId).single();
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
+    // employee_salaries KHÔNG có cột employee_name — bản cũ select cột đó nên
+    // query lỗi → salaryRecord luôn null → "Không tìm thấy bản ghi lương" →
+    // chức năng xoá bảng lương chưa từng chạy được. Lấy tên qua employee_id.
+    const { data: salaryRecord } = await supabase.from("employee_salaries").select("month, year, employee_id, monthly_salary_id").eq("id", salaryId).single();
     if (!salaryRecord) throw new Error("Không tìm thấy bản ghi lương");
+    const { data: salaryEmployee } = await supabase.from("employees").select("full_name").eq("id", salaryRecord.employee_id).maybeSingle();
 
     await checkPeriodLock(supabase, firstDayOfMonth(salaryRecord.month, salaryRecord.year));
 
@@ -223,20 +229,20 @@ export async function deleteEmployeeMonthlySalaryAction(salaryId: string) {
     const { data: allSalaries } = await supabase
       .from("employee_salaries")
       .select("net_salary")
-      .eq("monthly_salary_id", salaryRecord.monthly_salary_id);
+      .eq("monthly_salary_id", salaryRecord.monthly_salary_id as string);
 
-    const totalMonth = allSalaries?.reduce((sum: number, item: { net_salary: number }) => sum + (item.net_salary || 0), 0) || 0;
+    const totalMonth = allSalaries?.reduce((sum: number, item: { net_salary: number | null }) => sum + (item.net_salary || 0), 0) || 0;
     const countRem = allSalaries?.length || 0;
 
     await supabase.from("monthly_salaries")
       .update({ total_salary: totalMonth, total_employees: countRem, updated_at: new Date().toISOString() })
-      .eq("id", salaryRecord.monthly_salary_id);
+      .eq("id", salaryRecord.monthly_salary_id as string);
 
     await writeAuditLog({
       action: "DELETE",
       tableName: "employee_salaries",
       recordId: salaryId,
-      description: `Xóa bảng lương của nhân sự: ${salaryRecord.employee_name}`
+      description: `Xóa bảng lương của nhân sự: ${salaryEmployee?.full_name || salaryRecord.employee_id}`
     });
 
     revalidatePath("/finance/salaries");
@@ -249,7 +255,7 @@ export async function deleteEmployeeMonthlySalaryAction(salaryId: string) {
 // ═══════════════════════════════════════════
 
 export async function validatePayrollWarningsAction(month: number, year: number) {
-  return withAdmin(async (supabase) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>) => {
     try {
       const startOfMonth = new Date(year, month - 1, 1).toISOString();
       const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
@@ -267,7 +273,7 @@ export async function validatePayrollWarningsAction(month: number, year: number)
       const zeroCostTasks: string[] = [];
 
       workProgress?.forEach((task: WorkProgressRow) => {
-        const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
+        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
         if (task.vendor_id) return; // Vendor tasks do not affect employee payroll
 
         if (!task.assigned_to) {
@@ -298,7 +304,7 @@ export async function validatePayrollWarningsAction(month: number, year: number)
 }
 
 export async function generateMonthlySalaryAction(month: number, year: number) {
-  return withAdmin(async (supabase, userId) => {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
     try {
       // 1. Check Period Lock (Data Integrity)
       const dateString = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -366,7 +372,7 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
       const zeroCostTasks: Set<string> = new Set();
 
       workProgress?.forEach((task: WorkProgressRow) => {
-        const contractRef = task.contracts?.[0]?.contract_code || "Hợp đồng (Không mã)";
+        const contractRef = task.contracts?.contract_code || "Hợp đồng (Không mã)";
         if (task.vendor_id) return; // Vendor tasks do not affect employee payroll
 
         if (!task.assigned_to) {

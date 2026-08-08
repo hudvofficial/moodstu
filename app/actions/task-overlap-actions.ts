@@ -1,6 +1,8 @@
 "use server";
 
 import { requireContractAccess, withAuthRead } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { logConflict, logError } from "@/lib/audit";
 
 // ═══════════════════════════════════════════
@@ -15,7 +17,7 @@ import { logConflict, logError } from "@/lib/audit";
 export async function checkEmployeeTimeOverlap(
   employeeId: string, eventDate: string, targetStartTime: string, targetEndTime: string, excludeTaskId?: string
 ) {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     let query = supabase
@@ -33,8 +35,8 @@ export async function checkEmployeeTimeOverlap(
     if (error) return { hasConflict: false, conflicts: [] };
 
     const conflicts = (data || [])
-      .filter((task: { start_time: string; end_time: string }) => task.start_time < targetEndTime && task.end_time > targetStartTime)
-      .map((task: { id: string; work_type: string; start_time: string; end_time: string; contract_events: { title?: string } | { title?: string }[] }) => ({
+      .filter((task) => task.start_time < targetEndTime && task.end_time > targetStartTime)
+      .map((task) => ({
         id: task.id, work_type: task.work_type, start_time: task.start_time, end_time: task.end_time,
         event_title: Array.isArray(task.contract_events) ? task.contract_events[0]?.title || "" : task.contract_events?.title || "",
       }));
@@ -48,7 +50,7 @@ export async function checkEmployeeTimeOverlap(
 export async function checkEmployeeDeadlineOverlap(
   employeeId: string, targetDeadline: string, ignoreTaskId?: string, ignoreContractId?: string
 ) {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     await requireContractAccess(supabase, userId);
 
     const deadlineDate = targetDeadline.split("T")[0];

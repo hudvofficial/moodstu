@@ -107,7 +107,7 @@ async function loadConversationDetail(
 }
 
 export async function getMoodiePageData() {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     const { role } = await requireMoodieAccess(supabase, userId);
 
     const providerReadyPromise = getActiveMoodieProvider().then(Boolean).catch(() => false);
@@ -216,7 +216,7 @@ export async function getMoodiePageData() {
 }
 
 export async function getMoodieTurnStatus(rawInput: unknown) {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieTurnQuerySchema.safeParse(rawInput);
     if (!parsed.success) throw new Error("Lượt Moodie không hợp lệ");
     await requireMoodieAccess(supabase, userId);
@@ -231,7 +231,7 @@ export async function getMoodieTurnStatus(rawInput: unknown) {
 }
 
 export async function getMoodieConversationDetail(rawInput: unknown) {
-  return withAuthRead(async (supabase, userId) => {
+  return withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
     const parsed = moodieConversationQuerySchema.safeParse(rawInput);
     if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ");
 
