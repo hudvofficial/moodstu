@@ -442,7 +442,7 @@ export async function getOrderPaymentHistory(orderId: string) {
       paymentType: payment.payment_type as "deposit" | "final" | "refund" | "adjustment",
       amount: payment.amount,
       paymentDate: payment.payment_date,
-      paymentMethod: payment.payment_method as "cash" | "transfer" | "card" | "other",
+      paymentMethod: payment.payment_method, // text — DB lưu tien_mat/chuyen_khoan
       notes: payment.notes || null,
       createdAt: payment.created_at,
     }));

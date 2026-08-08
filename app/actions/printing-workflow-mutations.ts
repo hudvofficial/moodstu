@@ -79,7 +79,8 @@ export async function recordDepositPayment(input: RecordDepositPaymentInput) {
       .insert({
         receipt_date: paymentDateStr,
         receipt_type: "sale_receipt",
-        payment_type: paymentMethod,
+        // data thật trong receipts.payment_type là tien_mat/chuyen_khoan — quy đổi từ vựng UI
+        payment_type: toPaymentMethodEnum(paymentMethod),
         receipt_amount: depositAmount,
         category_name: "Đặt cọc đơn in",
         notes: notes || `Đặt cọc đơn #${order.order_code}`,
@@ -102,7 +103,7 @@ export async function recordDepositPayment(input: RecordDepositPaymentInput) {
         payment_type: "deposit",
         amount: depositAmount,
         payment_date: paymentDateStr,
-        payment_method: paymentMethod,
+        payment_method: toPaymentMethodEnum(paymentMethod), // thống nhất từ vựng tien_mat/chuyen_khoan
         notes,
         created_by: userId,
         updated_by: userId,
@@ -144,7 +145,7 @@ export async function recordDepositPayment(input: RecordDepositPaymentInput) {
         order_id: orderId,
         receipt_id: receipt.id,
         amount: depositAmount,
-        payment_method: paymentMethod,
+        payment_method: toPaymentMethodEnum(paymentMethod), // thống nhất từ vựng tien_mat/chuyen_khoan
       },
       source: "server_action",
     });
@@ -523,7 +524,8 @@ export async function recordFinalPayment(input: {
       .insert({
         receipt_date: paymentDateStr,
         receipt_type: "sale_receipt",
-        payment_type: paymentMethod,
+        // data thật trong receipts.payment_type là tien_mat/chuyen_khoan — quy đổi từ vựng UI
+        payment_type: toPaymentMethodEnum(paymentMethod),
         receipt_amount: finalAmount,
         category_name: "Thanh toán đơn in",
         notes: notes || `Thanh toán cuối cho đơn #${order.order_code}`,
@@ -546,7 +548,7 @@ export async function recordFinalPayment(input: {
         payment_type: "final",
         amount: finalAmount,
         payment_date: paymentDateStr,
-        payment_method: paymentMethod,
+        payment_method: toPaymentMethodEnum(paymentMethod), // thống nhất từ vựng tien_mat/chuyen_khoan
         notes,
         created_by: userId,
         updated_by: userId,
@@ -588,7 +590,7 @@ export async function recordFinalPayment(input: {
         order_id: orderId,
         receipt_id: receipt.id,
         amount: finalAmount,
-        payment_method: paymentMethod,
+        payment_method: toPaymentMethodEnum(paymentMethod), // thống nhất từ vựng tien_mat/chuyen_khoan
       },
       source: "server_action",
     });
@@ -728,7 +730,7 @@ export async function cancelOrder(input: {
           payment_type: "refund",
           amount: -Math.abs(refundAmount), // Negative for refund
           payment_date: new Date().toISOString().split("T")[0],
-          payment_method: refundMethod,
+          payment_method: toPaymentMethodEnum(refundMethod), // thống nhất từ vựng
           notes: `Hoàn tiền: ${reason}`,
           created_by: userId,
           updated_by: userId,

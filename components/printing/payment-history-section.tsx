@@ -15,7 +15,7 @@ interface PaymentHistoryItem {
   paymentType: "deposit" | "final" | "refund" | "adjustment";
   amount: number;
   paymentDate: string;
-  paymentMethod: "cash" | "transfer" | "card" | "other";
+  paymentMethod: string; // DB lưu tien_mat/chuyen_khoan sau thống nhất từ vựng
   notes: string | null;
   createdAt: string | null; // order_payments.created_at NULLABLE
 }
@@ -33,6 +33,10 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  // DB giờ lưu tien_mat/chuyen_khoan (thống nhất từ vựng 08/08); giữ key tiếng Anh
+  // phòng dữ liệu cũ nếu có.
+  tien_mat: "Tiền mặt",
+  chuyen_khoan: "Chuyển khoản",
   cash: "Tiền mặt",
   transfer: "Chuyển khoản",
   card: "Thẻ",
@@ -168,7 +172,7 @@ export function PaymentHistorySection({
                         </span>
                       </div>
                       <p className="text-xs text-text-secondary">
-                        {PAYMENT_METHOD_LABELS[payment.paymentMethod]}
+                        {PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod}
                       </p>
                       {payment.notes && (
                         <p className="text-xs text-text-muted mt-1 line-clamp-2">
