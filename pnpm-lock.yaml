@@ -39,7 +39,7 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(@supabase/supabase-js@2.106.2)
       '@supabase/supabase-js':
-        specifier: ^2.99.1
+        specifier: 2.106.2
         version: 2.106.2
       '@tanstack/query-sync-storage-persister':
         specifier: ^5.100.14
