@@ -456,3 +456,26 @@ done:
       Chưa verify UI click-through form Sửa (chỉ e2e tầng RPC + tsc/eslint; payload key khớp
       guard đã đọc đối chiếu tay). Drive copy thật vẫn chưa chạy (tạo folder Drive khách).
       getGalleryMetadataAll (fallback khi v3 vắng) vẫn select 1 phát — cố ý bỏ qua, v3 đang có.
+
+  - id: T-20260808-typed-client-complete
+    title: "ADR-013 HOÀN TẤT — Phase 4b + Phase 5 + khoá auth_utils/server"
+    status: done
+    owner: claude
+    locks: ["app/actions/**", "lib/auth_utils.ts", "lib/supabase/server.ts", "lib/audit.ts", "lib/services/addon-sync-service.ts", "types/{gallery,settings,finance-operations}.ts"]
+    spec: agent/DECISIONS.md ADR-013
+    result: >
+      4b (d588953): gallery-core 18 tham số any + 20 createAdminClient trần → typed; render 2 mặt
+      tiền OK (admin 95/501, public 501·116). Phase 5 + khoá (852c97f): 38 file action (156
+      callback) + createServerClient<Database> + 39 tham chiếu auth_utils — TOÀN BỘ server action
+      giờ typed, không lùi được. 74+18 lỗi → 0. Verify: tsc 0 · eslint 0 · build · 11/11
+      verify:<module> pass.
+    notes: >
+      4 bug thật đợt cuối: (1) Moodie duyệt sync Google Calendar select 4 cột ảo trên schedules
+      (title nằm ở event_type, notes là mô tả) — luôn throw, đã viết lại payload theo đường chuẩn;
+      (2) xoá bảng lương select employee_salaries.employee_name không tồn tại — luôn "Không tìm
+      thấy bản ghi lương"; (3) join contracts nhiều-về-một trả OBJECT nhưng code đọc [0] — mã HĐ
+      trong cảnh báo lương luôn "Không mã"; (4) schedule-actions.ts (0 nơi gọi) ghi
+      schedule_date/color thay vì event_date/color_id.
+      Tổng kết ADR-013 toàn chiến dịch: ~193 lỗi type → 0, moi ra 15 bug thật kiểu "schema tưởng
+      tượng + lỗi nuốt". Ghi nhận thêm: notification_preferences boolean NULLABLE → helper
+      mergeNotificationPreferences trong types/settings.ts.
