@@ -55,7 +55,7 @@ export async function getGalleryImagesPaginated(
 async function getCachedGalleryImages(galleryId: string) {
   const fetcher = unstable_cache(
     async (id: string) => {
-      const supabase = await createAdminClient();
+      const supabase: SupabaseClient<Database> = await createAdminClient();
       // selectAllRows: PostgREST cắt 1000 dòng IM LẶNG — album vượt 1000 ảnh sẽ
       // thiếu ảnh trong Download Manager + modal lọc (album lớn nhất đã 780).
       // Helper throw khi lỗi — giữ đúng tính chất "throw thay vì trả []":

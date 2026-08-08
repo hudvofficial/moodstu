@@ -1,6 +1,8 @@
 "use server";
 
 import { withAuth, requireContractAccess } from "@/lib/auth_utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isValidUUID } from "@/types/gallery";
 import type { GalleryCommentSummary } from "./gallery-composite-actions";
@@ -50,7 +52,7 @@ export async function toggleReaction(
       return { success: false, action: "error" as const, error: "Gallery access proof required" };
     }
 
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
 
     // Tim = hành động xã giao, KHÔNG cần mật khẩu (nghiệp vụ chốt 15/07):
     // chấp nhận VIEW-token (album có pass) LẪN token đầy đủ (album không pass).
@@ -103,7 +105,7 @@ export async function toggleReaction(
 /** Get aggregated reaction counts per image for a gallery */
 export async function getReactionCounts(galleryId: string): Promise<ReactionCounts> {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
 
     // selectAllRows: PostgREST cắt 1000 dòng/request IM LẶNG — gallery vượt
     // 1000 lượt reaction sẽ đếm thiếu nếu select 1 phát.
@@ -134,7 +136,7 @@ export async function getReactionCounts(galleryId: string): Promise<ReactionCoun
 /** Check which images the current client has reacted to */
 export async function getClientReactions(galleryId: string, clientIdentifier: string) {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
 
     const { data, error } = await supabase
       .from("gallery_reactions")
@@ -168,7 +170,7 @@ export async function getGalleryComments(
 ): Promise<Record<string, GalleryCommentSummary[]>> {
   try {
     if (!accessUrl?.trim() || !accessToken?.trim()) return {};
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     // Đọc ghi chú = mức "view" (ai có link đều đọc được — client_note vốn đã nằm trong
     // payload ảnh IMAGE_COLS cho mọi người có link). NHƯNG album KHÔNG mật khẩu cấp thẳng
     // select-token, mà so capability là EXACT → gate "view" trần sẽ từ chối chính nó.
@@ -201,19 +203,20 @@ export async function getGalleryComments(
 
 /** Get comments for an image. is_mine tính ở server — KHÔNG trả client_identifier ra ngoài. */
 export async function getComments(imageId: string, accessUrl?: string, accessToken?: string, clientIdentifier?: string): Promise<GalleryComment[]> {
-  const toComment = (row: { id: string; image_id: string; gallery_id: string; content: string; author_name: string | null; client_identifier: string; created_at: string; updated_at: string }): GalleryComment => ({
+  const toComment = (row: { id: string; image_id: string; gallery_id: string; content: string; author_name: string | null; client_identifier: string; created_at: string | null; updated_at: string }): GalleryComment => ({
     id: row.id,
     image_id: row.image_id,
     gallery_id: row.gallery_id,
     content: row.content,
     author_name: row.author_name,
     is_mine: !!clientIdentifier && row.client_identifier === clientIdentifier,
-    created_at: row.created_at,
+    // created_at nullable trong DB (default now()) — coerce về updated_at nếu thiếu
+    created_at: row.created_at ?? row.updated_at,
     updated_at: row.updated_at,
   });
   try {
     if (accessUrl?.trim() && accessToken?.trim()) {
-      const supabase = await createAdminClient();
+      const supabase: SupabaseClient<Database> = await createAdminClient();
       // Chấp nhận view-token (album có pass) LẪN token đầy đủ (album không pass) — xem toggleReaction.
       try {
         await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "view");
@@ -244,7 +247,7 @@ export async function upsertComment(imageId: string, galleryId: string, content:
     if (!clientIdentifier?.trim()) return { success: false as const, error: "Thiếu định danh client." };
     const trimmed = (content || "").trim();
     if (trimmed.length > 500) return { success: false as const, error: "Ghi chú tối đa 500 ký tự." };
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     // Ghi chú = chỉ dẫn hậu kỳ/in ấn → CÙNG gate với chọn ảnh (mật khẩu Mood cấp).
     // Giữ đúng hành vi updateClientNote cũ; KHÔNG được nới xuống "view".
     const { gallery } = await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), imageId, "select", { enforceDeadline: true });
@@ -267,7 +270,7 @@ export async function upsertComment(imageId: string, galleryId: string, content:
 export async function deleteComment(commentId: string, clientIdentifier: string, accessUrl: string, accessToken: string) {
   try {
     if (!accessUrl?.trim() || !accessToken?.trim()) return { success: false as const, error: "Thiếu quyền truy cập." };
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const { data: comment, error } = await supabase.from("gallery_comments").select("image_id, client_identifier").eq("id", commentId).single();
     if (error || !comment) return { success: false as const, error: "Không tìm thấy ghi chú." };
     await requirePublicGalleryImageAccess(supabase, accessUrl.trim(), accessToken.trim(), comment.image_id, "select", { enforceDeadline: true });
@@ -284,7 +287,7 @@ export async function deleteComment(commentId: string, clientIdentifier: string,
 /** Get comment counts per image for a gallery (for filter bar) */
 export async function getCommentCountsPerImage(galleryId: string): Promise<Record<string, number>> {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
 
     const { data, error } = await supabase
       .from("gallery_comments")

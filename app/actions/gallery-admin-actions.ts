@@ -250,7 +250,7 @@ export async function setGalleryCoverImage(
     }
 
     if (accessUrl && accessToken) {
-      const supabase = await createAdminClient();
+      const supabase: SupabaseClient<Database> = await createAdminClient();
       const gallery = await fetchSharedGalleryByAccessUrl(supabase, accessUrl.trim());
       if (!gallery || gallery.id !== galleryId) {
                 return { success: false as const, error: "Gallery không tồn tại." };

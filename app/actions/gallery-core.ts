@@ -1,4 +1,7 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import {
+  type GalleryImage,
   type GalleryShareCapability,
   type GalleryShareDetails,
   type GalleryShareLink,
@@ -220,7 +223,7 @@ export function normalizePreparedShareDetails(raw: unknown): GalleryShareDetails
 
 export async function fetchActiveShareLinkBySlug(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   slug: string,
 ) {
   const { data, error } = await supabase
@@ -240,7 +243,7 @@ export async function fetchActiveShareLinkBySlug(
 
 export async function fetchSharedGalleryBaseById(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
 ) {
   const { data, error } = await supabase
@@ -282,7 +285,7 @@ export function attachShareLinkToGallery(
 
 export async function fetchSharedGalleryById(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   accessUrl?: string,
 ) {
@@ -313,7 +316,7 @@ export function assertGalleryProof(
 }
 
 export async function requirePublicGalleryAccess(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   accessUrl: string,
   accessToken: string,
   galleryId: string,
@@ -337,7 +340,7 @@ export async function requirePublicGalleryAccess(
 
 export async function requirePublicGalleryImageAccess(
 
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   accessUrl: string,
   accessToken: string,
   imageId: string,
@@ -383,7 +386,7 @@ export async function requirePublicGalleryImageAccess(
 
 export async function updateGalleryImageSelection(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   imageId: string,
   selected: boolean,
 ) {
@@ -419,7 +422,7 @@ export function applyPublicImageFilter(query: any) {
 
 export async function fetchGalleryImageCount(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   options?: { selectedOnly?: boolean; publicVisibleOnly?: boolean },
 ) {
@@ -446,7 +449,7 @@ export async function fetchGalleryImageCount(
 
 export async function fetchGalleryCoverImage(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   publicVisibleOnly = false,
   coverImageId?: string | null,
@@ -491,7 +494,7 @@ export async function fetchGalleryCoverImage(
 
 export async function fetchGallerySummaryMetrics(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
 ) {
   const [imageCount, selectedCount, coverImageUrl] = await Promise.all([
@@ -505,7 +508,7 @@ export async function fetchGallerySummaryMetrics(
 
 export async function fetchPublicGalleryImagesPage(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   page: number,
   pageSize = PUBLIC_IMAGE_PAGE_SIZE,
@@ -531,7 +534,8 @@ export async function fetchPublicGalleryImagesPage(
         throw new Error(`Không thể tải ảnh gallery: ${error.message}`);
   }
 
-  const images = data || [];
+  // Ép về GalleryImage[] như getGalleryImagesPaginated — shape do IMAGE_COLS quyết định.
+  const images = (data || []) as unknown as GalleryImage[];
   const totalCount = count ?? 0;
 
   return {
@@ -544,7 +548,7 @@ export async function fetchPublicGalleryImagesPage(
 
 export async function fetchAllGalleryImages(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   columns = IMAGE_COLS,
 ) {
@@ -585,7 +589,7 @@ export function generateShareLinkSlug(capability: GalleryShareCapability) {
 
 export async function insertShareLinkWithRetry(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   capability: GalleryShareCapability,
   userId: string,
@@ -627,7 +631,7 @@ export async function insertShareLinkWithRetry(
 
 export async function ensureGalleryShareLink(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   capability: GalleryShareCapability,
   userId: string,
@@ -670,7 +674,7 @@ export async function ensureGalleryShareLink(
 
 export async function fetchGalleryShareLinks(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
 ) {
   const { data, error } = await supabase
@@ -687,7 +691,7 @@ export async function fetchGalleryShareLinks(
 
 export async function ensureAllGalleryShareLinks(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   userId: string,
 ) {
@@ -709,7 +713,7 @@ export async function ensureAllGalleryShareLinks(
 
 export async function prepareGalleryShareViaRpc(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   userId: string,
 ) {
@@ -734,7 +738,7 @@ export async function prepareGalleryShareViaRpc(
 
 export async function prepareGalleryShareFallback(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   userId: string,
   profiler?: ReturnType<typeof createGalleryShareProfiler>,
@@ -780,7 +784,8 @@ export async function prepareGalleryShareFallback(
 
   return {
     galleryId: preparedGallery.id,
-    status: preparedGallery.status,
+    // galleries.status nullable trong DB (default 'draft') — coerce tại ranh giới
+    status: preparedGallery.status ?? "draft",
     title: preparedGallery.title,
     accessUrl: preparedGallery.access_url,
     hasPassword: !!(preparedGallery.password_hash || preparedGallery.password),
@@ -790,7 +795,7 @@ export async function prepareGalleryShareFallback(
 
 export async function prepareGallerySharePayload(
    
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   galleryId: string,
   userId: string,
   profiler?: ReturnType<typeof createGalleryShareProfiler>,

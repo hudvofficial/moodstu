@@ -26,7 +26,7 @@ export async function toggleImageSelection(
     }
 
     if (accessUrl || accessToken) {
-      const supabase = await createAdminClient();
+      const supabase: SupabaseClient<Database> = await createAdminClient();
       const { gallery } = await requirePublicGalleryImageAccess(
         supabase,
         accessUrl || "",
@@ -86,7 +86,7 @@ export async function toggleImageStar(
 
         // Public token path: client đi qua gallery share link.
     if (accessUrl || accessToken) {
-      const supabase = await createAdminClient();
+      const supabase: SupabaseClient<Database> = await createAdminClient();
       await requirePublicGalleryImageAccess(
         supabase,
         accessUrl || "",
@@ -172,7 +172,7 @@ export async function getPublicSelectedImages(
 ) {
   try {
     if (!accessUrl?.trim() || !accessToken?.trim()) return [];
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     // Chấp nhận view-token (album có pass) LẪN token đầy đủ (album không pass) — xem toggleReaction.
     try {
       await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");

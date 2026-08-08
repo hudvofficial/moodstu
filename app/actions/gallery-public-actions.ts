@@ -1,6 +1,8 @@
 "use server";
 
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 import { requireContractAccess, withAuth } from "@/lib/auth_utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
@@ -25,7 +27,7 @@ const fetchSharedGalleryByAccessUrlCached = cache(fetchSharedGalleryByAccessUrl)
 
 export async function getPublicGallery(accessUrl: string) {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const data = await fetchSharedGalleryByAccessUrlCached(supabase, accessUrl);
 
     if (!data) {
@@ -73,7 +75,7 @@ export async function getPublicGallery(accessUrl: string) {
 
 export async function getPublicGalleryPreview(accessUrl: string) {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const data = await fetchSharedGalleryByAccessUrlCached(supabase, accessUrl);
 
     if (!data) {
@@ -126,7 +128,7 @@ export async function getPublicGalleryImagesPaginated(
       return { success: false as const, error: "ID không hợp lệ." };
     }
 
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!gallery) {
@@ -165,7 +167,7 @@ export async function getPublicGalleryImagesPaginated(
 
 export async function getPublicGalleryStats(galleryId: string) {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const [selectedCount, imageCount] = await Promise.all([
       fetchGalleryImageCount(supabase, galleryId, { selectedOnly: true }),
       fetchGalleryImageCount(supabase, galleryId)
@@ -191,7 +193,7 @@ export async function verifyGalleryPassword(
             return { success: false as const, error: "Vui lòng nhập mật khẩu." };
     }
 
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const data = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!data) {
@@ -287,7 +289,7 @@ export async function verifyGalleryPassword(
 
 export async function getGalleryPreviewMetadata(slug: string) {
   try {
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     
     // Thu tu uu tien: Share Link Slug -> Access URL
     let gallery = null;
@@ -382,7 +384,7 @@ export async function getPublicGalleryWithAccess(
       return { success: false as const, error: "ID không hợp lệ." };
     }
 
-    const supabase = await createAdminClient();
+    const supabase: SupabaseClient<Database> = await createAdminClient();
     const gallery = await fetchSharedGalleryById(supabase, galleryId, accessUrl);
 
     if (!gallery) {
