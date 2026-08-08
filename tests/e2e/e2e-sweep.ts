@@ -95,6 +95,7 @@ export async function sweepStaleE2EOrphans(admin: SupabaseClient) {
       const contractIds = staleContracts.map((row) => row.id as string);
       // No ON DELETE CASCADE relied upon — remove children before the contract.
       for (const table of [
+        "expenses", // TRƯỚC printing_orders + contracts — accrual expense của đơn in FK-chặn delete (đã từng làm sweep silently fail, rò contract E2E ra prod 08/08)
         "work_tasks",
         "contract_events",
         "payments",

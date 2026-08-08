@@ -173,6 +173,10 @@ async function cleanupSeed(admin: AdminClient, seed: SeedState) {
     await admin.from("work_tasks").delete().eq("contract_id", seed.contractId);
     await admin.from("contract_events").delete().eq("contract_id", seed.contractId);
     await admin.from("payments").delete().eq("contract_id", seed.contractId);
+    // expenses PHẢI xoá trước printing_orders + contracts — create_printing_order_atomic
+    // sinh expense accrual (FK expenses_printing_order_id_fkey / expenses_contract_id_fkey
+    // chặn delete, supabase-js không throw → cleanup từng silently fail, rò contract E2E ra prod)
+    await admin.from("expenses").delete().eq("contract_id", seed.contractId);
     await admin.from("printing_orders").delete().eq("contract_id", seed.contractId);
     await admin.from("contract_items").delete().eq("contract_id", seed.contractId);
     await admin.from("contracts").delete().eq("id", seed.contractId);
