@@ -39,6 +39,10 @@ Hai bảng này **RLS bật, 0 policy** → chỉ chạm được qua server act
 
 [[luoc-do-in-an-lab]] — `printing_orders` · `printing_order_status_history` · `labs` · `lab_services` · `lab_payments` · `lab_payment_allocations`
 
+## Từ vựng phương thức thanh toán — ĐÃ THỐNG NHẤT 08/08
+
+UI module In ấn dùng `cash | transfer | card | other` (types/printing.ts) làm giá trị nội bộ, nhưng **mọi điểm ghi DB quy đổi qua `toPaymentMethodEnum()`** (printing-workflow-mutations) → DB chỉ còn `tien_mat | chuyen_khoan` ở `order_payments.payment_method`, `receipts.payment_type`, `expenses.payment_method`. Display (payment-history-section) nhận cả hai từ vựng phòng dữ liệu cũ. **Thêm điểm ghi mới → nhớ quy đổi.**
+
 ## Kỹ thuật
 
 SWR (5 file), **0 realtime** → dựa hoàn toàn vào `revalidatePath`. Đừng bỏ.
