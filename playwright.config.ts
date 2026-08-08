@@ -78,7 +78,10 @@ export default defineConfig({
   ],
   webServer: shouldStartWebServer
     ? {
-        command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
+        // Port PHẢI khớp với `url` bên dưới (= defaultBaseURL :3000). Bản cũ start
+        // :3100 nhưng health-check chờ :3000 → cold-start luôn timeout 120s; suite
+        // chỉ chạy được khi ĐÃ có dev server ở :3000 (reuseExistingServer bắt nó).
+        command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
         url: defaultBaseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

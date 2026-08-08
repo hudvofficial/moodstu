@@ -247,6 +247,14 @@ test.describe.serial("Tablet UI test - Print Orders Block", () => {
 
     await page.waitForURL(`**/contracts/${seed.contractId}`, { timeout: 30_000 });
 
+    // Ở viewport tablet, trang chi tiết dùng TABS — block In ấn chỉ render sau khi
+    // bấm tab "In ấn". (Trước đây block hiện thẳng nên spec cũ không bấm.)
+    const printTab = page.locator('button:has-text("In ấn"):visible').first();
+    if (await printTab.isVisible().catch(() => false)) {
+      await printTab.click();
+      await page.waitForTimeout(500);
+    }
+
     const printHeading = page.locator('h3:has-text("In ấn"):visible').first();
     await printHeading.waitFor({ state: "visible", timeout: 15_000 });
     await printHeading.scrollIntoViewIfNeeded();

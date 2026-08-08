@@ -240,8 +240,9 @@ test.describe("1. Desktop 1440 — 2-col grid 12, sidebar sticky", () => {
       const gridStyle = grid ? window.getComputedStyle(grid) : null;
       const sidebarStyle = sidebar ? window.getComputedStyle(sidebar) : null;
 
-      // Sticky check
-      const stickyEl = sidebar?.querySelector(".sticky") ?? null;
+      // Sticky check — refactor: sticky nằm ở CHÍNH sidebar qua class CSS
+      // .detail-sidebar-sticky (app/styles/layout.css), không còn child .sticky.
+      const stickyEl = document.querySelector(".detail-sidebar-sticky");
       const stickyStyle = stickyEl ? window.getComputedStyle(stickyEl) : null;
 
       return {
@@ -342,16 +343,9 @@ test.describe("4. Tablet 768 — single col, sidebar HIDDEN, FormActions fixed b
     await gotoEditForm(page, seed.contractId!);
 
     const layout = await page.evaluate(() => {
-      // Find the shared detail-shell-page container for the tablet tier.
-      const containers = Array.from(document.querySelectorAll("div[class*='max-w']"));
-      // Take the OUTERMOST container (first match from top of body)
-      let outermost: Element | null = null;
-      for (const c of containers) {
-        if (!c.parentElement || c.parentElement.tagName === "BODY") {
-          outermost = c;
-          break;
-        }
-      }
+      // Container width giờ đến từ class .detail-shell-page (app/styles/layout.css),
+      // KHÔNG còn Tailwind max-w-* trong className → query thẳng class đó.
+      const outermost: Element | null = document.querySelector(".detail-shell-page");
 
       const sidebar = document.querySelector(".detail-sidebar");
       const sidebarStyle = sidebar ? window.getComputedStyle(sidebar) : null;

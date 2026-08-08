@@ -78,10 +78,16 @@ test.describe.serial("multi-day contract schedule", () => {
       engagementTitle,
       weddingTitle,
     ]);
+    // selectCurrentMonthDay chọn ngày 15/16 của THÁNG HIỆN TẠI trên picker —
+    // expected phải tính động, hardcode "2026-07-xx" là bom hẹn giờ (spec viết
+    // tháng 7 chạy tháng 8 là vỡ). Sự kiện seed "2026-07-05" thì cố định thật
+    // (global-setup.ts:219).
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     expect(createdEvents?.map((event) => event.event_date?.slice(0, 10))).toEqual([
       "2026-07-05",
-      "2026-07-15",
-      "2026-07-16",
+      `${ym}-15`,
+      `${ym}-16`,
     ]);
 
     const { data: customer } = await admin
@@ -89,7 +95,7 @@ test.describe.serial("multi-day contract schedule", () => {
       .select("wedding_date")
       .eq("id", seed.customerId)
       .single();
-    expect(customer?.wedding_date).toBe("2026-07-16");
+    expect(customer?.wedding_date).toBe(`${ym}-16`);
 
     await page.goto(`/contracts/${seed.contractId}/edit`);
     await expect(page.getByTestId("contract-schedule-row")).toHaveCount(3, { timeout: 45_000 });

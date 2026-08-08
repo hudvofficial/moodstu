@@ -134,6 +134,7 @@ async function seedAdminUser(admin: AdminClient, seed: SeedState) {
 async function login(page: Page, seed: SeedState) {
   await page.goto("/login");
   await page.locator('input[name="email"]').fill(seed.email);
+  await page.locator('input[name="password"]').fill(seed.password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard$/, { timeout: 45_000 });
 }
@@ -306,10 +307,12 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
     await expect(dialog).toContainText(/Thêm Khách Hàng Mới|Cập nhật/i);
 
     // ── Steps 3-4: Fill name + phone ──
-    // Inputs are rendered as <Input label="..."> — getByLabel works on the
-    // wrapping <label> + input pair.
-    await dialog.getByLabel(/Họ và tên/i).fill(newName);
-    await dialog.getByLabel(/Số điện thoại/i).fill(newPhone);
+    // <Input> SSOT render label + input là SIBLINGS không có htmlFor/id
+    // (components/ui/input.tsx:34) → getByLabel KHÔNG match. Dùng placeholder
+    // (duy nhất trong modal này).
+    await dialog.getByPlaceholder("VD: Nguyễn Văn A").fill(newName);
+    // "VD: 09..." trùng placeholder với "SĐT Khác" → khoanh bằng [required] (chỉ SĐT chính có).
+    await dialog.locator('input[type="tel"][required]').fill(newPhone);
 
     // ── Step 5: Submit ──
     const submitButton = dialog.getByRole("button", { name: /Tạo Khách Hàng/i });
@@ -383,8 +386,9 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
-    await dialog.getByLabel(/Họ và tên/i).fill(customerB);
-    await dialog.getByLabel(/Số điện thoại/i).fill(dupPhone);
+    // getByLabel không match với <Input> SSOT (label sibling, không htmlFor) — xem Test 2.
+    await dialog.getByPlaceholder("VD: Nguyễn Văn A").fill(customerB);
+    await dialog.locator('input[type="tel"][required]').fill(dupPhone);
 
     const submitButton = dialog.getByRole("button", { name: /Tạo Khách Hàng/i });
     await submitButton.click();
@@ -446,9 +450,12 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
     await page.goto("/crm/customers?page=3");
 
     // Wait for at least one row from the bulk batch to render — confirms the
-    // SWR cache hydrated for page 3.
+    // SWR cache hydrated for page 3. pageSize=10, sort created_at DESC → 25 row
+    // seed chiếm vị trí 1-25, page 3 (21-30) LUÔN có 5 row E2E nhưng không xác
+    // định row NÀO (created_at trùng nhau trong batch, không có tiebreaker) —
+    // cấm assert đích danh "#21".
     await expect(
-      page.getByText(`E2E CRM Bulk ${seed.marker} #21`, { exact: false }).first(),
+      page.getByText(`E2E CRM Bulk ${seed.marker}`, { exact: false }).first(),
     ).toBeVisible({ timeout: 30_000 });
 
     // ── Step 3: Change the "Nguồn" filter ──
@@ -472,12 +479,11 @@ test.describe.serial("CRM customer sync (post-Fix 1/4/7)", () => {
     await page.waitForURL((url) => !url.searchParams.has("page"), { timeout: 10_000 });
     expect(new URL(page.url()).searchParams.get("page")).toBeNull();
 
-    // ── Step 5: Pagination UI shows page 1 ──
-    // The Pagination component renders <button> with the page number; the
-    // current page has the bg-primary class. Match by visible text "1".
-    const pageOneButton = page.getByRole("button", { name: "1", exact: true });
-    await expect(pageOneButton).toBeVisible({ timeout: 10_000 });
-    // Page 1 must NOT also expose page 3 — that's the regression.
+    // ── Step 5: Pagination không còn ở page 3 ──
+    // Lọc Facebook trên data thật ra 0 kết quả (mọi customer source=NULL) →
+    // Pagination không render khi totalPages <= 1, nên KHÔNG được đòi nút "1"
+    // hiển thị. Reset đã chứng minh bằng URL (Step 4); ở đây chỉ cần chắc
+    // nút page 3 biến mất — đó mới là regression cần gác.
     await expect(page.getByRole("button", { name: "3", exact: true })).toHaveCount(0);
   });
 });

@@ -29,6 +29,8 @@ test("Moodie voice settings is clear, UTF-8 safe and responsive", async ({ page 
   await openAIModelInput.scrollIntoViewIfNeeded();
   await expect(page.getByText("API key OpenAI", { exact: true })).toBeVisible();
   await expect(openAIModelInput).toBeInViewport();
-  await expect(page.getByRole("button", { name: /Lưu cấu hình/i })).toBeVisible();
+  // Trang giờ có 2 nút "Lưu cấu hình" (moodie-ai-card + voice section) → phải
+  // scope vào voice section, để trần page-level là strict mode violation.
+  await expect(voiceSection.getByRole("button", { name: /Lưu cấu hình/i })).toBeVisible();
   await voiceSection.screenshot({ path: testInfo.outputPath("voice-settings-mobile.png") });
 });
