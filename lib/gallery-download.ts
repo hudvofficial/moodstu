@@ -159,7 +159,13 @@ export async function downloadSingleImage(
   if (showToast && toastId) {
     toast.error(
       errorMessage || TOAST_MESSAGES.GALLERY.DOWNLOAD_ERROR(fileName),
-      { id: toastId }
+      {
+        id: toastId,
+        // Kèm nguyên nhân kỹ thuật (HTTP 429/403, NetworkError...) — user gửi screenshot
+        // là biết ngay chết ở tầng nào, hết chẩn đoán mò (vụ DSC_0067 09/08 không trace
+        // được vì toast chỉ nói "Không thể tải").
+        description: lastError?.message || undefined,
+      }
     );
   }
 

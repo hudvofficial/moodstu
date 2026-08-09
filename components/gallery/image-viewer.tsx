@@ -113,6 +113,7 @@ export default function ImageViewer({
   const editingImageIdRef = useRef<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartTimeRef = useRef<number>(0);
+  const downloadingRef = useRef(false); // khoá chống bấm Tải xuống chồng lượt
 
   const currentIdx = currentIndex;
   const setCurrentIdx = onIndexChange;
@@ -409,6 +410,14 @@ export default function ImageViewer({
   const handleDownload = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (!showDownloadButton) return;
+    // Khoá chống bấm chồng lượt: ảnh gốc ~8-20MB tải lâu, user bấm thêm sẽ spawn
+    // nhiều lượt download song song (vụ 3 toast chồng nhau 09/08 — DSC_0067).
+    if (downloadingRef.current) {
+      toast.info("Đang tải ảnh, chờ chút nhé…", { duration: 2500 });
+      return;
+    }
+    downloadingRef.current = true;
+    try {
 
     if (detectIOS()) {
       // In-app browser (Messenger/Zalo/FB...) chặn window.open → nút tải chết câm.
@@ -442,6 +451,9 @@ export default function ImageViewer({
 
     // Dùng downloadSingleImage lib: blob + retry + iOS Safari support (xem lib/gallery-download.ts).
     await downloadSingleImage(accessToken, img.id, downloadFileName);
+    } finally {
+      downloadingRef.current = false;
+    }
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
