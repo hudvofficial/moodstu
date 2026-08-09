@@ -280,7 +280,8 @@ export default function GalleryImageGrid({
                           background: "linear-gradient(180deg, transparent 0%, var(--gallery-admin-overlay-gradient-mid) 40%, var(--gallery-admin-overlay-gradient-start) 100%)",
                         }}
                       >
-                        <p className="truncate text-micro font-medium text-text-inverse">{image.file_name}</p>
+                        {/* text-center + px-9: chừa 2 góc đáy cho nút ✓ (trái) + ❤️ (phải) — tên file từng bị nút đè khi hover */}
+                        <p className="truncate px-9 text-center text-micro font-medium text-text-inverse">{image.file_name}</p>
                       </div>
 
                       {/* Ghi chú khách từ gallery_comments */}
