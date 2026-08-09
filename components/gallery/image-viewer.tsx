@@ -519,11 +519,27 @@ export default function ImageViewer({
   return (
     <div
       className="fixed inset-0 z-(--z-modal) flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.9)" }}
+      // Đen đặc (không phải 0.9) — có lớp ambient blur rồi thì để trang sau xuyên 10%
+      // chỉ làm nền đục + lộ chữ grid phía sau.
+      style={{ background: "#000" }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
+      {/* Nền ambient kiểu albumse: chính tấm ảnh (bản thumbnail) blur phủ toàn màn
+          thay nền đen trần — dùng placeholder (=s600 đã có sẵn từ grid, không tốn request). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={`bg-${img.id}`}
+        src={placeholder}
+        alt=""
+        aria-hidden
+        draggable={false}
+        // -z-10: absolute mặc định vẽ ĐÈ lên ảnh nét in-flow (paint order) → phải đẩy
+        // xuống dưới ảnh, trên nền đen của root (root có stacking context riêng).
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full scale-110 object-cover opacity-50 blur-2xl"
+      />
+
       {/* Top bar */}
       <div
         className="absolute inset-x-0 top-0 z-20 bg-linear-to-b from-black/70 to-transparent"
@@ -537,8 +553,12 @@ export default function ImageViewer({
             paddingRight: "calc(var(--space-base) + env(safe-area-inset-right))",
           }}
         >
-          {/* Left: Trống */}
-          <div className="flex justify-start"></div>
+          {/* Left: đếm vị trí ảnh — dời từ bar đáy lên đây để bar đáy gọn (mẫu albumse) */}
+          <div className="flex justify-start">
+            <span className="text-caption font-medium text-white/90 bg-black/30 px-3 py-1 rounded-full whitespace-nowrap">
+              {currentIdx + 1} / {totalImagesCount || images.length}
+            </span>
+          </div>
 
           {/* Center: File name */}
           <div className="flex justify-center min-w-0">
@@ -623,10 +643,12 @@ export default function ImageViewer({
         srcSet={!fullSrc && previewReady ? srcSet : undefined}
         sizes={!fullSrc && previewReady ? PREVIEW_SIZES : undefined}
         alt={img.file_name || "Photo"}
-        // md:h-[90vh]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
+        // md:h-[...]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
         // Không có nó, ảnh chờ (=s600) hiện nhỏ rồi NỞ ra khi bản xem vào. Mobile giữ nguyên:
         // đã khoá w-[100vw] nên hai bản cùng bề ngang, không nhảy.
-        className={`max-h-[90vh] w-[100vw] max-w-[100vw] object-contain md:h-[90vh] md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
+        // Mốc chiều cao theo mẫu albumse: mobile chừa dải đáy cho hàng chip (100dvh-9rem)
+        // để ảnh dọc không bị nút cắt chân; desktop gần full-bleed 94vh, chip nhỏ đè nhẹ.
+        className={`max-h-[calc(100dvh-9rem)] w-[100vw] max-w-[100vw] object-contain md:h-[94vh] md:max-h-[94vh] md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{
           borderRadius: "var(--radius-lg)",
           // LUÔN bật menu nhấn-giữ native (Safari + WebView Messenger/Zalo đều tôn trọng
@@ -646,7 +668,7 @@ export default function ImageViewer({
           để không lưu nhầm bản nhẹ rồi tưởng ảnh mờ. */}
       {loadingFull && showDownloadButton && (
         <div
-          className="pointer-events-none absolute bottom-6 left-1/2 z-30 -translate-x-1/2 px-3 py-1.5 text-xs font-medium"
+          className="pointer-events-none absolute bottom-20 left-1/2 z-30 -translate-x-1/2 px-3 py-1.5 text-xs font-medium"
           style={{
             background: "rgba(0,0,0,0.55)",
             color: "rgba(255,255,255,0.92)",
@@ -778,25 +800,21 @@ export default function ImageViewer({
         </div>
       )}
 
-      {/* Bottom action bar */}
+      {/* Bottom action bar — hàng chip tròn gọn giữa đáy theo mẫu albumse:
+          không gradient full-width, không text, không hàng đếm (đếm đã lên top bar)
+          → bar thấp, không còn cắt chân ảnh dọc. */}
       <div
-        className="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/70 to-transparent"
+        className="absolute inset-x-0 bottom-0 z-20"
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex flex-col items-center gap-3 px-4 pt-4"
+          className="flex items-center justify-center gap-3 px-4 pt-2"
           style={{
             paddingBottom: "calc(var(--space-base) + env(safe-area-inset-bottom))",
             paddingLeft: "calc(var(--space-base) + env(safe-area-inset-left))",
             paddingRight: "calc(var(--space-base) + env(safe-area-inset-right))",
           }}
         >
-          <div className="flex w-full items-center justify-start">
-            <span className="text-caption font-medium text-white/90 bg-black/40 px-3 py-1.5 rounded-full">
-              {currentIdx + 1} / {totalImagesCount || images.length}
-            </span>
-          </div>
-          <div className="flex items-center justify-center gap-3">
             {!isViewOnly && (
               <>
                 {/* CircleCheck — chọn ảnh (is_selected) */}
@@ -805,11 +823,6 @@ export default function ImageViewer({
                   onClick={(e) => { e.stopPropagation(); onToggleStar(img.id); }}
                   style={{
                     ...actionButtonStyle,
-                    width: "auto",
-                    borderRadius: 9999, // pill rộng — borderRadius 50% của actionButtonStyle sẽ thành elip
-                    paddingLeft: 14,
-                    paddingRight: 14,
-                    gap: 6,
                     background: img.is_selected ? "rgba(34,197,94,0.28)" : actionButtonStyle.background,
                     color: img.is_selected ? "#22c55e" : actionButtonStyle.color,
                     boxShadow: img.is_selected ? "0 0 14px rgba(34,197,94,0.35)" : undefined,
@@ -818,8 +831,7 @@ export default function ImageViewer({
                   title={img.is_selected ? "Bỏ chọn ảnh" : "Chọn ảnh"}
                 >
                   {/* fill xanh + stroke trắng: tick ✓ trắng nổi trong chấm xanh (stroke mặc định ăn theo color xanh → tick tàng hình) */}
-                  <CircleCheck size={18} fill={img.is_selected ? "#22c55e" : "none"} stroke={img.is_selected ? "#ffffff" : "currentColor"} />
-                  <span className="text-sm font-medium whitespace-nowrap">{img.is_selected ? "Đã chọn" : "Chọn"}</span>
+                  <CircleCheck size={20} fill={img.is_selected ? "#22c55e" : "none"} stroke={img.is_selected ? "#ffffff" : "currentColor"} />
                 </Button>
 
                 {/* Heart — reaction độc lập (isReacted) */}
@@ -892,7 +904,6 @@ export default function ImageViewer({
             >
               <Download size={20} />
             </Button>
-          </div>
         </div>
       </div>
     </div>
