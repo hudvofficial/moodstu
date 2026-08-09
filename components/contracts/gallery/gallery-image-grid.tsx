@@ -170,6 +170,34 @@ export default function GalleryImageGrid({
                         }}
                       />
 
+                      {/* Nút CHỌN (✓) trên tile public — đối xứng trái-dưới với ❤️ phải-dưới.
+                          Chọn vs Tim là 2 hệ độc lập (✓ xanh = chọn làm album, ❤️ đỏ = yêu thích);
+                          link view-only không có onToggleStar → chỉ hiện ✓ tĩnh nếu ảnh đã chọn. */}
+                      {publicMode && (onToggleStar ? (
+                        <Button
+                          unstyled
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onToggleStar(image.id, !!image.is_selected);
+                          }}
+                          className={`absolute left-2 bottom-2 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ${image.is_selected ? "opacity-100" : "opacity-90"}`}
+                          style={{ background: "rgba(0,0,0,0.28)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+                          title={image.is_selected ? "Bỏ chọn" : "Chọn ảnh"}
+                        >
+                          <CircleCheck
+                            size={20}
+                            fill={image.is_selected ? "#34c759" : "none"}
+                            stroke="white"
+                            strokeWidth={2}
+                            style={{ transition: "fill 0.3s, stroke 0.3s", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }}
+                          />
+                        </Button>
+                      ) : image.is_selected ? (
+                        <div className="absolute left-2 bottom-2 z-20 flex h-8 w-8 items-center justify-center rounded-full">
+                          <CircleCheck size={20} fill="#34c759" stroke="white" strokeWidth={2} />
+                        </div>
+                      ) : null)}
+
                       {(publicMode ? onToggleReaction : onToggleStar) ? (
                         <Button
                           unstyled
@@ -214,9 +242,10 @@ export default function GalleryImageGrid({
                         </div>
                       ) : null}
 
+                      {/* publicMode: góc trái-dưới giờ là nút ✓ → chip ghi chú dời lên trái-trên (admin giữ nguyên vì trái-trên có nút Star) */}
                       {commentsPerImage[image.id]?.length > 0 && (
                         <div
-                          className="absolute left-2 bottom-2 z-20 flex h-7 w-7 items-center justify-center rounded-full"
+                          className={`absolute ${publicMode ? "left-2 top-2" : "left-2 bottom-2"} z-20 flex h-7 w-7 items-center justify-center rounded-full`}
                           style={overlayChipStyle}
                           title="Có ghi chú"
                         >
