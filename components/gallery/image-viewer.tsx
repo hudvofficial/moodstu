@@ -486,12 +486,15 @@ export default function ImageViewer({
 
   const isViewOnly = mode === "view";
   const noteIsActive = Boolean(currentNote?.trim());
+  // Chip trắng nhỏ nổi trên ảnh (mẫu albumse) — nền trắng mờ + icon sẫm + bóng nhẹ,
+  // thay kiểu chấm đen cũ vốn chỉ đọc được trên nền tối.
   const actionButtonStyle: React.CSSProperties = {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     borderRadius: "50%",
-    background: "rgba(255,255,255,0.12)",
-    color: "rgba(255,255,255,0.70)",
+    background: "rgba(255,255,255,0.92)",
+    color: "rgba(45,45,45,0.72)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -636,6 +639,11 @@ export default function ImageViewer({
         </Button>
       )}
 
+      {/* Wrapper relative shrink-wrap ảnh — mẫu albumse: ảnh phóng TỐI ĐA, hàng chip
+          neo vào MÉP DƯỚI TRONG LÒNG ảnh (không neo viewport, không chừa dải đáy —
+          bản chừa dải trước đó làm ảnh dọc trên phone kẹp giữa 2 dải đen, chip rơi
+          ra ngoài ảnh: ngược mẫu, user bắt lỗi 09/08). */}
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={img.id}
@@ -646,9 +654,8 @@ export default function ImageViewer({
         // md:h-[...]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
         // Không có nó, ảnh chờ (=s600) hiện nhỏ rồi NỞ ra khi bản xem vào. Mobile giữ nguyên:
         // đã khoá w-[100vw] nên hai bản cùng bề ngang, không nhảy.
-        // Mốc chiều cao theo mẫu albumse: mobile chừa dải đáy cho hàng chip (100dvh-9rem)
-        // để ảnh dọc không bị nút cắt chân; desktop gần full-bleed 94vh, chip nhỏ đè nhẹ.
-        className={`max-h-[calc(100dvh-9rem)] w-[100vw] max-w-[100vw] object-contain md:h-[94vh] md:max-h-[94vh] md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
+        // Full-bleed theo mẫu albumse: mobile hết cỡ theo màn, desktop 98vh sát mép.
+        className={`max-h-[100dvh] w-[100vw] max-w-[100vw] object-contain md:h-[98vh] md:max-h-[98vh] md:w-auto md:max-w-[95vw] transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
         style={{
           borderRadius: "var(--radius-lg)",
           // LUÔN bật menu nhấn-giữ native (Safari + WebView Messenger/Zalo đều tôn trọng
@@ -800,21 +807,14 @@ export default function ImageViewer({
         </div>
       )}
 
-      {/* Bottom action bar — hàng chip tròn gọn giữa đáy theo mẫu albumse:
-          không gradient full-width, không text, không hàng đếm (đếm đã lên top bar)
-          → bar thấp, không còn cắt chân ảnh dọc. */}
+      {/* Hàng chip hành động — neo MÉP DƯỚI TRONG LÒNG ảnh (wrapper relative),
+          chip trắng nhỏ nổi trên ảnh đúng mẫu albumse; không gradient, không text. */}
       <div
-        className="absolute inset-x-0 bottom-0 z-20"
+        className="absolute inset-x-0 z-20"
+        style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="flex items-center justify-center gap-3 px-4 pt-2"
-          style={{
-            paddingBottom: "calc(var(--space-base) + env(safe-area-inset-bottom))",
-            paddingLeft: "calc(var(--space-base) + env(safe-area-inset-left))",
-            paddingRight: "calc(var(--space-base) + env(safe-area-inset-right))",
-          }}
-        >
+        <div className="flex items-center justify-center gap-2.5">
             {!isViewOnly && (
               <>
                 {/* CircleCheck — chọn ảnh (is_selected) */}
@@ -906,6 +906,7 @@ export default function ImageViewer({
             </Button>
         </div>
       </div>
+      </div>{/* đóng wrapper relative của ảnh + chip */}
     </div>
   );
 }
