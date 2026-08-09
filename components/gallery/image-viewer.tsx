@@ -159,6 +159,8 @@ export default function ImageViewer({
       cancelled = true;
       loader.onload = null;
       loader.onerror = null;
+      loader.src = ""; // huỷ request khi đổi ảnh nhanh
+      loader.srcset = "";
     };
   }, [src, srcSet, placeholder]);
 
@@ -177,17 +179,27 @@ export default function ImageViewer({
     if (!previewReady) return;
     let cancelled = false;
     const loader = new window.Image();
-    loader.onload = () => {
-      if (!cancelled) setFullState({ key: full, ok: true });
-    };
-    loader.onerror = () => {
-      if (!cancelled) setFullState({ key: full, ok: false });
-    };
     loader.src = full;
+    // decode() thay onload: onload = bytes về + parse xong nhưng CHƯA decode bitmap —
+    // swap lúc đó browser phải decode bản gốc ~19MB ngay trên đường paint → chính là
+    // cú "chớp" user thấy. decode() xong bitmap nằm sẵn trong decoded-image cache,
+    // mount layer là paint liền (pattern PhotoSwipe/Immich/Google Photos).
+    loader
+      .decode()
+      .then(() => {
+        if (!cancelled) setFullState({ key: full, ok: true });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Safari có thể reject decode() dù ảnh đã tải xong — complete+naturalWidth là nguồn chân lý
+        if (loader.complete && loader.naturalWidth > 0) setFullState({ key: full, ok: true });
+        else setFullState({ key: full, ok: false });
+      });
     return () => {
       cancelled = true;
-      loader.onload = null;
-      loader.onerror = null;
+      // Huỷ hẳn request khi lướt nhanh — bản gốc của ảnh CŨ từng tải tiếp ngầm,
+      // giành băng thông làm ảnh đang xem lâu ready hơn.
+      loader.src = "";
     };
   }, [full, src, previewReady]);
 
@@ -211,22 +223,26 @@ export default function ImageViewer({
     };
   }, []);
 
-  // Preload prev/next images
+  // Preload prev/next images — Image() + srcset mirror y hệt thẻ thật để browser tự chọn
+  // ĐÚNG candidate (mobile =s1200). Bản cũ dùng <link prefetch href==s2048> → mobile thẻ
+  // thật xin =s1200: trượt cache, tải thừa, bấm next vẫn chờ (albumse prefetch kiểu này).
   useEffect(() => {
     const preload = (idx: number) => {
-      const next = images[idx];
-      if (!next) return null;
-      const { src: nextSrc } = getPreviewUrls(next);
-      const link = document.createElement("link");
-      link.rel = "prefetch";
-      link.as = "image";
-      link.href = nextSrc;
-      document.head.appendChild(link);
-      return link;
+      const neighbor = images[idx];
+      if (!neighbor) return null;
+      const { src: nSrc, srcSet: nSrcSet } = getPreviewUrls(neighbor);
+      if (!nSrc) return null;
+      const loader = new window.Image();
+      if (nSrcSet) {
+        loader.sizes = PREVIEW_SIZES;
+        loader.srcset = nSrcSet;
+      }
+      loader.src = nSrc;
+      return loader;
     };
 
-    const links = [preload(currentIdx - 1), preload(currentIdx + 1)].filter(Boolean) as HTMLLinkElement[];
-    return () => links.forEach((l) => l.remove());
+    const loaders = [preload(currentIdx - 1), preload(currentIdx + 1)].filter(Boolean) as HTMLImageElement[];
+    return () => loaders.forEach((l) => { l.src = ""; l.srcset = ""; });
   }, [currentIdx, images]);
 
   // Keyboard shortcuts
@@ -644,12 +660,15 @@ export default function ImageViewer({
           bản chừa dải trước đó làm ảnh dọc trên phone kẹp giữa 2 dải đen, chip rơi
           ra ngoài ảnh: ngược mẫu, user bắt lỗi 09/08). */}
       <div className="relative" onClick={(e) => e.stopPropagation()}>
+      {/* Layer PREVIEW — không bao giờ nhận fullSrc nữa. Bản cũ swap src+gỡ srcSet/sizes
+          trên cùng thẻ khi bản gốc về → browser re-select ảnh 2-3 lần, WebKit vẽ frame
+          rỗng = cú "chớp". Giờ preview nằm yên, bản gốc mount thành layer riêng đè lên. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         key={img.id}
-        src={fullSrc || (previewReady ? src : placeholder)}
-        srcSet={!fullSrc && previewReady ? srcSet : undefined}
-        sizes={!fullSrc && previewReady ? PREVIEW_SIZES : undefined}
+        src={previewReady ? src : placeholder}
+        srcSet={previewReady ? srcSet : undefined}
+        sizes={previewReady ? PREVIEW_SIZES : undefined}
         alt={img.file_name || "Photo"}
         // md:h-[...]: desktop lấy chiều cao theo khung chứ không theo kích thước nội tại.
         // Không có nó, ảnh chờ (=s600) hiện nhỏ rồi NỞ ra khi bản xem vào. Mobile giữ nguyên:
@@ -670,6 +689,27 @@ export default function ImageViewer({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       />
+
+      {/* Layer BẢN GỐC — chỉ mount SAU khi loader decode() xong (bitmap sẵn trong cache
+          decode → paint tức thì, decoding="sync" an toàn). Cùng geometry với preview
+          (absolute inset-0 + object-contain) nên thay thế không dịch chuyển pixel.
+          Phải nhận đủ touch handler + WebkitTouchCallout: nhấn-giữ iOS lưu bytes của
+          THẺ TRÊN CÙNG — đây chính là đường "lưu ảnh gốc" (ADR-008). */}
+      {fullSrc && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          key={`full-${img.id}`}
+          src={fullSrc}
+          alt={img.file_name || "Photo"}
+          decoding="sync"
+          className={`absolute inset-0 h-full w-full object-contain transition-transform duration-200 ${longPressActive ? "scale-[0.98]" : ""}`}
+          style={{ borderRadius: "var(--radius-lg)", WebkitTouchCallout: "default" }}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+        />
+      )}
 
       {/* Nhấn giữ chỉ lưu được ảnh gốc SAU khi bản gốc nạp xong — báo cho khách biết
           để không lưu nhầm bản nhẹ rồi tưởng ảnh mờ. */}
