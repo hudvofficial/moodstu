@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import useSWRInfinite from "swr/infinite";
-import { Camera, Image as ImageIcon, Heart, Download } from "lucide-react";
+import { Camera, CircleCheck, Image as ImageIcon, Heart, Download } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
 import { getPublicSelectedImages, toggleImageSelection } from "@/app/actions/gallery-selection-actions";
@@ -364,6 +364,8 @@ export default function PublicGalleryClient({
           </div>
           <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
             <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
+            {/* Số ĐÃ CHỌN — cùng ngôn ngữ nút ✓ trên tile (✓ xanh = chọn, ❤️ đỏ = tim); link view-only vẫn xem được tiến độ chọn */}
+            <span className="flex items-center gap-1.5 text-[#34c759]"><CircleCheck size={14} className="fill-[#34c759] text-white" /> {selectedCount}</span>
             <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {totalLikes}</span>
           </div>
         </div>
