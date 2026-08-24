@@ -32,7 +32,7 @@ updated: 2026-08-24
 active:
   - id: T-20260824-receipts-trace-fixes
     title: "finance/receipts: fix phan loai Coc sai trong finance_receipt_documents + khoa nut Sua tren phieu ban vat tu + 2 loi UI nho"
-    status: implementing
+    status: ci
     owner: claude (fallback)
     branch: main
     locks:

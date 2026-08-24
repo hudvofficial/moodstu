@@ -161,3 +161,26 @@ const [receiptsResult, statsResult, categoriesResult, contractsResult, studioRes
 ## 4. Ngoài phạm vi
 
 Xem mục 1 — 3 điểm đã trace, ghi lại lý do không sửa, không lặp lại điều tra ở task sau.
+
+---
+
+## 5. Kết quả thực thi (2026-08-24)
+
+**Trạng thái:** merged vào `main` (`eddd2bb`), migration đã apply production, đã deploy, đã xác nhận live bằng render thật.
+
+### Verify
+
+1. `npx eslint` (5 file code) → 0 error.
+2. `npm run build` → exit 0.
+3. Migration `20260824140000_fix_receipt_documents_deposit_classification.sql` apply qua `node scripts/migrate-direct.mjs` → gọi lại RPC ngay sau: `contract_deposit` từ **1 → 18**, `contract_payment` từ **48 → 31** (khớp dự kiến — 17 khoản "Cọc" thật + 1 "dat_coc" cũ).
+4. Render thật (local `next start`, seed E2E admin rồi xóa):
+   - Tab "Cọc hợp đồng" tháng 5/2026 → **5/5** (trước fix: 1/1).
+   - Nút "Sửa" trên phiếu bán vật tư → `disabled=true`, title "Phiếu bán vật tư — sửa từ Vật tư".
+   - Trang chi tiết phiếu nguồn `payments` → dòng "ID:" không còn tiền tố `payment:`.
+5. Render thật trên **production** (`stu.moodwedding.com`, sau khi deploy xong — có 1 khoảng chờ deploy propagate ~3-4 phút):
+   - Tab "Cọc hợp đồng" tháng 5/2026 → **5/5**, cả 5 dòng đúng badge "Cọc hợp đồng" (poll tới khi ổn định — lần đọc đầu do SWR chưa kịp revalidate trên cold-start production nên đọc nhầm số "Tất cả", đã loại bỏ false-positive bằng cách poll dài hơn + check badge thật thay vì chỉ đọc text đếm).
+   - Nút "Sửa" phiếu bán vật tư → `disabled=true` trên production.
+   - Dòng "ID:" trên trang chi tiết → sạch, không còn `payment:` leak, trên production.
+6. Fix 4 (SSR `bankInfo`) không render-verify riêng bằng screenshot (thay đổi thuần server-side prop threading, rủi ro thấp) — xác nhận qua build + eslint sạch.
+
+**Kết luận:** đúng spec, cả 4 fix đã sống trên production, không phát sinh lệch hành vi ngoài dự kiến.
