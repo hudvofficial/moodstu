@@ -1,16 +1,17 @@
 import type { BadgeVariant } from "@/components/ui/badge";
 
+// ADR-014 (2026-08-24): in ấn là Mood ⇄ Lab đối tác thuần tuý — không "đặt cọc",
+// không "giao khách" gắn ở đơn in (thuộc contract_events). da_in = lab đã in xong,
+// hình vẫn ở bên lab; hoan_thanh = Mood đã nhận hình về.
 export const PRINTING_ORDER_STATUSES = [
   "cho_xu_ly",
-  "dat_coc",        // Phase 2: After deposit payment
   "dang_in",
   "da_in",
-  "da_giao",        // Phase 2: After delivery
-  "hoan_thanh",     // Phase 2: After final payment (completed)
-  "huy_don",        // Phase 2: Cancelled
-  "gap_su_co",      // Phase 3: Issue/blocked — requires reason
-  "da_nhan",        // LEGACY: Keep for backward compatibility
-  "da_huy",         // LEGACY: Keep for backward compatibility
+  "hoan_thanh",
+  "huy_don",
+  "gap_su_co",      // Issue/blocked — requires reason
+  "da_nhan",        // LEGACY: chỉ để đọc dữ liệu audit-log cũ, không còn ghi mới
+  "da_huy",         // LEGACY: như trên
 ] as const;
 
 export type PrintingOrderStatus = (typeof PRINTING_ORDER_STATUSES)[number];
@@ -23,10 +24,6 @@ export const PRINTING_PAYMENT_STATUSES = [
 export type PrintingPaymentStatus =
   (typeof PRINTING_PAYMENT_STATUSES)[number];
 
-// Database payment statuses (English)
-export const DB_PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
-export type DBPaymentStatus = (typeof DB_PAYMENT_STATUSES)[number];
-
 export const LAB_STATUSES = ["active", "inactive"] as const;
 
 export type LabStatus = (typeof LAB_STATUSES)[number];
@@ -35,10 +32,8 @@ export const PRINTING_PAGE_SIZE = 20;
 
 export const PRINTING_STATUS_LABELS: Record<PrintingOrderStatus, string> = {
   cho_xu_ly: "Chờ xử lý",
-  dat_coc: "Đã đặt cọc",
   dang_in: "Đang in",
-  da_in: "Đã in",
-  da_giao: "Đã giao",
+  da_in: "Đã in — bên lab",
   hoan_thanh: "Hoàn thành",
   huy_don: "Hủy đơn",
   gap_su_co: "Gặp sự cố",
@@ -51,10 +46,8 @@ export const PRINTING_STATUS_VARIANTS: Record<
   BadgeVariant
 > = {
   cho_xu_ly: "warning",
-  dat_coc: "info",
   dang_in: "info",
   da_in: "primary",
-  da_giao: "success",
   hoan_thanh: "success",
   huy_don: "error",
   gap_su_co: "error",
@@ -124,49 +117,17 @@ export function normalizeLabStatus(
 
 /** Status that means the order is still in-progress (eligible for overdue) */
 export function isPendingPrintStatus(status: PrintingOrderStatus): boolean {
-  return status === "cho_xu_ly" || status === "dat_coc" || status === "dang_in" || status === "gap_su_co";
+  return status === "cho_xu_ly" || status === "dang_in" || status === "gap_su_co";
 }
 
-// ─── PAYMENT STATUS MAPPING (DB ↔ UI) ────────────────────
+// ─── PAYMENT STATUS (DB ↔ UI) ─────────────────────────────
+// ADR-014: DB và UI giờ cùng 1 từ vựng tiếng Việt (chua_thanh_toan/da_thanh_toan,
+// ghi bởi record_lab_payment_atomic + CHECK constraint) — không còn cần quy đổi
+// English↔Vietnamese như trước. Giữ hàm này (đổi tên/chữ ký) để call site không vỡ.
 
-/**
- * Convert UI payment status (Vietnamese) to DB payment status (English)
- */
-export function toDBPaymentStatus(
-  uiStatus: PrintingPaymentStatus | string | null | undefined
-): DBPaymentStatus {
-  switch (uiStatus) {
-    case "chua_thanh_toan":
-      return "unpaid";
-    case "da_thanh_toan":
-      return "paid";
-    default:
-      return "unpaid";
-  }
-}
-
-/**
- * Convert DB payment status (English) to UI payment status (Vietnamese)
- * Legacy orders (status da_nhan/hoan_thanh) are considered paid regardless of DB payment_status
- */
 export function toUIPaymentStatus(
   dbStatus: string | null | undefined,
-  orderStatus?: string | null
 ): PrintingPaymentStatus {
-  // Fallback for legacy completed orders
-  if (orderStatus === "hoan_thanh" || orderStatus === "da_nhan") {
-    return "da_thanh_toan";
-  }
-
-  switch (dbStatus) {
-    case "unpaid":
-      return "chua_thanh_toan";
-    case "partial":
-      return "chua_thanh_toan"; // Partial treated as "not fully paid"
-    case "paid":
-      return "da_thanh_toan";
-    default:
-      return "chua_thanh_toan";
-  }
+  return dbStatus === "da_thanh_toan" ? "da_thanh_toan" : "chua_thanh_toan";
 }
 

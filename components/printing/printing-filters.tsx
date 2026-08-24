@@ -22,12 +22,11 @@ interface Props {
   groupDisabled?: boolean;
 }
 
-// Payment options using DB values (English)
+// ADR-014: payment_status là công nợ Lab (nhị phân), khớp thẳng giá trị DB thật.
 const PAYMENT_OPTIONS = [
   { value: "all", label: "Thanh toán" },
-  { value: "unpaid", label: "Chưa thanh toán" },
-  { value: "partial", label: "Trả 1 phần" },
-  { value: "paid", label: "Đã thanh toán" },
+  { value: "chua_thanh_toan", label: "Còn nợ lab" },
+  { value: "da_thanh_toan", label: "Đã thanh toán" },
 ];
 
 export default function PrintingFilters({
@@ -46,10 +45,8 @@ export default function PrintingFilters({
   const statusTabs = [
     { label: "Tất cả", value: "all", count: stats.total },
     { label: "Chờ xử lý", value: "cho_xu_ly", count: stats.choXuLy },
-    { label: "Đã đặt cọc", value: "dat_coc", count: stats.datCoc },
     { label: "Đang in", value: "dang_in", count: stats.dangIn },
     { label: "Đã in", value: "da_in", count: stats.daIn },
-    { label: "Đã giao", value: "da_giao", count: stats.daGiao },
     { label: "Hoàn thành", value: "hoan_thanh", count: stats.hoanThanh },
     { label: "Hủy đơn", value: "huy_don", count: stats.huyDon },
   ];

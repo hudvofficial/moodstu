@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Printer, Calendar, Plus, Copy, Link2, ExternalLink, Pencil, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +24,10 @@ interface Props {
   onAdd?: () => void;
 }
 
-const STATUS_ORDER = ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "hoan_thanh"];
-const SIDE_EFFECT_STATUSES = new Set(["dat_coc", "dang_in", "da_in", "hoan_thanh", "huy_don"]);
+// Trục A — tiến độ sản xuất Mood ⇄ Lab (ADR-014). Không còn "đặt cọc"/"giao khách" —
+// và không còn side effect (kho/tiền) gắn theo trạng thái nào, nên mọi bước chuyển
+// đều an toàn thao tác thẳng ở đây, không cần route sang /printing như trước.
+const STATUS_ORDER = ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh"];
 
 function isRollback(from: string | null | undefined, to: string) {
   const fromIndex = STATUS_ORDER.indexOf(from || "cho_xu_ly");
@@ -82,13 +83,10 @@ export default function PrintOrdersBlock({
   onStatusChange,
   onAdd,
 }: Props) {
-  const router = useRouter();
   const [orderOverrides, setOrderOverrides] = useState<Record<string, Partial<PrintingOrder>>>({});
   const [pendingChange, setPendingChange] = useState<PendingStatusChange | null>(null);
   const [statusReason, setStatusReason] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [deliveryWarning, setDeliveryWarning] = useState<{ orderId: string; previous: string } | null>(null);
-  const [routeNotice, setRouteNotice] = useState(false);
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [fileInput, setFileInput] = useState("");
 
@@ -121,16 +119,6 @@ export default function PrintOrdersBlock({
     const previous = localOrders.find((order) => order.id === orderId)?.status;
     if (!previous || previous === newStatus) return;
 
-    if (SIDE_EFFECT_STATUSES.has(newStatus)) {
-      setRouteNotice(true);
-      return;
-    }
-
-    if (newStatus === "da_giao" && (remainingAmount ?? 0) > 0) {
-      setDeliveryWarning({ orderId, previous });
-      return;
-    }
-
     if (requiresReason(previous, newStatus)) {
       setPendingChange({ orderId, previous, next: newStatus });
       setStatusReason("");
@@ -152,13 +140,6 @@ export default function PrintOrdersBlock({
     setPendingChange(null);
     setStatusReason("");
     await applyStatusUpdate(change.orderId, change.next, change.previous, reason);
-  };
-
-  const confirmDelivery = async () => {
-    if (!deliveryWarning) return;
-    const { orderId, previous } = deliveryWarning;
-    setDeliveryWarning(null);
-    await applyStatusUpdate(orderId, "da_giao", previous);
   };
 
   const handleCopyForLab = async (order: PrintingOrder) => {
@@ -252,8 +233,8 @@ export default function PrintOrdersBlock({
               const labPay = labPaymentBadge(order.payment_status);
               const items = order.items || [];
               const expanded = expandedOrders.has(order.id);
-              const isLate = order.expected_date && new Date(order.expected_date) < new Date() && !["da_giao", "hoan_thanh", "huy_don"].includes(order.status || "");
-              const isMissingFile = !order.print_file_url && !["da_giao", "hoan_thanh", "huy_don"].includes(order.status || "");
+              const isLate = order.expected_date && new Date(order.expected_date) < new Date() && !["hoan_thanh", "huy_don"].includes(order.status || "");
+              const isMissingFile = !order.print_file_url && !["hoan_thanh", "huy_don"].includes(order.status || "");
               const hasNoItems = items.length === 0;
 
               return (
@@ -493,45 +474,6 @@ export default function PrintOrdersBlock({
         />
       </UnifiedModal>
 
-      <UnifiedModal
-        isOpen={!!deliveryWarning}
-        onClose={() => setDeliveryWarning(null)}
-        title="Hợp đồng chưa thanh toán đủ"
-        description={`Khách còn nợ ${formatVnd(remainingAmount ?? 0)}đ. Vẫn xác nhận đã giao sản phẩm?`}
-        size="md"
-        footer={(
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setDeliveryWarning(null)}>Hủy</Button>
-            <Button type="button" onClick={confirmDelivery}>Vẫn giao</Button>
-          </div>
-        )}
-      >
-        <p className="text-body-sm text-text-muted">Kiểm tra lại công nợ trước khi bàn giao cho khách.</p>
-      </UnifiedModal>
-
-      <UnifiedModal
-        isOpen={routeNotice}
-        onClose={() => setRouteNotice(false)}
-        title="Cần xử lý ở trang In ấn"
-        description="Bước này cập nhật tồn kho và thanh toán Lab - cần thực hiện ở trang In ấn để chạy đúng nghiệp vụ."
-        size="md"
-        footer={(
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setRouteNotice(false)}>Đóng</Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setRouteNotice(false);
-                router.push("/printing");
-              }}
-            >
-              Mở trang In ấn
-            </Button>
-          </div>
-        )}
-      >
-        <p className="text-body-sm text-text-muted">Tìm mã đơn ở danh sách In ấn để mở và xử lý.</p>
-      </UnifiedModal>
     </div>
   );
 }

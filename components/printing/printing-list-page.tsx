@@ -62,14 +62,10 @@ const EMPTY_ORDERS_PAGE: PrintingOrdersPage = {
 const EMPTY_STATS: PrintingStats = {
   total: 0,
   choXuLy: 0,
-  datCoc: 0,
   dangIn: 0,
   daIn: 0,
-  daGiao: 0,
   hoanThanh: 0,
   huyDon: 0,
-  daNhan: 0,
-  daHuy: 0,
   totalCost: 0,
   unpaidCost: 0,
 };

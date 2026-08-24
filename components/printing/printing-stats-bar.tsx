@@ -28,8 +28,8 @@ export default function PrintingStatsBar({ stats, compact }: Props) {
     },
     {
       icon: AlertCircle,
-      label: "Cần xử lý",
-      value: String(stats.choXuLy + stats.datCoc), // Urgent: chờ xử lý + đã đặt cọc
+      label: "Chờ gửi lab",
+      value: String(stats.choXuLy), // ADR-014: không còn "đã đặt cọc" ở đơn in
       iconBg: "bg-warning/10",
       iconColor: "text-warning",
     },
@@ -42,8 +42,8 @@ export default function PrintingStatsBar({ stats, compact }: Props) {
     },
     {
       icon: Truck,
-      label: "Sẵn sàng giao",
-      value: String(stats.daIn + stats.daGiao), // Ready: đã in + đã giao
+      label: "Đang ở lab",
+      value: String(stats.daIn), // da_in = lab đã in xong, hình vẫn ở bên lab (ADR-014)
       iconBg: "bg-info/10",
       iconColor: "text-info",
     },

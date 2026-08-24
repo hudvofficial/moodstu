@@ -6729,12 +6729,8 @@ export type Database = {
         Args: never
         Returns: {
           cho_xu_ly: number
-          da_giao: number
-          da_huy: number
           da_in: number
-          da_nhan: number
           dang_in: number
-          dat_coc: number
           hoan_thanh: number
           huy_don: number
           total: number

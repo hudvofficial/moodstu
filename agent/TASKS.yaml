@@ -30,6 +30,35 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-printing-workflow-redesign
+    title: "In ấn: bỏ đặt cọc/giao khách/kho khỏi trạng thái đơn, công nợ Lab thành trục độc lập (ADR-014)"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/printing-workflow-redesign
+    locks:
+      - supabase/migrations/20260824120000_printing_workflow_redesign.sql
+      - app/actions/printing-mutations.ts
+      - app/actions/printing-queries.ts
+      - app/actions/printing-workflow-mutations.ts
+      - types/printing-constants.ts
+      - types/printing.ts
+      - components/ui/status-select.tsx
+      - components/printing/printing-detail-drawer.tsx
+      - components/printing/printing-filters.tsx
+      - components/printing/printing-stats-bar.tsx
+      - components/printing/printing-list-page.tsx
+      - components/contracts/detail/print-orders-block.tsx
+      - components/printing/deposit-payment-modal.tsx (xoá)
+      - components/printing/final-payment-modal.tsx (xoá)
+    spec: agent/HANDOFFS/T-20260824-printing-workflow-redesign.spec.md
+    verify:
+      - node scripts/migrate-direct.mjs <migration>
+      - npm run db:types
+      - npx eslint (toàn bộ file trong locks)
+      - npm run build
+      - "render chrome-devtools /printing + /contracts/[id] (Roo)"
+    depends_on: []
+    notes: "2026-08-24 VERIFY XANH (migration applied+verified, db:types, eslint 0 lỗi, build exit 0, render thật /printing + /contracts/[id] read-only) — chờ user merge branch claude/printing-workflow-redesign → main + push. Công nợ lab Hồng Bảo lộ ra 7.916.400d/25 đơn sau fix — báo user xác nhận thực tế. ADR-014. User xác nhận trực tiếp nghiệp vụ: không có cọc Mood-Lab, giao khách thuộc contract_events, hoàn thành = Mood đã nhận hình từ lab. Dữ liệu thật: 2 đơn dat_coc có 0 tiền thật (deposit_amount=0, 0 dòng order_payments/lab_payment_allocations) -> migrate thẳng sang hoan_thanh, KHÔNG bịa payment; công nợ 805.000d lab Hồng Bảo sẽ tự lộ ra sau migration. 3 đơn da_nhan (legacy) gộp vào hoan_thanh. Bug lệch từ vựng payment_status (KPI unpaid hiện 0d thực tế 5.567.000d) được sửa CÙNG lúc vì thuộc cùng root cause. KHÔNG đụng payment_plans/payment_stage_key_v2 (đợt cọc khách trả Mood ở module Hợp đồng — khác domain, đúng, giữ nguyên)."
   - id: T-20260824-stale-action-toast-recovery
     title: "Deploy skew: lỗi Server Action not found bị toast nuốt → gắn recovery tại ToastManager.error() (+ placeholder gallery)"
     status: implementing

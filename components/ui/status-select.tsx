@@ -21,27 +21,26 @@ export {
 // ─── Pre-built option sets (kept here for consumers) ──────────
 
 /**
- * Printing Order Status Options - Phase 2 Workflow
+ * Printing Order Status Options — Trục A: tiến độ sản xuất Mood ⇄ Lab (ADR-014)
  *
- * Ordered by workflow progression + legacy statuses at end.
- * Includes all statuses from PRINTING_ORDER_STATUSES for full FSM support.
+ * Không "đặt cọc" (không tồn tại trong quan hệ Mood↔Lab), không "giao khách" (thuộc
+ * contract_events.giao_san_pham). da_in = lab đã in xong, hình vẫn ở bên lab;
+ * hoan_thanh = Mood đã nhận hình về. Công nợ Lab là trục B độc lập, xem lab-payment-modal.
  *
- * Migration: 2026-05-26 - Added Phase 2 statuses (dat_coc, da_giao, hoan_thanh, huy_don)
+ * Migration: 2026-08-24 (T-20260824-printing-workflow-redesign) — gỡ dat_coc/da_giao.
  */
 export const PRINT_ORDER_STATUS_OPTIONS = [
-  // ─── Active Workflow (Phase 2) ───
-  { value: "cho_xu_ly",   label: "Chờ xử lý",    color: "var(--color-status-warning)" },
-  { value: "dat_coc",     label: "Đã đặt cọc",   color: "var(--color-status-info)" },
-  { value: "dang_in",     label: "Đang in",      color: "var(--color-status-info)" },
-  { value: "da_in",       label: "Đã in",        color: "var(--color-status-primary)" },
-  { value: "da_giao",     label: "Đã giao",      color: "var(--color-status-success)" },
-  { value: "hoan_thanh",  label: "Hoàn thành",   color: "var(--color-status-success)" },
-  { value: "gap_su_co",   label: "Gặp sự cố",    color: "var(--color-status-error)" },
-  { value: "huy_don",     label: "Hủy đơn",      color: "var(--color-status-error)" },
+  // ─── Active Workflow ───
+  { value: "cho_xu_ly",   label: "Chờ xử lý",       color: "var(--color-status-warning)" },
+  { value: "dang_in",     label: "Đang in",         color: "var(--color-status-info)" },
+  { value: "da_in",       label: "Đã in — bên lab", color: "var(--color-status-primary)" },
+  { value: "hoan_thanh",  label: "Hoàn thành",      color: "var(--color-status-success)" },
+  { value: "gap_su_co",   label: "Gặp sự cố",       color: "var(--color-status-error)" },
+  { value: "huy_don",     label: "Hủy đơn",         color: "var(--color-status-error)" },
 
   // ─── Legacy (Backward Compatibility) ───
-  { value: "da_nhan",     label: "Đã nhận",      color: "var(--color-status-success)" },
-  { value: "da_huy",      label: "Đã hủy",       color: "var(--color-status-error)" },
+  { value: "da_nhan",     label: "Đã nhận",         color: "var(--color-status-success)" },
+  { value: "da_huy",      label: "Đã hủy",          color: "var(--color-status-error)" },
 ] as const;
 
 export const RESERVATION_STATUS_OPTIONS = [

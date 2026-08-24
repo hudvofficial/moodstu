@@ -25,15 +25,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "@/lib/toast-utils";
 import { Badge } from "@/components/ui/badge";
 import { PRINTING_STATUS_LABELS, PRINTING_STATUS_VARIANTS } from "@/types/printing-constants";
-import { DepositPaymentModal } from "@/components/printing/deposit-payment-modal";
-import { FinalPaymentModal } from "@/components/printing/final-payment-modal";
 import { CancelOrderModal } from "@/components/printing/cancel-order-modal";
 import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
 import { PaymentHistorySection } from "@/components/printing/payment-history-section";
-import {
-  startProduction,
-  completeProduction,
-} from "@/app/actions/printing-workflow-mutations";
 import { getOrderPaymentSummary } from "@/app/actions/printing-queries";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type {
@@ -58,26 +52,23 @@ interface Props {
   onStatusChange?: (order: PrintingOrderRow, newStatus: string) => Promise<void>;
 }
 
+// Trục A — tiến độ sản xuất Mood ⇄ Lab (ADR-014). Không "đặt cọc"/"giao khách" —
+// mọi bước chỉ đổi printing_orders.status qua onStatusChange (updatePrintingOrderStatus),
+// không còn side effect kho/tiền nào gắn theo trạng thái. Công nợ Lab là trục B độc
+// lập, xem nút "Thanh toán lab" bên dưới.
 interface NextStepAction {
   label: string;
   nextStatus: PrintingOrderStatus;
-  action?: "deposit" | "start_production" | "complete_production" | "mark_delivered" | "final_payment" | "default";
 }
 
 function getNextStepAction(status: PrintingOrderStatus): NextStepAction | null {
   switch (status) {
     case "cho_xu_ly":
-      return { label: "Thu đặt cọc", nextStatus: "dat_coc" as PrintingOrderStatus, action: "deposit" };
-    case "dat_coc":
-      return { label: "Bắt đầu in", nextStatus: "dang_in", action: "start_production" };
+      return { label: "Gửi lab — bắt đầu in", nextStatus: "dang_in" };
     case "dang_in":
-      return { label: "Hoàn thành in", nextStatus: "da_in", action: "complete_production" };
+      return { label: "Lab đã in xong", nextStatus: "da_in" };
     case "da_in":
-      return { label: "Đã giao khách", nextStatus: "da_giao" as PrintingOrderStatus, action: "mark_delivered" };
-    case "da_giao":
-      return { label: "Thu tất toán", nextStatus: "hoan_thanh" as PrintingOrderStatus, action: "final_payment" };
-    case "da_nhan":
-      return null;
+      return { label: "Đã nhận từ lab — Hoàn thành", nextStatus: "hoan_thanh" };
     default:
       return null;
   }
@@ -139,8 +130,6 @@ export default function PrintingDetailDrawer({
   const [form, setForm] = useState<FormState>(() => getInitialForm(order));
   const [loading, setLoading] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [showFinalPaymentModal, setShowFinalPaymentModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showLabPaymentModal, setShowLabPaymentModal] = useState(false);
   const [paymentSummary, setPaymentSummary] = useState<{ remaining: number } | null>(null);
@@ -155,8 +144,6 @@ export default function PrintingDetailDrawer({
     setForm(getInitialForm(order));
     setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
     setConfirmDeleteOpen(false);
-    setShowDepositModal(false);
-    setShowFinalPaymentModal(false);
     setShowCancelModal(false);
   }, [isOpen, order?.id]);
 
@@ -319,55 +306,17 @@ export default function PrintingDetailDrawer({
   const nextStepAction = order ? getNextStepAction(order.status) : null;
 
   const handleNextStep = async () => {
-    if (!order || !nextStepAction) return;
-
-    switch (nextStepAction.action) {
-      case "deposit":
-        setShowDepositModal(true);
-        break;
-      case "start_production":
-        setLoading(true);
-        try {
-          await startProduction({ orderId: order.id });
-          toast("Đã bắt đầu in và reserve vật tư", "success");
-          await onSaved();
-        } catch (error: any) {
-          toast(error.message || "Lỗi bắt đầu in", "error");
-        } finally {
-          setLoading(false);
-        }
-        break;
-      case "complete_production":
-        setLoading(true);
-        try {
-          await completeProduction({ orderId: order.id });
-          toast("Hoàn thành in, đã xuất kho", "success");
-          await onSaved();
-        } catch (error: any) {
-          toast(error.message || "Lỗi hoàn thành in", "error");
-        } finally {
-          setLoading(false);
-        }
-        break;
-      case "final_payment":
-        setShowFinalPaymentModal(true);
-        break;
-      case "mark_delivered":
-      case "default":
-        if (onStatusChange) {
-          setLoading(true);
-          try {
-            await onStatusChange(order, nextStepAction.nextStatus);
-          } catch (error) {
-            toast(
-              error instanceof Error ? error.message : "Lỗi cập nhật trạng thái",
-              "error",
-            );
-          } finally {
-            setLoading(false);
-          }
-        }
-        break;
+    if (!order || !nextStepAction || !onStatusChange) return;
+    setLoading(true);
+    try {
+      await onStatusChange(order, nextStepAction.nextStatus);
+    } catch (error) {
+      toast(
+        error instanceof Error ? error.message : "Lỗi cập nhật trạng thái",
+        "error",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -685,6 +634,13 @@ export default function PrintingDetailDrawer({
                         >
                           <WalletCards className="size-4" />
                           Thanh toán lab
+                          {order.paymentStatus === "chua_thanh_toan" && (
+                            // Trục B (ADR-014) — số dư tối đa (chưa trừ phần đã trả trước
+                            // đó), đủ để cảnh báo staff còn nợ; chi tiết chính xác trong modal.
+                            <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-bold text-warning">
+                              {formatCurrency(order.totalAmount)}
+                            </span>
+                          )}
                         </Button>
                       )}
                     </>
@@ -735,33 +691,6 @@ export default function PrintingDetailDrawer({
 
       {order && (
         <>
-          <DepositPaymentModal
-            isOpen={showDepositModal}
-            onClose={() => setShowDepositModal(false)}
-            order={order}
-            onSuccess={async () => {
-              await onSaved();
-              const result = await getOrderPaymentSummary(order.id);
-              if (result.success) {
-                setPaymentSummary({ remaining: result.data.remaining });
-              }
-            }}
-          />
-
-          <FinalPaymentModal
-            isOpen={showFinalPaymentModal}
-            onClose={() => setShowFinalPaymentModal(false)}
-            order={order}
-            remainingAmount={paymentSummary?.remaining ?? order.remainingAmount ?? 0}
-            onSuccess={async () => {
-              await onSaved();
-              const result = await getOrderPaymentSummary(order.id);
-              if (result.success) {
-                setPaymentSummary({ remaining: result.data.remaining });
-              }
-            }}
-          />
-
           <CancelOrderModal
             isOpen={showCancelModal}
             onClose={() => setShowCancelModal(false)}

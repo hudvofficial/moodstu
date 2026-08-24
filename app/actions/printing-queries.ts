@@ -97,7 +97,7 @@ function mapPrintingOrderRow(row: RawPrintingOrderRow): PrintingOrderRow {
     labId: row.lab_id,
     labName: lab?.name ? String(lab.name) : null,
     status: normalizePrintingOrderStatus(row.status),
-    paymentStatus: toUIPaymentStatus(row.payment_status, row.status),  // Use DB→UI mapping with legacy fallback
+    paymentStatus: toUIPaymentStatus(row.payment_status),
     totalAmount: Number(row.total_amount ?? 0),
     orderDate: row.order_date,
     expectedDate: row.expected_date,
@@ -168,13 +168,9 @@ export async function fetchPrintingOrders(
     }
 
     if (filters.paymentStatus && filters.paymentStatus !== "all") {
-      if (filters.paymentStatus === "da_thanh_toan") {
-        query = query.or("payment_status.eq.paid,status.in.(hoan_thanh,da_nhan)");
-      } else {
-        query = query.in("payment_status", ["unpaid", "partial"])
-                     .neq("status", "hoan_thanh")
-                     .neq("status", "da_nhan");
-      }
+      // ADR-014: DB đã dùng chung 1 từ vựng tiếng Việt (chua_thanh_toan/da_thanh_toan,
+      // CHECK constraint), khớp thẳng không cần quy đổi/OR theo status như trước.
+      query = query.eq("payment_status", filters.paymentStatus);
     }
 
     if (filters.search?.trim()) {
@@ -240,14 +236,10 @@ export async function getPrintingOrderStats(): Promise<
     return {
       total: Number(row.total ?? 0),
       choXuLy: Number(row.cho_xu_ly ?? 0),
-      datCoc: Number(row.dat_coc ?? 0),
       dangIn: Number(row.dang_in ?? 0),
       daIn: Number(row.da_in ?? 0),
-      daGiao: Number(row.da_giao ?? 0),
       hoanThanh: Number(row.hoan_thanh ?? 0),
       huyDon: Number(row.huy_don ?? 0),
-      daNhan: Number(row.da_nhan ?? 0),
-      daHuy: Number(row.da_huy ?? 0),
       totalCost: Number(row.total_cost ?? 0),
       unpaidCost: Number(row.unpaid_cost ?? 0),
     };
@@ -283,11 +275,7 @@ export async function getPrintingBootstrap(
     if (f.status && f.status !== "all") ordersQuery = ordersQuery.eq("status", f.status);
     if (f.labId && f.labId !== "all") ordersQuery = ordersQuery.eq("lab_id", f.labId);
     if (f.paymentStatus && f.paymentStatus !== "all") {
-      if (f.paymentStatus === "da_thanh_toan") {
-        ordersQuery = ordersQuery.or("payment_status.eq.paid,status.in.(hoan_thanh,da_nhan)");
-      } else {
-        ordersQuery = ordersQuery.in("payment_status", ["unpaid", "partial"]).neq("status", "hoan_thanh").neq("status", "da_nhan");
-      }
+      ordersQuery = ordersQuery.eq("payment_status", f.paymentStatus);
     }
     if (f.search?.trim()) {
       const escaped = escapeLikePattern(f.search.trim());
@@ -329,14 +317,10 @@ export async function getPrintingBootstrap(
       stats: {
         total: Number(statsRow.total ?? 0),
         choXuLy: Number(statsRow.cho_xu_ly ?? 0),
-        datCoc: Number(statsRow.dat_coc ?? 0),
         dangIn: Number(statsRow.dang_in ?? 0),
         daIn: Number(statsRow.da_in ?? 0),
-        daGiao: Number(statsRow.da_giao ?? 0),
         hoanThanh: Number(statsRow.hoan_thanh ?? 0),
         huyDon: Number(statsRow.huy_don ?? 0),
-        daNhan: Number(statsRow.da_nhan ?? 0),
-        daHuy: Number(statsRow.da_huy ?? 0),
         totalCost: Number(statsRow.total_cost ?? 0),
         unpaidCost: Number(statsRow.unpaid_cost ?? 0),
       },

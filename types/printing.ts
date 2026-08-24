@@ -74,14 +74,10 @@ export interface PrintingOrdersPage {
 export interface PrintingStats {
   total: number;
   choXuLy: number;
-  datCoc: number;      // Phase 2: After deposit
   dangIn: number;
   daIn: number;
-  daGiao: number;      // Phase 2: After delivery
-  hoanThanh: number;   // Phase 2: Completed
-  huyDon: number;      // Phase 2: Cancelled
-  daNhan: number;      // Legacy
-  daHuy: number;       // Legacy
+  hoanThanh: number;
+  huyDon: number;
   totalCost: number;
   unpaidCost: number;
 }
@@ -151,47 +147,10 @@ export interface LabDebtData {
   items: LabDebtEntry[];
 }
 
-// ─── PHASE 1: Order Payments & Inventory Reservations ───
+// ─── PHASE 1: Order Payments ───
 
 export type OrderPaymentType = 'deposit' | 'final' | 'refund' | 'adjustment';
 export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'other';
-export type ReservationStatus = 'active' | 'fulfilled' | 'cancelled' | 'expired';
-
-export interface OrderPayment {
-  id: string;
-  order_id: string;
-  payment_id: string | null;
-  receipt_id: string | null;
-  payment_type: OrderPaymentType;
-  amount: number;
-  payment_date: string;
-  payment_method: PaymentMethod;
-  notes: string | null;
-  // created_at/updated_at NULLABLE trong DB
-  created_at: string | null;
-  created_by: string | null;
-  updated_at: string | null;
-  updated_by: string | null;
-}
-
-export interface InventoryReservation {
-  id: string;
-  item_id: string;
-  order_id: string;
-  reserved_quantity: number;
-  // các cột dưới đều NULLABLE trong DB — khai đúng để khớp kiểu sinh từ schema
-  reserved_at: string | null;
-  expires_at: string | null;
-  status: ReservationStatus | null;
-  notes: string | null;
-  created_by: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  // Joined fields (optional)
-  item_name?: string;
-  item_code?: string;
-  unit?: string;
-}
 
 export interface OrderPaymentSummary {
   order_id: string;

@@ -18,20 +18,21 @@ type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+// Trục A — tiến độ sản xuất Mood↔Lab (ADR-014). Không có "đặt cọc" (không tồn tại
+// trong quan hệ Mood↔Lab) hay "giao khách" (thuộc contract_events.giao_san_pham,
+// không phải đơn in). da_in = lab đã in xong nhưng hình VẪN Ở BÊN LAB; hoan_thanh =
+// Mood đã nhận hình về. Công nợ Lab là trục B độc lập, không gate trạng thái nào ở đây.
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  // Workflow statuses (Phase 2)
-  cho_xu_ly: ["dat_coc", "dang_in", "huy_don", "gap_su_co"],   // Can deposit OR skip to printing OR cancel OR flag issue
-  dat_coc: ["dang_in", "huy_don", "gap_su_co"],                // Can start production OR cancel OR flag issue
-  dang_in: ["da_in", "huy_don", "gap_su_co"],                  // Can complete OR cancel OR flag issue
-  da_in: ["da_giao", "huy_don", "gap_su_co", "dang_in"],       // Can deliver OR cancel OR flag issue OR rework
-  da_giao: ["hoan_thanh", "huy_don", "gap_su_co"],             // Can finalize OR cancel OR flag issue
+  cho_xu_ly: ["dang_in", "huy_don", "gap_su_co"],               // Gửi lab / bắt đầu in OR cancel OR flag issue
+  dang_in: ["da_in", "huy_don", "gap_su_co"],                   // Lab đã in xong OR cancel OR flag issue
+  da_in: ["hoan_thanh", "huy_don", "gap_su_co", "dang_in"],     // Mood đã nhận từ lab OR cancel OR flag issue OR rework
   hoan_thanh: [],                                               // Terminal state
   huy_don: [],                                                  // Terminal state (cancelled)
-  gap_su_co: ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "huy_don"], // Can resume to any active state or cancel
+  gap_su_co: ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh", "huy_don"], // Can resume to any active state or cancel
 
-  // Legacy statuses (keep for backward compatibility)
-  da_nhan: [],                                                  // Terminal state
-  da_huy: [],                                                   // Terminal state (old cancelled)
+  // Legacy statuses (nhận diện để đọc dữ liệu cũ không vỡ; terminal, không ghi mới)
+  da_nhan: [],
+  da_huy: [],
 };
 
 function calculateTotalAmount(
