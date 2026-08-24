@@ -3,7 +3,18 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `5106732`.
+> Cập nhật gần nhất: **2026-08-25** · nhánh: `main` @ `4d89689`.
+
+## 2026-08-25 — finance/*: bug tự động bật lại `/finance` sau vài giây — CHƯA GIẢI QUYẾT DỨT ĐIỂM, cần quyết định hướng tiếp
+- User báo bấm vào `/finance/debts` (qua link "Công nợ KH" trên `/finance`) thì 5-10s sau tự động bật lại `/finance`, kèm toast lỗi "An unexpected response was received from the server."
+- **Bằng chứng gốc rễ đã xác nhận chắc chắn** (đọc trực tiếp nội dung JSON response + header `x-matched-path` của Vercel): response của 1 Server Action call bị **trộn** giữa 2 request đồng thời khác nhau — request gửi tới `/finance/debts` nhận nhầm dữ liệu của `/finance` và ngược lại. Đây là lỗi tầng Next.js 16 / Vercel dưới tải đồng thời cao, không phải lỗi dữ liệu ứng dụng.
+- **Đã thử 2 hướng fix, đo bằng 15 lần thử thật/đợt trên production, cả 2 đều KHÔNG giải quyết dứt điểm:**
+  1. Rút `next.config.ts`'s `experimental.staleTimes.dynamic` 180→30 (giả thuyết: trang `/finance` — có 17 hook `useSWR` độc lập — bị giữ "nóng" quá lâu sau khi rời trang) → đo được **7/15 (47%) — TỆ HƠN** baseline 2/8 (25%) → đã **lùi lại 180**.
+  2. Chuyển `<FinanceRealtimeRefresh/>` từ `app/(protected)/finance/layout.tsx` (Server Component, re-render mỗi lần điều hướng vì trang con `force-dynamic`, gây remount + kênh realtime đóng/mở lại — có bằng chứng WebSocket log rõ ràng) sang `AppShell` (client component mount đúng 1 lần, gate bằng `pathname.startsWith("/finance")`) → đo được **4/15 (27%) — không khác biệt rõ so với baseline gốc**.
+- Vẫn giữ 1 fix độc lập hợp lý: chặn bão retry cho đúng loại lỗi này trong `swrConfig` (`lib/swr.ts`, choke point qua `SWRProvider`) — không có bằng chứng làm xấu thêm dù chưa chứng minh được giúp ích rõ.
+- **Nghi ngờ hiện tại (chưa xác nhận):** cả 2 hướng đã thử đều nhắm vào "giảm hoạt động của trang vừa rời" — nhưng số đo không đổi gợi ý nguyên nhân chính có thể là **bản thân MỖI trang** khi tải lần đầu đã tự bắn ra 13-17 request Server Action đồng thời, đủ để thỉnh thoảng kích hoạt lỗi trộn response, không cần trang trước đó còn hoạt động. Sửa đúng hướng này cần gộp bớt số hook `useSWR` độc lập trên các trang tài chính — phạm vi lớn hơn nhiều, không còn "surgical".
+- **T-20260825-finance-nav-redirect-bug: status = `blocked`** — đã báo đầy đủ, trung thực (kể cả phần thất bại) cho user, đang chờ quyết định: đầu tư refactor lớn hơn (gộp hook), thử hướng khác (watchdog client tự phát hiện+sửa URL sai), hay tạm chấp nhận tỉ lệ ~25% và quay lại nếu user gặp lại nhiều.
+- Xem đầy đủ 3 vòng đo + toàn bộ evidence trace trong `agent/HANDOFFS/T-20260825-finance-nav-redirect-bug.spec.md`.
 
 ## 2026-08-24 (tiếp #5) — finance/expenses: vá 2 phiếu tự động sót nhãn khóa + 2 điểm đếm trùng chi phí
 - User yêu cầu trace nghiệp vụ + **sơ đồ quan hệ dữ liệu** (ERD, không chỉ trace chữ) cho `/finance/expenses` — xem artifact "Bản Đồ Phiếu Chi". Phát hiện: `expenses` có 4 khóa ngoại với 4 số phận khác nhau thật sự (`debt_id` 0/39 dùng — wired đúng nhưng `debts` chưa từng có dữ liệu thật; `work_task_id` 10/39 khớp đúng 10 vendor task hoàn thành; `printing_order_id` 29/39 nhưng toàn bộ là dữ liệu cũ trước ADR-014, nay chỉ còn dùng cho hoàn tiền hủy đơn; `contract_id`/`category_id` 39/39). 7 sự kiện nghiệp vụ thật sinh phiếu chi, phần lớn tự động (không phải admin gõ tay).

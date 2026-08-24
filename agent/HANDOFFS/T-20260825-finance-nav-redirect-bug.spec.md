@@ -159,3 +159,20 @@ Viết thêm 1 script Playwright log riêng hoạt động WebSocket của kênh
 1. `npx eslint` — 0 error (đã chạy cho cả 4 file: `next.config.ts`, `lib/swr.ts`, `components/layout/app-shell.tsx`, `app/(protected)/finance/layout.tsx`).
 2. `npm run build` — đang chạy lại với đầy đủ thay đổi.
 3. Render thật production: lặp lại đúng kịch bản 15 lần, so sánh với baseline 2/8 và kết quả thất bại 7/15 — sẽ cập nhật số đo thật, không làm tròn.
+
+### 6.5. Kết quả đo sau fix AppShell — KHÔNG cải thiện rõ rệt, phải báo thật
+
+15 lần thử trên production sau khi deploy fix AppShell (commit `4d89689`):
+
+**Kết quả: 4/15 (27%) — gần như bằng baseline gốc 2/8 (25%), không phải cải thiện có ý nghĩa thống kê.** Mốc thời gian tái hiện lần này rải rác hơn (2s, 2s, 3s, 10s) thay vì dồn hẳn vào 2s như lần đo trước — dữ liệu không đủ mạnh để khẳng định gì thêm.
+
+**Tổng kết 3 lần đo:**
+| Trạng thái | Tỉ lệ tái hiện |
+|---|---|
+| Gốc (chưa sửa gì) | 2/8 (25%) |
+| Sau Fix 1 (`staleTimes` 180→30) | 7/15 (47%) — tệ hơn, đã lùi lại |
+| Sau Fix AppShell (giữ nguyên `staleTimes`=180 + chặn bão retry) | 4/15 (27%) — không khác biệt rõ so với gốc |
+
+**Đánh giá trung thực:** dù bằng chứng kênh realtime bị đóng/mở lại là có thật (mục 6.2) và fix AppShell giải quyết đúng hiện tượng đó, số đo cho thấy **đây không phải nguyên nhân chính** (hoặc không phải nguyên nhân duy nhất) gây ra bug. Khả năng cao hơn: bản thân MỖI trang `/finance/*` khi tải lần đầu đã tự bắn ra 13-17 request Server Action đồng thời (không cần trang cũ còn hoạt động) — đủ để thỉnh thoảng kích hoạt lỗi trộn response ở tầng Next.js/Vercel, bất kể trang trước đó có dọn sạch hay không. Sửa đúng hướng này cần gộp bớt số lượng hook `useSWR` độc lập trên các trang tài chính — phạm vi lớn hơn nhiều, không còn "surgical" nữa.
+
+**Giữ lại những gì đã làm** (không quay lui, không có bằng chứng làm xấu thêm): fix AppShell (đúng về mặt kiến trúc, dù chưa đủ giải quyết hết bug) + chặn bão retry (Fix 2). Không tiếp tục đoán thêm vòng nữa mà không hỏi ý kiến — đã báo lại đầy đủ cho user.

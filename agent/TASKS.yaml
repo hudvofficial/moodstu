@@ -32,19 +32,21 @@ updated: 2026-08-25
 active:
   - id: T-20260825-finance-nav-redirect-bug
     title: "finance/*: sua bug tu dong bat lai /finance sau vai giay (router cache 180s + retry storm -> Next.js response bi tron)"
-    status: implementing
+    status: blocked
     owner: claude (fallback)
     branch: claude/finance-nav-redirect-bug
     locks:
       - next.config.ts
       - lib/swr.ts
+      - components/layout/app-shell.tsx
+      - app/(protected)/finance/layout.tsx
     spec: agent/HANDOFFS/T-20260825-finance-nav-redirect-bug.spec.md
     verify:
-      - "npx eslint (2 file trong locks) - 0 error"
+      - "npx eslint (4 file trong locks) - 0 error"
       - "npm run build - exit 0"
-      - "render that production, lap lai kich ban bam /finance -> Cong no KH toi thieu 15 lan, so sanh ty le tai hien truoc/sau fix (truoc: 2/8)"
+      - "render that production, lap lai kich ban bam /finance -> Cong no KH 15 lan/dot, do 3 dot: goc 2/8 (25%), sau Fix1 staleTimes 7/15 (47%, te hon, da lui), sau Fix AppShell 4/15 (27%, khong khac biet ro so voi goc)"
     depends_on: []
-    notes: "User bao bam /finance/debts thi 5-10s sau tu dong bat lai /finance kem toast loi. Trace + verify bang Playwright that tren production, lap lai nhieu lan cho toi khi tai hien (2/8 lan). Bat duoc bang chung goc re bang cach log request/response Server Action kem moc thoi gian mili-giay: response bi TRON giua 2 request dong thoi (doc truc tiep noi dung JSON, khop x-matched-path header cua Vercel). Nguyen nhan: /finance dashboard co 17 hook useSWR doc lap, van tiep tuc fetch song song sau khi da roi trang vi next.config.ts co staleTimes.dynamic=180 (3 phut, dai gap 6 lan mac dinh Next.js) - Client Router Cache giu cay component cu song ngam qua lau. Fix: rut staleTimes.dynamic ve 30 (mac dinh Next.js) + them onErrorRetry rieng cho loai loi nay trong swrConfig (lib/swr.ts, choke point toan app qua SWRProvider) de khong bien 1 lan loi thoang qua thanh bao retry lam nang them dieu kien gay loi. Day la race condition, khong the khang dinh fix 100% dut diem - can bao dung ty le do duoc sau fix, khong lam tron."
+    notes: "User bao bam /finance/debts thi 5-10s sau tu dong bat lai /finance kem toast loi. Trace + verify bang Playwright that tren production nhieu vong. Bang chung goc re: response Server Action bi TRON giua 2 request dong thoi (doc truc tiep noi dung JSON, khop x-matched-path header Vercel) - loi tang Next.js 16/Vercel duoi tai dong thoi cao, khong phai loi du lieu ung dung. Da thu 2 fix: (1) staleTimes.dynamic 180->30 - do duoc TE HON (7/15 vs baseline 2/8), da LUI LAI ve 180. (2) Chuyen FinanceRealtimeRefresh tu finance/layout.tsx (Server Component, re-render moi lan dieu huong vi force-dynamic, gay remount + kenh realtime dong/mo lai - bang chung WebSocket log ro rang) sang AppShell (client component mount 1 lan, gate bang pathname.startsWith('/finance')) - do duoc 4/15 (27%), KHONG khac biet ro so voi baseline goc. Van giu Fix chan bao retry (onErrorRetry trong lib/swr.ts) - doc lap hop ly, khong co bang chung lam xau them. TRANG THAI: blocked - da thu 2 huong sua o tang 'giam concurrency do vong doi component' nhung khong chuyen dong duoc ty le do duoc; nghi ngo that su nam o so luong ~13-17 hook useSWR doc lap MOI TRANG tu ban than no da du gay dieu kien loi, khong can trang truoc con hoat dong - can gop bot cac hook do (pham vi lon hon nhieu, khong con surgical) hoac 1 huong khac (vd watchdog client tu phat hien+sua URL sai ngay). Da bao day du cho user, dang cho quyet dinh huong tiep theo."
   - id: T-20260824-expenses-guard-fixes
     title: "finance/expenses: gan nhan [Auto-] con thieu (debt/refund) + chan dem trung chi phi co dinh + vendor task"
     status: ci
