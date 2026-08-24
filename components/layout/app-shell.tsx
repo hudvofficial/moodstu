@@ -16,6 +16,7 @@ import { HeaderSlotsProvider } from "@/contexts/header-slots-context";
 import { MobileNavigationProvider } from "@/contexts/mobile-navigation-context";
 import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
 import { getAppShellRouteMode } from "@/lib/app-shell-route-mode";
+import { FinanceRealtimeRefresh } from "@/components/finance/finance-realtime-refresh";
 
 const NavigationWarmup = dynamic(
   () => import("./navigation-warmup").then((mod) => mod.NavigationWarmup),
@@ -79,6 +80,12 @@ export function AppShell({ children, role, userName }: AppShellProps) {
       <div className="app-shell-viewport flex bg-bg-base overflow-hidden" suppressHydrationWarning>
       {enableNavigationWarmup && <NavigationWarmup role={role} />}
       <NavigationProgress />
+      {/* T-20260825: mount ở đây (AppShell — client component, mount đúng 1 lần) thay vì trong
+          finance/layout.tsx (Server Component re-render mỗi lần điều hướng vì các trang con
+          force-dynamic) — tránh kênh realtime bị đóng/mở lại giữa các trang con /finance/*,
+          nguồn gây bão request đồng thời dẫn tới bug tự điều hướng nhầm về /finance. Điều kiện
+          pathname giữ nguyên true xuyên suốt mọi trang con /finance/*, nên React không remount. */}
+      {pathname.startsWith("/finance") && <FinanceRealtimeRefresh />}
 
       {/* 1. Sidebar (Desktop & Tablet) */}
       {!isFullpage && (

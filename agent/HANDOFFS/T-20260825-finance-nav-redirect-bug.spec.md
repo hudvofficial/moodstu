@@ -125,3 +125,37 @@ export const swrConfig: SWRConfiguration = {
 ## 5. Ghi chú trung thực khi báo cáo kết quả
 
 Không dùng chữ "đã fix dứt điểm" nếu sau fix vẫn tái hiện dù chỉ 1 lần trong loạt test — phải báo đúng tỉ lệ đo được, kèm giải thích đây là giảm mạnh điều kiện kích hoạt một race condition có gốc rễ 1 phần nằm ngoài code ứng dụng (hành vi Next.js 16 / Vercel dưới tải đồng thời cao), không phải xóa sổ hoàn toàn khả năng xảy ra.
+
+---
+
+## 6. Kết quả thực thi (2026-08-25) — Fix 1 KHÔNG hiệu quả, đã lùi lại + tìm ra fix đúng hơn
+
+### 6.1. Fix 1 (`staleTimes.dynamic` 180→30) — đo được KHÔNG giúp gì, đã LÙI LẠI
+
+Verify bằng 15 lần thử thật trên production sau khi deploy Fix 1+2 (mục 2, 3):
+
+**Kết quả: 7/15 (47%) vẫn tái hiện — TỆ HƠN baseline 2/8 (25%) trước khi sửa.**
+
+Phân tích lại: 5/7 lần tái hiện xảy ra ở **đúng 2 giây** (rất đều: 2s×5, 3s×1, 5s×1) — độ đều này cho thấy có cơ chế hẹn giờ cố định đứng sau, không phải nhiễu mạng ngẫu nhiên, và 2 giây quá ngắn để `staleTimes` (dù 30 hay 180) có thể là đòn bẩy đúng — đã hiểu sai bản chất `staleTimes` (chỉ ảnh hưởng thời gian cache được coi "còn mới" để TÁI SỬ DỤNG cho lần ghé sau, không quyết định request đang bay có bị hủy hay không khi rời trang).
+
+**Hành động:** lùi `staleTimes.dynamic` về 180 (nguyên trạng), giữ nguyên Fix 2 (chặn bão retry — độc lập hợp lý, không có bằng chứng làm xấu thêm).
+
+### 6.2. Điều tra tiếp — bắt đúng cơ chế qua log WebSocket
+
+Viết thêm 1 script Playwright log riêng hoạt động WebSocket của kênh realtime (`finance-realtime`) kèm mốc mili-giây, chạy trên production. Dù lần chạy đó không tái hiện được bug (0/6 — bản chất ngắt quãng), bắt được bằng chứng gián tiếp rất mạnh ở 1 trong 6 lần: kênh `finance-realtime` (đã kết nối + subscribe thành công khi còn ở `/finance`) bị **đóng hẳn** ~4.8 giây sau khi đã sang `/finance/debts`, rồi **mở lại từ đầu** (`ws-open` → `phx_join` → `phx_reply` → `Subscribed`, lần "Subscribed" thứ 2 mất bất thường lâu, hơn 3 giây) — kèm 2-3 sự kiện điều hướng dồn dập tới cùng 1 URL trong cùng khung thời gian.
+
+**Kết luận:** kênh realtime bị đóng/mở lại chỉ có thể xảy ra nếu component `FinanceRealtimeRefresh` (và layout cha của nó) **bị unmount rồi remount** khi chuyển trang trong `/finance/*` — dù về lý thuyết Next.js App Router phải dùng chung 1 layout cho các route con cùng cha, không remount. Nguyên nhân: `app/(protected)/finance/layout.tsx` là **Server Component**, và các trang con (`/finance`, `/finance/debts`, ...) đều `force-dynamic` → mỗi lần điều hướng, server render lại toàn bộ cây kể cả layout, khiến React coi `<FinanceRealtimeRefresh />` là phần tử "mới" ở mỗi lần — đúng loại race mà chính comment gốc trong `hooks/use-realtime-multi.ts` đã cảnh báo trước ("remount nhanh... setup cũ vẫn tiếp tục tạo + subscribe channel").
+
+### 6.3. Fix thật sự — chuyển điểm mount sang `AppShell`
+
+**File:** `components/layout/app-shell.tsx` — thêm `{pathname.startsWith("/finance") && <FinanceRealtimeRefresh />}` ngay sau `<NavigationProgress />`. `AppShell` là **client component**, mount đúng 1 lần bởi `app/(protected)/layout.tsx`, không remount khi điều hướng trong `/finance/*` (chỉ phần `{children}` bên trong nó thay đổi) — điều kiện `pathname.startsWith("/finance")` giữ nguyên `true` xuyên suốt mọi trang con, nên React không coi đây là phần tử khác, không remount.
+
+**File:** `app/(protected)/finance/layout.tsx` — gỡ `<FinanceRealtimeRefresh />` (đã chuyển sang AppShell), giữ nguyên phần kiểm tra quyền.
+
+**Đánh đổi nhỏ, đã cân nhắc:** trước đây `FinanceRealtimeRefresh` chỉ mount khi `canAccess(role, "finance")` đúng; giờ mount thuần theo `pathname`, không biết vai trò. Người bị `AccessDenied` (hiếm) giờ vẫn mở 1 kết nối realtime, nhưng RLS trên các bảng đó vẫn chặn dữ liệu thật — không phải lỗ hổng, chỉ lãng phí 1 kết nối không cần thiết.
+
+### 6.4. Verify (đang chạy)
+
+1. `npx eslint` — 0 error (đã chạy cho cả 4 file: `next.config.ts`, `lib/swr.ts`, `components/layout/app-shell.tsx`, `app/(protected)/finance/layout.tsx`).
+2. `npm run build` — đang chạy lại với đầy đủ thay đổi.
+3. Render thật production: lặp lại đúng kịch bản 15 lần, so sánh với baseline 2/8 và kết quả thất bại 7/15 — sẽ cập nhật số đo thật, không làm tròn.
