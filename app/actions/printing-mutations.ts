@@ -13,27 +13,13 @@ import {
   printingStatusSchema,
   updatePrintingOrderSchema,
 } from "@/lib/validations/printing.schema";
+// PRINTING_VALID_TRANSITIONS: nguồn chân lý DUY NHẤT (ADR-014) — dùng chung với UI
+// (status-select.tsx lọc dropdown) để tránh lệch, giống lớp bug payment_status trước đó.
+import { PRINTING_VALID_TRANSITIONS as VALID_TRANSITIONS } from "@/types/printing-constants";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
   | { success: false; error: string };
-
-// Trục A — tiến độ sản xuất Mood↔Lab (ADR-014). Không có "đặt cọc" (không tồn tại
-// trong quan hệ Mood↔Lab) hay "giao khách" (thuộc contract_events.giao_san_pham,
-// không phải đơn in). da_in = lab đã in xong nhưng hình VẪN Ở BÊN LAB; hoan_thanh =
-// Mood đã nhận hình về. Công nợ Lab là trục B độc lập, không gate trạng thái nào ở đây.
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  cho_xu_ly: ["dang_in", "huy_don", "gap_su_co"],               // Gửi lab / bắt đầu in OR cancel OR flag issue
-  dang_in: ["da_in", "huy_don", "gap_su_co"],                   // Lab đã in xong OR cancel OR flag issue
-  da_in: ["hoan_thanh", "huy_don", "gap_su_co", "dang_in"],     // Mood đã nhận từ lab OR cancel OR flag issue OR rework
-  hoan_thanh: [],                                               // Terminal state
-  huy_don: [],                                                  // Terminal state (cancelled)
-  gap_su_co: ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh", "huy_don"], // Can resume to any active state or cancel
-
-  // Legacy statuses (nhận diện để đọc dữ liệu cũ không vỡ; terminal, không ghi mới)
-  da_nhan: [],
-  da_huy: [],
-};
 
 function calculateTotalAmount(
   items: { quantity: number; unitPrice: number }[],

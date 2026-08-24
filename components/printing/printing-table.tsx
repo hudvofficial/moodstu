@@ -5,7 +5,7 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusSelect, {
-  PRINT_ORDER_STATUS_OPTIONS,
+  selectablePrintOrderStatusOptions,
 } from "@/components/ui/status-select";
 import {
   TableWrapper,
@@ -222,7 +222,7 @@ const OrderRow = memo(function OrderRow({
       <TD>
         <StatusSelect
           current={order.status}
-          options={[...PRINT_ORDER_STATUS_OPTIONS]}
+          options={selectablePrintOrderStatusOptions(order.status)}
           variant="compact"
           onUpdate={(newStatus) => onStatusChange(order, newStatus)}
         />

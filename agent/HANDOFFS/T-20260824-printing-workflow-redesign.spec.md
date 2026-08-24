@@ -371,6 +371,18 @@ const handleNextStep = async () => {
 
 **Còn lại cần user:** merge `claude/printing-workflow-redesign` → `main` + `git push origin main` (= deploy). Claude không tự push main cho task chạm production DB + tài chính.
 
+## 14c. Follow-up cùng ngày — dropdown trạng thái không lọc (user phát hiện qua ảnh chụp)
+
+User hỏi trực tiếp "mấy cái trạng thái này chuẩn chưa" kèm ảnh dropdown hiện cả `Hoàn thành` (nhảy cóc từ `dang_in`) lẫn 2 giá trị legacy `Đã nhận`/`Đã hủy`. Trace: `SelectStatus` (component dùng chung, `components/ui/select/SelectStatus.tsx`) render nguyên `options` được truyền vào, không tự lọc theo trạng thái hiện tại — 3 nơi gọi (`print-orders-block.tsx`, `printing-card.tsx`, `printing-table.tsx`) đều truyền thẳng `[...PRINT_ORDER_STATUS_OPTIONS]` (toàn bộ 8 giá trị). Hành vi này **có từ trước** (không phải do task này gây ra), nhưng bug rõ hơn hẳn sau khi rút gọn danh sách còn 8 mục (trước là 10, giữa các mục hoạt động nên ít nổi bật) — và trực tiếp mâu thuẫn với comment chính mình viết ("da_nhan/da_huy — chỉ để đọc dữ liệu cũ, không còn ghi mới").
+
+**Sửa (cùng branch/commit tiếp theo, không mở task riêng — quy mô nhỏ, additive):**
+- `types/printing-constants.ts`: thêm `PRINTING_VALID_TRANSITIONS` — **nguồn chân lý duy nhất**, tránh lặp lại đúng lớp bug lệch từ vựng đã sửa.
+- `app/actions/printing-mutations.ts`: xoá `VALID_TRANSITIONS` cục bộ, import từ constants.
+- `components/ui/status-select.tsx`: thêm `selectablePrintOrderStatusOptions(current)` — lọc `PRINT_ORDER_STATUS_OPTIONS` còn `{current} ∪ VALID_TRANSITIONS[current]`.
+- 3 call site đổi `options={[...PRINT_ORDER_STATUS_OPTIONS]}` → `options={selectablePrintOrderStatusOptions(order.status)}`.
+
+**Verify:** eslint 0 lỗi/0 warning · build exit 0 · render thật xác nhận dropdown đơn `dang_in` chỉ còn đúng 4 mục `["Đang in" (hiện tại), "Đã in — bên lab", "Gặp sự cố", "Hủy đơn"]` — hết "Hoàn thành" (nhảy cóc), hết 2 legacy.
+
 ## 14. Ngoài phạm vi (ghi nhận, không làm trong task này)
 
 - `printing_stats()` hiện không track `gap_su_co` (trạng thái này tồn tại trong `VALID_TRANSITIONS` nhưng không có cột riêng trong RPC thống kê) — gap có sẵn từ trước, không phải do redesign này gây ra, không sửa cùng lúc.

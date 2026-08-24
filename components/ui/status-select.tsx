@@ -13,6 +13,8 @@
  * ═══════════════════════════════════════════════════════════
  */
 
+import { PRINTING_VALID_TRANSITIONS } from "@/types/printing-constants";
+
 export {
   SelectStatus as default,
   type StatusOption,
@@ -42,6 +44,17 @@ export const PRINT_ORDER_STATUS_OPTIONS = [
   { value: "da_nhan",     label: "Đã nhận",         color: "var(--color-status-success)" },
   { value: "da_huy",      label: "Đã hủy",          color: "var(--color-status-error)" },
 ] as const;
+
+/**
+ * Chỉ trả về option hiện tại + các bước hợp lệ kế tiếp (khớp thẳng
+ * PRINTING_VALID_TRANSITIONS phía server) — tránh cho staff chọn một bước server
+ * sẽ từ chối, và ẩn 2 giá trị legacy (da_nhan/da_huy — chỉ để đọc dữ liệu cũ,
+ * không còn ghi mới) khỏi dropdown khi trạng thái hiện tại không phải chính nó.
+ */
+export function selectablePrintOrderStatusOptions(current: string) {
+  const allowed = new Set<string>([current, ...(PRINTING_VALID_TRANSITIONS[current] ?? [])]);
+  return PRINT_ORDER_STATUS_OPTIONS.filter((opt) => allowed.has(opt.value));
+}
 
 export const RESERVATION_STATUS_OPTIONS = [
   { value: "reserved",  label: "Đã đặt",         color: "var(--color-status-reserved, var(--color-status-info))" },

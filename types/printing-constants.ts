@@ -16,6 +16,21 @@ export const PRINTING_ORDER_STATUSES = [
 
 export type PrintingOrderStatus = (typeof PRINTING_ORDER_STATUSES)[number];
 
+// Trục A — bảng chuyển trạng thái hợp lệ (ADR-014). NGUỒN CHÂN LÝ DUY NHẤT: server
+// action (printing-mutations.ts) và UI (status-select.tsx dropdown, lọc option) đều
+// đọc từ đây — tránh lặp lại đúng lớp bug lệch từ vựng đã sửa (payment_status).
+export const PRINTING_VALID_TRANSITIONS: Record<string, string[]> = {
+  cho_xu_ly: ["dang_in", "huy_don", "gap_su_co"],
+  dang_in: ["da_in", "huy_don", "gap_su_co"],
+  da_in: ["hoan_thanh", "huy_don", "gap_su_co", "dang_in"],
+  hoan_thanh: [],
+  huy_don: [],
+  gap_su_co: ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh", "huy_don"],
+  // Legacy — terminal, không còn ghi mới.
+  da_nhan: [],
+  da_huy: [],
+};
+
 export const PRINTING_PAYMENT_STATUSES = [
   "chua_thanh_toan",
   "da_thanh_toan",

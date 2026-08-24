@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { formatDate } from "@/lib/utils";
 import type { PrintingOrder } from "@/types/contract";
-import StatusSelect, { PRINT_ORDER_STATUS_OPTIONS } from "@/components/ui/status-select";
+import StatusSelect, { selectablePrintOrderStatusOptions } from "@/components/ui/status-select";
 import { updatePrintOrderStatus, updatePrintOrderFileUrl } from "@/app/actions/printing-actions";
 import { toast } from "@/lib/toast-utils";
 
@@ -312,7 +312,7 @@ export default function PrintOrdersBlock({
                       <div onClick={(e) => e.stopPropagation()}>
                         <StatusSelect
                           current={order.status || "cho_xu_ly"}
-                          options={[...PRINT_ORDER_STATUS_OPTIONS]}
+                          options={selectablePrintOrderStatusOptions(order.status || "cho_xu_ly")}
                           variant="compact"
                           onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)}
                         />

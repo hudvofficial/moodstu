@@ -4,7 +4,7 @@ import { AlertTriangle, CalendarClock, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import StatusSelect, {
-  PRINT_ORDER_STATUS_OPTIONS,
+  selectablePrintOrderStatusOptions,
 } from "@/components/ui/status-select";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { PrintingOrderRow } from "@/types/printing";
@@ -75,7 +75,7 @@ export default function PrintingCard({ order, compact, onEdit, onStatusChange }:
       <div className="flex items-center justify-between gap-3">
         <StatusSelect
           current={order.status}
-          options={[...PRINT_ORDER_STATUS_OPTIONS]}
+          options={selectablePrintOrderStatusOptions(order.status)}
           variant="compact"
           onUpdate={(newStatus) => onStatusChange(order, newStatus)}
         />
