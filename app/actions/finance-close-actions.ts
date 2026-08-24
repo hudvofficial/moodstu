@@ -46,7 +46,7 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
       .lt("receipt_date", range.end),
     supabase
       .from("expenses")
-      .select("amount")
+      .select("amount, description")
       .is("deleted_at", null)
       .gte("expense_date", range.start)
       .lt("expense_date", range.end),
@@ -80,7 +80,13 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
 
   const paymentRevenue = (paymentsResult.data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
   const standaloneReceiptRevenue = (receiptsResult.data || []).reduce((sum, row) => sum + (Number(row.receipt_amount) || 0), 0);
-  const operatingOutflow = (expensesResult.data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  // Phiếu chi phí cố định tự động hóa ([Auto-Fixed], sinh bởi generateMonthlyFixedCosts) đã được
+  // tính riêng trong fixedCost bên dưới (prorate theo ngày từ bảng fixed_costs) — cộng thêm ở đây
+  // sẽ đếm trùng. Cùng nguyên tắc RPC finance_contract_profit_report đã áp dụng cho [Auto-Print].
+  const operatingOutflow = (expensesResult.data || []).reduce((sum, row) => {
+    if (row.description?.startsWith("[Auto-Fixed]")) return sum;
+    return sum + (Number(row.amount) || 0);
+  }, 0);
   const salaryCost = Number((salaryResult.data as { total_salary?: unknown } | null)?.total_salary) || 0;
   const fixedCost = (fixedCostsResult.data || []).reduce((sum, row) => {
     const amount = Number(row.monthly_amount) || 0;

@@ -153,7 +153,7 @@ export async function cancelOrder(input: {
           expense_date: new Date().toISOString().split("T")[0],
           payment_method: toPaymentMethodEnum(refundMethod),
           amount: refundAmount,
-          description: `Hoàn tiền hủy đơn in #${order.order_code}: ${reason}`,
+          description: `[Auto-Refund] Hoàn tiền hủy đơn in #${order.order_code}: ${reason}`,
           printing_order_id: orderId,
           created_by: userId,
         })

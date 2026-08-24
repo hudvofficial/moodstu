@@ -277,7 +277,7 @@ export async function payDebt(
         amount: amount,
         payment_method: paymentMethod,
         category_id: categoryId || null,
-        description: note || `Thanh toán nợ: ${debt.entity_name}`,
+        description: `[Auto-Debt] ${note || `Thanh toán nợ: ${debt.entity_name}`}`,
         expense_date: new Date().toISOString().split("T")[0],
         recipient: debt.entity_name,
         created_by: userId,

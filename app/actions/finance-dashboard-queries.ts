@@ -272,7 +272,9 @@ async function getContractProfitReportFallback(
   if (ids.length > 0) {
     const [items, tasks, prints, expenses, inventory] = await Promise.all([
       supabase.from("contract_items").select("contract_id, total_amount, is_addon").is("deleted_at", null).in("contract_id", ids),
-      supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids),
+      // vendor_id IS NULL — chi phí vendor được tính qua expenseCost ([Auto-Vendor]) thay vì ở đây,
+      // khớp đúng logic RPC finance_contract_profit_report đang chạy thật, tránh đếm trùng.
+      supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids).is("vendor_id", null),
       supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", ids),
       supabase.from("expenses").select("contract_id, amount, description").is("deleted_at", null).in("contract_id", ids),
       supabase

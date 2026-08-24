@@ -30,6 +30,23 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-expenses-guard-fixes
+    title: "finance/expenses: gan nhan [Auto-] con thieu (debt/refund) + chan dem trung chi phi co dinh + vendor task"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/expenses-guard-fixes
+    locks:
+      - app/actions/debt-actions.ts
+      - app/actions/printing-workflow-mutations.ts
+      - app/actions/finance-close-actions.ts
+      - app/actions/finance-dashboard-queries.ts
+    spec: agent/HANDOFFS/T-20260824-expenses-guard-fixes.spec.md
+    verify:
+      - "npx eslint (4 file trong locks) - 0 error"
+      - "npm run build - exit 0"
+      - "render that: payDebt tao dung [Auto-Debt], cancelOrder hoan tien tao dung [Auto-Refund], ca 2 bi khoa Sua/Xoa dung; snapshot khoa so khong dem trung [Auto-Fixed]; fix 4 verify bang doc code (duong du phong khong dang chay that)"
+    depends_on: []
+    notes: "Tiep noi trace + so do quan he du lieu /finance/expenses (artifact Ban Do Phieu Chi). Phat hien: guard [Auto- chi nhan dung 5/7 loai phieu chi tu dong, sot 2 loai (tra no phai tra, hoan tien huy don in) - sua/xoa duoc tu do du dung sau la so du no/don in that. Phat hien them: buildCloseSnapshot (vua mo rong hom nay) chua loai [Auto-Fixed] khoi operatingOutflow -> dem trung voi fixedCost neu dung ca 2 tinh nang cho cung 1 thang (hien 0 phieu Auto-Fixed thuc te nen chua phat tac). getContractProfitReportFallback thieu filter vendor_id IS NULL nhu RPC chinh da co - dem trung chi phi vendor neu duong du phong nay tung chay (hien RPC song binh thuong nen khong chay). Co tinh KHONG lam: contract-profit.ts (dead code, 0 caller), them o chon hop dong/dinh anh vao form tao phieu chi (quyet dinh san pham), tach vai tro duyet (chua co tin hieu nhu cau), phia receipts cung co lo hong tuong tu nhung co che khoa khac han (source_table, khong dung nhan [Auto-), can dieu tra rieng."
   - id: T-20260824-finance-closes-real-numbers
     title: "finance/closes: noi buoc Khau hao + Chot P&L vao so lieu that (tai dung investments), them huy ky chua khoa"
     status: ci
