@@ -21,13 +21,15 @@ interface Props {
   /** Hide contract info when rendered inside a group header */
   compact?: boolean;
   onEdit: (order: PrintingOrderRow) => void;
+  /** T-20260824-lab-payment-entry-points: mở LabPaymentModal trực tiếp cho đơn này. */
+  onPayLab?: (order: PrintingOrderRow) => void;
   onStatusChange: (
     order: PrintingOrderRow,
     newStatus: string,
   ) => Promise<void>;
 }
 
-export default function PrintingCard({ order, compact, onEdit, onStatusChange }: Props) {
+export default function PrintingCard({ order, compact, onEdit, onPayLab, onStatusChange }: Props) {
   const isPending = isPendingPrintStatus(order.status);
   const isOverdue = isPending && !!order.expectedDate && new Date(order.expectedDate) < new Date();
   const isMissingDate = isPending && !order.expectedDate;
@@ -79,9 +81,16 @@ export default function PrintingCard({ order, compact, onEdit, onStatusChange }:
           variant="compact"
           onUpdate={(newStatus) => onStatusChange(order, newStatus)}
         />
-        <Button size="sm" variant="outline" onClick={() => onEdit(order)}>
-          Sửa
-        </Button>
+        <div className="flex items-center gap-2">
+          {onPayLab && order.paymentStatus === "chua_thanh_toan" && order.labId && (
+            <Button size="sm" variant="outline" onClick={() => onPayLab(order)}>
+              Thanh toán
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => onEdit(order)}>
+            Sửa
+          </Button>
+        </div>
       </div>
     </div>
   );

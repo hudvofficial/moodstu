@@ -42,6 +42,15 @@ const PrintingDetailDrawer = dynamic(
   { ssr: false },
 );
 
+// T-20260824-lab-payment-entry-points: mở trực tiếp từ 1 đơn, không qua PrintingDetailDrawer.
+const LabPaymentModal = dynamic(
+  () =>
+    import("@/components/printing/labs/lab-payment-modal").then((m) => ({
+      default: m.LabPaymentModal,
+    })),
+  { ssr: false },
+);
+
 type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
@@ -79,10 +88,15 @@ function PrintingListInner({
   const [editingOrder, setEditingOrder] = useState<PrintingOrderRow | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedContractGroup, setSelectedContractGroup] = useState<ContractGroup | null>(null);
-  
+  const [payingOrder, setPayingOrder] = useState<PrintingOrderRow | null>(null);
+
   const handleEdit = useCallback((selectedOrder: PrintingOrderRow) => {
     setEditingOrder(selectedOrder);
     setShowForm(true);
+  }, []);
+
+  const handlePayLab = useCallback((order: PrintingOrderRow) => {
+    setPayingOrder(order);
   }, []);
   
   const [userGroupPreference, setUserGroupPreference] = useState(true);
@@ -290,6 +304,7 @@ function PrintingListInner({
                   key={order.id}
                   order={order}
                   onEdit={handleEdit}
+                  onPayLab={handlePayLab}
                   onStatusChange={handleStatusChange}
                 />
               ))}
@@ -301,6 +316,7 @@ function PrintingListInner({
             groups={isGroupedView ? contractGroups : undefined}
             onViewGroup={setSelectedContractGroup}
             onEdit={handleEdit}
+            onPayLab={handlePayLab}
             onStatusChange={handleStatusChange}
           />
         )}
@@ -339,7 +355,17 @@ function PrintingListInner({
         onClose={() => setSelectedContractGroup(null)}
         group={selectedContractGroup}
         onEdit={handleEdit}
+        onPayLab={handlePayLab}
         onStatusChange={handleStatusChange}
+      />
+
+      <LabPaymentModal
+        isOpen={!!payingOrder}
+        onClose={() => setPayingOrder(null)}
+        labId={payingOrder?.labId || undefined}
+        labName={payingOrder?.labName || undefined}
+        focusOrderId={payingOrder?.id}
+        onSuccess={handleSaved}
       />
     </>
   );

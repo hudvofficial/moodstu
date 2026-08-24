@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, FormEvent } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef, FormEvent } from "react";
 import useSWR, { mutate } from "swr";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ interface LabPaymentModalProps {
   onClose: () => void;
   labId?: string;                    // Pre-selected lab
   labName?: string;                  // For display
+  /** Đơn cụ thể vừa mở modal này — nếu có, tự chọn thủ công + tick sẵn đúng đơn. */
+  focusOrderId?: string;
   onSuccess?: () => void;
 }
 
@@ -50,9 +52,13 @@ export function LabPaymentModal({
   onClose,
   labId,
   labName,
+  focusOrderId,
   onSuccess,
 }: LabPaymentModalProps) {
   const [isPending, startTransition] = useTransition();
+  // Đã áp dụng focusOrderId cho lần mở hiện tại chưa — chỉ thử 1 lần/lần mở,
+  // tránh SWR revalidate sau đó ghi đè lựa chọn tay của admin.
+  const appliedFocusRef = useRef(false);
 
   // Helper to get TODAY's date in YYYY-MM-DD format
   const getTodayDate = () => new Date().toISOString().split("T")[0];
@@ -84,6 +90,7 @@ export function LabPaymentModal({
       setShowAllocationDetails(false);
       setSelectionMode("fifo");
       setSelectedOrderIds(new Set());
+      appliedFocusRef.current = false;
     }
   }
 
@@ -96,6 +103,19 @@ export function LabPaymentModal({
 
   const unpaidOrders: LabUnpaidOrder[] = ordersResult?.success ? ordersResult.data : EMPTY_ORDERS;
   const totalDebt = unpaidOrders.reduce((sum, o) => sum + o.remainingAmount, 0);
+
+  // Tự chọn đúng đơn khi mở modal từ 1 đơn cụ thể (T-20260824-lab-payment-entry-points).
+  // Chờ unpaidOrders load xong mới tra remainingAmount THẬT (không suy từ order.totalAmount
+  // — đơn có thể đã được trả một phần trước đó qua lần thanh toán khác).
+  useEffect(() => {
+    if (!isOpen || !focusOrderId || appliedFocusRef.current || isLoading) return;
+    const target = unpaidOrders.find((o) => o.id === focusOrderId);
+    appliedFocusRef.current = true; // dù có tìm thấy hay không, chỉ thử 1 lần/lần mở
+    if (!target) return; // đơn đã trả xong từ trước hoặc không thuộc lab này — giữ FIFO mặc định
+    setSelectionMode("manual");
+    setSelectedOrderIds(new Set([focusOrderId]));
+    setAmount(target.remainingAmount);
+  }, [isOpen, focusOrderId, unpaidOrders, isLoading]);
 
   // Calculate selected orders total (for manual mode)
   const selectedOrdersTotal = useMemo(() => {

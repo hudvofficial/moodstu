@@ -30,6 +30,25 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-lab-payment-entry-points
+    title: "Thanh toan lab: them nut Thanh toan truc tiep tren don + focusOrderId giu ngu canh trong LabPaymentModal"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/lab-payment-entry-points
+    locks:
+      - components/printing/labs/lab-payment-modal.tsx
+      - components/printing/printing-card.tsx
+      - components/printing/printing-table.tsx
+      - components/printing/printing-group-drawer.tsx
+      - components/printing/printing-list-page.tsx
+      - components/printing/printing-detail-drawer.tsx
+    spec: agent/HANDOFFS/T-20260824-lab-payment-entry-points.spec.md
+    verify:
+      - "npx eslint (6 file trong locks) - 0 error, 1 warning pre-existing khong lien quan"
+      - "npm run build - exit 0"
+      - "render that: next start + Playwright, seed 1 E2E admin (xoa sau). Diem vao A (card trong group drawer): modal tu bat 'Chon thu cong', tu tick 1/26 don, amount tu dien 255.000 khop remainingAmount that. Diem vao C (card lab /printing/labs, khong qua don cu the): FIFO mac dinh khong doi, amount=0. Khong bam Xac nhan thanh toan - khong tao ban ghi that."
+    depends_on: []
+    notes: "User bao 3 anh: khong co UI thanh toan truc tiep (phai qua Sua), group drawer khong co nut thanh toan, LabPaymentModal che do thu cong khong uu tien dung don dang mo. Da phan tich: cong no Lab la khai niem cap LAB (FIFO mac dinh dung cho diem vao tu /printing/labs), nhung diem vao tu 1 don cu the can tu chon thu cong + tick san + amount = remainingAmount that (tra tu unpaidOrders da fetch, khong suy tu order.totalAmount). KHONG bien Badge thanh nut bam (pha quy uoc SSOT) - them nut text Thanh toan rieng canh Sua. Rut khoi pham vi: fetchLabUnpaidOrders thieu filter payment_status - da xac nhan KHONG phai bug (result.filter remainingAmount>0 da tuong duong). Da verify render that + merge main + deploy production (xem spec muc 6)."
   - id: T-20260824-printing-workflow-redesign
     title: "In ấn: bỏ đặt cọc/giao khách/kho khỏi trạng thái đơn, công nợ Lab thành trục độc lập (ADR-014)"
     status: ci

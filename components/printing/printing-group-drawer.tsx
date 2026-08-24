@@ -15,6 +15,8 @@ interface Props {
   onClose: () => void;
   group: ContractGroup | null;
   onEdit: (order: PrintingOrderRow) => void;
+  /** T-20260824-lab-payment-entry-points: mở LabPaymentModal trực tiếp cho đơn này. */
+  onPayLab?: (order: PrintingOrderRow) => void;
   onStatusChange: (
     order: PrintingOrderRow,
     newStatus: string,
@@ -26,6 +28,7 @@ function PrintingGroupDrawerInner({
   onClose,
   group,
   onEdit,
+  onPayLab,
   onStatusChange,
 }: Props) {
   if (!group) return null;
@@ -99,6 +102,7 @@ function PrintingGroupDrawerInner({
                 order={order}
                 compact
                 onEdit={onEdit}
+                onPayLab={onPayLab}
                 onStatusChange={onStatusChange}
               />
             ))}

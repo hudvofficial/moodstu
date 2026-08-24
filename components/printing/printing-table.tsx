@@ -34,6 +34,8 @@ interface Props {
   groups?: ContractGroup[];
   onViewGroup?: (group: ContractGroup) => void;
   onEdit: (order: PrintingOrderRow) => void;
+  /** T-20260824-lab-payment-entry-points: mở LabPaymentModal trực tiếp cho đơn này. */
+  onPayLab?: (order: PrintingOrderRow) => void;
   onStatusChange: (
     order: PrintingOrderRow,
     newStatus: string,
@@ -45,6 +47,7 @@ function PrintingTableInner({
   groups,
   onViewGroup,
   onEdit,
+  onPayLab,
   onStatusChange,
 }: Props) {
   const isGrouped = !!groups && groups.length > 0;
@@ -79,6 +82,7 @@ function PrintingTableInner({
                 order={order}
                 showContract
                 onEdit={onEdit}
+                onPayLab={onPayLab}
                 onStatusChange={onStatusChange}
               />
             ))}
@@ -174,6 +178,7 @@ interface OrderRowProps {
   order: PrintingOrderRow;
   showContract: boolean;
   onEdit: (order: PrintingOrderRow) => void;
+  onPayLab?: (order: PrintingOrderRow) => void;
   onStatusChange: (order: PrintingOrderRow, newStatus: string) => Promise<void>;
 }
 
@@ -181,6 +186,7 @@ const OrderRow = memo(function OrderRow({
   order,
   showContract,
   onEdit,
+  onPayLab,
   onStatusChange,
 }: OrderRowProps) {
   const isPending = isPendingPrintStatus(order.status);
@@ -247,9 +253,16 @@ const OrderRow = memo(function OrderRow({
         </span>
       </TD>
       <TD className="text-right">
-        <Button size="sm" variant="outline" onClick={() => onEdit(order)}>
-          Sửa
-        </Button>
+        <div className="flex items-center justify-end gap-2">
+          {onPayLab && order.paymentStatus === "chua_thanh_toan" && order.labId && (
+            <Button size="sm" variant="outline" onClick={() => onPayLab(order)}>
+              Thanh toán
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => onEdit(order)}>
+            Sửa
+          </Button>
+        </div>
       </TD>
     </TR>
   );

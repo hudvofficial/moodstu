@@ -703,6 +703,7 @@ export default function PrintingDetailDrawer({
             onClose={() => setShowLabPaymentModal(false)}
             labId={order.labId || undefined}
             labName={labs.find((lab) => lab.id === order.labId)?.lab_name}
+            focusOrderId={order.id}
             onSuccess={onSaved}
           />
         </>
