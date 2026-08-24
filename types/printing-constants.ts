@@ -130,9 +130,16 @@ export function normalizeLabStatus(
   return "active";
 }
 
-/** Status that means the order is still in-progress (eligible for overdue) */
+/**
+ * Status that means the order is still in-progress — CHƯA xong theo đúng nghĩa
+ * Mood đã nhận hình (ADR-014), nên vẫn eligible cho cờ "trễ" / đếm "chưa xong"
+ * trong tiến độ theo hợp đồng. `da_in` = lab đã in xong nhưng hình VẪN Ở BÊN LAB
+ * — trước đây bị coi là "đã xong" (bug thật: 5/5 đơn da_in thật đã quá hạn dự
+ * kiến, có đơn trễ 3 tháng, nhưng thanh tiến độ vẫn hiện xanh 100%, không cảnh
+ * báo — phát hiện 2026-08-24 khi rà lại UI /printing sau redesign).
+ */
 export function isPendingPrintStatus(status: PrintingOrderStatus): boolean {
-  return status === "cho_xu_ly" || status === "dang_in" || status === "gap_su_co";
+  return status === "cho_xu_ly" || status === "dang_in" || status === "da_in" || status === "gap_su_co";
 }
 
 // ─── PAYMENT STATUS (DB ↔ UI) ─────────────────────────────

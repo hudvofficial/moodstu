@@ -397,6 +397,20 @@ User hỏi lại lần nữa sau khi thấy dropdown đã lọc đúng — soi k
 
 **Verify:** eslint 0 lỗi · build exit 0 · render thật (local, không phải production lần này — chỉ đổi CSS token, rủi ro thấp) — chấm tròn "Đã in — bên lab" hiện đúng màu tím, ảnh xác nhận với user.
 
+## 14e. Follow-up thứ 3 cùng ngày — thanh "Tiến độ in ấn" tính sai đơn `da_in` là "đã xong"
+
+User hỏi mở: *"thanh báo tiến độ bên in ấn UI tổng thể bên /printing bạn thấy đã thật sự tối ưu chưa?"* — không chỉ tay vào chỗ cụ thể, phải tự rà lại toàn trang.
+
+**Tìm ra:** `isPendingPrintStatus()` (`types/printing-constants.ts`) — hàm quyết định 1 đơn có tính là "chưa xong" (nên bị đếm vào "chưa xong"/cờ "trễ") — chỉ coi `cho_xu_ly`/`dang_in`/`gap_su_co` là "pending". Thiếu `da_in` — mà theo đúng chốt của user hôm nay, `da_in` = **"lab đã in xong nhưng hình VẪN Ở BÊN LAB"**, tức **CHƯA xong** theo nghĩa Mood. 3 nơi dùng chung hàm này (`lib/utils/printing-group-utils.ts`, `printing-table.tsx`, `printing-card.tsx`) đều bị ảnh hưởng: đơn `da_in` bị đếm nhầm vào "xong" (thanh tiến độ xanh 100%), **không được xét cờ "trễ"**, và ngày dự kiến bị ẩn (hiện "—").
+
+**Đo được trên dữ liệu thật trước khi sửa:** cả **5/5 đơn `da_in`** đang hoạt động đều đã quá hạn `expected_date` — có đơn trễ tới **3 tháng** (`IN-260526-00009`, hẹn 24/05, hôm nay 24/08) — nhưng UI hiện xanh "1/1 xong", không cảnh báo gì. Bug có từ trước (hàm này Claude chỉ bớt `dat_coc` hôm nay, không đụng phần còn lại), nhưng mâu thuẫn trực tiếp với chính định nghĩa `da_in` vừa chốt trong task này nên vá luôn.
+
+**Sửa** (`types/printing-constants.ts`, 1 dòng): thêm `da_in` vào `isPendingPrintStatus`.
+
+**Verify:** eslint 0 lỗi · build exit 0 · render thật (local) — đối chiếu ảnh chụp `/printing` với DB: 3/5 đơn `da_in` thật xuất hiện trên trang 1 (`HĐ-2026-0021`, `HĐ-2026-0017`, `HĐ-2026-0016`) đều hiện đúng **"0/1 xong" + "⚠ 1 trễ" + ngày dự kiến thật** — trước đây sẽ sai thành "1/1 xong" xanh, không cảnh báo, ngày ẩn.
+
+**Ngoài phạm vi, ghi nhận:** đơn `huy_don` (hủy) hiện vẫn bị tính vào "đã xong" trong `completedCount` (không phải pending, không phải "xong" thật — model hiện tại chỉ nhị phân pending/completed, không có nhánh "đã hủy" riêng). Chưa ảnh hưởng thật vì hiện **0 đơn `huy_don`** đang hoạt động — nếu phát sinh đơn hủy trong tương lai, cần task riêng để tách 3 nhánh (pending / hoàn thành / hủy) thay vì nhị phân.
+
 ## 14. Ngoài phạm vi (ghi nhận, không làm trong task này)
 
 - `printing_stats()` hiện không track `gap_su_co` (trạng thái này tồn tại trong `VALID_TRANSITIONS` nhưng không có cột riêng trong RPC thống kê) — gap có sẵn từ trước, không phải do redesign này gây ra, không sửa cùng lúc.
