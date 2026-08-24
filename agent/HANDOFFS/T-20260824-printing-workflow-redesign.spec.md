@@ -411,6 +411,20 @@ User hỏi mở: *"thanh báo tiến độ bên in ấn UI tổng thể bên /pr
 
 **Ngoài phạm vi, ghi nhận:** đơn `huy_don` (hủy) hiện vẫn bị tính vào "đã xong" trong `completedCount` (không phải pending, không phải "xong" thật — model hiện tại chỉ nhị phân pending/completed, không có nhánh "đã hủy" riêng). Chưa ảnh hưởng thật vì hiện **0 đơn `huy_don`** đang hoạt động — nếu phát sinh đơn hủy trong tương lai, cần task riêng để tách 3 nhánh (pending / hoàn thành / hủy) thay vì nhị phân.
 
+## 14f. Follow-up thứ 4 cùng ngày — checkbox trong `LabPaymentModal` (Chọn thủ công) vỡ layout hoàn toàn
+
+User gửi ảnh chụp modal "Thanh toán cho Lab" ở chế độ "Chọn thủ công" — chữ đè lên nhau, có thanh cuộn ngang bất thường, không đọc được thông tin đơn nào. **Không liên quan tới redesign hôm nay** — file này (`components/printing/labs/lab-payment-modal.tsx`) Claude chưa từng đụng tới trong toàn bộ task; bug lộ ra vì bây giờ user mới thực sự dùng luồng "Thanh toán lab" (trước đó công nợ bị bug ẩn nên tính năng gần như chưa ai bấm tới).
+
+**Root cause:** dòng checkbox (`<Input unstyled type="checkbox" .../>`) không truyền `withBaseStyles={false}` → tự động gắn class `input-base` (dành cho ô nhập chữ: `width:100%; min-height:44px; padding:10px`) lên checkbox → checkbox phồng thành khối gần full-width bên trong hàng `flex`, đẩy/đè toàn bộ nội dung còn lại (mã đơn, ngày, hợp đồng, khách, số tiền) chồng lên nhau, tràn ngang.
+
+Repo đã có sẵn SSOT `components/ui/checkbox.tsx` (`h-4 w-4 shrink-0`, style checkbox đúng chuẩn) nhưng file này không dùng — dùng thẳng `<Checkbox>` thay vì vá `withBaseStyles={false}` trên `Input`, đúng khuôn SSOT của dự án.
+
+**Sửa:** thay `<Input unstyled type="checkbox">` → `<Checkbox>` (import từ `@/components/ui/checkbox`); gỡ import `Input` (không còn nơi nào khác trong file dùng).
+
+**Ghi nhận, KHÔNG sửa trong task này** (ngoài yêu cầu, dead-code-adjacent không liên quan): cùng pattern lỗi (`<Input type="checkbox">` thiếu `withBaseStyles={false}`) còn ở `components/settings/moodie-ai-card.tsx` (2 chỗ, module Moodie AI — khác domain hoàn toàn) và comment cũ trong `components/calendar/solar-lunar-converter.tsx` ghi "chưa có Checkbox SSOT" — comment đã lỗi thời vì `checkbox.tsx` đã tồn tại. `components/dresses/return-modal.tsx` đã làm đúng (`withBaseStyles={false}`), không vỡ.
+
+**Verify:** eslint 0 lỗi · build exit 0 · render thật đo trực tiếp: checkbox **16×16px** (trước đó lỗi ~100% chiều rộng hàng), không còn tràn ngang trong danh sách chọn đơn. Ảnh chụp xác nhận: mã đơn/ngày/hợp đồng/khách/số tiền hiển thị rõ ràng, tách bạch.
+
 ## 14. Ngoài phạm vi (ghi nhận, không làm trong task này)
 
 - `printing_stats()` hiện không track `gap_su_co` (trạng thái này tồn tại trong `VALID_TRANSITIONS` nhưng không có cột riêng trong RPC thống kê) — gap có sẵn từ trước, không phải do redesign này gây ra, không sửa cùng lúc.

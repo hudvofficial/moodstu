@@ -6,7 +6,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SelectForm } from "@/components/ui/select/SelectForm";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { TabsFilter } from "@/components/ui/tabs-filter";
 import DatePicker from "@/components/ui/date-picker";
@@ -370,12 +370,11 @@ export function LabPaymentModal({
                       isSelected ? "bg-primary/10 border border-primary" : "bg-surface hover:bg-bg-hover border border-transparent"
                     )}
                   >
-                    <Input unstyled
-                      type="checkbox"
+                    <Checkbox
                       checked={isSelected}
                       onChange={() => toggleOrderSelection(order.id)}
                       disabled={isPending}
-                      className="mt-1 cursor-pointer"
+                      className="mt-1"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
