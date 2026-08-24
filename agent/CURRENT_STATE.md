@@ -3,7 +3,11 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-08** · nhánh: `main` @ `6f0bdc8`.
+> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `7b67da5`.
+
+## 2026-08-24 — Sentry/V1 + form hợp đồng
+- **Sentry issue `142429860` (TypeError "waiting", l.fn undefined @ /login) KHÔNG phải bug V2.** Event đến từ `admin.moodwedding.com` = **app V1 cũ vẫn đang chạy** (build < 2026-04-24, Supabase riêng `dtrrnkybahstrvgsxcgp`), do bot Playwright (Firefox 128) chặn SW → workbox-window `register()` đọc `this._registration.waiting`. V1 và V2 dùng **chung 1 DSN key** → đã đổi Sentry project `allowedDomains` `["*"]` → `["stu.moodwedding.com","localhost"]` (probe: V1 tunnel 403 Cors, V2 200). Hệ quả: preview `*.vercel.app` không còn báo lỗi client. Còn mở: hạ V1 trên Vercel (CLI chưa login), quyết số phận Supabase V1, ignore issue trên UI (token thiếu quyền).
+- **T-20260824-customer-search-contrast MERGED** (`7b67da5`, Claude fallback): lớp SSOT `.input-elevated` (forms.css) cho ô search inline trên nền trang; placeholder "Tìm hoặc tạo mới..." (đo width @375). Verify: eslint, build, render thật `next start` @375/768/1024 + focus.
 
 ## E2E (2026-08-08) — suite chromium XANH 100%
 - Toàn bộ spec chromium pass, KỂ CẢ `printing-ui-tablet` (workers=2 full, file perf/DB-nặng workers=1).
