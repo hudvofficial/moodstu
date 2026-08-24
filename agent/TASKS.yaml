@@ -26,10 +26,25 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-08-07
+updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-customer-search-contrast
+    title: "Ô Tìm kiếm khách hàng ở form hợp đồng chìm trên nền trang (1.03:1) — thêm lớp SSOT input-elevated"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/customer-search-contrast
+    locks:
+      - components/contracts/form/ContractCustomerSection.tsx
+      - app/styles/forms.css
+    spec: agent/HANDOFFS/T-20260824-customer-search-contrast.spec.md
+    verify:
+      - npx eslint components/contracts/form/ContractCustomerSection.tsx
+      - npm run build
+      - "render chrome-devtools /contracts/create @375 @768 @1024 (Roo)"
+    depends_on: []
+    notes: "2026-08-24 VERIFY XANH (eslint 0 lỗi, build exit 0, render thật prod @375/768/1024 + focus, seed user E2E đã xoá) — chờ user merge branch claude/customer-search-contrast → main + push. Placeholder chốt là \"Tìm hoặc tạo mới...\" (đo 126px < 143px vùng chữ @375; bản dài 179px bị cắt). ĐO ĐƯỢC: section Khách hàng nằm trực tiếp trên nền trang (--color-bg-base #faf7f2), ô input-base (#f8f4ee, không border theo Lesson #64) → tương phản ~1.03:1; placeholder --color-text-muted ~2.1:1. Fix = lớp unlayered .input-elevated (bg card + inset ring bằng box-shadow + shadow-sm, placeholder text-secondary ~4.5:1) — cùng từ vựng với .search-input của header. Không đụng .input-base/.input-selected. Placeholder đổi chữ là TÙY CHỌN trong spec. Lock không giao với 2 task gallery đang active."
   - id: T-20260723-gallery-dead-code-cleanup
     title: "Gỡ 5 file gallery chết — chuỗi Pinterest 3 file ĐANG nằm trong bundle gửi khách"
     status: spec

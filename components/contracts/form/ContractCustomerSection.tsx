@@ -98,7 +98,7 @@ export function ContractCustomerSection({
               ) : customer.isNewCustomer ? (
                 <UserPlus className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-success" />
               ) : (
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
               )}
               <Input
                 unstyled
@@ -106,9 +106,9 @@ export function ContractCustomerSection({
                 value={customer.searchQuery}
                 onChange={(event) => customer.setSearchQuery(event.target.value)}
                 onFocus={customer.reopenSearchDropdown}
-                placeholder="Tìm kiếm khách hàng..."
+                placeholder="Tìm hoặc tạo mới..."
                 readOnly={!!customer.selectedCustomer}
-                className={`input-base pl-10 pr-10 ${customer.selectedCustomer ? "input-selected" : ""}`}
+                className={`input-base input-elevated pl-10 pr-10 ${customer.selectedCustomer ? "input-selected" : ""}`}
               />
 
               {(customer.selectedCustomer || customer.isNewCustomer) && (

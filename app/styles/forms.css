@@ -100,6 +100,30 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-interactive) 25%, transparent);
 }
 
+/* ── Input nổi trên nền trang (không nằm trong card) ──────────────
+   Dùng cho ô search inline cạnh heading (vd. Khách hàng ở form hợp đồng):
+   --color-bg-input trên --color-bg-base chỉ cho tương phản ~1.03:1 → ô "chìm".
+   V2 không border (Lesson #64) → dùng bg card + inset ring bằng box-shadow,
+   cùng từ vựng với .search-input của header.
+   PHẢI nằm ngoài @layer base để đè background của .input-base.
+─────────────────────────────────────────────────────────────────── */
+.input-elevated {
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--color-border);
+}
+
+.input-elevated::placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* Focus: giữ ring cam của .input-base:focus, cộng thêm shadow để ô không "tụt" */
+.input-elevated:focus,
+.input-elevated:focus-visible {
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 2px color-mix(in srgb, var(--color-interactive) 25%, transparent);
+}
+
 /* ── Radix Select trigger focus override ──────────────────────────
    PHẢI nằm NGOÀI @layer base.
    Unlayered > @layer bất kể specificity → đây là cách duy nhất đáng tin.
