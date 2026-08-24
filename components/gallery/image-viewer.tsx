@@ -778,7 +778,7 @@ export default function ImageViewer({
               onChange={(event) => setNameInput(event.target.value.slice(0, 50))}
               onClick={(event) => event.stopPropagation()}
               label="Tên của bạn"
-              placeholder="Vd: Dịu Êm"
+              placeholder="Vd: Minh Anh"
               maxLength={50}
               autoFocus
               className="mb-3"

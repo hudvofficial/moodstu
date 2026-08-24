@@ -30,6 +30,21 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-stale-action-toast-recovery
+    title: "Deploy skew: lỗi Server Action not found bị toast nuốt → gắn recovery tại ToastManager.error() (+ placeholder gallery)"
+    status: implementing
+    owner: claude (fallback)
+    branch: main
+    locks:
+      - lib/toast-manager.ts
+      - components/gallery/image-viewer.tsx
+    spec: agent/HANDOFFS/T-20260824-stale-action-toast-recovery.spec.md
+    verify:
+      - npx jest tests/unit/stale-server-action-recovery.test.ts
+      - npx eslint lib/toast-manager.ts components/gallery/image-viewer.tsx
+      - npm run build
+    depends_on: []
+    notes: "ĐO ĐƯỢC: ID action 78f6308c… không có trong manifest build hiện tại → skew sau 2 lần push main 2026-08-24. StaleServerActionRecovery toàn cục chỉ nghe unhandledrejection; 66 chỗ catch→toast nuốt lỗi (React Query onError, runOptimisticMutation, try/catch). Fix additive 2 dòng ở lib/toast-manager.ts error(): recoverFromStaleServerAction(message) (helper sẵn, reload 1 lần/build). Lock không giao 2 task gallery active. Ngoài phạm vi: Vercel Skew Protection (plan Pro), ignoreCommand cho commit chỉ đụng agent/**."
   - id: T-20260723-gallery-dead-code-cleanup
     title: "Gỡ 5 file gallery chết — chuỗi Pinterest 3 file ĐANG nằm trong bundle gửi khách"
     status: spec

@@ -24,6 +24,7 @@
  */
 
 import { toast as sonnerToast } from "sonner";
+import { recoverFromStaleServerAction } from "@/lib/client/stale-server-action-recovery";
 
 // ═══════════════════════════════════════════
 // Types
@@ -85,6 +86,12 @@ class ToastManager {
    * Show error toast with automatic deduplication
    */
   error(message: string, options?: ToastOptions) {
+    // Deploy skew: client cũ gọi server action đã đổi ID sau deploy → Next ném
+    // "Server Action … was not found on the server". Hầu hết mutation (React Query,
+    // runOptimisticMutation, try/catch) BẮT lỗi rồi toast, nên listener toàn cục
+    // StaleServerActionRecovery (chỉ nghe unhandledrejection) không bao giờ thấy.
+    // Mọi lỗi hiển thị cho user đều đi qua đây → reload 1 lần/build tại chỗ này.
+    recoverFromStaleServerAction(message);
     return this._showToast("error", message, options);
   }
 
