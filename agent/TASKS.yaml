@@ -30,6 +30,26 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-receipts-trace-fixes
+    title: "finance/receipts: fix phan loai Coc sai trong finance_receipt_documents + khoa nut Sua tren phieu ban vat tu + 2 loi UI nho"
+    status: implementing
+    owner: claude (fallback)
+    branch: main
+    locks:
+      - supabase/migrations/20260824140000_fix_receipt_documents_deposit_classification.sql
+      - components/finance/receipts/receipt-row-actions.tsx
+      - components/finance/receipts/receipt-mobile-swipe-card.tsx
+      - app/(protected)/finance/receipts/[id]/page.tsx
+      - components/finance/receipts/receipt-detail-modal.tsx
+      - app/(protected)/finance/receipts/page.tsx
+    spec: agent/HANDOFFS/T-20260824-receipts-trace-fixes.spec.md
+    verify:
+      - "npx eslint (5 file code, khong tinh migration .sql) - 0 error"
+      - "npm run build - exit 0"
+      - "migration da apply production, verify lai finance_receipt_documents: contract_deposit 1 -> 18, contract_payment 48 -> 31"
+      - "render that (local + production) xac nhan tab Coc hop dong hien du, nut Sua bi khoa dung tren phieu ban vat tu"
+    depends_on: []
+    notes: "User hoi trace /finance/receipts da toi uu chua. Phat hien bug that dang song (khong phai no du lieu cu): payment_stage luon ghi nhan Vietnamese co dau qua payment_stage_display_label_v2, nhung finance_receipt_documents dung LIKE '%coc%' ASCII khong khop dau -> moi khoan coc moi deu bi phan sai. Fix bang cach tai su dung payment_stage_key_v2 (ham chuan hoa da co san, dung chinh trong process_contract_payment_v2). Fix 2: nut Sua tren phieu sale_receipt luon that bai server-side (da co san check) nhung UI khong khoa - them isSaleReceipt check. Fix 3+4: id leak 'payment:' trong dong ID footer, bankInfo khong SSR gay nhay QR modal. Da retract 1 nghi van bug (tab Ban vat tu) - la race condition trong script test, khong phai bug that."
   - id: T-20260824-lab-payment-entry-points
     title: "Thanh toan lab: them nut Thanh toan truc tiep tren don + focusOrderId giu ngu canh trong LabPaymentModal"
     status: ci

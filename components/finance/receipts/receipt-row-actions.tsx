@@ -28,7 +28,9 @@ export function ReceiptRowActions({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const isDeleting = deletingId === receipt.id;
   const isContractGenerated = receipt.source_table === "payments" || receipt.id.startsWith("payment:");
-  
+  const isSaleReceipt = receipt.receipt_type === "sale_receipt";
+  const isEditLocked = isContractGenerated || isSaleReceipt;
+
   const strokeWg = 1.75;
   const linkClassName = "btn-icon text-text-secondary";
 
@@ -76,11 +78,11 @@ export function ReceiptRowActions({
           type="button"
           variant="ghost"
           onClick={() => onEdit(receipt)}
-          disabled={isDeleting || isContractGenerated}
+          disabled={isDeleting || isEditLocked}
           className={linkClassName}
           style={btnStyle}
           aria-label="Sua phieu thu"
-          title="Chỉnh sửa"
+          title={isSaleReceipt ? "Phiếu bán vật tư — sửa từ Vật tư" : "Chỉnh sửa"}
         >
           <Edit2 style={iconStyle} strokeWidth={strokeWg} />
         </Button>

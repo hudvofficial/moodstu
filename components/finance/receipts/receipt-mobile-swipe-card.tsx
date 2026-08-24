@@ -28,6 +28,7 @@ export function ReceiptMobileSwipeCard({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const isDeleting = deletingId === receipt.id;
   const isContractGenerated = receipt.source_table === "payments" || receipt.id.startsWith("payment:");
+  const isSaleReceipt = receipt.receipt_type === "sale_receipt";
 
   // ── Swipe Actions configuration (Apple HIG) ── //
   
@@ -56,36 +57,41 @@ export function ReceiptMobileSwipeCard({
   ];
 
   // Right actions (swipe left to reveal)
-  const rightActions: SwipeAction[] = isContractGenerated ? [
-    {
-      id: "void",
-      label: "Hủy",
-      icon: <Trash2 className="w-5 h-5 mb-1" />,
-      className: "bg-error text-text-inverse",
-      onClick: () => {
-        if (!isDeleting) onDelete(receipt.id);
-      },
+  const deleteAction: SwipeAction = {
+    id: "delete",
+    label: "Xóa",
+    icon: <Trash2 className="w-5 h-5 mb-1" />,
+    className: "bg-error text-text-inverse",
+    onClick: () => {
+      if (!isDeleting) onDelete(receipt.id);
     },
-  ] : [
-    {
-      id: "edit",
-      label: "Sửa",
-      icon: <Edit2 className="w-5 h-5 mb-1" />,
-      className: "bg-warning text-text-inverse",
-      onClick: () => {
-        if (!isDeleting) onEdit(receipt);
-      },
-    },
-    {
-      id: "delete",
-      label: "Xóa",
-      icon: <Trash2 className="w-5 h-5 mb-1" />,
-      className: "bg-error text-text-inverse",
-      onClick: () => {
-        if (!isDeleting) onDelete(receipt.id);
-      },
-    },
-  ];
+  };
+  const rightActions: SwipeAction[] = isContractGenerated
+    ? [
+        {
+          id: "void",
+          label: "Hủy",
+          icon: <Trash2 className="w-5 h-5 mb-1" />,
+          className: "bg-error text-text-inverse",
+          onClick: () => {
+            if (!isDeleting) onDelete(receipt.id);
+          },
+        },
+      ]
+    : isSaleReceipt
+      ? [deleteAction]
+      : [
+          {
+            id: "edit",
+            label: "Sửa",
+            icon: <Edit2 className="w-5 h-5 mb-1" />,
+            className: "bg-warning text-text-inverse",
+            onClick: () => {
+              if (!isDeleting) onEdit(receipt);
+            },
+          },
+          deleteAction,
+        ];
 
   return (
     <>

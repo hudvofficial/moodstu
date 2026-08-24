@@ -251,7 +251,7 @@ export function ReceiptDetailModal({ isOpen, onClose, receiptId }: ReceiptDetail
         {/* Footer Meta */}
         <div className="mt-8 text-center border-t border-dashed border-border pt-3 opacity-50 flex flex-col gap-1">
           <p className="text-xs text-text-secondary font-mono">
-            ID: {receipt.id.split("-")[0]} • Ref: {refCode} • Created: {receipt.created_at ? format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm") : "N/A"}
+            ID: {rawId.split("-")[0]} • Ref: {refCode} • Created: {receipt.created_at ? format(new Date(receipt.created_at), "dd/MM/yyyy HH:mm") : "N/A"}
           </p>
         </div>
       </div>

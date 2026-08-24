@@ -4,6 +4,7 @@ import {
   fetchFinanceCategories,
   fetchContractOptions,
 } from "@/app/actions/finance-operations-queries";
+import { getStudioInfo } from "@/app/actions/settings-queries";
 import { ReceiptsClient } from "@/components/finance/receipts/receipts-client";
 import type { ActionResult } from "@/types/action-result";
 import type { ReceiptPage, FinanceCategory, FinanceContractOption } from "@/types/finance-operations";
@@ -21,12 +22,13 @@ export default async function ReceiptsPage() {
   const year = now.getFullYear();
 
   // Parallel SSR fetch — categories & contracts are small lookups, receipts is the main data
-  const [receiptsResult, statsResult, categoriesResult, contractsResult] =
+  const [receiptsResult, statsResult, categoriesResult, contractsResult, studioResult] =
     await Promise.all([
       fetchReceipts({ page: 1, pageSize: 12, month, year }),
       fetchReceiptStats(month, year),
       fetchFinanceCategories("thu"),
       fetchContractOptions(),
+      getStudioInfo(),
     ]);
 
   return (
@@ -37,6 +39,7 @@ export default async function ReceiptsPage() {
       initialStats={unwrap(statsResult, undefined)}
       categories={unwrap<FinanceCategory[]>(categoriesResult, [])}
       contracts={unwrap<FinanceContractOption[]>(contractsResult, [])}
+      bankInfo={unwrap(studioResult, undefined)?.bank_info ?? null}
     />
   );
 }
