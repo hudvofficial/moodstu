@@ -33,9 +33,13 @@ export {
  */
 export const PRINT_ORDER_STATUS_OPTIONS = [
   // ─── Active Workflow ───
-  { value: "cho_xu_ly",   label: "Chờ xử lý",       color: "var(--color-status-warning)" },
+  // cho_xu_ly/da_in trước đây dùng --color-status-warning/--color-status-primary —
+  // 2 token KHÔNG tồn tại trong app/globals.css (chấm tròn vô hình, phát hiện qua
+  // ảnh chụp 2026-08-24) — đổi sang token có sẵn, đúng nghĩa: --color-status-pending
+  // ("chờ") và --color-status-printed ("đã in", trước đó không nơi nào dùng).
+  { value: "cho_xu_ly",   label: "Chờ xử lý",       color: "var(--color-status-pending)" },
   { value: "dang_in",     label: "Đang in",         color: "var(--color-status-info)" },
-  { value: "da_in",       label: "Đã in — bên lab", color: "var(--color-status-primary)" },
+  { value: "da_in",       label: "Đã in — bên lab", color: "var(--color-status-printed)" },
   { value: "hoan_thanh",  label: "Hoàn thành",      color: "var(--color-status-success)" },
   { value: "gap_su_co",   label: "Gặp sự cố",       color: "var(--color-status-error)" },
   { value: "huy_don",     label: "Hủy đơn",         color: "var(--color-status-error)" },

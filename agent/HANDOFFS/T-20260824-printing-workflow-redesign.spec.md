@@ -381,7 +381,21 @@ User hỏi trực tiếp "mấy cái trạng thái này chuẩn chưa" kèm ản
 - `components/ui/status-select.tsx`: thêm `selectablePrintOrderStatusOptions(current)` — lọc `PRINT_ORDER_STATUS_OPTIONS` còn `{current} ∪ VALID_TRANSITIONS[current]`.
 - 3 call site đổi `options={[...PRINT_ORDER_STATUS_OPTIONS]}` → `options={selectablePrintOrderStatusOptions(order.status)}`.
 
-**Verify:** eslint 0 lỗi/0 warning · build exit 0 · render thật xác nhận dropdown đơn `dang_in` chỉ còn đúng 4 mục `["Đang in" (hiện tại), "Đã in — bên lab", "Gặp sự cố", "Hủy đơn"]` — hết "Hoàn thành" (nhảy cóc), hết 2 legacy.
+**Verify:** eslint 0 lỗi/0 warning · build exit 0 · render thật xác nhận dropdown đơn `dang_in` chỉ còn đúng 4 mục `["Đang in" (hiện tại), "Đã in — bên lab", "Gặp sự cố", "Hủy đơn"]` — hết "Hoàn thành" (nhảy cóc), hết 2 legacy. Render trên **production** (`stu.moodwedding.com`) sau deploy — không chỉ local.
+
+## 14d. Follow-up thứ 2 cùng ngày — 2 chấm màu trạng thái vô hình (user hỏi lại "chắc chưa" kèm ảnh)
+
+User hỏi lại lần nữa sau khi thấy dropdown đã lọc đúng — soi kỹ ảnh phát hiện dòng "Đã in — bên lab" **không có chấm tròn màu** như 3 dòng còn lại. Trace: `color: "var(--color-status-primary)"` (cho `da_in`) và `color: "var(--color-status-warning)"` (cho `cho_xu_ly`) trong `PRINT_ORDER_STATUS_OPTIONS` — **cả hai token đều chưa từng được định nghĩa** trong `app/globals.css` (chỉ có `--color-status-pending/info/printed/success/error`). CSS var không tồn tại + không có fallback → khai báo `background` bị bỏ qua → chấm tròn trong suốt.
+
+**Xác nhận đây là bug có từ trước task này** — đọc lại bản gốc (trước khi Claude sửa hôm nay) thấy `da_in` đã dùng `--color-status-primary` từ Migration 2026-05-26, chỉ đổi *label* hôm nay ("Đã in" → "Đã in — bên lab"), giữ nguyên màu hỏng cũ. Không phải lỗi do redesign gây ra, nhưng nằm ngay trong mảng đang sửa nên vá luôn thay vì báo riêng.
+
+**Sửa** (`components/ui/status-select.tsx`, không đụng CSS — dùng lại token có sẵn thay vì bịa mới):
+- `cho_xu_ly`: `--color-status-warning` → `--color-status-pending` (đã định nghĩa, cam, đúng nghĩa "chờ").
+- `da_in`: `--color-status-primary` → `--color-status-printed` (đã định nghĩa #9b59b6 tím, **trước đó không nơi nào dùng** — rất có thể chính là token dự định ban đầu cho "đã in"/"printed").
+
+**Đối chiếu hệ màu song song `PRINTING_STATUS_VARIANTS`** (dùng cho `<Badge>`, cũng do Claude sửa hôm nay): kiểm `BadgeVariant` type (`components/ui/badge.tsx`) — `"warning"`/`"primary"` là variant **có thật**, có class Tailwind tương ứng, được TS ràng buộc kiểu → không dính lỗi tương tự. Chỉ chuỗi CSS var tự do (không gõ kiểu) mới lọt lỗi này qua build.
+
+**Verify:** eslint 0 lỗi · build exit 0 · render thật (local, không phải production lần này — chỉ đổi CSS token, rủi ro thấp) — chấm tròn "Đã in — bên lab" hiện đúng màu tím, ảnh xác nhận với user.
 
 ## 14. Ngoài phạm vi (ghi nhận, không làm trong task này)
 
