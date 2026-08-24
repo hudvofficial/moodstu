@@ -3,7 +3,12 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `7b67da5`.
+> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `0f9a3cb`.
+
+## 2026-08-24 (tiếp) — In ấn: bỏ đặt cọc/giao khách/kho (ADR-014)
+- **T-20260824-printing-workflow-redesign MERGED** (`0f9a3cb`, Claude fallback theo yêu cầu user). Nghiệp vụ đúng xác nhận trực tiếp: in ấn = Mood ⇄ Lab thuần tuý, không cọc, không kho vật tư, `da_in` = lab đã in xong nhưng hình còn ở lab, `hoan_thanh` = Mood đã nhận về. Trạng thái sản xuất rút còn 4 bước (`cho_xu_ly→dang_in→da_in→hoan_thanh`); công nợ Lab tách hẳn thành trục B độc lập (`record_lab_payment_atomic`, không đổi).
+- **Migration production đã áp**: gộp 3 đơn `da_nhan` + 2 đơn `dat_coc` (0 tiền thật) vào `hoan_thanh`, thêm CHECK constraint, viết lại `printing_stats()`. Sửa luôn bug lệch từ vựng `payment_status` (cùng root cause) — KPI "Chưa thanh toán" từng hiện 0đ nay đúng.
+- **⚠️ Phát hiện cần theo dõi:** công nợ Lab **Hồng Bảo lộ ra 7.916.400đ/25 đơn, `total_paid=0`** toàn bộ — số thật, chưa từng trả qua `record_lab_payment_atomic`. Đã báo user xác nhận đúng thực tế 2026-08-24, **chưa có câu trả lời cuối cùng** tại thời điểm merge.
 
 ## 2026-08-24 — Sentry/V1 + form hợp đồng
 - **Sentry issue `142429860` (TypeError "waiting", l.fn undefined @ /login) KHÔNG phải bug V2.** Event đến từ `admin.moodwedding.com` = **app V1 cũ vẫn đang chạy** (build < 2026-04-24, Supabase riêng `dtrrnkybahstrvgsxcgp`), do bot Playwright (Firefox 128) chặn SW → workbox-window `register()` đọc `this._registration.waiting`. V1 và V2 dùng **chung 1 DSN key** → đã đổi Sentry project `allowedDomains` `["*"]` → `["stu.moodwedding.com","localhost"]` (probe: V1 tunnel 403 Cors, V2 200). Hệ quả: preview `*.vercel.app` không còn báo lỗi client. Còn mở: hạ V1 trên Vercel (CLI chưa login), quyết số phận Supabase V1, ignore issue trên UI (token thiếu quyền).
