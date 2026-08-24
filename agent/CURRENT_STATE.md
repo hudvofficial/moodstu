@@ -3,7 +3,14 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `51988da`.
+> Cập nhật gần nhất: **2026-08-24** · nhánh: `main` @ `25f2856`.
+
+## 2026-08-24 (tiếp #2) — Thanh toán lab: điểm vào trực tiếp trên đơn
+- **T-20260824-lab-payment-entry-points MERGED** (`25f2856`, Claude fallback theo yêu cầu user: "ok duyệt, bạn tiến hành viết spec đầy đủ rồi tiến hành bước tiếp"). User báo bằng 3 ảnh: không có UI thanh toán công nợ lab trực tiếp từ dòng/thẻ đơn (phải vào "Sửa" mới tới `LabPaymentModal`), và ở đó chế độ "Chọn thủ công" hiện cả 26 đơn chưa trả, không ưu tiên đúng đơn admin đang xem — "loạn xà ngầu hoàn toàn không tối ưu".
+- **Thiết kế:** công nợ Lab vẫn là khái niệm cấp LAB (không đổi data model), nhưng 2 điểm vào ứng 2 ý định khác nhau. Từ 1 đơn cụ thể (nút "Thanh toán" mới, cùng cấp "Sửa", trên `OrderRow`/`PrintingCard`) → modal tự bật "Chọn thủ công", tự tick đúng đơn, tự điền `amount = remainingAmount` thật. Từ lab (`/printing/labs`, không đổi) → vẫn FIFO mặc định.
+- Diff: `lab-payment-modal.tsx` (+prop `focusOrderId`), `printing-card.tsx`/`printing-table.tsx`/`printing-group-drawer.tsx` (+prop `onPayLab` + nút), `printing-list-page.tsx` (state + dynamic-import modal), `printing-detail-drawer.tsx` (+1 dòng). Chi tiết: `agent/HANDOFFS/T-20260824-lab-payment-entry-points.spec.md`.
+- Verify: eslint 0 lỗi, build exit 0, render thật (local + **production** `stu.moodwedding.com`, Playwright seed E2E admin rồi xóa) xác nhận cả 2 hành vi đúng — không tạo thanh toán thật lúc verify.
+- **Còn mở, việc của user:** dùng nút "Thanh toán" mới để bắt đầu ghi nhận trả nợ thật cho lab Hồng Bảo (~8.15 triệu đ / 26 đơn, `total_paid=0` tính tới lúc merge).
 
 ## 2026-08-24 (tiếp) — In ấn: bỏ đặt cọc/giao khách/kho (ADR-014)
 - **T-20260824-printing-workflow-redesign MERGED** (`0f9a3cb`, Claude fallback theo yêu cầu user). Nghiệp vụ đúng xác nhận trực tiếp: in ấn = Mood ⇄ Lab thuần tuý, không cọc, không kho vật tư, `da_in` = lab đã in xong nhưng hình còn ở lab, `hoan_thanh` = Mood đã nhận về. Trạng thái sản xuất rút còn 4 bước (`cho_xu_ly→dang_in→da_in→hoan_thanh`); công nợ Lab tách hẳn thành trục B độc lập (`record_lab_payment_atomic`, không đổi).
