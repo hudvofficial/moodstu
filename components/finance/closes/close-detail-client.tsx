@@ -24,7 +24,9 @@ type CloseSnapshotMetrics = {
   operatingOutflow?: number | string | null;
   salaryCost?: number | string | null;
   fixedCost?: number | string | null;
+  depreciationCost?: number | string | null;
   netCashflow?: number | string | null;
+  netProfit?: number | string | null;
   generatedAt?: string | null;
 };
 
@@ -68,6 +70,8 @@ function getSnapshotMetrics(value: unknown): CloseSnapshotMetrics | null {
     snapshot.operatingOutflow,
     snapshot.salaryCost,
     snapshot.fixedCost,
+    snapshot.depreciationCost,
+    snapshot.netProfit,
   ].some((item) => item !== undefined && item !== null);
   return hasMetric ? snapshot : null;
 }
@@ -105,6 +109,7 @@ export function CloseDetailClient({ closeId, initialData }: CloseDetailClientPro
 
   const snapshot = getSnapshotMetrics(detail.close.snapshot_metrics);
   const netCashflow = snapshotNumber(snapshot?.netCashflow);
+  const netProfit = snapshotNumber(snapshot?.netProfit);
 
   return (
     <>
@@ -132,6 +137,16 @@ export function CloseDetailClient({ closeId, initialData }: CloseDetailClientPro
                     <p className="text-caption text-text-muted">
                       Bắt đầu: {formatFinanceDate(task.started_at)} · Xong: {formatFinanceDate(task.completed_at)}
                     </p>
+                    {task.step_number === 6 && snapshot ? (
+                      <p className="text-caption text-text-secondary mt-1">
+                        Khấu hao ước tính kỳ này: <span className="font-semibold">{formatVnd(snapshotNumber(snapshot.depreciationCost))}</span>
+                      </p>
+                    ) : null}
+                    {task.step_number === 7 && snapshot ? (
+                      <p className="text-caption text-text-secondary mt-1">
+                        Lợi nhuận ròng (P&L) kỳ này: <span className="font-semibold">{formatVnd(snapshotNumber(snapshot.netProfit))}</span>
+                      </p>
+                    ) : null}
                   </div>
                   {action && Icon ? (
                     <div className="flex gap-2">
@@ -189,10 +204,20 @@ export function CloseDetailClient({ closeId, initialData }: CloseDetailClientPro
                   <span className="text-text-secondary">Chi phí cố định</span>
                   <span>{formatVnd(snapshotNumber(snapshot.fixedCost))}</span>
                 </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-text-secondary">Khấu hao</span>
+                  <span>{formatVnd(snapshotNumber(snapshot.depreciationCost))}</span>
+                </div>
                 <div className="border-t border-border pt-2 flex justify-between gap-3">
                   <span className="text-text-secondary">Dòng tiền ròng</span>
                   <span className={`font-semibold ${netCashflow >= 0 ? "text-success" : "text-error"}`}>
                     {formatVnd(netCashflow)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-text-secondary">Lợi nhuận ròng (P&L)</span>
+                  <span className={`font-semibold ${netProfit >= 0 ? "text-success" : "text-error"}`}>
+                    {formatVnd(netProfit)}
                   </span>
                 </div>
               </div>

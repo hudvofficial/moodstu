@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BookLock, Plus } from "lucide-react";
+import { BookLock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { listCloses } from "@/app/actions/finance-close-actions";
+import { cancelMonthlyClose, listCloses } from "@/app/actions/finance-close-actions";
 import { CloseCreateModal } from "@/components/finance/closes/close-create-modal";
 import { CloseFilters, type CloseStatusFilter } from "@/components/finance/closes/close-filters";
 import { CloseStatsBar } from "@/components/finance/closes/close-stats-bar";
@@ -14,6 +14,7 @@ import { cacheKeys, mutate, useSWR } from "@/lib/swr";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FAB } from "@/components/ui/fab";
 import { SelectPill } from "@/components/ui/select/SelectPill";
 import { SkeletonTable } from "@/components/ui/skeleton";
@@ -55,6 +56,7 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
   const [year, setYear] = useState(initialYear);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<CloseStatusFilter>("all");
+  const [cancelTarget, setCancelTarget] = useState<CloseListItem | null>(null);
 
   const key = cacheKeys.financeCloses(year);
   const { yearOptions } = useFinanceFilters(initialYear);
@@ -106,6 +108,18 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
   }, [closes, statusFilter]);
   const resetFilters = useCallback(() => setStatusFilter("all"), []);
   const now = new Date();
+
+  const handleCancelClose = async () => {
+    if (!cancelTarget) return false;
+    const result = await cancelMonthlyClose(cancelTarget.id);
+    if (!result.success) {
+      toast.error(result.error);
+      return false;
+    }
+    toast.success(`Đã hủy kỳ chốt sổ ${cancelTarget.period}.`);
+    refresh();
+    return true;
+  };
 
   return (
     <div className="main-container gap-4!">
@@ -172,6 +186,7 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
                 <TH>Khóa bởi</TH>
                 <TH>Cập nhật</TH>
                 <TH>Chi tiết</TH>
+                <TH className="text-right">Thao tác</TH>
               </TR>
             </THead>
             <TBody>
@@ -190,6 +205,21 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
                       Mở kỳ
                     </Link>
                   </TD>
+                  <TD className="text-right">
+                    {item.status !== "locked" ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-error hover:text-error hover:bg-error/10"
+                        aria-label="Hủy kỳ chốt sổ"
+                        title="Hủy kỳ chốt sổ"
+                        onClick={() => setCancelTarget(item)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    ) : null}
+                  </TD>
                 </TR>
               ))}
             </TBody>
@@ -205,6 +235,16 @@ export function ClosesClient({ initialYear, initialData }: ClosesClientProps) {
         onSaved={refresh}
         initialMonth={now.getMonth() + 1}
         initialYear={year}
+      />
+
+      <ConfirmDialog
+        isOpen={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancelClose}
+        title="Hủy kỳ chốt sổ"
+        message={`Xóa toàn bộ kỳ chốt sổ ${cancelTarget?.period ?? ""} và cả 8 bước đã ghi nhận — không khôi phục được. Chỉ dùng khi tạo nhầm tháng.`}
+        confirmLabel="Hủy kỳ"
+        variant="danger"
       />
     </div>
   );

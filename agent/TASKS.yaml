@@ -30,6 +30,22 @@ updated: 2026-08-24
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260824-finance-closes-real-numbers
+    title: "finance/closes: noi buoc Khau hao + Chot P&L vao so lieu that (tai dung investments), them huy ky chua khoa"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/finance-closes-real-numbers
+    locks:
+      - app/actions/finance-close-actions.ts
+      - components/finance/closes/close-detail-client.tsx
+      - components/finance/closes/closes-client.tsx
+    spec: agent/HANDOFFS/T-20260824-finance-closes-real-numbers.spec.md
+    verify:
+      - "npx eslint (3 file trong locks) - 0 error"
+      - "npm run build - exit 0"
+      - "render that: tao 1 ky test, chen tam 1 dong investments qua service-role, xac nhan buoc 6/7 + sidebar hien dung so khau hao/P&L, xoa dong test. Xac nhan nut Huy ky hoat dung dung + ConfirmDialog."
+    depends_on: []
+    notes: "Tiep noi trace /finance/receipts + deep-trace /finance/closes (user yeu cau dao sau rieng phan khoa so). Phat hien: advance_close_task la may trang thai thuan tuy, 7/8 buoc khong tinh/doc so lieu nao, du 'Khau hao' (dung o /finance/investments) va 'P&L' (dung o /finance/reports) da co that noi khac trong app nhung chua duoc noi vao day. Fix: mo rong buildCloseSnapshot() them depreciationCost (tai dung dung cong thuc investmentBookValue, tinh theo moc cuoi ky dang chot thay vi hom nay) + netProfit (netCashflow - depreciationCost, phan biet ro voi dong tien mat). Them cancelMonthlyClose cho ky chua khoa (vá lo hong UNIQUE(period) khong co duong huy neu tao nham thang). Co tinh KHONG lam: tach vai tro ke toan rieng (quyet dinh san pham, chua co tin hieu nhu cau that - 0 ky da khoa), buoc 1/2/3/5 (khong co tinh nang co san de noi vao, xay moi hoan toan ngoai pham vi)."
   - id: T-20260824-receipts-trace-fixes
     title: "finance/receipts: fix phan loai Coc sai trong finance_receipt_documents + khoa nut Sua tren phieu ban vat tu + 2 loi UI nho"
     status: ci

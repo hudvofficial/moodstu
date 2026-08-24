@@ -30,7 +30,7 @@ function monthRangeFromPeriod(period: string) {
 async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
   const range = monthRangeFromPeriod(period);
 
-  const [paymentsResult, receiptsResult, expensesResult, salaryResult, fixedCostsResult] = await Promise.all([
+  const [paymentsResult, receiptsResult, expensesResult, salaryResult, fixedCostsResult, investmentsResult] = await Promise.all([
     supabase
       .from("payments")
       .select("amount")
@@ -60,6 +60,10 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
       .from("fixed_costs")
       .select("monthly_amount, start_date, end_date")
       .is("deleted_at", null),
+    supabase
+      .from("investments")
+      .select("purchase_date, purchase_price, useful_life_months, salvage_value, sold_date")
+      .is("deleted_at", null),
   ]);
 
   const firstError =
@@ -67,7 +71,8 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     receiptsResult.error ||
     expensesResult.error ||
     salaryResult.error ||
-    fixedCostsResult.error;
+    fixedCostsResult.error ||
+    investmentsResult.error;
 
   if (firstError) {
     throw new Error(`Khong the tao snapshot chot so: ${firstError.message}`);
@@ -86,6 +91,27 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
   }, 0);
   const totalInflow = paymentRevenue + standaloneReceiptRevenue;
   const totalOutflow = operatingOutflow + salaryCost + fixedCost;
+  const netCashflow = totalInflow - totalOutflow;
+
+  // Khấu hao đường thẳng — cùng công thức investmentBookValue() (finance-operations-queries.ts),
+  // nhưng tính theo mốc cuối kỳ đang chốt thay vì "hôm nay" (đây là số của 1 kỳ quá khứ cụ thể).
+  const depreciationCost = (investmentsResult.data || []).reduce((sum, row) => {
+    if (row.sold_date && row.sold_date < range.end) return sum; // đã thanh lý trước kỳ này
+    if (!row.purchase_date || row.purchase_date >= range.end) return sum; // chưa mua tới kỳ này
+    const usefulLife = row.useful_life_months || 36;
+    const salvage = Number(row.salvage_value) || 0;
+    const monthly = usefulLife > 0 ? Math.max(0, Number(row.purchase_price) - salvage) / usefulLife : 0;
+    if (!monthly) return sum;
+    const purchased = new Date(row.purchase_date);
+    const periodEnd = new Date(range.end);
+    const monthsElapsed = (periodEnd.getFullYear() - purchased.getFullYear()) * 12 + (periodEnd.getMonth() - purchased.getMonth());
+    if (monthsElapsed > usefulLife) return sum; // đã khấu hao hết trước kỳ này
+    return sum + Math.round(monthly);
+  }, 0);
+
+  // P&L thật của kỳ: dòng tiền ròng trừ đi khấu hao (chi phí phi tiền mặt) —
+  // khác "Dòng tiền ròng" (netCashflow), không gộp khấu hao vào đó vì nó không phải chi tiền mặt.
+  const netProfit = netCashflow - depreciationCost;
 
   return {
     period,
@@ -96,7 +122,9 @@ async function buildCloseSnapshot(supabase: AdminSupabase, period: string) {
     operatingOutflow,
     salaryCost,
     fixedCost,
-    netCashflow: totalInflow - totalOutflow,
+    depreciationCost,
+    netCashflow,
+    netProfit,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -286,6 +314,8 @@ export async function advanceCloseTask(closeId: string, stepNumber: number, newS
       await writeAuditLog({
         action: "UPDATE",
         tableName: "finance_close_tasks",
+        recordId: closeId,
+        performedBy: userId,
         description: `Cap nhat buoc ${stepNumber} chot so sang trang thai ${nextStatus}`,
       });
 
@@ -314,10 +344,44 @@ export async function advanceCloseTask(closeId: string, stepNumber: number, newS
     await writeAuditLog({
       action: "UPDATE",
       tableName: "finance_close_tasks",
+      recordId: closeId,
+      performedBy: userId,
       description: `Cap nhat buoc ${stepNumber} chot so sang trang thai ${nextStatus}`,
     });
 
     revalidateCloseRoutes(closeId);
+    return null;
+  });
+}
+
+export async function cancelMonthlyClose(closeId: string) {
+  return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
+    const { data: close, error } = await supabase
+      .from("finance_monthly_closes")
+      .select("period, status")
+      .eq("id", closeId)
+      .single();
+
+    if (error || !close) throw new Error("Khong tim thay ky chot so.");
+    if (close.status === "locked") throw new Error("Ky da khoa so, khong the huy.");
+
+    const { error: deleteError } = await supabase
+      .from("finance_monthly_closes")
+      .delete()
+      .eq("id", closeId);
+
+    if (deleteError) throw new Error(`Loi huy ky chot so: ${deleteError.message}`);
+
+    await writeAuditLog({
+      action: "DELETE",
+      tableName: "finance_monthly_closes",
+      recordId: closeId,
+      performedBy: userId,
+      oldData: { period: close.period, status: close.status },
+      description: `Huy ky chot so thang ${close.period}`,
+    });
+
+    revalidateCloseRoutes();
     return null;
   });
 }
