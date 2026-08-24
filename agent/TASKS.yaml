@@ -26,10 +26,25 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-08-24
+updated: 2026-08-25
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260825-finance-nav-redirect-bug
+    title: "finance/*: sua bug tu dong bat lai /finance sau vai giay (router cache 180s + retry storm -> Next.js response bi tron)"
+    status: implementing
+    owner: claude (fallback)
+    branch: claude/finance-nav-redirect-bug
+    locks:
+      - next.config.ts
+      - lib/swr.ts
+    spec: agent/HANDOFFS/T-20260825-finance-nav-redirect-bug.spec.md
+    verify:
+      - "npx eslint (2 file trong locks) - 0 error"
+      - "npm run build - exit 0"
+      - "render that production, lap lai kich ban bam /finance -> Cong no KH toi thieu 15 lan, so sanh ty le tai hien truoc/sau fix (truoc: 2/8)"
+    depends_on: []
+    notes: "User bao bam /finance/debts thi 5-10s sau tu dong bat lai /finance kem toast loi. Trace + verify bang Playwright that tren production, lap lai nhieu lan cho toi khi tai hien (2/8 lan). Bat duoc bang chung goc re bang cach log request/response Server Action kem moc thoi gian mili-giay: response bi TRON giua 2 request dong thoi (doc truc tiep noi dung JSON, khop x-matched-path header cua Vercel). Nguyen nhan: /finance dashboard co 17 hook useSWR doc lap, van tiep tuc fetch song song sau khi da roi trang vi next.config.ts co staleTimes.dynamic=180 (3 phut, dai gap 6 lan mac dinh Next.js) - Client Router Cache giu cay component cu song ngam qua lau. Fix: rut staleTimes.dynamic ve 30 (mac dinh Next.js) + them onErrorRetry rieng cho loai loi nay trong swrConfig (lib/swr.ts, choke point toan app qua SWRProvider) de khong bien 1 lan loi thoang qua thanh bao retry lam nang them dieu kien gay loi. Day la race condition, khong the khang dinh fix 100% dut diem - can bao dung ty le do duoc sau fix, khong lam tron."
   - id: T-20260824-expenses-guard-fixes
     title: "finance/expenses: gan nhan [Auto-] con thieu (debt/refund) + chan dem trung chi phi co dinh + vendor task"
     status: ci

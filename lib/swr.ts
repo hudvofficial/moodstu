@@ -122,12 +122,36 @@ export const cacheKeys = {
 // ============================================
 // Default SWR config
 // ============================================
+
+// T-20260825: "unexpected response..." = Next.js trả nhầm response giữa 2 request
+// Server Action đồng thời (đã trace + verify kỹ bằng render thật — không phải lỗi
+// dữ liệu, xem agent/HANDOFFS/T-20260825-finance-nav-redirect-bug.spec.md). Retry
+// ngay như mặc định SWR sẽ CHỒNG THÊM request đồng thời, làm tăng khả năng trộn
+// tiếp — cần lùi retry ra xa hơn nhiều + giới hạn số lần cho đúng loại lỗi này.
+const SWAPPED_RESPONSE_PATTERN = /unexpected response was received from the server/i;
+
 export const swrConfig: SWRConfiguration = {
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
   dedupingInterval: 5000,
   errorRetryCount: 2,
   keepPreviousData: true,
+  onErrorRetry: (error, key, config, revalidate, revalidateOpts) => {
+    const retryCount = revalidateOpts.retryCount ?? 0;
+
+    if (SWAPPED_RESPONSE_PATTERN.test(String((error as Error)?.message ?? error))) {
+      if (retryCount >= 1) return;
+      setTimeout(() => revalidate(revalidateOpts), 4000);
+      return;
+    }
+
+    // Hành vi cho các lỗi khác — giữ đúng số lần thử lại đã cấu hình (errorRetryCount),
+    // giãn cách tăng dần theo cấp số nhân.
+    const maxRetryCount = config.errorRetryCount ?? 2;
+    if (retryCount >= maxRetryCount) return;
+    const timeout = (config.errorRetryInterval ?? 5000) * Math.pow(2, retryCount);
+    setTimeout(() => revalidate(revalidateOpts), timeout);
+  },
 };
 
 // ============================================

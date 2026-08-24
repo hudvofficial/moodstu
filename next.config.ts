@@ -175,9 +175,17 @@ const nextConfig: NextConfig = {
     // ⚡ Partial Prerendering — enable per-route via export const experimental_ppr = true
     // Note: Not using global cacheComponents due to conflict with API route segment configs
     // ⚡ Client Router Cache — reduce SSR re-renders on navigation
+    // T-20260825: dynamic từng là 180s (3 phút) — giữ trang vừa rời "nóng" quá lâu,
+    // các hook useSWR của trang đó (vd 17 hook trên /finance dashboard) vẫn tiếp tục
+    // tự fetch song song với trang mới, tạo bão request Server Action đồng thời trong
+    // vài giây đầu sau khi điều hướng → dẫn tới bug Next.js/Vercel trả nhầm response
+    // giữa 2 request khác nhau, client tự điều hướng theo route-state nhận nhầm (đã
+    // trace + verify bằng render thật, xem agent/HANDOFFS/T-20260825-finance-nav-redirect-bug.spec.md).
+    // Rút về mốc mặc định gốc của Next.js — vẫn còn lợi ích cache back-nav, chỉ không
+    // giữ "nóng" đủ lâu để các hook đó kịp dồn cùng lúc với trang mới.
     staleTimes: {
-      dynamic: 180, // 3 min — reduce 2/3 SSR calls
-      static: 600,  // 10 min — static content rarely changes
+      dynamic: 30,
+      static: 600,  // 10 min — static content rarely changes, không liên quan bug này
     },
     // 🌳 Tree-shake heavy packages
     optimizePackageImports: [
