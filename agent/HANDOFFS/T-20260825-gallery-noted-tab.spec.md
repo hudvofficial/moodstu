@@ -116,7 +116,8 @@ import { getClientReactions, getGalleryComments, getPublicNotedImages, getReacti
   // T-20260825-noted-tab: TOÀN BỘ ảnh có ghi chú của gallery, lấy từ server — KHÔNG lọc từ `images`
   // (ảnh đã tải theo trang) vì ảnh khách note rải khắp album và chuỗi auto-load của grid có lúc kẹt
   // (đo prod: tab ĐÃ CHỌN hiện 40/70). Key null tới khi khách vào tab → không tốn request nếu không dùng.
-  const { data: notedImages = [], mutate: mutateNotedImages } = useSWR<GalleryImage[]>(
+  // isLoading (SWR 2.4): true trong lần fetch đầu kể cả khi có fallbackData → dùng để không chớp "Chưa có ảnh nào".
+  const { data: notedImages = [], isLoading: notedLoading, mutate: mutateNotedImages } = useSWR<GalleryImage[]>(
     gallery.id && accessUrl && accessToken && notedTabTouched ? `gallery-noted-${gallery.id}` : null,
     () => getPublicNotedImages(gallery.id, accessUrl, accessToken),
     { fallbackData: [] },
@@ -279,7 +280,42 @@ Deps của `useCallback` (dòng cuối handler): thêm `notedImages, mutateNoted
 
 (`onClose`, `onIndexChange`, các prop khác giữ nguyên.)
 
+**(l) Trạng thái đang tải lần đầu** — bọc `<GalleryImageGrid …/>` trong khối `{/* ── Photo Grid ── */}`:
+
+```tsx
+// Trước:
+      <div className="w-full max-w-[1600px] mx-auto pb-10">
+        <GalleryImageGrid
+          groups={groups}
+          ...
+        />
+      </div>
+// Sau:
+      <div className="w-full max-w-[1600px] mx-auto pb-10">
+        {/* T-20260825-noted-tab: lần đầu vào tab GHI CHÚ, SWR đang fetch mà groups=[] → grid sẽ hiện
+            "Chưa có ảnh nào" rồi mới đổ ảnh (chớp). Hiện spinner (cùng markup "Đang tải thêm ảnh" của grid) tới khi có dữ liệu. */}
+        {activeGroup === "noted" && notedLoading && notedImages.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+              <p className="text-caption text-text-muted">Đang tải ảnh có ghi chú...</p>
+            </div>
+          </div>
+        ) : (
+        <GalleryImageGrid
+          groups={groups}
+          ...
+        />
+        )}
+      </div>
+```
+
+(Chỉ thêm ternary bọc ngoài; toàn bộ prop của `GalleryImageGrid` giữ nguyên như (j).)
+
+**Nhất quán số chip ↔ số tile (đã kiểm DB 2026-08-25, không cần code thêm):** chip đếm key `commentsPerImage` (mọi ảnh có comment), tab đếm tile sau `groupByFileGroup` + lọc RAW. Hai số chỉ lệch nếu (i) note nằm trên file RAW — **0/201** ảnh note hiện tại là RAW, và lưới công khai chưa từng hiện RAW nên khách không thể note RAW; (ii) 2 ảnh note chung `file_group` — `groupByFileGroup` tạo **1 group cho MỖI ảnh non-RAW** (RAW chỉ ghép làm đính kèm), nên không gộp; DB xác nhận 0 nhóm có >1 ảnh note. AC2 assert đẳng thức này.
+
 **Cố tình KHÔNG làm:**
+- Không đổi chữ trạng thái rỗng "Chưa có ảnh nào" thành "…có ghi chú" — text nằm trong `gallery-image-grid.tsx` (ngoài locks), tab ĐÃ CHỌN cũng dùng chữ chung này. Chip 💬 vẫn bấm được khi = 0 (mở tab rỗng, fetch 1 lần danh sách rỗng) — chấp nhận, cùng hành vi tab ĐÃ CHỌN khi chưa chọn gì.
 - Không sửa tab ĐÃ CHỌN / chuỗi auto-load (`use-masonry-grid.ts`) — bug 40/70 là việc riêng (§5), đụng hook dùng chung cho tab TẤT CẢ.
 - Không giữ danh sách noted "đứng yên" khi viewer đang mở: xoá ghi chú → ảnh rời tập → viewer chuyển ảnh kế. Chấp nhận (logic "hết ghi chú thì rời tab"), có AC.
 - Không thêm số đếm vào chữ tab ("GHI CHÚ · 126") — chip header đã có số, tab giữ đồng dạng 2 tab cũ.
@@ -291,9 +327,9 @@ Deps của `useCallback` (dòng cuối handler): thêm `notedImages, mutateNoted
 2. **Đủ và đúng, không phụ thuộc cuộn:** mở link mới của "Huyền – Vinh" (`jjay1sJ9hhPq`) @1024, bấm GHI CHÚ ngay khi header hiện → số tile = 126 = chip 💬 = `count(DISTINCT image_id)` (chỉ đọc).
 3. **Lazy:** đo bằng số POST có header `next-action` (Playwright `page.on("request")`): sau khi trang ổn định 5s, bấm GHI CHÚ lần đầu → **đúng +1** POST trong 2s (tab này đã tắt load-more nên không có request nào khác); bấm TẤT CẢ (có thể kích load-more trang — bỏ qua), đợi ổn định, bấm GHI CHÚ lần 2 → **+0** POST trong 2s (SWR giữ cache, hook không remount vì key không đổi).
 4. **Ảnh ngoài trang đã tải:** gallery E2E tạm 172 ảnh (clone "CD Bé – Hảo"), chèn 2 ghi chú: 1 ảnh `sort_order=20` (trong trang đầu) + 1 ảnh `sort_order=150` (ngoài trang đầu 100). Mở @1024, bấm GHI CHÚ ngay → **2 tile**; bấm ✓ trên tile ảnh #150 → tile hiện ✓ ngay, header ✓ `0→1`, DB `is_selected=true`; bấm ❤️ trên cùng tile → ❤️ `0→1`. Mở viewer từ tile #150 → hiện đúng ảnh, `1 / 2` hoặc `2 / 2`.
-5. **Xoá ghi chú trong tab:** trong viewer (tab GHI CHÚ) xoá ghi chú ảnh #150 → chip 💬 `2→1`, tab còn 1 tile, viewer hiện ảnh #20 (lùi về cuối tập), không lỗi console. Xoá nốt → chip 0, tab "Chưa có ảnh nào", viewer đóng.
+5. **Sửa / xoá ghi chú trong tab:** (a) trong viewer (tab GHI CHÚ) **sửa** nội dung ghi chú ảnh #150 → viewer đứng yên đúng ảnh #150, panel hiện nội dung mới, chip 💬 vẫn 2, tab vẫn 2 tile (revalidate danh sách không làm nhảy ảnh); (b) **xoá** ghi chú ảnh #150 → chip `2→1`, tab còn 1 tile, viewer hiện ảnh #20 (lùi về cuối tập), không lỗi console; xoá nốt → chip 0, tab "Chưa có ảnh nào", viewer đóng. (c) **Lần đầu bấm tab** (gallery thật, throttle mạng "Slow 3G" trong Playwright) → thấy spinner "Đang tải ảnh có ghi chú...", **không** thấy "Chưa có ảnh nào" trước khi ảnh đổ.
 6. Tab TẤT CẢ và ĐÃ CHỌN: hành vi không đổi (tile count, load-more, chọn/tim) — đối chiếu trước/sau trên cùng gallery.
-7. @375 gallery thật: `scrollWidth == innerWidth`, 4 chip cùng hàng, tiêu đề cắt "…" (không lùi so với M1).
+7. @375 gallery thật: `scrollWidth == innerWidth`, 4 chip cùng hàng, tiêu đề cắt "…" (không lùi so với M1); hàng tab 3 nút `TẤT CẢ · ĐÃ CHỌN · GHI CHÚ` trên 1 dòng, không tràn.
 8. `npx eslint` 2 file lock 0 lỗi (lưu ý `public-gallery-client.tsx` có `eslint-disable` sẵn → bằng chứng yếu) · `npx tsc --noEmit` 0 lỗi · `npm run build` exit 0.
 
 ## 4. Verify (không tạo dữ liệu thật; gallery thật chỉ đọc)
