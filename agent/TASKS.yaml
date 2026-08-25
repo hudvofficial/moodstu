@@ -696,3 +696,47 @@ done:
       login; (2) tab ĐÃ CHỌN lọc thiếu trên album lớn (40/70) → M3 đề xuất: dùng getPublicSelectedImages
       mở rộng IMAGE_COLS. Bẫy test: viewer.saveNote từ chối im lặng nếu chưa có mood_client_name;
       ghi chú seed phải cùng client_identifier với mood_client_id của trình duyệt.
+
+  - id: T-20260825-gallery-selected-tab
+    title: "Gallery khách: tab ĐÃ CHỌN lấy danh sách từ server, lazy (M3-A) — sửa 40/70 trên album lớn"
+    status: merged
+    owner: claude
+    locks:
+      - app/actions/gallery-selection-actions.ts
+      - components/gallery/public-gallery-client.tsx
+    spec: agent/HANDOFFS/T-20260825-gallery-selected-tab.spec.md
+    result: >
+      MERGED ee58286 (Claude fallback). +39/−1 action getPublicSelectedImagesFull (lazy, IMAGE_COLS+blur,
+      gate view-token, lọc RAW) + client +47/−13 (SWR lazy, spinner, tắt load-more mọi tab lọc, tra thêm +
+      vá lạc quan + revalidate). Verify: eslint 0, tsc 0, build 0, Playwright 11/11 local — Xuân Phúc
+      70/70 ngay khi bấm (trước 40), +1/+0 request, gallery E2E bỏ chọn #150 ngoài trang đầu → DB false,
+      chọn ở TẤT CẢ → có mặt khi quay lại, nút Tải/thanh đáy không đổi, GHI CHÚ vẫn 126, Slow 3G spinner.
+    verify:
+      - npx eslint app/actions/gallery-selection-actions.ts components/gallery/public-gallery-client.tsx
+      - npx tsc --noEmit
+      - npm run build
+      - Playwright (PowerShell) AC1-AC6 spec §4 — Xuân Phúc 70/70 chỉ đọc + gallery E2E 172 ảnh
+    depends_on: [T-20260825-gallery-noted-tab]
+    notes: >
+      User duyệt "A rồi B, bỏ C". Gốc rễ (spec §0): effect AUTO-TRIGGER grid có dep onLoadMore đổi identity
+      → bắn đôi → 2 request trang song song → 1 bị ERR_ABORTED (5 lần/lượt mở album 517 ảnh) → trang mất;
+      tab TẤT CẢ tự bù nhờ cuộn (đủ 517/517), tab lọc chết. Action riêng getPublicSelectedImagesFull (lazy)
+      thay vì mở rộng getPublicSelectedImages (eager → +110KB cho mọi khách). M3-B (sửa chuỗi) là task kế.
+
+  - id: T-20260825-gallery-pagination-chain
+    title: "Gallery khách: chặn setSize trùng + sửa loadingMoreImages — hết request trang bị hủy (M3-B)"
+    status: spec
+    owner: claude
+    locks:
+      - components/gallery/public-gallery-client.tsx
+    spec: agent/HANDOFFS/T-20260825-gallery-pagination-chain.spec.md
+    verify:
+      - npx eslint components/gallery/public-gallery-client.tsx
+      - npx tsc --noEmit
+      - npm run build
+      - probe-all-tab (PowerShell) local + production — request hủy 5 → 0, pages liên tục, 517/517
+    depends_on: [T-20260825-gallery-selected-tab]
+    notes: >
+      Thu hẹp còn 1 file: admin đã vá cùng lỗi ở use-gallery-data.ts:90-96 bằng ref (chưa vá phía khách);
+      không đụng use-masonry-grid.ts (hook dùng chung). requestedSizeRef + setSize(pagesData.length+1) +
+      loadingMoreImages = isValidating && size > pagesData.length. Code chỉ bắt đầu sau khi M3-A xanh prod.

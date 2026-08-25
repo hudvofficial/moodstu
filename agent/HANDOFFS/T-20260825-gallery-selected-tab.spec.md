@@ -290,3 +290,4 @@ Viewer (`totalImagesCount` cho tab selected = `selectedCount`), `clampedViewerIn
 - AC4 regression: TẤT CẢ vẫn tải trang (200 tile), GHI CHÚ vẫn 126 trên "Huyền – Vinh".
 - AC5 @375 tab ĐÃ CHỌN `scrollWidth == innerWidth`. AC6 Slow 3G: thấy "Đang tải ảnh đã chọn...", không thấy "Chưa có ảnh nào".
 - Dọn sạch: `remaining E2E-TEST galleries: 0`.
+- **Production** sau merge `ee58286` (Vercel deploy xong sau 173s): bộ chỉ-đọc trên `stu.moodwedding.com` **6/6 PASS** — Xuân Phúc bấm ĐÃ CHỌN ngay → 70/70 (trước fix 40), +1/+0 request, @375 không tràn, TẤT CẢ vẫn tải trang (200 tile), GHI CHÚ vẫn 126, Slow 3G thấy spinner không thấy trạng thái rỗng.
