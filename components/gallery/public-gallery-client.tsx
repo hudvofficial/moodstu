@@ -7,7 +7,7 @@ import useSWRInfinite from "swr/infinite";
 import { Camera, CircleCheck, Image as ImageIcon, Heart, Download, MessageSquare } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
-import { getPublicSelectedImages, toggleImageSelection } from "@/app/actions/gallery-selection-actions";
+import { getPublicSelectedImages, getPublicSelectedImagesFull, toggleImageSelection } from "@/app/actions/gallery-selection-actions";
 import { getClientReactions, getGalleryComments, getPublicNotedImages, getReactionCounts, toggleReaction, upsertComment, type ReactionCounts } from "@/app/actions/gallery-reaction-actions";
 import { groupByFileGroup } from "@/components/contracts/gallery/gallery-helpers";
 import GalleryImageGrid from "@/components/contracts/gallery/gallery-image-grid-index";
@@ -55,6 +55,8 @@ export default function PublicGalleryClient({
   const [activeGroup, setActiveGroup] = useState<"all" | "selected" | "noted">("all");
   // T-20260825-noted-tab: chỉ fetch danh sách ảnh có ghi chú khi khách vào tab GHI CHÚ lần đầu (lazy)
   const [notedTabTouched, setNotedTabTouched] = useState(false);
+  // T-20260825-selected-tab: cùng cơ chế lazy cho tab ĐÃ CHỌN
+  const [selectedTabTouched, setSelectedTabTouched] = useState(false);
   const [heartAccessToken, setHeartAccessToken] = useState(gallery.accessToken || "");
   const [showSelectPasswordModal, setShowSelectPasswordModal] = useState(false);
   const [pendingSelectImageId, setPendingSelectImageId] = useState<string | null>(null);
@@ -177,6 +179,20 @@ export default function PublicGalleryClient({
     setActiveGroup("noted");
   }, []);
 
+  // T-20260825-selected-tab: TOÀN BỘ ảnh ĐÃ CHỌN kèm đủ cột render tile — tách khỏi `selectedImages` (3 cột, eager,
+  // cho nút Tải) để khách không bấm tab không phải tải thêm ~100KB; lazy như tab GHI CHÚ. KHÔNG lọc từ `images`
+  // (ảnh đã tải theo trang): chuỗi auto-load của grid bắn đôi → request trang bị hủy → tab lọc client-side kẹt
+  // (đo prod: 40/70, spec §0). Sau khi chọn/bỏ chọn thành công → revalidate để ảnh vào/ra tab.
+  const { data: selectedImagesFull = [], isLoading: selectedLoading, mutate: mutateSelectedImagesFull } = useSWR<GalleryImage[]>(
+    gallery.id && accessUrl && accessToken && selectedTabTouched ? `gallery-selected-full-${gallery.id}` : null,
+    () => getPublicSelectedImagesFull(gallery.id, accessUrl, accessToken),
+    { fallbackData: [] },
+  );
+  const showSelectedTab = useCallback(() => {
+    setSelectedTabTouched(true);
+    setActiveGroup("selected");
+  }, []);
+
   const selectedCount = stats?.selectedCount || 0;
   const totalImageCount = stats?.imageCount || 0;
   const totalLikes = Object.values(reactionCounts).reduce((sum, c) => sum + c.hearts, 0);
@@ -231,11 +247,12 @@ export default function PublicGalleryClient({
   }, [hasMoreImages, isValidating, size, setSize]);
 
   // ─── Filtered + visible images ──────────────
+  // Tab ĐÃ CHỌN: danh sách server, lọc lại theo is_selected để bỏ chọn (vá lạc quan) → tile biến mất ngay như hành vi cũ
   const filteredImages = useMemo(
-    () => activeGroup === "selected" ? images.filter((i) => i.is_selected)
+    () => activeGroup === "selected" ? selectedImagesFull.filter((i) => i.is_selected)
       : activeGroup === "noted" ? notedImages
       : images,
-    [images, notedImages, activeGroup],
+    [images, selectedImagesFull, notedImages, activeGroup],
   );
 
   const groups = useMemo(() => groupByFileGroup(filteredImages), [filteredImages]);
@@ -259,7 +276,7 @@ export default function PublicGalleryClient({
         return;
       }
       // T-20260825-noted-tab: ảnh trong tab GHI CHÚ có thể nằm NGOÀI trang đã tải → tra thêm danh sách noted
-      const img = images.find((i) => i.id === imageId) ?? notedImages.find((i) => i.id === imageId);
+      const img = images.find((i) => i.id === imageId) ?? notedImages.find((i) => i.id === imageId) ?? selectedImagesFull.find((i) => i.id === imageId);
       if (!img) return;
 
       const newSelected = !img.is_selected;
@@ -276,6 +293,9 @@ export default function PublicGalleryClient({
       }, false);
       // Vá lạc quan cả danh sách noted (nếu đã fetch) — tile trong tab GHI CHÚ phải đổi ✓ ngay như tab TẤT CẢ
       mutateNotedImages((current) => current?.map((i) =>
+        i.id === imageId ? { ...i, is_selected: newSelected, selected_at: newSelected ? new Date().toISOString() : null } : i
+      ), false);
+      mutateSelectedImagesFull((current) => current?.map((i) =>
         i.id === imageId ? { ...i, is_selected: newSelected, selected_at: newSelected ? new Date().toISOString() : null } : i
       ), false);
 
@@ -306,16 +326,20 @@ export default function PublicGalleryClient({
         mutateNotedImages((current) => current?.map((i) =>
           i.id === imageId ? { ...i, is_selected: !newSelected, selected_at: !newSelected ? new Date().toISOString() : null } : i
         ), false);
+        mutateSelectedImagesFull((current) => current?.map((i) =>
+          i.id === imageId ? { ...i, is_selected: !newSelected, selected_at: !newSelected ? new Date().toISOString() : null } : i
+        ), false);
         mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: selectedCount }), false);
       } else if (res.newSelectedCount !== undefined) {
         // Sync with exact server count
         mutateStats((prev) => ({ imageCount: totalImageCount, ...prev, selectedCount: res.newSelectedCount }), false);
         void mutateSelectedImages();
+        void mutateSelectedImagesFull(); // ảnh vừa chọn ở tab khác sẽ có mặt khi quay lại tab ĐÃ CHỌN; key null → no-op
       }
       
       setTogglingIds((prev) => { const next = new Set(prev); next.delete(imageId); return next; });
     },
-    [accessToken, accessUrl, images, notedImages, isViewOnly, selectedCount, totalImageCount, mutateStats, mutateSelectedImages, mutateNotedImages, gallery.needsPassword, clientCapability],
+    [accessToken, accessUrl, images, notedImages, selectedImagesFull, isViewOnly, selectedCount, totalImageCount, mutateStats, mutateSelectedImages, mutateNotedImages, mutateSelectedImagesFull, gallery.needsPassword, clientCapability],
   );
 
 
@@ -443,7 +467,7 @@ export default function PublicGalleryClient({
               {activeGroup === "all" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />}
             </button>
             <button
-              onClick={() => setActiveGroup("selected")}
+              onClick={showSelectedTab}
               className={`py-3 relative transition-colors flex items-center gap-1.5 ${activeGroup === "selected" ? "text-[#ff3b30]" : "text-text-muted hover:text-text-primary"}`}
             >
               ĐÃ CHỌN
@@ -466,11 +490,12 @@ export default function PublicGalleryClient({
       <div className="w-full max-w-[1600px] mx-auto pb-10">
         {/* T-20260825-noted-tab: lần đầu vào tab GHI CHÚ, SWR đang fetch mà groups=[] → grid sẽ hiện
             "Chưa có ảnh nào" rồi mới đổ ảnh (chớp). Hiện spinner (cùng markup "Đang tải thêm ảnh" của grid) tới khi có dữ liệu. */}
-        {activeGroup === "noted" && notedLoading && notedImages.length === 0 ? (
+        {(activeGroup === "noted" && notedLoading && notedImages.length === 0) ||
+         (activeGroup === "selected" && selectedLoading && selectedImagesFull.length === 0) ? (
           <div className="py-16 text-center">
             <div className="flex items-center justify-center gap-2">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-              <p className="text-caption text-text-muted">Đang tải ảnh có ghi chú...</p>
+              <p className="text-caption text-text-muted">{activeGroup === "selected" ? "Đang tải ảnh đã chọn..." : "Đang tải ảnh có ghi chú..."}</p>
             </div>
           </div>
         ) : (
@@ -481,9 +506,9 @@ export default function PublicGalleryClient({
           onToggleStar={isViewOnly ? undefined : (id: string, sel: boolean) => handleToggleStar(id, sel)}
           onToggleReaction={isViewOnly ? undefined : handleToggleReaction}
           reactedImageIds={reactedImageIds}
-          onLoadMore={activeGroup === "noted" ? undefined : loadMoreServerImages}
-          loadingMore={activeGroup === "noted" ? false : loadingMoreImages}
-          hasMore={activeGroup === "noted" ? false : hasMoreImages}
+          onLoadMore={activeGroup !== "all" ? undefined : loadMoreServerImages}
+          loadingMore={activeGroup !== "all" ? false : loadingMoreImages}
+          hasMore={activeGroup !== "all" ? false : hasMoreImages}
           publicMode={true}
           showClientNote={!isViewOnly}
           commentsPerImage={commentsPerImage}

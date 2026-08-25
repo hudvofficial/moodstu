@@ -7,12 +7,13 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
   type GalleryFilterJobType,
+  type GalleryImage,
   type GallerySelectionBatch,
   isValidUUID,
   MAX_NOTE_LENGTH,
 } from "@/types/gallery";
 
-import { requirePublicGalleryAccess, requirePublicGalleryImageAccess, updateGalleryImageSelection, fetchGalleryImageCount } from "./gallery-core";
+import { IMAGE_COLS, applyPublicImageFilter, requirePublicGalleryAccess, requirePublicGalleryImageAccess, updateGalleryImageSelection, fetchGalleryImageCount } from "./gallery-core";
 
 export async function toggleImageSelection(
   imageId: string,
@@ -189,6 +190,42 @@ export async function getPublicSelectedImages(
     return data || [];
   } catch (error) {
     console.error("getPublicSelectedImages error:", error);
+    return [];
+  }
+}
+
+/**
+ * T-20260825-selected-tab: TOÀN BỘ ảnh ĐÃ CHỌN kèm đủ cột render tile (IMAGE_COLS + blur/kích thước) cho tab ĐÃ CHỌN.
+ * Tách khỏi getPublicSelectedImages (3 cột, fetch eager cho nút Tải) để không phình payload lúc mở album — chỉ gọi khi
+ * khách vào tab. Cùng gate view-token + cùng bộ lọc RAW với lưới công khai. KHÔNG lọc từ ảnh đã tải theo trang vì
+ * chuỗi auto-load của grid bắn đôi → request trang bị hủy → tab lọc client-side kẹt (đo prod 40/70 — spec §0).
+ */
+export async function getPublicSelectedImagesFull(
+  galleryId: string,
+  accessUrl: string,
+  accessToken: string,
+): Promise<GalleryImage[]> {
+  try {
+    if (!accessUrl?.trim() || !accessToken?.trim()) return [];
+    const supabase: SupabaseClient<Database> = await createAdminClient();
+    try {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
+    } catch {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId);
+    }
+    let query = supabase
+      .from("gallery_images")
+      .select(`${IMAGE_COLS}, width, height, blur_hash, blur_data_url`)
+      .eq("gallery_id", galleryId)
+      .eq("is_selected", true);
+    query = applyPublicImageFilter(query);
+    const { data, error } = await query
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) { console.error("getPublicSelectedImagesFull query error:", error.message); return []; }
+    return (data || []) as unknown as GalleryImage[];
+  } catch (error) {
+    console.error("getPublicSelectedImagesFull error:", error);
     return [];
   }
 }
