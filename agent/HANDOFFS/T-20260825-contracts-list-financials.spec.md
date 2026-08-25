@@ -149,4 +149,50 @@ onOpenChange={...} />` cạnh `<ContractDrawer>` hiện có.
 
 ## 7. Kết quả thực thi
 
-_(điền sau khi verify xong)_
+Implement đúng bám spec §2-5. Thêm 1 fix phát sinh khi verify (§7.1).
+
+**Verify:** `npx eslint` các file đổi → 0. `npx tsc --noEmit` → 0. `npm run build` → 0.
+
+Playwright local (2 role seed thật, xóa sạch sau khi xong):
+- **admin** (có quyền finance): cột "Lợi nhuận" xuất hiện đúng vị trí (giữa Tổng cộng và
+  Còn nợ), ô hiện "Chi phí X" + "+Y"/"-Y" màu theo dấu. Đối chiếu trực tiếp
+  `finance_contract_profit_report` cho HĐ-2026-0064: `task_cost=2.100.000,
+  profit=1.900.000, profit_margin=47.5` — khớp 100% với `get_contract_list_v2` mới.
+  Bấm ô Lợi nhuận → mở đúng `ContractProfitDetailDrawer` (không mở nhầm
+  `ContractDrawer` chính — `stopPropagation` hoạt động, xác nhận qua
+  `mainContractDrawerAccidentallyOpened: false`), breakdown "Chi phí Lương"/"Chi phí In
+  ấn"/"Giá vốn vật tư" hiện đủ, số "Lợi nhuận tịnh" khớp đúng số ở list sau khi vá §7.1.
+- **sale** (không có quyền finance): bảng đúng 10 cột như ảnh gốc user gửi, KHÔNG có cột
+  Lợi nhuận — xác nhận qua DOM (component chỉ render cột khi field có mặt trong data,
+  field bị server xóa hẳn nên không có cách nào lộ qua UI).
+- Render đúng cả 3 tier: desktop 1920px (cột đầy đủ, không vỡ layout), tablet 850px
+  (dòng phụ "Lợi nhuận +X" trong ô Tổng cộng/Còn nợ), mobile 390px (dòng riêng dưới
+  Tổng tiền).
+- Bảng vẫn cuộn ngang (`overflow-x-auto` sẵn có ở `TableWrapper`) khi viewport hẹp —
+  đúng hành vi đã có từ trước (ảnh gốc user gửi cũng bị cắt "THAO TÁC" ở viewport hẹp),
+  không phải regression do thêm cột.
+
+### 7.1 Bug phát sinh, phát hiện khi verify (đã vá trong cùng task)
+
+Khi đối chiếu số giữa cột "Lợi nhuận" mới (list) và `ContractProfitDetailDrawer` (tái
+dùng) cho CÙNG hợp đồng, phát hiện lệch số thật: list hiện `+1.900.000`, drawer hiện
+`+550.000`. Trace ra `getContractFinanceDetails` (`app/actions/finance-dashboard-queries.ts`,
+nuôi chính drawer này ở cả `/finance/dashboard` lẫn `/contracts` mới) query `work_tasks`
+KHÔNG lọc `vendor_id IS NULL` — đếm cả task đã giao cho vendor vào "Chi phí Lương" như
+task nhân viên nội bộ, trong khi `finance_contract_profit_report`/RPC mới đã lọc đúng.
+Xác nhận thật bằng dữ liệu: HĐ-2026-0064 có 2 `work_tasks` — "chup_anh" (nội bộ,
+2.100.000) và "tro_ly" (`vendor_id` khác NULL, 1.350.000); drawer cộng cả 2 (3.450.000)
+còn RPC mới chỉ cộng task nội bộ (2.100.000) → đúng theo design đã chốt (chi phí vendor
+ghi nhận qua `expenses [Auto-Vendor]` lúc hoàn thành, không đọc thẳng `work_tasks.cost`).
+
+**Đây là bug đang sống** (ảnh hưởng cả `/finance/dashboard` hiện tại, không chỉ tính
+năng mới), không phải out-of-scope — vá luôn bằng cách thêm `.is("vendor_id", null)`
+vào query `work_tasks` trong `getContractFinanceDetails`, đúng pattern đã chứng minh ở
+`finance_contract_profit_report`. Sau khi vá + rebuild + verify lại: drawer hiện đúng
+"Lợi nhuận tịnh: +1.900.000 VND", "Chi phí Lương: 2.100.000 VND" (chỉ còn "Chụp ảnh") —
+khớp 100% với cột list.
+
+### 7.2 Deploy
+
+Merge `claude/contracts-list-financials` → `main`, push production
+(`stu.moodwedding.com`), lặp lại verify admin+sale trên production.
