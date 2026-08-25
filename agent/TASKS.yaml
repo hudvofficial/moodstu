@@ -668,3 +668,24 @@ done:
       notedCount có sẵn = đã chọn ∩ có ghi chú (thanh đáy) — KHÔNG đúng nghĩa cho header vì ghi
       chú không bắt buộc ảnh đã chọn. M2 (tab GHI CHÚ + chip bấm được, spec §5) chưa làm, chờ user
       duyệt riêng. Nợ có sẵn: getGalleryComments không selectAllRows → trần 1000 dòng/gallery.
+
+  - id: T-20260825-gallery-noted-tab
+    title: "Gallery khách: tab GHI CHÚ + chip 💬 bấm để lọc — danh sách từ server (M2 của header-note-count)"
+    status: spec
+    owner: claude
+    locks:
+      - app/actions/gallery-reaction-actions.ts
+      - components/gallery/public-gallery-client.tsx
+    spec: agent/HANDOFFS/T-20260825-gallery-noted-tab.spec.md
+    verify:
+      - npx eslint app/actions/gallery-reaction-actions.ts components/gallery/public-gallery-client.tsx
+      - npx tsc --noEmit
+      - npm run build
+      - Playwright (PowerShell) AC2-AC7 spec §4 — gallery thật chỉ đọc + gallery E2E tạm 172 ảnh
+    depends_on: [T-20260825-gallery-header-note-count]
+    notes: >
+      Chờ user duyệt spec (user đã chọn phương án B sau trace: ảnh note rải khắp album, chỉ 11/126
+      trong 100 ảnh đầu; chuỗi auto-load grid kẹt trên prod — tab ĐÃ CHỌN hiện 40/70). Action mới
+      getPublicNotedImages dùng embed gallery_comments!inner (1 query, không .in → né header 16KB).
+      Edge case bắt buộc: handleToggleStar tra thêm notedImages + vá lạc quan danh sách noted; kẹp
+      viewerIndex lúc render. M3 đề xuất riêng: tab ĐÃ CHỌN dùng getPublicSelectedImages mở rộng cột.

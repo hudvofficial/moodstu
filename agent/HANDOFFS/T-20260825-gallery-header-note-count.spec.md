@@ -121,6 +121,8 @@ Dùng `MessageSquare` — đúng icon tile badge (`gallery-image-grid.tsx:252`) 
 
 ## 5. Đề xuất mở rộng — CHƯA LÀM, chờ user duyệt riêng (M2)
 
+> **Cập nhật 2026-08-25:** đã tách thành task riêng `T-20260825-gallery-noted-tab` (spec: `agent/HANDOFFS/T-20260825-gallery-noted-tab.spec.md`). Sau khi trace + đo production, phương án "lọc trên ảnh đã tải" mô tả dưới đây **bị loại** — dùng danh sách từ server. Đoạn dưới giữ nguyên làm bối cảnh.
+
 Khách biết "đã note 7 tấm" nhưng vẫn phải cuộn tìm 7 tấm đó. Có thể thêm **tab thứ 3 "GHI CHÚ"** cạnh `TẤT CẢ / ĐÃ CHỌN` (`activeGroup: "all" | "selected" | "noted"`, lọc `images.filter(i => (commentsPerImage[i.id]?.length ?? 0) > 0)`) và cho chip 💬 header bấm được → nhảy sang tab đó. Cùng file lock, ~20 dòng. Giới hạn kế thừa (đã có sẵn ở tab ĐÃ CHỌN): lọc trên ảnh **đã tải** theo trang, chưa cuộn hết thì chưa thấy hết — không tệ hơn hiện trạng. Nếu duyệt M2 → cập nhật spec này thêm §2.4 + AC riêng trước khi Codex làm; không gộp vào M1 khi chưa duyệt.
 
 ---
