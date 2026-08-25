@@ -342,3 +342,22 @@ Deps của `useCallback` (dòng cuối handler): thêm `notedImages, mutateNoted
 ## 5. Ghi nhận ngoài scope — đề xuất M3 riêng (chưa làm)
 
 Tab ĐÃ CHỌN lọc thiếu trên album lớn (đo prod: 40/70 tile, kẹt 25s). Cách sửa rẻ nhất cùng kiểu B: `getPublicSelectedImages` **đã fetch toàn bộ ảnh đã chọn của album** cho nút "Tải N ảnh" (`gallery-selection-actions.ts:168`, 3 cột `id, file_name, drive_file_id`) → mở rộng lên `IMAGE_COLS` + blur và cho tab ĐÃ CHỌN dùng `selectedImages` thay vì lọc `images` — **không thêm request**, ~10 dòng, cùng pattern kẹp index/tắt load-more của task này. Tách task riêng để review độc lập, không gộp vào M2.
+
+---
+
+## 6. Kết quả thực thi (2026-08-25) — ĐẠT, 17/17 verify PASS local
+
+**Đường đi:** user duyệt "triển khai đi bạn" → Claude fallback (Codex CLI vẫn lỗi credential, không thử lại) → coder-subagent áp §2.1 + §2.2 (a)–(l) verbatim (20/20 anchor khớp) → Claude review diff-vs-spec: **ĐẠT** — 2 file, +123/−19; tab cũ + 3 span cũ không đổi; `handleToggleStar` chỉ thêm (f1)(f2)(f3)+deps; biến thể ép kiểu chính compile sạch (không cần fallback §2.1).
+
+**Verify đã chạy thật:**
+1. eslint 2 file 0 lỗi (yếu cho `public-gallery-client.tsx` — `eslint-disable` sẵn) · `tsc --noEmit` 0 lỗi · `npm run build` exit 0, PWA artifact OK.
+2. `next start -p 3005` + Playwright (PowerShell) — **17/17 PASS**:
+   - AC2 gallery thật "Huyền – Vinh": bấm GHI CHÚ ngay khi header hiện → **126 tile = chip = `count(DISTINCT image_id)`**, không phụ thuộc cuộn.
+   - AC3: mở tab lần đầu **+1** server action (baseline 8 của trang), mở lại **+0**, tile vẫn 126.
+   - AC1: chip `aria-pressed=true` khi lọc, bấm lại → `false`, về TẤT CẢ (200 tile); view-only: chip là `SPAN`, không tab.
+   - AC7 @375: `scrollWidth == innerWidth`, 3 tab cùng `y=48`.
+   - AC4 gallery E2E 172 ảnh (trang đầu local = 30 ảnh): tab hiện đúng 2 tile gồm `_DSC0510.jpg` (#150, ngoài trang đầu); bấm ✓ trên #150 → header ✓ `0→1`, tile đổi sang "Bỏ chọn", DB `is_selected=true`; ❤️ → `0→1`; viewer từ #150 hiện `2 / 2`.
+   - AC5a: sửa ghi chú #150 → DB ghi đúng nội dung mới, viewer đứng yên #150, chip vẫn 2. AC5b: xoá #150 → chip `2→1`, viewer lùi về `_DSC0054.jpg` (#20), tab 1 tile; xoá nốt → chip 0, "Chưa có ảnh nào", viewer đóng, 0 lỗi console (trừ lỗi có sẵn — xem dưới). AC5c Slow 3G (CDP 50KB/s, 1.5s latency): thấy spinner "Đang tải ảnh có ghi chú...", **không** thấy "Chưa có ảnh nào" trước khi ảnh đổ.
+   - Dọn sạch sau test: `remaining E2E-TEST galleries: 0` (3 lần seed/xoá — 2 lần đầu fail do test-flow, không phải code, xem dưới).
+3. **Phát hiện có sẵn, ngoài scope:** console `Refused to execute script from 'http://localhost:3005/login' (MIME text/html)` xuất hiện ngay khi **chỉ load** trang gallery công khai (cả gallery thật lẫn test, không tương tác, trước khi bấm gì) — 1 request `<script>` từ trang gallery bị trả về trang `/login`. Không do M2; cần điều tra riêng (proxy/auth đang bắt nhầm 1 URL script của trang công khai).
+4. **2 lần verify đầu fail vì test-flow, ghi lại để khỏi lặp:** (i) ghi chú seed có `client_identifier` khác `mood_client_id` của trình duyệt → viewer coi là ghi chú người khác, không có nút "Sửa ghi chú" → fix: `addInitScript` đặt cùng id; (ii) `viewer.saveNote` **từ chối im lặng** (toast "Nhập tên để Mood biết ai dặn nhé", `return false`) khi chưa có `mood_client_name` → UI hiện optimistic rồi rollback, DB không đổi → fix: đặt sẵn tên trong localStorage. Cả hai đều là hành vi đúng của app.

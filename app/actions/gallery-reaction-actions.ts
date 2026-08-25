@@ -4,9 +4,9 @@ import { withAuth, requireContractAccess } from "@/lib/auth_utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
-import { isValidUUID } from "@/types/gallery";
+import { isValidUUID, type GalleryImage } from "@/types/gallery";
 import type { GalleryCommentSummary } from "./gallery-composite-actions";
-import { requirePublicGalleryAccess, requirePublicGalleryImageAccess, selectAllRows } from "./gallery-core";
+import { IMAGE_COLS, applyPublicImageFilter, requirePublicGalleryAccess, requirePublicGalleryImageAccess, selectAllRows } from "./gallery-core";
 
 // ═══════════════════════════════════════════
 // Gallery Reaction & Comment Server Actions
@@ -198,6 +198,44 @@ export async function getGalleryComments(
   } catch (error) {
     console.error("getGalleryComments error:", error);
     return {};
+  }
+}
+
+/**
+ * T-20260825-noted-tab: TOÀN BỘ ảnh có ≥1 ghi chú của gallery — không phụ thuộc trang đã tải
+ * (ảnh khách note rải khắp album: "Huyền - Vinh" chỉ 11/126 nằm trong 100 ảnh đầu).
+ * Cùng gate view-token như getGalleryComments. Lọc bằng embed `gallery_comments!inner` để PostgREST
+ * chỉ trả parent có comment — 1 query, KHÔNG .in(id, [...]) → không đụng trần header 16KB.
+ * Cột = IMAGE_COLS + blur/kích thước (như RPC v3 trả cho lưới) để tile render giống tab TẤT CẢ.
+ */
+export async function getPublicNotedImages(
+  galleryId: string,
+  accessUrl: string,
+  accessToken: string,
+): Promise<GalleryImage[]> {
+  try {
+    if (!accessUrl?.trim() || !accessToken?.trim()) return [];
+    const supabase: SupabaseClient<Database> = await createAdminClient();
+    try {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId, "view");
+    } catch {
+      await requirePublicGalleryAccess(supabase, accessUrl.trim(), accessToken.trim(), galleryId);
+    }
+    let query = supabase
+      .from("gallery_images")
+      .select(`${IMAGE_COLS}, width, height, blur_hash, blur_data_url, gallery_comments!inner(id)`)
+      .eq("gallery_id", galleryId);
+    // Cùng bộ lọc RAW với lưới công khai (fetchPublicGalleryImagesPage) — không để tab GHI CHÚ lộ file RAW.
+    query = applyPublicImageFilter(query);
+    const { data, error } = await query
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) { console.error("getPublicNotedImages query error:", error.message); return []; }
+    // Bỏ mảng embed (chỉ dùng để lọc) — shape còn lại do IMAGE_COLS quyết định, ép kiểu như gallery-core.
+    return (data || []).map(({ gallery_comments: _filterOnly, ...img }) => img as unknown as GalleryImage);
+  } catch (error) {
+    console.error("getPublicNotedImages error:", error);
+    return [];
   }
 }
 
