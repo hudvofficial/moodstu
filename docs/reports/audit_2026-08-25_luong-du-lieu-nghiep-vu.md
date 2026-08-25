@@ -1,5 +1,7 @@
 # Rà soát kiến trúc dữ liệu nghiệp vụ — "Sổ nào là chân lý?" (2026-08-25)
 
+> **ĐÍNH CHÍNH (cùng ngày, sau khi user chỉnh):** Mood **tự nhập phôi thiệp lô lớn, tồn kho, tự in tại Mood theo đơn khách** — chỉ hình cưới mới đẩy lab. Vì vậy: (a) mô hình **kho là ĐÚNG** cho thiệp (SKU = mẫu phôi `HD527/HD513/HD394`, không phải mã hợp đồng); (b) đề xuất "thiệp = đơn đặt in ngoài" ở §4 dưới đây **sai, đã bác**; (c) chỗ sai thật của mảng thiệp thu hẹp còn 2: **nhập phôi không vào sổ phải trả/phiếu chi** (2.880.000đ) và **giá vốn xuất kho không vào lợi nhuận** (RPC hợp đồng + dashboard). 4 phiếu thu bán lẻ có thể là khách lẻ thật (SĐT không khớp khách HĐ) — không phải đếm trùng. Thiết kế đã sửa: `docs/design/dong-tien-mood-v2.md` (bản 2). Các phát hiện còn lại (3 loại đối tác, `expenses` 2/6 dòng chảy, catalog không có ruột, 2 bản tính lợi nhuận) vẫn đúng.
+
 Yêu cầu user: *"kiến trúc hệ thống sai tè le rồi, bạn trace rộng ra, kĩ lại nghiệp vụ data relationship, đường đi đúng của luồng data rồi cho ý kết quả"* — sau khi phát hiện thiệp cưới đi qua kho thay vì đơn in.
 
 Đo trên DB production (chỉ đọc, `scripts/db-q.mjs`), đối chiếu `vault/` + code. Bản trình bày: artifact "Sổ Nào Là Chân Lý" (cùng ngày).
