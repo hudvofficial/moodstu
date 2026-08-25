@@ -30,6 +30,22 @@ updated: 2026-08-25
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260825-finance-nav-guard
+    title: "finance/*: watchdog client tu sua lai URL khi bi day nham ve route cha (huong 3 sau khi 2 huong ngan nguyen nhan khong hieu qua)"
+    status: implementing
+    owner: claude (fallback)
+    branch: claude/finance-nav-guard
+    locks:
+      - components/finance/finance-nav-guard.tsx
+      - components/layout/app-shell.tsx
+    spec: agent/HANDOFFS/T-20260825-finance-nav-guard.spec.md
+    verify:
+      - "npx eslint (2 file trong locks) - 0 error"
+      - "npm run build - exit 0"
+      - "render that production: xac nhan dieu huong hop le (bam link that) khong bi watchdog can; do lai ty le URL sai ton tai du lau de nhan ra, 15 lan, so voi 3 lan do truoc (goc 2/8, Fix1 7/15, Fix AppShell 4/15)"
+    depends_on:
+      - T-20260825-finance-nav-redirect-bug
+    notes: "Tiep noi T-20260825-finance-nav-redirect-bug (da blocked - 2 huong ngan nguyen nhan khong do duoc cai thien ro). User hoi 'huong nao that su phu hop voi quy mo that cua Mood' - phan tich: bug xay ra voi 1 nguoi dung duy nhat (khong phai van de tai cao nhieu nguoi), goc re nam 1 phan ngoai code ung dung (Next.js/Vercel), refactor gop 17 hook usSWR di nguoc rang buoc du an (khong mo lai dot perf dien rong). Huong dung: khong co ngan nguyen nhan nua - phat hien dung dau hieu (URL nhay len route cha, khong co click/phim/back that truoc do trong 800ms) va tu sua lai ngay bang router.replace(), khong toast, nguoi dung khong nen nhan ra. Da duyet, dang trien khai."
   - id: T-20260825-finance-nav-redirect-bug
     title: "finance/*: sua bug tu dong bat lai /finance sau vai giay (router cache 180s + retry storm -> Next.js response bi tron)"
     status: blocked
@@ -627,3 +643,22 @@ done:
       Tổng kết ADR-013 toàn chiến dịch: ~193 lỗi type → 0, moi ra 15 bug thật kiểu "schema tưởng
       tượng + lỗi nuốt". Ghi nhận thêm: notification_preferences boolean NULLABLE → helper
       mergeNotificationPreferences trong types/settings.ts.
+
+  - id: T-20260825-gallery-header-note-count
+    title: "Gallery khách: header hiện 💬 số ảnh có ghi chú (khách quên đã note bao nhiêu tấm)"
+    status: spec
+    owner: claude
+    branch: codex/gallery-header-note-count
+    locks:
+      - components/gallery/public-gallery-client.tsx
+    spec: agent/HANDOFFS/T-20260825-gallery-header-note-count.spec.md
+    verify:
+      - npx eslint components/gallery/public-gallery-client.tsx
+      - npm run build
+      - render thật @375/768/1024 link chia sẻ có ghi chú + ?mode=view (spec §4)
+    depends_on: []
+    notes: >
+      Chờ user duyệt spec. notedCount có sẵn = đã chọn ∩ có ghi chú (thanh đáy) — KHÔNG đúng nghĩa
+      cho header vì ghi chú không bắt buộc ảnh đã chọn → memo mới notedImageCount đếm key
+      commentsPerImage. M2 (tab GHI CHÚ + chip bấm được) là tuỳ chọn, chưa vào scope cho tới khi
+      user duyệt riêng.

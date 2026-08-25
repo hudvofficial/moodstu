@@ -17,6 +17,7 @@ import { MobileNavigationProvider } from "@/contexts/mobile-navigation-context";
 import { PullToRefreshProvider } from "@/contexts/pull-to-refresh-context";
 import { getAppShellRouteMode } from "@/lib/app-shell-route-mode";
 import { FinanceRealtimeRefresh } from "@/components/finance/finance-realtime-refresh";
+import { FinanceNavGuard } from "@/components/finance/finance-nav-guard";
 
 const NavigationWarmup = dynamic(
   () => import("./navigation-warmup").then((mod) => mod.NavigationWarmup),
@@ -86,6 +87,10 @@ export function AppShell({ children, role, userName }: AppShellProps) {
           nguồn gây bão request đồng thời dẫn tới bug tự điều hướng nhầm về /finance. Điều kiện
           pathname giữ nguyên true xuyên suốt mọi trang con /finance/*, nên React không remount. */}
       {pathname.startsWith("/finance") && <FinanceRealtimeRefresh />}
+      {/* T-20260825: watchdog — hướng "phát hiện + tự sửa triệu chứng" sau khi 2 hướng
+          "ngăn nguyên nhân" (staleTimes, chuyển FinanceRealtimeRefresh) đo không cải thiện
+          rõ. Xem agent/HANDOFFS/T-20260825-finance-nav-guard.spec.md. */}
+      {pathname.startsWith("/finance") && <FinanceNavGuard />}
 
       {/* 1. Sidebar (Desktop & Tablet) */}
       {!isFullpage && (
