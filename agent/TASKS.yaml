@@ -671,7 +671,7 @@ done:
 
   - id: T-20260825-gallery-noted-tab
     title: "Gallery khách: tab GHI CHÚ + chip 💬 bấm để lọc — danh sách từ server (M2 của header-note-count)"
-    status: spec
+    status: merged
     owner: claude
     locks:
       - app/actions/gallery-reaction-actions.ts
@@ -683,9 +683,16 @@ done:
       - npm run build
       - Playwright (PowerShell) AC2-AC7 spec §4 — gallery thật chỉ đọc + gallery E2E tạm 172 ảnh
     depends_on: [T-20260825-gallery-header-note-count]
+    result: >
+      MERGED 334b947 (Claude fallback, user duyệt "triển khai đi bạn"). 2 file +123/−19: action
+      getPublicNotedImages (embed gallery_comments!inner, cùng lọc RAW) + client: SWR lazy, tab thứ 3,
+      chip 💬 = nút aria-pressed, tắt load-more trong tab, spinner lần đầu, handleToggleStar tra thêm
+      notedImages + vá lạc quan, kẹp viewerIndex lúc render. Verify: eslint 0, tsc 0, build 0,
+      Playwright 17/17 local (126 tile = chip không phụ thuộc cuộn; +1/+0 request; ✓/❤️ trên ảnh #150
+      ngoài trang đầu ăn + DB đúng; sửa/xoá ghi chú trong tab; Slow 3G thấy spinner). Test data đã xoá.
     notes: >
-      Chờ user duyệt spec (user đã chọn phương án B sau trace: ảnh note rải khắp album, chỉ 11/126
-      trong 100 ảnh đầu; chuỗi auto-load grid kẹt trên prod — tab ĐÃ CHỌN hiện 40/70). Action mới
-      getPublicNotedImages dùng embed gallery_comments!inner (1 query, không .in → né header 16KB).
-      Edge case bắt buộc: handleToggleStar tra thêm notedImages + vá lạc quan danh sách noted; kẹp
-      viewerIndex lúc render. M3 đề xuất riêng: tab ĐÃ CHỌN dùng getPublicSelectedImages mở rộng cột.
+      Phát hiện có sẵn ngoài scope: (1) console "Refused to execute script from '/login' (MIME
+      text/html)" ngay khi chỉ load trang gallery công khai — 1 URL <script> bị proxy/auth trả trang
+      login; (2) tab ĐÃ CHỌN lọc thiếu trên album lớn (40/70) → M3 đề xuất: dùng getPublicSelectedImages
+      mở rộng IMAGE_COLS. Bẫy test: viewer.saveNote từ chối im lặng nếu chưa có mood_client_name;
+      ghi chú seed phải cùng client_identifier với mood_client_id của trình duyệt.
