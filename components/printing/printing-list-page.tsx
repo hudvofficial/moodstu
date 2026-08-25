@@ -28,13 +28,17 @@ import type {
   PrintingOrdersPage,
   PrintingStats,
 } from "@/types/printing";
-import type { PrintingOrderStatus } from "@/types/printing-constants";
+import {
+  printingStatusRequiresReason,
+  type PrintingOrderStatus,
+} from "@/types/printing-constants";
 import PrintingFiltersBar from "@/components/printing/printing-filters";
 import PrintingMobileGrouped from "@/components/printing/printing-mobile-grouped";
 import PrintingStatsBar from "@/components/printing/printing-stats-bar";
 import PrintingTable from "@/components/printing/printing-table";
 import PrintingGroupDrawer from "@/components/printing/printing-group-drawer";
 import PrintingCard from "@/components/printing/printing-card";
+import { StatusReasonModal } from "@/components/printing/status-reason-modal";
 import { groupOrdersByContract, type ContractGroup } from "@/lib/utils/printing-group-utils";
 
 const PrintingDetailDrawer = dynamic(
@@ -85,10 +89,22 @@ function PrintingListInner({
   initialLabOptions,
 }: Props) {
   const isMobile = useIsMobile();
-  const [editingOrder, setEditingOrder] = useState<PrintingOrderRow | null>(null);
+  // ADR-015: 2 drawer nhận object chụp lúc mở (handleEdit/onViewGroup) — trước đây
+  // không gì đồng bộ lại khi SWR đổi (kể cả optimistic patch do chính thao tác trong
+  // drawer gây ra) → user phải F5 mới thấy. Giờ state chỉ giữ SNAPSHOT làm key; object
+  // thật đưa xuống drawer derive lại từ data tươi (useMemo editingOrder /
+  // selectedContractGroup bên dưới). Không dùng useEffect+setState: lint
+  // react-hooks/set-state-in-effect (React Compiler) coi là error.
+  const [editingOrderSnapshot, setEditingOrder] = useState<PrintingOrderRow | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [selectedContractGroup, setSelectedContractGroup] = useState<ContractGroup | null>(null);
+  const [selectedGroupSnapshot, setSelectedContractGroup] = useState<ContractGroup | null>(null);
   const [payingOrder, setPayingOrder] = useState<PrintingOrderRow | null>(null);
+  // ADR-015: đổi trạng thái sang gap_su_co/huy_don (hoặc lùi bước) phải có lý do —
+  // server từ chối nếu thiếu. Giữ đổi đang chờ ở đây tới khi StatusReasonModal xác nhận.
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    order: PrintingOrderRow;
+    nextStatus: PrintingOrderStatus;
+  } | null>(null);
 
   const handleEdit = useCallback((selectedOrder: PrintingOrderRow) => {
     setEditingOrder(selectedOrder);
@@ -169,22 +185,41 @@ function PrintingListInner({
     [ordersPage.orders],
   );
 
+  // Tra lại bản tươi theo key mỗi khi data đổi. Cố ý giữ snapshot (không về null) khi
+  // item biến mất khỏi trang (lọc/phân trang) — không đóng drawer/rớt về "tạo mới"
+  // giữa lúc đang thao tác.
+  const selectedContractGroup = useMemo(() => {
+    if (!selectedGroupSnapshot) return null;
+    return (
+      contractGroups.find((g) => g.contractCode === selectedGroupSnapshot.contractCode) ??
+      selectedGroupSnapshot
+    );
+  }, [contractGroups, selectedGroupSnapshot]);
+
+  const editingOrder = useMemo(() => {
+    if (!editingOrderSnapshot) return null;
+    return (
+      ordersPage.orders.find((item) => item.id === editingOrderSnapshot.id) ??
+      editingOrderSnapshot
+    );
+  }, [ordersPage.orders, editingOrderSnapshot]);
+
   const isGroupedView = hasActiveFilters ? false : userGroupPreference;
 
   const handleSaved = async () => {
     await Promise.all([mutateOrders(), mutateStats(), mutateLabs()]);
   };
 
-  const handleStatusChange = async (
+  const performStatusChange = async (
     order: PrintingOrderRow,
-    newStatus: string,
+    nextStatus: PrintingOrderStatus,
+    reason?: string,
   ) => {
     if (!order.contractId) {
       toast("Đơn in này không có hợp đồng để cập nhật", "error");
       return;
     }
     const contractId = order.contractId;
-    const nextStatus = newStatus as PrintingOrderStatus;
 
     const patchOrderStatus = (status: PrintingOrderStatus) => {
       void mutateOrders((current) => {
@@ -204,7 +239,7 @@ function PrintingListInner({
     await runOptimisticMutation({
       apply: () => patchOrderStatus(nextStatus),
       rollback: () => patchOrderStatus(order.status),
-      action: () => updatePrintingOrderStatus(order.id, nextStatus, contractId),
+      action: () => updatePrintingOrderStatus(order.id, nextStatus, contractId, reason),
       onSuccess: async () => {
         toast("Cập nhật trạng thái thành công", "success");
         await Promise.all([
@@ -216,6 +251,25 @@ function PrintingListInner({
         toast(error instanceof Error ? error.message : "Không thể cập nhật trạng thái", "error");
       },
     });
+  };
+
+  const handleStatusChange = async (
+    order: PrintingOrderRow,
+    newStatus: string,
+  ) => {
+    const nextStatus = newStatus as PrintingOrderStatus;
+    if (printingStatusRequiresReason(order.status, nextStatus)) {
+      setPendingStatusChange({ order, nextStatus });
+      return;
+    }
+    await performStatusChange(order, nextStatus);
+  };
+
+  const confirmPendingStatusChange = async (reason: string) => {
+    if (!pendingStatusChange) return;
+    const { order, nextStatus } = pendingStatusChange;
+    setPendingStatusChange(null);
+    await performStatusChange(order, nextStatus, reason);
   };
 
 
@@ -357,6 +411,12 @@ function PrintingListInner({
         onEdit={handleEdit}
         onPayLab={handlePayLab}
         onStatusChange={handleStatusChange}
+      />
+
+      <StatusReasonModal
+        isOpen={!!pendingStatusChange}
+        onClose={() => setPendingStatusChange(null)}
+        onConfirm={confirmPendingStatusChange}
       />
 
       <LabPaymentModal

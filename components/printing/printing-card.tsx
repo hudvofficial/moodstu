@@ -12,6 +12,7 @@ import {
   PRINTING_PAYMENT_LABELS,
   PRINTING_PAYMENT_VARIANTS,
   isPendingPrintStatus,
+  isPrintingOrderOverdue,
 } from "@/types/printing-constants";
 
 
@@ -31,7 +32,7 @@ interface Props {
 
 export default function PrintingCard({ order, compact, onEdit, onPayLab, onStatusChange }: Props) {
   const isPending = isPendingPrintStatus(order.status);
-  const isOverdue = isPending && !!order.expectedDate && new Date(order.expectedDate) < new Date();
+  const isOverdue = isPrintingOrderOverdue(order.status, order.expectedDate);
   const isMissingDate = isPending && !order.expectedDate;
 
   return (

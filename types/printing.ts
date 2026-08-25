@@ -152,17 +152,6 @@ export interface LabDebtData {
 export type OrderPaymentType = 'deposit' | 'final' | 'refund' | 'adjustment';
 export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'other';
 
-export interface OrderPaymentSummary {
-  order_id: string;
-  total_amount: number;
-  deposit_paid: number;
-  final_paid: number;
-  refund_amount: number;
-  adjustment_amount: number;
-  total_paid: number;
-  remaining: number;
-}
-
 export interface InventoryAvailableStock {
   id: string;
   studio_id: string;

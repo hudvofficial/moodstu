@@ -28,7 +28,7 @@ import { PRINTING_STATUS_LABELS, PRINTING_STATUS_VARIANTS } from "@/types/printi
 import { CancelOrderModal } from "@/components/printing/cancel-order-modal";
 import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
 import { PaymentHistorySection } from "@/components/printing/payment-history-section";
-import { getOrderPaymentSummary } from "@/app/actions/printing-queries";
+import { getPrintingOrderLabRemaining } from "@/app/actions/printing-queries";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type {
   ContractOption,
@@ -132,7 +132,9 @@ export default function PrintingDetailDrawer({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showLabPaymentModal, setShowLabPaymentModal] = useState(false);
-  const [paymentSummary, setPaymentSummary] = useState<{ remaining: number } | null>(null);
+  // Trục B (ADR-014): Mood còn nợ Lab bao nhiêu cho đơn này — đọc từ
+  // lab_payment_allocations, KHÔNG phải order_payments (mô hình "khách cọc" đã bỏ). ADR-015.
+  const [labDebt, setLabDebt] = useState<{ remainingAmount: number } | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
@@ -145,16 +147,20 @@ export default function PrintingDetailDrawer({
     setContractSearch(order ? `${order.contractCode} - ${order.customerName}` : "");
     setConfirmDeleteOpen(false);
     setShowCancelModal(false);
+    setLabDebt(null); // không để số nợ của đơn trước lọt sang đơn mới trong lúc chờ fetch
   }, [isOpen, order?.id]);
 
+  // Depend on `orderId`, not `order` — parent giờ derive lại object mỗi khi SWR đổi
+  // (ADR-015), không được gọi lại API chỉ vì reference đổi mà id không đổi.
+  const orderId = order?.id ?? null;
   useEffect(() => {
     if (!isOpen) return;
 
-    if (order) {
-      getOrderPaymentSummary(order.id)
+    if (orderId) {
+      getPrintingOrderLabRemaining(orderId)
         .then((result) => {
           if (result.success) {
-            setPaymentSummary({ remaining: result.data.remaining });
+            setLabDebt({ remainingAmount: result.data.remainingAmount });
           }
         })
         .catch(() => {});
@@ -165,7 +171,7 @@ export default function PrintingDetailDrawer({
         setInventoryItems(result.items);
       })
       .catch(() => {});
-  }, [isOpen, order]);
+  }, [isOpen, orderId]);
 
   const { data: contractOptionsResult } = useSWR<ActionResult<ContractOption[]>>(
     isOpen && !order ? ["printing-contract-options", debouncedContractSearch] : null,
@@ -594,10 +600,10 @@ export default function PrintingDetailDrawer({
                     {formatCurrency(totalAmount)}
                   </p>
                 </div>
-                {paymentSummary && paymentSummary.remaining > 0 && (
+                {labDebt && labDebt.remainingAmount > 0 && (
                   <div className="rounded-2xl bg-warning/10 px-3 py-2 text-right">
-                    <p className="text-xs font-bold uppercase tracking-wider text-warning">Còn lại</p>
-                    <p className="text-sm font-bold text-warning">{formatCurrency(paymentSummary.remaining)}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-warning">Còn nợ lab</p>
+                    <p className="text-sm font-bold text-warning">{formatCurrency(labDebt.remainingAmount)}</p>
                   </div>
                 )}
               </div>
@@ -635,10 +641,10 @@ export default function PrintingDetailDrawer({
                           <WalletCards className="size-4" />
                           Thanh toán lab
                           {order.paymentStatus === "chua_thanh_toan" && (
-                            // Trục B (ADR-014) — số dư tối đa (chưa trừ phần đã trả trước
-                            // đó), đủ để cảnh báo staff còn nợ; chi tiết chính xác trong modal.
+                            // Số còn nợ lab THẬT (total − đã phân bổ); fallback tổng đơn
+                            // trong lúc labDebt chưa tải xong.
                             <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-bold text-warning">
-                              {formatCurrency(order.totalAmount)}
+                              {formatCurrency(labDebt?.remainingAmount ?? order.totalAmount)}
                             </span>
                           )}
                         </Button>

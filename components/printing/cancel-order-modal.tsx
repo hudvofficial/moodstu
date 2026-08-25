@@ -3,12 +3,10 @@
 import { useState, useTransition } from "react";
 import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
-import { SelectForm } from "@/components/ui/select/SelectForm";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cancelOrder } from "@/app/actions/printing-workflow-mutations";
-import type { PrintingOrderRow, PaymentMethod } from "@/types/printing";
+import type { PrintingOrderRow } from "@/types/printing";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
 
@@ -19,13 +17,10 @@ interface CancelOrderModalProps {
   onSuccess?: () => void;
 }
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash", label: "Tiền mặt" },
-  { value: "transfer", label: "Chuyển khoản" },
-  { value: "card", label: "Thẻ" },
-  { value: "other", label: "Khác" },
-];
-
+// ADR-015 (2026-08-25): bỏ mục "Hoàn tiền" — khách không trả tiền Mood qua đơn in
+// (ADR-014: in ấn là Mood ⇄ Lab thuần tuý), nên không có gì để hoàn khi hủy. Phần
+// cũ gate theo order.paidAmount (không nơi nào nạp → không bao giờ hiện) là tàn dư
+// luồng "đặt cọc" đã xoá, sót vì file này nằm ngoài locks của ADR-014.
 export function CancelOrderModal({
   isOpen,
   onClose,
@@ -35,8 +30,6 @@ export function CancelOrderModal({
   const [isPending, startTransition] = useTransition();
 
   const [reason, setReason] = useState<string>("");
-  const [refundAmount, setRefundAmount] = useState<number>(0);
-  const [refundMethod, setRefundMethod] = useState<PaymentMethod>("cash");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,32 +39,18 @@ export function CancelOrderModal({
       return;
     }
 
-    if (refundAmount < 0) {
-      toast.error("Số tiền hoàn không hợp lệ");
-      return;
-    }
-
-    if (refundAmount > (order.paidAmount || 0)) {
-      toast.error(
-        `Số tiền hoàn không thể lớn hơn số đã thanh toán (${formatCurrency(order.paidAmount || 0)})`
-      );
-      return;
-    }
-
     startTransition(async () => {
       try {
         const result = await cancelOrder({
           orderId: order.id,
           reason: reason.trim(),
-          refundAmount: refundAmount > 0 ? refundAmount : undefined,
-          refundMethod: refundAmount > 0 ? refundMethod : undefined,
         });
 
         if (!result.success) {
           throw new Error(result.error || "Không thể hủy đơn");
         }
 
-        toast.success("Đã hủy đơn và hoàn trả kho thành công");
+        toast.success("Đã hủy đơn thành công");
 
         onSuccess?.();
         onClose();
@@ -87,7 +66,6 @@ export function CancelOrderModal({
   };
 
   const hasInventory = order.inventoryStatus === "reserved" || order.inventoryStatus === "stocked_out";
-  const paidAmount = order.paidAmount || 0;
 
   return (
     <UnifiedModal
@@ -134,12 +112,6 @@ export function CancelOrderModal({
               {formatCurrency(order.totalAmount)} {CURRENCY_SYMBOL}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-text-secondary">Đã thanh toán:</span>
-            <span className="font-medium text-success">
-              {formatCurrency(paidAmount)} {CURRENCY_SYMBOL}
-            </span>
-          </div>
         </div>
 
         {/* Cancellation Reason */}
@@ -156,60 +128,6 @@ export function CancelOrderModal({
             disabled={isPending}
           />
         </div>
-
-        {/* Refund Section */}
-        {paidAmount > 0 && (
-          <div className="space-y-3 p-3 border border-border rounded-lg">
-            <h4 className="text-sm font-semibold text-text-main">Hoàn tiền</h4>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-text-main">
-                Số tiền hoàn (tùy chọn)
-              </label>
-              <CurrencyInput
-                value={refundAmount}
-                onChange={setRefundAmount}
-                placeholder="Nhập số tiền hoàn (nếu có)"
-                disabled={isPending}
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRefundAmount(paidAmount)}
-                  disabled={isPending}
-                >
-                  Hoàn toàn bộ ({formatCurrency(paidAmount)})
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRefundAmount(0)}
-                  disabled={isPending}
-                >
-                  Không hoàn
-                </Button>
-              </div>
-            </div>
-
-            {refundAmount > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-text-main">
-                  Phương thức hoàn tiền
-                </label>
-                <SelectForm
-                  value={refundMethod}
-                  onChange={(value) => setRefundMethod(value as PaymentMethod)}
-                  options={PAYMENT_METHODS}
-                  placeholder="Chọn phương thức"
-                  disabled={isPending}
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-2">

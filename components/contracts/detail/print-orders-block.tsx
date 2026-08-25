@@ -5,11 +5,11 @@ import { Printer, Calendar, Plus, Copy, Link2, ExternalLink, Pencil, ChevronDown
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { UnifiedModal } from "@/components/ui/unified-modal";
 import { formatDate } from "@/lib/utils";
 import type { PrintingOrder } from "@/types/contract";
 import StatusSelect, { selectablePrintOrderStatusOptions } from "@/components/ui/status-select";
+import { StatusReasonModal } from "@/components/printing/status-reason-modal";
+import { printingStatusRequiresReason } from "@/types/printing-constants";
 import { updatePrintOrderStatus, updatePrintOrderFileUrl } from "@/app/actions/printing-actions";
 import { toast } from "@/lib/toast-utils";
 
@@ -27,17 +27,8 @@ interface Props {
 // Trục A — tiến độ sản xuất Mood ⇄ Lab (ADR-014). Không còn "đặt cọc"/"giao khách" —
 // và không còn side effect (kho/tiền) gắn theo trạng thái nào, nên mọi bước chuyển
 // đều an toàn thao tác thẳng ở đây, không cần route sang /printing như trước.
-const STATUS_ORDER = ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh"];
-
-function isRollback(from: string | null | undefined, to: string) {
-  const fromIndex = STATUS_ORDER.indexOf(from || "cho_xu_ly");
-  const toIndex = STATUS_ORDER.indexOf(to);
-  return fromIndex >= 0 && toIndex >= 0 && toIndex < fromIndex;
-}
-
-function requiresReason(from: string | null | undefined, to: string) {
-  return to === "gap_su_co" || isRollback(from, to);
-}
+// "Khi nào cần lý do" đọc từ printingStatusRequiresReason (SSOT, ADR-015) — bản
+// cục bộ trước đây thiếu huy_don nên "Hủy đơn" bị server từ chối.
 
 function labPaymentBadge(paymentStatus?: string | null): { label: string; variant: "success" | "warning" } {
   switch (paymentStatus) {
@@ -85,7 +76,6 @@ export default function PrintOrdersBlock({
 }: Props) {
   const [orderOverrides, setOrderOverrides] = useState<Record<string, Partial<PrintingOrder>>>({});
   const [pendingChange, setPendingChange] = useState<PendingStatusChange | null>(null);
-  const [statusReason, setStatusReason] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [fileInput, setFileInput] = useState("");
@@ -119,26 +109,18 @@ export default function PrintOrdersBlock({
     const previous = localOrders.find((order) => order.id === orderId)?.status;
     if (!previous || previous === newStatus) return;
 
-    if (requiresReason(previous, newStatus)) {
+    if (printingStatusRequiresReason(previous, newStatus)) {
       setPendingChange({ orderId, previous, next: newStatus });
-      setStatusReason("");
       return;
     }
 
     await applyStatusUpdate(orderId, newStatus, previous);
   };
 
-  const confirmPendingChange = async () => {
+  const confirmPendingChange = async (reason: string) => {
     if (!pendingChange) return;
-    const reason = statusReason.trim();
-    if (!reason) {
-      toast("Vui lòng nhập lý do", "warning");
-      return;
-    }
-
     const change = pendingChange;
     setPendingChange(null);
-    setStatusReason("");
     await applyStatusUpdate(change.orderId, change.next, change.previous, reason);
   };
 
@@ -440,39 +422,11 @@ export default function PrintOrdersBlock({
         )}
       </div>
 
-      <UnifiedModal
+      <StatusReasonModal
         isOpen={!!pendingChange}
-        onClose={() => {
-          setPendingChange(null);
-          setStatusReason("");
-        }}
-        title="Nhập lý do thay đổi trạng thái"
-        description="Bắt buộc khi báo sự cố hoặc chuyển lùi quy trình."
-        size="md"
-        footer={(
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setPendingChange(null);
-                setStatusReason("");
-              }}
-            >
-              Hủy
-            </Button>
-            <Button type="button" onClick={confirmPendingChange}>Xác nhận</Button>
-          </div>
-        )}
-      >
-        <Textarea
-          value={statusReason}
-          onChange={(event) => setStatusReason(event.target.value)}
-          placeholder="VD: In sai màu, khách đổi yêu cầu, thao tác nhầm cần quay lại..."
-          rows={4}
-          autoFocus
-        />
-      </UnifiedModal>
+        onClose={() => setPendingChange(null)}
+        onConfirm={confirmPendingChange}
+      />
 
     </div>
   );

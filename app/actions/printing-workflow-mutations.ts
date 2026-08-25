@@ -8,8 +8,13 @@
  * completeProduction — 0/27 đơn thật từng chạm inventory_reservations), không có
  * "giao khách" gắn ở đơn in (recordFinalPayment — thuộc contract_events). Cả 4 hàm
  * đó đã bị xoá khỏi file này. Công nợ Lab đi qua record_lab_payment_atomic (module
- * lab-mutations.ts), không đổi. Chỉ còn `cancelOrder` (hủy đơn + rollback kho/hoàn
- * tiền nếu có) là hợp lệ ở đây.
+ * lab-mutations.ts), không đổi. Chỉ còn `cancelOrder` là hợp lệ ở đây.
+ *
+ * ADR-015 (2026-08-25): bỏ luôn nhánh "hoàn tiền khách" trong cancelOrder — khách
+ * không trả tiền Mood qua đơn in nên không có gì để hoàn (tàn dư "đặt cọc" sót lại
+ * vì file UI gọi nó nằm ngoài locks của ADR-014). Nhánh hoàn kho bên dưới cũng là
+ * dead code cùng lý do (không nơi nào set inventory_status reserved/stocked_out
+ * nữa) nhưng không gây triệu chứng sai — giữ nguyên, chỉ ghi nhận.
  */
 
 import { revalidatePath } from "next/cache";
@@ -17,18 +22,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { fireAuditLog } from "@/lib/audit";
 import { withPrintingAccess } from "@/lib/auth_utils";
-
-/**
- * Module In ấn dùng từ vựng riêng cho phương thức thanh toán
- * (`cash | transfer | card | other`, xem types/printing.ts) trong khi cột
- * `expenses.payment_method` là enum `payment_method_enum` chỉ có 2 giá trị.
- * Quy về 2 nhóm: tiền mặt và không-tiền-mặt.
- */
-function toPaymentMethodEnum(
-  method: "cash" | "transfer" | "card" | "other",
-): Database["public"]["Enums"]["payment_method_enum"] {
-  return method === "cash" ? "tien_mat" : "chuyen_khoan";
-}
 
 // ─── HELPER: Get order with validation ──────────────────
 
@@ -52,11 +45,9 @@ async function getOrderWithValidation(supabase: any, orderId: string) {
 export async function cancelOrder(input: {
   orderId: string;
   reason: string;
-  refundAmount?: number;
-  refundMethod?: "cash" | "transfer" | "card" | "other";
 }) {
   return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
-    const { orderId, reason, refundAmount = 0, refundMethod = "cash" } = input;
+    const { orderId, reason } = input;
 
     if (!reason.trim()) {
       throw new Error("Phải nhập lý do hủy đơn");
@@ -142,40 +133,7 @@ export async function cancelOrder(input: {
         .eq("status", "active");
     }
 
-    // 2. Handle refund if needed
-    if (refundAmount > 0) {
-      // Create expense for refund
-      const { data: expense, error: expenseError } = await supabase
-        .from("expenses")
-        .insert({
-          // expenses KHÔNG có expense_type / category_name / notes / updated_by —
-          // 4 cột này từng làm insert trả 400 PGRST204 nên khoản hoàn tiền không được ghi.
-          expense_date: new Date().toISOString().split("T")[0],
-          payment_method: toPaymentMethodEnum(refundMethod),
-          amount: refundAmount,
-          description: `[Auto-Refund] Hoàn tiền hủy đơn in #${order.order_code}: ${reason}`,
-          printing_order_id: orderId,
-          created_by: userId,
-        })
-        .select("id")
-        .single();
-
-      if (!expenseError && expense) {
-        // Link refund to order
-        await supabase.from("order_payments").insert({
-          order_id: orderId,
-          payment_type: "refund",
-          amount: -Math.abs(refundAmount), // Negative for refund
-          payment_date: new Date().toISOString().split("T")[0],
-          payment_method: toPaymentMethodEnum(refundMethod), // thống nhất từ vựng
-          notes: `Hoàn tiền: ${reason}`,
-          created_by: userId,
-          updated_by: userId,
-        });
-      }
-    }
-
-    // 3. Update order status
+    // 2. Update order status
     const { error: updateError } = await supabase
       .from("printing_orders")
       .update({
@@ -192,7 +150,7 @@ export async function cancelOrder(input: {
       throw new Error(`Không thể cập nhật đơn: ${updateError.message}`);
     }
 
-    // 4. Audit
+    // 3. Audit
     await fireAuditLog({
       action: "UPDATE",
       tableName: "printing_orders",
@@ -205,22 +163,17 @@ export async function cancelOrder(input: {
       },
       newData: {
         status: "huy_don",
-        refund_amount: refundAmount,
       },
       source: "server_action",
     });
 
     revalidatePath("/printing");
     revalidatePath(`/printing/${orderId}`);
-    if (refundAmount > 0) {
-      revalidatePath("/finance/expenses");
-    }
 
     return {
       success: true,
       data: {
-        message: "Đã hủy đơn và hoàn trả kho",
-        refunded: refundAmount,
+        message: "Đã hủy đơn",
       },
     };
   });

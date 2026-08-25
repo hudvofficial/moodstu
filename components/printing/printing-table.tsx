@@ -22,6 +22,7 @@ import {
   PRINTING_PAYMENT_LABELS,
   PRINTING_PAYMENT_VARIANTS,
   isPendingPrintStatus,
+  isPrintingOrderOverdue,
 } from "@/types/printing-constants";
 
 // ═══════════════════════════════════════════
@@ -190,10 +191,7 @@ const OrderRow = memo(function OrderRow({
   onStatusChange,
 }: OrderRowProps) {
   const isPending = isPendingPrintStatus(order.status);
-  const isOverdue =
-    isPending &&
-    !!order.expectedDate &&
-    new Date(order.expectedDate) < new Date();
+  const isOverdue = isPrintingOrderOverdue(order.status, order.expectedDate);
   const isMissingDate = isPending && !order.expectedDate;
 
   return (

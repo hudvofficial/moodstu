@@ -376,29 +376,46 @@ export async function getPrintingOrderDetail(
 // ─── PHASE 2: PAYMENT QUERIES ────────────────────────────
 
 /**
- * Get payment summary for an order
+ * Số dư Trục B (Mood nợ Lab) cho ĐÚNG 1 đơn — total_amount trừ SUM đã phân bổ
+ * qua lab_payment_allocations (record_lab_payment_atomic). Thay cho
+ * getOrderPaymentSummary cũ (đọc view order_payment_summary ← order_payments —
+ * mô hình "khách cọc cho Mood", ADR-014 đã khai tử cho đơn in, nên luôn trả
+ * remaining ≈ total_amount, sai). ADR-015.
  */
-export async function getOrderPaymentSummary(orderId: string) {
+export async function getPrintingOrderLabRemaining(
+  orderId: string,
+): Promise<ActionResult<{ totalAmount: number; allocatedAmount: number; remainingAmount: number }>> {
   return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
-    const { data, error } = await supabase
-      .from("order_payment_summary")
-      .select("*")
-      .eq("order_id", orderId)
+    const { data: order, error: orderError } = await supabase
+      .from("printing_orders")
+      .select("total_amount")
+      .eq("id", orderId)
+      .is("deleted_at", null)
       .single();
 
-    if (error) {
-      throw new Error(`Không thể lấy thông tin thanh toán: ${error.message}`);
+    if (orderError || !order) {
+      throw new Error("Không tìm thấy đơn in");
     }
 
+    const { data: allocations, error: allocError } = await supabase
+      .from("lab_payment_allocations")
+      .select("amount")
+      .eq("printing_order_id", orderId);
+
+    if (allocError) {
+      throw new Error(`Không thể lấy dữ liệu công nợ lab: ${allocError.message}`);
+    }
+
+    const totalAmount = Number(order.total_amount || 0);
+    const allocatedAmount = (allocations || []).reduce(
+      (sum, a) => sum + Number(a.amount || 0),
+      0,
+    );
+
     return {
-      orderId: data.order_id,
-      totalAmount: data.total_amount || 0,
-      depositPaid: data.deposit_paid || 0,
-      finalPaid: data.final_paid || 0,
-      refundAmount: data.refund_amount || 0,
-      adjustmentAmount: data.adjustment_amount || 0,
-      totalPaid: data.total_paid || 0,
-      remaining: data.remaining || 0,
+      totalAmount,
+      allocatedAmount,
+      remainingAmount: Math.max(0, totalAmount - allocatedAmount),
     };
   });
 }

@@ -15,7 +15,12 @@ import {
 } from "@/lib/validations/printing.schema";
 // PRINTING_VALID_TRANSITIONS: nguồn chân lý DUY NHẤT (ADR-014) — dùng chung với UI
 // (status-select.tsx lọc dropdown) để tránh lệch, giống lớp bug payment_status trước đó.
-import { PRINTING_VALID_TRANSITIONS as VALID_TRANSITIONS } from "@/types/printing-constants";
+// printingStatusRequiresReason: cùng nguyên tắc (ADR-015) — client phải hỏi lý do đúng
+// những chỗ server sẽ từ chối nếu thiếu.
+import {
+  PRINTING_VALID_TRANSITIONS as VALID_TRANSITIONS,
+  printingStatusRequiresReason,
+} from "@/types/printing-constants";
 
 type ActionResult<T = null> =
   | { success: true; data: T }
@@ -147,15 +152,6 @@ export async function updatePrintingOrderStatus(
     return { success: false, error: "Trang thai don in khong hop le" };
   }
 
-  // Statuses that require a reason
-  const REASON_REQUIRED: string[] = ["gap_su_co", "huy_don"];
-  const isRollback = (from: string, to: string) => {
-    const ORDER = ["cho_xu_ly", "dat_coc", "dang_in", "da_in", "da_giao", "hoan_thanh"];
-    const fromIdx = ORDER.indexOf(from);
-    const toIdx = ORDER.indexOf(to);
-    return fromIdx >= 0 && toIdx >= 0 && toIdx < fromIdx;
-  };
-
   return withPrintingAccess(async (supabase: SupabaseClient<Database>, userId) => {
     const { data: current, error: currentError } = await supabase
       .from("printing_orders")
@@ -176,7 +172,7 @@ export async function updatePrintingOrderStatus(
     }
 
     // Require reason for issue/cancel/rollback transitions
-    const needsReason = REASON_REQUIRED.includes(parsedStatus.data) || isRollback(currentStatus, parsedStatus.data);
+    const needsReason = printingStatusRequiresReason(currentStatus, parsedStatus.data);
     if (needsReason && (!reason || !reason.trim())) {
       throw new Error("Vui long nhap ly do khi chuyen trang thai nay");
     }

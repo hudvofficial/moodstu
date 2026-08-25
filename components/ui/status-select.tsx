@@ -41,7 +41,8 @@ export const PRINT_ORDER_STATUS_OPTIONS = [
   { value: "dang_in",     label: "Đang in",         color: "var(--color-status-info)" },
   { value: "da_in",       label: "Đã in — bên lab", color: "var(--color-status-printed)" },
   { value: "hoan_thanh",  label: "Hoàn thành",      color: "var(--color-status-success)" },
-  { value: "gap_su_co",   label: "Gặp sự cố",       color: "var(--color-status-error)" },
+  // gap_su_co: cam (pending) thay vì đỏ — tách khỏi huy_don để phân biệt bằng mắt (ADR-015).
+  { value: "gap_su_co",   label: "Gặp sự cố",       color: "var(--color-status-pending)" },
   { value: "huy_don",     label: "Hủy đơn",         color: "var(--color-status-error)" },
 
   // ─── Legacy (Backward Compatibility) ───

@@ -30,6 +30,39 @@ updated: 2026-08-25
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260825-printing-drawer-fixes
+    title: "In ấn: vá 6 bug ở 2 drawer + dropdown trạng thái (reason bị bỏ sót, snapshot đông cứng, badge nợ lab sai nguồn, refund chết, timezone, màu trùng)"
+    status: ci
+    owner: claude (fallback)
+    branch: claude/printing-drawer-fixes
+    locks:
+      - types/printing-constants.ts
+      - components/ui/status-select.tsx
+      - app/actions/printing-mutations.ts
+      - app/actions/printing-queries.ts
+      - app/actions/printing-workflow-mutations.ts
+      - components/contracts/detail/print-orders-block.tsx
+      - components/printing/printing-list-page.tsx
+      - components/printing/printing-detail-drawer.tsx
+      - components/printing/printing-card.tsx
+      - components/printing/printing-table.tsx
+      - lib/utils/printing-group-utils.ts
+      - components/printing/cancel-order-modal.tsx
+      - components/printing/status-reason-modal.tsx (mới)
+      - types/printing.ts
+      - supabase/migrations/20260825150000_printing_stats_revoke_anon.sql (mới — CHƯA áp, chờ user OK)
+      - tests/e2e/printing-drawer-fixes-verify.spec.ts (mới — regression 3 luồng)
+    spec: agent/HANDOFFS/T-20260825-printing-drawer-fixes.spec.md
+    verify:
+      - npx eslint (toàn bộ file trong locks)
+      - npx tsc --noEmit
+      - npm run build
+      - npm run verify:printing
+      - npm run verify:contracts
+      - "PLAYWRIGHT_BASE_URL=http://127.0.0.1:3100 npx playwright test tests/e2e/printing-drawer-fixes-verify.spec.ts --project=chromium (next start prod)"
+    depends_on: []
+    notes: "2026-08-25 VERIFY XANH (eslint 0 error/1 warning pre-existing, tsc 0, build exit 0, verify:contracts xanh, Playwright 3/3 trên next start prod :3100 với seed riêng đã dọn sạch — 0 dòng sót/7 bảng) — chờ user merge branch claude/printing-drawer-fixes → main + push. verify:printing ĐỎ vì nguyên nhân CÓ SẴN: migration ADR-014 DROP+CREATE printing_stats() mất REVOKE anon → đã soạn migration 20260825150000 (2 dòng REVOKE/GRANT), CHƯA áp — chờ user OK (đổi quyền DB prod). Lệch spec có lý do: ADR-015(b) dùng useMemo derive thay useEffect+setState vì lint react-hooks/set-state-in-effect là error trong repo; thêm setLabDebt(null) ở effect reset để số nợ đơn trước không lọt sang đơn mới. Chi tiết + AC từng mục: spec §13."
+
   - id: T-20260825-finance-nav-guard
     title: "finance/*: watchdog client tu sua lai URL khi bi day nham ve route cha (huong 3 sau khi 2 huong ngan nguyen nhan khong hieu qua)"
     status: ci
@@ -135,35 +168,6 @@ active:
       - "render that: next start + Playwright, seed 1 E2E admin (xoa sau). Diem vao A (card trong group drawer): modal tu bat 'Chon thu cong', tu tick 1/26 don, amount tu dien 255.000 khop remainingAmount that. Diem vao C (card lab /printing/labs, khong qua don cu the): FIFO mac dinh khong doi, amount=0. Khong bam Xac nhan thanh toan - khong tao ban ghi that."
     depends_on: []
     notes: "User bao 3 anh: khong co UI thanh toan truc tiep (phai qua Sua), group drawer khong co nut thanh toan, LabPaymentModal che do thu cong khong uu tien dung don dang mo. Da phan tich: cong no Lab la khai niem cap LAB (FIFO mac dinh dung cho diem vao tu /printing/labs), nhung diem vao tu 1 don cu the can tu chon thu cong + tick san + amount = remainingAmount that (tra tu unpaidOrders da fetch, khong suy tu order.totalAmount). KHONG bien Badge thanh nut bam (pha quy uoc SSOT) - them nut text Thanh toan rieng canh Sua. Rut khoi pham vi: fetchLabUnpaidOrders thieu filter payment_status - da xac nhan KHONG phai bug (result.filter remainingAmount>0 da tuong duong). Da verify render that + merge main + deploy production (xem spec muc 6)."
-  - id: T-20260824-printing-workflow-redesign
-    title: "In ấn: bỏ đặt cọc/giao khách/kho khỏi trạng thái đơn, công nợ Lab thành trục độc lập (ADR-014)"
-    status: ci
-    owner: claude (fallback)
-    branch: claude/printing-workflow-redesign
-    locks:
-      - supabase/migrations/20260824120000_printing_workflow_redesign.sql
-      - app/actions/printing-mutations.ts
-      - app/actions/printing-queries.ts
-      - app/actions/printing-workflow-mutations.ts
-      - types/printing-constants.ts
-      - types/printing.ts
-      - components/ui/status-select.tsx
-      - components/printing/printing-detail-drawer.tsx
-      - components/printing/printing-filters.tsx
-      - components/printing/printing-stats-bar.tsx
-      - components/printing/printing-list-page.tsx
-      - components/contracts/detail/print-orders-block.tsx
-      - components/printing/deposit-payment-modal.tsx (xoá)
-      - components/printing/final-payment-modal.tsx (xoá)
-    spec: agent/HANDOFFS/T-20260824-printing-workflow-redesign.spec.md
-    verify:
-      - node scripts/migrate-direct.mjs <migration>
-      - npm run db:types
-      - npx eslint (toàn bộ file trong locks)
-      - npm run build
-      - "render chrome-devtools /printing + /contracts/[id] (Roo)"
-    depends_on: []
-    notes: "2026-08-24 VERIFY XANH (migration applied+verified, db:types, eslint 0 lỗi, build exit 0, render thật /printing + /contracts/[id] read-only) — chờ user merge branch claude/printing-workflow-redesign → main + push. Công nợ lab Hồng Bảo lộ ra 7.916.400d/25 đơn sau fix — báo user xác nhận thực tế. ADR-014. User xác nhận trực tiếp nghiệp vụ: không có cọc Mood-Lab, giao khách thuộc contract_events, hoàn thành = Mood đã nhận hình từ lab. Dữ liệu thật: 2 đơn dat_coc có 0 tiền thật (deposit_amount=0, 0 dòng order_payments/lab_payment_allocations) -> migrate thẳng sang hoan_thanh, KHÔNG bịa payment; công nợ 805.000d lab Hồng Bảo sẽ tự lộ ra sau migration. 3 đơn da_nhan (legacy) gộp vào hoan_thanh. Bug lệch từ vựng payment_status (KPI unpaid hiện 0d thực tế 5.567.000d) được sửa CÙNG lúc vì thuộc cùng root cause. KHÔNG đụng payment_plans/payment_stage_key_v2 (đợt cọc khách trả Mood ở module Hợp đồng — khác domain, đúng, giữ nguyên)."
   - id: T-20260824-stale-action-toast-recovery
     title: "Deploy skew: lỗi Server Action not found bị toast nuốt → gắn recovery tại ToastManager.error() (+ placeholder gallery)"
     status: implementing
@@ -226,6 +230,36 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260824-printing-workflow-redesign
+    title: "In ấn: bỏ đặt cọc/giao khách/kho khỏi trạng thái đơn, công nợ Lab thành trục độc lập (ADR-014)"
+    status: merged
+    merged_commit: 0f9a3cb
+    owner: claude (fallback)
+    branch: claude/printing-workflow-redesign
+    locks:
+      - supabase/migrations/20260824120000_printing_workflow_redesign.sql
+      - app/actions/printing-mutations.ts
+      - app/actions/printing-queries.ts
+      - app/actions/printing-workflow-mutations.ts
+      - types/printing-constants.ts
+      - types/printing.ts
+      - components/ui/status-select.tsx
+      - components/printing/printing-detail-drawer.tsx
+      - components/printing/printing-filters.tsx
+      - components/printing/printing-stats-bar.tsx
+      - components/printing/printing-list-page.tsx
+      - components/contracts/detail/print-orders-block.tsx
+      - components/printing/deposit-payment-modal.tsx (xoá)
+      - components/printing/final-payment-modal.tsx (xoá)
+    spec: agent/HANDOFFS/T-20260824-printing-workflow-redesign.spec.md
+    verify:
+      - node scripts/migrate-direct.mjs <migration>
+      - npm run db:types
+      - npx eslint (toàn bộ file trong locks)
+      - npm run build
+      - "render chrome-devtools /printing + /contracts/[id] (Roo)"
+    depends_on: []
+    notes: "2026-08-25: đã xác nhận qua git log — commit 0f9a3cb (+follow-up 25f2856, 5106732) nằm trên origin/main, entry này bị bỏ sót ở status:ci/active dù CURRENT_STATE.md đã ghi MERGED từ 2026-08-24. Sửa bookkeeping khi viết T-20260825-printing-drawer-fixes (task đó review lại đúng vùng này, tìm thêm 6 bug — trong đó có 1 bug spec gốc ADR-014 mục 3 chưa được áp dụng khi implement: dat_coc/da_giao sót lại trong mảng ORDER của isRollback, printing-mutations.ts). Công nợ lab Hồng Bảo lộ ra 7.916.400d/25 đơn sau fix (số mới nhất 2026-08-24: 8.151.400đ/26 đơn, total_paid=0 — chưa từng thanh toán qua record_lab_payment_atomic). ADR-014. User xác nhận trực tiếp nghiệp vụ: không có cọc Mood-Lab, giao khách thuộc contract_events, hoàn thành = Mood đã nhận hình từ lab. KHÔNG đụng payment_plans/payment_stage_key_v2 (đợt cọc khách trả Mood ở module Hợp đồng — khác domain, đúng, giữ nguyên)."
   - id: T-20260824-customer-search-contrast
     title: "Ô Tìm kiếm khách hàng ở form hợp đồng chìm trên nền trang (1.03:1) — thêm lớp SSOT input-elevated"
     status: merged

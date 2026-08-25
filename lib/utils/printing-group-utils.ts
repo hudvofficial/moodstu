@@ -1,5 +1,5 @@
 import type { PrintingOrderRow } from "@/types/printing";
-import { isPendingPrintStatus } from "@/types/printing-constants";
+import { isPendingPrintStatus, isPrintingOrderOverdue } from "@/types/printing-constants";
 
 // ═══════════════════════════════════════════
 // Printing Group Utils — Client-side grouping
@@ -59,8 +59,8 @@ export function groupOrdersByContract(
 
     const isPending = isPendingPrintStatus(order.status);
     
-    // Count overdue
-    if (isPending && order.expectedDate && new Date(order.expectedDate) < new Date()) {
+    // Count overdue (so theo ngày lịch local — ADR-015)
+    if (isPrintingOrderOverdue(order.status, order.expectedDate)) {
       group.overdueCount += 1;
     }
 

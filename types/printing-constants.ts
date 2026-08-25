@@ -65,7 +65,7 @@ export const PRINTING_STATUS_VARIANTS: Record<
   da_in: "primary",
   hoan_thanh: "success",
   huy_don: "error",
-  gap_su_co: "error",
+  gap_su_co: "warning",   // ADR-015: tách khỏi huy_don (đỏ) — sự cố còn xử lý tiếp được
   da_nhan: "success",     // Legacy
   da_huy: "error",        // Legacy
 };
@@ -151,5 +151,52 @@ export function toUIPaymentStatus(
   dbStatus: string | null | undefined,
 ): PrintingPaymentStatus {
   return dbStatus === "da_thanh_toan" ? "da_thanh_toan" : "chua_thanh_toan";
+}
+
+// ─── REASON-REQUIRED TRANSITIONS (Trục A) ──────────────────────
+// Nguồn chân lý DUY NHẤT cho "khi nào bắt buộc nhập lý do" — dùng chung server
+// (printing-mutations.ts) + 2 client call site (printing-list-page.tsx,
+// print-orders-block.tsx). Trước 2026-08-25, mỗi nơi tự định nghĩa riêng —
+// print-orders-block.tsx thiếu "huy_don", printing-list-page.tsx thiếu cả 2 —
+// khiến chọn "Hủy đơn"/"Gặp sự cố" từ dropdown luôn bị server từ chối (lệch
+// đúng lớp bug payment_status mà ADR-014 đã vá). ADR-015.
+export const PRINTING_REASON_REQUIRED_STATUSES: string[] = ["gap_su_co", "huy_don"];
+
+const PRINTING_STATUS_ORDER = ["cho_xu_ly", "dang_in", "da_in", "hoan_thanh"];
+
+/** True nếu `to` là bước LÙI so với `from` trong 4 bước tuyến tính Trục A. */
+export function isPrintingStatusRollback(
+  from: string | null | undefined,
+  to: string,
+): boolean {
+  const fromIndex = PRINTING_STATUS_ORDER.indexOf(from || "cho_xu_ly");
+  const toIndex = PRINTING_STATUS_ORDER.indexOf(to);
+  return fromIndex >= 0 && toIndex >= 0 && toIndex < fromIndex;
+}
+
+/** True nếu chuyển `from` → `to` bắt buộc phải có lý do (báo sự cố, hủy đơn, hoặc lùi bước). */
+export function printingStatusRequiresReason(
+  from: string | null | undefined,
+  to: string,
+): boolean {
+  return PRINTING_REASON_REQUIRED_STATUSES.includes(to) || isPrintingStatusRollback(from, to);
+}
+
+// ─── OVERDUE CHECK (Trục A) ─────────────────────────────────────
+/**
+ * True nếu đơn còn "pending" (isPendingPrintStatus) và đã quá `expectedDate`.
+ * So theo NGÀY lịch local (không theo giờ) — trước đây 3 nơi gọi tự parse
+ * `new Date(expectedDate)` (UTC vì chuỗi "YYYY-MM-DD" không có giờ) rồi so với
+ * `new Date()` (giờ máy khách) → lệch múi giờ VN (UTC+7) tới 7 tiếng quanh mốc
+ * đổi ngày: đơn hẹn ĐÚNG HÔM NAY bị báo "Quá hạn" từ 7h sáng thay vì 0h hôm sau.
+ * Phát hiện khi rà lại /printing 2026-08-25 (ADR-015).
+ */
+export function isPrintingOrderOverdue(
+  status: PrintingOrderStatus,
+  expectedDate: string | null,
+): boolean {
+  if (!isPendingPrintStatus(status) || !expectedDate) return false;
+  const todayLocal = new Date().toLocaleDateString("en-CA"); // "YYYY-MM-DD" theo giờ máy khách
+  return expectedDate.slice(0, 10) < todayLocal;
 }
 
