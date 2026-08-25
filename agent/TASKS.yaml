@@ -50,7 +50,7 @@ active:
       - components/printing/cancel-order-modal.tsx
       - components/printing/status-reason-modal.tsx (mới)
       - types/printing.ts
-      - supabase/migrations/20260825150000_printing_stats_revoke_anon.sql (mới — CHƯA áp, chờ user OK)
+      - supabase/migrations/20260825150000_printing_stats_revoke_anon.sql (mới — ĐÃ áp prod 2026-08-25)
       - tests/e2e/printing-drawer-fixes-verify.spec.ts (mới — regression 3 luồng)
     spec: agent/HANDOFFS/T-20260825-printing-drawer-fixes.spec.md
     verify:
@@ -61,7 +61,7 @@ active:
       - npm run verify:contracts
       - "PLAYWRIGHT_BASE_URL=http://127.0.0.1:3100 npx playwright test tests/e2e/printing-drawer-fixes-verify.spec.ts --project=chromium (next start prod)"
     depends_on: []
-    notes: "2026-08-25 VERIFY XANH (eslint 0 error/1 warning pre-existing, tsc 0, build exit 0, verify:contracts xanh, Playwright 3/3 trên next start prod :3100 với seed riêng đã dọn sạch — 0 dòng sót/7 bảng) — chờ user merge branch claude/printing-drawer-fixes → main + push. verify:printing ĐỎ vì nguyên nhân CÓ SẴN: migration ADR-014 DROP+CREATE printing_stats() mất REVOKE anon → đã soạn migration 20260825150000 (2 dòng REVOKE/GRANT), CHƯA áp — chờ user OK (đổi quyền DB prod). Lệch spec có lý do: ADR-015(b) dùng useMemo derive thay useEffect+setState vì lint react-hooks/set-state-in-effect là error trong repo; thêm setLabDebt(null) ở effect reset để số nợ đơn trước không lọt sang đơn mới. Chi tiết + AC từng mục: spec §13."
+    notes: "2026-08-25 VERIFY XANH (eslint 0 error/1 warning pre-existing, tsc 0, build exit 0, verify:contracts xanh, Playwright 3/3 trên next start prod :3100 với seed riêng đã dọn sạch — 0 dòng sót/7 bảng) — chờ user merge branch claude/printing-drawer-fixes → main + push. verify:printing lần 1 ĐỎ vì nguyên nhân CÓ SẴN: migration ADR-014 DROP+CREATE printing_stats() mất REVOKE anon → migration 20260825150000 (2 dòng REVOKE/GRANT) ĐÃ ÁP prod (user OK) → verify:printing XANH (anon denied 4/4, integrity 7/7=0). Lệch spec có lý do: ADR-015(b) dùng useMemo derive thay useEffect+setState vì lint react-hooks/set-state-in-effect là error trong repo; thêm setLabDebt(null) ở effect reset để số nợ đơn trước không lọt sang đơn mới. Chi tiết + AC từng mục: spec §13."
 
   - id: T-20260825-finance-nav-guard
     title: "finance/*: watchdog client tu sua lai URL khi bi day nham ve route cha (huong 3 sau khi 2 huong ngan nguyen nhan khong hieu qua)"
