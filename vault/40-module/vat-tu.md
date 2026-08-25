@@ -6,9 +6,13 @@ cap-nhat: 2026-08-07
 
 # Module Vật tư & thiết bị
 
-Kho vật tư (album phôi, khung, phụ kiện): nhập, xuất, bán kèm hợp đồng. Quyền: admin, manager.
+Kho vật tư — thực tế là **xương sống mảng thiệp cưới tự in** (ADR-016): Mood nhập phôi thiệp lô lớn (SKU = mẫu phôi `HD527/HD513/HD394`), tồn kho, tự in theo đơn khách, xuất theo đơn (bán lẻ `create_sale_receipt_atomic` hoặc "Bán thêm HĐ"). Không có tồn kho ảnh/album — thứ đó đi lab. Quyền: admin, manager.
 
-Quy mô: 3 vật tư, 9 giao dịch. `inventory_reservations` và `equipment` rỗng.
+Quy mô: 3 vật tư (đều là thiệp), 9 giao dịch. `inventory_reservations` và `equipment` rỗng.
+
+## Tiền (ADR-016)
+
+Nhập lô = **phải trả nhà cung cấp** (`inventory_items.supplier_id → vendors` `vendor_type='nha_cung_cap'`). Mood trả ngay khi nhập → `inventory_stock_in_atomic(p_paid=true, p_supplier_id, p_payment_method, p_paid_date)` tạo **phiếu chi** `payee_type='supplier'` + `expense_allocations(inventory_transaction)` trong cùng transaction (form nhập kho mặc định "Đã trả"). Giá vốn `stock_out.total_cost` vào lãi/lỗ (`contract_financials` khi xuất cho HĐ). Công nợ NCC: `finance_payable_summary()`.
 
 ## Route
 

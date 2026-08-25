@@ -24,16 +24,13 @@ Mỗi lần đổi trạng thái ghi vào `printing_order_status_history` (26 d�
 
 `create_printing_order_atomic` · `update_printing_order_atomic` · `delete_printing_order_atomic` · `record_lab_payment_atomic` · `upsert_printing_expense` · `resolve_printing_expense_category_id` · `printing_integrity_report` · `printing_items_total` · `printing_lab_overview` · `printing_stats`
 
-## ⚠️ `printing-workflow-mutations.ts` là action chạm nhiều bảng nhất
+## Tiền (ADR-014 + ADR-016, 2026-08-24/25)
 
-Nó viết vào: `printing_orders`, `receipts`, `order_payments`, `inventory_reservations`, `inventory_transactions`, `inventory_items`, `expenses` — tức **in ấn kéo theo cả kho lẫn tài chính**.
-
-Đây cũng là file dùng `revalidatePath` nhiều thứ hai (18 lần). Sửa nó = chạm 3 module. Đọc [[bang-doc-ghi]] trước.
+In ấn là Mood ⇄ Lab thuần tuý: **không cọc, không kho, không giao khách ở đơn in** (ADR-014). Chi phí lab là **cam kết** = `printing_orders.total_amount` ngay khi tạo đơn — **không còn phiếu chi trích trước** (`upsert_printing_expense` đã bỏ; `create/update/delete_printing_order_atomic` không chạm `expenses`).
 
 ## Công nợ lab
 
-`lab_payments` + `lab_payment_allocations` (phân bổ tiền trả cho từng đơn). Tổng hợp bằng `finance_lab_debt_summary`.
-Hai bảng này **RLS bật, 0 policy** → chỉ chạm được qua server action. Đúng chủ đích.
+Trả lab = **phiếu chi thật**: `record_lab_payment_atomic` (wrapper giữ chữ ký cũ, thêm `p_payment_date`) → `record_payee_payment_atomic('lab')` → `expenses` (`payee_type='lab'`) + `expense_allocations(printing_order)`. `printing_orders.payment_status` **dẫn xuất** từ phân bổ (`recompute_printing_payment_status`), không ghi tay. Tổng hợp: `finance_payable_summary()` (wrapper `finance_lab_debt_summary` giữ RETURNS cũ). `lab_payments`/`lab_payment_allocations` giờ là **VIEW** trên `expenses` — không embed FK được (`printing_orders!inner(...)` phải tách query). Xoá đơn đã có phiếu chi → RPC chặn.
 
 ## Bảng
 

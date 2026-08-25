@@ -305,33 +305,8 @@ export async function toggleTaskStatus(taskId: string, newStatus: TaskStatus, ev
       .eq("contract_id", task.contract_id as string);
     if (error) throw new Error(`Lỗi cập nhật status: ${error.message}`);
 
-    // Auto-create/update vendor expense if task is assigned to vendor
-    // (follows printing expense pattern - expense recognized on task completion)
-    const { data: taskData } = await supabase
-      .from("work_tasks")
-      .select("vendor_id, cost")
-      .eq("id", taskId)
-      .single();
-
-    if (taskData?.vendor_id) {
-      // Call upsert_vendor_expense RPC
-      // This handles: create expense on completion, delete on status reversal, update on cost change
-      const { error: expenseError } = await supabase.rpc("upsert_vendor_expense", {
-        p_work_task_id: taskId,
-        p_actor_id: userId,
-      });
-
-      // Graceful error handling - don't fail entire operation if expense creation fails
-      if (expenseError) {
-        console.error(`Failed to upsert vendor expense for task ${taskId}:`, expenseError);
-        fireAuditLog({
-          action: "FAIL",
-          tableName: "expenses",
-          recordId: taskId,
-          description: `Failed to auto-create vendor expense: ${expenseError.message}`,
-        });
-      }
-    }
+    // ADR-016: chi phí thợ ngoài là CAM KẾT (work_tasks.cost, tính khi hoàn thành) —
+    // phiếu chi chỉ tạo khi trả tiền thật (record_payee_payment_atomic). Không trích trước.
 
     fireAuditLog({ action: "UPDATE", tableName: "work_tasks", recordId: taskId, description: `Task status → ${newStatus}` });
     await checkAndCompleteEvent(supabase, task.event_id as string);

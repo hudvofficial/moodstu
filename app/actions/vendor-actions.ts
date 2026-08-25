@@ -44,11 +44,28 @@ export async function getActiveVendors() {
       .from("vendors")
       .select("id, full_name, phone, service_type, status")
       .eq("status", "active")
+      .eq("vendor_type", "tho_ngoai") // ADR-016: vendors giờ gồm cả nhà cung cấp phôi — picker giao việc chỉ lấy thợ ngoài
       .is("deleted_at", null)
       .order("full_name");
 
     if (error) throw new Error(`Lỗi tải danh sách thợ ngoài: ${error.message}`);
     return (data || []) as Vendor[];
+  });
+}
+
+/** ADR-016: nhà cung cấp phôi/vật tư (vendors.vendor_type = 'nha_cung_cap') cho form nhập kho. */
+export async function getSupplierOptions() {
+  return withAuthRead(async (supabase: SupabaseClient<Database>) => {
+    const { data, error } = await supabase
+      .from("vendors")
+      .select("id, full_name")
+      .eq("status", "active")
+      .eq("vendor_type", "nha_cung_cap")
+      .is("deleted_at", null)
+      .order("full_name");
+
+    if (error) throw new Error(`Lỗi tải nhà cung cấp: ${error.message}`);
+    return (data || []) as { id: string; full_name: string }[];
   });
 }
 
@@ -116,6 +133,7 @@ export async function getAllVendors() {
     const { data, error } = await supabase
       .from("vendors")
       .select("id, full_name, phone, service_type, status, created_at, updated_at")
+      .eq("vendor_type", "tho_ngoai") // ADR-016: trang quản lý thợ ngoài không hiện nhà cung cấp phôi
       .is("deleted_at", null)
       .order("full_name");
 
@@ -249,11 +267,12 @@ export async function mergeVendors(input: z.infer<typeof mergeVendorsSchema>) {
       .eq("vendor_id", mergeVendorId);
     if (taskErr) throw new Error(`Lỗi chuyển task: ${taskErr.message}`);
 
-    // 2. Reassign vendor_payments
+    // 2. Reassign phiếu chi trả thợ (ADR-016: vendor_payments là view trên expenses)
     const { error: payErr } = await supabase
-      .from("vendor_payments")
-      .update({ vendor_id: keepVendorId })
-      .eq("vendor_id", mergeVendorId);
+      .from("expenses")
+      .update({ payee_id: keepVendorId, updated_at: new Date().toISOString() })
+      .eq("payee_type", "vendor")
+      .eq("payee_id", mergeVendorId);
     if (payErr) throw new Error(`Lỗi chuyển thanh toán: ${payErr.message}`);
 
     // 3. Soft-delete the merged vendor

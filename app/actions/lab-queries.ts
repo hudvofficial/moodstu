@@ -269,6 +269,7 @@ export async function fetchLabUnpaidOrders(
     // 3. Build allocation map (order_id → total_allocated)
     const allocationMap = new Map<string, number>();
     (allocations || []).forEach(a => {
+      if (!a.printing_order_id) return; // view trên expense_allocations: cột nullable theo generator
       const current = allocationMap.get(a.printing_order_id) || 0;
       allocationMap.set(a.printing_order_id, current + Number(a.amount || 0));
     });
@@ -317,17 +318,26 @@ export async function fetchLabPaymentHistory(
     const to = from + pageSize - 1;
 
     // 1. Fetch payments for this lab with pagination
-    const { data: payments, error: paymentsError, count } = await supabase
+    // ADR-016: lab_payments giờ là VIEW trên expenses (payee_type='lab', đã lọc deleted_at).
+    // Sắp theo expense_date = ngày trả thật (trước đây created_at = ngày nhập).
+    const { data: rawPayments, error: paymentsError, count } = await supabase
       .from("lab_payments")
       .select("*", { count: "exact" })
       .eq("lab_id", labId)
-      .is("deleted_at", null)
+      .order("expense_date", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
     if (paymentsError) {
       throw new Error(`Cannot fetch payment history: ${paymentsError.message}`);
     }
+
+    // View → generator khai mọi cột nullable; chuẩn hoá về non-null cho LabPaymentHistoryItem
+    const payments = (rawPayments || []).flatMap((p) =>
+      p.id
+        ? [{ ...p, id: p.id, created_at: p.created_at ?? "", expense_date: p.expense_date ?? p.created_at ?? "" }]
+        : [],
+    );
 
     if (!payments || payments.length === 0) {
       return {
@@ -340,27 +350,38 @@ export async function fetchLabPaymentHistory(
 
     // 2. Fetch allocations for these payments
     const paymentIds = payments.map(p => p.id);
+    // View không có FK → không embed printing_orders được; tra mã đơn bằng query thứ 2.
     const { data: allocations, error: allocError } = await supabase
       .from("lab_payment_allocations")
-      .select(`
-        payment_id,
-        printing_order_id,
-        amount,
-        printing_orders!inner(order_code)
-      `)
+      .select("payment_id, printing_order_id, amount")
       .in("payment_id", paymentIds);
 
     if (allocError) {
       throw new Error(`Cannot fetch allocations: ${allocError.message}`);
     }
 
+    const orderIds = Array.from(
+      new Set((allocations || []).map((a) => a.printing_order_id).filter((x): x is string => !!x)),
+    );
+    const orderCodeById = new Map<string, string>();
+    if (orderIds.length > 0) {
+      const { data: orderRows, error: orderError } = await supabase
+        .from("printing_orders")
+        .select("id, order_code")
+        .in("id", orderIds);
+      if (orderError) {
+        throw new Error(`Cannot fetch order codes: ${orderError.message}`);
+      }
+      (orderRows || []).forEach((o) => orderCodeById.set(o.id, o.order_code || "-"));
+    }
+
     // 3. Group allocations by payment_id
     const allocationsByPayment = new Map<string, LabPaymentAllocation[]>();
     (allocations || []).forEach(a => {
-      const order = getFirstRelation(a.printing_orders) as any;
+      if (!a.payment_id || !a.printing_order_id) return;
       const allocation: LabPaymentAllocation = {
         orderId: a.printing_order_id,
-        orderCode: (order?.order_code as string) || "-",
+        orderCode: orderCodeById.get(a.printing_order_id) || "-",
         amount: Number(a.amount || 0),
       };
 
@@ -372,7 +393,7 @@ export async function fetchLabPaymentHistory(
     // 4. Map to result items
     const items: LabPaymentHistoryItem[] = payments.map(payment => ({
       id: payment.id,
-      paymentDate: payment.created_at,
+      paymentDate: payment.expense_date || payment.created_at,
       amount: Number(payment.amount || 0),
       paymentMethod: payment.payment_method as any,
       note: payment.note || null,

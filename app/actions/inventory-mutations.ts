@@ -85,10 +85,13 @@ export async function createInventoryItem(rawData: unknown) {
               p_item_id: created.id,
               p_quantity: data.initial_stock,
               p_unit_cost: initialUnitCost,
-              p_supplier: normalizeOptionalText(data.supplier) ?? undefined,
+              // 3 tham số text KHÔNG có DEFAULT → generator khai bắt buộc, Postgres vẫn nhận NULL
+              p_supplier: (normalizeOptionalText(data.supplier) ?? null) as string,
               p_reason: "Nhập kho ban đầu",
-              p_notes: normalizeOptionalText(data.notes) ?? undefined,
+              p_notes: (normalizeOptionalText(data.notes) ?? null) as string,
               p_user_id: userId,
+              // Khai báo vật tư mới: tồn ban đầu là số dư kê khai, không phải lô mua mới → không tạo phiếu chi
+              p_paid: false,
             },
           );
 
@@ -281,15 +284,21 @@ export async function stockIn(rawData: unknown) {
   }
 
   return withInventoryAccess(async (supabase: SupabaseClient<Database>, userId) => {
-    const { itemId, quantity, unitCost, supplier, reason, notes } = parsed.data;
+    const { itemId, quantity, unitCost, supplier, reason, notes, supplierId, paid, paymentMethod, paidDate } = parsed.data;
     const { data, error } = await supabase.rpc("inventory_stock_in_atomic", {
       p_item_id: itemId,
       p_quantity: quantity,
       p_unit_cost: unitCost,
-      p_supplier: supplier?.trim() || undefined,
-      p_reason: reason?.trim() || undefined,
-      p_notes: notes?.trim() || undefined,
+      // 3 tham số text KHÔNG có DEFAULT → generator khai bắt buộc, Postgres vẫn nhận NULL
+      p_supplier: (supplier?.trim() || null) as string,
+      p_reason: (reason?.trim() || null) as string,
+      p_notes: (notes?.trim() || null) as string,
       p_user_id: userId,
+      // ADR-016: phôi trả ngay → phiếu chi payee=supplier + phân bổ vào lô nhập
+      p_supplier_id: supplierId ?? undefined,
+      p_paid: paid,
+      p_payment_method: paymentMethod,
+      p_paid_date: paidDate ?? undefined,
     });
 
     if (error && isMissingRpcError(error)) {
@@ -310,7 +319,11 @@ export async function stockIn(rawData: unknown) {
 
     revalidatePath("/inventory");
     revalidatePath(`/inventory/${itemId}`);
-    return data as { current_stock?: number };
+    if (paid) {
+      revalidatePath("/finance");
+      revalidatePath("/finance/expenses");
+    }
+    return data as { current_stock?: number; expense_id?: string | null };
   });
 }
 

@@ -27,7 +27,7 @@ import { INVENTORY_PAGE_SIZE, TRANSACTION_PAGE_SIZE } from "@/types/inventory-co
 const ITEM_SELECT = `
   id, item_code, name, category, unit,
   current_stock, min_stock, purchase_price, average_unit_price, sale_price,
-  supplier, image_url, status, notes,
+  supplier, supplier_id, image_url, status, notes,
   created_by, updated_by, created_at, updated_at, deleted_at
 `;
 

@@ -35,6 +35,9 @@ export const createExpenseSchema = z.object({
   recipient: z.string().optional().nullable(),
   contract_id: z.string().uuid().optional().nullable(),
   image_url: z.string().url().optional().nullable(),
+  // ADR-016: 'other' = chi trực tiếp (không phân bổ); lab/vendor/supplier/employee = trả nợ đối tác
+  payee_type: z.enum(["lab", "vendor", "supplier", "employee", "other"]).default("other"),
+  payee_id: z.string().uuid().optional().nullable(),
 });
 
 export const updateExpenseSchema = createExpenseSchema.partial();

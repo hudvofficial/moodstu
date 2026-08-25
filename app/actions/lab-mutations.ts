@@ -317,6 +317,9 @@ export async function recordLabPayment(
       // nhưng Postgres vẫn nhận NULL. Ép kiểu để giữ nguyên hành vi cũ.
       p_note: parsed.data.note as string,
       p_payment_method: parsed.data.payment_method,
+      // ADR-016: ngày trả do người dùng nhập; RPC giờ là wrapper của record_payee_payment_atomic
+      // → tạo phiếu chi thật (expenses payee_type='lab') + expense_allocations.
+      p_payment_date: parsed.data.payment_date ?? undefined,
     });
 
     if (error) {
@@ -325,8 +328,8 @@ export async function recordLabPayment(
 
     fireAuditLog({
       action: "CREATE",
-      tableName: "lab_payments",
-      description: `Ghi nhan thanh toan lab ${parsed.data.amount}`,
+      tableName: "expenses",
+      description: `Phieu chi tra lab ${parsed.data.amount}`,
       newData: parsed.data as Record<string, unknown>,
       source: "server_action",
     });

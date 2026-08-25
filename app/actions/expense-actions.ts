@@ -22,6 +22,9 @@ export interface CreateExpenseInput {
   recipient?: string | null;
   contract_id?: string | null;
   image_url?: string | null;
+  /** ADR-016: mặc định 'other' = chi trực tiếp; trả đối tác đi qua record_payee_payment_atomic */
+  payee_type?: "lab" | "vendor" | "supplier" | "employee" | "other";
+  payee_id?: string | null;
 }
 
 
@@ -201,6 +204,16 @@ export async function deleteExpense(id: string) {
 
     if (error) throw new Error(`Lỗi xoá phiếu chi: ${error.message}`);
     if (!updated || updated.length === 0) throw new Error("Không thể xóa: phiếu chi không tồn tại, đã xóa, hoặc đã được duyệt.");
+
+    // ADR-016: phiếu chi có phân bổ vào đơn in → trạng thái thanh toán đơn dẫn xuất lại
+    const { data: allocs } = await supabase
+      .from("expense_allocations")
+      .select("target_id")
+      .eq("expense_id", id)
+      .eq("target_type", "printing_order");
+    for (const a of allocs || []) {
+      await supabase.rpc("recompute_printing_payment_status", { p_order_id: a.target_id });
+    }
 
     // 3. Audit
     await writeAuditLog({

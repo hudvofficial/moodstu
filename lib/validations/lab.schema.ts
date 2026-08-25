@@ -48,6 +48,12 @@ export const labPaymentSchema = z.object({
   lab_id: z.string().uuid("Lab khong hop le"),
   amount: z.number().positive("So tien thanh toan phai lon hon 0"),
   payment_method: labPaymentMethodSchema.default("transfer"),
+  // ADR-016 luật ngày: ngày trả nhập trên phiếu. Trước đây modal gửi payment_date nhưng
+  // schema không khai → zod strip → 22/26 lần trả lab bị ghi ngày nhập (25/08).
+  payment_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Ngay thanh toan khong hop le")
+    .optional(),
   note: optionalText,
   allocations: z
     .array(

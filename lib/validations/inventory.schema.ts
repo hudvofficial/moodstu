@@ -109,6 +109,11 @@ export const stockInSchema = z.object({
   supplier: z.string().max(200).optional(),
   reason: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
+  // ADR-016: nhập phôi mặc định "đã trả" → RPC tạo phiếu chi cho nhà cung cấp trong cùng transaction
+  supplierId: z.string().uuid("Nhà cung cấp không hợp lệ").optional(),
+  paid: z.boolean().default(true),
+  paymentMethod: z.enum(["tien_mat", "chuyen_khoan"]).default("chuyen_khoan"),
+  paidDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày trả không hợp lệ").optional(),
 });
 
 export type StockInInput = z.infer<typeof stockInSchema>;

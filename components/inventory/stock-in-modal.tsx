@@ -14,11 +14,25 @@ import { ComboboxSearch } from "@/components/ui/combobox-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SelectForm } from "@/components/ui/select/SelectForm";
+import DatePicker from "@/components/ui/date-picker";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useDebounce } from "@/hooks/use-debounce";
-import { invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
+import { invalidateFinanceAfterWrite, invalidateInventoryAfterWrite } from "@/lib/cache-invalidation";
 import { stockIn } from "@/app/actions/inventory-mutations";
 import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
+import { getSupplierOptions } from "@/app/actions/vendor-actions";
 import type { InventoryItem } from "@/types/inventory";
+
+const KEEP_ITEM_SUPPLIER = "__item__";
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "chuyen_khoan", label: "Chuyển khoản" },
+  { value: "tien_mat", label: "Tiền mặt" },
+];
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface StockInModalProps {
   isOpen: boolean;
@@ -38,6 +52,12 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  // ADR-016: phôi nhập về trả ngay (user chốt 25/08) → mặc định "Đã trả", RPC tạo phiếu chi cho NCC
+  const [supplierId, setSupplierId] = useState<string>(KEEP_ITEM_SUPPLIER);
+  const [supplierOptions, setSupplierOptions] = useState<{ id: string; full_name: string }[]>([]);
+  const [paid, setPaid] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("chuyen_khoan");
+  const [paidDate, setPaidDate] = useState(todayIso());
   const [pickerItems, setPickerItems] = useState<InventoryItem[]>(items || []);
   const [pickerSearch, setPickerSearch] = useState("");
   const debouncedPickerSearch = useDebounce(pickerSearch, 300);
@@ -54,7 +74,25 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
     setError("");
     setPickedItem(null);
     setPickerSearch("");
+    setSupplierId(KEEP_ITEM_SUPPLIER);
+    setPaid(true);
+    setPaymentMethod("chuyen_khoan");
+    setPaidDate(todayIso());
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getSupplierOptions()
+      .then((result) => {
+        if (cancelled) return;
+        if (result && "success" in result && result.success) setSupplierOptions(result.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const handleClose = () => {
     resetForm();
@@ -88,6 +126,10 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
       return;
     }
     if (!isQuantityValid) { setError("Số lượng phải ≥ 1"); return; }
+    if (paid && quantity * unitCost > 0 && supplierId === KEEP_ITEM_SUPPLIER && !activeItem.supplier_id) {
+      setError("Đã trả tiền thì cần chọn nhà cung cấp để ghi phiếu chi");
+      return;
+    }
 
     setError("");
     startTransition(async () => {
@@ -98,11 +140,20 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
         supplier: supplier.trim() || undefined,
         reason: reason.trim() || undefined,
         notes: notes.trim() || undefined,
+        supplierId: supplierId === KEEP_ITEM_SUPPLIER ? undefined : supplierId,
+        paid,
+        paymentMethod: paymentMethod as "tien_mat" | "chuyen_khoan",
+        paidDate: paid ? paidDate : undefined,
       });
 
       if (result && "success" in result && result.success) {
-        toast.success(`Đã nhập ${quantity} ${activeItem.name} vào kho`);
+        toast.success(
+          paid && quantity * unitCost > 0
+            ? `Đã nhập ${quantity} ${activeItem.name} vào kho và ghi phiếu chi ${(quantity * unitCost).toLocaleString("vi-VN")}đ`
+            : `Đã nhập ${quantity} ${activeItem.name} vào kho`,
+        );
         await invalidateInventoryAfterWrite(activeItem.id);
+        if (paid) await invalidateFinanceAfterWrite();
         handleClose();
       } else {
         setError(
@@ -181,12 +232,50 @@ export function StockInModal({ isOpen, onClose, item, items }: StockInModalProps
         </div>
 
         <div>
-          <label className="label-base">Nhà cung cấp</label>
+          <SelectForm
+            label="Nhà cung cấp (đối tác)"
+            value={supplierId}
+            onChange={setSupplierId}
+            options={[
+              { value: KEEP_ITEM_SUPPLIER, label: activeItem.supplier_id ? "Giữ nhà cung cấp hiện tại của vật tư" : "-- Chưa gắn nhà cung cấp --" },
+              ...supplierOptions.map((s) => ({ value: s.id, label: s.full_name })),
+            ]}
+            placeholder="Chọn nhà cung cấp"
+          />
+        </div>
+
+        <div>
+          <label className="label-base">Ghi chú nhà cung cấp (tên trên hoá đơn)</label>
           <Input
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
-            placeholder="VD: Công ty ABC"
+            placeholder="VD: Xưởng thiệp cưới HD"
           />
+        </div>
+
+        {/* ADR-016: tiền phôi rời két lúc nhập → phiếu chi tạo cùng transaction */}
+        <div className="rounded-lg border border-border p-3 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-text-main cursor-pointer">
+            <Checkbox checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+            Đã trả tiền nhà cung cấp — tự ghi phiếu chi {quantity > 0 && unitCost > 0 ? `${(quantity * unitCost).toLocaleString("vi-VN")}đ` : ""}
+          </label>
+          {paid && (
+            <div className="form-grid-2col">
+              <SelectForm
+                label="Phương thức"
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                options={PAYMENT_METHOD_OPTIONS}
+              />
+              <DatePicker
+                label="Ngày trả"
+                value={paidDate}
+                onChange={setPaidDate}
+                required
+                placeholder="Chọn ngày trả"
+              />
+            </div>
+          )}
         </div>
 
         <div>

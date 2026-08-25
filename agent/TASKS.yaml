@@ -32,11 +32,11 @@ updated: 2026-08-25
 active:
   - id: T-20260825-cashflow-m1-so-tien-ra
     title: "Dòng tiền M1 (ADR-016): phiếu chi = tiền thật, expense_allocations, bỏ trích trước lab/thợ, 1 hàm lợi nhuận contract_financials, công nợ hợp nhất, nhập phôi tạo phiếu chi"
-    status: spec
-    owner: claude
-    branch: TBD (chờ user gật)
+    status: ci
+    owner: claude (fallback)
+    branch: claude/cashflow-m1
     locks:
-      - supabase/migrations/20260825200000_cashflow_m1_expense_allocations.sql (mới)
+      - supabase/migrations/20260825200000_cashflow_m1_expense_allocations.sql (mới — ĐÃ ÁP prod 2026-08-26, đối soát khớp)
       - types/database.types.ts (sinh lại)
       - lib/validations/lab.schema.ts
       - lib/validations/finance.schema.ts
@@ -64,7 +64,7 @@ active:
       - "Playwright tests/e2e/cashflow-m1.spec.ts 5/5 (next start) + render 6 màn"
       - "after: payable lab 1.905.000 / vendor 0 / supplier 0; profit 59/60 khớp, HĐ-2026-0064 −1.350.000; da_thanh_toan count không đổi"
     depends_on: []
-    notes: "ADR-016 Accepted 25/08 (user uỷ quyền đường đi dữ liệu). Chạm dữ liệu tài chính lịch sử: 26 lab_payments + 5 vendor_payments + 4 lô phôi → 35 phiếu chi thật; xoá mềm 43 phiếu chi trích trước; 4 bảng cũ → _legacy + view tương thích để app đọc không đổi; 3 RPC đơn in bỏ upsert_printing_expense; trigger vendor bỏ; contract_financials() thay 4 bản sao công thức; finance_payable_summary() + 2 wrapper giữ chữ ký cũ. Luật ngày: labPaymentSchema thêm payment_date (bug có sẵn: modal có ô ngày nhưng schema bỏ rơi → 22/26 lần trả ghi 25/08). Lock KHÔNG giao với T-20260825-printing-cancel-inventory-deadcode (spec đó chạm printing-mutations/cancel-modal/detail-drawer/types/printing.ts)."
+    notes: "2026-08-26 VERIFY XANH: migration ĐÃ ÁP prod, đối soát khớp 100% (35 phiếu chi thật, 43 trích trước xoá mềm, lab còn 1.905.000, vendor/supplier 0, da_thanh_toan 26=26, profit 61/62 khớp + HĐ-2026-0064 −1.350.000 đúng dự đoán, integrity 4/4=0); tsc 0, eslint 0, build 0, verify:printing/contracts/inventory 3/3, Playwright cashflow-m1 4/4 trên next start :3100, seed dọn sạch — CHỜ USER MERGE branch → main + push (nên sớm: DB đã mô hình mới, app prod cũ chỉ vỡ 'huỷ thanh toán thợ'). Chi tiết + 5 sửa ngoài spec: spec §6. ADR-016 Accepted 25/08 (user uỷ quyền đường đi dữ liệu). Chạm dữ liệu tài chính lịch sử: 26 lab_payments + 5 vendor_payments + 4 lô phôi → 35 phiếu chi thật; xoá mềm 43 phiếu chi trích trước; 4 bảng cũ → _legacy + view tương thích để app đọc không đổi; 3 RPC đơn in bỏ upsert_printing_expense; trigger vendor bỏ; contract_financials() thay 4 bản sao công thức; finance_payable_summary() + 2 wrapper giữ chữ ký cũ. Luật ngày: labPaymentSchema thêm payment_date (bug có sẵn: modal có ô ngày nhưng schema bỏ rơi → 22/26 lần trả ghi 25/08). Lock KHÔNG giao với T-20260825-printing-cancel-inventory-deadcode (spec đó chạm printing-mutations/cancel-modal/detail-drawer/types/printing.ts)."
 
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"

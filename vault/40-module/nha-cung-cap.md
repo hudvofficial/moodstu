@@ -10,11 +10,13 @@ Thuê ngoài (CTV/đối tác) làm việc trong hợp đồng → sinh chi phí
 
 Quy mô: 8 vendor, 1 lần thanh toán.
 
-## Cơ chế
+## Cơ chế (ADR-016, 2026-08-25)
 
-`work_tasks` giao cho vendor → **`upsert_vendor_expense`** sinh/ cập nhật dòng `expenses` (chi phí trích trước).
-Thanh toán: `record_vendor_payment_atomic` → `vendor_payments` + `vendor_payment_allocations` (phân bổ cho từng task).
-Tổng hợp công nợ: `finance_vendor_debt_summary`.
+`vendors` = **đối tác ngoài** với `vendor_type`: `tho_ngoai` (giao việc qua `work_tasks`) · `nha_cung_cap` (phôi/vật tư, `inventory_items.supplier_id`). Picker giao việc (`getActiveVendors`) chỉ lấy `tho_ngoai`; form nhập kho (`getSupplierOptions`) chỉ lấy `nha_cung_cap`.
+
+Chi phí thợ ngoài = **cam kết** `work_tasks.cost`, tính khi `hoan_thanh`. **Không còn `upsert_vendor_expense`/trigger trích trước.**
+Thanh toán = phiếu chi thật: `record_vendor_payment_atomic` (wrapper giữ chữ ký) → `record_payee_payment_atomic('vendor')` → `expenses` (`payee_type='vendor'`) + `expense_allocations(work_task)`. Huỷ thanh toán = xoá mềm `expenses`. `vendor_payments`/`vendor_payment_allocations` là **VIEW**.
+Tổng hợp công nợ: `finance_payable_summary()` (wrapper `finance_vendor_debt_summary` giữ RETURNS cũ).
 
 ## ⚠️ Sự cố đã xảy ra — đọc trước khi đụng
 

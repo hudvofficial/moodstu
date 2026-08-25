@@ -49,12 +49,17 @@ Kiểm tra 2026-06-10 cho thấy cơ chế chống ghi đè **đã tồn tại**
 
 Chống double-submit: mọi form finance đã `disabled={saving}` + đóng modal ngay.
 
+## Phiếu chi = tiền thật (ADR-016, 2026-08-25)
+
+`expenses` **chỉ** ghi khi tiền rời két — không còn dòng "trích trước" cho lab/thợ ngoài. Cột mới: `payee_type` (`lab`·`vendor`·`supplier`·`employee`·`other`), `payee_id`; bảng mới **`expense_allocations`** phân bổ phiếu chi vào đơn in / task / lô nhập / kỳ lương. `payee_type='other'` = chi trực tiếp (vào lợi nhuận); có phân bổ = trả nợ (không phải chi phí mới). Trả đối tác đi qua **một** RPC `record_payee_payment_atomic` (wrapper `record_lab_payment_atomic`/`record_vendor_payment_atomic` giữ chữ ký cũ). Công nợ phải trả hợp nhất: `finance_payable_summary()`. Lợi nhuận HĐ: `contract_financials(uuid[])` — nguồn duy nhất. Ngày ghi sổ theo ngày nhập trên phiếu, không theo `updated_at`. Chi tiết: [[luong-tien]].
+
 ## Bảng
 
 [[luoc-do-tai-chinh]] — 17 bảng. Đáng nhớ:
 
 - `payments` + `payment_plans` + `payment_plan_allocations` — thanh toán hợp đồng
-- `receipts` (phiếu thu) · `expenses` (phiếu chi)
+- `receipts` (phiếu thu) · `expenses` (phiếu chi, tiền thật) · `expense_allocations` (phân bổ)
+- `lab_payments`, `lab_payment_allocations`, `vendor_payments`, `vendor_payment_allocations` — **VIEW** trên `expenses` (bảng gốc `_legacy`, drop ở M2)
 - `debts` · `credit_cards` · `fixed_costs`
 - `financial_goals` + `goal_contributions` · `budgets`
 - `finance_monthly_closes` + `finance_close_tasks`

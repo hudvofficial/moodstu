@@ -186,14 +186,25 @@ export async function payEmployeeSalaryAction(salaryId: string, amount: number, 
 
     if (updateError) throw updateError;
 
-    // Tự động tạo Phiếu chi (Auto-Expense)
+    // Phiếu chi lương = tiền thật rời két (đúng ADR-016). Gắn payee để vào sổ công nợ/hợp nhất;
+    // phân bổ vào employee_salaries (expense_allocations) → M5.
     const employeeName = salaryRecord.employees?.full_name || "Nhân viên";
+    const { data: salaryCategory } = await supabase
+      .from("transaction_categories")
+      .select("id")
+      .eq("type", "chi")
+      .eq("name", "Chi lương nhân viên")
+      .maybeSingle();
     const { error: expenseError } = await supabase.from("expenses").insert({
       expense_date: new Date().toISOString().split("T")[0],
       amount: amount,
       payment_method: paymentMethod,
       recipient: employeeName,
       description: `[Auto-Salary] Thanh toán lương tháng ${salaryRecord.month}/${salaryRecord.year} - ${employeeName}`,
+      payee_type: "employee",
+      payee_id: salaryRecord.employee_id,
+      category_id: salaryCategory?.id ?? null,
+      approved_by: userId,
       created_by: userId
     });
 

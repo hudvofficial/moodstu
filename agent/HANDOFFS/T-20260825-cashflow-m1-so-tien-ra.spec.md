@@ -1,6 +1,6 @@
 # T-20260825-cashflow-m1-so-tien-ra — M1: Sổ tiền ra — phiếu chi = tiền thật, `expense_allocations`, bỏ trích trước, một hàm lợi nhuận
 
-**Owner:** claude (spec) · **Trạng thái:** spec, chờ user gật để implement (Claude fallback — Codex CLI vẫn 404) · **ADR:** ADR-016 (Accepted) · **Thiết kế:** `docs/design/dong-tien-mood-v2.md` (bản 2 + §3.1b luật ngày)
+**Owner:** claude (fallback — user: "nếu được cover rồi thì cho phép bạn Làm đi") · **Trạng thái:** đã implement + migration ĐÃ ÁP prod (26/08) + verify xanh, branch `claude/cashflow-m1`, **chờ user merge → main + push** · **ADR:** ADR-016 (Accepted) · **Thiết kế:** `docs/design/dong-tien-mood-v2.md` (bản 2 + §3.1b luật ngày) · **Kết quả:** §6 cuối file
 **Module:** tai-chinh (chính) · in-an-lab · nha-cung-cap · vat-tu · hop-dong (RPC) — **verify: multi-module**.
 
 **Locks:**
@@ -455,3 +455,36 @@ Cuối migration: `SELECT public.recompute_printing_payment_status(id) FROM publ
 
 ## 5. Ngoài phạm vi (M2+)
 Dashboard 3 số + lãi/lỗ tháng theo luật ngày (M2); màn công nợ hợp nhất 1 trang (M2); drop bảng `_legacy` + view (M2 sau prod verify); ô ngày cho giao dịch kho (M3); phân bổ phiếu chi lương → `employee_salaries` (M5); `receipts` category chuẩn hoá (M4).
+
+## 6. Kết quả thực thi (Claude fallback, 2026-08-26, branch `claude/cashflow-m1`)
+
+**Migration `20260825200000_cashflow_m1_expense_allocations.sql` ĐÃ ÁP production** qua `migrate-direct.mjs` (1 transaction, pre-check 6 số + DO-block đối soát bên trong). **Đối soát sau áp — khớp 100% dự đoán §0:**
+
+| Kiểm | Trước | Sau |
+|---|---|---|
+| `expenses` active | 43 dòng · 21.691.400 (toàn trích trước) | lab 26 · 7.936.400 + vendor 5 · 11.850.000 + supplier 4 · 2.880.000 = **35 phiếu chi thật**; 43 trích trước xoá mềm (mô tả gắn `[ADR-016…]`) |
+| `expense_allocations` | — | printing_order 26 · 7.936.400 · work_task 10 · 11.850.000 · inventory_transaction 4 · 2.880.000 |
+| `finance_payable_summary()` | — | lab Hồng Bảo committed 9.841.400 / paid 7.936.400 / **remaining 1.905.000**; vendor **0 dòng**; supplier **0 dòng** |
+| `printing_orders` `da_thanh_toan` | 26 | **26** (dẫn xuất lại từ phân bổ, không đổi) |
+| `printing_integrity_report()` | 7 check cũ | **4 check mới = 0** |
+| `finance_contract_profit_report` 62 HĐ | — | **61/62 khớp**, đúng 1 lệch: HĐ-2026-0064 1.900.000 → 550.000 (−1.350.000, task thợ `dang_lam` giờ là cam kết — ADR-016 §3) |
+| `get_contract_list_v2` | HĐ-2026-0064 profit 1.900.000 | 550.000 (cùng nguồn `contract_financials`) |
+| Hàm trích trước | `upsert_printing_expense`, `upsert_vendor_expense`, `trg_sync_vendor_expense` | **đã drop**; `lab_payments`/`lab_payment_allocations`/`vendor_payments`/`vendor_payment_allocations` = VIEW, bảng gốc `_legacy` |
+| NCC phôi | 3 chuỗi text | 1 `vendors` "Xưởng thiệp cưới HD" (`nha_cung_cap`), `inventory_items.supplier_id` gắn 3/3 SKU |
+
+**Sửa thêm ngoài spec, phát hiện khi implement (ghi rõ để review):**
+1. `record_payee_payment_atomic` tự parse `p_allocations` khi nhận jsonb kiểu **string** — `recordVendorPayment` (app) đang `JSON.stringify` mảng trước khi gửi → RPC cũ coi là "không có phân bổ" → **phân bổ thủ công của thợ ngoài trước đây âm thầm thành FIFO** (bug có sẵn). Test (c) gửi đúng dạng string và kiểm phân bổ đúng task.
+2. `get_contract_list_v2` đang **GRANT EXECUTE cho anon + authenticated** (khác mọi RPC còn lại) — hàm giờ trả cả cột lợi nhuận → REVOKE trong cùng migration (app dùng service role, không ảnh hưởng).
+3. `inventory_stock_in_atomic` cũ: 3 tham số text không DEFAULT nhưng types cũ khai optional (types lệch DB) → sau `db:types` lộ 2 call site (`createInventoryItem`, `stockIn`) → ép kiểu `(x ?? null) as string` theo mẫu có sẵn trong repo (`lab-mutations.ts p_note`). `createInventoryItem` (khai báo vật tư mới, tồn ban đầu) truyền `p_paid=false` — số dư kê khai không phải lô mua.
+4. VIEW không có FK → generator khai mọi cột nullable + không embed được: `fetchLabPaymentHistory` tách query mã đơn (thay `printing_orders!inner`), `voidVendorPayment` tra tên vendor riêng và xoá mềm `expenses` thay vì delete cứng, `fetchVendorPaymentHistory` chuẩn hoá null. `getActiveVendors`/`getAllVendors` lọc `vendor_type='tho_ngoai'` để NCC phôi không lọt vào picker giao việc.
+5. `deleteExpense` (UI) sau xoá mềm gọi `recompute_printing_payment_status` cho các đơn in được phiếu chi phân bổ.
+
+| Gate | Kết quả |
+|---|---|
+| `npx tsc --noEmit` | 0 (sau khi vá 5 nhóm lỗi nullable/view) |
+| `npx eslint` 15 file | 0 error, 0 warning (1 lỗi `react/forbid-elements` native `<input>` → dùng `<Checkbox>` SSOT) |
+| `npm run build` | exit 0, PWA artifact pass |
+| `npm run verify:printing` · `verify:contracts` · `verify:inventory` | **3/3 xanh** (integrity 4 check = 0; anon denied mọi RPC) |
+| Playwright `tests/e2e/cashflow-m1.spec.ts` trên `next start` :3100 | **4/4 PASS**: (a) tạo đơn in → 0 phiếu chi; (b) `record_lab_payment_atomic` ngày 2026-08-20 → phiếu chi `expense_date=2026-08-20`, `approved_by`=actor, phân bổ 1, đơn `da_thanh_toan`, view đọc được; trả dư bị chặn; (e) xoá đơn đã trả bị chặn; (c) task thợ hoàn thành → 0 phiếu chi, công nợ 1.200.000, trả với allocations JSON-string → phân bổ đúng task, hết nợ; (d) nhập phôi đã trả → phiếu chi supplier 50.000 ngày 2026-08-23 + phân bổ + tồn 100; nhập chưa trả → chỉ tồn 110, nợ NCC 5.000; integrity 4/4 = 0; UI smoke: `/finance/lab-debts` (Hồng Bảo 1.905.000), `/finance/vendor-debts`, `/printing` KPI Công nợ, `/finance/expenses` (thấy "Trả lab Hồng Bảo"), `/contracts` cột Lợi nhuận HĐ seed = **+3.500.000 / chi phí 1.500.000** (= 5.000.000 − thợ 1.200.000 − đơn in 300.000, đúng `contract_financials`). Seed dọn sạch (0 sót). Lượt 1 fail 1 assertion vì 20 HĐ E2E của global-setup đẩy HĐ thật sang trang 2 — đổi sang kiểm HĐ seed của chính spec. |
+
+**Còn lại cần user:** merge `claude/cashflow-m1` → `main` + `git push origin main` (= deploy), rồi Claude chạy lại spec trên `stu.moodwedding.com`. **Lưu ý cửa sổ lệch:** DB prod đã ở mô hình mới, app prod hiện tại vẫn đọc được (view tương thích + wrapper RPC giữ chữ ký) — chỉ 2 thao tác cũ sẽ lỗi cho tới khi deploy: "Huỷ thanh toán thợ" (delete trên view) và ghi log FAIL khi hoàn thành task vendor (hàm trích trước đã drop, được nuốt lỗi). Nên merge sớm.

@@ -234,6 +234,7 @@ export async function fetchVendorUnpaidTasks(
     // Calculate remaining for each task
     const allocationMap = new Map<string, number>();
     allocations?.forEach((a) => {
+      if (!a.work_task_id) return; // view trên expense_allocations: cột nullable theo generator
       const current = allocationMap.get(a.work_task_id) || 0;
       allocationMap.set(a.work_task_id, current + (a.amount || 0));
     });
@@ -309,7 +310,20 @@ export async function fetchVendorPaymentHistory(
       throw new Error(`Không thể tải lịch sử thanh toán: ${error.message}`);
     }
 
-    return data || [];
+    // ADR-016: vendor_payments là view trên expenses → cột nullable theo generator, chuẩn hoá
+    return (data || []).flatMap((r): VendorPaymentHistoryItem[] =>
+      r.id
+        ? [{
+            id: r.id,
+            amount: Number(r.amount || 0),
+            payment_method: r.payment_method,
+            payment_date: r.payment_date ?? r.created_at ?? "",
+            note: r.note,
+            created_at: r.created_at,
+            created_by: r.created_by,
+          }]
+        : [],
+    );
   });
 }
 
@@ -327,18 +341,13 @@ export async function voidVendorPayment(
   const { payment_id } = parsed.data;
 
   return withAdmin(async (supabase: SupabaseClient<Database>, userId) => {
-    // Fetch payment to check date for period lock and vendor name for audit
+    // ADR-016: thanh toán thợ = phiếu chi (expenses, payee_type='vendor'); vendor_payments là view
+    // không có FK → không embed vendors được, tra tên riêng.
     const { data: payment, error: fetchError } = await supabase
-      .from("vendor_payments")
-      .select(`
-        id, 
-        amount, 
-        payment_date, 
-        vendor_id,
-        deleted_at,
-        vendors(full_name)
-      `)
+      .from("expenses")
+      .select("id, amount, expense_date, payee_id, payee_type, deleted_at")
       .eq("id", payment_id)
+      .eq("payee_type", "vendor")
       .single();
 
     if (fetchError || !payment) {
@@ -350,12 +359,12 @@ export async function voidVendorPayment(
     }
 
     // Check period lock
-    await checkPeriodLock(supabase, payment.payment_date);
+    await checkPeriodLock(supabase, payment.expense_date);
 
-    // Hard delete payment (allocations cascade)
+    // Xoá mềm phiếu chi — mọi phép tính công nợ đã lọc expenses.deleted_at IS NULL
     const { error: deleteError } = await supabase
-      .from("vendor_payments")
-      .delete()
+      .from("expenses")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("id", payment_id);
 
     if (deleteError) {
@@ -363,14 +372,15 @@ export async function voidVendorPayment(
     }
 
     // Audit log
-    const vendorName = payment.vendors && typeof payment.vendors === 'object' && 'full_name' in payment.vendors 
-      ? (payment.vendors as { full_name: string }).full_name 
-      : "Unknown Vendor";
+    const { data: vendor } = payment.payee_id
+      ? await supabase.from("vendors").select("full_name").eq("id", payment.payee_id).maybeSingle()
+      : { data: null };
+    const vendorName = vendor?.full_name || "Unknown Vendor";
     await writeAuditLog({
       action: "DELETE",
-      tableName: "vendor_payments",
+      tableName: "expenses",
       recordId: payment_id,
-      description: `Hủy thanh toán ${payment.amount.toLocaleString()}đ cho vendor ${vendorName}`,
+      description: `Hủy phiếu chi ${Number(payment.amount).toLocaleString()}đ trả thợ ngoài ${vendorName}`,
     });
 
     // Revalidate paths

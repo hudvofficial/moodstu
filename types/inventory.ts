@@ -28,6 +28,8 @@ export interface InventoryItem {
   average_unit_price: number;
   sale_price: number;
   supplier: string | null;
+  /** ADR-016: đối tác nhà cung cấp (vendors.vendor_type = 'nha_cung_cap') — treo công nợ/phiếu chi */
+  supplier_id?: string | null;
   image_url: string | null;
   status: InventoryStatus | null;
   notes: string | null;

@@ -239,116 +239,6 @@ function summarizePrintingItems(rawItems: unknown, fallbackLabel: string) {
   };
 }
 
-async function getContractProfitReportFallback(
-  supabase: SupabaseClient,
-  filters: ContractProfitReportParams,
-): Promise<PaginatedResult<ContractProfitRow>> {
-  const page = filters.page || 1;
-  const pageSize = filters.pageSize || 10;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  let query = supabase
-    .from("contracts")
-    .select("id, contract_code, contract_date, status, total_amount, discount_amount, paid_amount, remaining_amount, customers(full_name)", { count: "exact" })
-    .is("deleted_at", null)
-    .order("contract_date", { ascending: false })
-    .range(from, to);
-
-  if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
-  if (filters.fromDate) query = query.gte("contract_date", filters.fromDate);
-  if (filters.toDate) query = query.lte("contract_date", filters.toDate);
-
-  const { data: contracts, error, count } = await query;
-  if (error) throw new Error(error.message);
-
-  const ids = (contracts || []).map((contract) => contract.id);
-  const taskCost = new Map<string, number>();
-  const printCost = new Map<string, number>();
-  const expenseCost = new Map<string, number>();
-  const inventoryCost = new Map<string, number>();
-  const packageRev = new Map<string, number>();
-  const addonRev = new Map<string, number>();
-
-  if (ids.length > 0) {
-    const [items, tasks, prints, expenses, inventory] = await Promise.all([
-      supabase.from("contract_items").select("contract_id, total_amount, is_addon").is("deleted_at", null).in("contract_id", ids),
-      // vendor_id IS NULL — chi phí vendor được tính qua expenseCost ([Auto-Vendor]) thay vì ở đây,
-      // khớp đúng logic RPC finance_contract_profit_report đang chạy thật, tránh đếm trùng.
-      supabase.from("work_tasks").select("contract_id, cost").in("contract_id", ids).is("vendor_id", null),
-      supabase.from("printing_orders").select("contract_id, total_amount").is("deleted_at", null).in("contract_id", ids),
-      supabase.from("expenses").select("contract_id, amount, description").is("deleted_at", null).in("contract_id", ids),
-      supabase
-        .from("inventory_transactions")
-        .select("contract_id, quantity, unit_cost, total_cost, source_type")
-        .eq("transaction_type", "stock_out")
-        .in("source_type", ["contract_fulfillment", "contract_addon_sale"])
-        .in("contract_id", ids),
-    ]);
-    if (items.error) throw new Error(items.error.message);
-    if (tasks.error) throw new Error(tasks.error.message);
-    if (prints.error) throw new Error(prints.error.message);
-    if (expenses.error) throw new Error(expenses.error.message);
-    if (inventory.error) throw new Error(inventory.error.message);
-    addByContract(taskCost, tasks.data, "cost");
-    addByContract(printCost, prints.data, "total_amount");
-    addByContract(
-      expenseCost,
-      (expenses.data || []).filter((row) => !row.description?.startsWith("[Auto-Print]")),
-      "amount",
-    );
-    for (const row of inventory.data || []) {
-      const cId = row.contract_id;
-      if (!cId) continue;
-      inventoryCost.set(
-        cId,
-        (inventoryCost.get(cId) || 0) + asNumber(row.total_cost || asNumber(row.quantity) * asNumber(row.unit_cost)),
-      );
-    }
-
-    for (const item of items.data || []) {
-      const cId = item.contract_id;
-      if (!cId) continue;
-      const amount = Number(item.total_amount) || 0;
-      if (item.is_addon) {
-        addonRev.set(cId, (addonRev.get(cId) || 0) + amount);
-      } else {
-        packageRev.set(cId, (packageRev.get(cId) || 0) + amount);
-      }
-    }
-  }
-
-  const items = (contracts || []).map((contract) => {
-    const tasks = taskCost.get(contract.id) || 0;
-    const prints = printCost.get(contract.id) || 0;
-    const expenses = expenseCost.get(contract.id) || 0;
-    const inventory = inventoryCost.get(contract.id) || 0;
-    const totalCost = tasks + prints + expenses + inventory;
-    const totalAmount = contract.total_amount || 0;
-    const profit = totalAmount - totalCost;
-    return {
-      id: contract.id,
-      contractCode: contract.contract_code,
-      customerName: relationText((contract as RpcRow).customers, "full_name") || "Khách vãng lai",
-      contractDate: contract.contract_date,
-      status: contract.status,
-      totalAmount,
-      paidAmount: contract.paid_amount || 0,
-      remainingAmount: contract.remaining_amount || 0,
-      packageRevenue: packageRev.get(contract.id) || 0,
-      addonRevenue: addonRev.get(contract.id) || 0,
-      discount: contract.discount_amount || 0,
-      taskCost: tasks,
-      printCost: prints,
-      expenseCost: expenses,
-      inventoryCost: inventory,
-      totalCost,
-      profit,
-      profitMargin: calculatePercentage(profit, totalAmount),
-    };
-  }) satisfies ContractProfitRow[];
-
-  return { items, total: count || 0, page, pageSize };
-}
 
 async function fetchLedgerFallback(
   supabase: SupabaseClient,
@@ -598,8 +488,7 @@ async function queryContractProfitReport(
     p_page_size: pageSize,
   });
 
-  if (error && isMissingRpcError(error)) return getContractProfitReportFallback(supabase, filters);
-
+  // ADR-016: RPC là nguồn duy nhất (contract_financials) — không còn bản tính lại phía app
   if (error) throw new Error(`Lỗi tải báo cáo lợi nhuận: ${error.message}`);
 
   const rows = ((data || []) as RpcRow[]).map((row) => ({
@@ -801,8 +690,7 @@ export async function getContractProfitReport(filters: ContractProfitReportParam
       p_page_size: pageSize,
     });
 
-    if (error && isMissingRpcError(error)) return getContractProfitReportFallback(supabase, filters);
-
+    // ADR-016: RPC là nguồn duy nhất (contract_financials) — không còn bản tính lại phía app
     if (error) throw new Error(`Lỗi tải báo cáo lợi nhuận: ${error.message}`);
 
     const rows = ((data || []) as RpcRow[]).map((row) => ({
@@ -924,18 +812,17 @@ export async function getContractFinanceDetails(contractId: string) {
         .select("id, item_name, quantity, unit_price, total_amount, type, is_addon, addon_category")
         .eq("contract_id", contractId)
         .is("deleted_at", null),
-      // vendor_id IS NULL: khớp finance_contract_profit_report (20260528000002_vendor_expense_profit_fix.sql)
-      // — chi phí task vendor được ghi nhận qua expenses [Auto-Vendor] lúc hoàn thành, không đọc thẳng
-      // work_tasks.cost ở đây để tránh đếm trùng/đếm sớm trước khi task thực sự accrue.
-      // Phát hiện khi verify T-20260825-contracts-list-financials: drawer này đang đếm cả task vendor
-      // vào "Chi phí Lương" → lệch số với cột Lợi nhuận mới ở /contracts.
-      supabase.from("work_tasks").select("id, work_type, cost, employees(full_name)").eq("contract_id", contractId).is("vendor_id", null),
+      // ADR-016 / contract_financials(): chi phí task = MỌI task không hủy (ekip + thợ ngoài) — cam kết;
+      // phiếu chi trả thợ không còn là chi phí (đã bỏ trích trước), nên không còn đếm trùng.
+      supabase.from("work_tasks").select("id, work_type, cost, vendor_id, employees(full_name), vendors(full_name)").eq("contract_id", contractId).neq("status", "da_huy").gt("cost", 0),
       supabase
         .from("printing_orders")
         .select("id, order_code, items, total_amount, payment_status")
         .eq("contract_id", contractId)
-        .is("deleted_at", null),
-      supabase.from("expenses").select("id, description, amount, expense_date").eq("contract_id", contractId).is("deleted_at", null).not("description", "like", "[Auto-Print]%"),
+        .is("deleted_at", null)
+        .not("status", "in", "(huy_don,da_huy)"),
+      // Chi trực tiếp = phiếu chi payee_type='other' gắn HĐ (phiếu chi trả lab/thợ/NCC là trả nợ, không phải chi phí mới)
+      supabase.from("expenses").select("id, description, amount, expense_date").eq("contract_id", contractId).is("deleted_at", null).eq("payee_type", "other"),
       supabase
         .from("inventory_transactions")
         .select("id, quantity, unit_cost, total_cost, source_type, created_at, inventory_items(name, item_code)")
@@ -973,12 +860,20 @@ export async function getContractFinanceDetails(contractId: string) {
         item_type: (d.is_addon ? "ADDON" : asString(d.type)) || null,
         addon_category: asString(d.addon_category) || null,
       })),
-      tasks: tasks.data.map((t: Record<string, unknown>) => ({
-        id: t.id as string,
-        work_type: asString(t.work_type),
-        cost: asNumber(t.cost),
-        employees: t.employees ? { full_name: relationText(t.employees as unknown, "full_name") as string } : null,
-      })),
+      tasks: tasks.data.map((t: Record<string, unknown>) => {
+        const employeeName = t.employees ? relationText(t.employees as unknown, "full_name") : null;
+        const vendorName = t.vendors ? relationText(t.vendors as unknown, "full_name") : null;
+        return {
+          id: t.id as string,
+          work_type: asString(t.work_type),
+          cost: asNumber(t.cost),
+          employees: employeeName
+            ? { full_name: employeeName as string }
+            : vendorName
+              ? { full_name: `Thợ ngoài: ${vendorName}` }
+              : null,
+        };
+      }),
       orders: prints.data.map((p: Record<string, unknown>) => {
         const fallbackLabel = asString(p.order_code, "Đơn in");
         const summary = summarizePrintingItems(p.items, fallbackLabel);

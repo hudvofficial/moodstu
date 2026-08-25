@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1878,6 +1878,58 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_allocations: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          expense_id: string
+          id: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          expense_id: string
+          id?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string
+          id?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "lab_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -1892,6 +1944,10 @@ export type Database = {
           expense_date: string
           id: string
           image_url: string | null
+          legacy_source: string | null
+          legacy_source_id: string | null
+          payee_id: string | null
+          payee_type: string
           payment_method: Database["public"]["Enums"]["payment_method_enum"]
           printing_order_id: string | null
           recipient: string | null
@@ -1911,6 +1967,10 @@ export type Database = {
           expense_date?: string
           id?: string
           image_url?: string | null
+          legacy_source?: string | null
+          legacy_source_id?: string | null
+          payee_id?: string | null
+          payee_type?: string
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
           printing_order_id?: string | null
           recipient?: string | null
@@ -1930,6 +1990,10 @@ export type Database = {
           expense_date?: string
           id?: string
           image_url?: string | null
+          legacy_source?: string | null
+          legacy_source_id?: string | null
+          payee_id?: string | null
+          payee_type?: string
           payment_method?: Database["public"]["Enums"]["payment_method_enum"]
           printing_order_id?: string | null
           recipient?: string | null
@@ -2849,6 +2913,7 @@ export type Database = {
           sale_price: number | null
           status: string | null
           supplier: string | null
+          supplier_id: string | null
           unit: string | null
           updated_at: string | null
           updated_by: string | null
@@ -2870,6 +2935,7 @@ export type Database = {
           sale_price?: number | null
           status?: string | null
           supplier?: string | null
+          supplier_id?: string | null
           unit?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -2891,11 +2957,20 @@ export type Database = {
           sale_price?: number | null
           status?: string | null
           supplier?: string | null
+          supplier_id?: string | null
           unit?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_reservations: {
         Row: {
@@ -3221,7 +3296,7 @@ export type Database = {
         }
         Relationships: []
       }
-      lab_payment_allocations: {
+      lab_payment_allocations_legacy: {
         Row: {
           amount: number
           created_at: string
@@ -3251,7 +3326,7 @@ export type Database = {
             foreignKeyName: "lab_payment_allocations_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
-            referencedRelation: "lab_payments"
+            referencedRelation: "lab_payments_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -3270,7 +3345,7 @@ export type Database = {
           },
         ]
       }
-      lab_payments: {
+      lab_payments_legacy: {
         Row: {
           amount: number
           created_at: string
@@ -5541,7 +5616,7 @@ export type Database = {
         }
         Relationships: []
       }
-      vendor_payment_allocations: {
+      vendor_payment_allocations_legacy: {
         Row: {
           amount: number
           created_at: string
@@ -5571,7 +5646,7 @@ export type Database = {
             foreignKeyName: "vendor_payment_allocations_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
-            referencedRelation: "vendor_payments"
+            referencedRelation: "vendor_payments_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -5583,7 +5658,7 @@ export type Database = {
           },
         ]
       }
-      vendor_payments: {
+      vendor_payments_legacy: {
         Row: {
           amount: number
           created_at: string
@@ -5640,6 +5715,7 @@ export type Database = {
           service_type: string | null
           status: string | null
           updated_at: string | null
+          vendor_type: string
         }
         Insert: {
           created_at?: string | null
@@ -5650,6 +5726,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           updated_at?: string | null
+          vendor_type?: string
         }
         Update: {
           created_at?: string | null
@@ -5660,6 +5737,7 @@ export type Database = {
           service_type?: string | null
           status?: string | null
           updated_at?: string | null
+          vendor_type?: string
         }
         Relationships: []
       }
@@ -5841,6 +5919,72 @@ export type Database = {
         }
         Relationships: []
       }
+      lab_payment_allocations: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          payment_id: string | null
+          printing_order_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "lab_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_payments: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          expense_date: string | null
+          id: string | null
+          lab_id: string | null
+          note: string | null
+          payment_method: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          expense_date?: string | null
+          id?: string | null
+          lab_id?: string | null
+          note?: string | null
+          payment_method?: never
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          expense_date?: string | null
+          id?: string | null
+          lab_id?: string | null
+          note?: string | null
+          payment_method?: never
+        }
+        Relationships: []
+      }
       order_payment_summary: {
         Row: {
           adjustment_amount: number | null
@@ -5885,6 +6029,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendor_payment_allocations: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          payment_id: string | null
+          work_task_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "lab_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_allocations_expense_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_payments: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          id: string | null
+          note: string | null
+          payment_date: string | null
+          payment_method: string | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          note?: string | null
+          payment_date?: string | null
+          payment_method?: never
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          note?: string | null
+          payment_date?: string | null
+          payment_method?: never
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -5997,6 +6213,20 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      contract_financials: {
+        Args: { p_contract_ids: string[] }
+        Returns: {
+          cogs: number
+          contract_id: string
+          direct_cost: number
+          print_cost: number
+          profit: number
+          profit_margin: number
+          revenue: number
+          task_cost: number
+          total_cost: number
+        }[]
       }
       contract_payment_health_checks: {
         Args: never
@@ -6330,6 +6560,20 @@ export type Database = {
           transaction_date: string
         }[]
       }
+      finance_payable_summary: {
+        Args: never
+        Returns: {
+          item_count: number
+          last_item_date: string
+          last_payment_date: string
+          payee_id: string
+          payee_name: string
+          payee_type: string
+          remaining: number
+          total_committed: number
+          total_paid: number
+        }[]
+      }
       finance_receipt_document_stats: {
         Args: { p_month?: number; p_year?: number }
         Returns: {
@@ -6617,12 +6861,16 @@ export type Database = {
       inventory_stock_in_atomic: {
         Args: {
           p_item_id: string
-          p_notes?: string
+          p_notes: string
+          p_paid?: boolean
+          p_paid_date?: string
+          p_payment_method?: string
           p_quantity: number
-          p_reason?: string
-          p_supplier?: string
+          p_reason: string
+          p_supplier: string
+          p_supplier_id?: string
           p_unit_cost: number
-          p_user_id?: string
+          p_user_id: string
         }
         Returns: Json
       }
@@ -6691,6 +6939,22 @@ export type Database = {
       nextval_customer_code: { Args: never; Returns: number }
       nextval_inventory_code: { Args: never; Returns: string }
       nextval_printing_order_code: { Args: never; Returns: string }
+      payable_items: {
+        Args: { p_payee_id: string; p_payee_type: string }
+        Returns: {
+          allocated: number
+          committed: number
+          item_date: string
+          label: string
+          remaining: number
+          target_id: string
+          target_type: string
+        }[]
+      }
+      payable_remaining: {
+        Args: { p_payee_id: string; p_target_id: string; p_target_type: string }
+        Returns: number
+      }
       payment_stage_display_label_v2: {
         Args: { p_default?: string; p_stage: string }
         Returns: string
@@ -6771,6 +7035,10 @@ export type Database = {
         Args: { p_contract_id: string }
         Returns: undefined
       }
+      recompute_printing_payment_status: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       record_lab_payment_atomic: {
         Args: {
           p_actor_id: string
@@ -6778,6 +7046,20 @@ export type Database = {
           p_amount: number
           p_lab_id: string
           p_note: string
+          p_payment_date?: string
+          p_payment_method: string
+        }
+        Returns: Json
+      }
+      record_payee_payment_atomic: {
+        Args: {
+          p_actor_id: string
+          p_allocations: Json
+          p_amount: number
+          p_note: string
+          p_payee_id: string
+          p_payee_type: string
+          p_payment_date: string
           p_payment_method: string
         }
         Returns: Json
@@ -6944,14 +7226,6 @@ export type Database = {
           p_order_id: string
         }
         Returns: Json
-      }
-      upsert_printing_expense: {
-        Args: { p_actor_id: string; p_printing_order_id: string }
-        Returns: string
-      }
-      upsert_vendor_expense: {
-        Args: { p_actor_id: string; p_work_task_id: string }
-        Returns: string
       }
       verify_gallery_password: {
         Args: { p_gallery_id: string; p_password: string }
