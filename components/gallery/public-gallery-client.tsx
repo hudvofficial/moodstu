@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import useSWRInfinite from "swr/infinite";
-import { Camera, CircleCheck, Image as ImageIcon, Heart, Download } from "lucide-react";
+import { Camera, CircleCheck, Image as ImageIcon, Heart, Download, MessageSquare } from "lucide-react";
 import type { GalleryImage } from "@/types/gallery";
 import { getPublicGalleryImagesPaginated, getPublicGalleryStats, getPublicGalleryWithAccess } from "@/app/actions/gallery-public-actions";
 import { getPublicSelectedImages, toggleImageSelection } from "@/app/actions/gallery-selection-actions";
@@ -150,6 +150,15 @@ export default function PublicGalleryClient({
   const notedCount = useMemo(
     () => selectedImages.filter((i) => (commentsPerImage[i.id]?.length ?? 0) > 0).length,
     [selectedImages, commentsPerImage],
+  );
+
+  // T-20260825: số ẢNH có ≥1 ghi chú trên CẢ gallery — khác notedCount ở trên (đã chọn ∩ có ghi chú,
+  // dành cho chip thanh đáy). Ghi chú KHÔNG bắt buộc ảnh phải được chọn (nút ghi chú trong viewer
+  // không gate is_selected) nên header phải đếm toàn bộ. commentsPerImage là map cả gallery từ server
+  // (không phụ thuộc trang đã cuộn) → đếm key có ≥1 comment là đủ, không cần query thêm.
+  const notedImageCount = useMemo(
+    () => Object.values(commentsPerImage).filter((list) => list.length > 0).length,
+    [commentsPerImage],
   );
 
   const selectedCount = stats?.selectedCount || 0;
@@ -356,17 +365,22 @@ export default function PublicGalleryClient({
       <div className="sticky top-0 z-30 bg-bg-base/95 backdrop-blur-md">
         {/* Top Row: Title & Stats */}
         <div className="w-full max-w-[1600px] mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Camera size={18} className="text-primary opacity-70" />
+          <div className="flex min-w-0 items-center gap-2">
+            <Camera size={18} className="shrink-0 text-primary opacity-70" />
             <h1 className="text-base font-semibold tracking-tight truncate max-w-[200px] md:max-w-[400px] text-text-primary">
               {gallery.title || "Album ảnh"}
             </h1>
           </div>
-          <div className="flex items-center gap-4 text-sm font-medium text-text-secondary">
+          {/* T-20260825: thêm chip 💬 số ảnh có ghi chú (khách hay quên đã note bao nhiêu tấm).
+              4 chip @375 ≈ 164px → gap-3 trên mobile + shrink-0 ở đây + min-w-0 ở khối tiêu đề
+              để tiêu đề dài bị cắt "…" đúng chỗ thay vì đẩy chip tràn ngang. */}
+          <div className="flex shrink-0 items-center gap-3 md:gap-4 text-sm font-medium text-text-secondary">
             <span className="flex items-center gap-1.5"><ImageIcon size={14} className="opacity-60" /> {totalImageCount}</span>
             {/* Số ĐÃ CHỌN — cùng ngôn ngữ nút ✓ trên tile (✓ xanh = chọn, ❤️ đỏ = tim); link view-only vẫn xem được tiến độ chọn */}
             <span className="flex items-center gap-1.5 text-[#34c759]"><CircleCheck size={14} className="fill-[#34c759] text-white" /> {selectedCount}</span>
             <span className="flex items-center gap-1.5 text-[#ff3b30]"><Heart size={14} className="fill-[#ff3b30]" /> {totalLikes}</span>
+            {/* 💬 = cùng icon + màu primary với chip trên tile và chip thanh đáy */}
+            <span className="flex items-center gap-1.5 text-primary" title="Ảnh có ghi chú" aria-label="Ảnh có ghi chú"><MessageSquare size={14} /> {notedImageCount}</span>
           </div>
         </div>
         
