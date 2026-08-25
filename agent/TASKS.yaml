@@ -646,9 +646,8 @@ done:
 
   - id: T-20260825-gallery-header-note-count
     title: "Gallery khách: header hiện 💬 số ảnh có ghi chú (khách quên đã note bao nhiêu tấm)"
-    status: spec
+    status: merged
     owner: claude
-    branch: codex/gallery-header-note-count
     locks:
       - components/gallery/public-gallery-client.tsx
     spec: agent/HANDOFFS/T-20260825-gallery-header-note-count.spec.md
@@ -657,8 +656,15 @@ done:
       - npm run build
       - render thật @375/768/1024 link chia sẻ có ghi chú + ?mode=view (spec §4)
     depends_on: []
+    result: >
+      MERGED 78a4fb5 (Claude fallback — Codex CLI 0.144.5 lỗi credential 404 provider "codex",
+      tái hiện 2/2). +18/−4 dòng đúng 1 file: memo notedImageCount (số ảnh có ≥1 ghi chú cả
+      gallery, đếm key commentsPerImage) + chip thứ 4 MessageSquare + min-w-0/shrink-0/gap-3
+      md:gap-4. Verify: eslint 0 (yếu — file có eslint-disable sẵn), tsc 0, build exit 0,
+      Playwright 14/14: gallery thật 💬126 = count(DISTINCT image_id) @375/768/1024 + view-only;
+      gallery E2E tạm: ghi chú ảnh CHƯA chọn 0→1→0 không reload, thanh đáy đúng nghĩa cũ, tiêu đề
+      62 ký tự cắt "…" @375 không tràn. Dữ liệu test đã xoá (0 còn lại).
     notes: >
-      Chờ user duyệt spec. notedCount có sẵn = đã chọn ∩ có ghi chú (thanh đáy) — KHÔNG đúng nghĩa
-      cho header vì ghi chú không bắt buộc ảnh đã chọn → memo mới notedImageCount đếm key
-      commentsPerImage. M2 (tab GHI CHÚ + chip bấm được) là tuỳ chọn, chưa vào scope cho tới khi
-      user duyệt riêng.
+      notedCount có sẵn = đã chọn ∩ có ghi chú (thanh đáy) — KHÔNG đúng nghĩa cho header vì ghi
+      chú không bắt buộc ảnh đã chọn. M2 (tab GHI CHÚ + chip bấm được, spec §5) chưa làm, chờ user
+      duyệt riêng. Nợ có sẵn: getGalleryComments không selectAllRows → trần 1000 dòng/gallery.
