@@ -725,11 +725,18 @@ done:
 
   - id: T-20260825-gallery-pagination-chain
     title: "Gallery khách: chặn setSize trùng + sửa loadingMoreImages — hết request trang bị hủy (M3-B)"
-    status: spec
+    status: merged
     owner: claude
     locks:
       - components/gallery/public-gallery-client.tsx
     spec: agent/HANDOFFS/T-20260825-gallery-pagination-chain.spec.md
+    result: >
+      MERGED f687cff (Claude fallback). 1 file +21/−8: requestedSizeRef (reset theo pagesData.length/error),
+      setSize(pagesData.length+1), loadingMoreImages = isValidating && size > pagesData.length. Verify: eslint 0,
+      tsc 0, build 0; probe cuộn-hết local ×2: 0 request trang trùng (prod trước: p3/p5 hoặc p4 trùng, ngẫu
+      nhiên), 0 trang không về, 517/517, spinnerSlow3G true (prod trước: false ×2); regression 6/6.
+      Thước đo chỉnh lại: POST ERR_ABORTED thô không phải gate — phần lớn là Next đóng RSC stream SAU khi
+      đã nhận 200 (cả stats/reactions), dữ liệu vẫn vào grid; cái gây mất trang là request TRÙNG.
     verify:
       - npx eslint components/gallery/public-gallery-client.tsx
       - npx tsc --noEmit
