@@ -3,7 +3,21 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-25** · nhánh: `main` @ `4d89689`.
+> Cập nhật gần nhất: **2026-08-25** · nhánh: `main` @ `652caf6`.
+
+## 2026-08-25 (tiếp) — gallery khách: header thiếu số ảnh có ghi chú — SPEC CHỜ DUYỆT
+- User báo (ảnh chụp header album share `🖼 115 · ✓ 0 · ❤️ 0`): không có icon báo số ảnh khách đã ghi chú — khách note xong không nhớ đã note bao nhiêu tấm.
+- Trace: `notedCount` (đã chọn ∩ có ghi chú) đã tính sẵn ở `public-gallery-client.tsx:150` nhưng chỉ hiện ở chip thanh đáy `SelectionSummary` (ẩn khi 0, ẩn ở view-only) — header (dòng 365-370) chỉ có 3 số. Ghi chú **không** bắt buộc ảnh đã chọn (nút ghi chú trong viewer `image-viewer.tsx:929` không gate `is_selected`) → số đúng cho header là **số ảnh có ≥1 ghi chú trên cả gallery** = đếm key `commentsPerImage` (map cả gallery từ server, không phụ thuộc trang đã cuộn; `handleSaveNote` đã mutate đúng key nên tự cập nhật).
+- **T-20260825-gallery-header-note-count: status = `spec`** — 1 file lock `components/gallery/public-gallery-client.tsx`: memo `notedImageCount` + chip thứ 4 `MessageSquare` (đúng icon tile badge + chip đáy; KHÔNG dùng `MessageCircle` của admin stats) + `min-w-0`/`shrink-0`/`gap-3 md:gap-4` để 4 chip không tràn @375. Hiện cả khi 0 và cả ở view-only (nhất quán với ✓/❤️ và tile badge). M2 tuỳ chọn (tab GHI CHÚ + chip bấm được) nêu ở spec §5, chưa vào scope.
+- Nợ có sẵn, ghi nhận không sửa: `getGalleryComments` select 1 phát không `selectAllRows` → trần 1000 dòng/gallery (gallery thật nhiều ghi chú nhất 148) — cùng pattern T-20260808 đã vá cho reaction.
+
+## 2026-08-25 (tiếp #2) — finance/*: bug tự động bật lại `/finance` — ĐÃ XỬ LÝ bằng watchdog (hướng 3, không ngăn nguyên nhân)
+- Sau 2 hướng "ngăn nguyên nhân" không hiệu quả (mục dưới), user hỏi thẳng: hướng nào **thật sự phù hợp với quy mô thật của Mood Studio** (công cụ nội bộ, ít người dùng đồng thời, không phải SaaS traffic cao) thay vì tiếp tục đoán kỹ thuật thuần túy. Phân tích: bug xảy ra ngay cả với 1 người dùng (không phải vấn đề tải cao nhiều người), gốc rễ nằm 1 phần ngoài code ứng dụng (Next.js/Vercel), và refactor gộp 17 hook `useSWR` (hướng "sửa tận gốc") đi ngược ràng buộc dự án đã chốt ("không mở lại đợt perf diện rộng"). Kết luận: đúng hướng cho quy mô này là **phát hiện + tự sửa triệu chứng**, không cố thắng lỗi tầng hạ tầng.
+- **T-20260825-finance-nav-guard MERGED** (`652caf6`, Claude fallback, user duyệt "viết spec rồi triển khai code bám chi tiết"). `FinanceNavGuard` (mới, mount trong `AppShell` cạnh `FinanceRealtimeRefresh`): theo dõi mỗi lần pathname trong `/finance/*` đổi — nếu nhảy LÊN route cha mà không có thao tác thật nào của người dùng (click/phím/back) trong 800ms trước đó, tự `router.replace()` quay lại route trước, không toast, giới hạn tối đa 2 lần tự sửa liên tiếp để tránh vòng lặp.
+- **Verify thật trên production, đo bằng đúng kịch bản đã dùng cho cả 3 lần đo trước:**
+  - Điều hướng hợp lệ vẫn hoạt động đúng (click thật "Tài chính"/"Công nợ KH" qua lại — không bị watchdog chặn nhầm).
+  - Đo lại tỉ lệ URL sai tồn tại đủ lâu để nhận ra, 15 lần: **0/15 (0%)** — so với gốc 2/8 (25%), Fix 1 (staleTimes) 7/15 (47%, tệ hơn, đã lùi), Fix 2 (AppShell) 4/15 (27%, không đổi rõ).
+- **Lưu ý trung thực:** đây là giảm triệu chứng, không phải xóa sổ nguyên nhân gốc (vẫn nằm 1 phần ở tầng Next.js/Vercel) — 0/15 không phải bằng chứng toán học tuyệt đối cho "không bao giờ xảy ra nữa," nhưng cơ chế tự sửa gần như tức thời (trong 1 chu kỳ render, dưới ngưỡng người dùng nhận ra) nên về mặt trải nghiệm thực tế coi như đã giải quyết.
 
 ## 2026-08-25 — finance/*: bug tự động bật lại `/finance` sau vài giây — CHƯA GIẢI QUYẾT DỨT ĐIỂM, cần quyết định hướng tiếp
 - User báo bấm vào `/finance/debts` (qua link "Công nợ KH" trên `/finance`) thì 5-10s sau tự động bật lại `/finance`, kèm toast lỗi "An unexpected response was received from the server."

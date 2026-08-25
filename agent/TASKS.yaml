@@ -32,7 +32,7 @@ updated: 2026-08-25
 active:
   - id: T-20260825-finance-nav-guard
     title: "finance/*: watchdog client tu sua lai URL khi bi day nham ve route cha (huong 3 sau khi 2 huong ngan nguyen nhan khong hieu qua)"
-    status: implementing
+    status: ci
     owner: claude (fallback)
     branch: claude/finance-nav-guard
     locks:
@@ -48,7 +48,7 @@ active:
     notes: "Tiep noi T-20260825-finance-nav-redirect-bug (da blocked - 2 huong ngan nguyen nhan khong do duoc cai thien ro). User hoi 'huong nao that su phu hop voi quy mo that cua Mood' - phan tich: bug xay ra voi 1 nguoi dung duy nhat (khong phai van de tai cao nhieu nguoi), goc re nam 1 phan ngoai code ung dung (Next.js/Vercel), refactor gop 17 hook usSWR di nguoc rang buoc du an (khong mo lai dot perf dien rong). Huong dung: khong co ngan nguyen nhan nua - phat hien dung dau hieu (URL nhay len route cha, khong co click/phim/back that truoc do trong 800ms) va tu sua lai ngay bang router.replace(), khong toast, nguoi dung khong nen nhan ra. Da duyet, dang trien khai."
   - id: T-20260825-finance-nav-redirect-bug
     title: "finance/*: sua bug tu dong bat lai /finance sau vai giay (router cache 180s + retry storm -> Next.js response bi tron)"
-    status: blocked
+    status: superseded_by_T-20260825-finance-nav-guard
     owner: claude (fallback)
     branch: claude/finance-nav-redirect-bug
     locks:

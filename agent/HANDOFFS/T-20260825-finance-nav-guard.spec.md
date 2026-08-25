@@ -110,3 +110,20 @@ export function FinanceNavGuard() {
    - **Không phá điều hướng hợp lệ**: từ `/finance/debts`, bấm link "Tài chính" (breadcrumb hoặc sidebar) → phải điều hướng thật về `/finance`, không bị watchdog kéo lại.
    - **Đo lại tỉ lệ URL sai tồn tại đủ lâu để đo được**: lặp lại đúng kịch bản cũ (bấm `/finance` → "Công nợ KH" → theo dõi URL mỗi giây trong 15s) **15 lần** — so với 3 lần đo trước (gốc 2/8, sau Fix1 7/15, sau Fix AppShell 4/15). Kỳ vọng: watchdog sửa lại trong vài trăm mili-giây, nhanh hơn hẳn chu kỳ đo 1 giây/lần — nên tỉ lệ đo được lần này phản ánh đúng mục tiêu thật (URL sai có tồn tại đủ lâu để người dùng nhận ra hay không), không nhất thiết phải bằng 0.
 4. Không tạo dữ liệu thật khi verify.
+
+---
+
+## 5. Kết quả thực thi (2026-08-25)
+
+**Trạng thái:** merged vào `main` (`652caf6`), đã deploy, đã verify thật trên production.
+
+### Verify
+
+1. `npx eslint` (2 file trong locks) → 0 error.
+2. `npm run build` → exit 0.
+3. Render thật production (seed E2E admin rồi xóa):
+   - **Điều hướng hợp lệ không bị chặn nhầm**: từ `/finance/debts`, click thật link "Tài chính" (breadcrumb) → điều hướng đúng về `/finance`; từ `/finance`, click thật link "Công nợ KH" → điều hướng đúng về `/finance/debts` — cả 2 chiều đều hoạt động bình thường, watchdog không can thiệp vào điều hướng thật.
+   - **Đo lại tỉ lệ URL sai tồn tại đủ lâu để nhận ra**, đúng kịch bản 15 lần đã dùng cho 3 lần đo trước: **0/15 (0%)** — so với gốc 2/8 (25%), Fix 1 (`staleTimes`) 7/15 (47%, tệ hơn, đã lùi), Fix 2 (`AppShell`) 4/15 (27%, không đổi rõ).
+4. Không tạo dữ liệu thật khi verify.
+
+**Kết luận:** đây là hướng "giảm triệu chứng" đúng như thiết kế — không xóa được nguyên nhân gốc (1 phần nằm ở tầng Next.js/Vercel, ngoài tầm code ứng dụng), nhưng đo được hiệu quả rõ rệt so với cả baseline gốc lẫn 2 lần thử trước. Phù hợp quy mô thật của Mood Studio và đúng ràng buộc dự án (không cần refactor lớn gộp 17 hook `useSWR`).
