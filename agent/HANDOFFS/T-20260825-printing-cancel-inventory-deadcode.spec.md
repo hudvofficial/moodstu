@@ -14,7 +14,7 @@
 
 **Locks (Phase B — DB, tuỳ chọn):** `supabase/migrations/20260825HHMMSS_drop_printing_inventory_payment_legacy.sql` (mới), `types/database.types.ts` (sinh lại), `scripts/vault-gen-schema.mjs`, `scripts/verify-migration.mjs`, `scripts/migrate-direct.mjs` (banner), `vault/30-du-lieu/*` (sinh lại).
 
-**KHÔNG đụng:** module Vật tư (`components/inventory/**`, `app/actions/inventory-*` — `stock-in-modal`/`stock-out-modal` dùng `fetchInventoryPickerItems` cho việc của họ, giữ nguyên); các cột trên `printing_orders` (kể cả `inventory_status`, `deposit_amount`, `paid_amount`, `final_amount`, `delivered_at`, `delivered_date`) — xem mục 6 vì sao không drop; `record_lab_payment_atomic`/`printing_integrity_report`/`finance_lab_debt_summary` (không tham chiếu gì tới các object bị gỡ — đã kiểm `pg_proc`).
+**KHÔNG đụng:** module Vật tư (`components/inventory/**`, `app/actions/inventory-*` — `stock-in-modal`/`stock-out-modal` dùng `fetchInventoryPickerItems` cho việc của họ, giữ nguyên) — **đây là đường thiệp cưới ↔ hợp đồng thật, đã kiểm riêng ở mục 1h, không bị ảnh hưởng**; các cột trên `printing_orders` (kể cả `inventory_status`, `deposit_amount`, `paid_amount`, `final_amount`, `delivered_at`, `delivered_date`) — xem mục 6 vì sao không drop; `record_lab_payment_atomic`/`printing_integrity_report`/`finance_lab_debt_summary` (không tham chiếu gì tới các object bị gỡ — đã kiểm `pg_proc`).
 
 ---
 
@@ -65,6 +65,21 @@ Grant hiện tại: cả 4 object trên cấp **ALL** (INSERT/UPDATE/DELETE/TRUN
 | Cache | client optimistic + `handleSaved` | `revalidatePath("/printing")` + `/printing/[id]` (route không tồn tại) |
 
 → Hủy từ dropdown thì mất `cancellation_reason` ở cột chính; hủy từ modal thì mất dòng lịch sử. Không đường nào "đúng đủ".
+
+### 1h. Đường **hợp đồng ↔ kho** (thiệp cưới trọn gói) — kiểm riêng theo câu hỏi user, KHÔNG bị spec này chạm
+User hỏi (2026-08-25): *"vật tư liên quan tới hợp đồng — khách trọn gói cả in thiệp cưới — đường data đó check chưa?"* Đo lại toàn bộ:
+
+**Thiệp cưới đi qua module Vật tư, không qua đơn in.** `inventory_items` có đúng 3 dòng và cả 3 đều là thiệp gắn mã hợp đồng: `VT-016 Thiệp Cưới - HD527` (tồn 20), `VT-017 Thiệp Cưới - HD513` (tồn 0), `VT-018 Tân Gia - HD394` (tồn 650), đơn vị "tờ". 9 giao dịch kho thật (05–06/2026): **nhập kho** khi in xong (`stock_in` ×4, giá vốn 380–500đ/tờ, tổng vốn 2.880.000đ) → **giao khách = phiếu bán vật tư** (`stock_out/retail_sale` ×4 kèm `receipts` "Bán vật tư" cho DV Út Linh 3.245.000đ, DV Long Kiều 720.000đ, DV Hiền Lưu 350.000đ, Nam Râu 980.000đ) hoặc **xuất nội bộ** (`internal_use` ×1, lý do ghi "Xuất bán"). `printing_orders`: **0 đơn** có item thiệp (toàn bộ là ảnh: Mika, In lụa, album); `contract_items`: 0 dòng thiệp, 0 dòng có link kho (bảng **không có** cột `inventory_item_id` — FK tên `contract_items_inventory_item_id_fkey` thực chất là `dress_id → dresses`, di sản đổi tên); `services`: 0 dịch vụ thiệp.
+
+**Chế độ "Xuất HĐ"/"Bán thêm HĐ" của kho tồn tại nhưng chưa từng dùng:** `stock-out-modal.tsx` có 2 mode `contract_fulfillment`/`contract_addon_sale` (RPC `inventory_stock_out_atomic(p_contract_id)`, `create_contract_inventory_addon_sale_atomic`, `add_fulfillment_transaction_atomic`) — DB: **0 giao dịch** dùng 2 source_type này, `inventory_transactions.contract_id` **NULL ở cả 9 dòng**. Tức thiệp của khách hợp đồng đang được ghi như **bán lẻ không link hợp đồng**.
+
+**Spec này không đụng đường đó — kiểm bằng `pg_proc`:** 13 RPC chạm `inventory_transactions` (`inventory_stock_in_atomic`, `inventory_stock_out_atomic`, `create_sale_receipt_atomic`, `create_contract_inventory_addon_sale_atomic`, `add_fulfillment_transaction_atomic`, `update/delete_fulfillment_transaction_atomic`, `restore_inventory_from_transaction`, `inventory_stats`, `inventory_detail_v2`, `inventory_item_transaction_totals`, `finance_reports_snapshot`, `get_finance_advanced_intelligence`) — **không hàm nào** tham chiếu `inventory_reservations`, `inventory_available_stock` hay cột `reservation_id`. 5 hàm khớp chuỗi `reservation_id` (`is_dress_available`, `create_dress_contract_reservation_atomic`, `release_dress_reservation_atomic`, `update_dress_reservation_status_atomic`, `check_inventory_conflict`) là tham số `p_reservation_id` của **module váy** (`dress_reservations`), không chạm `inventory_transactions.reservation_id`. Phase A chỉ gỡ code phía `printing_orders`; Phase B chỉ drop object 0 dòng/0 caller. Kết luận: **đường thiệp cưới ↔ hợp đồng ↔ kho nguyên vẹn sau task này.**
+
+**Phát hiện kèm cho module Tài chính (ngoài phạm vi, KHÔNG làm ở đây — cần user xác nhận nghiệp vụ trước):**
+1. Giá vốn thiệp không vào báo cáo lợi nhuận theo hợp đồng: `finance-dashboard-queries.ts:284`, `finance-reports-queries.ts:307` chỉ cộng COGS từ `source_type IN (contract_fulfillment, contract_addon_sale)` — cả 4 lần giao thiệp đều là `retail_sale` không `contract_id` → 0đ giá vốn thiệp gắn HĐ.
+2. Tiền in thiệp (2.880.000đ vốn nhập kho) **không có phiếu chi** nào (`expenses` 0 dòng khớp "thiệp"/"tân gia") — chỉ nằm ở `inventory_transactions.total_cost`.
+3. Nếu gói hợp đồng đã gồm thiệp trong `total_amount` mà khi giao lại lập thêm phiếu bán 5.295.000đ → khả năng **đếm doanh thu 2 lần**; nếu thiệp bán riêng ngoài gói thì đúng nhưng nên dùng "Bán thêm HĐ" để gắn `contract_id`. Cần user cho biết thiệp nằm trong gói hay bán rời → mở task riêng cho Tài chính/Vật tư.
+4. Picker "Liên kết vật tư" ở đơn in (1b) có lẽ từng được nghĩ cho đúng trường hợp này (đơn in thiệp gửi lab → nhập kho). Nghiệp vụ thật hiện không đi đường đó (thiệp nhập kho trực tiếp, không qua đơn in). Nếu tương lai muốn "đơn in thiệp → tự nhập kho" thì đó là tính năng mới (spec riêng: thêm `item_id` vào `printingItemSchema` + hành động nhập kho khi `hoan_thanh`), không phải giữ lại picker câm.
 
 ## 2. Kiến trúc đề xuất (ADR-016 — cần user duyệt)
 
@@ -193,7 +208,7 @@ DROP VIEW IF EXISTS public.order_payment_summary;          -- reader cuối xoá
 DROP VIEW IF EXISTS public.inventory_available_stock;      -- 0 reader; đọc inventory_reservations
 DROP FUNCTION IF EXISTS public.expire_old_reservations();  -- chưa từng lên lịch (pg_cron chưa cài)
 DROP FUNCTION IF EXISTS public.check_inventory_conflict(uuid, date, date, uuid); -- tham chiếu cột không tồn tại, 0 caller
-ALTER TABLE public.inventory_transactions DROP COLUMN IF EXISTS reservation_id; -- 0 dòng non-null; idx_inventory_transactions_reservation rơi theo
+ALTER TABLE public.inventory_transactions DROP COLUMN IF EXISTS reservation_id; -- 0 dòng non-null; idx_inventory_transactions_reservation rơi theo. 13 RPC chạm inventory_transactions không hàm nào đọc/ghi cột này (mục 1h); 5 hàm khớp chuỗi "reservation_id" là p_reservation_id của module váy.
 DROP TABLE IF EXISTS public.inventory_reservations;        -- 0 dòng từ khi tạo; RLS 3 policy + 5 index rơi theo
 DROP TABLE IF EXISTS public.order_payments;                -- 0 dòng; RLS 3 policy + 6 index rơi theo
 ```
