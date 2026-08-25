@@ -809,3 +809,41 @@ done:
       Thu hẹp còn 1 file: admin đã vá cùng lỗi ở use-gallery-data.ts:90-96 bằng ref (chưa vá phía khách);
       không đụng use-masonry-grid.ts (hook dùng chung). requestedSizeRef + setSize(pagesData.length+1) +
       loadingMoreImages = isValidating && size > pagesData.length. Code chỉ bắt đầu sau khi M3-A xanh prod.
+
+  - id: T-20260825-contracts-list-financials
+    title: "/contracts list: thêm cột Chi phí/Lợi nhuận (gate theo quyền finance)"
+    status: merged
+    owner: claude
+    locks:
+      - app/actions/contract-queries.ts
+      - app/actions/finance-dashboard-queries.ts
+      - components/contracts/contracts-list-client.tsx
+      - components/contracts/contracts-table.tsx
+      - components/contracts/contracts-tablet-table.tsx
+      - components/ui/table.tsx
+      - types/contract.ts
+      - supabase/migrations/20260825160000_contract_list_add_financials.sql
+    spec: agent/HANDOFFS/T-20260825-contracts-list-financials.spec.md
+    result: >
+      MERGED b42b74b (Claude fallback). Migration thêm total_cost/profit/profit_margin vào
+      get_contract_list_v2 (copy công thức finance_contract_profit_report — loại work_tasks
+      vendor, loại expenses [Auto-Print]%). contract-queries.ts: role không có quyền "finance"
+      (vd sale) → server xóa hẳn 3 field khỏi payload, không chỉ ẩn UI. UI: +1 cột "Lợi nhuận"
+      (Chi phí làm dòng phụ) desktop, dòng phụ thứ 3 ở tablet, dòng riêng ở mobile — chỉ render
+      khi field có mặt. Bấm mở lại ContractProfitDetailDrawer đã có (tái dùng, không viết lại
+      breakdown). Fix kèm: getContractFinanceDetails (nuôi chính drawer đó) thiếu filter
+      vendor_id IS NULL trên work_tasks — bug đang sống, phát hiện khi đối chiếu số list↔drawer
+      lệch nhau, vá cùng task. Verify: eslint 0, tsc 0, build 0, Playwright local+production
+      (seed admin+sale): admin thấy cột đúng, số khớp RPC (1.900.000đ HĐ-2026-0064), bấm mở
+      đúng drawer không lộ nhầm ContractDrawer, số khớp 100% sau khi vá; sale không thấy cột,
+      đúng 10 cột như ảnh gốc user gửi.
+    verify:
+      - npx eslint app/actions/contract-queries.ts app/actions/finance-dashboard-queries.ts components/contracts/contracts-list-client.tsx components/contracts/contracts-table.tsx components/contracts/contracts-tablet-table.tsx components/ui/table.tsx
+      - npx tsc --noEmit
+      - npm run build
+      - Playwright (Node, seed E2E admin+sale) local + production stu.moodwedding.com
+    depends_on: []
+    notes: >
+      User gửi ảnh bảng /contracts (10 cột, thiếu Chi phí/Lợi nhuận): "tối ưu UI dựng mình
+      xem". Phát hiện quyền hạn khi trace: role sale có contracts nhưng không có finance —
+      quyết định gate ở tầng action (xóa key), không chỉ ẩn cột ở UI.

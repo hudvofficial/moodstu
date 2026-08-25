@@ -3,7 +3,14 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-25** · nhánh: `main` @ `f687cff`.
+> Cập nhật gần nhất: **2026-08-25** · nhánh: `main` @ `b42b74b`.
+
+## 2026-08-25 (tiếp #9) — /contracts: thêm cột Chi phí/Lợi nhuận (gate theo quyền finance) — MERGED + PROD
+- User gửi ảnh bảng `/contracts` (10 cột, thiếu Chi phí/Lợi nhuận): "table hiển thị thiếu thông tin: Chi phí và lợi nhuận / tối ưu UI dựng mình xem."
+- Trace: `get_contract_list_v2` (RPC nuôi list) không có field cost/profit nào. **Phát hiện quyền hạn khi trace:** role `sale` có quyền `contracts` nhưng KHÔNG có `finance` — nếu thêm field vô điều kiện sẽ lộ số tài chính nội bộ qua Network response dù UI ẩn cột.
+- **T-20260825-contracts-list-financials MERGED** (`b42b74b`, Claude fallback). Migration `20260825160000_contract_list_add_financials.sql`: thêm `total_cost/profit/profit_margin` vào RPC, copy nguyên công thức `finance_contract_profit_report` (loại `work_tasks.vendor_id IS NOT NULL`, loại `expenses [Auto-Print]%`). `contract-queries.ts`: role không có `finance` → server xóa hẳn 3 field khỏi payload (không chỉ ẩn UI). UI: đúng 1 cột mới "Lợi nhuận" (gộp Chi phí làm dòng phụ) desktop, dòng phụ thứ 3 trong ô Tổng cộng/Còn nợ ở tablet, dòng riêng ở mobile — chỉ render khi field có mặt trong data. Bấm mở lại `ContractProfitDetailDrawer` đã có ở `/finance/dashboard` (tái dùng, không viết lại breakdown).
+- **Bug phát sinh khi verify (vá luôn cùng task):** đối chiếu số list ↔ drawer cho cùng HĐ lệch (+1.900.000 vs +550.000) → `getContractFinanceDetails` (nuôi chính drawer, dùng ở cả `/finance/dashboard`) thiếu filter `vendor_id IS NULL` trên `work_tasks`, đếm cả task vendor vào "Chi phí Lương" — **bug đang sống**, không phải out-of-scope, vá bằng đúng pattern đã chứng minh ở `finance_contract_profit_report`.
+- Verify: eslint 0, tsc 0, build 0. Playwright local + **production** (seed 2 role admin/sale, xóa sạch): admin thấy cột đúng vị trí, số khớp RPC (1.900.000đ cho HĐ-2026-0064), bấm mở đúng drawer không lộ nhầm `ContractDrawer`, số khớp 100% sau khi vá vendor_id; sale không thấy cột, đúng 10 cột như ảnh gốc. Render OK desktop/tablet/mobile. Chi tiết: `agent/HANDOFFS/T-20260825-contracts-list-financials.spec.md`.
 
 ## 2026-08-25 (tiếp #8) — Rà soát KIẾN TRÚC DỮ LIỆU NGHIỆP VỤ toàn hệ thống ("kiến trúc sai tè le" — user) → báo cáo "Sổ nào là chân lý?"
 - User yêu cầu trace rộng lại nghiệp vụ + quan hệ dữ liệu + đường đi đúng sau khi lộ ra thiệp cưới đi qua kho. Đo toàn bộ DB prod (chỉ đọc) + `pg_proc` 10 RPC tài chính + vault + code. Báo cáo: **`docs/reports/audit_2026-08-25_luong-du-lieu-nghiep-vu.md`** (số liệu thô ở phụ lục) + artifact "Sổ Nào Là Chân Lý".
