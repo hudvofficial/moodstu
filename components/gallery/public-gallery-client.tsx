@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { Camera, CircleCheck, Image as ImageIcon, Heart, Download, MessageSquare } from "lucide-react";
@@ -217,7 +217,7 @@ export default function PublicGalleryClient({
     return res.data;
   };
 
-  const { data: pagesData, size, setSize, isValidating, mutate: mutatePages } = useSWRInfinite(
+  const { data: pagesData, size, setSize, isValidating, error: pagesError, mutate: mutatePages } = useSWRInfinite(
     getKey,
     fetchImagesPage,
     {
@@ -237,14 +237,27 @@ export default function PublicGalleryClient({
   }, [pagesData, gallery.gallery_images]);
 
   const hasMoreImages = pagesData ? pagesData[pagesData.length - 1].hasMore : false;
-  // isValidating is true during any request, but we only want to show 'loading more' if we are fetching the next page
-  const loadingMoreImages = isValidating && pagesData && pagesData.length === size;
+  // T-20260825-pagination-chain: đang tải trang MỚI = size đã tăng mà pagesData chưa bắt kịp. Bản cũ viết ngược
+  // (pagesData.length === size) → false đúng lúc đang tải → spinner không hiện và phanh AUTO-TRIGGER của grid không ăn.
+  const loadingMoreImages = isValidating && !!pagesData && size > pagesData.length;
+
+  // Chốt chặn bằng REF như admin đã làm ở use-gallery-data.ts:90-96 (cùng lỗi, đã đo trên prod): sentinel + AUTO-TRIGGER
+  // của grid gọi onLoadMore trong CÙNG một tick, `isValidating` (state) chưa kịp đổi → setSize 2 lần → 2 request trang
+  // song song → 1 bị net::ERR_ABORTED → trang đó mất (đo prod: 5 request hủy/lượt mở album 517 ảnh; 2G page 20 → ~26).
+  // requestedSizeRef = trang cao nhất đã yêu cầu; reset về số trang ĐÃ VỀ mỗi khi pagesData đổi (hoặc lỗi) để trigger
+  // kế được nhận và lỗi không kẹt vĩnh viễn.
+  const requestedSizeRef = useRef(0);
+  useEffect(() => {
+    requestedSizeRef.current = pagesData?.length ?? 0;
+  }, [pagesData?.length, pagesError]);
 
   const loadMoreServerImages = useCallback(() => {
-    if (hasMoreImages && !isValidating) {
-      setSize(size + 1);
-    }
-  }, [hasMoreImages, isValidating, size, setSize]);
+    if (!hasMoreImages || !pagesData) return;
+    const next = pagesData.length + 1;
+    if (requestedSizeRef.current >= next) return; // trang này đã được yêu cầu và đang bay → bỏ qua trigger trùng
+    requestedSizeRef.current = next;
+    setSize(next);
+  }, [hasMoreImages, pagesData, setSize]);
 
   // ─── Filtered + visible images ──────────────
   // Tab ĐÃ CHỌN: danh sách server, lọc lại theo is_selected để bỏ chọn (vá lạc quan) → tile biến mất ngay như hành vi cũ

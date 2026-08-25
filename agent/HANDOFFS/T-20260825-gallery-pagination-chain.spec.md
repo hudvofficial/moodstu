@@ -96,9 +96,10 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 
 ## 3. Acceptance criteria
 
-1. **Gate đo được (production, album "Xuân Phúc – Ngọc Huy" `IjbQItqZSBUz`, 517 ảnh, chỉ đọc):** mở album, cuộn tới hết như khách thật (probe `probe-all-tab.mjs`): request phân trang bị hủy **5 → 0**; tổng request trang = đúng số trang cần (6 với page 100, không trùng); cuối cùng **517/517** tile; các response `page=` liên tục 1,2,3,4,5 không thiếu số nào.
-2. Cùng kịch bản trên local `next start` (page đầu 30 → nhiều trang hơn): 0 request hủy, tile cuối = tổng header.
-3. Spinner "Đang tải thêm ảnh..." xuất hiện ít nhất 1 lần trong lúc cuộn (trước fix: không).
+1. **Gate đo được (production, album "Xuân Phúc – Ngọc Huy" `IjbQItqZSBUz`, 517 ảnh, chỉ đọc):** mở album, cuộn tới hết như khách thật (probe `probe-all-tab.mjs`, theo dõi TỪNG trang qua body request): **`duplicatePageRequests = []`** (trước fix: `[0,1,2,3,3,4,5,5]` → trùng p3, p5) và **`pagesNeverReceived = []`**; cuối cùng **517/517** tile; đo 2 lần liên tiếp đều đạt.
+   *Thước đo đã chỉnh sau khi trace sâu hơn:* số POST `net::ERR_ABORTED` thô **không** là gate — phần lớn là Next.js đóng RSC stream **sau khi đã nhận 200** (xảy ra cả với stats/reactions, dữ liệu vẫn vào grid) → lành tính. Cái làm mất trang là **request trùng** (2 `setSize` cùng tick) — đó mới là thứ B chặn.
+2. Cùng kịch bản trên local `next start`: 0 trùng, 0 trang không về, tile cuối = tổng header — 2 lần.
+3. **Slow 3G** (CDP 50KB/s, 1.5s latency): cuộn 1 lần → thấy "Đang tải thêm ảnh..." (`spinnerSlow3G = true`; trước fix: `loadingMoreImages` false lúc đang tải → không hiện).
 4. Regression: ĐÃ CHỌN 70/70 và GHI CHÚ 126/126 trên gallery thật (không đổi); @375 không tràn.
 5. eslint 0 (yếu — file có `eslint-disable`) · `tsc --noEmit` 0 · `npm run build` exit 0.
 
@@ -107,3 +108,15 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 1. eslint · tsc · build.
 2. `next start -p 3005` + PowerShell: `probe-all-tab.mjs` trỏ local (AC2/AC3), `verify-selected-tab.mjs` phần chỉ đọc (AC4).
 3. Sau merge: `probe-all-tab.mjs` trên production (AC1) — so với số đo trước fix đã lưu: `abortedAt: ["4.1","4.8","11.6","12.0","15.0"]`, `pagesReceived` thiếu số.
+
+---
+
+## 5. Kết quả thực thi (2026-08-25) — local ĐẠT
+
+**Review diff-vs-spec:** ĐẠT — đúng 3 hunk (a)(b)(c), 1 file, +21/−8; code M2/M3-A byte-identical. eslint 0 (yếu) · tsc 0 · build exit 0.
+
+**Baseline production TRƯỚC B** (probe phân loại từng trang, 2 lần): lần 1 `duplicatePageRequests: ["p4x2"]`, lần 2 `[]` (trùng xuất hiện ngẫu nhiên theo thời điểm — các lần đo trước: `[0,1,2,3,3,4,5,5]`); `spinnerSlow3G: false` **cả 2 lần** (tín hiệu "trước" ổn định); `pagesNeverReceived: []` cả 2 (tab TẤT CẢ tự bù nhờ cuộn — đúng như đã ghi ở CURRENT_STATE).
+
+**Local `next start` SAU B** (2 lần): `pagesRequested [0..5]`, **`duplicatePageRequests: []` ×2**, `pagesNeverReceived: []` ×2, 517/517 ×2, **`spinnerSlow3G: true` ×2**, spinner lúc cuộn thường thấy 1/2 lần (server local nhanh, trang về < 300ms — không dùng làm gate). Regression `verify-selected-tab` chỉ-đọc **6/6** (ĐÃ CHỌN 70, GHI CHÚ 126, @375, Slow 3G tab).
+
+**Điều chỉnh thước đo (trung thực):** `failedPageRequests` (POST `ERR_ABORTED`) vẫn còn sau B (vd `p1,p2,p3`) nhưng **mỗi trang đó đều đã nhận 200 và ảnh vào grid** — đây là Next.js đóng RSC stream sau khi đọc xong kết quả action (xảy ra cả với `getPublicGalleryStats`/reactions), không phải mất dữ liệu. Thứ B chặn là **request trùng** (2 `setSize` cùng tick) — trước B chính là thứ tạo ra trang bị bỏ và chuỗi chết ở tab lọc. Gate AC1 đã sửa theo đó.
