@@ -77,6 +77,21 @@ Nguyên nhân gốc: **một bảng "phiếu chi" gánh hai nghĩa** (cam kết 
 
 Hệ quả: phiếu chi **có** allocation = thanh toán nợ, không phải chi phí mới; phiếu chi **không** allocation = chi phí thật phát sinh. Không có phiếu chi "ảo". Giá vốn phôi vào lãi/lỗ **lúc xuất** (bán), không phải lúc nhập — lúc nhập chỉ là tồn kho + nợ NCC.
 
+### 3.1b Luật ngày ghi sổ — chốt bởi Claude theo uỷ quyền của user (25/08)
+
+User: *"đợt rồi mình bỏ bê hệ thống không update kịp thời, có job đã done mà hôm nay mới update"* → đo: 33 HĐ hoàn thành chỉ 15 bấm cùng tháng với ngày chụp, 8 bấm muộn >30 ngày; 22/26 lần trả lab nhập cùng ngày 25/08 (modal có ô ngày nhưng `labPaymentSchema` bỏ rơi `payment_date`, bảng `lab_payments` không có cột ngày); `work_tasks.completion_date = now()` lúc bấm. **Kết luận: ngày trạng thái không được dùng làm ngày ghi sổ.**
+
+| Con số | Ngày ghi sổ | KHÔNG dùng |
+|---|---|---|
+| Doanh thu HĐ (lãi/lỗ tháng) | `contracts.work_date` (ngày chụp), fallback `contract_date`; loại `status='da_huy'` | `status='hoan_thanh'`, `updated_at` |
+| Doanh số ký | `contracts.contract_date` | — |
+| Chi phí task | `contract_events.event_date` (qua `work_tasks.event_id`), khi `status='hoan_thanh'` | `completion_date` (= giờ bấm) |
+| Đơn in | `printing_orders.order_date` (nhập lúc tạo) | `created_at`/`updated_at` |
+| Nhập/xuất kho | ngày giao dịch (`inventory_transactions.created_at`, sẽ cho sửa) | — |
+| Phiếu thu / phiếu chi | `payment_date` / `expense_date` nhập trên phiếu | `created_at` |
+
+Hệ quả thiết kế: mọi form ghi tiền phải có ô ngày (mặc định hôm nay, sửa được), mọi RPC phải nhận ngày, mọi báo cáo theo tháng chỉ đọc cột ngày nghiệp vụ. Câu hỏi "tháng ký hay tháng hoàn thành" biến mất: là **tháng chụp**.
+
 ### 3.2 Công nợ
 
 - **Phải thu** (đã có): `contracts.total_amount − Σ payments` — `remaining_amount`, `get_receivable_aging`.

@@ -30,6 +30,42 @@ updated: 2026-08-25
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260825-cashflow-m1-so-tien-ra
+    title: "Dòng tiền M1 (ADR-016): phiếu chi = tiền thật, expense_allocations, bỏ trích trước lab/thợ, 1 hàm lợi nhuận contract_financials, công nợ hợp nhất, nhập phôi tạo phiếu chi"
+    status: spec
+    owner: claude
+    branch: TBD (chờ user gật)
+    locks:
+      - supabase/migrations/20260825200000_cashflow_m1_expense_allocations.sql (mới)
+      - types/database.types.ts (sinh lại)
+      - lib/validations/lab.schema.ts
+      - lib/validations/finance.schema.ts
+      - lib/validations/inventory.schema.ts
+      - app/actions/lab-mutations.ts
+      - app/actions/lab-queries.ts
+      - app/actions/vendor-payment-actions.ts
+      - app/actions/vendor-actions.ts
+      - app/actions/work-task-actions.ts
+      - app/actions/salary-actions.ts
+      - app/actions/expense-actions.ts
+      - app/actions/inventory-mutations.ts
+      - app/actions/finance-dashboard-queries.ts
+      - app/actions/contract-profit.ts (xoá)
+      - components/printing/labs/lab-payment-modal.tsx
+      - components/inventory/stock-in-modal.tsx
+      - tests/e2e/cashflow-m1.spec.ts (mới)
+      - vault/50-luong/luong-tien.md, vault/40-module/{tai-chinh,in-an-lab,nha-cung-cap,vat-tu}.md
+    spec: agent/HANDOFFS/T-20260825-cashflow-m1-so-tien-ra.spec.md
+    verify:
+      - "pre-check 6 số + snapshot before (spec §4)"
+      - node scripts/migrate-direct.mjs 20260825200000_cashflow_m1_expense_allocations.sql
+      - npm run db:types && npx tsc --noEmit && npx eslint <locks> && npm run build
+      - npm run verify:printing && npm run verify:contracts && npm run verify:inventory
+      - "Playwright tests/e2e/cashflow-m1.spec.ts 5/5 (next start) + render 6 màn"
+      - "after: payable lab 1.905.000 / vendor 0 / supplier 0; profit 59/60 khớp, HĐ-2026-0064 −1.350.000; da_thanh_toan count không đổi"
+    depends_on: []
+    notes: "ADR-016 Accepted 25/08 (user uỷ quyền đường đi dữ liệu). Chạm dữ liệu tài chính lịch sử: 26 lab_payments + 5 vendor_payments + 4 lô phôi → 35 phiếu chi thật; xoá mềm 43 phiếu chi trích trước; 4 bảng cũ → _legacy + view tương thích để app đọc không đổi; 3 RPC đơn in bỏ upsert_printing_expense; trigger vendor bỏ; contract_financials() thay 4 bản sao công thức; finance_payable_summary() + 2 wrapper giữ chữ ký cũ. Luật ngày: labPaymentSchema thêm payment_date (bug có sẵn: modal có ô ngày nhưng schema bỏ rơi → 22/26 lần trả ghi 25/08). Lock KHÔNG giao với T-20260825-printing-cancel-inventory-deadcode (spec đó chạm printing-mutations/cancel-modal/detail-drawer/types/printing.ts)."
+
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"
     status: spec
