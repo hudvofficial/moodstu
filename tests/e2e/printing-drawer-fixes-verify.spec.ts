@@ -278,7 +278,7 @@ function groupDrawer(page: Page) {
 }
 
 async function openGroupDrawer(page: Page, seed: SeedState) {
-  await page.goto("/printing", { waitUntil: "networkidle" });
+  await page.goto("/printing", { waitUntil: "domcontentloaded" });
   const groupRow = page.locator("table tbody tr", { hasText: seed.contractCode }).first();
   await groupRow.waitFor({ state: "visible", timeout: 20_000 });
   await groupRow.click();
@@ -414,7 +414,7 @@ test.describe.serial("T-20260825 printing drawer fixes — render thật", () =>
 
     // Đi qua danh sách như spec printing-ui-tablet (goto thẳng /contracts/[id] ngay sau
     // login bị net::ERR_ABORTED — điều hướng bị huỷ giữa chừng, không liên quan code test).
-    await page.goto("/contracts", { waitUntil: "networkidle" });
+    await page.goto("/contracts", { waitUntil: "domcontentloaded" });
     const codeText = page.getByText(seed.contractCode, { exact: false }).first();
     await codeText.waitFor({ state: "visible", timeout: 20_000 });
     const tableRow = page.locator("table tbody tr", { hasText: seed.contractCode }).first();

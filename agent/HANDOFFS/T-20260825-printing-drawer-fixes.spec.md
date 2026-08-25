@@ -542,4 +542,6 @@ Thêm `isPrintingOrderOverdue` vào import dòng 2 (`import { isPendingPrintStat
 - Modal "Hủy đơn in": 0 text "Hoàn tiền", 0 text "Đã thanh toán", còn "Tổng đơn".
 - `/contracts/[id]` thẻ hợp đồng: A → "Hủy đơn" → modal lý do hiện (trước: fail thẳng vì `requiresReason` thiếu `huy_don`) → DB `huy_don`.
 
-**Còn lại cần user:** merge `claude/printing-drawer-fixes` → `main` + `git push origin main` (= deploy), rồi verify lại trên `stu.moodwedding.com`. Claude không tự push main.
+**Merge + deploy (user: "tiến hành merge + push luôn"):** ff `main` `0760426 → d91def7`, push 15:08Z; Vercel status (GitHub commit status API, không cần auth) `pending → success` sau ~140s.
+
+**Verify PRODUCTION `stu.moodwedding.com` (cùng spec Playwright, seed riêng, dọn sạch — 0 dòng sót/7 bảng sau 2 lượt): 3/3 PASS.** Lượt 1 fail ở `page.goto(..., waitUntil: "networkidle")` timeout 45s — trên prod Speed Insights/Realtime giữ kết nối nên `networkidle` không bao giờ đạt (local `next start` không có); ảnh chụp lúc fail cho thấy trang đã render đủ (nhóm seed `E2E-PDF-… 3 đơn · 1 trễ`). Đổi 2 chỗ `goto` sang `waitUntil: "domcontentloaded"` (spec đã có element-wait riêng) → lượt 2 3/3 pass: group drawer đang mở tự đổi trạng thái + header 0/3→1/3, modal lý do hiện cho Gặp sự cố/Hủy đơn ở cả `/printing` lẫn `/contracts/[id]`, dot `rgb(243,156,18)` ≠ `rgb(231,76,60)`, badge nợ lab 262.500đ, next-step đổi tại chỗ, modal Hủy không còn "Hoàn tiền". **Bài học cho spec e2e chạy trên prod: không dùng `networkidle`.**
