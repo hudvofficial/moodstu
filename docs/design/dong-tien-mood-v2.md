@@ -184,9 +184,29 @@ M1 là đợt duy nhất chạm dữ liệu tài chính lịch sử — làm tr�
 - **Gộp `labs` + `vendors` + NCC phôi thành một bảng ngay** — đúng hướng nhưng đụng 3 module; hợp nhất ở **tầng phiếu chi** (`payee_type`) trước, `vendors` mở rộng thành "đối tác ngoài" cho NCC phôi vì đã có sẵn thanh toán/phân bổ. Gộp `labs` vào để sau.
 - **Đóng băng module kho** — bản 1. **Bác**: kho là xương sống mảng thiệp.
 
-## 11. Cần user chốt (4 điểm, mỗi điểm 1 câu)
+## 11. Trạng thái 4 điểm (cập nhật sau trả lời lần 2 của user, 25/08)
 
-1. Đồng ý mô hình **ba sổ** (§3) và việc **xoá 43 phiếu chi trích trước** thay bằng 31 phiếu chi thật di trú từ 2 sổ thanh toán?
-2. Doanh thu hợp đồng ghi nhận vào lãi/lỗ tháng theo **tháng hoàn thành** (đề xuất) hay **tháng ký**?
-3. **Phôi thiệp:** 4 lô đã nhập (2.880.000đ) đã trả NCC chưa? Và từ nay nhập phôi thường **trả ngay** hay **nợ NCC** (để form nhập kho mặc định tạo phiếu chi luôn hay treo phải trả)?
-4. **Công in thiệp tại Mood:** trả công theo đơn (→ task, vào giá vốn từng đơn) hay do nhân sự cố định làm (→ overhead)? Và thứ tự **M1 → M5** (đề xuất) hay muốn M3 (thiệp & kho) trước?
+1. Mô hình **ba sổ** + xoá 43 phiếu chi trích trước — user "chưa hiểu mô hình" → giải thích bằng 2 câu chuyện thật ở §12 + artifact "Một Hợp Đồng Đi Qua Ba Sổ". **Chờ gật.**
+2. Tháng hoàn thành vs tháng ký — user chưa hiểu "tháng ký" → định nghĩa + ví dụ số ở §12. **Chờ chọn.** (Đề xuất: tháng hoàn thành.)
+3. **CHỐT:** phôi nhập về **trả tiền ngay** (chưa ngâm công nợ được). → Form nhập kho mặc định "Đã trả" → `inventory_stock_in_atomic` tạo phiếu chi `payee_type='supplier'` + allocation vào lô ngay trong transaction. Giữ tuỳ chọn "chưa trả" (treo phải trả) cho tương lai, mặc định tắt. Di trú §8 bước 4: 4 lô cũ (2.880.000) → 4 phiếu chi đã trả, nợ NCC = 0.
+4. **CHỐT:** công in thiệp **tính vào giá bán** (số lượng xuất còn ít) → không tạo task `in_thiep`; lãi mảng thiệp = giá bán − giá vốn phôi − hao hụt; mực/máy = phiếu chi vận hành khi mua. Bỏ đề xuất `work_type` `in_thiep` khỏi M5. Thứ tự M1→M5 giữ nguyên trừ khi user đổi.
+
+## 12. Giải thích bằng hai câu chuyện thật (cho câu 1 và 2)
+
+**HĐ-2026-0009 — Đinh Thị Nga, Chụp phóng sự cưới 3.500.000đ** (số lấy nguyên từ DB):
+- 24/05 ký + cưới; cọc 500.000 (CK); thợ ngoài Bảo Nguyên chụp, công 1.100.000, task hoàn thành trong ngày; đơn in IN-260524-00006 "Tiệc 13x18 ép nhựa ×100" 280.000 (lab Hồng Bảo). **Hôm nay:** hệ thống tự tạo 2 phiếu chi 24/05 (1.100.000 + 280.000, "chuyển khoản") dù chưa trả ai. **Ba sổ:** Cam kết *sẽ thu 3.500.000, sẽ trả 1.380.000*; Tiền vào +500.000; Tiền ra 0.
+- 05/06 ekip hậu kỳ (2 task, 0đ). 10/06 tất toán 3.000.000 (TM) → hoàn thành.
+- 25/08 trả thợ 1.100.000 + trả lab 280.000 → **hôm nay** vào `vendor_payments`/`lab_payments` không báo cáo nào đọc; **ba sổ**: 2 phiếu chi thật 25/08, phân bổ → công nợ về 0.
+
+| Tháng | Tiền vào thật | Hôm nay "phiếu chi" | Hôm nay dashboard "lợi nhuận" | Ba sổ: Két | Ba sổ: Lãi/lỗ (tháng hoàn thành) | Ba sổ: Lãi/lỗ (tháng ký) |
+|---|---:|---:|---:|---:|---:|---:|
+| 5 | 500.000 | 1.380.000 (ảo) | −880.000 | +500.000 | −1.380.000 | +2.120.000 |
+| 6 | 3.000.000 | 0 | +3.000.000 | +3.000.000 | +3.500.000 | 0 |
+| 8 | 0 | 0 (trả thật 1.380.000 không đọc) | 0 | −1.380.000 | 0 | 0 |
+| Σ | 3.500.000 | 1.380.000 | +2.120.000 | +2.120.000 | +2.120.000 | +2.120.000 |
+
+Tổng luôn khớp 2.120.000 → không ai thấy "sai"; sai ở từng tháng, lệch hai hướng, cộng dồn 60 HĐ = cảm giác rối. **"Tháng ký"** = tháng ghi trên hợp đồng (24/05); **"tháng hoàn thành"** = tháng chuyển Hoàn thành (10/06); câu hỏi chỉ là 3.500.000 vào tháng 5 hay tháng 6 của báo cáo lãi/lỗ tháng.
+
+**Lô phôi HD527, 3.000 tờ:** 02/05 nhập 1.500.000 trả ngay → hôm nay không phiếu chi (két không biết), ba sổ: phiếu chi 1.500.000, lãi/lỗ 0 (tiền thành tồn kho). 07/05 xuất nội bộ 30 tờ (15.000, lý do ghi "Xuất bán" — cần hỏi lại). 12/05 bán 2.950 tờ "DV Út Linh" 3.245.000 (1.100/tờ) → hôm nay: thu ✓, xuất ✓, giá vốn 1.475.000 có ghi nhưng không vào lãi/lỗ; dashboard tháng 5 thấy +3.245.000. Ba sổ: Két +1.745.000; Lãi/lỗ +1.755.000; tồn 20 tờ = 10.000.
+
+**Đổi gì cho người dùng:** tạo HĐ/thu tiền/bán thiệp lẻ không đổi; giao task & tạo đơn in chỉ ghi "sẽ phải trả" (không lén tạo phiếu chi); trả thợ/lab ở một màn Công nợ → bấm Trả → phiếu chi thật; nhập phôi tự tạo phiếu chi; khách HĐ mua thiệp chọn "Bán thêm HĐ"; dashboard 3 số.
