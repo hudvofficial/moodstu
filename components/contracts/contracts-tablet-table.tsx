@@ -24,6 +24,7 @@ interface ContractsTabletTableProps {
   contracts: Contract[];
   onView: (contract: Contract) => void;
   onHover?: (id: string) => void;
+  onViewProfit?: (id: string) => void;
   // Pagination props
   page?: number;
   totalPages?: number;
@@ -88,10 +89,12 @@ const TabletTableRow = memo(function TabletTableRow({
   c,
   onView,
   onHover,
+  onViewProfit,
 }: {
   c: Contract;
   onView: (contract: Contract) => void;
   onHover?: (id: string) => void;
+  onViewProfit?: (id: string) => void;
 }) {
   const id = getStr(c, "id");
   const status = getStr(c, "status") as ContractStatus;
@@ -101,6 +104,8 @@ const TabletTableRow = memo(function TabletTableRow({
   const serviceType = getStr(c, "service_type");
   const serviceBadge = getServiceBadgeColor(serviceType);
   const remainingAmount = getNum(c, "remaining_amount");
+  const showProfit = c.profit !== undefined;
+  const profit = getNum(c, "profit");
 
   return (
     <TR
@@ -138,6 +143,18 @@ const TabletTableRow = memo(function TabletTableRow({
         ) : (
           <div className="mt-1 text-xs font-semibold text-success">Đầy đủ</div>
         )}
+        {showProfit && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewProfit?.(id);
+            }}
+            className={`mt-1 cursor-pointer truncate text-xs font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}
+          >
+            Lợi nhuận {profit >= 0 ? "+" : ""}
+            {fmt(profit)}
+          </div>
+        )}
       </TD>
       <TD className="w-[238px] py-3 px-3">
         <TabletStatusCell contract={c} status={status} />
@@ -159,6 +176,7 @@ const TabletTableRow = memo(function TabletTableRow({
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
   prev.c.customers?.full_name === next.c.customers?.full_name &&
+  prev.c.profit === next.c.profit &&
   JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
   JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
   JSON.stringify(prev.c.contract_events) === JSON.stringify(next.c.contract_events) &&
@@ -197,6 +215,7 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
   contracts,
   onView,
   onHover,
+  onViewProfit,
   page,
   totalPages,
   onPageChange,
@@ -274,7 +293,7 @@ export const ContractsTabletTable = memo(function ContractsTabletTable({
           {items[0]?.start > 0 && <tr><td style={{ height: items[0].start }} /></tr>}
           {items.map((virtualRow) => {
             const contract = contracts[virtualRow.index];
-            return <TabletTableRow key={virtualRow.key} c={contract} onView={onView} onHover={onHover} />;
+            return <TabletTableRow key={virtualRow.key} c={contract} onView={onView} onHover={onHover} onViewProfit={onViewProfit} />;
           })}
           {items[items.length - 1]?.end < virtualizer.getTotalSize() && (
             <tr><td style={{ height: virtualizer.getTotalSize() - (items[items.length - 1]?.end ?? 0) }} /></tr>

@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError } from "@/lib/finance-utils";
+import { canAccess } from "@/types/roles";
 import type {
   ContractFilters,
   ContractStats,
@@ -193,9 +194,22 @@ function normalizePrintOrders(orders: unknown[]): PrintingOrder[] {
   });
 }
 
+// Field tài chính nhạy cảm (chi phí/lợi nhuận nội bộ) — chỉ role có quyền "finance"
+// mới được nhận. RPC luôn tính (rẻ), tầng action xóa hẳn key nếu không đủ quyền để
+// không lộ số qua Network response, không chỉ ẩn ở UI. Xem spec
+// agent/HANDOFFS/T-20260825-contracts-list-financials.spec.md mục 1.
+const FINANCIAL_FIELDS = ["total_cost", "profit", "profit_margin"] as const;
+
+function stripFinancialFields(contract: Contract): Contract {
+  const stripped = { ...contract };
+  for (const field of FINANCIAL_FIELDS) delete stripped[field];
+  return stripped;
+}
+
 async function getContractListFromRpc(
   supabase: Parameters<Parameters<typeof withAuth>[0]>[0],
   filters: ContractFilters,
+  hasFinanceAccess: boolean,
 ): Promise<ContractListPayload | null> {
   const page = Math.max(1, filters.page || 1);
 
@@ -222,9 +236,10 @@ async function getContractListFromRpc(
   }
 
   return {
-    contracts: (payload.contracts as Contract[]).map(
-      attachChecklistSummaryFromArray,
-    ) as Contract[],
+    contracts: (payload.contracts as Contract[]).map((contract) => {
+      const withChecklist = attachChecklistSummaryFromArray(contract);
+      return hasFinanceAccess ? withChecklist : stripFinancialFields(withChecklist);
+    }),
     total: Number(payload.total) || 0,
     page: Number(payload.page) || page,
     pageSize: Number(payload.pageSize) || 20,
@@ -266,9 +281,10 @@ export async function getContractList(filters: ContractFilters) {
   // ⚡ withAuthRead: local JWT verify thay vì network getUser() — cùng pattern
   // getContractDetail. Middleware đã gate mọi request bằng getClaims().
   return profileAction("contracts.getContractList", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
-    await requireContractAccess(supabase, userId);
+    const { role } = await requireContractAccess(supabase, userId);
+    const hasFinanceAccess = canAccess(role, "finance");
 
-    const rpcPayload = await getContractListFromRpc(supabase, filters);
+    const rpcPayload = await getContractListFromRpc(supabase, filters, hasFinanceAccess);
     if (rpcPayload) return rpcPayload;
 
     const page = Math.max(1, filters.page || 1);
@@ -426,9 +442,10 @@ export async function getContractList(filters: ContractFilters) {
 
 export async function getContractPageBootstrap(filters: ContractFilters) {
   return profileAction("contracts.getContractPageBootstrap", () => withAuthRead(async (supabase: SupabaseClient<Database>, userId) => {
-    await requireContractAccess(supabase, userId);
+    const { role } = await requireContractAccess(supabase, userId);
+    const hasFinanceAccess = canAccess(role, "finance");
     const [list, stats] = await Promise.all([
-      getContractListFromRpc(supabase, filters),
+      getContractListFromRpc(supabase, filters, hasFinanceAccess),
       getContractStatsFromRpc(supabase),
     ]);
     if (!list || !stats) throw new Error("Không thể tải dữ liệu tổng quan hợp đồng");

@@ -68,14 +68,17 @@ export function TD({
   children,
   className,
   colSpan,
+  onClick,
 }: {
   children: React.ReactNode;
   className?: string;
   colSpan?: number;
+  onClick?: (e: React.MouseEvent<HTMLTableCellElement>) => void;
 }) {
   return (
     <td
       colSpan={colSpan}
+      onClick={onClick}
       className={cn(
         "px-4 2xl:px-5 whitespace-nowrap transition-colors",
         className

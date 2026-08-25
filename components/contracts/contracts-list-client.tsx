@@ -43,6 +43,7 @@ import { preload } from "swr";
 import { fetchContractNotesClient } from "@/lib/client-direct/contract-drawer";
 import { CompactStats } from "@/components/contracts/compact-stats";
 import { ContractsTable } from "@/components/contracts/contracts-table";
+import { ContractProfitDetailDrawer } from "@/components/finance/dashboard/profit-detail-drawer";
 import { ContractsDropdownFilters } from "@/components/contracts/contracts-dropdown-filters";
 import type { ContractListItem } from "@/components/contracts/contract-drawer";
 import { TierSwitch } from "@/components/ui/tier-switch";
@@ -274,6 +275,15 @@ const ContractsListInner = memo(function ContractsListInner({
   }, [contracts, selectedContractFallback, selectedContractId]);
   const isDrawerOpen = selectedContractId !== null && selectedContract !== null;
 
+  // ── Profit detail drawer (T-20260825-contracts-list-financials) ──
+  // Tái dùng nguyên ContractProfitDetailDrawer đã có ở /finance/dashboard — không viết
+  // lại breakdown chi phí. Component tự gate requireFinanceAccess bên trong.
+  const [selectedProfitContractId, setSelectedProfitContractId] = useState<string | null>(null);
+  const handleViewProfit = useCallback((id: string) => {
+    if (!id) return;
+    setSelectedProfitContractId(id);
+  }, []);
+
   // Handlers
   const handleView = useCallback(
     (contractRecord: Contract) => {
@@ -493,6 +503,7 @@ const ContractsListInner = memo(function ContractsListInner({
               onEdit={handleEdit}
               onDelete={handleDelete}
               onHover={handleHover}
+              onViewProfit={handleViewProfit}
               page={page}
               totalPages={totalPages}
               onPageChange={setPage}
@@ -526,6 +537,15 @@ const ContractsListInner = memo(function ContractsListInner({
         onClose={() => {
           setSelectedContractId(null);
           setSelectedContractFallback(null);
+        }}
+      />
+
+      {/* ── Profit Detail Drawer (bấm ô Lợi nhuận trong bảng) ── */}
+      <ContractProfitDetailDrawer
+        contractId={selectedProfitContractId || ""}
+        open={selectedProfitContractId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProfitContractId(null);
         }}
       />
     </>

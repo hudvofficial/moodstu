@@ -42,6 +42,12 @@ function getStatusVariant(status: ContractStatus): "info" | "warning" | "success
   return CONTRACT_STATUS_MAP[status]?.variant || "info";
 }
 
+// Field lợi nhuận chỉ có mặt trong payload khi role đang xem có quyền "finance" (server
+// xóa hẳn key nếu không đủ quyền — xem contract-queries.ts). Dùng sự có mặt của field
+// để quyết định render cột, không cần truyền role riêng qua nhiều lớp component.
+function hasFinancials(contracts: Contract[]): boolean {
+  return contracts.length > 0 && contracts[0].profit !== undefined;
+}
 
 // ─── PROPS ────────────────────────────────────────
 
@@ -51,6 +57,7 @@ interface ContractsTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onHover?: (id: string) => void;
+  onViewProfit?: (id: string) => void;
   // Pagination props
   page?: number;
   totalPages?: number;
@@ -104,10 +111,14 @@ const DesktopTableRow = memo(function DesktopTableRow({
   c,
   onView,
   onHover,
+  onViewProfit,
+  showFinancials,
 }: {
   c: Contract;
   onView: (contract: Contract) => void;
   onHover?: (id: string) => void;
+  onViewProfit?: (id: string) => void;
+  showFinancials: boolean;
 }) {
   const id = getStr(c, "id");
   const status = getStr(c, "status") as ContractStatus;
@@ -116,6 +127,8 @@ const DesktopTableRow = memo(function DesktopTableRow({
   const customerName = customer?.full_name || "Khách vãng lai";
   const serviceType = getStr(c, "service_type");
   const svcBadge = getServiceBadgeColor(serviceType);
+  const profit = getNum(c, "profit");
+  const totalCost = getNum(c, "total_cost");
 
   return (
     <TR
@@ -152,6 +165,23 @@ const DesktopTableRow = memo(function DesktopTableRow({
       <TD className="text-right font-semibold text-text-main">
         {fmt(getNum(c, "total_amount"))}
       </TD>
+      {showFinancials && (
+        <TD
+          className="text-right"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewProfit?.(id);
+          }}
+        >
+          <div className="cursor-pointer">
+            <div className="text-xs text-text-muted">Chi phí {fmt(totalCost)}</div>
+            <div className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
+              {profit >= 0 ? "+" : ""}
+              {fmt(profit)}
+            </div>
+          </div>
+        </TD>
+      )}
       <TD className="text-right">
         {getNum(c, "remaining_amount") > 0 ? (
           <span className="font-semibold text-error">
@@ -194,6 +224,9 @@ const DesktopTableRow = memo(function DesktopTableRow({
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
   prev.c.customers?.full_name === next.c.customers?.full_name &&
+  prev.c.profit === next.c.profit &&
+  prev.c.total_cost === next.c.total_cost &&
+  prev.showFinancials === next.showFinancials &&
   JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
   JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
   JSON.stringify(prev.c.contract_events) === JSON.stringify(next.c.contract_events) &&
@@ -205,6 +238,7 @@ const DesktopTable = memo(function DesktopTable({
   contracts,
   onView,
   onHover,
+  onViewProfit,
   page,
   totalPages,
   onPageChange,
@@ -212,6 +246,7 @@ const DesktopTable = memo(function DesktopTable({
   visibleStart,
   visibleEnd,
 }: ContractsTableProps) {
+  const showFinancials = hasFinancials(contracts);
   return (
     // Tablet (md, 768+): hiện bảng dạng block (page tự cuộn). Desktop (lg): flex-fill + sticky scroll.
     <div className="lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
@@ -245,6 +280,7 @@ const DesktopTable = memo(function DesktopTable({
             <TH>Ngày ký</TH>
             <TH>Sự kiện</TH>
             <TH className="text-right">Tổng cộng</TH>
+            {showFinancials && <TH className="text-right">Lợi nhuận</TH>}
             <TH className="text-right">Còn nợ</TH>
             <TH className="text-center">Thông tin</TH>
             <TH>Tiến độ</TH>
@@ -254,7 +290,14 @@ const DesktopTable = memo(function DesktopTable({
         </THead>
         <TBody>
           {contracts.map((c) => (
-            <DesktopTableRow key={getStr(c, "id")} c={c} onView={onView} onHover={onHover} />
+            <DesktopTableRow
+              key={getStr(c, "id")}
+              c={c}
+              onView={onView}
+              onHover={onHover}
+              onViewProfit={onViewProfit}
+              showFinancials={showFinancials}
+            />
           ))}
         </TBody>
       </TableWrapper>
@@ -269,11 +312,13 @@ const MobileCardRow = memo(function MobileCardRow({
   index: i,
   onView,
   onHover,
+  onViewProfit,
 }: {
   c: Contract;
   index: number;
   onView: (contract: Contract) => void;
   onHover?: (id: string) => void;
+  onViewProfit?: (id: string) => void;
 }) {
   const id = getStr(c, "id");
   const status = getStr(c, "status") as ContractStatus;
@@ -287,6 +332,8 @@ const MobileCardRow = memo(function MobileCardRow({
   const customerName = customer?.full_name || "Khách vãng lai";
   const serviceType = getStr(c, "service_type");
   const svc = getServiceBadgeColor(serviceType);
+  const showProfit = c.profit !== undefined;
+  const profit = getNum(c, "profit");
 
   return (
     <Button unstyled
@@ -347,6 +394,25 @@ const MobileCardRow = memo(function MobileCardRow({
         )}
       </div>
 
+      {/* Row 4.5: Lợi nhuận (chỉ role có quyền finance) — bấm mở breakdown chi phí.
+          Dùng div (không phải <button>) vì card cha đã là <button> — HTML không cho
+          lồng button trong button. */}
+      {showProfit && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewProfit?.(id);
+          }}
+          className="mb-2 flex cursor-pointer items-center justify-between text-tiny"
+        >
+          <span className="text-text-muted">Lợi nhuận</span>
+          <span className={`font-semibold ${profit >= 0 ? "text-success" : "text-error"}`}>
+            {profit >= 0 ? "+" : ""}
+            {fmt(profit)}
+          </span>
+        </div>
+      )}
+
       {/* Row 5: Payment progress bar */}
       <div className="h-1 rounded-full bg-border/30 overflow-hidden">
         <div
@@ -366,6 +432,7 @@ const MobileCardRow = memo(function MobileCardRow({
   prev.c.contract_date === next.c.contract_date &&
   prev.c.service_type === next.c.service_type &&
   prev.c.customers?.full_name === next.c.customers?.full_name &&
+  prev.c.profit === next.c.profit &&
   JSON.stringify(prev.c.checklist_summary) === JSON.stringify(next.c.checklist_summary) &&
   JSON.stringify(prev.c.contract_checklists) === JSON.stringify(next.c.contract_checklists) &&
   JSON.stringify(prev.c.contract_events) === JSON.stringify(next.c.contract_events) &&
@@ -373,11 +440,11 @@ const MobileCardRow = memo(function MobileCardRow({
   (prev.c.customers as { wedding_date?: string | null } | null)?.wedding_date === (next.c.customers as { wedding_date?: string | null } | null)?.wedding_date
 );
 
-const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover }: ContractsTableProps) {
+const MobileCardList = memo(function MobileCardList({ contracts, onView, onHover, onViewProfit }: ContractsTableProps) {
   return (
     <div className="flex flex-col gap-3 pt-1">
       {contracts.map((c, i) => (
-        <MobileCardRow key={getStr(c, "id")} c={c} index={i} onView={onView} onHover={onHover} />
+        <MobileCardRow key={getStr(c, "id")} c={c} index={i} onView={onView} onHover={onHover} onViewProfit={onViewProfit} />
       ))}
     </div>
   );

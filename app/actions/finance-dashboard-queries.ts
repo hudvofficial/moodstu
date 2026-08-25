@@ -924,7 +924,12 @@ export async function getContractFinanceDetails(contractId: string) {
         .select("id, item_name, quantity, unit_price, total_amount, type, is_addon, addon_category")
         .eq("contract_id", contractId)
         .is("deleted_at", null),
-      supabase.from("work_tasks").select("id, work_type, cost, employees(full_name)").eq("contract_id", contractId),
+      // vendor_id IS NULL: khớp finance_contract_profit_report (20260528000002_vendor_expense_profit_fix.sql)
+      // — chi phí task vendor được ghi nhận qua expenses [Auto-Vendor] lúc hoàn thành, không đọc thẳng
+      // work_tasks.cost ở đây để tránh đếm trùng/đếm sớm trước khi task thực sự accrue.
+      // Phát hiện khi verify T-20260825-contracts-list-financials: drawer này đang đếm cả task vendor
+      // vào "Chi phí Lương" → lệch số với cột Lợi nhuận mới ở /contracts.
+      supabase.from("work_tasks").select("id, work_type, cost, employees(full_name)").eq("contract_id", contractId).is("vendor_id", null),
       supabase
         .from("printing_orders")
         .select("id, order_code, items, total_amount, payment_status")

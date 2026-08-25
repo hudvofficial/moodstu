@@ -86,6 +86,12 @@ export interface Contract {
   discount_amount: number;
   paid_amount: number;
   remaining_amount: number;
+  // Chi phí/lợi nhuận — chỉ có mặt khi role gọi có quyền "finance" (server xóa hẳn key
+  // nếu không đủ quyền, xem contract-queries.ts:getContractListFromRpc). UI dựa vào
+  // sự có mặt của field này để quyết định render cột, không tự suy luận quyền.
+  total_cost?: number;
+  profit?: number;
+  profit_margin?: number;
   description: string | null;
   notes: string | null;
   // Bride / Groom info (wedding contracts)
