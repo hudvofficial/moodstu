@@ -49,7 +49,7 @@ function DetailCard({
       <div className="mb-3 flex items-center justify-between gap-3">
         <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">{title}</h4>
         {typeof total === "number" ? (
-          <span className={cn("text-caption font-black tabular-nums", totalClassName ?? "text-error")}>{formatVnd(total)}</span>
+          <span className={cn("text-caption font-bold tabular-nums", totalClassName ?? "text-error")}>{formatVnd(total)}</span>
         ) : null}
       </div>
       {children}
@@ -143,7 +143,7 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
           {/* ── Khách hàng (cùng markup drawer vận hành) ── */}
           <section className="card-base p-4">
             <Button unstyled onClick={goDetail} className="group flex w-full items-center gap-3 text-left">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-lg font-black text-primary transition-all group-hover:bg-primary group-hover:text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-h3 text-primary transition-all group-hover:bg-primary group-hover:text-white">
                 {(contract.customer_name || "K")[0].toUpperCase()}
               </div>
               <div className="flex min-w-0 flex-col">
@@ -187,7 +187,7 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
               <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
                 Lợi nhuận <span className="normal-case tracking-normal text-tiny font-medium text-text-muted">(VND)</span>
               </h4>
-              <span className={cn("text-caption font-black tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
+              <span className={cn("text-caption font-bold tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
                 {fin.profit_margin.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%
               </span>
             </div>
@@ -196,19 +196,19 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
             <div className="mb-3 flex items-stretch">
               <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Doanh thu</span>
-                <span className="block whitespace-nowrap text-body-sm font-black tabular-nums text-text-main">{formatCurrency(fin.revenue)}</span>
+                <span className="block whitespace-nowrap text-body-sm font-bold tabular-nums text-text-main">{formatCurrency(fin.revenue)}</span>
               </div>
               <div className="my-1 w-px shrink-0 bg-border/50" />
               <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Chi phí</span>
-                <span className={cn("block whitespace-nowrap text-body-sm font-black tabular-nums", fin.total_cost > 0 ? "text-error" : "text-text-muted")}>
+                <span className={cn("block whitespace-nowrap text-body-sm font-bold tabular-nums", fin.total_cost > 0 ? "text-error" : "text-text-muted")}>
                   {formatCurrency(fin.total_cost)}
                 </span>
               </div>
               <div className="my-1 w-px shrink-0 bg-border/50" />
               <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Lợi nhuận</span>
-                <span className={cn("block whitespace-nowrap text-body-sm font-black tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
+                <span className={cn("block whitespace-nowrap text-body-sm font-bold tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
                   {fin.profit > 0 ? "+" : ""}
                   {formatCurrency(fin.profit)}
                 </span>

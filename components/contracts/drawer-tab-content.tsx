@@ -114,7 +114,7 @@ export function DrawerContent({
       {/* ── Section: Khách hàng ── */}
       <section className="card-base p-4">
         <Button unstyled onClick={onViewDetail} onMouseEnter={onHoverDetail} className="flex items-center gap-3 group w-full text-left">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-lg font-black group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-h3 group-hover:bg-primary group-hover:text-white transition-all shrink-0">
             {(customer?.full_name || "K")[0].toUpperCase()}
           </div>
           <div className="flex flex-col min-w-0">
@@ -161,7 +161,7 @@ export function DrawerContent({
           <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
             Thanh toán
           </h4>
-          <span className={`text-caption font-black ${isFullyPaid ? "text-success" : "text-primary"}`}>
+          <span className={`text-caption font-bold ${isFullyPaid ? "text-success" : "text-primary"}`}>
             {paidPct}%
           </span>
         </div>
@@ -170,21 +170,21 @@ export function DrawerContent({
         <div className="flex items-stretch mb-3">
           <div className="flex-1 text-center">
             <span className="text-tiny font-bold text-text-muted uppercase block">Tổng</span>
-            <span className="text-body-sm font-black text-text-main block">
+            <span className="text-body-sm font-bold text-text-main block">
               {fmt(totalAmount)}
             </span>
           </div>
           <div className="w-px bg-border/50 my-1" />
           <div className="flex-1 text-center">
             <span className="text-tiny font-bold text-text-muted uppercase block">Đã thu</span>
-            <span className={`text-body-sm font-black block ${paidAmount > 0 ? "text-success" : "text-text-muted"}`}>
+            <span className={`text-body-sm font-bold block ${paidAmount > 0 ? "text-success" : "text-text-muted"}`}>
               {fmt(paidAmount)}
             </span>
           </div>
           <div className="w-px bg-border/50 my-1" />
           <div className="flex-1 text-center">
             <span className="text-tiny font-bold text-text-muted uppercase block">Còn lại</span>
-            <span className={`text-body-sm font-black block ${isFullyPaid ? "text-success" : "text-error"}`}>
+            <span className={`text-body-sm font-bold block ${isFullyPaid ? "text-success" : "text-error"}`}>
               {fmt(remainingAmount)}
             </span>
           </div>

@@ -23,6 +23,8 @@ Kết luận: hai drawer **đồng bộ với nhau** nhưng **cùng lệch SSOT*
 
 ---
 
+> **Đã làm trước một phần (26/08, `claude/drawer-font-weight`, user: "mood không hề xài font này"):** `font-black` (900) → `font-bold` (700) ở cả 2 drawer (11 chỗ) + avatar `text-lg font-black` → `text-h3`. Inter Variable có 900 nhưng thang thiết kế chỉ 400–700 → chữ 900 nhìn như font khác. Phần còn lại của spec (uppercase / tracking / text-tiny / sentence case) vẫn chờ gật.
+
 ## 0. Mục tiêu đo được
 1. `grep -n "uppercase\|tracking-wide\|font-black\|text-tiny\|text-lg\b\|text-xs\b\|text-sm\b" <6 file locks>` = **0**.
 2. Hai drawer vẫn cùng khung 480px, cùng cấu trúc thẻ; chỉ đổi kiểu chữ theo token.
