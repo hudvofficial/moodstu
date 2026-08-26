@@ -153,7 +153,7 @@ export function FinanceCompactBar({ data }: FinanceCompactBarProps) {
           ["Phải thu", formatVnd(debt.receivable), "/finance/debts"],
           ["Phải trả", formatVnd(debt.payable), "/finance/payables"],
         ]}
-        caption={`Lab ${formatVnd(debt.payableLab)} · thợ ${formatVnd(debt.payableVendor)} · NCC ${formatVnd(debt.payableSupplier)}`}
+        caption={`Đã giao chưa thu ${formatVnd(debt.receivableDue)} · chờ giao ${formatVnd(debt.receivableWaiting)} · nợ lab ${formatVnd(debt.payableLab)} · thợ ${formatVnd(debt.payableVendor)} · ekip ${formatVnd(debt.payableEmployee)} · NCC ${formatVnd(debt.payableSupplier)}`}
         links={[
           { href: "/finance/debts", label: "Phải thu" },
           { href: "/finance/payables", label: "Phải trả" },

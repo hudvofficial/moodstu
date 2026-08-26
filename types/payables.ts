@@ -1,13 +1,15 @@
 // ADR-016 M2 — Công nợ phải trả hợp nhất (lab ảnh · thợ ngoài · NCC phôi).
 // Nguồn: finance_payable_summary() / payable_items() / payee_payment_history() / record_payee_payment_atomic().
 
-export const PAYEE_TYPES = ["lab", "vendor", "supplier"] as const;
+// M3 (T-20260826-tien-ekip-va-can-thu): thêm "employee" — ekip nội bộ trả theo task như thợ ngoài.
+export const PAYEE_TYPES = ["lab", "vendor", "supplier", "employee"] as const;
 export type PayeeType = (typeof PAYEE_TYPES)[number];
 
 export const PAYEE_TYPE_LABEL: Record<PayeeType, string> = {
   lab: "Lab ảnh",
   vendor: "Thợ ngoài",
   supplier: "NCC phôi",
+  employee: "Ekip",
 };
 
 export interface PayableRow {

@@ -36,13 +36,21 @@ export function PendingCollections({ data }: PendingCollectionsProps) {
                 <p className="truncate text-body-sm font-semibold">
                   {item.customers?.full_name || "Khách vãng lai"}
                 </p>
-                <p className="text-caption">{item.contract_code || formatFinanceDate(item.contract_date)}</p>
+                <p className="text-caption">
+                  {item.contract_code || formatFinanceDate(item.contract_date)}
+                  {item.delivered_at ? ` · giao ${formatFinanceDate(item.delivered_at)}` : item.work_date ? ` · chụp ${formatFinanceDate(item.work_date)}` : ""}
+                </p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="tabular-nums font-bold text-error">
                   {formatVnd(Number(item.remaining_amount) || 0)}
                 </p>
-                <Badge variant={financeStatusVariant(item.status)}>{financeStatusLabel(item.status)}</Badge>
+                {/* M3: đến hạn thu = đã giao sản phẩm; chưa giao = chờ giao (không phải quá hạn) */}
+                {item.delivered_at ? (
+                  <Badge variant="error">Đã giao chưa thu</Badge>
+                ) : (
+                  <Badge variant={financeStatusVariant(item.status)}>{item.status ? "Chờ giao" : financeStatusLabel(item.status)}</Badge>
+                )}
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" />
             </Link>

@@ -77,6 +77,8 @@ export interface ReceivableAgingBucket {
 }
 
 export interface ReceivableAgingResult {
+  /** M3: HĐ chưa giao sản phẩm — chưa đến hạn thu (tuỳ chọn để tương thích dữ liệu cũ) */
+  not_delivered?: ReceivableAgingBucket;
   '0_30': ReceivableAgingBucket;
   '31_60': ReceivableAgingBucket;
   '61_90': ReceivableAgingBucket;

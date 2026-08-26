@@ -666,7 +666,7 @@ const moodieTools: Record<string, MoodieTool> = {
         },
       };
       const agingEntries = [
-        { label: "Chưa đến hạn", value: stats.aging.not_due },
+        { label: "Chờ giao (chưa đến hạn)", value: stats.aging.not_due },
         { label: "1-30 ngày", value: stats.aging.days_1_30 },
         { label: "31-60 ngày", value: stats.aging.days_31_60 },
         { label: "61-90 ngày", value: stats.aging.days_61_90 },
@@ -687,7 +687,7 @@ const moodieTools: Record<string, MoodieTool> = {
           sources: buildSources([
             { label: "Phải thu", value: formatCurrency(stats.receivable), kind: "database", entity_type: "debt_metric", entity_id: "receivable", metadata: { amount: stats.receivable } },
             { label: "Phải trả", value: formatCurrency(stats.payable), kind: "database", entity_type: "debt_metric", entity_id: "payable", metadata: { amount: stats.payable } },
-            { label: "Quá hạn", value: formatCurrency(stats.overdue), kind: "database", entity_type: "debt_metric", entity_id: "overdue", metadata: { amount: stats.overdue } },
+            { label: "Đã giao chưa thu", value: formatCurrency(stats.overdue), kind: "database", entity_type: "debt_metric", entity_id: "overdue", metadata: { amount: stats.overdue } },
           ]),
           follow_ups: [
             "Những hợp đồng nào còn phải thu?",
@@ -697,7 +697,7 @@ const moodieTools: Record<string, MoodieTool> = {
             toKpiWidget("Công nợ hiện tại", [
               { label: "Phải thu", value: formatCurrency(stats.receivable), tone: "positive" },
               { label: "Phải trả", value: formatCurrency(stats.payable), tone: "warning" },
-              { label: "Quá hạn", value: formatCurrency(stats.overdue), tone: "danger" },
+              { label: "Đã giao chưa thu", value: formatCurrency(stats.overdue), tone: "danger" },
               {
                 label: "Nợ ròng",
                 value: formatCurrency(stats.net_debt),

@@ -56,5 +56,13 @@ Kết luận: ba sổ đã đúng cho lab/thợ/NCC nhưng còn hở **ekip** (t
 ## 5. Docs
 `vault/50-luong/luong-tien.md` (bảng Tiền RA: dòng Lương → "Ekip: `work_tasks.cost` → phiếu chi employee + phân bổ task; sheet lương = lương cứng"; mục Phải thu theo mốc giao), `vault/40-module/tai-chinh.md`, `nhan-su.md`, `docs/design/dong-tien-mood-v2.md` §3.2 + §9 (M4/M5 thu hẹp: M4 = dọn `payment_plans`; M5 = lương cứng khi có), `agent/DECISIONS.md` (ADR-016 phụ lục M3), `TASKS.yaml`, `CURRENT_STATE.md`.
 
-## 6. Kết quả
-_(điền khi xong)_
+## 6. Kết quả (2026-08-26, branch `claude/tien-ekip-can-thu`)
+
+| Gate | Kết quả |
+|---|---|
+| Migration `20260826180000_tien_ekip_va_can_thu.sql` | **ĐÃ ÁP prod**. Đối soát: phải trả **ekip 8.550.350** (Admin 5.100.350 · Cường 2.100.000 · Văn Đen 1.000.000 · Kim Chi 200.000 · Dung 150.000) hiện ở `finance_payable_summary`; phải thu 92.575.000 = **đã giao chưa thu 3.300.000** (HĐ-2026-0052, giao 10/08) + chờ giao 89.275.000 (19 HĐ); `finance_debt_stats` receivable 92.575.000 / payable 10.455.350 / overdue 3.300.000; `get_receivable_aging.not_delivered` 19 HĐ; dòng test lương 100.000.000 xoá (còn 2 dòng, Σ 0). Lần áp đầu lỗi `ORDER BY (delivered_at IS NULL)` trên alias output → bọc CTE. |
+| App | `PAYEE_TYPES` + `employee` ("Ekip", chip + badge success); `MonthSummary.debt` + `receivableDue/receivableWaiting/payableEmployee`; khối Công nợ caption "Đã giao chưa thu · chờ giao · nợ lab/thợ/ekip/NCC"; `getPendingCollections` → RPC `finance_pending_collections` + badge "Đã giao chưa thu"/"Chờ giao"; `/finance/debts` stats "Đã giao chưa thu", aging "Chờ giao / Đã giao 1-30…"; `aging-bars-chart` thêm cột "Chờ giao"; Moodie nhãn; sheet lương `product_salary = 0` + cột "— Phải trả › Ekip". |
+| tsc · eslint (17 file) · build | 0 (1 lỗi `TD` không nhận `title` → chuyển vào span) |
+| `verify:reports` (+ debt_stats = Σ HĐ, overdue = receivable_due, pending_collections, aging anon-denied) · `verify:printing` · `verify:contracts` | xanh |
+| Playwright local (`--workers=1`) | **`cashflow-m3` 3/3** (task ekip → phải trả 1.200.000 → trả `record_payee_payment_atomic('employee')` → phiếu chi employee + phân bổ + lịch sử nhãn `chup_anh` → void hoàn nợ; debt_stats/month_summary delta: chưa giao +5.000.000 chờ giao, giao xong → overdue/receivable_due +5.000.000; `finance_pending_collections` delivered_at 2026-08-01; UI payables lọc Ekip, `/finance/debts`, `/finance`) · **`cashflow-m2` 3/3** · **`cashflow-m1` 4/4**. Seed dọn sạch (E2E 0, expenses 35, ekip 8.550.350, due 3.300.000). |
+| Production | _(sau merge: `cashflow-m3` trên `stu.moodwedding.com`)_ |

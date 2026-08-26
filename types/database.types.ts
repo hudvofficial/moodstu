@@ -6569,6 +6569,7 @@ export type Database = {
           cost_task: number
           cost_total: number
           payable: number
+          payable_employee: number
           payable_lab: number
           payable_supplier: number
           payable_vendor: number
@@ -6576,6 +6577,8 @@ export type Database = {
           profit_margin: number
           profit_prev: number
           receivable: number
+          receivable_due: number
+          receivable_waiting: number
           revenue: number
           revenue_contract: number
           revenue_retail: number
@@ -6593,6 +6596,23 @@ export type Database = {
           remaining: number
           total_committed: number
           total_paid: number
+        }[]
+      }
+      finance_pending_collections: {
+        Args: { p_limit?: number }
+        Returns: {
+          contract_code: string
+          contract_date: string
+          customer_id: string
+          customer_name: string
+          customer_phone: string
+          delivered_at: string
+          id: string
+          paid_amount: number
+          remaining_amount: number
+          status: string
+          total_amount: number
+          work_date: string
         }[]
       }
       finance_period_ledger: {

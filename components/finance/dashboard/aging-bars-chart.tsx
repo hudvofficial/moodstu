@@ -13,11 +13,13 @@ interface AgingBarsChartProps {
 export function AgingBarsChart({ data }: AgingBarsChartProps) {
   const chartData = useMemo(() => {
     if (!data) return [];
+    // M3: tuổi nợ đếm từ ngày GIAO sản phẩm; chưa giao = chờ giao
     return [
-      { name: 'Trong hạn (0-30đ)', value: data['0_30'].total, count: data['0_30'].count },
-      { name: 'Quá hạn (31-60đ)', value: data['31_60'].total, count: data['31_60'].count },
-      { name: 'Rủi ro (61-90đ)', value: data['61_90'].total, count: data['61_90'].count },
-      { name: 'Nợ xấu (>90đ)', value: data['90_plus'].total, count: data['90_plus'].count },
+      { name: 'Chờ giao', value: data.not_delivered?.total ?? 0, count: data.not_delivered?.count ?? 0 },
+      { name: 'Đã giao 0-30đ', value: data['0_30'].total, count: data['0_30'].count },
+      { name: 'Đã giao 31-60đ', value: data['31_60'].total, count: data['31_60'].count },
+      { name: 'Đã giao 61-90đ', value: data['61_90'].total, count: data['61_90'].count },
+      { name: 'Đã giao >90đ', value: data['90_plus'].total, count: data['90_plus'].count },
     ];
   }, [data]);
 

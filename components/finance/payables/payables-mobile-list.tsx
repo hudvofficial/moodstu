@@ -12,10 +12,11 @@ interface PayablesMobileListProps {
   onHistory: (item: PayableRow) => void;
 }
 
-const TYPE_VARIANT: Record<PayableRow["payee_type"], "info" | "warning" | "primary"> = {
+const TYPE_VARIANT: Record<PayableRow["payee_type"], "info" | "warning" | "primary" | "success"> = {
   lab: "info",
   vendor: "warning",
   supplier: "primary",
+  employee: "success",
 };
 
 export function PayablesMobileList({ items, onPay, onHistory }: PayablesMobileListProps) {

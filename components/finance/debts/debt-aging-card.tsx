@@ -23,11 +23,12 @@ const BUCKET_META: Array<{
   variant: BadgeVariant;
   icon: typeof Clock3;
 }> = [
-  { key: "not_due", label: "Chưa đến hạn", variant: "success", icon: TimerReset },
-  { key: "days_1_30", label: "1-30 ngày", variant: "warning", icon: Clock3 },
-  { key: "days_31_60", label: "31-60 ngày", variant: "accent", icon: Clock3 },
-  { key: "days_61_90", label: "61-90 ngày", variant: "primary", icon: AlertTriangle },
-  { key: "over_90", label: "> 90 ngày", variant: "error", icon: AlertTriangle },
+  // M3: tuổi nợ đếm từ ngày GIAO sản phẩm; chưa giao = chờ giao (chưa đến hạn)
+  { key: "not_due", label: "Chờ giao", variant: "success", icon: TimerReset },
+  { key: "days_1_30", label: "Đã giao 1-30 ngày", variant: "warning", icon: Clock3 },
+  { key: "days_31_60", label: "Đã giao 31-60 ngày", variant: "accent", icon: Clock3 },
+  { key: "days_61_90", label: "Đã giao 61-90 ngày", variant: "primary", icon: AlertTriangle },
+  { key: "over_90", label: "Đã giao > 90 ngày", variant: "error", icon: AlertTriangle },
 ];
 
 export function DebtAgingCard({ stats }: Props) {
@@ -49,7 +50,7 @@ export function DebtAgingCard({ stats }: Props) {
           <p className="text-caption text-text-muted">Tổng dư nợ đang theo dõi: {formatVnd(total)}</p>
         </div>
         <Badge variant={stats.overdue > 0 ? "warning" : "success"}>
-          Quá hạn {formatVnd(stats.overdue)}
+          Đã giao chưa thu {formatVnd(stats.overdue)}
         </Badge>
       </div>
 

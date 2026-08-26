@@ -120,6 +120,9 @@ const rpcArgs = {
   finance_pnl_by_month: { p_year: 2026 },
   payee_payment_history: { p_payee_type: "lab", p_payee_id: "00000000-0000-0000-0000-000000000000" },
   vendor_cost_report: { p_month: 4, p_year: 2026 },
+  // ADR-016 M3
+  finance_pending_collections: { p_limit: 5 },
+  get_receivable_aging: undefined,
 };
 
 console.log("Verifying reports RPC contracts with service role...");
@@ -187,6 +190,30 @@ console.log("- finance_pnl_by_month: ok (khớp month_summary + snapshot)");
 
 assertArray(await assertRpc(serviceClient, "payee_payment_history", rpcArgs.payee_payment_history), "payee_payment_history");
 console.log("- payee_payment_history: ok");
+
+// ADR-016 M3: cần thu theo mốc giao — debt_stats đọc contracts (không phải bảng debts rỗng), month_summary có 3 cột mới
+for (const key of ["receivable_due", "receivable_waiting", "payable_employee"]) {
+  if (!(key in monthSummary[0])) throw new Error(`finance_month_summary missing column ${key} (M3)`);
+}
+assertClose(
+  asNumber(monthSummary[0].receivable_due) + asNumber(monthSummary[0].receivable_waiting),
+  asNumber(monthSummary[0].receivable),
+  "receivable_due + receivable_waiting = receivable",
+);
+const debtStats = assertArray(await assertRpc(serviceClient, "finance_debt_stats"), "finance_debt_stats");
+if (debtStats.length !== 1) throw new Error("finance_debt_stats must return exactly 1 row");
+const { data: contractRecv, error: contractRecvErr } = await serviceClient
+  .from("contracts").select("remaining_amount").is("deleted_at", null).neq("status", "da_huy").gt("remaining_amount", 0);
+if (contractRecvErr) throw new Error(`contracts receivable probe failed: ${contractRecvErr.message}`);
+const contractReceivable = (contractRecv || []).reduce((sum, row) => sum + asNumber(row.remaining_amount), 0);
+if (asNumber(debtStats[0].receivable) + 0.01 < contractReceivable) {
+  throw new Error(`finance_debt_stats.receivable (${debtStats[0].receivable}) < Σ contracts.remaining_amount (${contractReceivable}) — vẫn đọc bảng debts?`);
+}
+assertClose(asNumber(debtStats[0].overdue), asNumber(monthSummary[0].receivable_due), "debt_stats.overdue vs month_summary.receivable_due");
+console.log("- finance_debt_stats: ok (phải thu = hợp đồng, quá hạn = đã giao chưa thu)");
+const pending = assertArray(await assertRpc(serviceClient, "finance_pending_collections", { p_limit: 5 }), "finance_pending_collections");
+if (pending.length > 5) throw new Error("finance_pending_collections ignored p_limit");
+console.log("- finance_pending_collections: ok");
 assertArray(await assertRpc(serviceClient, "vendor_cost_report", rpcArgs.vendor_cost_report), "vendor_cost_report");
 console.log("- vendor_cost_report: ok");
 

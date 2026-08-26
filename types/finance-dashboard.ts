@@ -35,10 +35,15 @@ export interface MonthSummary {
   };
   debt: {
     receivable: number;
+    /** Đã giao sản phẩm mà còn nợ — đến hạn thu (M3) */
+    receivableDue: number;
+    /** Chưa giao (chưa chụp / chờ hậu kỳ) — chưa đến hạn */
+    receivableWaiting: number;
     payable: number;
     payableLab: number;
     payableVendor: number;
     payableSupplier: number;
+    payableEmployee: number;
   };
 }
 
@@ -69,6 +74,8 @@ export interface FinanceContractListItem {
   total_amount?: number | null;
   paid_amount?: number | null;
   remaining_amount?: number | null;
+  /** Ngày giao sản phẩm (giao_san_pham hoàn thành) — null = chưa giao (M3, danh sách Cần thu) */
+  delivered_at?: string | null;
   customers?: { id: string; full_name: string; phone: string | null } | null;
 }
 

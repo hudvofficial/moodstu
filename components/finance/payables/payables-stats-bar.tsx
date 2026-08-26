@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, FlaskConical, Package, Users } from "lucide-react";
+import { Banknote, FlaskConical, Package, UserRound, Users } from "lucide-react";
 import { formatVnd } from "@/components/finance/finance-format";
 import { StatsBar } from "@/components/ui/stats-bar";
 import type { PayableRow } from "@/types/payables";
@@ -19,6 +19,7 @@ export function PayablesStatsBar({ rows }: PayablesStatsBarProps) {
         { icon: Banknote, label: "Tổng phải trả", value: formatVnd(sum()), tone: "error" },
         { icon: FlaskConical, label: "Lab ảnh", value: formatVnd(sum("lab")), tone: "info" },
         { icon: Users, label: "Thợ ngoài", value: formatVnd(sum("vendor")), tone: "warning" },
+        { icon: UserRound, label: "Ekip", value: formatVnd(sum("employee")), tone: "success" },
         { icon: Package, label: "NCC phôi", value: formatVnd(sum("supplier")), tone: "primary" },
       ]}
     />

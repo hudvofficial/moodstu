@@ -33,7 +33,7 @@ Trigger **`on_auth_user_created`** tự chèn dòng `employees` khi tạo auth u
 `work_type_enum` 13 loại: `concept · kich_ban · chup_anh · quay_phim · makeup · tro_ly · cameraman · hau_ky_anh · dung_phim · retouch · premiere · bien_tap · khac`
 
 Task gắn với `contract_events`. Có kiểm chồng lịch (`task-overlap-actions.ts`).
-Công việc giao **nhà cung cấp ngoài** sinh chi phí qua `upsert_vendor_expense` → [[nha-cung-cap]].
+Công việc giao **nhà cung cấp ngoài** hay **ekip nội bộ** đều là cam kết chi phí `work_tasks.cost` (ADR-016); tiền trả ghi ở `/finance/payables` (thợ ngoài · ekip) — không còn `upsert_vendor_expense` → [[nha-cung-cap]], [[luong-tien]].
 
 ## Lương
 
@@ -44,6 +44,8 @@ Công việc giao **nhà cung cấp ngoài** sinh chi phí qua `upsert_vendor_ex
 | `salary_adjustments` | điều chỉnh |
 
 ⚠️ **`employee_salaries` cố ý hard delete** — không có `deleted_at`. Đừng "sửa" thành soft delete: sẽ phá chức năng tái tạo và làm sai tổng.
+
+**ADR-016 M3 (2026-08-26):** công theo hợp đồng của ekip **không** đi qua sheet lương nữa — `generateMonthlySalaries` đặt `product_salary = 0`; từng task hoàn thành là một khoản **phải trả** ở `/finance/payables` › Ekip (`payable_items('employee')` đọc `work_tasks.assigned_to`), trả bằng phiếu chi `payee_type='employee'` + `expense_allocations(work_task)`. Sheet lương tháng chỉ còn lương cứng (`employees.salary_info.base_salary`) — Mood chưa có → tạm không dùng; dòng test 100.000.000 T6/2026 đã xoá. Chi tiết: [[luong-tien]].
 
 ## Năng suất
 

@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260826-tien-ekip-va-can-thu
     title: "Đóng kín đường tiền: (A) trả ekip theo task như thợ ngoài (payee_type employee + expense_allocations work_task; sheet lương chỉ lương cứng; xoá dòng test 100.000.000) · (B) Cần thu theo mốc giao sản phẩm — finance_debt_stats/get_receivable_aging đọc contracts thay bảng debts rỗng, quá hạn = đã giao chưa thu; dashboard Công nợ hiện 'Đã giao chưa thu · chờ giao'"
-    status: spec
-    owner: claude
-    branch: claude/tien-ekip-can-thu (sau khi user gật)
+    status: ci
+    owner: claude (fallback)
+    branch: claude/tien-ekip-can-thu
     locks:
       - supabase/migrations/20260827100000_tien_ekip_va_can_thu.sql (mới)
       - types/database.types.ts, types/payables.ts, types/finance-dashboard.ts
@@ -48,7 +48,7 @@ active:
       - npm run db:types · tsc · eslint · build · verify:reports (mới) · verify:printing · verify:contracts
       - "Playwright cashflow-m3 (local rồi prod, --workers=1): trả ekip + void, debt_stats theo mốc giao, sheet lương product_salary=0, UI payables/debts/dashboard"
     depends_on: [T-20260826-cashflow-m2-ba-so]
-    notes: "Đo 26/08: 12 task ekip hoàn thành 8.550.350 chưa có phiếu chi nào (két cao hơn thật hoặc nợ ekip ẩn); /finance/debts + /reports + Moodie đọc bảng debts RỖNG → hiện 0 trong khi HĐ nợ 92.575.000; aging theo contract_date sai luật ngày; 5 HĐ chụp >30 ngày nợ 31.500.000 đều CHƯA GIAO (không phải quá hạn). payment_plans 65 mốc quá hạn/103,9tr = nhiễu → M4. CHỜ USER GẬT."
+    notes: "Đo 26/08: 12 task ekip hoàn thành 8.550.350 chưa có phiếu chi nào (két cao hơn thật hoặc nợ ekip ẩn); /finance/debts + /reports + Moodie đọc bảng debts RỖNG → hiện 0 trong khi HĐ nợ 92.575.000; aging theo contract_date sai luật ngày; 5 HĐ chụp >30 ngày nợ 31.500.000 đều CHƯA GIAO (không phải quá hạn). payment_plans 65 mốc quá hạn/103,9tr = nhiễu → M4. User: triển khai hoàn toàn → migration ĐÃ ÁP prod 26/08 (payable ekip 8.550.350 hiện; receivable 92.575.000 = due 3.300.000 + waiting 89.275.000; dòng test xoá), tsc/eslint/build 0, verify:reports/printing/contracts xanh, Playwright local cashflow-m3 3/3 + m2 3/3 + m1 4/4. CHỜ USER MERGE."
   - id: T-20260826-drawer-typography-ssot
     title: "Hai drawer hợp đồng về đúng luật typography design-specs: sentence case, token SSOT (section-heading / text-caption / text-body-sm font-bold / text-h3), bỏ uppercase / tracking-wide / font-black / text-tiny ở 6 file drawer; thẻ THANH TOÁN cùng cách viết số với thẻ LỢI NHUẬN (bỏ hậu tố VND, nowrap)"
     status: spec

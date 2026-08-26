@@ -71,7 +71,7 @@ const EMPTY_SUMMARY: MonthSummary = {
     revenue: 0, revenueContract: 0, revenueRetail: 0, cost: 0, costTask: 0, costPrint: 0, costCogs: 0, costDirect: 0,
     costOverhead: 0, costSalaryBase: 0, profit: 0, profitPrev: 0, margin: 0, contractsShot: 0, contractsMissingWorkDate: 0,
   },
-  debt: { receivable: 0, payable: 0, payableLab: 0, payableVendor: 0, payableSupplier: 0 },
+  debt: { receivable: 0, receivableDue: 0, receivableWaiting: 0, payable: 0, payableLab: 0, payableVendor: 0, payableSupplier: 0, payableEmployee: 0 },
 };
 
 const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {

@@ -138,10 +138,13 @@ function mapMonthSummary(row: RpcRow, month: number, year: number): MonthSummary
     },
     debt: {
       receivable: asNumber(row.receivable),
+      receivableDue: asNumber(row.receivable_due),
+      receivableWaiting: asNumber(row.receivable_waiting),
       payable: asNumber(row.payable),
       payableLab: asNumber(row.payable_lab),
       payableVendor: asNumber(row.payable_vendor),
       payableSupplier: asNumber(row.payable_supplier),
+      payableEmployee: asNumber(row.payable_employee),
     },
   };
 }
@@ -404,20 +407,32 @@ async function queryUpcomingContracts(
   return normalizeContractRows(data);
 }
 
+// M3: Cần thu theo mốc giao — RPC xếp HĐ đã giao sản phẩm (đến hạn) lên đầu, rồi ngày chụp cũ nhất
+function mapPendingRows(data: unknown): FinanceContractListItem[] {
+  return ((data as RpcRow[] | null) || []).map((row) => ({
+    id: asString(row.id),
+    contract_code: asString(row.contract_code, "") || null,
+    work_date: asString(row.work_date, "") || null,
+    contract_date: asString(row.contract_date, "") || null,
+    status: asString(row.status, "") || null,
+    total_amount: asNumber(row.total_amount),
+    paid_amount: asNumber(row.paid_amount),
+    remaining_amount: asNumber(row.remaining_amount),
+    delivered_at: asString(row.delivered_at, "") || null,
+    customers: row.customer_id
+      ? { id: asString(row.customer_id), full_name: asString(row.customer_name), phone: asString(row.customer_phone, "") || null }
+      : null,
+  }));
+}
+
 async function queryPendingCollections(
   supabase: SupabaseClient,
   limit: number,
 ): Promise<FinanceContractListItem[]> {
-  const { data, error } = await supabase
-    .from("contracts")
-    .select("id, contract_code, remaining_amount, contract_date, status, customers(id, full_name, phone)")
-    .gt("remaining_amount", 0)
-    .is("deleted_at", null)
-    .order("contract_date", { ascending: false })
-    .limit(limit);
+  const { data, error } = await supabase.rpc("finance_pending_collections", { p_limit: limit });
 
   if (error) throw new Error(`Lỗi tải danh sách cần thu: ${error.message}`);
-  return normalizeContractRows(data);
+  return mapPendingRows(data);
 }
 
 async function queryContractProfitReport(
@@ -577,20 +592,9 @@ export async function getUpcomingContracts(limit: number = 5) {
 }
 
 export async function getPendingCollections(limit: number = 5) {
-
   return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
-
-    const { data, error } = await supabase
-      .from("contracts")
-      .select("id, contract_code, remaining_amount, contract_date, status, customers(id, full_name, phone)")
-      .gt("remaining_amount", 0)
-      .is("deleted_at", null)
-      .order("contract_date", { ascending: false })
-      .limit(limit);
-
-    if (error) throw new Error(`Lỗi tải danh sách cần thu: ${error.message}`);
-    return normalizeContractRows(data);
+    return queryPendingCollections(supabase, limit);
   });
 }
 

@@ -38,7 +38,8 @@ Bán lẻ (vật tư, dịch vụ rời): `create_sale_receipt_atomic` → **`re
 | Thợ ngoài | `work_tasks.cost` khi `hoan_thanh` | `record_vendor_payment_atomic` (wrapper) → `record_payee_payment_atomic('vendor')` → `expenses` + `expense_allocations(work_task)` |
 | Lab in ấn | `printing_orders.total_amount` khi tạo | `record_lab_payment_atomic` (wrapper) → `record_payee_payment_atomic('lab')` → `expenses` + `expense_allocations(printing_order)`; `payment_status` **dẫn xuất** (`recompute_printing_payment_status`) |
 | Phôi thiệp / vật tư | `inventory_transactions.stock_in` | `inventory_stock_in_atomic(p_paid=true)` tạo phiếu chi `supplier` ngay trong transaction (Mood trả ngay khi nhập) |
-| Lương | `work_tasks.cost` (theo HĐ) *hoặc* lương cứng (overhead) — không cả hai | `payEmployeeSalaryAction` → `expenses` (`payee_type='employee'`); phân bổ vào `employee_salaries` → M5 |
+| **Ekip nội bộ** (M3, 2026-08-26) | `work_tasks.cost` khi `hoan_thanh` (`assigned_to`, `vendor_id IS NULL`) — cùng luật thợ ngoài | `/finance/payables` › Ekip → `record_payee_payment_atomic('employee')` → `expenses` (`payee_type='employee'`) + `expense_allocations(work_task)`; huỷ = `void_payee_payment_atomic` |
+| Lương cứng (sau này) | `employee_salaries.base_salary` (overhead) — **sheet lương tháng chỉ còn lương cứng**, `product_salary = 0` (công theo HĐ đã trả theo task, không trả trùng) | `payEmployeeSalaryAction` → `expenses` (`payee_type='employee'`); phân bổ `employee_salary` → M5 |
 | Chi trực tiếp / vận hành | = chính phiếu chi | `expenses` `payee_type='other'` (có `contract_id` = chi trực tiếp cho HĐ) |
 
 **Luật:** phiếu chi **có** phân bổ = trả nợ (không phải chi phí mới); `payee_type='other'` = chi phí thật phát sinh. **Không còn phiếu chi "trích trước"** — `upsert_printing_expense`, `upsert_vendor_expense`, trigger `work_task_vendor_expense_sync` đã bỏ (43 dòng cũ xoá mềm, mô tả gắn `[ADR-016…]`). `lab_payments`/`vendor_payments` (+2 bảng phân bổ) giờ là **VIEW** trên `expenses`; bảng gốc đổi tên `_legacy` (drop ở M2).
@@ -72,7 +73,10 @@ Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn
 → `contract_financials(uuid[])` / `finance_contract_profit_report`. Nó trừ chi phí task (mọi task không huỷ) + in ấn + giá vốn kho + chi trực tiếp. Tự tính tay sẽ sót nhánh. Σ lãi theo tháng = Σ lãi theo HĐ vì cùng luật.
 
 **"Còn phải thu / phải trả bao nhiêu?"**
-→ phải thu: `get_receivable_aging` hoặc `get_contract_balance` (không lấy `total_amount − sum(payments)` — không tính huỷ/hoàn) · phải trả: `finance_payable_summary()`.
+→ phải thu: `finance_debt_stats()` (M3 — đọc **hợp đồng**, không phải bảng `debts` rỗng) hoặc `get_contract_balance` cho 1 HĐ · phải trả: `finance_payable_summary()` (lab · thợ · NCC · **ekip**).
+
+**"HĐ nào đến hạn thu?"** (M3)
+→ **đến hạn = đã giao sản phẩm** (`contract_events` `giao_san_pham` `hoan_thanh`) mà `remaining_amount > 0`; tuổi nợ đếm từ ngày giao (`finance_debt_stats().aging`, `get_receivable_aging().not_delivered` + 4 bucket). Chưa giao = **chờ giao**, không phải quá hạn. Danh sách: `finance_pending_collections(limit)` — HĐ đã giao lên đầu. `finance_month_summary` tách `receivable_due` / `receivable_waiting`. Đo 26/08: phải thu 92.575.000 = đã giao chưa thu 3.300.000 (1 HĐ) + chờ giao 89.275.000 (19 HĐ). `payment_plans` (lịch tự sinh, 65 mốc "quá hạn") **không** phải nguồn đến hạn — dọn ở M4.
 
 ## Khoá sổ
 

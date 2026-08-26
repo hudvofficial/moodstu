@@ -46,7 +46,15 @@ export function SalaryDesktopTable({ items, onView, onAdjust, onPay, onPrint, on
                                 </div>
                             </TD>
                             <TD className="text-right tabular-nums">{formatVnd(item.base_salary)}</TD>
-                            <TD className="text-right tabular-nums">{formatVnd(item.product_salary)}</TD>
+                            <TD className="text-right tabular-nums">
+                              {item.product_salary > 0 ? (
+                                formatVnd(item.product_salary)
+                              ) : (
+                                <span className="text-text-muted" title="Công theo hợp đồng trả theo từng task ở Tài chính › Phải trả › Ekip (ADR-016 M3)">
+                                  — Phải trả › Ekip
+                                </span>
+                              )}
+                            </TD>
                             <TD className="text-right tabular-nums text-success">{formatVnd(item.bonus)}</TD>
                             <TD className="text-right tabular-nums text-error">{formatVnd(item.penalty)}</TD>
                             <TD className="text-right tabular-nums font-bold">{formatVnd(item.net_salary)}</TD>

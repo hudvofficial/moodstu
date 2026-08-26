@@ -95,7 +95,8 @@ Hệ quả thiết kế: mọi form ghi tiền phải có ô ngày (mặc địn
 ### 3.2 Công nợ
 
 - **Phải thu** (đã có): `contracts.total_amount − Σ payments` — `remaining_amount`, `get_receivable_aging`.
-- **Phải trả** (hợp nhất, 1 màn hình thay `/finance/lab-debts` + `/finance/vendor-debts` + thêm NCC phôi): theo `payee`:
+- **Phải thu — đến hạn** (M3): HĐ có `giao_san_pham` `hoan_thanh` mà `remaining_amount > 0`; chưa giao = chờ giao. `finance_debt_stats()` / `finance_pending_collections()`.
+- **Phải trả** (hợp nhất `/finance/payables`: lab · thợ · NCC phôi · **ekip** (M3)): theo `payee`:
   `Σ printing_orders.total_amount (lab) + Σ work_tasks.cost hoàn thành (thợ ngoài) + Σ stock_in.total_cost (NCC phôi) + Σ employee_salaries.net_salary (nhân sự) − Σ expense_allocations`.
 
 ## 4. Sáu báo cáo chuẩn — công thức từ bảng nào
@@ -186,9 +187,10 @@ Luật: một đồng chi phí nhân sự chỉ ở **một** trong hai chỗ �
 | **M1 Sổ tiền ra** | `expenses.payee_*`, `expense_allocations`, `record_payee_payment_atomic`, di trú 1–3, bỏ 2 hàm trích trước + trigger, `contract_financials()` thay 5 bản sao, `finance_payable_summary`, màn công nợ hợp nhất | §8 bước 1–3, 6; dashboard "chi" tháng 8 = tiền thật |
 | **M2 Ba số dashboard** ✅ 26/08 | tách két / lãi-lỗ / công nợ (`finance_month_summary`); RPC báo cáo 1, 2, 4 trên một sổ kỳ `finance_period_ledger`; `/reports` + timeline đổi nguồn; màn `/finance/payables` hợp nhất; app bỏ đọc view; DROP `finance_dashboard_metrics`/`finance_revenue_by_month` | `verify:reports` assert 4 hàm cùng số; e2e `cashflow-m2` đo delta T7/T8; vault cập nhật — spec `T-20260826-cashflow-m2-ba-so` |
 | **M2b Dọn bảng cũ** (≥ 02/09) | DROP 4 view + 4 bảng `_legacy` + `record_vendor_payment_atomic` (`20260826130000_cashflow_m2b_drop_legacy.sql`, đã viết, chưa áp) | pre-check trong migration; `db:types` + vault regen |
-| **M3 Thiệp & kho** | `vendors.vendor_type`, `inventory_items.supplier_id`, `stock_in` → phải trả + phiếu chi tuỳ chọn, COGS vào báo cáo 2/3/6b, gợi ý "Bán thêm HĐ" khi SĐT khớp, di trú bước 4 | nhập 1 lô → nợ NCC hiện; trả → hết nợ; bán 1 đơn → lãi = giá bán − giá vốn |
-| **M4 Tiền vào** | quy tắc khách HĐ mua thiệp qua "Bán thêm HĐ"; `receipts` giữ cho bán lẻ; category thu chuẩn hoá | Σ `payments` + Σ `receipts` = két vào; không phiếu thu khách HĐ thiếu `contract_id` |
-| **M5 Nhân sự** | allocation phiếu chi lương → `employee_salaries`; `base_salary` → overhead báo cáo 2; `in_thiep` task nếu trả công theo đơn; dọn dòng test 100.000.000 | kỳ lương thử: cam kết vs tiền ra khớp |
+| **M3 Ekip + Cần thu** ✅ 26/08 (đổi thứ tự — đo được lỗ hổng lớn hơn thiệp) | ekip nội bộ trả theo task như thợ ngoài (`payee_type='employee'` + phân bổ `work_task`; sheet lương chỉ lương cứng; xoá dòng test 100.000.000); `finance_debt_stats`/`get_receivable_aging`/`finance_pending_collections` đọc hợp đồng theo **mốc giao** (bảng `debts` rỗng); dashboard "đã giao chưa thu · chờ giao" | đo 26/08: phải trả ekip 8.550.350 hiện ở Phải trả; phải thu 92.575.000 = 3.300.000 đã giao + 89.275.000 chờ giao — spec `T-20260826-tien-ekip-va-can-thu` |
+| **M3b Thiệp & kho UI** | COGS đã vào báo cáo (M2); còn: gợi ý "Bán thêm HĐ" khi SĐT khớp, màn xuất thiệp cho HĐ | bán 1 đơn → lãi = giá bán − giá vốn hiện ở drawer HĐ |
+| **M4 Tiền vào** | dọn `payment_plans` (65 mốc "quá hạn" tự sinh không khớp cách thu); quy tắc khách HĐ mua thiệp qua "Bán thêm HĐ"; category thu chuẩn hoá | nhắc thu trên dashboard = đúng HĐ đã giao; Σ `payments` + Σ `receipts` = két vào |
+| **M5 Nhân sự** | lương cứng khi có nhân sự tháng: allocation phiếu chi lương → `employee_salaries`; `base_salary` → overhead báo cáo 2 | kỳ lương thử: cam kết vs tiền ra khớp |
 
 M1 là đợt duy nhất chạm dữ liệu tài chính lịch sử — làm trên branch, chạy di trú thử trong transaction, có bảng before/after cho 60 hợp đồng trước khi áp.
 

@@ -427,7 +427,11 @@ export async function generateMonthlySalaryAction(month: number, year: number) {
           : (emp.salary_info || {});
 
         const totalBase = Number(salaryInfoObj?.base_salary) || 0;
-        const productSalary = taskMap[emp.id] || 0;
+        // ADR-016 M3 (T-20260826-tien-ekip-va-can-thu): công theo hợp đồng (work_tasks.cost) trả theo TỪNG TASK
+        // ở /finance/payables › Ekip (phiếu chi payee_type='employee' + expense_allocations). Sheet lương tháng
+        // chỉ còn lương cứng → product_salary = 0 để không trả trùng. taskMap vẫn tính để giữ cảnh báo task chưa gán / 0 cost.
+        void taskMap;
+        const productSalary = 0;
         const total = totalBase + productSalary;
 
         return {
