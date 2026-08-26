@@ -12,7 +12,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/ux-states";
 import { useSWR } from "@/lib/swr";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
   CONTRACT_STATUS_MAP,
   TASK_STATUS_MAP,
@@ -184,30 +184,33 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
           {/* ── Lợi nhuận (ngữ pháp thẻ THANH TOÁN) ── */}
           <section className="card-base p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">Lợi nhuận</h4>
+              <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
+                Lợi nhuận <span className="normal-case tracking-normal text-tiny font-medium text-text-muted">(VND)</span>
+              </h4>
               <span className={cn("text-caption font-black tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
                 {fin.profit_margin.toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%
               </span>
             </div>
 
+            {/* 3 số không có hậu tố VND (đơn vị ở tiêu đề) + nowrap → không gãy dòng ở phone 375 với mọi số tiền */}
             <div className="mb-3 flex items-stretch">
-              <div className="flex-1 text-center">
+              <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Doanh thu</span>
-                <span className="block text-body-sm font-black tabular-nums text-text-main">{formatVnd(fin.revenue)}</span>
+                <span className="block whitespace-nowrap text-body-sm font-black tabular-nums text-text-main">{formatCurrency(fin.revenue)}</span>
               </div>
-              <div className="my-1 w-px bg-border/50" />
-              <div className="flex-1 text-center">
+              <div className="my-1 w-px shrink-0 bg-border/50" />
+              <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Chi phí</span>
-                <span className={cn("block text-body-sm font-black tabular-nums", fin.total_cost > 0 ? "text-error" : "text-text-muted")}>
-                  {formatVnd(fin.total_cost)}
+                <span className={cn("block whitespace-nowrap text-body-sm font-black tabular-nums", fin.total_cost > 0 ? "text-error" : "text-text-muted")}>
+                  {formatCurrency(fin.total_cost)}
                 </span>
               </div>
-              <div className="my-1 w-px bg-border/50" />
-              <div className="flex-1 text-center">
+              <div className="my-1 w-px shrink-0 bg-border/50" />
+              <div className="min-w-0 flex-1 text-center">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Lợi nhuận</span>
-                <span className={cn("block text-body-sm font-black tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
+                <span className={cn("block whitespace-nowrap text-body-sm font-black tabular-nums", fin.profit >= 0 ? "text-success" : "text-error")}>
                   {fin.profit > 0 ? "+" : ""}
-                  {formatVnd(fin.profit)}
+                  {formatCurrency(fin.profit)}
                 </span>
               </div>
             </div>
@@ -246,23 +249,23 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
               </div>
             )}
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/50 pt-3">
-              <div>
+              <div className="min-w-0">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Gói dịch vụ</span>
-                <span className="block text-body-sm font-semibold tabular-nums text-text-main">{formatVnd(packageTotal)}</span>
+                <span className="block whitespace-nowrap text-body-sm font-semibold tabular-nums text-text-main">{formatVnd(packageTotal)}</span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Phát sinh</span>
-                <span className="block text-body-sm font-semibold tabular-nums text-text-main">{formatVnd(addonTotal)}</span>
+                <span className="block whitespace-nowrap text-body-sm font-semibold tabular-nums text-text-main">{formatVnd(addonTotal)}</span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Khuyến mãi</span>
-                <span className={cn("block text-body-sm font-semibold tabular-nums", contract.discount > 0 ? "text-error" : "text-text-muted")}>
+                <span className={cn("block whitespace-nowrap text-body-sm font-semibold tabular-nums", contract.discount > 0 ? "text-error" : "text-text-muted")}>
                   {contract.discount > 0 ? `−${formatVnd(contract.discount)}` : formatVnd(0)}
                 </span>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="block text-tiny font-bold uppercase text-text-muted">Doanh thu thuần</span>
-                <span className="block text-body-sm font-bold tabular-nums text-text-main">{formatVnd(contract.total_amount)}</span>
+                <span className="block whitespace-nowrap text-body-sm font-bold tabular-nums text-text-main">{formatVnd(contract.total_amount)}</span>
               </div>
             </div>
           </DetailCard>

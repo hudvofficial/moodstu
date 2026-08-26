@@ -81,7 +81,7 @@ Bỏ `ProfitDetailSection` icon-heading kiểu cũ và thẻ "Stripe style" `bg-
 | `npx tsc --noEmit` · `npx eslint` 4 file · `npm run build` | 0 lỗi (1 lỗi type `TASK_STATUS_MAP` variant `muted` → map sang `neutral`) |
 | `npm run verify:contracts` | xanh |
 | Playwright local (`next start` :3100, `--workers=1`) | **`cashflow-m2` 3/3** — bước mới: từ `/contracts` bấm ô lợi nhuận → dialog chứa mã HĐ, "Ngày chụp" 05/07/2026, "Thợ ngoài: E2E Thợ M2…", "+3.500.000"; **width dialog = 480**; bấm mã HĐ → drawer vận hành **width = 480** |
-| Render | desktop 1366: 2 drawer cùng khung 480px, cùng header/thẻ (ảnh `scratchpad/drawer-{ops,profit}-desktop.png`); phone 375: cùng bottom-sheet, thẻ cùng kiểu (`drawer-{ops,profit}-phone.png`) |
+| Render | desktop 1366: 2 drawer cùng khung 480px, cùng header/thẻ (ảnh `scratchpad/drawer-{ops,profit}-desktop.png`); phone 375: cùng bottom-sheet, thẻ cùng kiểu (`drawer-{ops,profit}-phone.png`). **Vòng 2 (user: số đậm gãy dòng ở phone):** 3 số thẻ LỢI NHUẬN bỏ hậu tố "VND" (đơn vị lên tiêu đề thẻ) + `whitespace-nowrap`, lưới 2×2 doanh thu cũng `nowrap` — không gãy với mọi số tiền ở 375px; lint SSOT cấm `text-[clamp(...)]` nên không co cỡ chữ. Artifact so sánh: https://claude.ai/code/artifact/9d668368-3f12-46ec-9271-1c407e3bce3d |
 | Production | _(sau merge: chạy `cashflow-m2` trên prod)_ |
 
 Ghi nhận (không sửa trong task): pill trạng thái ở drawer vận hành là `SelectStatus` (đổi được trạng thái, chữ thường + chevron); drawer lợi nhuận dùng `Badge` SSOT (in hoa, chỉ đọc) — cùng màu/nhãn nguồn `CONTRACT_STATUS_MAP`. Muốn giống hệt thì export `ContractStatusBadge` từ `contract-drawer.tsx` và dùng chung (cho phép đổi trạng thái từ drawer lợi nhuận) — cần user quyết vì đụng file ngoài locks.
