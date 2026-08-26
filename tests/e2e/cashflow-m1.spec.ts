@@ -309,12 +309,17 @@ test.describe.serial("ADR-016 M1 — sổ tiền ra", () => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await login(page, s);
 
+    // M2: 2 route công nợ cũ redirect sang /finance/payables → chờ URL đích + trang có số thật
+    // (assert "main, body" cũ pass ngay trên skeleton → goto kế tiếp đua với điều hướng redirect → ERR_ABORTED)
     await page.goto("/finance/lab-debts", { waitUntil: "domcontentloaded" });
+    await page.waitForURL(/\/finance\/payables/, { timeout: 20_000 });
     await expect(page.getByText("Hồng Bảo").first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/1\.905\.000/).first()).toBeVisible({ timeout: 20_000 });
 
     await page.goto("/finance/vendor-debts", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("main, body").first()).toBeVisible({ timeout: 20_000 });
+    await page.waitForURL(/\/finance\/payables/, { timeout: 20_000 });
+    await expect(page.getByText(/Phải trả/i).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Hồng Bảo").first()).toBeVisible({ timeout: 20_000 });
 
     await page.goto("/printing", { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/Công nợ/).first()).toBeVisible({ timeout: 20_000 });

@@ -30,4 +30,4 @@ Thời lượng: ~20 phút (build + test là phần lâu). Không có màn hình
 | 6 | `db:types` → grep `_legacy\|lab_payments\|vendor_payments` = 0 · `tsc --noEmit` 0 · `vault-gen-schema` + `vault-gen-codemap` (codemap còn trỏ `vendor-payment-actions.ts` đã xoá từ M2 — regen sạch) |
 | 7 | `verify:reports/printing/contracts/inventory` 4/4 xanh · Playwright prod `--workers=1`: m1 4/4 (lần đầu smoke `/printing` `ERR_ABORTED` — flake điều hướng, chạy lại 4/4), m2 3/3, m3 3/3 |
 | 8 | Vault 4 file + DECISIONS phụ lục M2 §5/§6 + design §9 + TASKS.yaml + CURRENT_STATE |
-| 9 | Merge + push: xem CURRENT_STATE |
+| 9 | Merge ff `c163436 → 49c3054`, Vercel lên sau 2,5 phút. Prod sau deploy: m2 3/3; m1 smoke `/printing` `ERR_ABORTED` lần 2 → nguyên nhân: route `/finance/vendor-debts` redirect (M2), assert `main, body` pass trên skeleton nên goto kế tiếp đua với redirect → sửa test chờ `waitForURL(/payables/)` + số thật; m1 `--repeat-each=2` **8/8** trên prod, seed sạch (commit sau merge) |
