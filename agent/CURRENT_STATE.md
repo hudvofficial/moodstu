@@ -3,7 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `501274b`.
+> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `63a48bf` · in-flight: `claude/profit-drawer-align`.
+
+## 2026-08-26 — DRAWER LỢI NHUẬN VỀ CÙNG KHUNG DRAWER HỢP ĐỒNG: implement xong, gate xanh, **CHỜ USER XEM ẢNH + GẬT MERGE** (`T-20260826-profit-drawer-align`, branch `claude/profit-drawer-align`)
+- User: 2 drawer trên `/contracts` lệch nhau (drawer vận hành 480px vs drawer lợi nhuận `size="lg"` 600px, header/nhãn kiểu cũ) → chọn hướng A "giữ 2 drawer, thống nhất UI, nhất là chiều ngang" → gật spec. Làm: `profit-detail-drawer.tsx` viết lại theo ngữ pháp drawer vận hành (480px, mã HĐ + badge, thẻ khách + NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN kiểu THANH TOÁN, "Chi phí nhân sự" tách Ekip/Thợ ngoài + chip trạng thái, KM 0 không hiện −0, footer "Chi tiết hợp đồng"); `getContractFinanceDetails` đọc `contract_financials` (số một nguồn) + thêm trường; e2e `cashflow-m2` đo width 2 drawer = 480. Gate: tsc/eslint/build 0, verify:contracts, Playwright local 3/3, ảnh desktop/phone OK. Ghi nhận: pill trạng thái drawer vận hành là `SelectStatus` đổi được, drawer lợi nhuận là `Badge` chỉ đọc (cùng nhãn/màu).
 
 ## 2026-08-26 — M2 BA SỐ, MỘT BỘ SỔ: **MERGED `501274b` + VERIFIED PRODUCTION 3/3** (`T-20260826-cashflow-m2-ba-so`, ADR-016 đợt 2 xong)
 - User "ok merge + push" → ff `main` `b46fac6 → 501274b`. Vercel: build Preview của `501274b` treo 41 phút chặn Production trong queue → user cancel trên dashboard → Production lên. **Playwright `cashflow-m2` trên `stu.moodwedding.com` 3/3 PASS**; sau test expenses active 35 / E2E 0 / két T8 +203.600 / lãi 37.090.000 / phải trả 1.905.000 / integrity 0. Bài học: nhánh `claude/*` push lên origin sinh Preview build chen hàng đợi Production (gợi ý user tắt Preview cho `claude/*`). **Kế tiếp:** M2b drop `_legacy` + 4 view (`20260826130000_cashflow_m2b_drop_legacy.sql`, ≥ 02/09, chờ gật) · M3 thiệp & kho UI · M4 tiền vào · M5 nhân sự · spec `T-20260825-printing-cancel-inventory-deadcode` vẫn chờ duyệt (ADR số → 017).

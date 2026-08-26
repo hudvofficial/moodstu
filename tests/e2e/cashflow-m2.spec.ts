@@ -317,6 +317,31 @@ test.describe.serial("ADR-016 M2 — ba số, một bộ sổ", () => {
     await expect(page.getByText(/chup_anh/).first()).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Hủy", exact: true }).click();
 
+    // T-20260826-profit-drawer-align: drawer lợi nhuận (cột Lợi nhuận) và drawer vận hành (mã HĐ) cùng khung 480px
+    await page.goto("/contracts", { waitUntil: "domcontentloaded" });
+    const contractRow = page.locator("table tbody tr", { hasText: s.contractCode }).first();
+    await expect(contractRow).toBeVisible({ timeout: 20_000 });
+    await contractRow.getByText(/\+3\.500\.000/).first().click(); // ô lợi nhuận: stopPropagation → drawer lợi nhuận
+    const profitDialog = page.getByRole("dialog").filter({ hasText: "Chi phí nhân sự" }).first();
+    await expect(profitDialog).toBeVisible({ timeout: 20_000 });
+    await expect(profitDialog.getByText(s.contractCode).first()).toBeVisible();
+    await expect(profitDialog.getByText("Ngày chụp")).toBeVisible();
+    await expect(profitDialog.getByText("05/07/2026").first()).toBeVisible();
+    await expect(profitDialog.getByText(/Thợ ngoài: E2E Thợ M2/).first()).toBeVisible();
+    await expect(profitDialog.getByText(/\+3\.500\.000/).first()).toBeVisible();
+    const profitBox = await profitDialog.boundingBox();
+    expect(Math.round(profitBox?.width ?? 0)).toBe(480);
+    await page.keyboard.press("Escape");
+    await expect(profitDialog).toBeHidden({ timeout: 10_000 });
+
+    await contractRow.getByText(s.contractCode).first().click(); // dòng: drawer vận hành
+    const opsDialog = page.getByRole("dialog").filter({ hasText: "Theo dõi thanh toán" }).first();
+    await expect(opsDialog).toBeVisible({ timeout: 20_000 });
+    const opsBox = await opsDialog.boundingBox();
+    expect(Math.round(opsBox?.width ?? 0)).toBe(480);
+    await page.keyboard.press("Escape");
+    await expect(opsDialog).toBeHidden({ timeout: 10_000 });
+
     await page.goto("/finance/lab-debts", { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/finance\/payables/, { timeout: 20_000 });
     await page.goto("/finance/vendor-debts", { waitUntil: "domcontentloaded" });

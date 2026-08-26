@@ -719,13 +719,13 @@ export async function getContractFinanceDetails(contractId: string) {
 
     const { data: contract, error: contractErr } = await supabase
       .from("contracts")
-      .select("id, total_amount, discount_amount, contract_code, status, contract_date, created_at, customers(full_name)")
+      .select("id, total_amount, discount_amount, contract_code, status, contract_date, work_date, paid_amount, remaining_amount, created_at, customers(full_name, phone, address)")
       .eq("id", contractId)
       .single();
 
     if (contractErr) throw new Error(`Lỗi tải hợp đồng: ${contractErr.message}`);
 
-    const [details, tasks, prints, expenses, inventory] = await Promise.all([
+    const [details, tasks, prints, expenses, inventory, financials] = await Promise.all([
       supabase
         .from("contract_items")
         .select("id, item_name, quantity, unit_price, total_amount, type, is_addon, addon_category")
@@ -733,7 +733,7 @@ export async function getContractFinanceDetails(contractId: string) {
         .is("deleted_at", null),
       // ADR-016 / contract_financials(): chi phí task = MỌI task không hủy (ekip + thợ ngoài) — cam kết;
       // phiếu chi trả thợ không còn là chi phí (đã bỏ trích trước), nên không còn đếm trùng.
-      supabase.from("work_tasks").select("id, work_type, cost, vendor_id, employees(full_name), vendors(full_name)").eq("contract_id", contractId).neq("status", "da_huy").gt("cost", 0),
+      supabase.from("work_tasks").select("id, work_type, cost, status, vendor_id, employees(full_name), vendors(full_name)").eq("contract_id", contractId).neq("status", "da_huy").gt("cost", 0),
       supabase
         .from("printing_orders")
         .select("id, order_code, items, total_amount, payment_status")
@@ -749,6 +749,8 @@ export async function getContractFinanceDetails(contractId: string) {
         .eq("transaction_type", "stock_out")
         .in("source_type", ["contract_fulfillment", "contract_addon_sale"])
         .order("created_at", { ascending: false }),
+      // ADR-016: số lợi nhuận từ MỘT hàm — drawer không cộng lại phía client
+      supabase.rpc("contract_financials", { p_contract_ids: [contractId] }),
     ]);
 
     if (details.error) throw new Error(`Lỗi tải chi tiết dịch vụ: ${details.error.message}`);
@@ -756,8 +758,10 @@ export async function getContractFinanceDetails(contractId: string) {
     if (prints.error) throw new Error(`Lỗi tải chi phí in ấn: ${prints.error.message}`);
     if (expenses.error) throw new Error(`Lỗi tải chi phí khác: ${expenses.error.message}`);
     if (inventory.error) throw new Error(`Lỗi tải giá vốn vật tư: ${inventory.error.message}`);
+    if (financials.error) throw new Error(`Lỗi tải lợi nhuận hợp đồng: ${financials.error.message}`);
 
     const subtotal = asNumber(contract.total_amount);
+    const fin = ((financials.data || [])[0] ?? {}) as RpcRow;
 
     const detailData: ContractProfitDetailData = {
       contract: {
@@ -768,7 +772,23 @@ export async function getContractFinanceDetails(contractId: string) {
         contract_code: asString(contract.contract_code),
         status: asString(contract.status),
         created_at: asString((contract as RpcRow).contract_date) || asString(contract.created_at),
+        contract_date: asString((contract as RpcRow).contract_date, "") || null,
+        work_date: asString((contract as RpcRow).work_date, "") || null,
+        paid_amount: asNumber((contract as RpcRow).paid_amount),
+        remaining_amount: asNumber((contract as RpcRow).remaining_amount),
         customer_name: relationText(contract.customers as unknown, "full_name") || "Khách vãng lai",
+        customer_phone: relationText(contract.customers as unknown, "phone"),
+        customer_address: relationText(contract.customers as unknown, "address"),
+      },
+      financials: {
+        revenue: asNumber(fin.revenue),
+        task_cost: asNumber(fin.task_cost),
+        print_cost: asNumber(fin.print_cost),
+        cogs: asNumber(fin.cogs),
+        direct_cost: asNumber(fin.direct_cost),
+        total_cost: asNumber(fin.total_cost),
+        profit: asNumber(fin.profit),
+        profit_margin: asNumber(fin.profit_margin),
       },
       details: details.data.map((d: Record<string, unknown>) => ({
         id: d.id as string,
@@ -782,15 +802,14 @@ export async function getContractFinanceDetails(contractId: string) {
       tasks: tasks.data.map((t: Record<string, unknown>) => {
         const employeeName = t.employees ? relationText(t.employees as unknown, "full_name") : null;
         const vendorName = t.vendors ? relationText(t.vendors as unknown, "full_name") : null;
+        const isVendor = Boolean(t.vendor_id);
         return {
           id: t.id as string,
           work_type: asString(t.work_type),
           cost: asNumber(t.cost),
-          employees: employeeName
-            ? { full_name: employeeName as string }
-            : vendorName
-              ? { full_name: `Thợ ngoài: ${vendorName}` }
-              : null,
+          status: asString(t.status, "chua_lam"),
+          assignee_name: isVendor ? vendorName : employeeName,
+          is_vendor: isVendor,
         };
       }),
       orders: prints.data.map((p: Record<string, unknown>) => {

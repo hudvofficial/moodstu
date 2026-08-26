@@ -63,6 +63,8 @@ Dashboard `/finance` hiện đúng 3 khối, mỗi khối một câu hỏi, **kh
 | **Lãi/lỗ** | tháng này lời hay lỗ | `contracts.total_amount` chụp trong tháng + bán lẻ − task (mọi task không huỷ, cùng luật `contract_financials`) − đơn in − COGS − chi `other` | ngày chụp / sự kiện / `order_date` / phiếu xuất / phiếu chi |
 | **Công nợ** | ai nợ ai | `remaining_amount` (phải thu) · `finance_payable_summary()` (phải trả) | hiện tại |
 
+Drawer **"Lợi nhuận HĐ"** (`components/finance/dashboard/profit-detail-drawer.tsx`, mở từ `/finance`, `/reports`, cột Lợi nhuận `/contracts`) dùng **cùng khung** với drawer vận hành hợp đồng: `Drawer` mặc định 480px, header = mã HĐ + badge trạng thái, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN; số lấy từ `contract_financials` qua `getContractFinanceDetails` (T-20260826-profit-drawer-align). Đừng đặt `size="lg"` cho drawer nào mở cạnh drawer hợp đồng.
+
 Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung cho `finance_month_summary` (3 khối), `finance_pnl_by_month` (chart 12 tháng), `finance_reports_snapshot` (`/reports`, Moodie) và `finance_cashflow_timeline` — `verify:reports` assert 4 hàm cho cùng số. `finance_dashboard_metrics` và `finance_revenue_by_month` **đã DROP** (két bị gọi là "lợi nhuận", tiền thu bị gọi là "doanh thu"). `fixed_costs` và `monthly_salaries.total_salary` **không** phải tiền → không vào két; chi phí cố định thật = phiếu chi `[Auto-Fixed]`, lương cứng = `employee_salaries.monthly_salary` (0 hiện tại; M5). Chi tiết luật ngày: [[luong-tien]].
 
 ## Bảng

@@ -148,9 +148,23 @@ export interface PersonalTask {
   id: string;
   work_type: string;
   cost: number;
-  employees: {
-    full_name: string;
-  } | null;
+  /** chua_lam | dang_lam | hoan_thanh — task đang làm vẫn là cam kết (ADR-016 §3) */
+  status: string;
+  /** Tên nhân viên ekip hoặc thợ ngoài */
+  assignee_name: string | null;
+  is_vendor: boolean;
+}
+
+/** Số lợi nhuận HĐ từ contract_financials(uuid[]) — nguồn duy nhất, drawer không cộng lại */
+export interface ContractFinancials {
+  revenue: number;
+  task_cost: number;
+  print_cost: number;
+  cogs: number;
+  direct_cost: number;
+  total_cost: number;
+  profit: number;
+  profit_margin: number;
 }
 
 export interface ProductionOrder {
@@ -186,9 +200,18 @@ export interface ContractProfitDetailData {
     subtotal: number;
     contract_code: string;
     status: string;
+    /** = contract_date, fallback created_at (giữ cho tương thích) */
     created_at: string;
+    contract_date: string | null;
+    /** Ngày chụp — mốc ghi nhận doanh thu (ADR-016 §2) */
+    work_date: string | null;
+    paid_amount: number;
+    remaining_amount: number;
     customer_name: string;
+    customer_phone: string | null;
+    customer_address: string | null;
   };
+  financials: ContractFinancials;
   details: ContractDetail[];
   tasks: PersonalTask[];
   orders: ProductionOrder[];
