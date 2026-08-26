@@ -3,9 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `49c3054` (+ commit docs/test sau merge).
+> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `d537e8b` (+ commit docs sau merge).
 
-## 2026-08-26 — PILL TRẠNG THÁI CHUNG 2 DRAWER: **CODE + VERIFY LOCAL XONG, CHỜ USER XEM ARTIFACT → "merge + push"** (`T-20260826-drawer-status-pill`, nhánh `claude/drawer-status-pill`)
+## 2026-08-26 — PILL TRẠNG THÁI CHUNG 2 DRAWER: **MERGED `d537e8b` + VERIFIED PRODUCTION 3/3** (`T-20260826-drawer-status-pill`)
+- User xem artifact https://claude.ai/code/artifact/06c88918-8b67-4380-8381-0dfb021c113a → "merge + push" → ff `37bb1ae → d537e8b`, Vercel lên sau 3,5 phút, `cashflow-m2` prod 3/3 (đổi trạng thái HĐ seed từ drawer lợi nhuận qua ConfirmDialog nợ → DB/list/drawer vận hành khớp), seed sạch (E2E 0, expenses 35). **Danh sách chờ gật giờ chỉ còn** `T-20260825-printing-cancel-inventory-deadcode` (ADR-017); M3b thiệp UI / M4 payment_plans / M5 lương cứng chưa spec. Việc user: 8,55tr ekip đã trả ngoài sổ hay chưa.
 - Tách `ContractStatusBadge` (+`getStatusVariant`) ra `components/contracts/contract-status-badge.tsx`, prop `onUpdated`; drawer lợi nhuận dùng pill này thay `Badge` chỉ đọc, sau đổi → `mutate()` + `revalidateByPrefixes` 5 họ key `/finance`. Gate: eslint/tsc/build 0 · `verify:contracts` · Playwright local `cashflow-m2` 3/3 (bước mới đổi trạng thái từ drawer lợi nhuận qua ConfirmDialog nợ → DB + list + drawer vận hành cùng trạng thái) + `contract-operational` 1/1. Artifact ảnh header 2 drawer: link ở message. Ghi nhận không sửa: `detail/top-action-bar.tsx` còn pill nội bộ riêng. Sau merge: `cashflow-m2` prod.
 
 ## 2026-08-26 — TYPOGRAPHY SSOT 2 DRAWER (phần còn lại): **MERGED `37bb1ae` + VERIFIED PRODUCTION 3/3** (`T-20260826-drawer-typography-ssot`)
