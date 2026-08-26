@@ -27,8 +27,7 @@
       "WebFetch(domain:docs.coroot.com)",
       "WebSearch",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(git log *)",
-      "Bash(node scripts/apply-migration.mjs:*)"
+      "Bash(git log *)"
     ]
   },
   "enabledMcpjsonServers": [
