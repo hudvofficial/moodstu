@@ -5,7 +5,6 @@ import type {
 } from "@/types/printing-constants";
 
 export interface PrintingItem {
-  item_id?: string;  // Optional link to inventory_items table for reservation
   name: string;
   quantity: number;
   unitPrice: number;
@@ -40,15 +39,6 @@ export interface PrintingOrderRow {
   items: PrintingItem[];
   updatedAt: string | null;
   createdAt: string | null;
-  // Phase 1: Enhanced payment & inventory tracking
-  depositAmount?: number;
-  finalAmount?: number;
-  paidAmount?: number;
-  remainingAmount?: number;
-  inventoryStatus?: 'none' | 'reserved' | 'stocked_out' | 'cancelled';
-  cancelledAt?: string | null;
-  cancellationReason?: string | null;
-  deliveredAt?: string | null;
 }
 
 export interface PrintingOrderDetail extends PrintingOrderRow {
@@ -149,52 +139,7 @@ export interface LabDebtData {
 
 // ─── PHASE 1: Order Payments ───
 
-export type OrderPaymentType = 'deposit' | 'final' | 'refund' | 'adjustment';
 export type PaymentMethod = 'cash' | 'transfer' | 'card' | 'other';
-
-export interface InventoryAvailableStock {
-  id: string;
-  studio_id: string;
-  item_code: string;
-  name: string;
-  current_stock: number;
-  unit: string | null;
-  reserved_quantity: number;
-  available_stock: number;
-  min_stock: number | null;
-  stock_status: 'in_stock' | 'low_stock' | 'out_of_stock';
-}
-
-// ─── PHASE 1: Action Inputs ───
-
-export interface RecordDepositPaymentInput {
-  orderId: string;
-  depositAmount: number;
-  paymentMethod: PaymentMethod;
-  paymentDate?: string;
-  notes?: string;
-}
-
-export interface StartProductionInput {
-  orderId: string;
-  expiresInDays?: number; // Default 7 days
-}
-
-export interface CompleteProductionInput {
-  orderId: string;
-  manualStockOut?: boolean;
-  adjustedItems?: Array<{
-    item_id: string;
-    quantity: number;
-  }>;
-}
-
-export interface CancelOrderInput {
-  orderId: string;
-  reason: string;
-  refundAmount?: number;
-  refundMethod?: PaymentMethod;
-}
 
 // ─── LAB PAYMENT FLOW ───
 

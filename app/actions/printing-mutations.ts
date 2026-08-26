@@ -201,6 +201,13 @@ export async function updatePrintingOrderStatus(
       updateData.issue_reported_by = null;
     }
 
+    // ADR-017: hủy đơn đi qua đúng 1 đường (dropdown + CancelOrderModal đều gọi hàm này).
+    // Trước đây cancelOrder() ghi 2 cột này nhưng không ghi status_history; dropdown thì ngược lại.
+    if (parsedStatus.data === "huy_don") {
+      updateData.cancelled_at = now;
+      updateData.cancellation_reason = reason?.trim() || null;
+    }
+
     if (parsedStatus.data === "da_nhan" && !current.received_date) {
       updateData.received_date = now;
     }
@@ -236,6 +243,7 @@ export async function updatePrintingOrderStatus(
       tableName: "printing_orders",
       recordId: id,
       description: `Cap nhat trang thai don in ${current.order_code || id}`,
+      severity: parsedStatus.data === "huy_don" ? "WARNING" : "INFO",
       oldData: { status: currentStatus },
       newData: { status: parsedStatus.data },
       source: "server_action",

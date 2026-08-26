@@ -33,8 +33,7 @@ Dev server còn khoá theo thư mục project → phải dừng dev trước khi
 
 ## `npm run migrate:latest` KHÔNG chạy file mới nhất
 
-Không truyền tham số thì nó chạy **file phase1 hardcode cũ**. Phải truyền tên file.
-Thông báo `Created: order_payments...` là **text thừa in cứng**, không phải kết quả thật → verify bằng `pg_indexes` / query thật.
+Tên file là **tương đối `supabase/migrations/`** (không kèm thư mục). Từ ADR-017 (26/08/2026): không truyền tham số → script **dừng báo lỗi** (trước đây chạy ngầm file phase-1 cũ — sẽ tạo lại object đã drop); banner "Created: order_payments…" in cứng đã bỏ. Vẫn verify bằng query thật (`scripts/db-q.mjs`), đừng tin log.
 
 ## Migration ship kèm code nhưng KHÔNG được apply
 

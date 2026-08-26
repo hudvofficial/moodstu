@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Bản đồ route → action → bảng
 
-61 trang · 25 API route · 88 file server action
+61 trang · 25 API route · 87 file server action
 
 > Cột **Bảng/RPC** là *tất cả* bảng chạm được qua đồ thị import (kể cả gián tiếp qua component con), nên rộng hơn cái route thật sự dùng. Dùng để **khoanh vùng ảnh hưởng**, không phải để kết luận "route này chỉ đọc bảng X".
 
@@ -255,7 +255,7 @@ cap-nhat: 2026-08-07
 - **Action:** `checklist-actions.ts` · `contract-event-actions.ts` · `contract-mutations.ts` · `contract-queries.ts` · `employee-queries.ts` · `finance-dashboard-queries.ts` · `gallery-actions.ts` · `gallery-admin-actions.ts` · `gallery-core.ts` · `gallery-drive-actions.ts` · `gallery-public-actions.ts` · `gallery-selection-actions.ts` · `note-actions.ts` · `user-management.ts` · `vendor-actions.ts` · `lib/audit.ts`
 - **Bảng:** `addon_history` · `audit_logs` · `checklist_templates` · `contract_checklists` · `contract_events` · `contract_items` · `contract_notes` · `contracts` · `customers` · `dress_reservations` · `dresses` · `employees` · `employees_public` · `event_templates` · `expenses` · `finance_monthly_closes` · `galleries` · `gallery_filter_jobs` · `gallery_images` · `gallery_password_attempts` · `gallery_reactions` · `gallery_selection_batch_items` · `gallery_selection_batches` · `gallery_share_links` · `inventory_transactions` · `payment_plans` · `payments` · `printing_orders` · `receipts` · `studio_info` · `vendors` · `work_tasks`
 - **RPC:** `contract_financials` · `contract_stats` · `contract_stats_simple` · `employee_stats` · `finance_contract_profit_report` · `finance_ledger` · `finance_ledger_range` · `finance_month_summary` · `finance_pending_collections` · `finance_pnl_by_month` · `finance_service_distribution` · `get_contract_list_v2` · `get_gallery_summaries_by_contract` · `is_period_locked` · `next_employee_code` · `prepare_gallery_share` · `save_contract_atomic` · `set_gallery_password` · `verify_gallery_password`
-- **Component:** 36
+- **Component:** 37
 
 ### 📄 `/contracts/[id]`
 `app/(protected)/contracts/[id]/page.tsx`
@@ -384,10 +384,10 @@ cap-nhat: 2026-08-07
 ### 📄 `/finance`
 `app/(protected)/finance/page.tsx`
 
-- **Action:** `finance-dashboard-queries.ts` · `finance-intelligence-queries.ts` · `user-management.ts` · `lib/audit.ts`
-- **Bảng:** `audit_logs` · `contract_items` · `contracts` · `employees` · `expenses` · `finance_monthly_closes` · `inventory_transactions` · `payments` · `printing_orders` · `receipts` · `work_tasks`
-- **RPC:** `contract_financials` · `finance_contract_profit_report` · `finance_ledger` · `finance_ledger_range` · `finance_month_summary` · `finance_pending_collections` · `finance_pnl_by_month` · `finance_service_distribution` · `get_budget_vs_actual` · `get_cashflow_forecast` · `get_expense_breakdown` · `get_finance_advanced_intelligence` · `get_finance_intelligence` · `get_receivable_aging` · `is_period_locked`
-- **Component:** 37
+- **Action:** `checklist-actions.ts` · `contract-event-actions.ts` · `contract-mutations.ts` · `contract-queries.ts` · `employee-queries.ts` · `finance-dashboard-queries.ts` · `finance-intelligence-queries.ts` · `user-management.ts` · `vendor-actions.ts` · `lib/audit.ts`
+- **Bảng:** `addon_history` · `audit_logs` · `checklist_templates` · `contract_checklists` · `contract_events` · `contract_items` · `contract_notes` · `contracts` · `customers` · `dress_reservations` · `dresses` · `employees` · `employees_public` · `event_templates` · `expenses` · `finance_monthly_closes` · `inventory_transactions` · `payment_plans` · `payments` · `printing_orders` · `receipts` · `studio_info` · `vendors` · `work_tasks`
+- **RPC:** `contract_financials` · `contract_stats` · `contract_stats_simple` · `employee_stats` · `finance_contract_profit_report` · `finance_ledger` · `finance_ledger_range` · `finance_month_summary` · `finance_pending_collections` · `finance_pnl_by_month` · `finance_service_distribution` · `get_budget_vs_actual` · `get_cashflow_forecast` · `get_contract_list_v2` · `get_expense_breakdown` · `get_finance_advanced_intelligence` · `get_finance_intelligence` · `get_receivable_aging` · `is_period_locked` · `next_employee_code` · `save_contract_atomic`
+- **Component:** 41
 
 ### 📄 `/finance/budget`
 `app/(protected)/finance/budget/page.tsx`
@@ -618,10 +618,10 @@ cap-nhat: 2026-08-07
 ### 📄 `/printing`
 `app/(protected)/printing/page.tsx`
 
-- **Action:** `contract-queries.ts` · `employee-queries.ts` · `inventory-queries.ts` · `lab-mutations.ts` · `lab-queries.ts` · `printing-mutations.ts` · `printing-queries.ts` · `printing-reference-queries.ts` · `printing-workflow-mutations.ts` · `user-management.ts` · `vendor-actions.ts` · `lib/audit.ts`
-- **Bảng:** `approval_requests` · `audit_logs` · `contract_checklists` · `contract_events` · `contract_notes` · `contracts` · `customers` · `employees` · `employees_public` · `expense_allocations` · `expenses` · `finance_monthly_closes` · `inventory_items` · `inventory_reservations` · `inventory_transactions` · `lab_services` · `labs` · `order_payments` · `payment_plans` · `payments` · `printing_order_status_history` · `printing_orders` · `vendors` · `work_tasks`
-- **RPC:** `contract_stats` · `contract_stats_simple` · `create_printing_order_atomic` · `delete_printing_order_atomic` · `employee_stats` · `finance_lab_debt_summary` · `get_contract_list_v2` · `inventory_detail_v2` · `inventory_item_transaction_totals` · `inventory_list` · `inventory_stats` · `is_period_locked` · `next_employee_code` · `nextval_inventory_code` · `printing_lab_overview` · `printing_stats` · `record_lab_payment_atomic` · `update_printing_order_atomic`
-- **Component:** 36
+- **Action:** `contract-queries.ts` · `employee-queries.ts` · `lab-mutations.ts` · `lab-queries.ts` · `printing-mutations.ts` · `printing-queries.ts` · `printing-reference-queries.ts` · `user-management.ts` · `vendor-actions.ts` · `lib/audit.ts`
+- **Bảng:** `audit_logs` · `contract_checklists` · `contract_events` · `contract_notes` · `contracts` · `customers` · `employees` · `employees_public` · `expense_allocations` · `expenses` · `finance_monthly_closes` · `lab_services` · `labs` · `payment_plans` · `payments` · `printing_order_status_history` · `printing_orders` · `vendors` · `work_tasks`
+- **RPC:** `contract_stats` · `contract_stats_simple` · `create_printing_order_atomic` · `delete_printing_order_atomic` · `employee_stats` · `finance_lab_debt_summary` · `get_contract_list_v2` · `is_period_locked` · `next_employee_code` · `printing_lab_overview` · `printing_stats` · `record_lab_payment_atomic` · `update_printing_order_atomic`
+- **Component:** 35
 
 ### 📄 `/printing/labs`
 `app/(protected)/printing/labs/page.tsx`
@@ -646,10 +646,10 @@ cap-nhat: 2026-08-07
 ### 📄 `/reports`
 `app/(protected)/reports/page.tsx`
 
-- **Action:** `finance-cashflow-timeline.ts` · `finance-dashboard-queries.ts` · `finance-operations-queries.ts` · `finance-reports-queries.ts` · `user-management.ts` · `lib/audit.ts`
-- **Bảng:** `audit_logs` · `contract_items` · `contracts` · `credit_cards` · `debts` · `employee_salaries` · `employees` · `expenses` · `finance_monthly_closes` · `financial_goals` · `fixed_costs` · `goal_contributions` · `inventory_transactions` · `investments` · `monthly_salaries` · `payments` · `printing_orders` · `receipts` · `transaction_categories` · `work_tasks`
-- **RPC:** `contract_financials` · `finance_cashflow_timeline` · `finance_contract_profit_report` · `finance_debt_stats` · `finance_expense_stats` · `finance_ledger` · `finance_ledger_range` · `finance_month_summary` · `finance_pending_collections` · `finance_pnl_by_month` · `finance_receipt_document_stats` · `finance_receipt_documents` · `finance_reports_snapshot` · `finance_service_distribution` · `is_period_locked`
-- **Component:** 37
+- **Action:** `checklist-actions.ts` · `contract-event-actions.ts` · `contract-mutations.ts` · `contract-queries.ts` · `employee-queries.ts` · `finance-cashflow-timeline.ts` · `finance-dashboard-queries.ts` · `finance-operations-queries.ts` · `finance-reports-queries.ts` · `user-management.ts` · `vendor-actions.ts` · `lib/audit.ts`
+- **Bảng:** `addon_history` · `audit_logs` · `checklist_templates` · `contract_checklists` · `contract_events` · `contract_items` · `contract_notes` · `contracts` · `credit_cards` · `customers` · `debts` · `dress_reservations` · `dresses` · `employee_salaries` · `employees` · `employees_public` · `event_templates` · `expenses` · `finance_monthly_closes` · `financial_goals` · `fixed_costs` · `goal_contributions` · `inventory_transactions` · `investments` · `monthly_salaries` · `payment_plans` · `payments` · `printing_orders` · `receipts` · `studio_info` · `transaction_categories` · `vendors` · `work_tasks`
+- **RPC:** `contract_financials` · `contract_stats` · `contract_stats_simple` · `employee_stats` · `finance_cashflow_timeline` · `finance_contract_profit_report` · `finance_debt_stats` · `finance_expense_stats` · `finance_ledger` · `finance_ledger_range` · `finance_month_summary` · `finance_pending_collections` · `finance_pnl_by_month` · `finance_receipt_document_stats` · `finance_receipt_documents` · `finance_reports_snapshot` · `finance_service_distribution` · `get_contract_list_v2` · `is_period_locked` · `next_employee_code` · `save_contract_atomic`
+- **Component:** 41
 
 ## `/reset-password`
 

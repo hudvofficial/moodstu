@@ -70,7 +70,7 @@ Thiết bị: **PC, mobile, iPad** — cả ba đều dùng thật.
 
 ## Bảng rỗng — tính năng đã dựng, chưa dùng
 
-`service_bundles` · `service_relations` · `price_rules` · `promotions` · `budgets` · `financial_goals` · `goal_contributions` · `fixed_costs` · `debts` · `investments` · `finance_close_tasks` · `salary_adjustments` · `attendance` · `work_shifts` · `evaluations` · `requests` · `equipment` · `documents` · `notifications` · `push_subscriptions` · `dress_rentals` · `dress_reservations` · `gallery_albums` · `gallery_selection_batches` · `gallery_filter_jobs` · `inventory_reservations` · `order_payments`
+`service_bundles` · `service_relations` · `price_rules` · `promotions` · `budgets` · `financial_goals` · `goal_contributions` · `fixed_costs` · `debts` · `investments` · `finance_close_tasks` · `salary_adjustments` · `attendance` · `work_shifts` · `evaluations` · `requests` · `equipment` · `documents` · `notifications` · `push_subscriptions` · `dress_rentals` · `dress_reservations` · `gallery_albums` · `gallery_selection_batches` · `gallery_filter_jobs` (`inventory_reservations` · `order_payments` đã drop ADR-017)
 
 **Rỗng ≠ bỏ.** Người dùng đã xác nhận **toàn bộ hệ thống giữ lại vì đều cần**. Đừng đề xuất xoá.
 Nhưng khi ước lượng rủi ro: mã đường này chưa chạy trên dữ liệu thật bao giờ.

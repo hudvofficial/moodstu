@@ -7,7 +7,7 @@ cap-nhat: 2026-08-07
 
 # Server action → bảng/RPC
 
-88 file. Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
+87 file. Chỉ liệt kê truy cập DB **viết trực tiếp trong file đó** (không đi theo import).
 
 | File | Bảng | RPC |
 |---|---|---|
@@ -78,9 +78,8 @@ cap-nhat: 2026-08-07
 | `payment-actions.ts` | `payment_plans` `transaction_categories` | `process_contract_payment_v2` `void_contract_payment_v2` |
 | `printing-actions.ts` | `printing_orders` |  |
 | `printing-mutations.ts` | `printing_orders` `printing_order_status_history` | `create_printing_order_atomic` `update_printing_order_atomic` `delete_printing_order_atomic` |
-| `printing-queries.ts` | `printing_orders` `contracts` `labs` `expense_allocations` `order_payments` | `printing_stats` |
+| `printing-queries.ts` | `printing_orders` `contracts` `labs` `expense_allocations` | `printing_stats` |
 | `printing-reference-queries.ts` | `contracts` | `finance_lab_debt_summary` |
-| `printing-workflow-mutations.ts` | `printing_orders` `inventory_transactions` `inventory_items` `inventory_reservations` |  |
 | `productivity-actions.ts` |  | `get_employee_productivity` `get_my_employee_productivity` `get_my_employee_job_details` `get_employee_job_details` |
 | `profile-actions.ts` | `employees` |  |
 | `receipt-actions.ts` | `receipts` | `create_sale_receipt_atomic` |

@@ -424,32 +424,3 @@ export async function getPrintingOrderLabRemaining(
   });
 }
 
-/**
- * Get payment history for an order
- */
-export async function getOrderPaymentHistory(orderId: string) {
-  return withPrintingAccess(async (supabase: SupabaseClient<Database>) => {
-    const { data, error } = await supabase
-      .from("order_payments")
-      .select("*")
-      .eq("order_id", orderId)
-      .order("payment_date", { ascending: false });
-
-    if (error) {
-      throw new Error(`Không thể lấy lịch sử thanh toán: ${error.message}`);
-    }
-
-    return data.map((payment) => ({
-      id: payment.id,
-      orderId: payment.order_id,
-      paymentId: payment.payment_id,
-      receiptId: payment.receipt_id,
-      paymentType: payment.payment_type as "deposit" | "final" | "refund" | "adjustment",
-      amount: payment.amount,
-      paymentDate: payment.payment_date,
-      paymentMethod: payment.payment_method, // text — DB lưu tien_mat/chuyen_khoan
-      notes: payment.notes || null,
-      createdAt: payment.created_at,
-    }));
-  });
-}

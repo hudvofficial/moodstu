@@ -57,7 +57,7 @@ Module liên quan: [[in-an-lab]]
 
 **Trỏ ra:** `lab_id` → `labs.id` · `contract_id` → `contracts.id`
 
-**Bị trỏ tới bởi:** `inventory_reservations.order_id` · `order_payments.order_id` · `expenses.printing_order_id` · `printing_order_status_history.order_id`
+**Bị trỏ tới bởi:** `expenses.printing_order_id` · `printing_order_status_history.order_id`
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_printing_orders_updated_at` → `update_updated_at_column()`
 

@@ -1,6 +1,6 @@
 # T-20260825 — Hủy đơn in: gỡ nhánh "hoàn kho" chết, hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (+ tuỳ chọn DROP object DB)
 
-**Owner:** claude (spec) · **Trạng thái:** spec, chờ user duyệt · **ADR:** đề xuất ADR-016 (mục 2, ghi vào `DECISIONS.md` sau khi duyệt) · **Depends on:** `T-20260825-printing-drawer-fixes` (đã merged `d91def7`)
+**Owner:** claude (spec + review; Phase A coder subagent) · **Trạng thái:** **review — Phase A + B xong 26/08, chờ user "merge + push"** · **ADR:** **ADR-017** (số 016 đã dùng cho dòng tiền; mọi chỗ ghi "ADR-016" bên dưới đọc là 017 — đã ghi `DECISIONS.md`) · **Depends on:** `T-20260825-printing-drawer-fixes` (đã merged `d91def7`)
 **Module:** in-an-lab · **Yêu cầu gốc (user, 2026-08-25):** *"trace kĩ 'nhánh hoàn kho trong cancelOrder() là dead code (kho vật tư đã rời in ấn)' rồi viết spec"*.
 
 **Locks (Phase A — code):**
@@ -224,3 +224,11 @@ Sau merge: chạy lại Playwright trên `stu.moodwedding.com` (tiền lệ ADR-
 - **Không drop cột trên `printing_orders`** (`inventory_status`, `deposit_amount`, `paid_amount`, `final_amount`, `delivered_at`, `delivered_date`): `pg_proc` cho thấy `finance_contract_profit_report` và `get_contract_detail_v2` có thân hàm chứa cả `paid_amount` lẫn `printing_orders` — chưa tách được là đọc `contracts.paid_amount` hay `printing_orders.paid_amount` nếu không đọc hết 2 hàm; lợi ích drop cột ≈ 0 (giá trị toàn 0/null, không ai ghi), rủi ro vỡ RPC > 0 → để nguyên. `cancelled_at`/`cancellation_reason` giờ được ghi lại bởi 3.1 nên là cột SỐNG.
 - `PrintingOrderDetail.deliveredDate` + `delivered_date` trong `buildPrintingSelect` — vết "giao khách" (ADR-014 bỏ khỏi trạng thái) nhưng là đọc-only vô hại; task riêng nếu muốn.
 - Thiết kế 2 modal hủy (`StatusReasonModal` cho dropdown, `CancelOrderModal` cho nút trong drawer) — sau ADR-016 cả hai cùng backend; hợp nhất UI là việc thẩm mỹ, không làm ở đây.
+
+## 7. Kết quả (26/08/2026, nhánh `claude/printing-cancel-deadcode`)
+- **Đo lại trước khi làm:** DB vẫn 0/0/0; `pg_proc` chỉ 2 hàm sắp drop tham chiếu; `pg_depend` 2 view ← 2 bảng; 0 trigger; số dòng code trong spec vẫn khớp (35 đơn in, 1 `cancelled_at`).
+- **Phase A (coder subagent, Claude review):** đúng §3.1–3.7, 7 file +40/−291; `now` tái dùng biến có sẵn; `order.contractId ?? ""` type-check OK; comment ghi ADR-017. **Sót ở spec, phát hiện khi `db:types` → tsc:** `getOrderPaymentHistory` (`printing-queries.ts`) + `components/printing/payment-history-section.tsx` (render trong drawer "Sửa đơn", khối "lịch sử thanh toán" khách — phase-1, luôn rỗng) vẫn đọc `order_payments` → xoá cả hai + khối JSX. Spec §1c chỉ ghi nhận `getOrderPaymentSummary` đã xoá ở ADR-015.
+- **Phase B:** `20260826200000_drop_printing_inventory_payment_legacy.sql` (pre-check DO: 0/0/0 + 0 hàm ngoài 2 hàm sắp drop) **đã áp prod** → 0 object cũ; 9 giao dịch kho / 35 đơn in nguyên. `db:types` −216 dòng; `types` còn 7 hit tên "reservation" đều là FK/param module váy (`inventory_reservations_*_fkey` trên `dress_reservations`, `p_reservation_id`). Scripts: `migrate-direct.mjs` bỏ banner + **bắt buộc tên file** (trước đây không tham số = chạy ngầm phase-1 → tạo lại object vừa drop); xoá `verify-migration.mjs` + `check-schema.mjs` (chỉ kiểm 4 object này) + npm `migrate:phase1`/`migrate:verify`; `vault-gen-schema` bỏ 2 bảng.
+- **Verify:** eslint 0 (1 warning có sẵn `exhaustive-deps` drawer) · tsc 0 · build ✓ ×2 · `verify:printing`/`contracts`/`inventory` xanh · Playwright local `printing-drawer-fixes-verify` 3/3 (test 2 hủy thật từ modal: `status=huy_don` + `cancelled_at` + `cancellation_reason` + đúng 1 dòng `status_history`).
+- **Docs:** ADR-017 `DECISIONS.md`; vault `vat-tu`, `in-an-lab`, `vong-doi-hop-dong` §7, `cache-va-realtime`, `bay-trien-khai`, `so-lieu-van-hanh` + regen schema/codemap.
+- **Cửa sổ lệch DB↔app prod tới khi merge:** drawer "Sửa đơn" trên prod cũ vẫn gọi `getOrderPaymentHistory` → khối lịch sử báo lỗi tải (không chặn thao tác khác). Merge sớm để đóng.

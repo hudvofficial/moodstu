@@ -2012,13 +2012,6 @@ export type Database = {
             foreignKeyName: "expenses_printing_order_id_fkey"
             columns: ["printing_order_id"]
             isOneToOne: false
-            referencedRelation: "order_payment_summary"
-            referencedColumns: ["order_id"]
-          },
-          {
-            foreignKeyName: "expenses_printing_order_id_fkey"
-            columns: ["printing_order_id"]
-            isOneToOne: false
             referencedRelation: "printing_orders"
             referencedColumns: ["id"]
           },
@@ -2958,77 +2951,6 @@ export type Database = {
           },
         ]
       }
-      inventory_reservations: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          expires_at: string | null
-          id: string
-          item_id: string
-          notes: string | null
-          order_id: string
-          reserved_at: string | null
-          reserved_quantity: number
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          item_id: string
-          notes?: string | null
-          order_id: string
-          reserved_at?: string | null
-          reserved_quantity: number
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          item_id?: string
-          notes?: string | null
-          order_id?: string
-          reserved_at?: string | null
-          reserved_quantity?: number
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_reservations_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_available_stock"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "order_payment_summary"
-            referencedColumns: ["order_id"]
-          },
-          {
-            foreignKeyName: "inventory_reservations_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "printing_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       inventory_transactions: {
         Row: {
           contract_code: string | null
@@ -3049,7 +2971,6 @@ export type Database = {
           quantity: number
           reason: string | null
           receipt_id: string | null
-          reservation_id: string | null
           rolled_back_txn_id: string | null
           sale_total: number | null
           sale_unit_price: number | null
@@ -3079,7 +3000,6 @@ export type Database = {
           quantity?: number
           reason?: string | null
           receipt_id?: string | null
-          reservation_id?: string | null
           rolled_back_txn_id?: string | null
           sale_total?: number | null
           sale_unit_price?: number | null
@@ -3109,7 +3029,6 @@ export type Database = {
           quantity?: number
           reason?: string | null
           receipt_id?: string | null
-          reservation_id?: string | null
           rolled_back_txn_id?: string | null
           sale_total?: number | null
           sale_unit_price?: number | null
@@ -3132,13 +3051,6 @@ export type Database = {
             foreignKeyName: "inventory_transactions_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
-            referencedRelation: "inventory_available_stock"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_transactions_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
@@ -3154,13 +3066,6 @@ export type Database = {
             columns: ["receipt_id"]
             isOneToOne: false
             referencedRelation: "receipts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_transactions_reservation_id_fkey"
-            columns: ["reservation_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_reservations"
             referencedColumns: ["id"]
           },
           {
@@ -4333,83 +4238,6 @@ export type Database = {
           },
         ]
       }
-      order_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          created_by: string | null
-          id: string
-          notes: string | null
-          order_id: string
-          payment_date: string
-          payment_id: string | null
-          payment_method: string
-          payment_type: string
-          receipt_id: string | null
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          notes?: string | null
-          order_id: string
-          payment_date: string
-          payment_id?: string | null
-          payment_method: string
-          payment_type: string
-          receipt_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          notes?: string | null
-          order_id?: string
-          payment_date?: string
-          payment_id?: string | null
-          payment_method?: string
-          payment_type?: string
-          receipt_id?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "order_payment_summary"
-            referencedColumns: ["order_id"]
-          },
-          {
-            foreignKeyName: "order_payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "printing_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_payments_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_payments_receipt_id_fkey"
-            columns: ["receipt_id"]
-            isOneToOne: false
-            referencedRelation: "receipts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       payment_plan_allocations: {
         Row: {
           amount: number
@@ -4689,13 +4517,6 @@ export type Database = {
           to_status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "printing_order_status_history_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "order_payment_summary"
-            referencedColumns: ["order_id"]
-          },
           {
             foreignKeyName: "printing_order_status_history_order_id_fkey"
             columns: ["order_id"]
@@ -5715,33 +5536,6 @@ export type Database = {
         }
         Relationships: []
       }
-      inventory_available_stock: {
-        Row: {
-          available_stock: number | null
-          current_stock: number | null
-          id: string | null
-          item_code: string | null
-          min_stock: number | null
-          name: string | null
-          reserved_quantity: number | null
-          stock_status: string | null
-          unit: string | null
-        }
-        Relationships: []
-      }
-      order_payment_summary: {
-        Row: {
-          adjustment_amount: number | null
-          deposit_paid: number | null
-          final_paid: number | null
-          order_id: string | null
-          refund_amount: number | null
-          remaining: number | null
-          total_amount: number | null
-          total_paid: number | null
-        }
-        Relationships: []
-      }
       payment_plan_states: {
         Row: {
           amount: number | null
@@ -5835,15 +5629,6 @@ export type Database = {
       cancel_dress_rental_atomic: {
         Args: { p_rental_id: string; p_user_id?: string }
         Returns: Json
-      }
-      check_inventory_conflict: {
-        Args: {
-          p_end_date: string
-          p_exclude_reservation_id?: string
-          p_item_id: string
-          p_start_date: string
-        }
-        Returns: boolean
       }
       claim_moodie_agent_run: {
         Args: { p_lease_seconds?: number; p_worker_id: string }
@@ -6094,7 +5879,6 @@ export type Database = {
           total: number
         }[]
       }
-      expire_old_reservations: { Args: never; Returns: number }
       finalize_moodie_memory_consolidation: {
         Args: {
           p_confidence?: number

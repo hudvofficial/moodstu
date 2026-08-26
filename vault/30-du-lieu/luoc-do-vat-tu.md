@@ -15,7 +15,6 @@ Module liên quan: [[vat-tu]]
 |---|---:|---|---:|
 | `inventory_items` | 3 | ✅ | 1 |
 | `inventory_transactions` | 9 | ✅ | 1 |
-| `inventory_reservations` | 0 | ✅ | 3 |
 | `equipment` | 0 | ✅ | 4 |
 
 ## `inventory_items`
@@ -47,7 +46,7 @@ Module liên quan: [[vat-tu]]
 
 **Trỏ ra:** `supplier_id` → `vendors.id`
 
-**Bị trỏ tới bởi:** `inventory_reservations.item_id` · `inventory_transactions.item_id`
+**Bị trỏ tới bởi:** `inventory_transactions.item_id`
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()`
 
@@ -103,11 +102,10 @@ Module liên quan: [[vat-tu]]
 | `sale_total` | numeric |  |  |
 | `payment_method` | text |  |  |
 | `parent_transaction_id` | uuid |  |  |
-| `reservation_id` | uuid |  |  |
 | `is_rollback` | bool |  | `false` |
 | `rolled_back_txn_id` | uuid |  |  |
 
-**Trỏ ra:** `rolled_back_txn_id` → `inventory_transactions.id` (ON DELETE SET NULL) · `reservation_id` → `inventory_reservations.id` (ON DELETE SET NULL) · `receipt_id` → `receipts.id` · `item_id` → `inventory_items.id` · `contract_id` → `contracts.id` (ON DELETE SET NULL) · `parent_transaction_id` → `inventory_transactions.id` (ON DELETE CASCADE)
+**Trỏ ra:** `rolled_back_txn_id` → `inventory_transactions.id` (ON DELETE SET NULL) · `receipt_id` → `receipts.id` · `item_id` → `inventory_items.id` · `contract_id` → `contracts.id` (ON DELETE SET NULL) · `parent_transaction_id` → `inventory_transactions.id` (ON DELETE CASCADE)
 
 **Bị trỏ tới bởi:** `inventory_transactions.rolled_back_txn_id` · `inventory_transactions.parent_transaction_id`
 
@@ -115,7 +113,7 @@ Module liên quan: [[vat-tu]]
 
 **CHECK:** `CHECK (((sale_total IS NULL) OR (sale_total >= (0)))) NOT VALID` · `CHECK (((sale_unit_price IS NULL) OR (sale_unit_price >= (0)))) NOT VALID`
 
-<details><summary>17 index</summary>
+<details><summary>16 index</summary>
 
 - `btree (parent_transaction_id)`
 - `UNIQUE btree (id)`
@@ -125,7 +123,6 @@ Module liên quan: [[vat-tu]]
 - `btree (item_id, created_at DESC)`
 - `btree (transaction_type, created_at DESC)`
 - `btree (contract_id, created_at DESC) WHERE (contract_id IS NOT NULL)`
-- `btree (reservation_id)`
 - `btree (is_rollback) WHERE (is_rollback = true)`
 - `btree (created_at)`
 - `btree (transaction_type)`
@@ -134,40 +131,6 @@ Module liên quan: [[vat-tu]]
 - `btree (source_id) WHERE (source_id IS NOT NULL)`
 - `btree (receipt_id) WHERE (receipt_id IS NOT NULL)`
 - `btree (created_at DESC)`
-
-</details>
-
-## `inventory_reservations`
-
-0 dòng · RLS bật · 3 policy
-
-| Cột | Kiểu | Null | Mặc định |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | `gen_random_uuid()` |
-| `item_id` | uuid | NOT NULL |  |
-| `order_id` | uuid | NOT NULL |  |
-| `reserved_quantity` | numeric | NOT NULL |  |
-| `reserved_at` | timestamptz |  | `now()` |
-| `expires_at` | timestamptz |  |  |
-| `status` | text |  | `'active'` |
-| `notes` | text |  |  |
-| `created_by` | uuid |  |  |
-| `created_at` | timestamptz |  | `now()` |
-| `updated_at` | timestamptz |  | `now()` |
-
-**Trỏ ra:** `order_id` → `printing_orders.id` (ON DELETE CASCADE) · `item_id` → `inventory_items.id` (ON DELETE CASCADE)
-
-**Bị trỏ tới bởi:** `inventory_transactions.reservation_id`
-
-**CHECK:** `CHECK ((reserved_quantity > (0)))` · `CHECK ((status = ANY (ARRAY['active', 'fulfilled', 'cancelled', 'expired'])))`
-
-<details><summary>5 index</summary>
-
-- `UNIQUE btree (id)`
-- `btree (item_id)`
-- `btree (order_id)`
-- `btree (status) WHERE (status = 'active'::text)`
-- `btree (expires_at) WHERE ((expires_at IS NOT NULL) AND (status = 'active'::text))`
 
 </details>
 

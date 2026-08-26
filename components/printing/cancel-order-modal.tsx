@@ -5,7 +5,7 @@ import { UnifiedModal } from "@/components/ui/unified-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { cancelOrder } from "@/app/actions/printing-workflow-mutations";
+import { updatePrintingOrderStatus } from "@/app/actions/printing-mutations";
 import type { PrintingOrderRow } from "@/types/printing";
 import { formatCurrency, CURRENCY_SYMBOL } from "@/lib/utils";
 import { AlertTriangle } from "lucide-react";
@@ -18,9 +18,8 @@ interface CancelOrderModalProps {
 }
 
 // ADR-015 (2026-08-25): bỏ mục "Hoàn tiền" — khách không trả tiền Mood qua đơn in
-// (ADR-014: in ấn là Mood ⇄ Lab thuần tuý), nên không có gì để hoàn khi hủy. Phần
-// cũ gate theo order.paidAmount (không nơi nào nạp → không bao giờ hiện) là tàn dư
-// luồng "đặt cọc" đã xoá, sót vì file này nằm ngoài locks của ADR-014.
+// (ADR-014: in ấn là Mood ⇄ Lab thuần tuý), nên không có gì để hoàn khi hủy.
+// ADR-017: gọi thẳng updatePrintingOrderStatus (SSOT) — cancelOrder()/nhánh hoàn kho đã xoá.
 export function CancelOrderModal({
   isOpen,
   onClose,
@@ -41,10 +40,12 @@ export function CancelOrderModal({
 
     startTransition(async () => {
       try {
-        const result = await cancelOrder({
-          orderId: order.id,
-          reason: reason.trim(),
-        });
+        const result = await updatePrintingOrderStatus(
+          order.id,
+          "huy_don",
+          order.contractId ?? "", // tham số thứ 3 hiện là `_contractId` (void) — giữ chữ ký
+          reason.trim(),
+        );
 
         if (!result.success) {
           throw new Error(result.error || "Không thể hủy đơn");
@@ -65,8 +66,6 @@ export function CancelOrderModal({
     onClose();
   };
 
-  const hasInventory = order.inventoryStatus === "reserved" || order.inventoryStatus === "stocked_out";
-
   return (
     <UnifiedModal
       isOpen={isOpen}
@@ -83,16 +82,6 @@ export function CancelOrderModal({
             <p className="text-text-main">
               Hành động này sẽ hủy đơn in và không thể hoàn tác.
             </p>
-            {hasInventory && (
-              <ul className="list-disc list-inside text-text-secondary text-xs space-y-0.5 mt-2">
-                {order.inventoryStatus === "reserved" && (
-                  <li>Hủy các reservation vật tư đang giữ chỗ</li>
-                )}
-                {order.inventoryStatus === "stocked_out" && (
-                  <li>Hoàn trả vật tư đã xuất kho vào tồn kho</li>
-                )}
-              </ul>
-            )}
           </div>
         </div>
 

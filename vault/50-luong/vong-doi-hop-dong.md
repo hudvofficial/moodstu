@@ -71,7 +71,7 @@ Chi tiết: [[luong-gallery]]. Tóm tắt: upload từ Drive → `galleries` + `
 
 `create_printing_order_atomic` → `printing_orders`
 Trạng thái: `cho_xu_ly → dat_coc → dang_in → da_in → da_nhan → hoan_thanh` (hoặc `huy_don`), mỗi bước ghi `printing_order_status_history`.
-Kéo theo `inventory_reservations`/`inventory_transactions` + `expenses` + `lab_payments`.
+Kéo theo `printing_order_status_history`; tiền trả lab = `expenses` (`payee_type='lab'`) + `expense_allocations(printing_order)` (ADR-016). Không có kho cho đơn in (ADR-014/017). Hủy đơn: một đường `updatePrintingOrderStatus` ghi `status='huy_don'` + `cancelled_at` + `cancellation_reason` + dòng lịch sử.
 
 ## 8. Giao & đóng
 

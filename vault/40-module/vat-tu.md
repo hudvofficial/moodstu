@@ -8,7 +8,7 @@ cap-nhat: 2026-08-07
 
 Kho vật tư — thực tế là **xương sống mảng thiệp cưới tự in** (ADR-016): Mood nhập phôi thiệp lô lớn (SKU = mẫu phôi `HD527/HD513/HD394`), tồn kho, tự in theo đơn khách, xuất theo đơn (bán lẻ `create_sale_receipt_atomic` hoặc "Bán thêm HĐ"). Không có tồn kho ảnh/album — thứ đó đi lab. Quyền: admin, manager.
 
-Quy mô: 3 vật tư (đều là thiệp), 9 giao dịch. `inventory_reservations` và `equipment` rỗng.
+Quy mô: 3 vật tư (đều là thiệp), 9 giao dịch. `equipment` rỗng. (`inventory_reservations` + cột `inventory_transactions.reservation_id` — di sản "giữ chỗ cho đơn in", 0 dòng từ khi tạo — **đã drop** ADR-017, 26/08/2026.)
 
 ## Tiền (ADR-016)
 
@@ -20,7 +20,7 @@ Nhập lô = **phải trả nhà cung cấp** (`inventory_items.supplier_id → 
 
 ## Mọi thay đổi tồn kho đi qua RPC atomic
 
-`inventory_stock_in_atomic` · `inventory_stock_out_atomic` · `create_contract_inventory_addon_sale_atomic` · `create_sale_receipt_atomic` · `restore_inventory_from_transaction` · `check_inventory_conflict` · `nextval_inventory_code`
+`inventory_stock_in_atomic` · `inventory_stock_out_atomic` · `create_contract_inventory_addon_sale_atomic` · `create_sale_receipt_atomic` · `restore_inventory_from_transaction` · `nextval_inventory_code` (`check_inventory_conflict` hỏng sẵn, 0 caller — đã drop ADR-017)
 
 **Tồn kho và giá nhập bình quân do server tính** → cấm optimistic-patch. Mẫu: đóng modal + revalidate.
 
@@ -37,7 +37,7 @@ Vì một thao tác kho lan sang: `approval_requests`, `notification_queue`, `re
 
 ## Bảng
 
-[[luoc-do-vat-tu]] — `inventory_items` · `inventory_transactions` · `inventory_reservations` · `equipment`
+[[luoc-do-vat-tu]] — `inventory_items` · `inventory_transactions` · `equipment`
 
 ## Kỹ thuật
 

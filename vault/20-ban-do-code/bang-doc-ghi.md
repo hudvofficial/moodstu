@@ -184,16 +184,12 @@ cap-nhat: 2026-08-07
 **Đọc (1):** `app/actions/integrity-actions.ts`
 
 ## `inventory_items`
-**Ghi (3):** `app/actions/inventory-mutations.ts (insert)` · `app/actions/inventory-mutations.ts (update)` · `app/actions/printing-workflow-mutations.ts (update)`
-**Đọc (3):** `app/actions/inventory-mutations.ts` · `app/actions/inventory-queries.ts` · `app/actions/printing-workflow-mutations.ts`
-
-## `inventory_reservations`
-**Ghi (1):** `app/actions/printing-workflow-mutations.ts (update)`
-**Đọc (0):** —
+**Ghi (2):** `app/actions/inventory-mutations.ts (insert)` · `app/actions/inventory-mutations.ts (update)`
+**Đọc (2):** `app/actions/inventory-mutations.ts` · `app/actions/inventory-queries.ts`
 
 ## `inventory_transactions`
-**Ghi (2):** `app/actions/inventory-mutations.ts (delete)` · `app/actions/printing-workflow-mutations.ts (insert)`
-**Đọc (5):** `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/inventory-mutations.ts` · `app/actions/inventory-queries.ts` · `app/actions/printing-workflow-mutations.ts`
+**Ghi (1):** `app/actions/inventory-mutations.ts (delete)`
+**Đọc (4):** `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/inventory-mutations.ts` · `app/actions/inventory-queries.ts`
 
 ## `investment_maintenance_logs`
 **Ghi (1):** `app/actions/investment-actions.ts (insert)`
@@ -267,10 +263,6 @@ cap-nhat: 2026-08-07
 **Ghi (2):** `app/actions/inventory-mutations.ts (insert)` · `app/actions/notification-actions.ts (update)`
 **Đọc (1):** `app/actions/notification-actions.ts`
 
-## `order_payments`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (1):** `app/actions/printing-queries.ts`
-
 ## `payment_plans`
 **Ghi (1):** `app/actions/contract-lifecycle.ts (update)`
 **Đọc (4):** `app/actions/contract-queries.ts` · `app/actions/payment-actions.ts` · `lib/api/dashboard.ts` · `lib/client-direct/contract-drawer.ts`
@@ -288,8 +280,8 @@ cap-nhat: 2026-08-07
 **Đọc (0):** —
 
 ## `printing_orders`
-**Ghi (4):** `app/actions/contract-lifecycle.ts (update)` · `app/actions/printing-actions.ts (update)` · `app/actions/printing-mutations.ts (update)` · `app/actions/printing-workflow-mutations.ts (update)`
-**Đọc (7):** `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/lab-mutations.ts` · `app/actions/lab-queries.ts` · `app/actions/printing-mutations.ts` · `app/actions/printing-queries.ts` · `app/actions/printing-workflow-mutations.ts`
+**Ghi (3):** `app/actions/contract-lifecycle.ts (update)` · `app/actions/printing-actions.ts (update)` · `app/actions/printing-mutations.ts (update)`
+**Đọc (6):** `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/lab-mutations.ts` · `app/actions/lab-queries.ts` · `app/actions/printing-mutations.ts` · `app/actions/printing-queries.ts`
 
 ## `push_subscriptions`
 **Ghi (4):** `app/api/push/send/route.ts (delete)` · `app/api/push/subscribe/route.ts (delete)` · `app/api/push/subscribe/route.ts (upsert)` · `lib/push-notification.ts (delete)`

@@ -38,7 +38,7 @@ Trả lab = **phiếu chi thật**: `record_lab_payment_atomic` (wrapper giữ c
 
 ## Từ vựng phương thức thanh toán — ĐÃ THỐNG NHẤT 08/08
 
-UI module In ấn dùng `cash | transfer | card | other` (types/printing.ts) làm giá trị nội bộ, nhưng **mọi điểm ghi DB quy đổi qua `toPaymentMethodEnum()`** (printing-workflow-mutations) → DB chỉ còn `tien_mat | chuyen_khoan` ở `order_payments.payment_method`, `receipts.payment_type`, `expenses.payment_method`. Display (payment-history-section) nhận cả hai từ vựng phòng dữ liệu cũ. **Thêm điểm ghi mới → nhớ quy đổi.**
+UI module In ấn dùng `cash | transfer | card | other` (`types/printing.ts` `PaymentMethod`) làm từ vựng nội bộ của modal trả lab; DB chỉ nhận `tien_mat | chuyen_khoan` (`expenses.payment_method`, `receipts.payment_type`) → **quy đổi trước khi ghi**. Điểm ghi tiền in ấn duy nhất còn lại là phiếu chi trả lab (`record_lab_payment_atomic` → `expenses`); `order_payments` + `toPaymentMethodEnum()` (printing-workflow-mutations) đã drop/xoá ở ADR-017. **Thêm điểm ghi mới → nhớ quy đổi.**
 
 ## Kỹ thuật
 

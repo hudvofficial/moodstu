@@ -397,8 +397,29 @@ test.describe.serial("T-20260825 printing drawer fixes — render thật", () =>
     await expect(cancelModal.getByText("Đã thanh toán")).toHaveCount(0);
     await expect(cancelModal.getByText("Tổng đơn")).toBeVisible();
     await cancelModal.screenshot({ path: "test-results/pdf-2-cancel-modal.png" });
-    await cancelModal.getByRole("button", { name: "Hủy", exact: true }).click();
+    await cancelModal.locator("textarea").fill("E2E: hủy từ modal");
+    await cancelModal.getByRole("button", { name: "Xác nhận hủy đơn" }).click();
+    await expect(page.getByText("Đã hủy đơn thành công").first()).toBeVisible({ timeout: 15_000 });
     await expect(cancelModal).toBeHidden();
+    // Drawer đang mở tự đổi badge (ADR-015) + nút Hủy đơn/next-step ẩn
+    await expect(detail.getByText("Hủy đơn", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(detail.getByRole("button", { name: /Lab đã in xong/ })).toHaveCount(0);
+    // ADR-017: 1 đường hủy → đủ cả 2 bộ side-effect
+    const rowC = await admin
+      .from("printing_orders")
+      .select("status, cancelled_at, cancellation_reason")
+      .eq("id", seed.orderC!.id)
+      .single();
+    expect(rowC.data?.status).toBe("huy_don");
+    expect(rowC.data?.cancelled_at).not.toBeNull();
+    expect(rowC.data?.cancellation_reason).toBe("E2E: hủy từ modal");
+    const hist = await admin
+      .from("printing_order_status_history")
+      .select("to_status, reason")
+      .eq("order_id", seed.orderC!.id)
+      .eq("to_status", "huy_don");
+    expect(hist.data?.length).toBe(1);
+    expect(hist.data?.[0]?.reason).toBe("E2E: hủy từ modal");
   });
 
   test("3. /contracts/[id]: Hủy đơn từ thẻ hợp đồng hỏi lý do (trước đây fail thẳng)", async ({ page }) => {

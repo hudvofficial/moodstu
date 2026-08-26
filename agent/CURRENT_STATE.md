@@ -3,7 +3,11 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `d537e8b` (+ commit docs sau merge).
+> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `715de57` · đang review: `claude/printing-cancel-deadcode`.
+
+## 2026-08-26 — ADR-017 HỦY ĐƠN IN MỘT ĐƯỜNG + DỌN KHO/CỌC PHASE-1: **CODE + DB XONG, CHỜ USER "merge + push"** (`T-20260825-printing-cancel-inventory-deadcode`, nhánh `claude/printing-cancel-deadcode`)
+- User "tiến hành triển khai" cho spec 25/08 (+ M3b/M4/M5 chưa spec — làm sau, từng mốc). Đo lại: DB 0/0/0, chỉ 2 hàm sắp drop tham chiếu, số dòng code vẫn khớp → ADR-017 ghi DECISIONS. Phase A (coder subagent): `updatePrintingOrderStatus` là SSOT hủy (ghi `cancelled_at`/`cancellation_reason`, audit WARNING), `CancelOrderModal` gọi nó, xoá `printing-workflow-mutations.ts` (180 dòng), gỡ picker "Liên kết vật tư" + request `fetchInventoryPickerItems` khỏi drawer, 6 type chết. **Sót ở spec, bắt được khi `db:types` → tsc:** `getOrderPaymentHistory` + `PaymentHistorySection` (khối lịch sử cọc khách, luôn rỗng) vẫn đọc `order_payments` → xoá. Phase B: migration `20260826200000_drop_printing_inventory_payment_legacy.sql` **đã áp prod** (2 view, 2 hàm, cột `reservation_id`, 2 bảng rỗng); `migrate-direct.mjs` bắt buộc tên file (không còn ngầm chạy phase-1); xoá `verify-migration.mjs`/`check-schema.mjs` + 2 npm script.
+- Gate: eslint 0 · tsc 0 · build ✓ · verify printing/contracts/inventory xanh · Playwright local `printing-drawer-fixes-verify` 3/3 (hủy thật từ modal đủ 2 bộ side-effect). Cửa sổ lệch tới khi merge: drawer "Sửa đơn" prod cũ báo lỗi tải khối lịch sử thanh toán (không chặn). Sau merge: chạy lại spec này trên prod.
 
 ## 2026-08-26 — PILL TRẠNG THÁI CHUNG 2 DRAWER: **MERGED `d537e8b` + VERIFIED PRODUCTION 3/3** (`T-20260826-drawer-status-pill`)
 - User xem artifact https://claude.ai/code/artifact/06c88918-8b67-4380-8381-0dfb021c113a → "merge + push" → ff `37bb1ae → d537e8b`, Vercel lên sau 3,5 phút, `cashflow-m2` prod 3/3 (đổi trạng thái HĐ seed từ drawer lợi nhuận qua ConfirmDialog nợ → DB/list/drawer vận hành khớp), seed sạch (E2E 0, expenses 35). **Danh sách chờ gật giờ chỉ còn** `T-20260825-printing-cancel-inventory-deadcode` (ADR-017); M3b thiệp UI / M4 payment_plans / M5 lương cứng chưa spec. Việc user: 8,55tr ekip đã trả ngoài sổ hay chưa.

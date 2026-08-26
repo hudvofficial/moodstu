@@ -16,7 +16,6 @@ Module liên quan: [[tai-chinh]]
 | `payments` | 51 | ✅ | 4 |
 | `payment_plans` | 240 | ✅ | 6 |
 | `payment_plan_allocations` | 51 | ✅ | 2 |
-| `order_payments` | 0 | ✅ | 3 |
 | `expenses` | 81 | ✅ | 4 |
 | `expense_allocations` | 40 | ✅ | 0 |
 | `receipts` | 4 | ✅ | 1 |
@@ -62,7 +61,7 @@ Module liên quan: [[tai-chinh]]
 
 **Trỏ ra:** `contract_adjustment_item_id` → `contract_items.id` (ON DELETE SET NULL) · `category_id` → `transaction_categories.id` · `customer_id` → `customers.id` · `contract_id` → `contracts.id`
 
-**Bị trỏ tới bởi:** `order_payments.payment_id` · `payment_plan_allocations.payment_id` · `payment_plans.receipt_id`
+**Bị trỏ tới bởi:** `payment_plan_allocations.payment_id` · `payment_plans.receipt_id`
 
 **Trigger:** `audit_payments` → `log_audit_action()` · `emit_realtime_signal` → `emit_realtime_signal()` · `trg_restore_inventory_on_contract_payment_void` → `restore_inventory_on_contract_payment_void()` · `update_payments_updated_at` → `update_updated_at_column()`
 
@@ -150,41 +149,6 @@ Module liên quan: [[tai-chinh]]
 - `btree (payment_plan_id)`
 - `btree (payment_id)`
 - `btree (contract_id)`
-
-</details>
-
-## `order_payments`
-
-0 dòng · RLS bật · 3 policy
-
-| Cột | Kiểu | Null | Mặc định |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | `gen_random_uuid()` |
-| `order_id` | uuid | NOT NULL |  |
-| `payment_id` | uuid |  |  |
-| `receipt_id` | uuid |  |  |
-| `payment_type` | text | NOT NULL |  |
-| `amount` | numeric | NOT NULL |  |
-| `payment_date` | date | NOT NULL |  |
-| `payment_method` | text | NOT NULL |  |
-| `notes` | text |  |  |
-| `created_at` | timestamptz |  | `now()` |
-| `created_by` | uuid |  |  |
-| `updated_at` | timestamptz |  | `now()` |
-| `updated_by` | uuid |  |  |
-
-**Trỏ ra:** `receipt_id` → `receipts.id` (ON DELETE SET NULL) · `payment_id` → `payments.id` (ON DELETE SET NULL) · `order_id` → `printing_orders.id` (ON DELETE CASCADE)
-
-**CHECK:** `CHECK ((amount <> (0)))` · `CHECK ((payment_method = ANY (ARRAY['cash', 'transfer', 'card', 'other'])))` · `CHECK ((payment_type = ANY (ARRAY['deposit', 'final', 'refund', 'adjustment'])))`
-
-<details><summary>6 index</summary>
-
-- `UNIQUE btree (id)`
-- `btree (order_id)`
-- `btree (payment_id)`
-- `btree (receipt_id)`
-- `btree (payment_date DESC)`
-- `btree (payment_type)`
 
 </details>
 
@@ -300,7 +264,7 @@ Module liên quan: [[tai-chinh]]
 
 **Trỏ ra:** `debt_id` → `debts.id` (ON DELETE SET NULL) · `contract_id` → `contracts.id`
 
-**Bị trỏ tới bởi:** `order_payments.receipt_id` · `inventory_transactions.receipt_id`
+**Bị trỏ tới bởi:** `inventory_transactions.receipt_id`
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `trg_restore_inventory_on_receipt_void` → `restore_inventory_on_receipt_void()`
 

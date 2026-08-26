@@ -33,7 +33,7 @@ cap-nhat: 2026-08-07
 ## Ba tầng làm tươi dữ liệu
 
 ### 1. `revalidatePath` (Next.js) — xương sống
-Dùng ở hầu hết mutation. Nặng nhất ở `inventory-mutations.ts` (35 lần), `printing-workflow-mutations.ts` (18), `lab-mutations.ts` (17).
+Dùng ở hầu hết mutation. Nặng nhất ở `inventory-mutations.ts` (35 lần), `lab-mutations.ts` (17). (`printing-workflow-mutations.ts` đã xoá ở ADR-017.)
 
 **Finance: GIỮ `revalidatePath` bằng mọi giá.** Bỏ đi là số tiền hiển thị cũ. Không thay bằng realtime patch.
 

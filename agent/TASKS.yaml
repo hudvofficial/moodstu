@@ -82,9 +82,9 @@ active:
     notes: "Điều kiện ADR-016 phụ lục M2 §5: prod chạy M2 ổn ≥ 7 ngày (M2 lên 26/08). Backup 4 bảng cũ ra docs/reports trước khi drop (không lùi được). CHỜ NGÀY + USER GẬT."
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"
-    status: spec
+    status: review
     owner: claude
-    branch: TBD (chờ user duyệt spec)
+    branch: claude/printing-cancel-deadcode (user "tiến hành triển khai" 26/08 → ADR-017; Phase A coder subagent + Phase B migration 20260826200000 ĐÃ ÁP prod; verify local xong, chờ user "merge + push" — spec §7)
     locks:
       - app/actions/printing-mutations.ts
       - app/actions/printing-workflow-mutations.ts (xoá)

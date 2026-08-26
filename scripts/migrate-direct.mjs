@@ -55,7 +55,12 @@ if (!connectionString) {
 }
 
 // Get migration file
-const migrationFile = process.argv[2] || '20260524000000_printing_workflow_phase1.sql';
+// ADR-017: không còn mặc định file phase-1 (chạy lại sẽ tạo lại object đã drop) — bắt buộc truyền tên file.
+const migrationFile = process.argv[2];
+if (!migrationFile) {
+  console.error('❌ Thiếu tên file: node scripts/migrate-direct.mjs <ten_file_trong_supabase/migrations>');
+  process.exit(1);
+}
 const migrationPath = join(rootDir, 'supabase', 'migrations', migrationFile);
 
 async function runMigration() {
@@ -86,16 +91,8 @@ async function runMigration() {
 
       console.log('✅ Migration completed successfully!\n');
       console.log('=' .repeat(50));
-      console.log('🎉 Database schema updated!\n');
-      console.log('📋 Created:');
-      console.log('   - order_payments table');
-      console.log('   - inventory_reservations table');
-      console.log('   - order_payment_summary view');
-      console.log('   - inventory_available_stock view');
-      console.log('   - Enhanced printing_orders columns\n');
-      console.log('Next steps:');
-      console.log('   npm run migrate:verify');
-      console.log('   npm run dev\n');
+      // ADR-017: bỏ banner "Created: order_payments…" cố định từ phase-1 in ấn (sai với mọi migration sau đó).
+      console.log('Next steps: npm run db:types → npx tsc --noEmit → node scripts/vault-gen-schema.mjs\n');
 
     } catch (err) {
       await client.query('ROLLBACK');

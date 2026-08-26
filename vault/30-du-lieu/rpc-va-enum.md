@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 150 hàm
+# Danh mục RPC — 148 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -118,7 +118,6 @@ cap-nhat: 2026-08-07
 | `dress_list` | p_search text, p_category text, p_status text, p_sort text, p_page integer, p_limit integer | jsonb |  |
 | `dress_rental_list` | p_status text, p_search text, p_page integer, p_limit integer, p_item_id uuid | jsonb |  |
 | `dress_stats` | — | jsonb |  |
-| `expire_old_reservations` | — | integer |  |
 | `is_dress_available` | p_dress_id uuid, p_start_date date, p_end_date date, p_exclude_reservation_id uuid, p_exclude_rental_id uuid | boolean |  |
 | `mark_dress_cleaned_atomic` | p_dress_id uuid, p_user_id uuid | jsonb |  |
 | `refresh_dress_status` | p_dress_id uuid | void | ⚠️ có |
@@ -134,7 +133,6 @@ cap-nhat: 2026-08-07
 
 | Hàm | Tham số | Trả về | SECURITY DEFINER |
 |---|---|---|---|
-| `check_inventory_conflict` | p_item_id uuid, p_start_date date, p_end_date date, p_exclude_reservation_id uuid | boolean | ⚠️ có |
 | `inventory_detail_v2` | p_item_id uuid | jsonb | ⚠️ có |
 | `inventory_item_transaction_totals` | p_item_id uuid | jsonb |  |
 | `inventory_list` | p_search text, p_category text, p_status text, p_sort text, p_page integer, p_limit integer | jsonb |  |
@@ -226,8 +224,6 @@ cap-nhat: 2026-08-07
 ## View
 
 - `employees_public` (view)
-- `inventory_available_stock` (view)
-- `order_payment_summary` (view)
 - `payment_plan_states` (view)
 
 ## Enum

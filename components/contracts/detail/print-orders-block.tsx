@@ -325,7 +325,7 @@ export default function PrintOrdersBlock({
                         {items.length > 0 ? (
                           <div className="space-y-2">
                             {items.map((item, index) => (
-                              <div key={`${item.item_id || item.name}-${index}`} className="flex items-start justify-between gap-3 text-caption">
+                              <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-3 text-caption">
                                 <div className="flex min-w-0 items-start gap-2">
                                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted/40" />
                                   <div className="min-w-0 leading-tight">

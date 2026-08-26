@@ -27,16 +27,13 @@ import { Badge } from "@/components/ui/badge";
 import { PRINTING_STATUS_LABELS, PRINTING_STATUS_VARIANTS } from "@/types/printing-constants";
 import { CancelOrderModal } from "@/components/printing/cancel-order-modal";
 import { LabPaymentModal } from "@/components/printing/labs/lab-payment-modal";
-import { PaymentHistorySection } from "@/components/printing/payment-history-section";
 import { getPrintingOrderLabRemaining } from "@/app/actions/printing-queries";
-import { fetchInventoryPickerItems } from "@/app/actions/inventory-queries";
 import type {
   ContractOption,
   LabOption,
   PrintingItem,
   PrintingOrderRow,
 } from "@/types/printing";
-import type { InventoryItem } from "@/types/inventory";
 import type { PrintingOrderStatus } from "@/types/printing-constants";
 
 type ActionResult<T> =
@@ -86,8 +83,6 @@ interface FormState {
   items: EditablePrintingItem[];
 }
 
-const NO_INVENTORY_LINK = "__none__";
-
 function buildTempId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -135,7 +130,6 @@ export default function PrintingDetailDrawer({
   // Trục B (ADR-014): Mood còn nợ Lab bao nhiêu cho đơn này — đọc từ
   // lab_payment_allocations, KHÔNG phải order_payments (mô hình "khách cọc" đã bỏ). ADR-015.
   const [labDebt, setLabDebt] = useState<{ remainingAmount: number } | null>(null);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [contractSearch, setContractSearch] = useState("");
   const debouncedContractSearch = useDebounce(contractSearch, 300);
 
@@ -165,12 +159,6 @@ export default function PrintingDetailDrawer({
         })
         .catch(() => {});
     }
-
-    fetchInventoryPickerItems({ activeOnly: true, limit: 100 })
-      .then((result) => {
-        setInventoryItems(result.items);
-      })
-      .catch(() => {});
   }, [isOpen, orderId]);
 
   const { data: contractOptionsResult } = useSWR<ActionResult<ContractOption[]>>(
@@ -243,7 +231,6 @@ export default function PrintingDetailDrawer({
   const handleSubmit = async () => {
     const validItems = form.items
       .map((item) => ({
-        item_id: item.item_id || undefined,
         name: item.name.trim(),
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
@@ -511,28 +498,6 @@ export default function PrintingDetailDrawer({
 
                      <div className="grid gap-4">
                        <div className="space-y-4">
-                        <SelectForm
-                          label="Liên kết vật tư (tùy chọn)"
-                          value={item.item_id || NO_INVENTORY_LINK}
-                          onChange={(value) => {
-                            const itemId = value === NO_INVENTORY_LINK ? "" : value;
-                            updateItem(item.tempId, "item_id", itemId);
-                            if (itemId) {
-                              const selected = inventoryItems.find((i) => i.id === itemId);
-                              if (selected && !item.name) {
-                                updateItem(item.tempId, "name", selected.name);
-                              }
-                            }
-                          }}
-                          options={[
-                            { value: NO_INVENTORY_LINK, label: "-- Không liên kết --" },
-                            ...inventoryItems.map((i) => ({
-                              value: i.id,
-                              label: `${i.item_code} - ${i.name}`,
-                            })),
-                          ]}
-                          placeholder="Chọn vật tư để liên kết"
-                        />
                         <Input
                           label="Tên sản phẩm"
                           value={item.name}
@@ -581,12 +546,6 @@ export default function PrintingDetailDrawer({
                 className="w-full resize-none bg-white"
               />
             </div>
-
-            {order && (
-              <div className="border-t border-border pt-5">
-                <PaymentHistorySection orderId={order.id} />
-              </div>
-            )}
           </div>
 
           <div className="sticky -bottom-6 -mx-6 -mb-6 mt-6 border-t border-border bg-bg-base/95 px-6 py-4 shadow-lg backdrop-blur-md">
