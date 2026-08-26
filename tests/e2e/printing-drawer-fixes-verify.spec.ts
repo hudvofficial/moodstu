@@ -274,9 +274,12 @@ async function openGroupDrawer(page: Page, seed: SeedState) {
   await page.goto("/printing", { waitUntil: "domcontentloaded" });
   const groupRow = page.locator("table tbody tr", { hasText: seed.contractCode }).first();
   await groupRow.waitFor({ state: "visible", timeout: 20_000 });
-  await groupRow.click();
   const drawer = groupDrawer(page);
-  await expect(drawer).toBeVisible({ timeout: 10_000 });
+  // Prod: dòng SSR hiện trước khi React hydrate → click đầu có thể rơi vào khoảng trống → click lại tới khi drawer mở
+  await expect(async () => {
+    await groupRow.click();
+    await expect(drawer).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 30_000 });
   return drawer;
 }
 
