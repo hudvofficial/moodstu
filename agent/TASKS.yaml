@@ -30,24 +30,6 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
-  - id: T-20260826-profit-drawer-align
-    title: "Drawer 'Lợi nhuận HĐ' về cùng khung drawer vận hành hợp đồng: 480px (bỏ size=lg 600px), header = mã HĐ + badge trạng thái CONTRACT_STATUS_MAP, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN (số từ contract_financials), 'Chi phí Lương' → 'Chi phí nhân sự' (Ekip/Thợ ngoài + chip trạng thái), KM 0 không hiện −0, footer 'Chi tiết hợp đồng'"
-    status: ci
-    owner: claude (fallback)
-    branch: claude/profit-drawer-align
-    locks:
-      - components/finance/dashboard/profit-detail-drawer.tsx
-      - app/actions/finance-dashboard-queries.ts (chỉ getContractFinanceDetails)
-      - types/finance-dashboard.ts (ContractProfitDetailData, PersonalTask)
-      - tests/e2e/cashflow-m2.spec.ts (thêm bước UI drawer lợi nhuận + đo width 480)
-    spec: agent/HANDOFFS/T-20260826-profit-drawer-align.spec.md
-    verify:
-      - npx tsc --noEmit · npx eslint (3 file) · npm run build
-      - "Playwright cashflow-m2 (local + prod, --workers=1): drawer lợi nhuận từ /contracts, width dialog = 480"
-      - screenshot 2 drawer @1366 + @375
-      - npm run verify:contracts
-    depends_on: [T-20260826-cashflow-m2-ba-so]
-    notes: "User 26/08: 2 drawer trên /contracts lệch chiều ngang (480 vs 600) + kiểu cũ → chọn hướng A (giữ 2 drawer, thống nhất UI). Không đụng DB. User gật 26/08 → implement xong: tsc/eslint/build 0, verify:contracts xanh, Playwright cashflow-m2 3/3 local (đo width 2 drawer = 480), screenshot desktop+phone OK. CHỜ USER XEM ẢNH + GẬT MERGE."
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"
     status: spec
@@ -242,6 +224,25 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260826-profit-drawer-align
+    title: "Drawer 'Lợi nhuận HĐ' về cùng khung drawer vận hành hợp đồng: 480px (bỏ size=lg 600px), header = mã HĐ + badge trạng thái CONTRACT_STATUS_MAP, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN (số từ contract_financials), 'Chi phí Lương' → 'Chi phí nhân sự' (Ekip/Thợ ngoài + chip trạng thái), KM 0 không hiện −0, footer 'Chi tiết hợp đồng'"
+    status: merged
+    merged_commit: 2fa2d97
+    owner: claude (fallback)
+    branch: claude/profit-drawer-align
+    locks:
+      - components/finance/dashboard/profit-detail-drawer.tsx
+      - app/actions/finance-dashboard-queries.ts (chỉ getContractFinanceDetails)
+      - types/finance-dashboard.ts (ContractProfitDetailData, PersonalTask)
+      - tests/e2e/cashflow-m2.spec.ts (thêm bước UI drawer lợi nhuận + đo width 480)
+    spec: agent/HANDOFFS/T-20260826-profit-drawer-align.spec.md
+    verify:
+      - npx tsc --noEmit · npx eslint (3 file) · npm run build
+      - "Playwright cashflow-m2 (local + prod, --workers=1): drawer lợi nhuận từ /contracts, width dialog = 480"
+      - screenshot 2 drawer @1366 + @375
+      - npm run verify:contracts
+    depends_on: [T-20260826-cashflow-m2-ba-so]
+    notes: "User 26/08: 2 drawer trên /contracts lệch chiều ngang (480 vs 600) + kiểu cũ → chọn hướng A (giữ 2 drawer, thống nhất UI). Không đụng DB. User gật 26/08 → implement xong: tsc/eslint/build 0, verify:contracts xanh, Playwright cashflow-m2 3/3 local (đo width 2 drawer = 480), screenshot desktop+phone OK. User xem ảnh, yêu cầu sửa số gãy dòng (vòng 2: bỏ hậu tố VND + nowrap) → gật → MERGED main 63a48bf→2fa2d97 (ff). Prod: xem spec §5."
   - id: T-20260826-cashflow-m2-ba-so
     title: "M2 ADR-016: dashboard 3 số (Két · Lãi/lỗ · Công nợ) trên MỘT sổ kỳ finance_period_ledger; lãi/lỗ tháng theo luật ngày (ngày chụp/sự kiện/order_date); /reports + timeline đổi nguồn; màn /finance/payables hợp nhất lab·thợ·NCC; app bỏ đọc 4 view; DROP finance_dashboard_metrics + finance_revenue_by_month; migration M2b drop _legacy viết sẵn (chưa áp)"
     status: merged

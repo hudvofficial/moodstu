@@ -3,9 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `63a48bf` · in-flight: `claude/profit-drawer-align`.
+> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `2fa2d97`.
 
-## 2026-08-26 — DRAWER LỢI NHUẬN VỀ CÙNG KHUNG DRAWER HỢP ĐỒNG: implement xong, gate xanh, **CHỜ USER XEM ẢNH + GẬT MERGE** (`T-20260826-profit-drawer-align`, branch `claude/profit-drawer-align`)
+## 2026-08-26 — DRAWER LỢI NHUẬN VỀ CÙNG KHUNG DRAWER HỢP ĐỒNG: **MERGED `2fa2d97` + VERIFIED PRODUCTION 3/3** (`T-20260826-profit-drawer-align`)
+- Vòng 2 theo ảnh user: 3 số thẻ LỢI NHUẬN gãy dòng ở phone → bỏ hậu tố VND (đơn vị lên tiêu đề "LỢI NHUẬN (VND)") + `whitespace-nowrap` (lint SSOT cấm `text-[clamp()]`). User "ok merge + push" → ff main `63a48bf → 2fa2d97`, Vercel lên bình thường, Playwright `cashflow-m2` trên prod 3/3 (đo width 2 drawer = 480). Ảnh so sánh: https://claude.ai/code/artifact/9d668368-3f12-46ec-9271-1c407e3bce3d. Còn khác 1 chi tiết: pill trạng thái drawer vận hành là `SelectStatus` đổi được, drawer lợi nhuận `Badge` chỉ đọc — user chưa yêu cầu.
 - User: 2 drawer trên `/contracts` lệch nhau (drawer vận hành 480px vs drawer lợi nhuận `size="lg"` 600px, header/nhãn kiểu cũ) → chọn hướng A "giữ 2 drawer, thống nhất UI, nhất là chiều ngang" → gật spec. Làm: `profit-detail-drawer.tsx` viết lại theo ngữ pháp drawer vận hành (480px, mã HĐ + badge, thẻ khách + NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN kiểu THANH TOÁN, "Chi phí nhân sự" tách Ekip/Thợ ngoài + chip trạng thái, KM 0 không hiện −0, footer "Chi tiết hợp đồng"); `getContractFinanceDetails` đọc `contract_financials` (số một nguồn) + thêm trường; e2e `cashflow-m2` đo width 2 drawer = 480. Gate: tsc/eslint/build 0, verify:contracts, Playwright local 3/3, ảnh desktop/phone OK. Ghi nhận: pill trạng thái drawer vận hành là `SelectStatus` đổi được, drawer lợi nhuận là `Badge` chỉ đọc (cùng nhãn/màu).
 
 ## 2026-08-26 — M2 BA SỐ, MỘT BỘ SỔ: **MERGED `501274b` + VERIFIED PRODUCTION 3/3** (`T-20260826-cashflow-m2-ba-so`, ADR-016 đợt 2 xong)
