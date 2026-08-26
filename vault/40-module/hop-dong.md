@@ -36,6 +36,8 @@ Phân bố thật hôm nay: `hoan_thanh` 29 · `dang_thuc_hien` 16 · `cho_xu_ly
 
 **Cổng trạng thái là cảnh báo mềm, không cấm cứng.** Server gác bằng số tươi; mọi UI phải đi qua `handleContractStatusUpdate`. `canMoveTo` (`lib/contracts/contract-workflow.ts`) chỉ so vị trí trong `CONTRACT_STATUS_ORDER`.
 
+**Pill đổi trạng thái = `ContractStatusBadge`** (`components/contracts/contract-status-badge.tsx`, tách từ `contract-drawer.tsx` 26/08/2026): `SelectStatus variant="compact"` + `ConfirmDialog` cảnh báo nợ/việc dở + optimistic; dùng ở header drawer vận hành **và** drawer lợi nhuận (`profit-detail-drawer.tsx`, prop `onUpdated` → `mutate()` số drawer + `revalidateByPrefixes` các key `/finance` có trạng thái/lợi nhuận). Trang chi tiết (`detail/top-action-bar.tsx`) còn bản nội bộ riêng — chưa gộp.
+
 Trạng thái thanh toán tách riêng: `chua_thanh_toan · da_coc · thanh_toan_mot_phan · da_thanh_toan · hoan_tien`.
 
 ## Bảng

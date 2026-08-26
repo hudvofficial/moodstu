@@ -376,14 +376,29 @@ test.describe.serial("ADR-016 M2 — ba số, một bộ sổ", () => {
     const profitBox = await profitDialog.boundingBox();
     expect(Math.round(profitBox?.width ?? 0)).toBe(480);
     await auditDrawerTypography(page, profitDialog, "profit");
+
+    // T-20260826-drawer-status-pill: pill trạng thái drawer lợi nhuận = ContractStatusBadge (đổi được như drawer vận hành).
+    // HĐ seed còn nợ 5.000.000 → server yêu cầu xác nhận (ConfirmDialog) → đồng ý → DB đổi, pill đổi, list đổi badge.
+    const profitPill = profitDialog.getByRole("combobox", { name: "Cập nhật trạng thái" });
+    await expect(profitPill).toContainText("Đang thực hiện");
+    await profitPill.click();
+    await page.getByRole("option", { name: "Hoàn thành" }).click();
+    const confirmBtn = page.getByTestId("confirm-dialog-confirm");
+    if (await confirmBtn.waitFor({ state: "visible", timeout: 8_000 }).then(() => true, () => false)) await confirmBtn.click();
+    await expect(profitPill).toContainText("Hoàn thành", { timeout: 20_000 });
+    await expect
+      .poll(async () => (await db.from("contracts").select("status").eq("id", s.contractId!).single()).data?.status, { timeout: 20_000 })
+      .toBe("hoan_thanh");
     await page.keyboard.press("Escape");
     await expect(profitDialog).toBeHidden({ timeout: 10_000 });
+    await expect(contractRow.getByText("Hoàn thành").first()).toBeVisible({ timeout: 20_000 }); // list revalidate qua updateContractStatusCache
 
     await contractRow.getByText(s.contractCode).first().click(); // dòng: drawer vận hành
     const opsDialog = page.getByRole("dialog").filter({ hasText: "Theo dõi thanh toán" }).first();
     await expect(opsDialog).toBeVisible({ timeout: 20_000 });
     const opsBox = await opsDialog.boundingBox();
     expect(Math.round(opsBox?.width ?? 0)).toBe(480);
+    await expect(opsDialog.getByRole("combobox", { name: "Cập nhật trạng thái" })).toContainText("Hoàn thành"); // cùng component, cùng trạng thái
     await expect(opsDialog.getByText("Thanh toán", { exact: false }).first()).toBeVisible();
     await expect(opsDialog.getByText("5.000.000", { exact: true }).first()).toBeVisible(); // thẻ Thanh toán: số không hậu tố VND (đơn vị ở tiêu đề)
     await auditDrawerTypography(page, opsDialog, "ops");

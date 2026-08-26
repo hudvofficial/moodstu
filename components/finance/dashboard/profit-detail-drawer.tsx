@@ -5,18 +5,17 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, ExternalLink, FileText, MapPin, Package, Phone, Printer, SearchX, Users, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getContractFinanceDetails } from "@/app/actions/finance-dashboard-queries";
+import { ContractStatusBadge } from "@/components/contracts/contract-status-badge";
 import { financeStatusLabel, formatFinanceDate, formatVnd } from "@/components/finance/finance-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/ux-states";
-import { useSWR } from "@/lib/swr";
+import { revalidateByPrefixes, useSWR } from "@/lib/swr";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
-  CONTRACT_STATUS_MAP,
   TASK_STATUS_MAP,
-  getStatusLabel,
   getTaskStatusLabel,
   getWorkTypeLabel,
 } from "@/types/contract-constants";
@@ -86,7 +85,7 @@ function Row({ name, sub, amount, amountClassName, tag }: { name: string; sub?: 
 
 export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: ContractProfitDetailDrawerProps) {
   const router = useRouter();
-  const { data, isLoading, error } = useSWR<ContractProfitDetailData>(
+  const { data, isLoading, error, mutate } = useSWR<ContractProfitDetailData>(
     open && contractId ? `finance_contract_details_${contractId}` : null,
     async () => {
       const res = await getContractFinanceDetails(contractId);
@@ -106,7 +105,22 @@ export function ContractProfitDetailDrawer({ contractId, open, onOpenChange }: C
 
   const status = (data?.contract.status || "cho_xu_ly") as ContractStatus;
   const titleBadge = data ? (
-    <Badge variant={CONTRACT_STATUS_MAP[status]?.variant || "info"}>{getStatusLabel(status)}</Badge>
+    <ContractStatusBadge
+      contractId={contractId}
+      currentStatus={status}
+      onUpdated={() => {
+        void mutate(); // số của drawer (finance_contract_details_<id>)
+        // /finance: bảng lợi nhuận + 3 số tháng + chart 12 tháng + 2 card HĐ có badge trạng thái
+        // (RPC đều lọc c.status / render item.status)
+        void revalidateByPrefixes([
+          "finance-profit",
+          "finance-dashboard",
+          "finance-revenue",
+          "finance-upcoming-contracts",
+          "finance-pending-collections",
+        ]);
+      }}
+    />
   ) : undefined;
 
   // push trực tiếp, KHÔNG onClose trước: điều hướng sang route khác tự unmount list+drawer

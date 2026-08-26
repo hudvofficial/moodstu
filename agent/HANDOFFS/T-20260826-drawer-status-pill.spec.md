@@ -1,6 +1,6 @@
 # T-20260826-drawer-status-pill — Một pill trạng thái dùng chung cho drawer vận hành và drawer lợi nhuận (đổi được trạng thái ở cả hai)
 
-**Owner:** claude (fallback) · **Trạng thái:** spec — chờ user gật · **Branch:** `claude/drawer-status-pill` (làm **sau** `T-20260826-drawer-typography-ssot` để không đụng cùng file hai lần) · **Module:** hop-dong + tai-chinh · **Không đụng DB.**
+**Owner:** claude (fallback) · **Trạng thái:** **review — code + verify local xong 26/08, chờ user xem artifact rồi merge** · **Branch:** `claude/drawer-status-pill` (làm **sau** `T-20260826-drawer-typography-ssot` để không đụng cùng file hai lần) · **Module:** hop-dong + tai-chinh · **Không đụng DB.**
 
 **Bối cảnh.** Sau `T-20260826-profit-drawer-align`, header hai drawer còn khác một chi tiết: drawer vận hành dùng `ContractStatusBadge` (hàm **nội bộ** trong `contract-drawer.tsx`, bọc `SelectStatus variant="compact"` — chấm màu + nhãn + mũi tên, **đổi được trạng thái**, có `ConfirmDialog` cảnh báo nợ/việc dở); drawer lợi nhuận dùng `Badge` chỉ đọc (in hoa). User muốn giống hệt.
 
@@ -46,5 +46,7 @@ Trong `onUpdate`: `handleContractStatusUpdate` hiện không trả kết quả �
 ## 4. Docs
 `vault/40-module/hop-dong.md` (nếu có mục drawer): `ContractStatusBadge` là SSOT pill trạng thái HĐ, dùng ở cả drawer lợi nhuận. `agent/TASKS.yaml`, `agent/CURRENT_STATE.md`.
 
-## 5. Kết quả
-_(điền khi xong)_
+## 5. Kết quả (26/08/2026)
+- **Code (coder subagent, Claude review):** `components/contracts/contract-status-badge.tsx` mới — chuyển nguyên `ContractStatusBadge` + `getStatusVariant` (chỉ badge dùng) từ `contract-drawer.tsx` (−120 dòng, bỏ import `Badge`/`CONTRACT_STATUS_MAP`/`getStatusLabel` + 4 import giữa file), thêm prop `onUpdated` gọi khi `handleContractStatusUpdate` trả `true` (hàm vốn trả `Promise<boolean>` — không đổi chữ ký). `profit-detail-drawer.tsx`: `titleBadge` = pill (chỉ khi có `data`), `onUpdated` → `mutate()` key drawer + `revalidateByPrefixes(["finance-profit","finance-dashboard","finance-revenue","finance-upcoming-contracts","finance-pending-collections"])` — rộng hơn spec (2 prefix) vì 3 số tháng/chart/2 card HĐ đều đọc RPC lọc `c.status` hoặc render `item.status`; `cacheKeyMatchesPrefix` khớp đúng họ key. `/contracts` cập nhật badge qua `updateContractStatusCache` (vá cache list/detail tại chỗ, không refetch).
+- **Verify:** eslint 3 file + spec 0 · tsc 0 · build ✓ · `verify:contracts` ✓ · Playwright local `--workers=1`: `cashflow-m2` 3/3 (UI test thêm: pill drawer lợi nhuận "Đang thực hiện" → chọn "Hoàn thành" → `confirm-dialog-confirm` (HĐ seed nợ 5.000.000) → pill "Hoàn thành" → `contracts.status = hoan_thanh` → dòng list "Hoàn thành" → drawer vận hành pill "Hoàn thành") + `contract-operational` 1/1. Ảnh header 2 drawer @1366 trong artifact.
+- **Ghi nhận, không sửa:** `components/contracts/detail/top-action-bar.tsx` còn `ContractStatusBadge` nội bộ riêng (trang chi tiết) — ngoài scope; gộp về file chung là task riêng nếu user muốn.
