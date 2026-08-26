@@ -90,6 +90,10 @@ Fix: quét tự lành có giới hạn thời gian ở `beforeAll`.
 
 [[bang-doc-ghi]] chỉ bắt `.from().insert/update/delete`. Ghi qua RPC **vô hình** ở đó. Tra thêm [[rpc-va-enum]] — phần lớn thao tác ghi quan trọng của app đi bằng RPC atomic.
 
+## 16. `.or()` cấp cha không được trộn cột bảng nhúng
+
+`from("contracts").select("…, customers!inner(full_name)").or("contract_code.ilike.%x%,customers.full_name.ilike.%x%")` → PostgREST trả `failed to parse logic tree` **mỗi lần có chữ** — ô chọn HĐ của modal Xuất kho hỏng âm thầm nhiều tháng vì chỉ nhánh "gần đây" (không filter) chạy (`T-20260826-thiep-kho-ui`, 27/08/2026). Lọc cột nhúng phải đi `.or("full_name.ilike…,phone.ilike…", { referencedTable: "customers" })` (với `!inner` thì lọc cha theo con); cần OR giữa cha và con → **2 truy vấn rồi gộp** (hoặc RPC). Kiểm bằng script gọi thẳng supabase-js trước khi tin UI.
+
 ## Liên quan
 
 [[cache-va-realtime]] · [[bay-ui-react]] · [[bay-trien-khai]]

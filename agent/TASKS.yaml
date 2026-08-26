@@ -30,6 +30,22 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260826-thiep-kho-ui
+    title: "M3b: thiệp của khách HĐ đi đúng đường Bán thêm HĐ / Xuất HĐ — modal xuất kho gợi ý theo SĐT khách HĐ + ô chọn HĐ tìm SĐT, lối vào 'Thiệp / vật tư' từ trang hợp đồng (modal mở sẵn HĐ), stockOut revalidate trang HĐ/finance; không đụng DB"
+    status: review
+    owner: claude
+    branch: claude/thiep-kho-ui (user "tiến hành triển khai" 26/08 → spec + code (Claude trực tiếp, coder subagent hết quota) + verify local 27/08 xong; chờ user xem artifact rồi "merge + push" — spec §4)
+    locks:
+      - app/actions/inventory-queries.ts (fetchInventoryContractOptions), app/actions/inventory-mutations.ts (stockOut revalidate)
+      - components/inventory/stock-out-modal.tsx
+      - components/contracts/detail/contract-detail-client.tsx, components/contracts/detail/quick-actions-grid.tsx (ô thứ 7 "Thiệp")
+      - tests/e2e/inventory-contract-sale.spec.ts (mới)
+    spec: agent/HANDOFFS/T-20260826-thiep-kho-ui.spec.md
+    verify:
+      - npx eslint · npx tsc --noEmit · npm run build · npm run verify:inventory · npm run verify:contracts
+      - "Playwright inventory-contract-sale (local rồi prod): gợi ý SĐT → Bán thêm HĐ ghi 3 sổ; từ trang HĐ → Xuất HĐ; contract_financials.cogs đúng"
+    depends_on: [T-20260826-tien-ekip-va-can-thu]
+    notes: "Đo 26/08: 4 lần bán thiệp đều khách lẻ thật (SĐT không khớp khách HĐ) → không di trú. RPC Bán thêm HĐ đủ 3 sổ nhưng 0 lần dùng vì thiếu lối vào + không tìm theo SĐT."
   - id: T-20260826-drawer-typography-ssot
     title: "Hai drawer hợp đồng về đúng luật typography design-specs: sentence case, token SSOT (section-heading / text-caption / text-body-sm font-bold / text-h3), bỏ uppercase / tracking-wide / font-black / text-tiny ở 6 file drawer; thẻ THANH TOÁN cùng cách viết số với thẻ LỢI NHUẬN (bỏ hậu tố VND, nowrap)"
     status: done

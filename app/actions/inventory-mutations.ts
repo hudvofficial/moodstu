@@ -385,6 +385,12 @@ export async function stockOut(rawData: unknown) {
 
     revalidatePath("/inventory");
     revalidatePath(`/inventory/${itemId}`);
+    if (contractId) {
+      // M3b: xuất cho HĐ đổi giá vốn HĐ (contract_financials.cogs) → trang HĐ + báo cáo phải tươi
+      revalidatePath("/contracts");
+      revalidatePath(`/contracts/${contractId}`);
+      revalidatePath("/finance");
+    }
     return data as { current_stock?: number; warning?: string | null };
   });
 }

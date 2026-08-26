@@ -3,6 +3,7 @@ import {
   FolderOpen,
   Banknote,
   Printer,
+  Package,
   Shirt,
   MessageSquare,
 } from "lucide-react";
@@ -18,6 +19,8 @@ const ACTIONS = [
   { key: "drive", label: "Drive", icon: FolderOpen, text: "text-amber-600", bg: "bg-amber-50", hoverBg: "group-hover:bg-amber-100" },
   { key: "payment", label: "Thu tiền", icon: Banknote, text: "text-emerald-600", bg: "bg-emerald-50", hoverBg: "group-hover:bg-emerald-100" },
   { key: "print", label: "Đặt in", icon: Printer, text: "text-purple-600", bg: "bg-purple-50", hoverBg: "group-hover:bg-purple-100" },
+  // M3b (T-20260826-thiep-kho-ui): bán thêm / xuất thiệp cho HĐ ngay từ trang HĐ (trước chỉ có lối vào trong /inventory)
+  { key: "inventory", label: "Thiệp", icon: Package, text: "text-orange-600", bg: "bg-orange-50", hoverBg: "group-hover:bg-orange-100" },
   { key: "costume", label: "Trang phục", icon: Shirt, text: "text-pink-600", bg: "bg-pink-50", hoverBg: "group-hover:bg-pink-100" },
   { key: "note", label: "Ghi chú", icon: MessageSquare, text: "text-sky-600", bg: "bg-sky-50", hoverBg: "group-hover:bg-sky-100" },
 ] as const;
@@ -33,7 +36,7 @@ export default function QuickActionsGrid({ onAction, paymentLabel = "Thu tiền"
       <h3 className="text-caption font-bold text-text-muted uppercase tracking-wider mb-3 lg:mb-4 px-1 lg:px-0">
         Thao tác nhanh
       </h3>
-      <div className="grid grid-cols-6 gap-1.5 sm:gap-2 md:gap-3 mt-3 lg:mt-4">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 md:gap-3 mt-3 lg:mt-4">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           const label = action.key === "payment" ? paymentLabel : action.label;

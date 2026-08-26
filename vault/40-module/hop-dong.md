@@ -16,7 +16,7 @@ Quy mô thật: 54 hợp đồng, ~14–19 hợp đồng/tháng. → [[so-lieu-v
 |---|---|
 | `/contracts` | Danh sách + lọc + thống kê |
 | `/contracts/create` | Tạo mới |
-| `/contracts/[id]` | Chi tiết (tab: sự kiện · checklist · nhân sự · thanh toán · ghi chú) |
+| `/contracts/[id]` | Chi tiết (tab: sự kiện · checklist · nhân sự · thanh toán · ghi chú). Thao tác nhanh 7 ô: sự kiện · Drive · thu tiền · đặt in · **Thiệp** (M3b 26/08/2026 — mở modal Xuất kho của [[vat-tu]] sẵn HĐ: Bán thêm HĐ / Xuất HĐ) · trang phục · ghi chú |
 | `/contracts/[id]/edit` | Sửa |
 | `/contracts/[id]/print` | Bản in |
 | `/contracts/[id]/gallery` | Gallery của hợp đồng → [[gallery]] |

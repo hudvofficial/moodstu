@@ -58,6 +58,11 @@ const QuickNoteModal = dynamic(() => import("./quick-note-modal"), {
   ssr: false,
 });
 
+// M3b (T-20260826-thiep-kho-ui): bán thêm / xuất thiệp cho HĐ ngay từ trang HĐ — dùng chung modal xuất kho của module Vật tư
+const StockOutModal = dynamic(() => import("@/components/inventory/stock-out-modal").then((m) => m.StockOutModal), {
+  ssr: false,
+});
+
 const CONTRACT_DETAIL_REFRESH_SETTLE_MS = 160;
 const LOCAL_MUTATION_ECHO_MUTE_MS = 2000;
 const EMPTY_PAYMENTS: Payment[] = [];
@@ -559,6 +564,7 @@ export default function ContractDetailClient({
   const [showCostumeForm, setShowCostumeForm] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
 
   const handleQuickAction = useCallback((key: string) => {
     switch (key) {
@@ -569,6 +575,9 @@ export default function ContractDetailClient({
         break;
       case "print":
         setShowPrintForm(true);
+        break;
+      case "inventory":
+        setShowInventoryModal(true);
         break;
       case "costume":
         setShowCostumeForm(true);
@@ -795,6 +804,23 @@ export default function ContractDetailClient({
           onClose={() => setShowCostumeForm(false)}
           contractId={contract.id}
           contractCode={contract.contract_code}
+        />
+      )}
+      {showInventoryModal && (
+        <StockOutModal
+          isOpen={showInventoryModal}
+          onClose={() => setShowInventoryModal(false)}
+          initialMode="contract_addon_sale"
+          initialContract={{
+            id: contract.id,
+            contract_code: contract.contract_code,
+            customer_name: contract.customers?.full_name || "Khách hàng",
+            customer_phone: contract.customers?.phone ?? null,
+          }}
+          onSuccess={() => {
+            muteRealtimeEcho();
+            void revalidateContractDetailCaches(queryClient, id);
+          }}
         />
       )}
       {showAddEventModal && (

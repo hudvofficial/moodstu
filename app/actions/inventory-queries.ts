@@ -293,22 +293,43 @@ export async function fetchInventoryContractOptions(
   return unwrapActionResult(
     await withInventoryAccess(async (supabase: SupabaseClient<Database>) => {
       const term = normalizeSearch(search);
-      let query = supabase
-        .from("contracts")
-        .select("id, contract_code, customers!inner(full_name, phone)")
-        .is("deleted_at", null)
-        .neq("status", "da_huy")
-        .order("created_at", { ascending: false })
-        .limit(20);
+      // M3b (T-20260826-thiep-kho-ui): tìm theo mã HĐ · tên khách · SĐT (≥ 4 chữ số).
+      // PostgREST không cho `or` cấp cha trộn cột bảng nhúng (`customers.full_name`) — bản cũ
+      // `.or("contract_code…,customers.full_name…")` trả "failed to parse logic tree" mỗi khi gõ chữ
+      // → tách 2 truy vấn (mã HĐ; khách qua referencedTable) rồi gộp, giữ thứ tự mới nhất.
+      const digits = (search || "").replace(/\D/g, "").replace(/^84/, "0");
+      const base = () =>
+        supabase
+          .from("contracts")
+          .select("id, contract_code, created_at, customers!inner(full_name, phone)")
+          .is("deleted_at", null)
+          .neq("status", "da_huy")
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-      if (term) {
-        query = query.or(`contract_code.ilike.%${term}%,customers.full_name.ilike.%${term}%`);
+      const queries = [] as Array<ReturnType<typeof base>>;
+      if (!term && digits.length < 4) {
+        queries.push(base());
+      } else {
+        if (term) queries.push(base().ilike("contract_code", `%${term}%`));
+        const customerParts: string[] = [];
+        if (term) customerParts.push(`full_name.ilike.%${term}%`);
+        if (digits.length >= 4) customerParts.push(`phone.ilike.%${digits}%`);
+        if (customerParts.length) queries.push(base().or(customerParts.join(","), { referencedTable: "customers" }));
       }
 
-      const { data, error } = await query;
-      if (error) throw new Error(`Không thể tải hợp đồng xuất kho: ${error.message}`);
+      const results = await Promise.all(queries);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) throw new Error(`Không thể tải hợp đồng xuất kho: ${failed.error.message}`);
 
-      return (data || []).map((contract) => {
+      const seen = new Set<string>();
+      const merged = results
+        .flatMap((r) => r.data || [])
+        .filter((row) => (seen.has(String(row.id)) ? false : (seen.add(String(row.id)), true)))
+        .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
+        .slice(0, 20);
+
+      return merged.map((contract) => {
         const customer = firstRelation((contract as Record<string, unknown>).customers);
         return {
           id: String(contract.id),

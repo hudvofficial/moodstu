@@ -14,6 +14,10 @@ Quy mô: 3 vật tư (đều là thiệp), 9 giao dịch. `equipment` rỗng. (`
 
 Nhập lô = **phải trả nhà cung cấp** (`inventory_items.supplier_id → vendors` `vendor_type='nha_cung_cap'`). Mood trả ngay khi nhập → `inventory_stock_in_atomic(p_paid=true, p_supplier_id, p_payment_method, p_paid_date)` tạo **phiếu chi** `payee_type='supplier'` + `expense_allocations(inventory_transaction)` trong cùng transaction (form nhập kho mặc định "Đã trả"). Giá vốn `stock_out.total_cost` vào lãi/lỗ (`contract_financials` khi xuất cho HĐ). Công nợ NCC: `finance_payable_summary()`.
 
+## Khách HĐ mua thiệp → "Bán thêm HĐ" / "Xuất HĐ" (M3b, 26/08/2026)
+
+Modal **Xuất kho** (`components/inventory/stock-out-modal.tsx`) 4 chế độ: Bán lẻ (`create_sale_receipt_atomic`) · Xuất HĐ (`inventory_stock_out_atomic` có `contract_id`, thiệp nằm trong gói — chỉ giá vốn) · Bán thêm HĐ (`create_contract_inventory_addon_sale_atomic` → hạng mục phát sinh + `payments` + `stock_out` gắn HĐ) · Nội bộ. Ba lối vào: `/inventory` (nút Xuất, dòng, chi tiết) và **ô "Thiệp" trong Thao tác nhanh của trang HĐ** (modal mở sẵn HĐ, mặc định Bán thêm HĐ, prop `initialMode`/`initialContract`/`onSuccess`). Ở chế độ Bán lẻ, gõ đủ SĐT trùng khách HĐ → banner gợi ý chuyển sang Bán thêm HĐ (khớp chính xác chữ số). Ô chọn HĐ tìm theo mã · tên · **SĐT** (`fetchInventoryContractOptions`, ≥ 4 chữ số). Giá vốn gắn HĐ = `contract_financials.cogs` (chỉ `contract_fulfillment` + `contract_addon_sale`) → drawer lợi nhuận "Giá vốn vật tư". Đo 26/08: 4 lần bán thiệp trước đó đều khách lẻ thật (SĐT không khớp khách HĐ) — không di trú.
+
 ## Route
 
 `/inventory` · `/inventory/[id]`

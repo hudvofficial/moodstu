@@ -28,6 +28,12 @@ interface StockOutModalProps {
   onClose: () => void;
   item?: InventoryItem | null;
   items?: InventoryItem[];
+  /** M3b: mở sẵn ở chế độ này (trang HĐ dùng "contract_addon_sale") */
+  initialMode?: OperationMode;
+  /** M3b: hợp đồng chọn sẵn (trang HĐ) */
+  initialContract?: InventoryContractOption | null;
+  /** M3b: gọi sau khi ghi thành công (trang HĐ revalidate cache react-query của nó) */
+  onSuccess?: () => void;
 }
 
 type OperationMode = "retail_sale" | "contract_fulfillment" | "contract_addon_sale" | "internal_use";
@@ -45,6 +51,8 @@ const modes: Array<{
 
 const today = () => format(new Date(), "yyyy-MM-dd");
 const quantityFormatter = new Intl.NumberFormat("vi-VN");
+// M3b: so SĐT theo chữ số (bỏ khoảng trắng/dấu, +84 → 0) — cùng luật normalizePhone của CRM
+const normalizePhoneDigits = (value: string) => value.replace(/\D/g, "").replace(/^84/, "0");
 
 
 function contractLabel(contract: InventoryContractOption) {
@@ -55,16 +63,16 @@ function stockLabel(item: InventoryItem) {
   return `${quantityFormatter.format(item.current_stock)}${item.unit ? ` ${item.unit}` : ""}`;
 }
 
-export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalProps) {
+export function StockOutModal({ isOpen, onClose, item, items, initialMode, initialContract, onSuccess }: StockOutModalProps) {
   const [isPending, startTransition] = useTransition();
   const contractDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [mode, setMode] = useState<OperationMode>("retail_sale");
+  const [mode, setMode] = useState<OperationMode>(initialMode ?? "retail_sale");
   const [pickedItem, setPickedItem] = useState<InventoryItem | null>(null);
   const activeItem = item || pickedItem;
 
-  const [contractQuery, setContractQuery] = useState("");
-  const [selectedContract, setSelectedContract] = useState<InventoryContractOption | null>(null);
+  const [contractQuery, setContractQuery] = useState(initialContract ? contractLabel(initialContract) : "");
+  const [selectedContract, setSelectedContract] = useState<InventoryContractOption | null>(initialContract ?? null);
   const [showContractDropdown, setShowContractDropdown] = useState(false);
   const [contractOptions, setContractOptions] = useState<InventoryContractOption[]>([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(false);
@@ -77,6 +85,10 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
   const [receiptDate, setReceiptDate] = useState(today());
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  // M3b: SĐT khách lẻ trùng khách HĐ → gợi ý chuyển "Bán thêm HĐ" (doanh thu + giá vốn gắn HĐ)
+  const [phoneMatch, setPhoneMatch] = useState<InventoryContractOption | null>(null);
+  const [phoneHintDismissed, setPhoneHintDismissed] = useState(false);
+  const debouncedPhone = useDebounce(customerPhone, 400);
   const [customerAddress, setCustomerAddress] = useState("");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
@@ -102,11 +114,20 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
       (canSell || canFulfillContract || canSellContractAddon || canUseInternal),
   );
 
+  // Gợi ý chỉ còn hiệu lực khi SĐT đang gõ vẫn là SĐT đã khớp (đổi số → tự ẩn, không cần effect)
+  const phoneDigits = normalizePhoneDigits(customerPhone);
+  const phoneHint =
+    mode === "retail_sale" && !phoneHintDismissed && phoneMatch && normalizePhoneDigits(phoneMatch.customer_phone || "") === phoneDigits
+      ? phoneMatch
+      : null;
+
   const resetForm = () => {
-    setMode("retail_sale");
+    setMode(initialMode ?? "retail_sale");
     setPickedItem(null);
-    setContractQuery("");
-    setSelectedContract(null);
+    setContractQuery(initialContract ? contractLabel(initialContract) : "");
+    setSelectedContract(initialContract ?? null);
+    setPhoneMatch(null);
+    setPhoneHintDismissed(false);
     setShowContractDropdown(false);
     setContractError("");
     setQuantityInput("");
@@ -193,6 +214,25 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // M3b: gõ đủ SĐT ở chế độ Bán lẻ → tìm HĐ của khách (khớp chính xác chữ số, không ilike lỏng)
+  useEffect(() => {
+    if (!isOpen || mode !== "retail_sale") return;
+    const digits = normalizePhoneDigits(debouncedPhone);
+    if (digits.length < 9) return;
+    let cancelled = false;
+    fetchInventoryContractOptions(digits)
+      .then((options) => {
+        if (cancelled) return;
+        setPhoneMatch(options.find((option) => normalizePhoneDigits(option.customer_phone || "") === digits) ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setPhoneMatch(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedPhone, isOpen, mode]);
 
   useEffect(() => {
     if (!isOpen || (mode !== "contract_fulfillment" && mode !== "contract_addon_sale") || selectedContract) return;
@@ -336,6 +376,7 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
           if (stockResult?.warning) toast.warning(stockResult.warning);
           await invalidateInventoryAfterWrite(activeItem.id);
         }
+        onSuccess?.();
         handleClose();
       } else {
         setError(
@@ -539,10 +580,39 @@ export function StockOutModal({ isOpen, onClose, item, items }: StockOutModalPro
               <label className="label-base">SĐT</label>
               <Input
                 value={customerPhone}
-                onChange={(event) => setCustomerPhone(event.target.value)}
+                onChange={(event) => {
+                  setCustomerPhone(event.target.value);
+                  setPhoneHintDismissed(false);
+                }}
                 placeholder="0901234567"
               />
             </div>
+            {phoneHint && (
+              <div className="flex items-start justify-between gap-3 rounded-md border border-warning/20 bg-warning/5 px-3 py-2 sm:col-span-2">
+                <p className="text-caption text-text-secondary">
+                  SĐT này là khách của <span className="font-semibold text-text-main">{phoneHint.contract_code}</span> — {phoneHint.customer_name}.
+                  Bán thêm cho hợp đồng để doanh thu và giá vốn gắn vào HĐ?
+                </p>
+                <div className="flex shrink-0 gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    onClick={() => {
+                      switchMode("contract_addon_sale");
+                      setSelectedContract(phoneHint);
+                      setContractQuery(contractLabel(phoneHint));
+                      setShowContractDropdown(false);
+                    }}
+                  >
+                    Bán thêm HĐ
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setPhoneHintDismissed(true)}>
+                    Bỏ qua
+                  </Button>
+                </div>
+              </div>
+            )}
             <div>
               <label className="label-base">Ngày thu</label>
               <DatePicker
