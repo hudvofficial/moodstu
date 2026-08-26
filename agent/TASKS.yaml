@@ -30,6 +30,56 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260826-drawer-typography-ssot
+    title: "Hai drawer hợp đồng về đúng luật typography design-specs: sentence case, token SSOT (section-heading / text-caption / text-body-sm font-bold / text-h3), bỏ uppercase / tracking-wide / font-black / text-tiny ở 6 file drawer; thẻ THANH TOÁN cùng cách viết số với thẻ LỢI NHUẬN (bỏ hậu tố VND, nowrap)"
+    status: spec
+    owner: claude
+    branch: claude/drawer-typography-ssot (sau khi user gật)
+    locks:
+      - components/contracts/drawer-tab-content.tsx, drawer-event-timeline.tsx, drawer-notes.tsx, drawer-assignments.tsx, drawer-checklist.tsx
+      - components/finance/dashboard/profit-detail-drawer.tsx
+      - tests/e2e/cashflow-m2.spec.ts (chỉ nếu nhãn assert đổi)
+    spec: agent/HANDOFFS/T-20260826-drawer-typography-ssot.spec.md
+    verify:
+      - grep uppercase|tracking-wide|font-black|text-tiny|text-lg|text-xs|text-sm trong 6 file = 0
+      - npx eslint · npx tsc --noEmit · npm run build
+      - "Playwright cashflow-m2 + contract-operational (local, --workers=1); screenshot 2 drawer @1366 + @375 → artifact"
+    depends_on: [T-20260826-profit-drawer-align]
+    notes: "User 26/08 hỏi vì sao không tuân thủ rule đồng bộ font: profit-drawer-align sao chép class drawer vận hành để đồng bộ, nhưng drawer vận hành vốn vi phạm design-specs (uppercase 8+, tracking-wide, font-black, text-tiny 10px < caption 12px). Task kéo CẢ HAI về SSOT — drawer vận hành sẽ đổi kiểu nhãn (sentence case). Badge SSOT toàn app in hoa: KHÔNG đụng, tách quyết định riêng. CHỜ USER GẬT."
+  - id: T-20260826-drawer-status-pill
+    title: "Tách ContractStatusBadge (SelectStatus compact + ConfirmDialog) ra components/contracts/contract-status-badge.tsx, dùng chung cho drawer vận hành + drawer lợi nhuận (đổi trạng thái được ở cả hai, drawer lợi nhuận revalidate SWR sau đổi)"
+    status: spec
+    owner: claude
+    branch: claude/drawer-status-pill (sau typography-ssot, sau khi user gật)
+    locks:
+      - components/contracts/contract-status-badge.tsx (mới)
+      - components/contracts/contract-drawer.tsx
+      - components/finance/dashboard/profit-detail-drawer.tsx
+      - tests/e2e/cashflow-m2.spec.ts
+    spec: agent/HANDOFFS/T-20260826-drawer-status-pill.spec.md
+    verify:
+      - npx eslint · npx tsc --noEmit · npm run build · npm run verify:contracts
+      - "Playwright cashflow-m2: đổi trạng thái HĐ seed từ drawer lợi nhuận → pill + /contracts + DB cập nhật; screenshot header 2 drawer"
+    depends_on: [T-20260826-drawer-typography-ssot]
+    notes: "Đề xuất 1 còn lại sau profit-drawer-align (pill vận hành đổi được vs badge chỉ đọc). CHỜ USER GẬT."
+  - id: T-20260826-cashflow-m2b-drop-legacy
+    title: "M2b: áp 20260826130000_cashflow_m2b_drop_legacy.sql (drop 4 view + 4 bảng _legacy + record_vendor_payment_atomic + trigger fn), sửa cashflow-m1 test (c) sang record_payee_payment_atomic, xoá 3 script mô hình cũ, db:types + vault regen, docs"
+    status: spec
+    owner: claude
+    branch: claude/cashflow-m2b (áp ≥ 2026-09-02 khi user gật)
+    locks:
+      - supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql (đã có, chỉ áp)
+      - types/database.types.ts, vault/30-du-lieu/**
+      - tests/e2e/cashflow-m1.spec.ts
+      - scripts/vendor-expense-diagnostic.mjs, scripts/run-migration-overpay-guard.mjs, scripts/run-migration-indexes.mjs (xoá)
+      - vault/40-module/{tai-chinh,in-an-lab,nha-cung-cap}.md, vault/50-luong/luong-tien.md, agent/DECISIONS.md
+    spec: agent/HANDOFFS/T-20260826-cashflow-m2b-drop-legacy.spec.md
+    verify:
+      - snapshot trước/sau: expenses active, finance_payable_summary, finance_month_summary(8,2026), printing_integrity_report — không đổi
+      - npx tsc --noEmit sau db:types · verify:reports/printing/contracts/inventory
+      - "Playwright cashflow-m1 4/4 + cashflow-m2 3/3 (local rồi prod)"
+    depends_on: [T-20260826-cashflow-m2-ba-so]
+    notes: "Điều kiện ADR-016 phụ lục M2 §5: prod chạy M2 ổn ≥ 7 ngày (M2 lên 26/08). Backup 4 bảng cũ ra docs/reports trước khi drop (không lùi được). CHỜ NGÀY + USER GẬT."
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"
     status: spec
