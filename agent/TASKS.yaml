@@ -30,25 +30,6 @@ updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
-  - id: T-20260826-tien-ekip-va-can-thu
-    title: "Đóng kín đường tiền: (A) trả ekip theo task như thợ ngoài (payee_type employee + expense_allocations work_task; sheet lương chỉ lương cứng; xoá dòng test 100.000.000) · (B) Cần thu theo mốc giao sản phẩm — finance_debt_stats/get_receivable_aging đọc contracts thay bảng debts rỗng, quá hạn = đã giao chưa thu; dashboard Công nợ hiện 'Đã giao chưa thu · chờ giao'"
-    status: ci
-    owner: claude (fallback)
-    branch: claude/tien-ekip-can-thu
-    locks:
-      - supabase/migrations/20260827100000_tien_ekip_va_can_thu.sql (mới)
-      - types/database.types.ts, types/payables.ts, types/finance-dashboard.ts
-      - app/actions/payable-actions.ts, finance-dashboard-queries.ts (getPendingCollections + mapMonthSummary), salary-actions.ts (generateMonthlySalaries product_salary=0)
-      - components/finance/payables/{payables-stats-bar,payables-desktop-table,payables-mobile-list}.tsx, dashboard/{finance-compact-bar,pending-collections}.tsx, debts/{debt-stats-bar,debt-aging-card}.tsx, salaries/* (nhãn), reports/reports-debts-view.tsx (nhãn)
-      - scripts/verify-reports.mjs, tests/e2e/cashflow-m3.spec.ts (mới)
-      - vault/50-luong/luong-tien.md, vault/40-module/{tai-chinh,nhan-su}.md, docs/design/dong-tien-mood-v2.md, agent/DECISIONS.md
-    spec: agent/HANDOFFS/T-20260826-tien-ekip-va-can-thu.spec.md
-    verify:
-      - migration NOTICE đối soát: phải trả ekip theo task (8.550.350 tại 26/08), receivable = Σ contracts.remaining (92.575.000 tại 26/08), dòng test xoá = 1
-      - npm run db:types · tsc · eslint · build · verify:reports (mới) · verify:printing · verify:contracts
-      - "Playwright cashflow-m3 (local rồi prod, --workers=1): trả ekip + void, debt_stats theo mốc giao, sheet lương product_salary=0, UI payables/debts/dashboard"
-    depends_on: [T-20260826-cashflow-m2-ba-so]
-    notes: "Đo 26/08: 12 task ekip hoàn thành 8.550.350 chưa có phiếu chi nào (két cao hơn thật hoặc nợ ekip ẩn); /finance/debts + /reports + Moodie đọc bảng debts RỖNG → hiện 0 trong khi HĐ nợ 92.575.000; aging theo contract_date sai luật ngày; 5 HĐ chụp >30 ngày nợ 31.500.000 đều CHƯA GIAO (không phải quá hạn). payment_plans 65 mốc quá hạn/103,9tr = nhiễu → M4. User: triển khai hoàn toàn → migration ĐÃ ÁP prod 26/08 (payable ekip 8.550.350 hiện; receivable 92.575.000 = due 3.300.000 + waiting 89.275.000; dòng test xoá), tsc/eslint/build 0, verify:reports/printing/contracts xanh, Playwright local cashflow-m3 3/3 + m2 3/3 + m1 4/4. CHỜ USER MERGE."
   - id: T-20260826-drawer-typography-ssot
     title: "Hai drawer hợp đồng về đúng luật typography design-specs: sentence case, token SSOT (section-heading / text-caption / text-body-sm font-bold / text-h3), bỏ uppercase / tracking-wide / font-black / text-tiny ở 6 file drawer; thẻ THANH TOÁN cùng cách viết số với thẻ LỢI NHUẬN (bỏ hậu tố VND, nowrap)"
     status: spec
@@ -293,6 +274,26 @@ abandoned:
 
 # ---- Đã xong ----
 done:
+  - id: T-20260826-tien-ekip-va-can-thu
+    title: "Đóng kín đường tiền: (A) trả ekip theo task như thợ ngoài (payee_type employee + expense_allocations work_task; sheet lương chỉ lương cứng; xoá dòng test 100.000.000) · (B) Cần thu theo mốc giao sản phẩm — finance_debt_stats/get_receivable_aging đọc contracts thay bảng debts rỗng, quá hạn = đã giao chưa thu; dashboard Công nợ hiện 'Đã giao chưa thu · chờ giao'"
+    status: merged
+    merged_commit: 288ce14
+    owner: claude (fallback)
+    branch: claude/tien-ekip-can-thu
+    locks:
+      - supabase/migrations/20260827100000_tien_ekip_va_can_thu.sql (mới)
+      - types/database.types.ts, types/payables.ts, types/finance-dashboard.ts
+      - app/actions/payable-actions.ts, finance-dashboard-queries.ts (getPendingCollections + mapMonthSummary), salary-actions.ts (generateMonthlySalaries product_salary=0)
+      - components/finance/payables/{payables-stats-bar,payables-desktop-table,payables-mobile-list}.tsx, dashboard/{finance-compact-bar,pending-collections}.tsx, debts/{debt-stats-bar,debt-aging-card}.tsx, salaries/* (nhãn), reports/reports-debts-view.tsx (nhãn)
+      - scripts/verify-reports.mjs, tests/e2e/cashflow-m3.spec.ts (mới)
+      - vault/50-luong/luong-tien.md, vault/40-module/{tai-chinh,nhan-su}.md, docs/design/dong-tien-mood-v2.md, agent/DECISIONS.md
+    spec: agent/HANDOFFS/T-20260826-tien-ekip-va-can-thu.spec.md
+    verify:
+      - migration NOTICE đối soát: phải trả ekip theo task (8.550.350 tại 26/08), receivable = Σ contracts.remaining (92.575.000 tại 26/08), dòng test xoá = 1
+      - npm run db:types · tsc · eslint · build · verify:reports (mới) · verify:printing · verify:contracts
+      - "Playwright cashflow-m3 (local rồi prod, --workers=1): trả ekip + void, debt_stats theo mốc giao, sheet lương product_salary=0, UI payables/debts/dashboard"
+    depends_on: [T-20260826-cashflow-m2-ba-so]
+    notes: "Đo 26/08: 12 task ekip hoàn thành 8.550.350 chưa có phiếu chi nào (két cao hơn thật hoặc nợ ekip ẩn); /finance/debts + /reports + Moodie đọc bảng debts RỖNG → hiện 0 trong khi HĐ nợ 92.575.000; aging theo contract_date sai luật ngày; 5 HĐ chụp >30 ngày nợ 31.500.000 đều CHƯA GIAO (không phải quá hạn). payment_plans 65 mốc quá hạn/103,9tr = nhiễu → M4. User: triển khai hoàn toàn → migration ĐÃ ÁP prod 26/08 (payable ekip 8.550.350 hiện; receivable 92.575.000 = due 3.300.000 + waiting 89.275.000; dòng test xoá), tsc/eslint/build 0, verify:reports/printing/contracts xanh, Playwright local cashflow-m3 3/3 + m2 3/3 + m1 4/4. User 'merge + push' → MERGED main f079223→288ce14 (ff). Prod: xem spec §6."
   - id: T-20260826-profit-drawer-align
     title: "Drawer 'Lợi nhuận HĐ' về cùng khung drawer vận hành hợp đồng: 480px (bỏ size=lg 600px), header = mã HĐ + badge trạng thái CONTRACT_STATUS_MAP, thẻ khách hàng + pill NGÀY CHỤP/NGÀY KÝ, thẻ LỢI NHUẬN theo ngữ pháp thẻ THANH TOÁN (số từ contract_financials), 'Chi phí Lương' → 'Chi phí nhân sự' (Ekip/Thợ ngoài + chip trạng thái), KM 0 không hiện −0, footer 'Chi tiết hợp đồng'"
     status: merged
