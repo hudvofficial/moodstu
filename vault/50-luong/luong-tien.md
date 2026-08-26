@@ -48,16 +48,31 @@ Bán lẻ (vật tư, dịch vụ rời): `create_sale_receipt_atomic` → **`re
 
 **Luật ngày ghi sổ (ADR-016 §2):** doanh thu theo `contracts.work_date` (fallback `contract_date`, loại `da_huy`); chi phí task theo `contract_events.event_date`; đơn in theo `order_date`; thu/chi theo `payment_date`/`expense_date` nhập trên phiếu — **không bao giờ theo `updated_at`/ngày bấm trạng thái** (user hay cập nhật muộn).
 
+## Ba số, một bộ sổ (ADR-016 M2, 2026-08-26)
+
+Một hàm sổ kỳ **`finance_period_ledger(p_start, p_end)`** tính mọi cột (tiền vào/ra, doanh thu, từng loại chi phí) theo luật ngày ở trên. Bốn hàm đọc nó — **không hàm nào tự cộng lại**:
+
+| Hàm | Dùng ở | Trả |
+|---|---|---|
+| `finance_month_summary(m, y)` | `/finance` 3 khối | két (`cash_*`), lãi/lỗ (`revenue`, `cost_*`, `profit`), công nợ (`receivable`, `payable_*`), `contracts_missing_work_date` |
+| `finance_pnl_by_month(y)` | chart 12 tháng | `revenue`, `cost`, `profit`, `cash_in`, `cash_out`, `signed_revenue` |
+| `finance_reports_snapshot(start, end)` | `/reports`, Moodie `financial_summary` | JSON cũ + `signedRevenue`; `cashflowSummary.totalOutflow` = Σ `expenses` |
+| `finance_cashflow_timeline(start, end)` | biểu đồ tiền | chỉ `payments` / `receipts` lẻ / `expenses` |
+
+Két ≠ lãi/lỗ: tháng 8/2026 két +203.600 (thu 18,3tr − chi 18,1tr toàn bộ là **trả nợ** lab/thợ của tháng trước) nhưng lãi +37,1tr (14 HĐ chụp trong tháng). Trước M2 dashboard gọi 203.600 là "Tồn quỹ" và `/reports` cộng 18,1tr trả nợ thành "chi phí" lần hai.
+
+**Phải trả** hợp nhất ở `/finance/payables` (lab · thợ · NCC phôi): danh sách `finance_payable_summary()`, khoản còn nợ `payable_items()`, trả `record_payee_payment_atomic` (một modal cho 3 loại), lịch sử `payee_payment_history()` (phân bổ có nhãn), huỷ `void_payee_payment_atomic` (xoá mềm + dẫn xuất lại `payment_status` đơn in).
+
 ## Ba câu hỏi hay hỏi sai
 
 **"Doanh thu tháng này bao nhiêu?"**
-→ `finance_revenue_by_month` / `finance_dashboard_metrics`. **Đừng cộng tay `payment_plans`** — đó là kế hoạch, không phải tiền.
+→ `finance_month_summary(m, y).revenue` — theo **ngày chụp**. Muốn tiền đã thu: `.cash_in`. **Đừng cộng tay `payment_plans`** — đó là kế hoạch, không phải tiền.
 
 **"Hợp đồng này lãi bao nhiêu?"**
-→ `finance_contract_profit_report`. Nó trừ chi phí vendor + in ấn + vật tư. Tự tính tay sẽ sót nhánh.
+→ `contract_financials(uuid[])` / `finance_contract_profit_report`. Nó trừ chi phí task (mọi task không huỷ) + in ấn + giá vốn kho + chi trực tiếp. Tự tính tay sẽ sót nhánh. Σ lãi theo tháng = Σ lãi theo HĐ vì cùng luật.
 
-**"Còn phải thu bao nhiêu?"**
-→ `get_receivable_aging` hoặc `get_contract_balance`. Không lấy `total_amount − sum(payments)` — không tính huỷ/hoàn.
+**"Còn phải thu / phải trả bao nhiêu?"**
+→ phải thu: `get_receivable_aging` hoặc `get_contract_balance` (không lấy `total_amount − sum(payments)` — không tính huỷ/hoàn) · phải trả: `finance_payable_summary()`.
 
 ## Khoá sổ
 

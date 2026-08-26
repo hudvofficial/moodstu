@@ -177,7 +177,7 @@ export async function updateVendor(input: z.infer<typeof vendorUpdateSchema>) {
       description: `Cập nhật thợ ngoài: ${data.full_name}`,
     });
 
-    revalidatePath("/finance/vendor-debts");
+    revalidatePath("/finance/payables");
     return data as Vendor;
   });
 }
@@ -221,7 +221,7 @@ export async function deleteVendor(vendorId: string) {
       description: `Xóa thợ ngoài: ${vendor.full_name}`,
     });
 
-    revalidatePath("/finance/vendor-debts");
+    revalidatePath("/finance/payables");
     return null;
   });
 }
@@ -293,7 +293,7 @@ export async function mergeVendors(input: z.infer<typeof mergeVendorsSchema>) {
       description: `Gộp thợ ngoài: "${mergeVendor.full_name}" vào "${keepVendor.full_name}"`,
     });
 
-    revalidatePath("/finance/vendor-debts");
+    revalidatePath("/finance/payables");
     return { kept: keepVendorId, merged: mergeVendorId };
   });
 }

@@ -158,6 +158,8 @@ async function login(page: Page, s: Seed) {
   await page.locator('input[name="password"]').fill(s.password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard$/, { timeout: 45_000 });
+  // Trang còn kích một điều hướng cứng tới /dashboard ngay sau khi đổi URL → goto sớm bị ERR_ABORTED
+  await Promise.race([page.waitForEvent("load"), page.waitForTimeout(4000)]);
 }
 
 test.describe.serial("ADR-016 M1 — sổ tiền ra", () => {
@@ -218,10 +220,12 @@ test.describe.serial("ADR-016 M1 — sổ tiền ra", () => {
     const { data: order } = await db.from("printing_orders").select("payment_status").eq("id", s.orderId!).single();
     expect(order?.payment_status).toBe("da_thanh_toan");
 
-    // view tương thích đọc được
-    const { data: viewRows } = await db.from("lab_payments").select("id, lab_id, amount, expense_date").eq("lab_id", s.labId!);
-    expect(viewRows?.length).toBe(1);
-    expect(viewRows?.[0].expense_date).toBe("2026-08-20");
+    // M2: lịch sử theo đối tác đọc thẳng expenses + phân bổ có nhãn (không còn view lab_payments)
+    const { data: hist } = await db.rpc("payee_payment_history", { p_payee_type: "lab", p_payee_id: s.labId! });
+    const histRows = hist as Array<{ expense_date: string; allocations: Array<{ label: string; amount: number }> }>;
+    expect(histRows.length).toBe(1);
+    expect(histRows[0].expense_date).toBe("2026-08-20");
+    expect(histRows[0].allocations.length).toBe(1);
 
     // (e) xoá đơn đã có phiếu chi → chặn
     const { error: delErr } = await db.rpc("delete_printing_order_atomic", { p_order_id: s.orderId, p_actor_id: s.userId });

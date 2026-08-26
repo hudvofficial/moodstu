@@ -1,17 +1,57 @@
-export interface DashboardMetrics {
-  totalInflow: number;
-  totalOutflow: number;
-  profit: number;
-  monthChangePercent: number;
-  contractsNew: number;
-  contractsDone: number;
-  totalDebt: number;
+/**
+ * ADR-016 M2 — ba khối của một tháng (finance_month_summary):
+ * cash = KÉT (tiền thật theo ngày phiếu) · pnl = LÃI/LỖ (doanh thu theo ngày chụp, chi phí cam kết theo
+ * ngày nghiệp vụ) · debt = CÔNG NỢ hiện tại (phải thu / phải trả). Không trộn ba số này với nhau.
+ */
+export interface MonthSummary {
+  month: number;
+  year: number;
+  cash: {
+    in: number;
+    inContract: number;
+    inRetail: number;
+    out: number;
+    outSettlement: number;
+    outOther: number;
+    net: number;
+    netPrev: number;
+  };
+  pnl: {
+    revenue: number;
+    revenueContract: number;
+    revenueRetail: number;
+    cost: number;
+    costTask: number;
+    costPrint: number;
+    costCogs: number;
+    costDirect: number;
+    costOverhead: number;
+    costSalaryBase: number;
+    profit: number;
+    profitPrev: number;
+    margin: number;
+    contractsShot: number;
+    contractsMissingWorkDate: number;
+  };
+  debt: {
+    receivable: number;
+    payable: number;
+    payableLab: number;
+    payableVendor: number;
+    payableSupplier: number;
+  };
 }
 
+/** finance_pnl_by_month — 12 tháng: doanh thu/chi phí/lãi theo luật ngày + tiền thu/chi theo ngày phiếu */
 export interface RevenueByMonthItem {
   month: string;
-  revenue: number;
   rawMonth: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+  cashIn: number;
+  cashOut: number;
+  signedRevenue: number;
 }
 
 export interface ServiceDistributionItem {
@@ -83,7 +123,7 @@ export interface PaginatedResult<T> {
 }
 
 export interface FinanceDashboardBootstrapData {
-  metrics: DashboardMetrics;
+  metrics: MonthSummary;
   revenue: RevenueByMonthItem[];
   services: ServiceDistributionItem[];
   upcoming: FinanceContractListItem[];

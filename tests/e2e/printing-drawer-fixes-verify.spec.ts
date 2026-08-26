@@ -181,34 +181,25 @@ async function seedAll(admin: AdminClient, seed: SeedState) {
   });
 
   // Trả lab 1 phần cho C: 100.000 / 362.500 → còn nợ 262.500 (trước fix badge hiện 362.500)
-  const { data: payment, error: payError } = await admin
-    .from("lab_payments")
-    .insert({
-      lab_id: seed.labId,
-      amount: 100000,
-      payment_method: "chuyen_khoan",
-      note: `E2E PDF ${seed.marker}`,
-      created_by: seed.userId,
-    })
-    .select("id")
-    .single();
-  if (payError || !payment) throw new Error(`lab_payment: ${payError?.message}`);
-  seed.labPaymentId = payment.id;
-
-  const { error: allocError } = await admin.from("lab_payment_allocations").insert({
-    payment_id: seed.labPaymentId,
-    printing_order_id: seed.orderC.id,
-    amount: 100000,
-    created_by: seed.userId,
+  // ADR-016: phiếu chi thật (expenses + expense_allocations) qua RPC — không còn bảng lab_payments
+  const { data: payment, error: payError } = await admin.rpc("record_lab_payment_atomic", {
+    p_lab_id: seed.labId!,
+    p_amount: 100000,
+    p_payment_method: "transfer",
+    p_note: `E2E PDF ${seed.marker}`,
+    p_allocations: [{ printing_order_id: seed.orderC.id, amount: 100000 }],
+    p_actor_id: seed.userId!,
+    p_payment_date: "2026-08-20",
   });
-  if (allocError) throw new Error(`lab_payment_allocation: ${allocError.message}`);
+  if (payError || !payment) throw new Error(`lab_payment: ${payError?.message}`);
+  seed.labPaymentId = (payment as { expense_id: string }).expense_id;
 }
 
 async function cleanupSeed(admin: AdminClient, seed: SeedState) {
   const orderIds = [seed.orderA, seed.orderB, seed.orderC].filter(Boolean).map((o) => o!.id);
   if (seed.labPaymentId) {
-    await admin.from("lab_payment_allocations").delete().eq("payment_id", seed.labPaymentId);
-    await admin.from("lab_payments").delete().eq("id", seed.labPaymentId);
+    await admin.from("expense_allocations").delete().eq("expense_id", seed.labPaymentId);
+    await admin.from("expenses").delete().eq("id", seed.labPaymentId);
   }
   if (orderIds.length) {
     await admin.from("printing_order_status_history").delete().in("order_id", orderIds);
@@ -240,6 +231,8 @@ async function login(page: Page, seed: SeedState) {
   await page.locator('input[name="password"]').fill(seed.password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard$/, { timeout: 45_000 });
+  // Trang còn kích một điều hướng cứng tới /dashboard ngay sau khi đổi URL → goto sớm bị ERR_ABORTED
+  await Promise.race([page.waitForEvent("load"), page.waitForTimeout(4000)]);
 }
 
 async function waitForOrderStatus(admin: AdminClient, id: string, status: string) {

@@ -6,15 +6,15 @@ import { requireFinanceAccess, withAuth } from "@/lib/auth_utils";
 import { profileAction } from "@/lib/action-profiler";
 import { isMissingRpcError, monthWindow, relationText, asNumber, asString } from "@/lib/finance-utils";
 import { getPaymentStageLabel } from "@/types/contract-constants";
-import { MAX_LEDGER_PAGE_SIZE, calculatePercentage, calculateChangePercentage } from "@/lib/finance-constants";
+import { MAX_LEDGER_PAGE_SIZE } from "@/lib/finance-constants";
 import type {
   ContractProfitReportParams,
   ContractProfitRow,
   ContractProfitDetailData,
-  DashboardMetrics,
   FinanceDashboardBootstrapData,
   FinanceContractListItem,
   LedgerItem,
+  MonthSummary,
   PaginatedResult,
   RevenueByMonthItem,
   ServiceDistributionItem,
@@ -47,10 +47,6 @@ function normalizeContractRows(data: unknown): FinanceContractListItem[] {
         : null,
     };
   });
-}
-
-function sumRows(rows: unknown[] | null | undefined, field: string) {
-  return (rows || []).reduce<number>((sum, row) => sum + asNumber((row as RpcRow)[field]), 0);
 }
 
 function normalizeLedgerParams(params: {
@@ -107,70 +103,69 @@ async function withFinanceRead<T>(
   });
 }
 
-async function getDashboardMetricsFallback(
-  supabase: SupabaseClient,
-  month: number,
-  year: number,
-): Promise<DashboardMetrics> {
-  const current = monthWindow(month, year);
-  const previousDate = new Date(year, month - 2, 1);
-  const previous = monthWindow(previousDate.getMonth() + 1, previousDate.getFullYear());
-
-  // ⚡ P0-1 FIX: Reduced limits to prevent OOM (was 5000/10000)
-  // Fallback mode should be emergency-only, not production path
-  const MAX_FALLBACK_ROWS = 200;
-
-  const [payments, receipts, expenses, prevPayments, prevReceipts, newContracts, doneContracts, debtRows] = await Promise.all([
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", current.start).lt("payment_date", current.end).limit(MAX_FALLBACK_ROWS),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", current.start).lt("receipt_date", current.end).limit(MAX_FALLBACK_ROWS),
-    supabase.from("expenses").select("amount").is("deleted_at", null).gte("expense_date", current.start).lt("expense_date", current.end).limit(MAX_FALLBACK_ROWS),
-    supabase.from("payments").select("amount").is("deleted_at", null).gte("payment_date", previous.start).lt("payment_date", previous.end).limit(MAX_FALLBACK_ROWS),
-    supabase.from("receipts").select("receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", previous.start).lt("receipt_date", previous.end).limit(MAX_FALLBACK_ROWS),
-    supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("contract_date", current.start).lt("contract_date", current.end),
-    supabase.from("contracts").select("id", { count: "exact", head: true }).is("deleted_at", null).eq("status", "hoan_thanh").gte("updated_at", current.start).lt("updated_at", current.end),
-    supabase.from("contracts").select("remaining_amount").is("deleted_at", null).gt("remaining_amount", 0).limit(MAX_FALLBACK_ROWS),
-  ]);
-
-  const firstError = payments.error || receipts.error || expenses.error || prevPayments.error || prevReceipts.error || newContracts.error || doneContracts.error || debtRows.error;
-  if (firstError) throw new Error(firstError.message);
-
-  const totalInflow = sumRows(payments.data, "amount") + sumRows(receipts.data, "receipt_amount");
-  const previousInflow = sumRows(prevPayments.data, "amount") + sumRows(prevReceipts.data, "receipt_amount");
-  const totalOutflow = sumRows(expenses.data, "amount");
-
+// ADR-016 M2: finance_month_summary / finance_pnl_by_month là nguồn duy nhất (không còn fallback
+// tự cộng payments − expenses rồi gọi là "lợi nhuận" — két và lãi/lỗ là hai số khác nhau).
+function mapMonthSummary(row: RpcRow, month: number, year: number): MonthSummary {
   return {
-    totalInflow,
-    totalOutflow,
-    profit: totalInflow - totalOutflow,
-    // ⚡ P1-2 FIX: Cap month change at ±1000% to prevent Infinity display
-    monthChangePercent: calculateChangePercentage(totalInflow, previousInflow),
-    contractsNew: newContracts.count || 0,
-    contractsDone: doneContracts.count || 0,
-    totalDebt: sumRows(debtRows.data, "remaining_amount"),
+    month,
+    year,
+    cash: {
+      in: asNumber(row.cash_in),
+      inContract: asNumber(row.cash_in_contract),
+      inRetail: asNumber(row.cash_in_retail),
+      out: asNumber(row.cash_out),
+      outSettlement: asNumber(row.cash_out_settlement),
+      outOther: asNumber(row.cash_out_other),
+      net: asNumber(row.cash_net),
+      netPrev: asNumber(row.cash_net_prev),
+    },
+    pnl: {
+      revenue: asNumber(row.revenue),
+      revenueContract: asNumber(row.revenue_contract),
+      revenueRetail: asNumber(row.revenue_retail),
+      cost: asNumber(row.cost_total),
+      costTask: asNumber(row.cost_task),
+      costPrint: asNumber(row.cost_print),
+      costCogs: asNumber(row.cost_cogs),
+      costDirect: asNumber(row.cost_direct),
+      costOverhead: asNumber(row.cost_overhead),
+      costSalaryBase: asNumber(row.cost_salary_base),
+      profit: asNumber(row.profit),
+      profitPrev: asNumber(row.profit_prev),
+      margin: asNumber(row.profit_margin),
+      contractsShot: asNumber(row.contracts_shot),
+      contractsMissingWorkDate: asNumber(row.contracts_missing_work_date),
+    },
+    debt: {
+      receivable: asNumber(row.receivable),
+      payable: asNumber(row.payable),
+      payableLab: asNumber(row.payable_lab),
+      payableVendor: asNumber(row.payable_vendor),
+      payableSupplier: asNumber(row.payable_supplier),
+    },
   };
 }
 
-async function getRevenueByMonthFallback(supabase: SupabaseClient, year: number): Promise<RevenueByMonthItem[]> {
-  const start = `${year}-01-01`;
-  const end = `${year + 1}-01-01`;
-  // ⚡ P0-1 FIX: Reduced from 10000 to 500 per query
-  const [payments, receipts] = await Promise.all([
-    supabase.from("payments").select("payment_date, amount").is("deleted_at", null).gte("payment_date", start).lt("payment_date", end).limit(500),
-    supabase.from("receipts").select("receipt_date, receipt_amount").is("deleted_at", null).is("contract_id", null).gte("receipt_date", start).lt("receipt_date", end).limit(500),
-  ]);
+async function queryMonthSummary(supabase: SupabaseClient, month: number, year: number): Promise<MonthSummary> {
+  const { data, error } = await supabase
+    .rpc("finance_month_summary", { p_month: month, p_year: year })
+    .single();
 
-  if (payments.error) throw new Error(payments.error.message);
-  if (receipts.error) throw new Error(receipts.error.message);
+  if (error) throw new Error(`Lỗi tải sổ tháng: ${error.message}`);
+  return mapMonthSummary((data || {}) as RpcRow, month, year);
+}
 
-  const byMonth = Array.from({ length: 12 }, () => 0);
-  for (const row of payments.data || []) byMonth[new Date(row.payment_date).getMonth()] += row.amount || 0;
-  for (const row of receipts.data || []) byMonth[new Date(row.receipt_date).getMonth()] += row.receipt_amount || 0;
-
-  return byMonth.map((revenue, index) => ({
-    month: `Tháng ${index + 1}`,
-    revenue,
-    rawMonth: index + 1,
-  }));
+function mapPnlRows(data: unknown): RevenueByMonthItem[] {
+  return ((data || []) as RpcRow[]).map((row) => ({
+    month: asString(row.month_label),
+    rawMonth: asNumber(row.raw_month),
+    revenue: asNumber(row.revenue),
+    cost: asNumber(row.cost),
+    profit: asNumber(row.profit),
+    cashIn: asNumber(row.cash_in),
+    cashOut: asNumber(row.cash_out),
+    signedRevenue: asNumber(row.signed_revenue),
+  })) satisfies RevenueByMonthItem[];
 }
 
 async function getServiceDistributionFallback(
@@ -371,55 +366,6 @@ async function fetchLedgerFallback(
   return { items: pageRows, total: rows.length, page: params.page, pageSize: params.pageSize };
 }
 
-async function queryDashboardMetrics(
-  supabase: SupabaseClient,
-  month: number,
-  year: number,
-): Promise<DashboardMetrics> {
-  const { data, error } = await supabase
-    .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
-    .single();
-
-  // ⚡ P0-4 FIX: Log warning when dashboard uses fallback
-  if (error && isMissingRpcError(error)) {
-    console.warn('[P0-4] finance_dashboard_metrics RPC missing, loading limited data (200 rows max)');
-    return getDashboardMetricsFallback(supabase, month, year);
-  }
-
-  if (error) throw new Error(`Lỗi tải KPI tài chính: ${error.message}`);
-  const row = (data || {}) as RpcRow;
-
-  return {
-    totalInflow: asNumber(row.total_inflow),
-    totalOutflow: asNumber(row.total_outflow),
-    profit: asNumber(row.profit),
-    monthChangePercent: asNumber(row.month_change_percent),
-    contractsNew: asNumber(row.contracts_new),
-    contractsDone: asNumber(row.contracts_done),
-    totalDebt: asNumber(row.total_debt),
-  } satisfies DashboardMetrics;
-}
-
- 
-async function queryRevenueByMonth(
-  supabase: SupabaseClient,
-  year: number,
-): Promise<RevenueByMonthItem[]> {
-  const { data, error } = await supabase.rpc("finance_revenue_by_month", {
-    p_year: year,
-  });
-
-  if (error && isMissingRpcError(error)) return getRevenueByMonthFallback(supabase, year);
-
-  if (error) throw new Error(`Lỗi tải doanh thu theo tháng: ${error.message}`);
-
-  return ((data || []) as RpcRow[]).map((row) => ({
-    month: asString(row.month_label),
-    revenue: asNumber(row.revenue),
-    rawMonth: asNumber(row.raw_month),
-  })) satisfies RevenueByMonthItem[];
-}
-
 async function queryServiceDistribution(
   supabase: SupabaseClient,
   month: number,
@@ -569,50 +515,23 @@ async function queryLedger(
 }
  
 
-export async function getDashboardMetrics(month: number, year: number) {
-
+/** Ba khối Két · Lãi/lỗ · Công nợ của một tháng (ADR-016 M2) */
+export async function getMonthSummary(month: number, year: number) {
   return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
-
-    const { data, error } = await supabase
-      .rpc("finance_dashboard_metrics", { p_month: month, p_year: year })
-      .single();
-
-    if (error && isMissingRpcError(error)) return getDashboardMetricsFallback(supabase, month, year);
-
-    if (error) throw new Error(`Lỗi tải KPI tài chính: ${error.message}`);
-    const row = (data || {}) as RpcRow;
-
-    return {
-      totalInflow: asNumber(row.total_inflow),
-      totalOutflow: asNumber(row.total_outflow),
-      profit: asNumber(row.profit),
-      monthChangePercent: asNumber(row.month_change_percent),
-      contractsNew: asNumber(row.contracts_new),
-      contractsDone: asNumber(row.contracts_done),
-      totalDebt: asNumber(row.total_debt),
-    } satisfies DashboardMetrics;
+    return queryMonthSummary(supabase, month, year);
   });
 }
 
+/** 12 tháng: doanh thu/chi phí/lãi theo luật ngày + tiền thu/chi (ADR-016 M2) */
 export async function getRevenueByMonth(year: number) {
-
   return withAuth(async (supabase: SupabaseClient<Database>, userId) => {
     await requireFinanceAccess(supabase, userId);
 
-    const { data, error } = await supabase.rpc("finance_revenue_by_month", {
-      p_year: year,
-    });
+    const { data, error } = await supabase.rpc("finance_pnl_by_month", { p_year: year });
+    if (error) throw new Error(`Lỗi tải lãi/lỗ theo tháng: ${error.message}`);
 
-    if (error && isMissingRpcError(error)) return getRevenueByMonthFallback(supabase, year);
-
-    if (error) throw new Error(`Lỗi tải doanh thu theo tháng: ${error.message}`);
-
-    return ((data || []) as RpcRow[]).map((row) => ({
-      month: asString(row.month_label),
-      revenue: asNumber(row.revenue),
-      rawMonth: asNumber(row.raw_month),
-    })) satisfies RevenueByMonthItem[];
+    return mapPnlRows(data);
   });
 }
 
@@ -777,7 +696,7 @@ export async function getFinanceDashboardBootstrap(month: number, year: number) 
     withFinanceRead(async (supabase: SupabaseClient<Database>) => {
       const metrics = await profileAction(
         "finance.dashboardBootstrap.metrics",
-        () => queryDashboardMetrics(supabase, month, year),
+        () => queryMonthSummary(supabase, month, year),
       );
 
       return {

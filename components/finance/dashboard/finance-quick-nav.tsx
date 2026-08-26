@@ -35,7 +35,7 @@ const NAV_ITEMS: QuickNavItem[] = [
   { href: "/finance/receipts", label: "Phiếu thu", description: "Dòng tiền vào", icon: ReceiptText, tone: "emerald" },
   { href: "/finance/expenses", label: "Phiếu chi", description: "Chi phí vận hành", icon: Wallet, tone: "red" },
   { href: "/finance/debts", label: "Công nợ KH", description: "Khoản cần thu", icon: Landmark, tone: "orange" },
-  { href: "/finance/vendor-debts", label: "Quản lý Vendor", description: "Chi phí & thanh toán", icon: Users, tone: "orange" },
+  { href: "/finance/payables", label: "Phải trả", description: "Lab · thợ · NCC phôi", icon: Users, tone: "orange" },
   { href: "/finance/salaries", label: "Bảng lương", description: "Nhân viên + CTV", icon: BadgeCheck, tone: "indigo" },
   { href: "/finance/cashflow", label: "Sổ cái", description: "Thu chi tổng hợp", icon: BookOpen, tone: "blue" },
   { href: "/finance/investments", label: "Tài sản", description: "Đầu tư studio", icon: TrendingUp, tone: "teal" },

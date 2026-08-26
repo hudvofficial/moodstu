@@ -107,6 +107,8 @@ async function login(page: Page, seed: SeedState) {
   await page.locator('input[name="password"]').fill(seed.password);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(/\/dashboard$/, { timeout: 45_000 });
+  // Trang còn kích một điều hướng cứng tới /dashboard ngay sau khi đổi URL → goto sớm bị ERR_ABORTED
+  await Promise.race([page.waitForEvent("load"), page.waitForTimeout(4000)]);
 }
 
 // ── Helpers ──
@@ -328,8 +330,7 @@ test.describe.serial("finance module e2e", () => {
       "/finance/investments",
       "/finance/salaries",
       "/finance/fixed-costs",
-      "/finance/lab-debts",
-      "/finance/vendor-debts",
+      "/finance/payables",
     ];
     for (const route of routes) {
       await page.goto(route);
@@ -433,24 +434,19 @@ test.describe.serial("finance module e2e", () => {
     await assertNoErrorOverlay(page);
   });
 
-  // ── 18. Lab Debts Page ──
-  test("lab-debts page loads", async ({ page }) => {
+  // ── 18. Payables Page (ADR-016 M2: thay lab-debts + vendor-debts) ──
+  test("payables page loads + old debt routes redirect", async ({ page }) => {
     await login(page, seed);
-    await page.goto("/finance/lab-debts");
+    await page.goto("/finance/payables");
     await waitForIdle(page);
-    expect(page.url()).toContain("/finance/lab-debts");
-    await expect(page.getByText(/Công nợ|Lab/i).first()).toBeVisible({ timeout: 15_000 });
+    expect(page.url()).toContain("/finance/payables");
+    await expect(page.getByText(/Phải trả/i).first()).toBeVisible({ timeout: 15_000 });
     await assertNoErrorOverlay(page);
-  });
 
-  // ── 19. Vendor Debts Page ──
-  test("vendor-debts page loads", async ({ page }) => {
-    await login(page, seed);
+    await page.goto("/finance/lab-debts");
+    await page.waitForURL(/\/finance\/payables/, { timeout: 15_000 });
     await page.goto("/finance/vendor-debts");
-    await waitForIdle(page);
-    expect(page.url()).toContain("/finance/vendor-debts");
-    await expect(page.getByText(/Vendor|Nhà cung cấp/i).first()).toBeVisible({ timeout: 15_000 });
-    await assertNoErrorOverlay(page);
+    await page.waitForURL(/\/finance\/payables/, { timeout: 15_000 });
   });
 
   // ── 20. Responsive: Tablet 768px ──

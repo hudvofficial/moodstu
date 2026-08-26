@@ -74,12 +74,11 @@ export const cacheKeys = {
   financeLedger: (page: number, month: number, year: number, type?: string) =>
     `finance-ledger:${page}:${year}-${month}:${type || "all"}`,
   financeContracts: () => "finance-contract-options",
-  labDebts: () => "lab-debts",
+  payables: () => "finance-payables",
   financeFixedCosts: () => "finance-fixed-costs",
   financeInvestments: () => "finance-investments",
   financeSalaries: (month: number, year: number) => `finance-salaries:${year}-${month}`,
   financeVendorCosts: (month: number, year: number) => `finance-vendor-costs:${year}-${month}`,
-  vendorDebts: () => "vendor-debts",
   financeBudgets: (month: number, year: number) => `finance-budgets:${year}-${month}`,
   financeCloses: (year: number) => `finance-closes:${year}`,
   financeCloseDetail: (id: string) => `finance-close:${id}`,

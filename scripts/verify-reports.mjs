@@ -115,6 +115,11 @@ const rpcArgs = {
     p_start_date: RANGE.startDate,
     p_end_date: RANGE.endDate,
   },
+  // ADR-016 M2 — ba số, một bộ sổ
+  finance_month_summary: { p_month: 4, p_year: 2026 },
+  finance_pnl_by_month: { p_year: 2026 },
+  payee_payment_history: { p_payee_type: "lab", p_payee_id: "00000000-0000-0000-0000-000000000000" },
+  vendor_cost_report: { p_month: 4, p_year: 2026 },
 };
 
 console.log("Verifying reports RPC contracts with service role...");
@@ -156,6 +161,43 @@ const timelineOutflow = timeline.reduce((sum, row) => sum + asNumber(row.outflow
 assertClose(timelineInflow, asNumber(snapshot.cashflowSummary.totalInflow), "cashflow inflow");
 assertClose(timelineOutflow, asNumber(snapshot.cashflowSummary.totalOutflow), "cashflow outflow");
 console.log("- snapshot cashflow matches timeline totals");
+
+// ADR-016 M2: một bộ sổ — month_summary, pnl_by_month và reports_snapshot cùng đọc finance_period_ledger
+if (typeof snapshot.summary.signedRevenue !== "number") {
+  throw new Error("finance_reports_snapshot.summary.signedRevenue missing (ADR-016 M2)");
+}
+const monthSummary = assertArray(
+  await assertRpc(serviceClient, "finance_month_summary", rpcArgs.finance_month_summary),
+  "finance_month_summary",
+);
+if (monthSummary.length !== 1) throw new Error("finance_month_summary must return exactly 1 row");
+for (const key of ["cash_in", "cash_out", "cash_out_settlement", "cash_net", "revenue", "cost_total", "profit", "receivable", "payable"]) {
+  if (!(key in monthSummary[0])) throw new Error(`finance_month_summary missing column ${key}`);
+}
+console.log("- finance_month_summary: ok");
+
+const pnl = assertArray(await assertRpc(serviceClient, "finance_pnl_by_month", rpcArgs.finance_pnl_by_month), "finance_pnl_by_month");
+if (pnl.length !== 12) throw new Error("finance_pnl_by_month must return 12 rows");
+const pnlApril = pnl.find((row) => Number(row.raw_month) === 4);
+assertClose(asNumber(pnlApril?.profit), asNumber(monthSummary[0].profit), "pnl_by_month vs month_summary profit");
+assertClose(asNumber(pnlApril?.cash_out), asNumber(monthSummary[0].cash_out), "pnl_by_month vs month_summary cash_out");
+assertClose(asNumber(snapshot.summary.netProfit), asNumber(monthSummary[0].profit), "snapshot netProfit vs month_summary profit");
+assertClose(asNumber(snapshot.cashflowSummary.totalOutflow), asNumber(monthSummary[0].cash_out), "snapshot outflow vs month_summary cash_out");
+console.log("- finance_pnl_by_month: ok (khớp month_summary + snapshot)");
+
+assertArray(await assertRpc(serviceClient, "payee_payment_history", rpcArgs.payee_payment_history), "payee_payment_history");
+console.log("- payee_payment_history: ok");
+assertArray(await assertRpc(serviceClient, "vendor_cost_report", rpcArgs.vendor_cost_report), "vendor_cost_report");
+console.log("- vendor_cost_report: ok");
+
+for (const [name, args] of [
+  ["finance_dashboard_metrics", { p_month: 4, p_year: 2026 }],
+  ["finance_revenue_by_month", { p_year: 2026 }],
+]) {
+  const { error } = await serviceClient.rpc(name, args);
+  if (!error) throw new Error(`${name} still exists; expected DROPPED (ADR-016 M2 — một sự thật)`);
+  console.log(`- ${name}: dropped`);
+}
 
 console.log("Verifying private reports RPCs are not callable by anon...");
 for (const [name, args] of Object.entries(rpcArgs)) {

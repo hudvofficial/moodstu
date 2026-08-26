@@ -338,7 +338,7 @@ export async function recordLabPayment(
     // Revalidate ALL pages that display lab debt data
     revalidatePath("/printing/labs"); // Lab management page
     revalidatePath("/printing"); // Printing orders list
-    revalidatePath("/finance/lab-debts"); // Lab debts summary page - CRITICAL!
+    revalidatePath("/finance/payables"); // Công nợ phải trả hợp nhất (ADR-016 M2) - CRITICAL!
     revalidatePath("/finance"); // Finance root
     revalidatePath("/"); // Dashboard root
 

@@ -6471,18 +6471,6 @@ export type Database = {
           total_count: number
         }[]
       }
-      finance_dashboard_metrics: {
-        Args: { p_month: number; p_year: number }
-        Returns: {
-          contracts_done: number
-          contracts_new: number
-          month_change_percent: number
-          profit: number
-          total_debt: number
-          total_inflow: number
-          total_outflow: number
-        }[]
-      }
       finance_debt_stats: {
         Args: never
         Returns: {
@@ -6560,6 +6548,39 @@ export type Database = {
           transaction_date: string
         }[]
       }
+      finance_month_summary: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          cash_in: number
+          cash_in_contract: number
+          cash_in_retail: number
+          cash_net: number
+          cash_net_prev: number
+          cash_out: number
+          cash_out_other: number
+          cash_out_settlement: number
+          contracts_missing_work_date: number
+          contracts_shot: number
+          cost_cogs: number
+          cost_direct: number
+          cost_overhead: number
+          cost_print: number
+          cost_salary_base: number
+          cost_task: number
+          cost_total: number
+          payable: number
+          payable_lab: number
+          payable_supplier: number
+          payable_vendor: number
+          profit: number
+          profit_margin: number
+          profit_prev: number
+          receivable: number
+          revenue: number
+          revenue_contract: number
+          revenue_retail: number
+        }[]
+      }
       finance_payable_summary: {
         Args: never
         Returns: {
@@ -6572,6 +6593,44 @@ export type Database = {
           remaining: number
           total_committed: number
           total_paid: number
+        }[]
+      }
+      finance_period_ledger: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          cash_in_contract: number
+          cash_in_retail: number
+          cash_out: number
+          cash_out_fixed: number
+          cash_out_salary: number
+          cash_out_settlement: number
+          contracts_completed: number
+          contracts_shot: number
+          cost_cogs_contract: number
+          cost_cogs_retail: number
+          cost_direct: number
+          cost_fixed: number
+          cost_overhead: number
+          cost_print: number
+          cost_salary_base: number
+          cost_task: number
+          revenue_contract: number
+          revenue_retail: number
+          signed_contracts: number
+          signed_revenue: number
+        }[]
+      }
+      finance_pnl_by_month: {
+        Args: { p_year: number }
+        Returns: {
+          cash_in: number
+          cash_out: number
+          cost: number
+          month_label: string
+          profit: number
+          raw_month: number
+          revenue: number
+          signed_revenue: number
         }[]
       }
       finance_receipt_document_stats: {
@@ -6627,14 +6686,6 @@ export type Database = {
       finance_reports_snapshot: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
-      }
-      finance_revenue_by_month: {
-        Args: { p_year: number }
-        Returns: {
-          month_label: string
-          raw_month: number
-          revenue: number
-        }[]
       }
       finance_service_distribution: {
         Args: { p_month: number; p_year: number }
@@ -6955,6 +7006,19 @@ export type Database = {
         Args: { p_payee_id: string; p_target_id: string; p_target_type: string }
         Returns: number
       }
+      payee_payment_history: {
+        Args: { p_payee_id: string; p_payee_type: string }
+        Returns: {
+          allocations: Json
+          amount: number
+          created_at: string
+          created_by: string
+          expense_date: string
+          expense_id: string
+          note: string
+          payment_method: string
+        }[]
+      }
       payment_stage_display_label_v2: {
         Args: { p_default?: string; p_stage: string }
         Returns: string
@@ -7227,12 +7291,29 @@ export type Database = {
         }
         Returns: Json
       }
+      vendor_cost_report: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          contracts: string[]
+          job_count: number
+          service_type: string
+          total_cost: number
+          vendor_id: string
+          vendor_name: string
+          vendor_phone: string
+        }[]
+      }
       verify_gallery_password: {
         Args: { p_gallery_id: string; p_password: string }
         Returns: boolean
       }
+      vn_date: { Args: { p: string }; Returns: string }
       void_contract_payment_v2: {
         Args: { p_actor_id: string; p_payment_id: string; p_reason: string }
+        Returns: Json
+      }
+      void_payee_payment_atomic: {
+        Args: { p_actor_id: string; p_expense_id: string }
         Returns: Json
       }
     }

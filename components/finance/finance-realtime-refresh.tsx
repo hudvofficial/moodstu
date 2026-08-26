@@ -13,8 +13,9 @@ import { realtimeSignalConfig } from "@/hooks/use-realtime-signal";
 //   publication, RLS verified 2026-06-10).
 // - Các bảng finance còn lại: tín hiệu mỏng qua realtime_signals (migration
 //   20260610140000) — không grant, không lộ row.
+// - ADR-016 M2: thanh toán thợ/lab/NCC là phiếu chi (expenses) → không còn vendor_payments.
 const FINANCE_SIGNAL_TABLES =
-  "expenses,debts,fixed_costs,financial_goals,budgets,investments,vendor_payments,monthly_salaries,transaction_categories";
+  "expenses,debts,fixed_costs,financial_goals,budgets,investments,monthly_salaries,transaction_categories";
 
 const REFRESH_DEBOUNCE_MS = 800;
 

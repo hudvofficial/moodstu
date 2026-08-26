@@ -184,7 +184,8 @@ Luật: một đồng chi phí nhân sự chỉ ở **một** trong hai chỗ �
 | M | Nội dung | Cổng |
 |---|---|---|
 | **M1 Sổ tiền ra** | `expenses.payee_*`, `expense_allocations`, `record_payee_payment_atomic`, di trú 1–3, bỏ 2 hàm trích trước + trigger, `contract_financials()` thay 5 bản sao, `finance_payable_summary`, màn công nợ hợp nhất | §8 bước 1–3, 6; dashboard "chi" tháng 8 = tiền thật |
-| **M2 Ba số dashboard** | tách két / lãi-lỗ / công nợ; RPC báo cáo 1, 2, 4; đổi nhãn; thống nhất bộ sổ 10 RPC | mỗi số tra ngược được ra bảng; vault cập nhật |
+| **M2 Ba số dashboard** ✅ 26/08 | tách két / lãi-lỗ / công nợ (`finance_month_summary`); RPC báo cáo 1, 2, 4 trên một sổ kỳ `finance_period_ledger`; `/reports` + timeline đổi nguồn; màn `/finance/payables` hợp nhất; app bỏ đọc view; DROP `finance_dashboard_metrics`/`finance_revenue_by_month` | `verify:reports` assert 4 hàm cùng số; e2e `cashflow-m2` đo delta T7/T8; vault cập nhật — spec `T-20260826-cashflow-m2-ba-so` |
+| **M2b Dọn bảng cũ** (≥ 02/09) | DROP 4 view + 4 bảng `_legacy` + `record_vendor_payment_atomic` (`20260826130000_cashflow_m2b_drop_legacy.sql`, đã viết, chưa áp) | pre-check trong migration; `db:types` + vault regen |
 | **M3 Thiệp & kho** | `vendors.vendor_type`, `inventory_items.supplier_id`, `stock_in` → phải trả + phiếu chi tuỳ chọn, COGS vào báo cáo 2/3/6b, gợi ý "Bán thêm HĐ" khi SĐT khớp, di trú bước 4 | nhập 1 lô → nợ NCC hiện; trả → hết nợ; bán 1 đơn → lãi = giá bán − giá vốn |
 | **M4 Tiền vào** | quy tắc khách HĐ mua thiệp qua "Bán thêm HĐ"; `receipts` giữ cho bán lẻ; category thu chuẩn hoá | Σ `payments` + Σ `receipts` = két vào; không phiếu thu khách HĐ thiếu `contract_id` |
 | **M5 Nhân sự** | allocation phiếu chi lương → `employee_salaries`; `base_salary` → overhead báo cáo 2; `in_thiep` task nếu trả công theo đơn; dọn dòng test 100.000.000 | kỳ lương thử: cam kết vs tiền ra khớp |

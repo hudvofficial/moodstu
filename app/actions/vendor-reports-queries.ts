@@ -4,7 +4,6 @@ import { withFinanceRead } from "@/lib/auth_utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { profileAction } from "@/lib/action-profiler";
-import { monthWindow } from "@/lib/finance-utils";
 
 export interface VendorCostItem {
   vendor_id: string;
@@ -28,81 +27,21 @@ export interface VendorCostSummary {
 export async function fetchVendorCosts(month: number, year: number) {
   return profileAction("finance.fetchVendorCosts", () =>
     withFinanceRead(async (supabase: SupabaseClient<Database>) => {
-      const window = monthWindow(month, year);
-
-      // Query work_tasks WHERE vendor_id IS NOT NULL AND status='hoan_thanh'
-      const { data: tasks, error } = await supabase
-        .from("work_tasks")
-        .select(`
-          id,
-          vendor_id,
-          cost,
-          deadline,
-          contracts!inner(contract_code)
-        `)
-        .not("vendor_id", "is", null)
-        .eq("status", "hoan_thanh")
-        .gte("deadline", window.start)
-        .lt("deadline", window.end);
+      // ADR-016 M2: task thợ ngoài hoàn thành gom theo NGÀY SỰ KIỆN (luật ngày ghi sổ),
+      // không theo deadline như trước — logic nằm trong RPC vendor_cost_report.
+      const { data, error } = await supabase.rpc("vendor_cost_report", { p_month: month, p_year: year });
 
       if (error) throw new Error(`Loi tai chi phi vendor: ${error.message}`);
 
-      // Fetch vendor details
-      const vendorIds = [...new Set((tasks || []).map((t) => t.vendor_id))];
-
-      if (vendorIds.length === 0) {
-        return {
-          items: [],
-          total_cost: 0,
-          total_jobs: 0,
-          vendor_count: 0,
-          month,
-          year,
-        } satisfies VendorCostSummary;
-      }
-
-      const { data: vendors, error: vendorErr } = await supabase
-        .from("vendors")
-        .select("id, full_name, phone, service_type")
-        .in("id", vendorIds);
-
-      if (vendorErr) throw new Error(`Loi tai vendors: ${vendorErr.message}`);
-
-      const vendorMap = new Map((vendors || []).map((v) => [v.id, v]));
-
-      // Aggregate by vendor
-      const costMap = new Map<string, VendorCostItem>();
-
-      for (const task of tasks || []) {
-        const vendor = vendorMap.get(task.vendor_id);
-        const contractCode =
-          Array.isArray(task.contracts) && task.contracts[0]?.contract_code
-            ? task.contracts[0].contract_code
-            : "";
-
-        const existing = costMap.get(task.vendor_id);
-        if (existing) {
-          existing.job_count += 1;
-          existing.total_cost += task.cost || 0;
-          if (contractCode && !existing.contracts.includes(contractCode)) {
-            existing.contracts.push(contractCode);
-          }
-        } else {
-          costMap.set(task.vendor_id, {
-            vendor_id: task.vendor_id,
-            vendor_name: vendor?.full_name || "Vendor không xác định",
-            vendor_phone: vendor?.phone || null,
-            service_type: vendor?.service_type || null,
-            job_count: 1,
-            total_cost: task.cost || 0,
-            contracts: contractCode ? [contractCode] : [],
-          });
-        }
-      }
-
-      const items = Array.from(costMap.values()).sort(
-        (a, b) => b.total_cost - a.total_cost,
-      );
+      const items: VendorCostItem[] = (data || []).map((row) => ({
+        vendor_id: row.vendor_id,
+        vendor_name: row.vendor_name || "Vendor không xác định",
+        vendor_phone: row.vendor_phone ?? null,
+        service_type: row.service_type ?? null,
+        job_count: Number(row.job_count || 0),
+        total_cost: Number(row.total_cost || 0),
+        contracts: row.contracts ?? [],
+      }));
 
       return {
         items,

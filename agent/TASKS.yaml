@@ -26,10 +26,37 @@
 #   notes: <ghi chú>
 
 version: 1
-updated: 2026-08-25
+updated: 2026-08-26
 
 # ---- Task đang chạy ----
 active:
+  - id: T-20260826-cashflow-m2-ba-so
+    title: "M2 ADR-016: dashboard 3 số (Két · Lãi/lỗ · Công nợ) trên MỘT sổ kỳ finance_period_ledger; lãi/lỗ tháng theo luật ngày (ngày chụp/sự kiện/order_date); /reports + timeline đổi nguồn; màn /finance/payables hợp nhất lab·thợ·NCC; app bỏ đọc 4 view; DROP finance_dashboard_metrics + finance_revenue_by_month; migration M2b drop _legacy viết sẵn (chưa áp)"
+    status: ci
+    owner: claude (fallback — user: 'ok viết spec rồi triển khai đi bạn')
+    branch: claude/cashflow-m2
+    locks:
+      - supabase/migrations/20260826120000_cashflow_m2_ba_so.sql
+      - supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql (KHÔNG áp trong M2)
+      - types/database.types.ts, types/finance-dashboard.ts, types/payables.ts, types/vendor.ts, types/finance-operations.ts
+      - app/actions/finance-dashboard-queries.ts, payable-actions.ts (mới), vendor-payment-actions.ts (xoá), finance-operations-queries.ts, lab-queries.ts, printing-queries.ts, lab-mutations.ts, vendor-actions.ts, vendor-reports-queries.ts
+      - app/(protected)/finance/payables/** (mới), lab-debts/page.tsx + vendor-debts/page.tsx (redirect)
+      - components/finance/payables/** (mới), vendor-debts/** + lab-debts/** (xoá), dashboard/{finance-compact-bar,finance-dashboard-client,revenue-bar-chart,finance-quick-nav}.tsx, finance-realtime-refresh.tsx
+      - lib/swr.ts, lib/cache-invalidation.ts
+      - scripts/verify-reports.mjs, verify-realtime-signals.mjs, vault-gen-schema.mjs
+      - tests/e2e/cashflow-m2.spec.ts (mới), cashflow-m1.spec.ts, printing-drawer-fixes-verify.spec.ts, finance-module.spec.ts
+      - vault/50-luong/luong-tien.md, vault/40-module/{tai-chinh,in-an-lab,nha-cung-cap}.md, docs/design/dong-tien-mood-v2.md
+    spec: agent/HANDOFFS/T-20260826-cashflow-m2-ba-so.spec.md
+    verify:
+      - npx tsc --noEmit
+      - npx eslint (mọi file trong locks)
+      - npm run build
+      - npm run verify:reports (mới: month_summary/pnl/snapshot cùng số, 2 hàm cũ đã drop)
+      - npm run verify:printing · verify:contracts · verify:inventory
+      - "Playwright (PowerShell, next start :3100): cashflow-m2 + cashflow-m1 + printing-drawer-fixes-verify + finance-module -g payables"
+      - "Sau deploy: cashflow-m2 trên https://stu.moodwedding.com"
+    depends_on: [T-20260825-cashflow-m1-so-tien-ra]
+    notes: "2026-08-26: migration A ĐÃ ÁP prod (đối soát T8: két +203.600 = thu 18.300.000 − chi 18.096.400 toàn bộ trả nợ; lãi 37.090.000 = 46.275.000 − task 7.650.000 − in 1.535.000; phải trả 1.905.000 lab; T5 lãi 27.670.600 có COGS 1.908.000 + bán lẻ 4.315.000). Quyết định ghi ADR-016 phụ lục M2: task theo tháng = mọi task không huỷ (cùng contract_financials → Σ tháng = Σ HĐ); fixed_costs/monthly_salaries không phải tiền; lương cứng = employee_salaries.monthly_salary; tiền ra = Σ expenses duy nhất. Migration B (drop _legacy) chờ ≥ 02/09 + user gật."
   - id: T-20260825-printing-cancel-inventory-deadcode
     title: "Hủy đơn in: gỡ nhánh 'hoàn kho' chết (kho ↔ đơn in đứt cả 2 đầu), hợp nhất 2 đường hủy, dọn tàn dư kho/cọc (code) + tuỳ chọn DROP object DB không còn ai tham chiếu"
     status: spec

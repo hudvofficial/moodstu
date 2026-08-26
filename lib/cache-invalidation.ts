@@ -41,8 +41,7 @@ export async function revalidateFinanceCaches(scope: MonthYear = {}) {
     "finance-expense-breakdown",
     "finance-categories",
     cacheKeys.financeContracts(),
-    cacheKeys.labDebts(),
-    cacheKeys.vendorDebts(),
+    cacheKeys.payables(),
     cacheKeys.financeFixedCosts(),
     cacheKeys.financeInvestments(),
     "finance-salaries",
@@ -125,7 +124,7 @@ export async function revalidatePrintingCaches(orderId?: string) {
     cacheKeys.printingOrders(),
     cacheKeys.printingStats(),
     cacheKeys.labs(),
-    cacheKeys.labDebts(),
+    cacheKeys.payables(),
     orderId ? cacheKeys.printingDetail(orderId) : "printing",
   ]);
 }

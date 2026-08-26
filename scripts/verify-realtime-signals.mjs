@@ -24,7 +24,6 @@ const SOURCE_TABLES = [
   "financial_goals",
   "budgets",
   "investments",
-  "vendor_payments",
   "monthly_salaries",
   "transaction_categories",
   // Business tables migrated away from direct postgres_changes.
@@ -54,7 +53,6 @@ const PHANTOM_ONLY = new Set([
   "financial_goals",
   "budgets",
   "investments",
-  "vendor_payments",
   "monthly_salaries",
   "transaction_categories",
   "contracts",
@@ -238,7 +236,7 @@ const APP_FILTERS = [
   "table_name=eq.employees",
   "table_name=in.(inventory_items,inventory_transactions)",
   // FinanceRealtimeRefresh (finance-realtime-refresh.tsx)
-  "table_name=in.(expenses,debts,fixed_costs,financial_goals,budgets,investments,vendor_payments,monthly_salaries,transaction_categories)",
+  "table_name=in.(expenses,debts,fixed_costs,financial_goals,budgets,investments,monthly_salaries,transaction_categories)",
   "table_name=in.(contracts,payments,contract_checklists,contract_notes,contract_events,work_tasks,payment_plans)",
   "table_name=in.(dress_reservations,printing_orders,crm_leads,customers,schedules,approval_requests,receipts,google_sync_queue)",
 ];

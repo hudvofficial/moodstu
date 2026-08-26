@@ -397,10 +397,14 @@ export async function getPrintingOrderLabRemaining(
       throw new Error("Không tìm thấy đơn in");
     }
 
+    // ADR-016 M2: đọc thẳng expense_allocations (không qua view lab_payment_allocations);
+    // chỉ tính phiếu chi chưa huỷ.
     const { data: allocations, error: allocError } = await supabase
-      .from("lab_payment_allocations")
-      .select("amount")
-      .eq("printing_order_id", orderId);
+      .from("expense_allocations")
+      .select("amount, expenses!inner(deleted_at)")
+      .eq("target_type", "printing_order")
+      .eq("target_id", orderId)
+      .is("expenses.deleted_at", null);
 
     if (allocError) {
       throw new Error(`Không thể lấy dữ liệu công nợ lab: ${allocError.message}`);

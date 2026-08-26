@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   fetchLedger,
-  getDashboardMetrics,
+  getMonthSummary,
   getPendingCollections,
   getRevenueByMonth,
   getServiceDistribution,
@@ -25,9 +25,9 @@ import type { ActionResult } from "@/types/action-result";
 import type { Role } from "@/types/roles";
 import type {
   ContractProfitRow,
-  DashboardMetrics,
   FinanceContractListItem,
   LedgerItem,
+  MonthSummary,
   PaginatedResult,
   RevenueByMonthItem,
   ServiceDistributionItem,
@@ -54,7 +54,7 @@ interface FinanceDashboardClientProps {
   initialMonth: number;
   initialYear: number;
   role?: Role;
-  initialMetrics?: DashboardMetrics;
+  initialMetrics?: MonthSummary;
   initialRevenue?: RevenueByMonthItem[];
   initialServices?: ServiceDistributionItem[];
   initialUpcoming?: FinanceContractListItem[];
@@ -63,14 +63,15 @@ interface FinanceDashboardClientProps {
   initialProfit?: PaginatedResult<ContractProfitRow>;
 }
 
-const EMPTY_METRICS: DashboardMetrics = {
-  totalInflow: 0,
-  totalOutflow: 0,
-  profit: 0,
-  monthChangePercent: 0,
-  contractsNew: 0,
-  contractsDone: 0,
-  totalDebt: 0,
+const EMPTY_SUMMARY: MonthSummary = {
+  month: 0,
+  year: 0,
+  cash: { in: 0, inContract: 0, inRetail: 0, out: 0, outSettlement: 0, outOther: 0, net: 0, netPrev: 0 },
+  pnl: {
+    revenue: 0, revenueContract: 0, revenueRetail: 0, cost: 0, costTask: 0, costPrint: 0, costCogs: 0, costDirect: 0,
+    costOverhead: 0, costSalaryBase: 0, profit: 0, profitPrev: 0, margin: 0, contractsShot: 0, contractsMissingWorkDate: 0,
+  },
+  debt: { receivable: 0, payable: 0, payableLab: 0, payableVendor: 0, payableSupplier: 0 },
 };
 
 const EMPTY_LEDGER: PaginatedResult<LedgerItem> = {
@@ -167,10 +168,10 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
   const currentMonth = props.initialMonth;
   const currentYear = props.initialYear;
 
-  // Top-level Dashboard Snapshot (Always tracks current real-time month via realtime invalidation)
+  // Ba số của tháng hiện tại (Két · Lãi/lỗ · Công nợ) — luôn theo tháng thật, realtime invalidation
   const metrics = useSWR(
     cacheKeys.financeDashboard(currentMonth, currentYear),
-    () => requireData(getDashboardMetrics(currentMonth, currentYear)),
+    () => requireData(getMonthSummary(currentMonth, currentYear)),
     props.initialMetrics ? { fallbackData: props.initialMetrics, ...HYDRATED_FALLBACK_OPTIONS } : undefined,
   );
 
@@ -206,21 +207,30 @@ export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
     if (firstError) toast.error(firstError.message || "Không tải được dữ liệu tài chính.");
   }, [metrics.error, revenue.error, services.error, upcoming.error, pending.error, ledger.error]);
 
-  const data = metrics.data || props.initialMetrics || EMPTY_METRICS;
+  const data = metrics.data || props.initialMetrics || { ...EMPTY_SUMMARY, month: currentMonth, year: currentYear };
   const isBootstrapping = !props.initialMetrics && metrics.isLoading;
 
   return (
     <div className="main-container gap-3!" suppressHydrationWarning>
-      {/* ── Tổng quan tài chính: Snapshot Hiện Tại ── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-3 px-5 bg-bg-card rounded-xl shadow-sm">
-        <div className="flex-1 min-w-0">
-          {isBootstrapping ? <SkeletonCard className="h-16" /> : <FinanceCompactBar data={data} />}
+      {/* ── Ba số của tháng: Két · Lãi/lỗ · Công nợ (ADR-016 M2) ── */}
+      <section className="space-y-3" suppressHydrationWarning>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="section-title min-w-0 truncate">Tháng này</h2>
+          <div className="shrink-0 flex text-caption font-medium text-text-muted items-center gap-1.5 bg-bg-hover px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            Cập nhật: Tháng {currentMonth}/{currentYear}
+          </div>
         </div>
-        <div className="shrink-0 flex lg:justify-end text-caption font-medium text-text-muted items-center gap-1.5 bg-bg-hover px-3 py-1.5 rounded-full">
-          <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-          Cập nhật: Tháng {currentMonth}/{currentYear}
-        </div>
-      </div>
+        {isBootstrapping ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <SkeletonCard className="h-44" />
+            <SkeletonCard className="h-44" />
+            <SkeletonCard className="h-44" />
+          </div>
+        ) : (
+          <FinanceCompactBar data={data} />
+        )}
+      </section>
 
       <FinanceQuickNav role={props.role} />
 

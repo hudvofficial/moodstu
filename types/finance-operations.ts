@@ -92,15 +92,6 @@ export interface DebtListItem {
   card_id?: string | null;
 }
 
-export interface LabDebtItem {
-  lab_id: string;
-  lab_name: string;
-  order_count: number;
-  total_orders: number;
-  total_paid: number;
-  remaining: number;
-}
-
 export interface FixedCostItem {
   id: string;
   cost_code: string;

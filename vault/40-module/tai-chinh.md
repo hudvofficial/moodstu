@@ -14,7 +14,7 @@ Module **nhiều màn hình nhất** (17 route, 116 component). Chỉ `admin` v�
 |---|---|
 | Tổng quan | `/finance`, `/finance/dashboard`, `/finance/cashflow` |
 | Chứng từ | `/finance/receipts` (+ `[id]`, `[id]/print`), `/finance/expenses` (+ `[id]`, `[id]/print`) |
-| Công nợ | `/finance/debts`, `/finance/lab-debts`, `/finance/vendor-debts` |
+| Công nợ | `/finance/debts` (phải thu) · `/finance/payables` (phải trả: lab · thợ · NCC phôi — ADR-016 M2; `lab-debts`/`vendor-debts` redirect về đây) |
 | Kế hoạch | `/finance/budget`, `/finance/goals`, `/finance/fixed-costs`, `/finance/investments` |
 | Vận hành | `/finance/closes` (+ `[id]`), `/finance/categories`, `/finance/salaries` |
 
@@ -51,7 +51,19 @@ Chống double-submit: mọi form finance đã `disabled={saving}` + đóng moda
 
 ## Phiếu chi = tiền thật (ADR-016, 2026-08-25)
 
-`expenses` **chỉ** ghi khi tiền rời két — không còn dòng "trích trước" cho lab/thợ ngoài. Cột mới: `payee_type` (`lab`·`vendor`·`supplier`·`employee`·`other`), `payee_id`; bảng mới **`expense_allocations`** phân bổ phiếu chi vào đơn in / task / lô nhập / kỳ lương. `payee_type='other'` = chi trực tiếp (vào lợi nhuận); có phân bổ = trả nợ (không phải chi phí mới). Trả đối tác đi qua **một** RPC `record_payee_payment_atomic` (wrapper `record_lab_payment_atomic`/`record_vendor_payment_atomic` giữ chữ ký cũ). Công nợ phải trả hợp nhất: `finance_payable_summary()`. Lợi nhuận HĐ: `contract_financials(uuid[])` — nguồn duy nhất. Ngày ghi sổ theo ngày nhập trên phiếu, không theo `updated_at`. Chi tiết: [[luong-tien]].
+`expenses` **chỉ** ghi khi tiền rời két — không còn dòng "trích trước" cho lab/thợ ngoài. Cột mới: `payee_type` (`lab`·`vendor`·`supplier`·`employee`·`other`), `payee_id`; bảng mới **`expense_allocations`** phân bổ phiếu chi vào đơn in / task / lô nhập / kỳ lương. `payee_type='other'` = chi trực tiếp (vào lợi nhuận); có phân bổ = trả nợ (không phải chi phí mới). Trả đối tác đi qua **một** RPC `record_payee_payment_atomic` (wrapper `record_lab_payment_atomic` cho `/printing`). Công nợ phải trả hợp nhất: `finance_payable_summary()` → màn `/finance/payables`. Lợi nhuận HĐ: `contract_financials(uuid[])` — nguồn duy nhất. Ngày ghi sổ theo ngày nhập trên phiếu, không theo `updated_at`. Chi tiết: [[luong-tien]].
+
+## Ba số, một bộ sổ (ADR-016 M2, 2026-08-26)
+
+Dashboard `/finance` hiện đúng 3 khối, mỗi khối một câu hỏi, **không trộn**:
+
+| Khối | Câu hỏi | Nguồn | Ngày |
+|---|---|---|---|
+| **Két** | tháng này tiền vào/ra két bao nhiêu | `payments` + `receipts` (lẻ) − `expenses` (mọi payee) | ngày phiếu |
+| **Lãi/lỗ** | tháng này lời hay lỗ | `contracts.total_amount` chụp trong tháng + bán lẻ − task (mọi task không huỷ, cùng luật `contract_financials`) − đơn in − COGS − chi `other` | ngày chụp / sự kiện / `order_date` / phiếu xuất / phiếu chi |
+| **Công nợ** | ai nợ ai | `remaining_amount` (phải thu) · `finance_payable_summary()` (phải trả) | hiện tại |
+
+Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung cho `finance_month_summary` (3 khối), `finance_pnl_by_month` (chart 12 tháng), `finance_reports_snapshot` (`/reports`, Moodie) và `finance_cashflow_timeline` — `verify:reports` assert 4 hàm cho cùng số. `finance_dashboard_metrics` và `finance_revenue_by_month` **đã DROP** (két bị gọi là "lợi nhuận", tiền thu bị gọi là "doanh thu"). `fixed_costs` và `monthly_salaries.total_salary` **không** phải tiền → không vào két; chi phí cố định thật = phiếu chi `[Auto-Fixed]`, lương cứng = `employee_salaries.monthly_salary` (0 hiện tại; M5). Chi tiết luật ngày: [[luong-tien]].
 
 ## Bảng
 
@@ -59,7 +71,7 @@ Chống double-submit: mọi form finance đã `disabled={saving}` + đóng moda
 
 - `payments` + `payment_plans` + `payment_plan_allocations` — thanh toán hợp đồng
 - `receipts` (phiếu thu) · `expenses` (phiếu chi, tiền thật) · `expense_allocations` (phân bổ)
-- `lab_payments`, `lab_payment_allocations`, `vendor_payments`, `vendor_payment_allocations` — **VIEW** trên `expenses` (bảng gốc `_legacy`, drop ở M2)
+- `lab_payments`, `lab_payment_allocations`, `vendor_payments`, `vendor_payment_allocations` — **VIEW** tương thích, app **không còn đọc** (M2); drop cùng 4 bảng `_legacy` ở **M2b** (`supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql`, áp ≥ 2026-09-02 sau khi prod chạy M2 ổn)
 - `debts` · `credit_cards` · `fixed_costs`
 - `financial_goals` + `goal_contributions` · `budgets`
 - `finance_monthly_closes` + `finance_close_tasks`
@@ -70,9 +82,9 @@ Chống double-submit: mọi form finance đã `disabled={saving}` + đóng moda
 
 ## RPC chính
 
-Đọc: `finance_dashboard_metrics`, `finance_ledger` / `finance_ledger_range`, `finance_revenue_by_month`, `finance_reports_snapshot`, `get_finance_intelligence`, `get_cashflow_forecast`, `get_receivable_aging`, `get_budget_vs_actual`, `get_expense_breakdown`.
+Đọc: `finance_month_summary` (3 khối), `finance_pnl_by_month`, `finance_period_ledger` (sổ kỳ dùng chung), `finance_reports_snapshot`, `finance_cashflow_timeline`, `finance_ledger` / `finance_ledger_range`, `finance_payable_summary`, `payable_items`, `payee_payment_history`, `vendor_cost_report`, `get_finance_intelligence`, `get_cashflow_forecast`, `get_receivable_aging`, `get_budget_vs_actual`, `get_expense_breakdown`.
 
-Ghi: `process_contract_payment_v2`, `void_contract_payment_v2`, `create_sale_receipt_atomic`, `contribute_to_goal`, `undo_contribution_atomic`, `advance_close_task`.
+Ghi: `process_contract_payment_v2`, `void_contract_payment_v2`, `create_sale_receipt_atomic`, `record_payee_payment_atomic`, `void_payee_payment_atomic`, `contribute_to_goal`, `undo_contribution_atomic`, `advance_close_task`.
 
 Danh sách đầy đủ + cảnh báo `SECURITY DEFINER`: [[rpc-va-enum]]
 

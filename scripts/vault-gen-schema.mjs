@@ -90,14 +90,14 @@ await client.end();
 const GROUPS = {
   "hop-dong": { title: "Hợp đồng", tables: ["contracts", "contract_items", "contract_events", "contract_checklists", "contract_notes", "checklist_templates", "event_templates", "addon_history", "documents", "approval_requests"] },
   "gallery": { title: "Gallery ảnh", tables: ["galleries", "gallery_images", "gallery_reactions", "gallery_comments", "gallery_share_links", "gallery_albums", "gallery_selection_batches", "gallery_selection_batch_items", "gallery_filter_jobs", "gallery_password_attempts"] },
-  "tai-chinh": { title: "Tài chính", tables: ["payments", "payment_plans", "payment_plan_allocations", "order_payments", "expenses", "receipts", "debts", "budgets", "financial_goals", "goal_contributions", "fixed_costs", "finance_monthly_closes", "finance_close_tasks", "transaction_categories", "credit_cards", "investments", "investment_maintenance_logs"] },
+  "tai-chinh": { title: "Tài chính", tables: ["payments", "payment_plans", "payment_plan_allocations", "order_payments", "expenses", "expense_allocations", "receipts", "debts", "budgets", "financial_goals", "goal_contributions", "fixed_costs", "finance_monthly_closes", "finance_close_tasks", "transaction_categories", "credit_cards", "investments", "investment_maintenance_logs"] },
   "khach-hang-crm": { title: "Khách hàng & CRM", tables: ["customers", "crm_leads"] },
   "dich-vu": { title: "Dịch vụ & báo giá", tables: ["services", "service_categories", "service_bundles", "service_relations", "price_rules", "promotions"] },
   "nhan-su": { title: "Nhân sự & công việc", tables: ["employees", "employee_salaries", "monthly_salaries", "salary_adjustments", "attendance", "work_shifts", "work_tasks", "schedules", "evaluations", "requests"] },
-  "in-an-lab": { title: "In ấn & Lab", tables: ["printing_orders", "printing_order_status_history", "labs", "lab_services", "lab_payments", "lab_payment_allocations"] },
+  "in-an-lab": { title: "In ấn & Lab", tables: ["printing_orders", "printing_order_status_history", "labs", "lab_services"] },
   "vat-tu": { title: "Vật tư & thiết bị", tables: ["inventory_items", "inventory_transactions", "inventory_reservations", "equipment"] },
   "vay-cuoi": { title: "Váy cưới", tables: ["dresses", "dress_rentals", "dress_rental_accessories", "dress_reservations"] },
-  "nha-cung-cap": { title: "Nhà cung cấp", tables: ["vendors", "vendor_payments", "vendor_payment_allocations"] },
+  "nha-cung-cap": { title: "Nhà cung cấp", tables: ["vendors"] },
   "moodie-ai": { title: "Moodie (AI trợ lý)", tables: [] }, // fill by prefix
   "he-thong": { title: "Hệ thống & hạ tầng", tables: ["audit_logs", "system_settings", "studio_info", "notifications", "notification_preferences", "notification_queue", "push_subscriptions", "login_attempts", "realtime_signals", "google_sync_queue", "integrity_reports"] },
 };

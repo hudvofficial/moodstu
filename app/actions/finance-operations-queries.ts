@@ -25,7 +25,6 @@ import type {
   GoalContributionItem,
   GoalItem,
   InvestmentItem,
-  LabDebtItem,
   MonthYearPageParams,
   ReceiptListItem,
   SalaryAdjustmentItem,
@@ -658,14 +657,6 @@ export async function fetchCreditCards() {
 
     if (error) throw new Error(`Lỗi tải danh sách thẻ tín dụng: ${error.message}`);
     return (data || []) as CreditCardOption[];
-  });
-}
-
-export async function fetchLabDebts() {
-  return withFinanceRead(async (supabase: SupabaseClient<Database>) => {
-    const { data, error } = await supabase.rpc("finance_lab_debt_summary");
-    if (error) throw new Error(`Loi tai cong no lab: ${error.message}`);
-    return (data || []) as LabDebtItem[];
   });
 }
 
