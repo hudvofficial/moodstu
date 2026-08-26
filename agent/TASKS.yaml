@@ -45,7 +45,7 @@ active:
       - npx eslint · npx tsc --noEmit · npm run build
       - "Playwright cashflow-m2 + contract-operational (local, --workers=1); screenshot 2 drawer @1366 + @375 → artifact"
     depends_on: [T-20260826-profit-drawer-align]
-    notes: "User 26/08 hỏi vì sao không tuân thủ rule đồng bộ font: profit-drawer-align sao chép class drawer vận hành để đồng bộ, nhưng drawer vận hành vốn vi phạm design-specs (uppercase 8+, tracking-wide, font-black, text-tiny 10px < caption 12px). Task kéo CẢ HAI về SSOT — drawer vận hành sẽ đổi kiểu nhãn (sentence case). Badge SSOT toàn app in hoa: KHÔNG đụng, tách quyết định riêng. CHỜ USER GẬT."
+    notes: "User 26/08 hỏi vì sao không tuân thủ rule đồng bộ font: profit-drawer-align sao chép class drawer vận hành để đồng bộ, nhưng drawer vận hành vốn vi phạm design-specs (uppercase 8+, tracking-wide, font-black, text-tiny 10px < caption 12px). Task kéo CẢ HAI về SSOT — drawer vận hành sẽ đổi kiểu nhãn (sentence case). Badge SSOT toàn app in hoa: KHÔNG đụng, tách quyết định riêng. 26/08: PHẦN WEIGHT ĐÃ LÀM + MERGED c163436 (font-black 900 → font-bold, avatar text-h3, 2 drawer; đo computed weight chỉ còn 400-700) theo yêu cầu user 'mood không hề xài font này'. Phần uppercase/tracking/text-tiny/sentence case VẪN CHỜ GẬT."
   - id: T-20260826-drawer-status-pill
     title: "Tách ContractStatusBadge (SelectStatus compact + ConfirmDialog) ra components/contracts/contract-status-badge.tsx, dùng chung cho drawer vận hành + drawer lợi nhuận (đổi trạng thái được ở cả hai, drawer lợi nhuận revalidate SWR sau đổi)"
     status: spec

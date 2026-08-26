@@ -3,7 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `288ce14`.
+> Cập nhật gần nhất: **2026-08-26** · nhánh: `main` @ `c163436`.
+
+## 2026-08-26 — FONT WEIGHT 2 DRAWER: **MERGED `c163436`** (phần weight của `T-20260826-drawer-typography-ssot`)
+- User: "mood không hề xài font này" (số 3.450.000 VND nét 900). Nguyên nhân: `font-black` copy từ drawer vận hành cũ — Inter Variable có 900 nhưng thang chữ Mood 400–700 → nhìn như font khác. Sửa `font-black` → `font-bold` 11 chỗ ở cả 2 drawer + avatar `text-lg font-black` → `text-h3`; đo computed weight trong drawer chỉ còn 400/500/600/700. User "merge + push" → ff `288ce14 → c163436`. Phần còn lại của spec typography (uppercase / tracking / text-tiny / sentence case) và pill trạng thái **vẫn chờ gật**; user đã nói mệt vì danh sách dài ra → không tự đề xuất thêm.
 
 ## 2026-08-26 — M3 ĐÓNG KÍN ĐƯỜNG TIỀN (ekip theo task + cần thu theo mốc giao): **MERGED `288ce14` + VERIFIED PRODUCTION 3/3** (`T-20260826-tien-ekip-va-can-thu`)
 - User "merge + push" → ff main `f079223 → 288ce14`, Vercel lên bình thường, Playwright `cashflow-m3` trên prod 3/3; sau test E2E 0, expenses 35, ekip 8.550.350, đã giao chưa thu 3.300.000. **Việc user cần làm:** 8,55tr ekip — nếu đã trả ngoài sổ → Phải trả › Ekip bấm Trả đúng ngày; chưa trả → để nguyên. **Còn chờ gật:** `T-20260826-drawer-typography-ssot`, `T-20260826-drawer-status-pill`; M2b ≥ 02/09; M3b thiệp UI / M4 payment_plans / M5 lương cứng chưa spec.
