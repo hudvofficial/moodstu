@@ -64,9 +64,9 @@ active:
     notes: "Đề xuất 1 còn lại sau profit-drawer-align (pill vận hành đổi được vs badge chỉ đọc). CHỜ USER GẬT."
   - id: T-20260826-cashflow-m2b-drop-legacy
     title: "M2b: áp 20260826130000_cashflow_m2b_drop_legacy.sql (drop 4 view + 4 bảng _legacy + record_vendor_payment_atomic + trigger fn), sửa cashflow-m1 test (c) sang record_payee_payment_atomic, xoá 3 script mô hình cũ, db:types + vault regen, docs"
-    status: spec
+    status: approved
     owner: claude
-    branch: claude/cashflow-m2b (áp ≥ 2026-09-02 khi user gật)
+    branch: claude/cashflow-m2b (user duyệt 26/08 — áp ngày 2026-09-02)
     locks:
       - supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql (đã có, chỉ áp)
       - types/database.types.ts, vault/30-du-lieu/**
