@@ -125,7 +125,7 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
   if (!events || events.length === 0) {
     return (
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
+        <h4 className="section-heading text-text-secondary mb-3">
           Lịch sự kiện
         </h4>
         <p className="text-body-sm text-text-muted italic">
@@ -147,7 +147,7 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
 
   return (
     <section className="card-base p-4">
-      <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
+      <h4 className="section-heading text-text-secondary mb-3">
         Lịch sự kiện
       </h4>
 
@@ -197,19 +197,19 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
               {/* Content — 1 dòng cho mọi trạng thái (tiết kiệm chiều cao drawer) */}
               <div className={`flex-1 min-w-0 ${isLast ? "" : "pb-2"}`}>
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm leading-none shrink-0">{config.icon}</span>
+                  <span className="text-body-sm leading-none shrink-0">{config.icon}</span>
                   <span className="text-body-sm font-medium text-text-main truncate">
                     {config.label}
                   </span>
                   {event.event_date ? (
-                    <span className={`text-tiny shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
+                    <span className={`text-caption shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
                       · {formatDate(event.event_date)}
                       {event.start_time && ` ${event.start_time.slice(0, 5)}`}
                       {event.start_time && event.end_time && `–${event.end_time.slice(0, 5)}`}
                     </span>
                   ) : (
                     event.status !== "hoan_thanh" && (
-                      <span className="text-tiny text-text-muted italic shrink-0">
+                      <span className="text-caption text-text-muted italic shrink-0">
                         · Chưa xếp lịch
                       </span>
                     )
@@ -217,12 +217,12 @@ export function DrawerEventTimeline({ contractId, events }: DrawerEventTimelineP
                   {event.status !== "hoan_thanh" &&
                     event.status !== "da_huy" &&
                     event.deadline && (
-                      <span className={`text-tiny shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
+                      <span className={`text-caption shrink-0 ${isOverdue ? "text-error" : "text-text-muted"}`}>
                         · Hạn {formatDate(event.deadline)}
                       </span>
                     )}
                   {event.location && (
-                    <span className="text-tiny text-text-muted truncate">
+                    <span className="text-caption text-text-muted truncate">
                       · {event.location}
                     </span>
                   )}

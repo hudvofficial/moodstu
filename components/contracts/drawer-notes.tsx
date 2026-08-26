@@ -106,7 +106,7 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
 
   return (
     <section className="card-base p-4">
-      <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
+      <h4 className="section-heading text-text-secondary mb-3">
         <MessageSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
         Ghi chú ({allNotes.length})
       </h4>
@@ -125,7 +125,7 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
           ) : (
             <div className="flex flex-col gap-2 mb-3">
               {hiddenCount > 0 && (
-                <p className="text-tiny text-text-muted text-center">
+                <p className="text-caption text-text-muted text-center">
                   + {hiddenCount} ghi chú trước đó
                 </p>
               )}
@@ -139,7 +139,7 @@ export function DrawerNotes({ contractId, initialNotes }: DrawerNotesProps) {
                   <p className="text-body-sm text-text-main whitespace-pre-wrap wrap-break-word leading-relaxed">
                     {note.content}
                   </p>
-                  <p className="text-tiny text-text-muted mt-1">
+                  <p className="text-caption text-text-muted mt-1">
                     {formatTime(note.created_at)}
                   </p>
                 </div>

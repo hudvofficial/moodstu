@@ -53,6 +53,12 @@ Cộng thêm `opacity-0` chờ `onLoad` → LCP buộc phải đợi JS.
 5. **`border-border-subtle` là class chết.** Panel không viền: `bg-bg-hover shadow-sm`. Divider: `h-px bg-border/30`. Ngoại lệ hợp lệ: `.input-base`, `.accent-card-*`.
 6. Grep class Tailwind trong file CSS phải dùng `grep -F` (ký tự bị escape).
 
+## "Đồng bộ" bằng cách sao chép class của component lân cận
+
+Muốn hai màn giống nhau, **đối chiếu SSOT** (`docs/design-specs.md`, `docs/css-classes.md`, `app/styles/typography.css`) trước khi sao chép — component lân cận có thể đang sai. Bài học 26/08/2026 (`T-20260826-profit-drawer-align` → `T-20260826-drawer-typography-ssot`): drawer lợi nhuận copy nguyên class của drawer vận hành để "cùng khung", kết quả **cả hai** cùng `font-black` (900, ngoài thang 400–700 → user thấy "như font khác"), `text-tiny` (10px, dưới caption 12px), `uppercase tracking-wide` (spec cấm). Hai drawer đồng bộ với nhau nhưng cùng lệch chuẩn.
+
+Thay vào đó: tiêu đề thẻ = `section-heading`, nhãn ô số = `text-caption text-text-muted`, số = `text-body-sm font-bold whitespace-nowrap tabular-nums`. Grep nhanh: `grep -rnE "text-tiny|font-black|uppercase|tracking-wide" components/`.
+
 ## Ô nhập số xoá trắng búng về 0
 
 `Number("") === 0`. Dùng **state string + `placeholder="0"`**. Mẫu gốc: `stock-in-modal`.

@@ -100,8 +100,11 @@
 # Typography hardcode
 grep -rn "text-(xl|2xl|3xl).*font-bold" components/ app/
 
-# Uppercase labels (violation lesson #51)
-grep -rn "uppercase tracking-wider" components/ app/
+# Uppercase labels (violation lesson #51) — cả tracking-wide lẫn tracking-wider
+grep -rnE "uppercase|tracking-wide" components/ app/
+
+# Cỡ/đậm ngoài thang (T-20260826-drawer-typography-ssot: 2 drawer hợp đồng từng dùng 10px + weight 900)
+grep -rnE "text-tiny|font-black" components/ app/
 
 # Font-serif (violation lesson #50)
 grep -rn "font-serif" components/ app/

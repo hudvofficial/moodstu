@@ -9,7 +9,7 @@
  * Seed riêng, dọn sạch — KHÔNG mutate dữ liệu thật.
  * Chạy: PLAYWRIGHT_BASE_URL=http://127.0.0.1:3100 npx playwright test tests/e2e/cashflow-m2.spec.ts --project=chromium
  */
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -173,6 +173,50 @@ async function login(page: Page, s: Seed) {
   await Promise.race([page.waitForEvent("load"), page.waitForTimeout(4000)]);
 }
 
+// T-20260826-drawer-typography-ssot: mọi chữ trong 2 drawer theo docs/design-specs.md — không uppercase (trừ Badge SSOT),
+// weight ≤ 700, cỡ ≥ 12px; ở 375px số tiền `whitespace-nowrap` không tràn ô. DRAWER_SHOTS=1 → chụp test-results/drawer-typo/*.png.
+async function auditDrawerTypography(page: Page, dialog: Locator, name: "profit" | "ops") {
+  const audit = () =>
+    dialog.evaluate((root) => {
+      const bad: string[] = [];
+      for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
+        if (el.closest(".badge")) continue; // Badge SSOT toàn app đang in hoa — ngoài scope task
+        const hasText = Array.from(el.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent || "").trim());
+        if (!hasText) continue;
+        const cs = getComputedStyle(el);
+        const size = parseFloat(cs.fontSize);
+        const weight = parseInt(cs.fontWeight, 10);
+        const tag = `${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 24)}"`;
+        if (cs.textTransform === "uppercase") bad.push(`${tag}: uppercase`);
+        if (weight > 700) bad.push(`${tag}: weight ${weight}`);
+        if (size < 12) bad.push(`${tag}: ${size}px`);
+      }
+      return bad;
+    });
+  const overflow = () =>
+    dialog.evaluate((root) =>
+      Array.from(root.querySelectorAll<HTMLElement>(".whitespace-nowrap"))
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => (el.textContent || "").trim()),
+    );
+  const shot = async (suffix: string) => {
+    if (process.env.DRAWER_SHOTS) await page.screenshot({ path: `test-results/drawer-typo/${name}-${suffix}.png`, fullPage: false });
+  };
+
+  expect(await audit(), `${name} @1366`).toEqual([]);
+  expect(await overflow(), `${name} @1366 tràn`).toEqual([]);
+  await shot("1366");
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.waitForTimeout(600); // drawer đổi layout theo breakpoint
+  await expect(dialog).toBeVisible();
+  expect(await audit(), `${name} @375`).toEqual([]);
+  expect(await overflow(), `${name} @375 tràn`).toEqual([]);
+  await shot("375");
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.waitForTimeout(400);
+}
+
 test.describe.serial("ADR-016 M2 — ba số, một bộ sổ", () => {
   test.setTimeout(240_000);
   let db: Admin;
@@ -331,6 +375,7 @@ test.describe.serial("ADR-016 M2 — ba số, một bộ sổ", () => {
     await expect(profitDialog.getByText(/\+3\.500\.000/).first()).toBeVisible();
     const profitBox = await profitDialog.boundingBox();
     expect(Math.round(profitBox?.width ?? 0)).toBe(480);
+    await auditDrawerTypography(page, profitDialog, "profit");
     await page.keyboard.press("Escape");
     await expect(profitDialog).toBeHidden({ timeout: 10_000 });
 
@@ -339,6 +384,9 @@ test.describe.serial("ADR-016 M2 — ba số, một bộ sổ", () => {
     await expect(opsDialog).toBeVisible({ timeout: 20_000 });
     const opsBox = await opsDialog.boundingBox();
     expect(Math.round(opsBox?.width ?? 0)).toBe(480);
+    await expect(opsDialog.getByText("Thanh toán", { exact: false }).first()).toBeVisible();
+    await expect(opsDialog.getByText("5.000.000", { exact: true }).first()).toBeVisible(); // thẻ Thanh toán: số không hậu tố VND (đơn vị ở tiêu đề)
+    await auditDrawerTypography(page, opsDialog, "ops");
     await page.keyboard.press("Escape");
     await expect(opsDialog).toBeHidden({ timeout: 10_000 });
 

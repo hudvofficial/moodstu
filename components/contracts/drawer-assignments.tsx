@@ -70,7 +70,7 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
   if (!tasks || tasks.length === 0) {
     return (
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-3 uppercase tracking-wide">
+        <h4 className="section-heading text-text-secondary mb-3">
           Nhân sự
         </h4>
         <p className="text-body-sm text-text-muted italic">
@@ -92,10 +92,10 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
     <section className="card-base p-4">
       {/* Header summary */}
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
+        <h4 className="section-heading text-text-secondary">
           Nhân sự
         </h4>
-        <span className="text-tiny text-text-muted">
+        <span className="text-caption text-text-muted">
           {assigned.length}/{tasks.length} gán
         </span>
       </div>
@@ -111,10 +111,10 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
       {/* Warning block: unassigned tasks */}
       {unassigned.length > 0 && (
         <div className="bg-warning/5 rounded-md px-3 py-2 mb-2">
-          <p className="text-tiny font-medium text-warning">
+          <p className="text-caption font-medium text-warning">
             ⚠️ {unassigned.length} chưa gán
           </p>
-          <p className="text-tiny text-text-muted mt-0.5 line-clamp-2">
+          <p className="text-caption text-text-muted mt-0.5 line-clamp-2">
             {unassigned
               .slice(0, 5)
               .map((t) => {
@@ -139,19 +139,19 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
               <div className="flex-1 flex flex-col min-w-0">
                 <span className="text-body-sm font-medium text-text-main truncate">
                   {task.employees?.full_name || task.vendors?.full_name}
-                  {task.vendors && <span className="ml-1.5 text-text-muted text-micro font-normal italic">Thợ ngoài</span>}
+                  {task.vendors && <span className="ml-1.5 text-text-muted text-caption font-normal italic">Thợ ngoài</span>}
                 </span>
                 {events && task.event_id && (
-                  <span className="text-micro text-text-muted truncate leading-tight">
+                  <span className="text-caption text-text-muted truncate leading-tight">
                     {events.find((e) => e.id === task.event_id)?.title || "Sự kiện"}
                   </span>
                 )}
               </div>
-              <span className="text-tiny text-text-muted shrink-0">
+              <span className="text-caption text-text-muted shrink-0">
                 {getWorkLabel(task.work_type)}
               </span>
               <span
-                className={`text-tiny px-1.5 py-0.5 rounded-full font-medium shrink-0 ${getStatusStyle(task.status)}`}
+                className={`text-caption px-1.5 py-0.5 rounded-full font-medium shrink-0 ${getStatusStyle(task.status)}`}
               >
                 {getStatusText(task.status)}
               </span>
@@ -160,7 +160,7 @@ export function DrawerAssignments({ tasks, events }: DrawerAssignmentsProps) {
           {hiddenAssignedCount > 0 && (
             <Button unstyled
               onClick={() => setExpanded(!expanded)}
-              className="text-tiny text-primary hover:text-primary/80 text-center py-0.5 w-full transition-colors"
+              className="text-caption text-primary hover:text-primary/80 text-center py-0.5 w-full transition-colors"
             >
               {expanded
                 ? "Thu gọn"

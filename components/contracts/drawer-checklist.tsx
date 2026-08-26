@@ -127,7 +127,7 @@ export function DrawerChecklist({ contractId, items: initialItems }: DrawerCheck
   if (total === 0) {
     return (
       <section className="card-base p-4">
-        <h4 className="text-caption font-semibold text-text-secondary mb-2">
+        <h4 className="section-heading text-text-secondary mb-2">
           <CheckSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
           Chuẩn bị
         </h4>
@@ -139,11 +139,11 @@ export function DrawerChecklist({ contractId, items: initialItems }: DrawerCheck
   return (
     <section className="card-base p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-caption font-semibold text-text-secondary">
+        <h4 className="section-heading text-text-secondary">
           <CheckSquare className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
           Chuẩn bị
         </h4>
-        <span className={`text-tiny font-bold ${pct === 100 ? "text-success" : "text-text-muted"}`}>
+        <span className={`text-caption font-bold ${pct === 100 ? "text-success" : "text-text-muted"}`}>
           {done}/{total} ({pct}%)
         </span>
       </div>
@@ -176,8 +176,8 @@ export function DrawerChecklist({ contractId, items: initialItems }: DrawerCheck
                 ) : (
                   <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
                 )}
-                <span className={`text-tiny font-bold ${style.text}`}>{category}</span>
-                <span className={`text-tiny ml-auto font-bold ${
+                <span className={`text-caption font-bold ${style.text}`}>{category}</span>
+                <span className={`text-caption ml-auto font-bold ${
                   catDone === catItems.length ? "text-success" : "text-text-muted"
                 }`}
                 >

@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260826-drawer-typography-ssot
     title: "Hai drawer hợp đồng về đúng luật typography design-specs: sentence case, token SSOT (section-heading / text-caption / text-body-sm font-bold / text-h3), bỏ uppercase / tracking-wide / font-black / text-tiny ở 6 file drawer; thẻ THANH TOÁN cùng cách viết số với thẻ LỢI NHUẬN (bỏ hậu tố VND, nowrap)"
-    status: spec
+    status: review
     owner: claude
-    branch: claude/drawer-typography-ssot (sau khi user gật)
+    branch: claude/drawer-typography-ssot (user "ok tiến hành" 26/08 → đã code + verify local, chờ user xem artifact rồi "merge + push")
     locks:
       - components/contracts/drawer-tab-content.tsx, drawer-event-timeline.tsx, drawer-notes.tsx, drawer-assignments.tsx, drawer-checklist.tsx
       - components/finance/dashboard/profit-detail-drawer.tsx

@@ -17,7 +17,7 @@ import { DrawerEventTimeline } from "@/components/contracts/drawer-event-timelin
 import { DrawerAssignments } from "@/components/contracts/drawer-assignments";
 import { DrawerNotes } from "@/components/contracts/drawer-notes";
 import { DrawerChecklist } from "@/components/contracts/drawer-checklist";
-import { formatCurrency, formatDate, CURRENCY_SYMBOL } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   getServiceLabel,
 } from "@/types/contract-constants";
@@ -29,12 +29,6 @@ import { Button } from "@/components/ui/button";
 // DrawerContent + OperationsTabs
 // Extracted from contract-drawer.tsx (V2 split)
 // ═══════════════════════════════════════════
-
-// ─── HELPERS ─────────────────────────────────────
-
-function fmt(amount: number): string {
-  return formatCurrency(amount) + " " + CURRENCY_SYMBOL;
-}
 
 // ─── CONTENT ─────────────────────────────────────
 
@@ -121,7 +115,7 @@ export function DrawerContent({
             <h3 className="text-body-sm font-bold text-text-main group-hover:text-primary truncate">
               {customer?.full_name || "Chưa có"}
             </h3>
-            <div className="flex items-center gap-3 text-tiny text-text-muted">
+            <div className="flex items-center gap-3 text-caption text-text-muted">
               {customer?.phone && (
                 <span className="flex items-center gap-1">
                   <Phone className="w-3 h-3" />
@@ -141,13 +135,13 @@ export function DrawerContent({
         {/* Pill cards */}
         <div className="flex gap-2 mt-3">
           <div className="flex-1 px-3 py-2 rounded-md bg-primary/5 border border-primary/10">
-            <span className="text-tiny font-bold text-primary/70 uppercase block">Dịch vụ</span>
+            <span className="text-caption text-primary/70 block">Dịch vụ</span>
             <span className="text-body-sm font-bold text-primary truncate block">
               {getServiceLabel((c.service_type || "studio") as ServiceType)}
             </span>
           </div>
           <div className="flex-1 px-3 py-2 rounded-md bg-warning/5 border border-warning/10">
-            <span className="text-tiny font-bold text-warning/70 uppercase block">Ngày làm</span>
+            <span className="text-caption text-warning/70 block">Ngày làm</span>
             <span className="text-body-sm font-bold text-text-main truncate block">
               {workDate ? formatDate(workDate) : "—"}
             </span>
@@ -158,8 +152,8 @@ export function DrawerContent({
       {/* ── Section: Thanh toán ── */}
       <section className="card-base p-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-caption font-semibold text-text-secondary uppercase tracking-wide">
-            Thanh toán
+          <h4 className="section-heading text-text-secondary">
+            Thanh toán <span className="text-caption font-normal text-text-muted">(VND)</span>
           </h4>
           <span className={`text-caption font-bold ${isFullyPaid ? "text-success" : "text-primary"}`}>
             {paidPct}%
@@ -168,24 +162,24 @@ export function DrawerContent({
 
         {/* Amount grid */}
         <div className="flex items-stretch mb-3">
-          <div className="flex-1 text-center">
-            <span className="text-tiny font-bold text-text-muted uppercase block">Tổng</span>
-            <span className="text-body-sm font-bold text-text-main block">
-              {fmt(totalAmount)}
+          <div className="flex-1 min-w-0 text-center">
+            <span className="text-caption text-text-muted block">Tổng</span>
+            <span className="text-body-sm font-bold text-text-main block whitespace-nowrap tabular-nums">
+              {formatCurrency(totalAmount)}
             </span>
           </div>
           <div className="w-px bg-border/50 my-1" />
-          <div className="flex-1 text-center">
-            <span className="text-tiny font-bold text-text-muted uppercase block">Đã thu</span>
-            <span className={`text-body-sm font-bold block ${paidAmount > 0 ? "text-success" : "text-text-muted"}`}>
-              {fmt(paidAmount)}
+          <div className="flex-1 min-w-0 text-center">
+            <span className="text-caption text-text-muted block">Đã thu</span>
+            <span className={`text-body-sm font-bold block whitespace-nowrap tabular-nums ${paidAmount > 0 ? "text-success" : "text-text-muted"}`}>
+              {formatCurrency(paidAmount)}
             </span>
           </div>
           <div className="w-px bg-border/50 my-1" />
-          <div className="flex-1 text-center">
-            <span className="text-tiny font-bold text-text-muted uppercase block">Còn lại</span>
-            <span className={`text-body-sm font-bold block ${isFullyPaid ? "text-success" : "text-error"}`}>
-              {fmt(remainingAmount)}
+          <div className="flex-1 min-w-0 text-center">
+            <span className="text-caption text-text-muted block">Còn lại</span>
+            <span className={`text-body-sm font-bold block whitespace-nowrap tabular-nums ${isFullyPaid ? "text-success" : "text-error"}`}>
+              {formatCurrency(remainingAmount)}
             </span>
           </div>
         </div>
@@ -202,7 +196,7 @@ export function DrawerContent({
           unstyled
           type="button"
           onClick={onTrackPayment}
-          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-success/10 px-4 py-3 text-caption font-bold uppercase tracking-wide text-text-secondary transition-colors hover:bg-success/15 hover:text-success active:scale-[0.99]"
+          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-success/10 px-4 py-3 text-body-sm font-semibold text-text-secondary transition-colors hover:bg-success/15 hover:text-success active:scale-[0.99]"
         >
           <Banknote className="h-4 w-4 text-success" />
           Theo dõi thanh toán
@@ -260,7 +254,7 @@ function AlbumStatusCard({ contractId }: { contractId: string }) {
         <Images className="h-4 w-4 text-info" />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="text-caption font-semibold uppercase tracking-wide text-text-secondary block">
+        <span className="section-heading text-text-secondary block">
           Album ảnh
         </span>
         <span className="text-body-sm text-text-main flex items-center gap-2 flex-wrap">
