@@ -13,20 +13,20 @@ Module liên quan: [[nhan-su]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `employees` | 7 | ✅ | 4 |
-| `employee_salaries` | 3 | ✅ | 4 |
+| `employees` | 12 | ✅ | 4 |
+| `employee_salaries` | 2 | ✅ | 4 |
 | `monthly_salaries` | 2 | ✅ | 4 |
 | `salary_adjustments` | 0 | ✅ | 0 |
 | `attendance` | 0 | ✅ | 4 |
 | `work_shifts` | 0 | ✅ | 4 |
-| `work_tasks` | 143 | ✅ | 6 |
+| `work_tasks` | 166 | ✅ | 6 |
 | `schedules` | 2 | ✅ | 4 |
 | `evaluations` | 0 | ✅ | 4 |
 | `requests` | 0 | ✅ | 4 |
 
 ## `employees`
 
-7 dòng · RLS bật · 4 policy
+12 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -80,7 +80,7 @@ Module liên quan: [[nhan-su]]
 
 ## `employee_salaries`
 
-3 dòng · RLS bật · 4 policy
+2 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -256,7 +256,7 @@ Module liên quan: [[nhan-su]]
 
 ## `work_tasks`
 
-143 dòng · RLS bật · 6 policy
+166 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -280,9 +280,9 @@ Module liên quan: [[nhan-su]]
 
 **Trỏ ra:** `vendor_id` → `vendors.id` · `assigned_to` → `employees.id` · `event_id` → `contract_events.id` · `contract_id` → `contracts.id`
 
-**Bị trỏ tới bởi:** `expenses.work_task_id` · `vendor_payment_allocations.work_task_id`
+**Bị trỏ tới bởi:** `expenses.work_task_id`
 
-**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_work_tasks_updated_at` → `update_updated_at_column()` · `work_task_vendor_expense_sync` → `trg_sync_vendor_expense()`
+**Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_work_tasks_updated_at` → `update_updated_at_column()`
 
 **CHECK:** `CHECK ((((assigned_to IS NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NOT NULL) AND (vendor_id IS NULL)) OR ((assigned_to IS NULL) AND (vendor_id IS NOT NULL))))`
 

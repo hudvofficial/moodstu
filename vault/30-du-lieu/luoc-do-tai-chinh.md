@@ -13,27 +13,28 @@ Module liên quan: [[tai-chinh]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `payments` | 48 | ✅ | 4 |
-| `payment_plans` | 200 | ✅ | 6 |
-| `payment_plan_allocations` | 48 | ✅ | 2 |
+| `payments` | 51 | ✅ | 4 |
+| `payment_plans` | 240 | ✅ | 6 |
+| `payment_plan_allocations` | 51 | ✅ | 2 |
 | `order_payments` | 0 | ✅ | 3 |
-| `expenses` | 39 | ✅ | 4 |
+| `expenses` | 81 | ✅ | 4 |
+| `expense_allocations` | 40 | ✅ | 0 |
 | `receipts` | 4 | ✅ | 1 |
 | `debts` | 0 | ✅ | 4 |
 | `budgets` | 0 | ✅ | 1 |
 | `financial_goals` | 0 | ✅ | 1 |
 | `goal_contributions` | 0 | ✅ | 1 |
 | `fixed_costs` | 0 | ✅ | 4 |
-| `finance_monthly_closes` | 1 | ✅ | 1 |
+| `finance_monthly_closes` | 0 | ✅ | 1 |
 | `finance_close_tasks` | 0 | ✅ | 1 |
-| `transaction_categories` | 13 | ✅ | 4 |
+| `transaction_categories` | 14 | ✅ | 4 |
 | `credit_cards` | 3 | ✅ | 1 |
 | `investments` | 0 | ✅ | 1 |
 | `investment_maintenance_logs` | 0 | ✅ | 1 |
 
 ## `payments`
 
-48 dòng · RLS bật · 4 policy
+51 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -88,7 +89,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payment_plans`
 
-200 dòng · RLS bật · 6 policy
+240 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -125,7 +126,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `payment_plan_allocations`
 
-48 dòng · RLS bật · 2 policy
+51 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -189,7 +190,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `expenses`
 
-39 dòng · RLS bật · 4 policy
+81 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -210,14 +211,20 @@ Module liên quan: [[tai-chinh]]
 | `printing_order_id` | uuid |  |  |
 | `work_task_id` | uuid |  |  |
 | `debt_id` | uuid |  |  |
+| `payee_type` | text | NOT NULL | `'other'` |
+| `payee_id` | uuid |  |  |
+| `legacy_source` | text |  |  |
+| `legacy_source_id` | uuid |  |  |
 
 **Trỏ ra:** `printing_order_id` → `printing_orders.id` · `debt_id` → `debts.id` (ON DELETE SET NULL) · `work_task_id` → `work_tasks.id` (ON DELETE SET NULL) · `category_id` → `transaction_categories.id` · `contract_id` → `contracts.id`
 
+**Bị trỏ tới bởi:** `expense_allocations.expense_id`
+
 **Trigger:** `audit_expenses` → `log_audit_action()` · `emit_realtime_signal` → `emit_realtime_signal()` · `update_expenses_updated_at` → `update_updated_at_column()`
 
-**CHECK:** `CHECK ((amount > (0)))`
+**CHECK:** `CHECK ((amount > (0)))` · `CHECK ((payee_type = ANY (ARRAY['lab', 'vendor', 'supplier', 'employee', 'other'])))`
 
-<details><summary>13 index</summary>
+<details><summary>14 index</summary>
 
 - `btree (expense_date DESC, created_at DESC) WHERE (deleted_at IS NULL)`
 - `btree (expense_date DESC, created_at DESC) WHERE ((deleted_at IS NULL) AND (approved_by IS NULL))`
@@ -226,12 +233,39 @@ Module liên quan: [[tai-chinh]]
 - `UNIQUE btree (id)`
 - `btree (expense_date)`
 - `btree (contract_id)`
+- `btree (payee_type, payee_id) WHERE (deleted_at IS NULL)`
 - `btree (category_id) WHERE (category_id IS NOT NULL)`
 - `btree (expense_date) WHERE (deleted_at IS NULL)`
 - `btree (printing_order_id) WHERE ((deleted_at IS NULL) AND (printing_order_id IS NOT NULL))`
 - `btree (work_task_id) WHERE ((deleted_at IS NULL) AND (work_task_id IS NOT NULL))`
 - `btree (debt_id)`
 - `btree (contract_id)`
+
+</details>
+
+## `expense_allocations`
+
+40 dòng · RLS bật · 0 policy
+
+| Cột | Kiểu | Null | Mặc định |
+|---|---|---|---|
+| `id` | uuid | NOT NULL | `gen_random_uuid()` |
+| `expense_id` | uuid | NOT NULL |  |
+| `target_type` | text | NOT NULL |  |
+| `target_id` | uuid | NOT NULL |  |
+| `amount` | numeric | NOT NULL |  |
+| `created_at` | timestamptz | NOT NULL | `now()` |
+| `created_by` | uuid |  |  |
+
+**Trỏ ra:** `expense_id` → `expenses.id` (ON DELETE CASCADE)
+
+**CHECK:** `CHECK ((amount > (0)))` · `CHECK ((target_type = ANY (ARRAY['printing_order', 'work_task', 'inventory_transaction', 'employee_salary'])))`
+
+<details><summary>3 index</summary>
+
+- `UNIQUE btree (id)`
+- `btree (target_type, target_id)`
+- `btree (expense_id)`
 
 </details>
 
@@ -457,7 +491,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `finance_monthly_closes`
 
-1 dòng · RLS bật · 1 policy
+0 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -513,7 +547,7 @@ Module liên quan: [[tai-chinh]]
 
 ## `transaction_categories`
 
-13 dòng · RLS bật · 4 policy
+14 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

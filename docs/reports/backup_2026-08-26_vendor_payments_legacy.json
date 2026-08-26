@@ -1,0 +1,62 @@
+[
+  {
+    "id": "f58637b0-7ff9-4bf8-abc4-974d8dc944c4",
+    "vendor_id": "96bc0b39-a942-412f-9260-7d9739cb3e2a",
+    "amount": "1300000",
+    "payment_method": "chuyen_khoan",
+    "payment_date": "2026-06-11T17:00:00.000Z",
+    "note": null,
+    "created_at": "2026-06-12T11:20:09.162Z",
+    "updated_at": "2026-06-14T16:39:10.885Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "deleted_at": null
+  },
+  {
+    "id": "de00043a-7b3d-46b4-956b-a84ecdac161e",
+    "vendor_id": "3b18f72d-ba30-4d23-a358-8262b36c914f",
+    "amount": "4450000",
+    "payment_method": "chuyen_khoan",
+    "payment_date": "2026-08-24T17:00:00.000Z",
+    "note": null,
+    "created_at": "2026-08-25T13:42:41.761Z",
+    "updated_at": "2026-08-25T13:42:41.761Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "deleted_at": null
+  },
+  {
+    "id": "b8f98044-20bc-403b-9ba8-8a0df31e43c9",
+    "vendor_id": "96bc0b39-a942-412f-9260-7d9739cb3e2a",
+    "amount": "2900000",
+    "payment_method": "chuyen_khoan",
+    "payment_date": "2026-08-24T17:00:00.000Z",
+    "note": null,
+    "created_at": "2026-08-25T13:42:54.340Z",
+    "updated_at": "2026-08-25T13:42:54.340Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "deleted_at": null
+  },
+  {
+    "id": "dcca227e-6eca-4040-8e55-20c925498817",
+    "vendor_id": "4aceb904-33d1-4847-a454-a3fa5fd81631",
+    "amount": "2100000",
+    "payment_method": "chuyen_khoan",
+    "payment_date": "2026-08-24T17:00:00.000Z",
+    "note": null,
+    "created_at": "2026-08-25T13:43:08.880Z",
+    "updated_at": "2026-08-25T13:43:08.880Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "deleted_at": null
+  },
+  {
+    "id": "9a2f9525-1e9c-4050-b363-4c604c80ef72",
+    "vendor_id": "aa190023-f2e6-4456-991c-3919cd2d30de",
+    "amount": "1100000",
+    "payment_method": "chuyen_khoan",
+    "payment_date": "2026-08-24T17:00:00.000Z",
+    "note": null,
+    "created_at": "2026-08-25T13:43:22.810Z",
+    "updated_at": "2026-08-25T13:43:22.810Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "deleted_at": null
+  }
+]

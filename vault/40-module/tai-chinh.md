@@ -73,7 +73,7 @@ Một hàm sổ kỳ **`finance_period_ledger(start, end)`** là nguồn chung c
 
 - `payments` + `payment_plans` + `payment_plan_allocations` — thanh toán hợp đồng
 - `receipts` (phiếu thu) · `expenses` (phiếu chi, tiền thật) · `expense_allocations` (phân bổ)
-- `lab_payments`, `lab_payment_allocations`, `vendor_payments`, `vendor_payment_allocations` — **VIEW** tương thích, app **không còn đọc** (M2); drop cùng 4 bảng `_legacy` ở **M2b** (`supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql`, áp ≥ 2026-09-02 sau khi prod chạy M2 ổn)
+- `lab_payments`, `lab_payment_allocations`, `vendor_payments`, `vendor_payment_allocations` — **đã drop** (4 view + 4 bảng `_legacy`, M2b 26/08/2026, `supabase/migrations/20260826130000_cashflow_m2b_drop_legacy.sql`); dữ liệu đã di trú vào `expenses` + `expense_allocations` từ M1, bản sao `docs/reports/backup_2026-08-26_*.json`
 - `debts` · `credit_cards` · `fixed_costs`
 - `financial_goals` + `goal_contributions` · `budgets`
 - `finance_monthly_closes` + `finance_close_tasks`

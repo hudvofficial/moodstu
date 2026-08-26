@@ -13,9 +13,9 @@ Module liên quan: [[moodie-ai]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `ai_conversations` | 60 | ✅ | 1 |
-| `ai_messages` | 367 | ✅ | 1 |
-| `ai_turns` | 144 | ✅ | 1 |
+| `ai_conversations` | 61 | ✅ | 1 |
+| `ai_messages` | 373 | ✅ | 1 |
+| `ai_turns` | 147 | ✅ | 1 |
 | `moodie_action_approvals` | 0 | ✅ | 1 |
 | `moodie_agent_run_events` | 22 | ✅ | 1 |
 | `moodie_agent_runs` | 22 | ✅ | 1 |
@@ -24,14 +24,14 @@ Module liên quan: [[moodie-ai]]
 | `moodie_memories` | 1 | ✅ | 2 |
 | `moodie_memory_relations` | 0 | ✅ | 1 |
 | `moodie_message_feedback` | 0 | ✅ | 1 |
-| `moodie_observations` | 62 | ✅ | 1 |
-| `moodie_voice_events` | 3279 | ✅ | 1 |
-| `moodie_voice_sessions` | 42 | ✅ | 1 |
-| `moodie_voice_turns` | 143 | ✅ | 1 |
+| `moodie_observations` | 65 | ✅ | 1 |
+| `moodie_voice_events` | 3436 | ✅ | 1 |
+| `moodie_voice_sessions` | 43 | ✅ | 1 |
+| `moodie_voice_turns` | 148 | ✅ | 1 |
 
 ## `ai_conversations`
 
-60 dòng · RLS bật · 1 policy
+61 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -63,7 +63,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `ai_messages`
 
-367 dòng · RLS bật · 1 policy
+373 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -97,7 +97,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `ai_turns`
 
-144 dòng · RLS bật · 1 policy
+147 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -404,7 +404,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `moodie_observations`
 
-62 dòng · RLS bật · 1 policy
+65 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -434,7 +434,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `moodie_voice_events`
 
-3279 dòng · RLS bật · 1 policy
+3436 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -462,7 +462,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `moodie_voice_sessions`
 
-42 dòng · RLS bật · 1 policy
+43 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -500,7 +500,7 @@ Module liên quan: [[moodie-ai]]
 
 ## `moodie_voice_turns`
 
-143 dòng · RLS bật · 1 policy
+148 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

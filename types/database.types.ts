@@ -1914,20 +1914,6 @@ export type Database = {
             referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "lab_payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_payments"
-            referencedColumns: ["id"]
-          },
         ]
       }
       expenses: {
@@ -3295,93 +3281,6 @@ export type Database = {
           useful_life_months?: number | null
         }
         Relationships: []
-      }
-      lab_payment_allocations_legacy: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          id: string
-          payment_id: string
-          printing_order_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          payment_id: string
-          printing_order_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          payment_id?: string
-          printing_order_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lab_payment_allocations_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "lab_payments_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lab_payment_allocations_printing_order_id_fkey"
-            columns: ["printing_order_id"]
-            isOneToOne: false
-            referencedRelation: "order_payment_summary"
-            referencedColumns: ["order_id"]
-          },
-          {
-            foreignKeyName: "lab_payment_allocations_printing_order_id_fkey"
-            columns: ["printing_order_id"]
-            isOneToOne: false
-            referencedRelation: "printing_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lab_payments_legacy: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          id: string
-          lab_id: string
-          note: string | null
-          payment_method: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          lab_id: string
-          note?: string | null
-          payment_method?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          lab_id?: string
-          note?: string | null
-          payment_method?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lab_payments_lab_id_fkey"
-            columns: ["lab_id"]
-            isOneToOne: false
-            referencedRelation: "labs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       lab_services: {
         Row: {
@@ -5616,95 +5515,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vendor_payment_allocations_legacy: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          id: string
-          payment_id: string
-          work_task_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          payment_id: string
-          work_task_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          payment_id?: string
-          work_task_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendor_payment_allocations_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_payments_legacy"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vendor_payment_allocations_work_task_id_fkey"
-            columns: ["work_task_id"]
-            isOneToOne: false
-            referencedRelation: "work_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendor_payments_legacy: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          id: string
-          note: string | null
-          payment_date: string
-          payment_method: string | null
-          updated_at: string
-          vendor_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          note?: string | null
-          payment_date?: string
-          payment_method?: string | null
-          updated_at?: string
-          vendor_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          note?: string | null
-          payment_date?: string
-          payment_method?: string | null
-          updated_at?: string
-          vendor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendor_payments_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       vendors: {
         Row: {
           created_at: string | null
@@ -5919,72 +5729,6 @@ export type Database = {
         }
         Relationships: []
       }
-      lab_payment_allocations: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string | null
-          payment_id: string | null
-          printing_order_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "lab_payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lab_payments: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          created_by: string | null
-          expense_date: string | null
-          id: string | null
-          lab_id: string | null
-          note: string | null
-          payment_method: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          expense_date?: string | null
-          id?: string | null
-          lab_id?: string | null
-          note?: string | null
-          payment_method?: never
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          expense_date?: string | null
-          id?: string | null
-          lab_id?: string | null
-          note?: string | null
-          payment_method?: never
-        }
-        Relationships: []
-      }
       order_payment_summary: {
         Row: {
           adjustment_amount: number | null
@@ -6029,78 +5773,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      vendor_payment_allocations: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string | null
-          payment_id: string | null
-          work_task_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "lab_payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_allocations_expense_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "vendor_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendor_payments: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          created_by: string | null
-          deleted_at: string | null
-          id: string | null
-          note: string | null
-          payment_date: string | null
-          payment_method: string | null
-          updated_at: string | null
-          vendor_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string | null
-          note?: string | null
-          payment_date?: string | null
-          payment_method?: never
-          updated_at?: string | null
-          vendor_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string | null
-          note?: string | null
-          payment_date?: string | null
-          payment_method?: never
-          updated_at?: string | null
-          vendor_id?: string | null
-        }
-        Relationships: []
       }
     }
     Functions: {
@@ -7145,18 +6817,6 @@ export type Database = {
           p_payee_type: string
           p_payment_date: string
           p_payment_method: string
-        }
-        Returns: Json
-      }
-      record_vendor_payment_atomic: {
-        Args: {
-          p_actor_id: string
-          p_allocations: Json
-          p_amount: number
-          p_note: string
-          p_payment_date: string
-          p_payment_method: string
-          p_vendor_id: string
         }
         Returns: Json
       }

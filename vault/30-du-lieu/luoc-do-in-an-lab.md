@@ -13,16 +13,14 @@ Module liên quan: [[in-an-lab]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `printing_orders` | 29 | ✅ | 4 |
-| `printing_order_status_history` | 26 | ✅ | 2 |
+| `printing_orders` | 35 | ✅ | 4 |
+| `printing_order_status_history` | 66 | ✅ | 2 |
 | `labs` | 1 | ✅ | 4 |
 | `lab_services` | 22 | ✅ | 4 |
-| `lab_payments` | 2 | ✅ | 0 |
-| `lab_payment_allocations` | 2 | ✅ | 0 |
 
 ## `printing_orders`
 
-29 dòng · RLS bật · 4 policy
+35 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -59,11 +57,11 @@ Module liên quan: [[in-an-lab]]
 
 **Trỏ ra:** `lab_id` → `labs.id` · `contract_id` → `contracts.id`
 
-**Bị trỏ tới bởi:** `inventory_reservations.order_id` · `order_payments.order_id` · `expenses.printing_order_id` · `printing_order_status_history.order_id` · `lab_payment_allocations.printing_order_id`
+**Bị trỏ tới bởi:** `inventory_reservations.order_id` · `order_payments.order_id` · `expenses.printing_order_id` · `printing_order_status_history.order_id`
 
 **Trigger:** `emit_realtime_signal` → `emit_realtime_signal()` · `update_printing_orders_updated_at` → `update_updated_at_column()`
 
-**CHECK:** `CHECK ((inventory_status = ANY (ARRAY['none', 'reserved', 'stocked_out', 'cancelled'])))`
+**CHECK:** `CHECK ((inventory_status = ANY (ARRAY['none', 'reserved', 'stocked_out', 'cancelled'])))` · `CHECK (((deleted_at IS NOT NULL) OR ((payment_status)= ANY ((ARRAY['chua_thanh_toan', 'da_thanh_toan'])))))` · `CHECK (((deleted_at IS NOT NULL) OR ((status)= ANY ((ARRAY['cho_xu_ly', 'dang_in', 'da_in', 'hoan_thanh', 'huy_don', 'gap_su_co'])))))`
 
 <details><summary>14 index</summary>
 
@@ -86,7 +84,7 @@ Module liên quan: [[in-an-lab]]
 
 ## `printing_order_status_history`
 
-26 dòng · RLS bật · 2 policy
+66 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -126,7 +124,7 @@ Module liên quan: [[in-an-lab]]
 | `updated_by` | uuid |  |  |
 | `updated_at` | timestamptz |  | `now()` |
 
-**Bị trỏ tới bởi:** `lab_payments.lab_id` · `printing_orders.lab_id` · `lab_services.lab_id`
+**Bị trỏ tới bởi:** `printing_orders.lab_id` · `lab_services.lab_id`
 
 <details><summary>1 index</summary>
 
@@ -155,58 +153,5 @@ Module liên quan: [[in-an-lab]]
 
 - `UNIQUE btree (id)`
 - `btree (lab_id)`
-
-</details>
-
-## `lab_payments`
-
-2 dòng · RLS bật · 0 policy
-
-| Cột | Kiểu | Null | Mặc định |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | `gen_random_uuid()` |
-| `lab_id` | uuid | NOT NULL |  |
-| `amount` | numeric | NOT NULL |  |
-| `payment_method` | text | NOT NULL | `'chuyen_khoan'` |
-| `note` | text |  |  |
-| `created_by` | uuid |  |  |
-| `created_at` | timestamptz | NOT NULL | `now()` |
-
-**Trỏ ra:** `lab_id` → `labs.id` (ON DELETE CASCADE)
-
-**Bị trỏ tới bởi:** `lab_payment_allocations.payment_id`
-
-<details><summary>4 index</summary>
-
-- `UNIQUE btree (id)`
-- `btree (lab_id)`
-- `btree (created_at DESC)`
-- `btree (lab_id)`
-
-</details>
-
-## `lab_payment_allocations`
-
-2 dòng · RLS bật · 0 policy
-
-| Cột | Kiểu | Null | Mặc định |
-|---|---|---|---|
-| `id` | uuid | NOT NULL | `gen_random_uuid()` |
-| `payment_id` | uuid | NOT NULL |  |
-| `printing_order_id` | uuid | NOT NULL |  |
-| `amount` | numeric | NOT NULL |  |
-| `created_at` | timestamptz | NOT NULL | `now()` |
-| `created_by` | uuid |  |  |
-
-**Trỏ ra:** `payment_id` → `lab_payments.id` (ON DELETE CASCADE) · `printing_order_id` → `printing_orders.id`
-
-**CHECK:** `CHECK ((amount > (0)))`
-
-<details><summary>4 index</summary>
-
-- `UNIQUE btree (id)`
-- `UNIQUE btree (payment_id, printing_order_id)`
-- `btree (printing_order_id)`
-- `btree (payment_id)`
 
 </details>

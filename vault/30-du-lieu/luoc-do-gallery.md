@@ -13,20 +13,20 @@ Module liên quan: [[gallery]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `galleries` | 76 | ✅ | 1 |
-| `gallery_images` | 17704 | ✅ | 1 |
-| `gallery_reactions` | 1229 | ✅ | 0 |
-| `gallery_comments` | 169 | ✅ | 0 |
-| `gallery_share_links` | 219 | ✅ | 1 |
+| `galleries` | 89 | ✅ | 1 |
+| `gallery_images` | 20719 | ✅ | 1 |
+| `gallery_reactions` | 1672 | ✅ | 0 |
+| `gallery_comments` | 201 | ✅ | 0 |
+| `gallery_share_links` | 258 | ✅ | 1 |
 | `gallery_albums` | 0 | ✅ | 0 |
 | `gallery_selection_batches` | 0 | ✅ | 1 |
 | `gallery_selection_batch_items` | 0 | ✅ | 1 |
-| `gallery_filter_jobs` | 0 | ✅ | 2 |
+| `gallery_filter_jobs` | 7 | ✅ | 2 |
 | `gallery_password_attempts` | 0 | ✅ | 0 |
 
 ## `galleries`
 
-76 dòng · RLS bật · 1 policy
+89 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -85,7 +85,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_images`
 
-17704 dòng · RLS bật · 1 policy
+20719 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -130,7 +130,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_reactions`
 
-1229 dòng · RLS bật · 0 policy
+1672 dòng · RLS bật · 0 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -156,7 +156,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_comments`
 
-169 dòng · RLS bật · 0 policy
+201 dòng · RLS bật · 0 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -183,7 +183,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_share_links`
 
-219 dòng · RLS bật · 1 policy
+258 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -294,7 +294,7 @@ Module liên quan: [[gallery]]
 
 ## `gallery_filter_jobs`
 
-0 dòng · RLS bật · 2 policy
+7 dòng · RLS bật · 2 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

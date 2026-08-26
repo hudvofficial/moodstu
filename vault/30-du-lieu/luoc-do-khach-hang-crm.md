@@ -13,12 +13,12 @@ Module liên quan: [[khach-hang-crm]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `customers` | 55 | ✅ | 4 |
+| `customers` | 65 | ✅ | 4 |
 | `crm_leads` | 4 | ✅ | 4 |
 
 ## `customers`
 
-55 dòng · RLS bật · 4 policy
+65 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "266419b3-8794-46d1-944a-4a800900fe51",
+    "payment_id": "f58637b0-7ff9-4bf8-abc4-974d8dc944c4",
+    "work_task_id": "25325791-377b-4baf-951e-0e912e94aca4",
+    "amount": "1300000.00",
+    "created_at": "2026-06-12T11:20:09.162Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "d9368154-2bb2-4e5b-9aeb-27e8a5a23aaf",
+    "payment_id": "de00043a-7b3d-46b4-956b-a84ecdac161e",
+    "work_task_id": "896abe80-a318-4951-a40a-c21cff060c7a",
+    "amount": "1100000.00",
+    "created_at": "2026-08-25T13:42:41.761Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "2c21ea6c-25c9-4da6-97f4-fedba75a9002",
+    "payment_id": "de00043a-7b3d-46b4-956b-a84ecdac161e",
+    "work_task_id": "1d9068ab-29e7-42df-a671-010cf9a04e62",
+    "amount": "1200000.00",
+    "created_at": "2026-08-25T13:42:41.761Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "f8116d1c-2a36-48c5-899d-f3277364da00",
+    "payment_id": "de00043a-7b3d-46b4-956b-a84ecdac161e",
+    "work_task_id": "0ab7ec84-224f-493f-9a51-181cf00e2eca",
+    "amount": "1200000.00",
+    "created_at": "2026-08-25T13:42:41.761Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "5431174b-9081-45e7-9c06-9794b86d2c09",
+    "payment_id": "de00043a-7b3d-46b4-956b-a84ecdac161e",
+    "work_task_id": "c798511e-afe8-4e82-a9c7-7446418b8318",
+    "amount": "950000.00",
+    "created_at": "2026-08-25T13:42:41.761Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "1c2f05e0-8636-48a5-8b6e-059919e10f76",
+    "payment_id": "b8f98044-20bc-403b-9ba8-8a0df31e43c9",
+    "work_task_id": "92cbf581-8757-49ad-8792-d802086e0dfc",
+    "amount": "1100000.00",
+    "created_at": "2026-08-25T13:42:54.340Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "6dbf0477-c1f4-4226-b1b0-1984fdb7bce8",
+    "payment_id": "b8f98044-20bc-403b-9ba8-8a0df31e43c9",
+    "work_task_id": "1bf8559c-f0fd-4d0f-9c91-ff7fbff96eaa",
+    "amount": "1800000.00",
+    "created_at": "2026-08-25T13:42:54.340Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "1e4613b8-049c-49e1-b62d-debc99e7cfa7",
+    "payment_id": "dcca227e-6eca-4040-8e55-20c925498817",
+    "work_task_id": "47af3d1c-4169-4614-8b88-7d04aa6ddc4b",
+    "amount": "1000000.00",
+    "created_at": "2026-08-25T13:43:08.880Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "c79a458d-e98b-49c6-9426-214d8c025a40",
+    "payment_id": "dcca227e-6eca-4040-8e55-20c925498817",
+    "work_task_id": "b252ab21-e8bb-456e-a34e-1f74d5e5f08b",
+    "amount": "1100000.00",
+    "created_at": "2026-08-25T13:43:08.880Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  },
+  {
+    "id": "66a51d34-ab08-4f03-8d26-04bf147c5318",
+    "payment_id": "9a2f9525-1e9c-4050-b363-4c604c80ef72",
+    "work_task_id": "e3d2cb89-b778-4e75-833a-2fb11a8be1f6",
+    "amount": "1100000.00",
+    "created_at": "2026-08-25T13:43:22.810Z",
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40"
+  }
+]

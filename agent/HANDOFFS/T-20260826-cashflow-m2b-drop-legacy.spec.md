@@ -1,6 +1,6 @@
 # T-20260826-cashflow-m2b-drop-legacy — M2b: dọn mô hình thanh toán cũ (4 view + 4 bảng `_legacy` + wrapper trả thợ + 3 script)
 
-**Owner:** claude (fallback) · **Trạng thái:** spec — user duyệt 26/08, **áp ngày 02/09/2026** (prod chạy M2 ≥ 7 ngày, ADR-016 phụ lục M2 §5) · **Branch:** `claude/cashflow-m2b` · **Không đụng app code** (grep 26/08: app/components/lib = 0 tham chiếu view; chỉ còn 1 test + 3 script cũ).
+**Owner:** claude (fallback) · **Trạng thái:** **done — áp prod 26/08/2026** (user "triển khai đi" ngay sau khi duyệt; mốc 02/09 bỏ qua theo quyết định user, ADR-016 phụ lục M2 §5) · **Branch:** `claude/cashflow-m2b` · **Không đụng app code** (grep 26/08: app/components/lib = 0 tham chiếu view; chỉ còn 1 test + 3 script cũ).
 
 **Đo 26/08:** `lab_payments_legacy` 26 · `vendor_payments_legacy` 5 (active) · `lab_payment_allocations_legacy` 26 · `vendor_payment_allocations_legacy` 10 · `expenses.legacy_source IN (lab_payments, vendor_payments)` = **31 = 26 + 5** ✓. Hàm DB còn đọc view: 0 (M2 đã sửa `printing_lab_overview`).
 
@@ -19,5 +19,15 @@
 
 Thời lượng: ~20 phút (build + test là phần lâu). Không có màn hình nào thay đổi.
 
-## Kết quả
-_(điền 02/09)_
+## Kết quả (26/08/2026)
+| # | Kết quả |
+|---|---|
+| 1 | Test (c) gọi `record_payee_payment_atomic('vendor')` + allocations JSON string; `cashflow-m1` chạy trên prod **trước** khi drop: 4/4 |
+| 2 | 3 script xoá; grep `vendor_payments\|lab_payments` trong app/components/lib/scripts/tests = 0 |
+| 3 | Backup `docs/reports/backup_2026-08-26_{lab_payments,vendor_payments,lab_payment_allocations,vendor_payment_allocations}_legacy.json` = 26 / 5 / 26 / 10 dòng |
+| 4→7 | Snapshot **trước = sau**: expenses active 35 · `finance_payable_summary` Σ remaining 10.455.350 · T8 két +203.600 / lãi 37.090.000 / phải thu 92.575.000 · integrity 0 |
+| 5 | Migration áp OK (`migrate-direct.mjs` nhận tên file tương đối `supabase/migrations/`). Sau: 0 bảng/view cũ, 0 hàm cũ; 4 hàm giữ còn đủ |
+| 6 | `db:types` → grep `_legacy\|lab_payments\|vendor_payments` = 0 · `tsc --noEmit` 0 · `vault-gen-schema` + `vault-gen-codemap` (codemap còn trỏ `vendor-payment-actions.ts` đã xoá từ M2 — regen sạch) |
+| 7 | `verify:reports/printing/contracts/inventory` 4/4 xanh · Playwright prod `--workers=1`: m1 4/4 (lần đầu smoke `/printing` `ERR_ABORTED` — flake điều hướng, chạy lại 4/4), m2 3/3, m3 3/3 |
+| 8 | Vault 4 file + DECISIONS phụ lục M2 §5/§6 + design §9 + TASKS.yaml + CURRENT_STATE |
+| 9 | Merge + push: xem CURRENT_STATE |

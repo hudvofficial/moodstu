@@ -13,20 +13,20 @@ Module liên quan: [[hop-dong]]
 
 | Bảng | Số dòng | RLS | Policy |
 |---|---:|---|---:|
-| `contracts` | 54 | ✅ | 6 |
-| `contract_items` | 72 | ✅ | 4 |
-| `contract_events` | 185 | ✅ | 6 |
-| `contract_checklists` | 281 | ✅ | 6 |
+| `contracts` | 64 | ✅ | 6 |
+| `contract_items` | 84 | ✅ | 4 |
+| `contract_events` | 217 | ✅ | 6 |
+| `contract_checklists` | 333 | ✅ | 6 |
 | `contract_notes` | 2 | ✅ | 6 |
 | `checklist_templates` | 62 | ✅ | 1 |
 | `event_templates` | 11 | ✅ | 1 |
-| `addon_history` | 1 | ✅ | 1 |
+| `addon_history` | 2 | ✅ | 1 |
 | `documents` | 0 | ✅ | 4 |
 | `approval_requests` | 0 | ✅ | 3 |
 
 ## `contracts`
 
-54 dòng · RLS bật · 6 policy
+64 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_items`
 
-72 dòng · RLS bật · 4 policy
+84 dòng · RLS bật · 4 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -145,7 +145,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_events`
 
-185 dòng · RLS bật · 6 policy
+217 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -197,7 +197,7 @@ Module liên quan: [[hop-dong]]
 
 ## `contract_checklists`
 
-281 dòng · RLS bật · 6 policy
+333 dòng · RLS bật · 6 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|
@@ -299,7 +299,7 @@ Module liên quan: [[hop-dong]]
 
 ## `addon_history`
 
-1 dòng · RLS bật · 1 policy
+2 dòng · RLS bật · 1 policy
 
 | Cột | Kiểu | Null | Mặc định |
 |---|---|---|---|

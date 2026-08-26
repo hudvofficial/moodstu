@@ -43,6 +43,9 @@ Module liên quan: [[vat-tu]]
 | `created_at` | timestamptz |  | `now()` |
 | `updated_at` | timestamptz |  | `now()` |
 | `deleted_at` | timestamptz |  |  |
+| `supplier_id` | uuid |  |  |
+
+**Trỏ ra:** `supplier_id` → `vendors.id`
 
 **Bị trỏ tới bởi:** `inventory_reservations.item_id` · `inventory_transactions.item_id`
 

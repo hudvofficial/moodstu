@@ -4,7 +4,7 @@ tags: [du-lieu, rpc]
 cap-nhat: 2026-08-07
 ---
 
-# Danh mục RPC — 143 hàm
+# Danh mục RPC — 150 hàm
 
 > Sinh từ `pg_proc` trên DB thật. `SECURITY DEFINER` = chạy bằng quyền chủ hàm, **bỏ qua RLS** → mọi hàm loại này phải tự kiểm quyền bên trong.
 
@@ -28,6 +28,7 @@ cap-nhat: 2026-08-07
 |---|---|---|---|
 | `backfill_payment_plan_ssot_v2` | — | json | ⚠️ có |
 | `cancel_contract_cascade` | p_contract_id uuid, p_reason text, p_user_id uuid | void | ⚠️ có |
+| `contract_financials` | p_contract_ids uuid[] | TABLE(contract_id uuid, revenue numeric, task_cost numeric,  | ⚠️ có |
 | `contract_payment_health_checks` | — | TABLE(check_name text, issue_count bigint) | ⚠️ có |
 | `contract_payment_receipt_code` | p_payment_id uuid, p_payment_date date | text |  |
 | `contract_payment_status_v2` | p_paid numeric, p_remaining numeric | text |  |
@@ -38,7 +39,7 @@ cap-nhat: 2026-08-07
 | `create_dress_contract_reservation_atomic` | p_dress_id uuid, p_contract_id uuid, p_contract_item_id uuid, p_customer_id uuid, p_start_date date, p_end_dat | jsonb |  |
 | `create_sale_receipt_atomic` | p_receipt jsonb, p_items jsonb | jsonb |  |
 | `delete_contract_cascade` | p_contract_id uuid, p_user_id uuid | void | ⚠️ có |
-| `finance_contract_profit_report` | p_status text, p_from date, p_to date, p_page integer, p_page_size integer | TABLE(id uuid, contract_code text, customer_name text, contr |  |
+| `finance_contract_profit_report` | p_status text, p_from date, p_to date, p_page integer, p_page_size integer | TABLE(id uuid, contract_code text, customer_name text, contr | ⚠️ có |
 | `finance_receipt_document_stats` | p_month integer, p_year integer | TABLE(total_receipts bigint, total_amount numeric, completed | ⚠️ có |
 | `finance_receipt_documents` | p_month integer, p_year integer, p_receipt_type text, p_search text, p_limit integer, p_offset integer | TABLE(id text, source_table text, source_id uuid, receipt_da | ⚠️ có |
 | `finance_receipt_stats` | p_month integer, p_year integer | TABLE(total_receipts bigint, total_amount numeric, completed | ⚠️ có |
@@ -47,21 +48,23 @@ cap-nhat: 2026-08-07
 | `get_contract_detail_v3` | p_contract_id uuid | jsonb |  |
 | `get_contract_list_v2` | p_status text, p_search text, p_service_type text, p_sort text, p_time_filter text, p_start_date date, p_end_d | jsonb | ⚠️ có |
 | `get_gallery_summaries_by_contract` | p_contract_id uuid | jsonb |  |
+| `payee_payment_history` | p_payee_type text, p_payee_id uuid | TABLE(expense_id uuid, expense_date date, amount numeric, pa | ⚠️ có |
 | `payment_stage_display_label_v2` | p_stage text, p_default text | text |  |
 | `payment_stage_key_v2` | p_stage text | text |  |
 | `process_contract_payment` | p_contract_id uuid, p_amount numeric, p_payment_method payment_method_enum, p_payment_date date, p_payment_sta | json | ⚠️ có |
 | `process_contract_payment_v2` | p_contract_id uuid, p_amount numeric, p_payment_method payment_method_enum, p_payment_date date, p_payment_sta | json | ⚠️ có |
 | `recalc_contract_totals` | p_contract_id uuid | void | ⚠️ có |
-| `record_lab_payment_atomic` | p_lab_id uuid, p_amount numeric, p_payment_method text, p_note text, p_allocations jsonb, p_actor_id uuid | jsonb | ⚠️ có |
-| `record_vendor_payment_atomic` | p_vendor_id uuid, p_amount numeric, p_payment_method text, p_payment_date date, p_note text, p_allocations jso | jsonb | ⚠️ có |
+| `recompute_printing_payment_status` | p_order_id uuid | void |  |
+| `record_lab_payment_atomic` | p_lab_id uuid, p_amount numeric, p_payment_method text, p_note text, p_allocations jsonb, p_actor_id uuid, p_p | jsonb | ⚠️ có |
+| `record_payee_payment_atomic` | p_payee_type text, p_payee_id uuid, p_amount numeric, p_payment_method text, p_payment_date date, p_note text, | jsonb | ⚠️ có |
 | `restore_inventory_on_contract_payment_void` | — | trigger |  |
 | `restore_inventory_on_receipt_void` | — | trigger |  |
 | `save_contract_atomic` | p_contract jsonb, p_customer jsonb, p_items jsonb, p_actor_id uuid, p_existing_contract_id uuid, p_expected_up | json | ⚠️ có |
 | `sync_payment_plan_statuses_v2` | p_contract_id uuid | void | ⚠️ có |
 | `trg_contract_payment_status_v2` | — | trigger |  |
 | `update_contract_checklists_updated_at` | — | trigger |  |
-| `update_vendor_payments_updated_at` | — | trigger |  |
 | `void_contract_payment_v2` | p_payment_id uuid, p_reason text, p_actor_id uuid | json | ⚠️ có |
+| `void_payee_payment_atomic` | p_expense_id uuid, p_actor_id uuid | jsonb | ⚠️ có |
 
 ## Tài chính
 
@@ -72,14 +75,17 @@ cap-nhat: 2026-08-07
 | `dashboard_revenue_chart` | p_month integer, p_year integer, p_months integer | TABLE(month_index integer, month_label text, revenue numeric |  |
 | `decrement_goal_amount` | p_goal_id uuid, p_amount numeric | void |  |
 | `finance_cashflow_timeline` | p_start_date date, p_end_date date | TABLE(date date, inflow numeric, outflow numeric) | ⚠️ có |
-| `finance_dashboard_metrics` | p_month integer, p_year integer | TABLE(total_inflow numeric, total_outflow numeric, profit nu |  |
 | `finance_debt_stats` | — | TABLE(receivable numeric, payable numeric, overdue numeric,  | ⚠️ có |
 | `finance_expense_stats` | p_month integer, p_year integer | TABLE(total_expenses bigint, total_amount numeric, approved_ |  |
 | `finance_lab_debt_summary` | — | TABLE(lab_id uuid, lab_name text, order_count bigint, total_ | ⚠️ có |
 | `finance_ledger` | p_page integer, p_page_size integer, p_month integer, p_year integer, p_type text | TABLE(id uuid, source_table text, direction text, transactio |  |
 | `finance_ledger_range` | p_page integer, p_page_size integer, p_from_date date, p_to_date date, p_type text | TABLE(id uuid, source_table text, direction text, transactio | ⚠️ có |
+| `finance_month_summary` | p_month integer, p_year integer | TABLE(cash_in numeric, cash_in_contract numeric, cash_in_ret | ⚠️ có |
+| `finance_payable_summary` | — | TABLE(payee_type text, payee_id uuid, payee_name text, item_ | ⚠️ có |
+| `finance_pending_collections` | p_limit integer | TABLE(id uuid, contract_code text, customer_id uuid, custome | ⚠️ có |
+| `finance_period_ledger` | p_start date, p_end date | TABLE(cash_in_contract numeric, cash_in_retail numeric, cash | ⚠️ có |
+| `finance_pnl_by_month` | p_year integer | TABLE(raw_month integer, month_label text, revenue numeric,  | ⚠️ có |
 | `finance_reports_snapshot` | p_start_date date, p_end_date date | jsonb | ⚠️ có |
-| `finance_revenue_by_month` | p_year integer | TABLE(raw_month integer, month_label text, revenue numeric) |  |
 | `finance_service_distribution` | p_month integer, p_year integer | TABLE(name text, value integer, revenue numeric) |  |
 | `finance_vendor_debt_summary` | — | TABLE(vendor_id uuid, vendor_name text, vendor_phone text, s | ⚠️ có |
 | `get_budget_vs_actual` | p_month integer, p_year integer | json | ⚠️ có |
@@ -90,10 +96,7 @@ cap-nhat: 2026-08-07
 | `get_receivable_aging` | — | json | ⚠️ có |
 | `resolve_printing_expense_category_id` | — | uuid | ⚠️ có |
 | `resolve_vendor_expense_category_id` | — | uuid | ⚠️ có |
-| `trg_sync_vendor_expense` | — | trigger | ⚠️ có |
 | `undo_contribution_atomic` | p_contribution_id uuid | json | ⚠️ có |
-| `upsert_printing_expense` | p_printing_order_id uuid, p_actor_id uuid | uuid | ⚠️ có |
-| `upsert_vendor_expense` | p_work_task_id uuid, p_actor_id uuid | uuid | ⚠️ có |
 
 ## Gallery
 
@@ -136,7 +139,7 @@ cap-nhat: 2026-08-07
 | `inventory_item_transaction_totals` | p_item_id uuid | jsonb |  |
 | `inventory_list` | p_search text, p_category text, p_status text, p_sort text, p_page integer, p_limit integer | jsonb |  |
 | `inventory_stats` | — | jsonb |  |
-| `inventory_stock_in_atomic` | p_item_id uuid, p_quantity integer, p_unit_cost numeric, p_supplier text, p_reason text, p_notes text, p_user_ | jsonb |  |
+| `inventory_stock_in_atomic` | p_item_id uuid, p_quantity integer, p_unit_cost numeric, p_supplier text, p_reason text, p_notes text, p_user_ | jsonb | ⚠️ có |
 | `inventory_stock_out_atomic` | p_item_id uuid, p_quantity integer, p_contract_id uuid, p_reason text, p_customer_name text, p_customer_phone  | jsonb |  |
 | `nextval_inventory_code` | — | text |  |
 | `restore_inventory_from_transaction` | p_source_type text, p_source_id uuid, p_reason text, p_actor_id uuid | void |  |
@@ -152,7 +155,7 @@ cap-nhat: 2026-08-07
 | `printing_integrity_report` | — | TABLE(check_name text, issue_count bigint) | ⚠️ có |
 | `printing_items_total` | p_items jsonb | numeric |  |
 | `printing_lab_overview` | — | TABLE(id uuid, lab_name text, contact_person text, phone tex | ⚠️ có |
-| `printing_stats` | — | TABLE(total bigint, cho_xu_ly bigint, dat_coc bigint, dang_i | ⚠️ có |
+| `printing_stats` | — | TABLE(total bigint, cho_xu_ly bigint, dang_in bigint, da_in  | ⚠️ có |
 | `update_printing_order_atomic` | p_order_id uuid, p_order jsonb, p_expected_updated_at timestamp with time zone, p_actor_id uuid | jsonb | ⚠️ có |
 
 ## Nhân sự
@@ -178,6 +181,7 @@ cap-nhat: 2026-08-07
 | `get_crm_customer_stats` | — | json | ⚠️ có |
 | `get_crm_lead_stats` | — | json | ⚠️ có |
 | `run_integrity_scan` | — | void | ⚠️ có |
+| `vendor_cost_report` | p_month integer, p_year integer | TABLE(vendor_id uuid, vendor_name text, vendor_phone text, s | ⚠️ có |
 
 ## CRM
 
@@ -211,10 +215,13 @@ cap-nhat: 2026-08-07
 | `handle_new_user` | — | trigger | ⚠️ có |
 | `is_period_locked` | p_date date | boolean |  |
 | `log_audit_action` | — | trigger | ⚠️ có |
+| `payable_items` | p_payee_type text, p_payee_id uuid | TABLE(target_type text, target_id uuid, item_date date, labe |  |
+| `payable_remaining` | p_target_type text, p_target_id uuid, p_payee_id uuid | numeric |  |
 | `rls_auto_enable` | — | event_trigger | ⚠️ có |
 | `sync_ai_conversation_message_count` | — | trigger | ⚠️ có |
 | `update_fulfillment_transaction_atomic` | p_txn_id uuid, p_new_quantity integer, p_new_unit_price numeric, p_user_id uuid | jsonb | ⚠️ có |
 | `update_updated_at_column` | — | trigger |  |
+| `vn_date` | p timestamp with time zone | date |  |
 
 ## View
 

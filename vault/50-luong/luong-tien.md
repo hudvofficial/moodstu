@@ -35,14 +35,14 @@ Bán lẻ (vật tư, dịch vụ rời): `create_sale_receipt_atomic` → **`re
 
 | Nguồn | Cam kết ở | Trả tiền (phiếu chi) qua |
 |---|---|---|
-| Thợ ngoài | `work_tasks.cost` khi `hoan_thanh` | `record_vendor_payment_atomic` (wrapper) → `record_payee_payment_atomic('vendor')` → `expenses` + `expense_allocations(work_task)` |
+| Thợ ngoài | `work_tasks.cost` khi `hoan_thanh` | `/finance/payables` › Thợ ngoài → `record_payee_payment_atomic('vendor')` → `expenses` + `expense_allocations(work_task)` (wrapper `record_vendor_payment_atomic` đã drop M2b) |
 | Lab in ấn | `printing_orders.total_amount` khi tạo | `record_lab_payment_atomic` (wrapper) → `record_payee_payment_atomic('lab')` → `expenses` + `expense_allocations(printing_order)`; `payment_status` **dẫn xuất** (`recompute_printing_payment_status`) |
 | Phôi thiệp / vật tư | `inventory_transactions.stock_in` | `inventory_stock_in_atomic(p_paid=true)` tạo phiếu chi `supplier` ngay trong transaction (Mood trả ngay khi nhập) |
 | **Ekip nội bộ** (M3, 2026-08-26) | `work_tasks.cost` khi `hoan_thanh` (`assigned_to`, `vendor_id IS NULL`) — cùng luật thợ ngoài | `/finance/payables` › Ekip → `record_payee_payment_atomic('employee')` → `expenses` (`payee_type='employee'`) + `expense_allocations(work_task)`; huỷ = `void_payee_payment_atomic` |
 | Lương cứng (sau này) | `employee_salaries.base_salary` (overhead) — **sheet lương tháng chỉ còn lương cứng**, `product_salary = 0` (công theo HĐ đã trả theo task, không trả trùng) | `payEmployeeSalaryAction` → `expenses` (`payee_type='employee'`); phân bổ `employee_salary` → M5 |
 | Chi trực tiếp / vận hành | = chính phiếu chi | `expenses` `payee_type='other'` (có `contract_id` = chi trực tiếp cho HĐ) |
 
-**Luật:** phiếu chi **có** phân bổ = trả nợ (không phải chi phí mới); `payee_type='other'` = chi phí thật phát sinh. **Không còn phiếu chi "trích trước"** — `upsert_printing_expense`, `upsert_vendor_expense`, trigger `work_task_vendor_expense_sync` đã bỏ (43 dòng cũ xoá mềm, mô tả gắn `[ADR-016…]`). `lab_payments`/`vendor_payments` (+2 bảng phân bổ) giờ là **VIEW** trên `expenses`; bảng gốc đổi tên `_legacy` (drop ở M2).
+**Luật:** phiếu chi **có** phân bổ = trả nợ (không phải chi phí mới); `payee_type='other'` = chi phí thật phát sinh. **Không còn phiếu chi "trích trước"** — `upsert_printing_expense`, `upsert_vendor_expense`, trigger `work_task_vendor_expense_sync` đã bỏ (43 dòng cũ xoá mềm, mô tả gắn `[ADR-016…]`). `lab_payments`/`vendor_payments` (+2 bảng phân bổ) **không còn tồn tại** — M1 đổi thành view + bảng `_legacy`, M2b (26/08/2026) drop hẳn; dữ liệu cũ nằm ở `docs/reports/backup_2026-08-26_*.json` và đã di trú vào `expenses` (`legacy_source`/`legacy_id`).
 
 **Công nợ phải trả** = `finance_payable_summary()` (lab + thợ ngoài + NCC phôi); `finance_lab_debt_summary`/`finance_vendor_debt_summary` là wrapper giữ chữ ký cũ.
 **Lợi nhuận hợp đồng** = `contract_financials(uuid[])` — nguồn duy nhất cho `finance_contract_profit_report`, `get_contract_list_v2`, drawer lợi nhuận: `total_amount − Σ work_tasks.cost (mọi task không da_huy) − Σ printing_orders.total_amount (không hủy) − Σ giá vốn xuất kho gắn HĐ − Σ expenses other gắn HĐ`.

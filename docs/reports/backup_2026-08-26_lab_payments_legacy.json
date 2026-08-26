@@ -1,0 +1,236 @@
+[
+  {
+    "id": "5d58519a-4cb6-469f-9ce0-79974dd54ec3",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "155000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-05-23T06:48:24.496Z"
+  },
+  {
+    "id": "848e43df-10dc-4bcc-a669-9edaa02a7955",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "235000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-05-23T07:09:20.400Z"
+  },
+  {
+    "id": "c73f5254-afd7-4588-8dbd-dd1666bbe58e",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "778400",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-24T09:32:12.529Z"
+  },
+  {
+    "id": "9fa19ddf-f809-4f76-a598-08392bb61e37",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "535000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-24T10:45:04.287Z"
+  },
+  {
+    "id": "2ff58848-de91-4854-9598-fce0ab4dc89b",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "196000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:44:12.949Z"
+  },
+  {
+    "id": "8727f15f-1be1-4911-b4a4-04ab40a5249a",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "280000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:44:31.399Z"
+  },
+  {
+    "id": "94bfc1f1-1f5e-4b48-a7ee-60439c69e693",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "280000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:44:38.630Z"
+  },
+  {
+    "id": "f851e76e-651b-4813-b4b7-499a5629582c",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "370000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:45:39.586Z"
+  },
+  {
+    "id": "b06c70ad-ad06-44a6-89af-5c06edbc91b1",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "235000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:45:47.070Z"
+  },
+  {
+    "id": "6d26c391-1f9c-4288-939d-088944506f58",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "162000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:45:54.425Z"
+  },
+  {
+    "id": "c97a4de4-bd0a-40fb-a2c1-e0e58e57e4b8",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "260000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:46:17.652Z"
+  },
+  {
+    "id": "dcade752-7466-4f7b-a054-f2f2d702c864",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "370000",
+    "payment_method": "transfer",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:48:53.742Z"
+  },
+  {
+    "id": "68aa2cf9-4cea-40f3-89fd-12ef09ca0e05",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "280000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:49:14.655Z"
+  },
+  {
+    "id": "6d82741e-76bb-4dcd-900b-43dcba27bf89",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "280000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T13:49:26.690Z"
+  },
+  {
+    "id": "fa813060-f75a-4ada-9455-0e16615440f7",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "260000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:21:39.298Z"
+  },
+  {
+    "id": "a682ed40-97ac-4174-badc-37b13e1a2517",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "370000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:21:58.944Z"
+  },
+  {
+    "id": "826ba8cf-a057-490d-bf5d-14f062b0a514",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "260000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:22:11.091Z"
+  },
+  {
+    "id": "dfc74b2e-98e3-4174-87af-adfb0e76afea",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "370000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:22:17.968Z"
+  },
+  {
+    "id": "1c68db42-59fa-4d02-96ab-3aa0ee2771c2",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "435000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:22:25.404Z"
+  },
+  {
+    "id": "14030be6-f113-4765-bb94-1b4e9f5c077a",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "260000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:22:44.287Z"
+  },
+  {
+    "id": "7fdb8766-e211-4510-8c3d-ecd7db6337fc",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "235000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:24:29.785Z"
+  },
+  {
+    "id": "fa884e46-9601-40c3-a4a6-cdce4cc9fba9",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "260000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:25:00.726Z"
+  },
+  {
+    "id": "0c64fff1-4052-4b4f-8540-e5600ae7d768",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "290000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:25:18.397Z"
+  },
+  {
+    "id": "1f76d5df-6ca1-4abc-b9f6-466c723cafb4",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "270000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:25:33.728Z"
+  },
+  {
+    "id": "1d8a9d93-5487-4648-a776-93ae36f75d68",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "270000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:25:50.846Z"
+  },
+  {
+    "id": "b6f49bbd-348a-4726-977e-574b4841204d",
+    "lab_id": "5b3872a1-b299-419b-89dc-74079138641e",
+    "amount": "240000",
+    "payment_method": "cash",
+    "note": null,
+    "created_by": "bc372706-e3b7-480a-b391-c30145276d40",
+    "created_at": "2026-08-25T15:26:07.768Z"
+  }
+]

@@ -61,7 +61,7 @@ cap-nhat: 2026-08-07
 
 ## `contracts`
 **Ghi (2):** `app/actions/contract-lifecycle.ts (update)` · `app/actions/contract-mutations.ts (update)`
-**Đọc (21):** `app/actions/contract-event-actions.ts` · `app/actions/contract-mutations.ts` · `app/actions/contract-profit.ts` · `app/actions/contract-queries.ts` · `app/actions/contract-refund-actions.ts` · `app/actions/customer-actions.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/gallery-drive-actions.ts` · `app/actions/inventory-queries.ts` · `app/actions/printing-queries.ts` · `app/actions/printing-reference-queries.ts` · `app/actions/work-task-actions.ts` · `app/api/gallery-download-batch/[token]/route.ts` · `app/api/gallery-download/[token]/[imageId]/route.ts` · `lib/api/dashboard.ts` · `lib/moodie/core-engine.ts` · `lib/moodie/domain/gallery-context.ts` · `lib/moodie/tools.ts` … +1
+**Đọc (20):** `app/actions/contract-event-actions.ts` · `app/actions/contract-mutations.ts` · `app/actions/contract-queries.ts` · `app/actions/contract-refund-actions.ts` · `app/actions/customer-actions.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/gallery-drive-actions.ts` · `app/actions/inventory-queries.ts` · `app/actions/printing-queries.ts` · `app/actions/printing-reference-queries.ts` · `app/actions/work-task-actions.ts` · `app/api/gallery-download-batch/[token]/route.ts` · `app/api/gallery-download/[token]/[imageId]/route.ts` · `lib/api/dashboard.ts` · `lib/moodie/core-engine.ts` · `lib/moodie/domain/gallery-context.ts` · `lib/moodie/tools.ts` · `lib/services/dress-sync-service.ts`
 
 ## `credit_cards`
 **Ghi (2):** `app/actions/debt-actions.ts (insert)` · `app/actions/debt-actions.ts (update)`
@@ -107,16 +107,20 @@ cap-nhat: 2026-08-07
 **Ghi (0):** — *không có nơi nào ghi trực tiếp*
 **Đọc (1):** `app/actions/contract-event-actions.ts`
 
+## `expense_allocations`
+**Ghi (0):** — *không có nơi nào ghi trực tiếp*
+**Đọc (3):** `app/actions/expense-actions.ts` · `app/actions/lab-queries.ts` · `app/actions/printing-queries.ts`
+
 ## `expenses`
-**Ghi (6):** `app/actions/contract-refund-actions.ts (insert)` · `app/actions/debt-actions.ts (insert)` · `app/actions/expense-actions.ts (insert)` · `app/actions/expense-actions.ts (update)` · `app/actions/printing-workflow-mutations.ts (insert)` · `app/actions/salary-actions.ts (insert)`
-**Đọc (9):** `app/actions/contract-profit.ts` · `app/actions/contract-refund-actions.ts` · `app/actions/expense-actions.ts` · `app/actions/finance-category-actions.ts` · `app/actions/finance-close-actions.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/goal-budget-actions.ts`
+**Ghi (6):** `app/actions/contract-refund-actions.ts (insert)` · `app/actions/debt-actions.ts (insert)` · `app/actions/expense-actions.ts (insert)` · `app/actions/expense-actions.ts (update)` · `app/actions/salary-actions.ts (insert)` · `app/actions/vendor-actions.ts (update)`
+**Đọc (9):** `app/actions/contract-refund-actions.ts` · `app/actions/expense-actions.ts` · `app/actions/finance-category-actions.ts` · `app/actions/finance-close-actions.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/goal-budget-actions.ts` · `app/actions/lab-queries.ts`
 
 ## `finance_close_tasks`
 **Ghi (2):** `app/actions/finance-close-actions.ts (insert)` · `app/actions/finance-close-actions.ts (update)`
 **Đọc (1):** `app/actions/finance-close-actions.ts`
 
 ## `finance_monthly_closes`
-**Ghi (2):** `app/actions/finance-close-actions.ts (insert)` · `app/actions/finance-close-actions.ts (update)`
+**Ghi (3):** `app/actions/finance-close-actions.ts (delete)` · `app/actions/finance-close-actions.ts (insert)` · `app/actions/finance-close-actions.ts (update)`
 **Đọc (3):** `app/actions/finance-close-actions.ts` · `app/actions/finance-operations-queries.ts` · `lib/finance-utils.ts`
 
 ## `financial_goals`
@@ -140,12 +144,12 @@ cap-nhat: 2026-08-07
 **Đọc (2):** `app/actions/gallery-composite-actions.ts` · `app/actions/gallery-reaction-actions.ts`
 
 ## `gallery_filter_jobs`
-**Ghi (3):** `app/actions/gallery-drive-actions.ts (insert)` · `app/actions/gallery-drive-actions.ts (update)` · `app/actions/gallery-selection-actions.ts (insert)`
+**Ghi (2):** `app/actions/gallery-drive-actions.ts (insert)` · `app/actions/gallery-drive-actions.ts (update)`
 **Đọc (1):** `app/actions/gallery-drive-actions.ts`
 
 ## `gallery_images`
 **Ghi (9):** `app/actions/blurhash-actions.ts (update)` · `app/actions/gallery-admin-actions.ts (delete)` · `app/actions/gallery-admin-actions.ts (insert)` · `app/actions/gallery-album-actions.ts (update)` · `app/actions/gallery-core.ts (update)` · `app/actions/gallery-drive-actions.ts (insert)` · `app/actions/gallery-selection-actions.ts (update)` · `lib/gallery/blurhash.ts (update)` · `lib/gallery/image-dimensions.ts (update)`
-**Đọc (11):** `app/actions/gallery-album-actions.ts` · `app/actions/gallery-composite-actions.ts` · `app/actions/gallery-core.ts` · `app/actions/gallery-drive-actions.ts` · `app/actions/gallery-image-helpers.ts` · `app/actions/gallery-selection-actions.ts` · `app/api/gallery-download-batch/[token]/route.ts` · `app/api/gallery-download/[token]/[imageId]/route.ts` · `lib/gallery/blurhash.ts` · `lib/gallery/image-dimensions.ts` · `lib/moodie/domain/gallery-context.ts`
+**Đọc (12):** `app/actions/gallery-album-actions.ts` · `app/actions/gallery-composite-actions.ts` · `app/actions/gallery-core.ts` · `app/actions/gallery-drive-actions.ts` · `app/actions/gallery-image-helpers.ts` · `app/actions/gallery-reaction-actions.ts` · `app/actions/gallery-selection-actions.ts` · `app/api/gallery-download-batch/[token]/route.ts` · `app/api/gallery-download/[token]/[imageId]/route.ts` · `lib/gallery/blurhash.ts` · `lib/gallery/image-dimensions.ts` · `lib/moodie/domain/gallery-context.ts`
 
 ## `gallery_password_attempts`
 **Ghi (2):** `app/actions/gallery-public-actions.ts (delete)` · `app/actions/gallery-public-actions.ts (upsert)`
@@ -179,17 +183,13 @@ cap-nhat: 2026-08-07
 **Ghi (0):** — *không có nơi nào ghi trực tiếp*
 **Đọc (1):** `app/actions/integrity-actions.ts`
 
-## `inventory_available_stock`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (1):** `app/actions/printing-workflow-mutations.ts`
-
 ## `inventory_items`
 **Ghi (3):** `app/actions/inventory-mutations.ts (insert)` · `app/actions/inventory-mutations.ts (update)` · `app/actions/printing-workflow-mutations.ts (update)`
 **Đọc (3):** `app/actions/inventory-mutations.ts` · `app/actions/inventory-queries.ts` · `app/actions/printing-workflow-mutations.ts`
 
 ## `inventory_reservations`
-**Ghi (2):** `app/actions/printing-workflow-mutations.ts (insert)` · `app/actions/printing-workflow-mutations.ts (update)`
-**Đọc (1):** `app/actions/printing-workflow-mutations.ts`
+**Ghi (1):** `app/actions/printing-workflow-mutations.ts (update)`
+**Đọc (0):** —
 
 ## `inventory_transactions`
 **Ghi (2):** `app/actions/inventory-mutations.ts (delete)` · `app/actions/printing-workflow-mutations.ts (insert)`
@@ -201,15 +201,7 @@ cap-nhat: 2026-08-07
 
 ## `investments`
 **Ghi (2):** `app/actions/investment-actions.ts (insert)` · `app/actions/investment-actions.ts (update)`
-**Đọc (2):** `app/actions/finance-operations-queries.ts` · `app/actions/investment-actions.ts`
-
-## `lab_payment_allocations`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (1):** `app/actions/lab-queries.ts`
-
-## `lab_payments`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (1):** `app/actions/lab-queries.ts`
+**Đọc (3):** `app/actions/finance-close-actions.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/investment-actions.ts`
 
 ## `lab_services`
 **Ghi (3):** `app/actions/lab-mutations.ts (delete)` · `app/actions/lab-mutations.ts (insert)` · `app/actions/lab-mutations.ts (update)`
@@ -275,12 +267,8 @@ cap-nhat: 2026-08-07
 **Ghi (2):** `app/actions/inventory-mutations.ts (insert)` · `app/actions/notification-actions.ts (update)`
 **Đọc (1):** `app/actions/notification-actions.ts`
 
-## `order_payment_summary`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (2):** `app/actions/printing-queries.ts` · `app/actions/printing-workflow-mutations.ts`
-
 ## `order_payments`
-**Ghi (1):** `app/actions/printing-workflow-mutations.ts (insert)`
+**Ghi (0):** — *không có nơi nào ghi trực tiếp*
 **Đọc (1):** `app/actions/printing-queries.ts`
 
 ## `payment_plans`
@@ -301,14 +289,14 @@ cap-nhat: 2026-08-07
 
 ## `printing_orders`
 **Ghi (4):** `app/actions/contract-lifecycle.ts (update)` · `app/actions/printing-actions.ts (update)` · `app/actions/printing-mutations.ts (update)` · `app/actions/printing-workflow-mutations.ts (update)`
-**Đọc (8):** `app/actions/contract-profit.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/lab-mutations.ts` · `app/actions/lab-queries.ts` · `app/actions/printing-mutations.ts` · `app/actions/printing-queries.ts` · `app/actions/printing-workflow-mutations.ts`
+**Đọc (7):** `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/lab-mutations.ts` · `app/actions/lab-queries.ts` · `app/actions/printing-mutations.ts` · `app/actions/printing-queries.ts` · `app/actions/printing-workflow-mutations.ts`
 
 ## `push_subscriptions`
 **Ghi (4):** `app/api/push/send/route.ts (delete)` · `app/api/push/subscribe/route.ts (delete)` · `app/api/push/subscribe/route.ts (upsert)` · `lib/push-notification.ts (delete)`
 **Đọc (2):** `app/api/push/send/route.ts` · `lib/push-notification.ts`
 
 ## `receipts`
-**Ghi (4):** `app/actions/debt-actions.ts (insert)` · `app/actions/printing-workflow-mutations.ts (insert)` · `app/actions/receipt-actions.ts (insert)` · `app/actions/receipt-actions.ts (update)`
+**Ghi (3):** `app/actions/debt-actions.ts (insert)` · `app/actions/receipt-actions.ts (insert)` · `app/actions/receipt-actions.ts (update)`
 **Đọc (7):** `app/actions/finance-category-actions.ts` · `app/actions/finance-close-actions.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/receipt-actions.ts` · `lib/api/dashboard.ts`
 
 ## `salary_adjustments`
@@ -345,20 +333,12 @@ cap-nhat: 2026-08-07
 
 ## `transaction_categories`
 **Ghi (4):** `app/actions/contract-refund-actions.ts (insert)` · `app/actions/finance-category-actions.ts (delete)` · `app/actions/finance-category-actions.ts (insert)` · `app/actions/finance-category-actions.ts (update)`
-**Đọc (6):** `app/actions/contract-refund-actions.ts` · `app/actions/expense-actions.ts` · `app/actions/finance-category-actions.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/goal-budget-actions.ts` · `app/actions/payment-actions.ts`
-
-## `vendor_payment_allocations`
-**Ghi (0):** — *không có nơi nào ghi trực tiếp*
-**Đọc (1):** `app/actions/vendor-payment-actions.ts`
-
-## `vendor_payments`
-**Ghi (2):** `app/actions/vendor-actions.ts (update)` · `app/actions/vendor-payment-actions.ts (delete)`
-**Đọc (1):** `app/actions/vendor-payment-actions.ts`
+**Đọc (7):** `app/actions/contract-refund-actions.ts` · `app/actions/expense-actions.ts` · `app/actions/finance-category-actions.ts` · `app/actions/finance-operations-queries.ts` · `app/actions/goal-budget-actions.ts` · `app/actions/payment-actions.ts` · `app/actions/salary-actions.ts`
 
 ## `vendors`
 **Ghi (2):** `app/actions/vendor-actions.ts (insert)` · `app/actions/vendor-actions.ts (update)`
-**Đọc (3):** `app/actions/vendor-actions.ts` · `app/actions/vendor-payment-actions.ts` · `app/actions/vendor-reports-queries.ts`
+**Đọc (1):** `app/actions/vendor-actions.ts`
 
 ## `work_tasks`
 **Ghi (8):** `app/actions/calendar-mutations.ts (update)` · `app/actions/calendar-task-actions.ts (update)` · `app/actions/contract-lifecycle.ts (update)` · `app/actions/task-assign-actions.ts (update)` · `app/actions/vendor-actions.ts (update)` · `app/actions/work-task-actions.ts (delete)` · `app/actions/work-task-actions.ts (insert)` · `app/actions/work-task-actions.ts (update)`
-**Đọc (19):** `app/actions/calendar-task-actions.ts` · `app/actions/contract-event-actions.ts` · `app/actions/contract-mutations.ts` · `app/actions/contract-profit.ts` · `app/actions/contract-queries.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/salary-actions.ts` · `app/actions/task-assign-actions.ts` · `app/actions/task-overlap-actions.ts` · `app/actions/vendor-payment-actions.ts` · `app/actions/vendor-reports-queries.ts` · `app/actions/work-task-actions.ts` · `components/finance/salaries/payslip-modal.tsx` · `lib/api/dashboard.ts` · `lib/calendar-auth.ts` · `lib/client-direct/contract-drawer.ts` · `lib/moodie/core-engine.ts` · `lib/moodie/tools.ts`
+**Đọc (16):** `app/actions/calendar-task-actions.ts` · `app/actions/contract-event-actions.ts` · `app/actions/contract-mutations.ts` · `app/actions/contract-queries.ts` · `app/actions/finance-dashboard-queries.ts` · `app/actions/finance-reports-queries.ts` · `app/actions/salary-actions.ts` · `app/actions/task-assign-actions.ts` · `app/actions/task-overlap-actions.ts` · `app/actions/work-task-actions.ts` · `components/finance/salaries/payslip-modal.tsx` · `lib/api/dashboard.ts` · `lib/calendar-auth.ts` · `lib/client-direct/contract-drawer.ts` · `lib/moodie/core-engine.ts` · `lib/moodie/tools.ts`

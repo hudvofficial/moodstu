@@ -253,15 +253,15 @@ test.describe.serial("ADR-016 M1 — sổ tiền ra", () => {
     const vRow = (payable as Array<{ payee_type: string; payee_id: string; remaining: number }>).find((r) => r.payee_type === "vendor" && r.payee_id === s.vendorId);
     expect(Number(vRow?.remaining)).toBe(1200000);
 
-    // app gửi allocations dạng JSON.stringify → RPC tự parse
-    const { data: pay, error: pe } = await db.rpc("record_vendor_payment_atomic", {
-      p_vendor_id: s.vendorId, p_amount: 1200000, p_payment_method: "chuyen_khoan", p_payment_date: "2026-08-22", p_note: "E2E trả thợ",
-      p_allocations: JSON.stringify([{ work_task_id: s.taskId, amount: 1200000 }]), p_actor_id: s.userId,
+    // M2b: wrapper record_vendor_payment_atomic đã drop → gọi thẳng RPC hợp nhất (app cũng vậy từ M2).
+    // Vẫn gửi allocations dạng JSON.stringify → phủ nhánh RPC tự parse chuỗi (bug có sẵn M1 phát hiện).
+    const { data: pay, error: pe } = await db.rpc("record_payee_payment_atomic", {
+      p_payee_type: "vendor", p_payee_id: s.vendorId, p_amount: 1200000, p_payment_method: "chuyen_khoan", p_payment_date: "2026-08-22", p_note: "E2E trả thợ",
+      p_allocations: JSON.stringify([{ target_id: s.taskId, amount: 1200000 }]), p_actor_id: s.userId,
     });
     expect(pe).toBeNull();
-    const r = pay as { payment_id: string; expense_id: string; allocated_amount: number; unallocated_amount: number };
+    const r = pay as { expense_id: string; allocated_amount: number };
     s.expenseIds.push(r.expense_id);
-    expect(r.payment_id).toBe(r.expense_id);
     expect(Number(r.allocated_amount)).toBe(1200000);
 
     const vExp = await expensesFor(db, "vendor", s.vendorId!);
