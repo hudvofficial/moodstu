@@ -23,4 +23,5 @@
 - Code: `useContractForm.ts` gửi `financials.discountAmount`; `financial-dashboard.tsx` thêm "(N%)" dẫn xuất. eslint 0 · tsc 0 · build ✓ · `verify:contracts` ✓.
 - Migration `20260827160000` **đã áp prod** (pre-check 2 dòng = 50 → sau: 0060 = 475.000, 0062 = 850.000; `total_amount` không đổi; không còn HĐ nào `discount_amount` 1..100).
 - Render local (next start, Playwright, HĐ-2026-0060): "Tạm tính: 950.000 · Giảm: −475.000 (50%)", không còn "475.050"; ảnh thẻ Tài chính gửi user. Sau merge: prod hiện đúng ngay cả trước deploy (data đã sửa), phần "(50%)" cần deploy.
+- **Sau merge (user "merge + push"):** ff `779f82c → 572e700`, Vercel success sau 3,75 phút, render prod HĐ-2026-0060 "Tạm tính: 950.000 · Giảm: −475.000 (50%)", không còn "475.050"; seed admin tạm dọn sạch.
 - Ngoài scope (ghi nhận): HĐ-2026-0064 (tổng 4.000.000 > hạng mục 3.300.000, giảm 0) và HĐ-2026-0047 (11.000.000 − 2.500.000 ≠ 8.800.000) — tổng nhập tay lệch hạng mục, không thuộc lỗi này.

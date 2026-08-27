@@ -3,7 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `5ea6645` (+ commit docs/migration cuối) · **sạch hoàn toàn:** lệnh 26/08 xong, việc dở trước 26/08 dọn xong, worktree gỡ, `salary_info` Admin bỏ số test. Việc user còn lại duy nhất: 8,55tr ekip đã trả ngoài sổ chưa (tự ghi ở Phải trả › Ekip). Không có task nào chờ gật.
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `572e700` (+ commit docs) · sạch hoàn toàn; việc user còn lại duy nhất: 8,55tr ekip đã trả ngoài sổ chưa. Không có task nào chờ gật.
+
+## 2026-08-27 — BUG USER BÁO: giảm 50% lưu thành `discount_amount = 50` → **FIXED + MERGED `572e700` + PROD OK** (`T-20260827-contract-discount-percent`)
+- Trace: form gửi `discount_amount: financials.discount` (giá trị ô nhập) trong khi tổng dùng `discountAmount` đã quy đổi → 2 HĐ (0060, 0062) lưu 50; "Tạm tính" = tổng + 50 = 475.050. Hạng mục "trùng" chỉ là dòng xoá mềm (RPC đúng). Sửa: form gửi số tiền; migration `20260827160000` data-fix 2 HĐ (áp prod); thẻ Tài chính hiện "Giảm: −475.000 (50%)". Render local + prod đúng. Ngoài scope: HĐ-0064/0047 tổng nhập tay lệch hạng mục.
 
 ## 2026-08-27 — USER "ok cho phép tiến hành": **gỡ 2 worktree (5,2 GB) + bỏ `base_salary` 100tr test của Admin**
 - Worktree: kiểm lại 2 diff đã trên `origin/main`, worktree không còn gì khác → `git worktree remove --force` (trusting-dijkstra phải `rmdir /s /q "\\?\…"` vì Windows *Filename too long*), `prune`, xoá 2 nhánh; `git worktree list` chỉ còn repo chính.

@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260827-contract-discount-percent
     title: "Hợp đồng: giảm giá nhập theo % bị lưu discount_amount = số thô (50) → form gửi số tiền đã quy đổi; data-fix 2 HĐ (0060, 0062); Tài chính hiện 'Giảm: −475.000 (50%)'"
-    status: review
+    status: done
     owner: claude
-    branch: claude/contract-discount-percent (user báo bug 27/08 → trace + code trực tiếp; migration data-fix ĐÃ ÁP prod; render local OK → chờ user "merge + push" — spec §3)
+    branch: claude/contract-discount-percent (user báo bug 27/08 → trace + code trực tiếp; migration data-fix áp prod; user "merge + push" → ff main 572e700, Vercel success, render prod HĐ-2026-0060 đúng — spec §3)
     locks:
       - components/contracts/form/hooks/useContractForm.ts
       - components/contracts/detail/financial-dashboard.tsx
