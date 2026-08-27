@@ -3,9 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `b1f0cc8` · đang review: `claude/thiep-kho-ui` (M3b).
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `72617f8` (+ commit docs sau merge) · kế tiếp: spec M4 `payment_plans`.
 
-## 2026-08-27 — M3b THIỆP & KHO UI: **CODE + VERIFY LOCAL XONG, CHỜ USER XEM ARTIFACT → "merge + push"** (`T-20260826-thiep-kho-ui`, nhánh `claude/thiep-kho-ui`)
+## 2026-08-27 — M3b THIỆP & KHO UI: **MERGED `72617f8` + VERIFIED PRODUCTION 3/3** (`T-20260826-thiep-kho-ui`)
+- User xem artifact https://claude.ai/code/artifact/0ec0353e-3b92-4a55-8f60-849db90a6989 → "merge + push" → ff `b1f0cc8 → 72617f8`, Vercel lên sau 3,5 phút, `inventory-contract-sale` prod 3/3, seed sạch. Còn lại theo lệnh "tiến hành triển khai" 26/08: **M4 `payment_plans`** (đang khảo sát code, số đo bên dưới) → M5 lương cứng.
 - Spec viết 26/08 từ đo prod + khảo sát code (agent Explore). Coder subagent **chạm giới hạn phiên** trước khi sửa gì → Claude code trực tiếp (đường lùi). Không đụng DB. Thay đổi: `fetchInventoryContractOptions` tìm cả SĐT; `StockOutModal` prop `initialMode`/`initialContract`/`onSuccess` + banner gợi ý "Bán thêm HĐ" khi SĐT khách lẻ trùng khách HĐ; ô thứ 7 "Thiệp" trong Thao tác nhanh trang HĐ (`grid-cols-7`) mở modal sẵn HĐ; `stockOut` revalidate trang HĐ/`/finance`.
 - **Phát hiện khi chạy e2e:** ô chọn HĐ của modal Xuất kho **đã hỏng từ trước** — `.or()` cấp cha trộn cột bảng nhúng (`customers.full_name`) bị PostgREST từ chối *"failed to parse logic tree"* mỗi khi gõ chữ (chỉ nhánh "gần đây" chạy) → tách 2 truy vấn + gộp (vault `bay-du-lieu` #16). Gate: eslint/tsc/build 0 · verify inventory/contracts · Playwright local `inventory-contract-sale` 3/3 (bán thêm 10 tờ → 3 sổ + cogs 5.000; xuất HĐ 5 tờ → cogs 7.500 hiện ở drawer lợi nhuận; tìm HĐ theo SĐT/tên/mã). Artifact 3 ảnh: link ở message. Sau merge: chạy spec trên prod. Kế tiếp: spec M4 (`payment_plans`) — số đo đã có bên dưới.
 

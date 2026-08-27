@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260826-thiep-kho-ui
     title: "M3b: thiệp của khách HĐ đi đúng đường Bán thêm HĐ / Xuất HĐ — modal xuất kho gợi ý theo SĐT khách HĐ + ô chọn HĐ tìm SĐT, lối vào 'Thiệp / vật tư' từ trang hợp đồng (modal mở sẵn HĐ), stockOut revalidate trang HĐ/finance; không đụng DB"
-    status: review
+    status: done
     owner: claude
-    branch: claude/thiep-kho-ui (user "tiến hành triển khai" 26/08 → spec + code (Claude trực tiếp, coder subagent hết quota) + verify local 27/08 xong; chờ user xem artifact rồi "merge + push" — spec §4)
+    branch: claude/thiep-kho-ui (user "tiến hành triển khai" 26/08 → spec + code (Claude trực tiếp, coder subagent hết quota) → user "merge + push" 27/08 → ff main 72617f8, Vercel lên, inventory-contract-sale prod 3/3 — spec §4)
     locks:
       - app/actions/inventory-queries.ts (fetchInventoryContractOptions), app/actions/inventory-mutations.ts (stockOut revalidate)
       - components/inventory/stock-out-modal.tsx
