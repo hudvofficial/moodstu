@@ -147,3 +147,10 @@ Verify: `git worktree list` chỉ còn repo chính (+ `vscode-not-working-febdc2
 - **Kiểu import `toast` — đã kiểm, KHÔNG lệch chuẩn.** Cả 2 patch dùng `import { toast } from "sonner"`. Dự án có 2 lối: `sonner` (98 chỗ) và `@/lib/toast-manager` (19 chỗ); `sonner` là dependency trực tiếp (`^2.0.7`) và là lối phổ biến hơn → giữ nguyên như patch, không phải sửa.
 - **Chưa kiểm được nhánh lỗi của (B).** Muốn thấy toast thật thì phải ép `upsertComment` fail (ví dụ đặt album quá hạn chọn ảnh). Tôi không tự đổi dữ liệu nghiệp vụ của album khách để test. Nếu user muốn kiểm tận mắt thì cần một album nháp.
 - **Không rõ 2 worktree này còn dùng vào việc gì khác.** Chúng do phiên Claude trước tạo ra; ngoài 2 file trên thì cây làm việc sạch. Nhưng đây là môi trường máy user nên Task 3 vẫn phải hỏi lại.
+
+## 8. Kết quả (27/08/2026 — user "tiếp tục bản đang dở", Claude làm trực tiếp)
+- Đo lại: 2 worktree vẫn ở `fcc71b6`, mỗi cái đúng 1 file `M` (+20/−3 và +9/−2), `git log main..branch` rỗng; `toast.error` trên main = 0 ở cả 2 file → việc dở còn nguyên.
+- **Task 1 ✅** `876ff7b` — patch A `git apply` sạch (3 nhánh lỗi có `console.error` + `toast.error`; đường thành công giữ nguyên).
+- **Task 2 ✅** `6a92174` — patch B **lệch khối import** (main đã thêm `useRef`, `CircleCheck`, `MessageSquare`… từ 23/07) → ráp tay đúng spec: thêm `import { toast } from "sonner"`, nhánh fail `toast.error(result.error || "Không thể lưu ghi chú", { id: "gallery-save-note-error" })` + `return false`; giữ `mutateNotedImages()` (main thêm sau) ở nhánh thành công.
+- Gate: eslint 0 · tsc 0 · build sạch (chung với dead-code cleanup) · smoke render album công khai (đường thành công im lặng như cũ). Nhánh lỗi (B) chưa ép được — ghi rõ.
+- **Task 3 ⏳ CHỜ USER** nói rõ "gỡ đi" → `git worktree remove --force` 2 worktree + `git branch -D` 2 nhánh (thu hồi 5,2 GB). `vscode-not-working-febdc2` không còn trong `git worktree list` (đã tự mất).

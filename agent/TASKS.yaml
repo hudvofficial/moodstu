@@ -160,7 +160,8 @@ active:
 
   - id: T-20260825-finance-nav-guard
     title: "finance/*: watchdog client tu sua lai URL khi bi day nham ve route cha (huong 3 sau khi 2 huong ngan nguyen nhan khong hieu qua)"
-    status: ci
+    status: merged
+    merged_commit: 652caf6 (đóng sổ 27/08 — spec §5 đã ghi merged + verify prod; nhánh đã xoá)
     owner: claude (fallback)
     branch: claude/finance-nav-guard
     locks:
@@ -193,7 +194,8 @@ active:
     notes: "User bao bam /finance/debts thi 5-10s sau tu dong bat lai /finance kem toast loi. Trace + verify bang Playwright that tren production nhieu vong. Bang chung goc re: response Server Action bi TRON giua 2 request dong thoi (doc truc tiep noi dung JSON, khop x-matched-path header Vercel) - loi tang Next.js 16/Vercel duoi tai dong thoi cao, khong phai loi du lieu ung dung. Da thu 2 fix: (1) staleTimes.dynamic 180->30 - do duoc TE HON (7/15 vs baseline 2/8), da LUI LAI ve 180. (2) Chuyen FinanceRealtimeRefresh tu finance/layout.tsx (Server Component, re-render moi lan dieu huong vi force-dynamic, gay remount + kenh realtime dong/mo lai - bang chung WebSocket log ro rang) sang AppShell (client component mount 1 lan, gate bang pathname.startsWith('/finance')) - do duoc 4/15 (27%), KHONG khac biet ro so voi baseline goc. Van giu Fix chan bao retry (onErrorRetry trong lib/swr.ts) - doc lap hop ly, khong co bang chung lam xau them. TRANG THAI: blocked - da thu 2 huong sua o tang 'giam concurrency do vong doi component' nhung khong chuyen dong duoc ty le do duoc; nghi ngo that su nam o so luong ~13-17 hook useSWR doc lap MOI TRANG tu ban than no da du gay dieu kien loi, khong can trang truoc con hoat dong - can gop bot cac hook do (pham vi lon hon nhieu, khong con surgical) hoac 1 huong khac (vd watchdog client tu phat hien+sua URL sai ngay). Da bao day du cho user, dang cho quyet dinh huong tiep theo."
   - id: T-20260824-expenses-guard-fixes
     title: "finance/expenses: gan nhan [Auto-] con thieu (debt/refund) + chan dem trung chi phi co dinh + vendor task"
-    status: ci
+    status: merged
+    merged_commit: (nhánh claude/expenses-guard-fixes đã merge main — đóng sổ 27/08; [Auto-Debt] có trên main; nhánh đã xoá)
     owner: claude (fallback)
     branch: claude/expenses-guard-fixes
     locks:
@@ -210,7 +212,8 @@ active:
     notes: "Tiep noi trace + so do quan he du lieu /finance/expenses (artifact Ban Do Phieu Chi). Phat hien: guard [Auto- chi nhan dung 5/7 loai phieu chi tu dong, sot 2 loai (tra no phai tra, hoan tien huy don in) - sua/xoa duoc tu do du dung sau la so du no/don in that. Phat hien them: buildCloseSnapshot (vua mo rong hom nay) chua loai [Auto-Fixed] khoi operatingOutflow -> dem trung voi fixedCost neu dung ca 2 tinh nang cho cung 1 thang (hien 0 phieu Auto-Fixed thuc te nen chua phat tac). getContractProfitReportFallback thieu filter vendor_id IS NULL nhu RPC chinh da co - dem trung chi phi vendor neu duong du phong nay tung chay (hien RPC song binh thuong nen khong chay). Co tinh KHONG lam: contract-profit.ts (dead code, 0 caller), them o chon hop dong/dinh anh vao form tao phieu chi (quyet dinh san pham), tach vai tro duyet (chua co tin hieu nhu cau), phia receipts cung co lo hong tuong tu nhung co che khoa khac han (source_table, khong dung nhan [Auto-), can dieu tra rieng."
   - id: T-20260824-finance-closes-real-numbers
     title: "finance/closes: noi buoc Khau hao + Chot P&L vao so lieu that (tai dung investments), them huy ky chua khoa"
-    status: ci
+    status: merged
+    merged_commit: (nhánh claude/finance-closes-real-numbers đã merge main — đóng sổ 27/08; cancelMonthlyClose có trên main; nhánh đã xoá)
     owner: claude (fallback)
     branch: claude/finance-closes-real-numbers
     locks:
@@ -226,7 +229,8 @@ active:
     notes: "Tiep noi trace /finance/receipts + deep-trace /finance/closes (user yeu cau dao sau rieng phan khoa so). Phat hien: advance_close_task la may trang thai thuan tuy, 7/8 buoc khong tinh/doc so lieu nao, du 'Khau hao' (dung o /finance/investments) va 'P&L' (dung o /finance/reports) da co that noi khac trong app nhung chua duoc noi vao day. Fix: mo rong buildCloseSnapshot() them depreciationCost (tai dung dung cong thuc investmentBookValue, tinh theo moc cuoi ky dang chot thay vi hom nay) + netProfit (netCashflow - depreciationCost, phan biet ro voi dong tien mat). Them cancelMonthlyClose cho ky chua khoa (vá lo hong UNIQUE(period) khong co duong huy neu tao nham thang). Co tinh KHONG lam: tach vai tro ke toan rieng (quyet dinh san pham, chua co tin hieu nhu cau that - 0 ky da khoa), buoc 1/2/3/5 (khong co tinh nang co san de noi vao, xay moi hoan toan ngoai pham vi)."
   - id: T-20260824-receipts-trace-fixes
     title: "finance/receipts: fix phan loai Coc sai trong finance_receipt_documents + khoa nut Sua tren phieu ban vat tu + 2 loi UI nho"
-    status: ci
+    status: merged
+    merged_commit: (làm trực tiếp trên main, migration 20260824140000 có trong repo + đã áp prod — đóng sổ 27/08)
     owner: claude (fallback)
     branch: main
     locks:
@@ -246,7 +250,8 @@ active:
     notes: "User hoi trace /finance/receipts da toi uu chua. Phat hien bug that dang song (khong phai no du lieu cu): payment_stage luon ghi nhan Vietnamese co dau qua payment_stage_display_label_v2, nhung finance_receipt_documents dung LIKE '%coc%' ASCII khong khop dau -> moi khoan coc moi deu bi phan sai. Fix bang cach tai su dung payment_stage_key_v2 (ham chuan hoa da co san, dung chinh trong process_contract_payment_v2). Fix 2: nut Sua tren phieu sale_receipt luon that bai server-side (da co san check) nhung UI khong khoa - them isSaleReceipt check. Fix 3+4: id leak 'payment:' trong dong ID footer, bankInfo khong SSR gay nhay QR modal. Da retract 1 nghi van bug (tab Ban vat tu) - la race condition trong script test, khong phai bug that."
   - id: T-20260824-lab-payment-entry-points
     title: "Thanh toan lab: them nut Thanh toan truc tiep tren don + focusOrderId giu ngu canh trong LabPaymentModal"
-    status: ci
+    status: merged
+    merged_commit: (nhánh claude/lab-payment-entry-points đã merge main + deploy prod — spec §6; đóng sổ 27/08; nhánh đã xoá)
     owner: claude (fallback)
     branch: claude/lab-payment-entry-points
     locks:
@@ -265,7 +270,8 @@ active:
     notes: "User bao 3 anh: khong co UI thanh toan truc tiep (phai qua Sua), group drawer khong co nut thanh toan, LabPaymentModal che do thu cong khong uu tien dung don dang mo. Da phan tich: cong no Lab la khai niem cap LAB (FIFO mac dinh dung cho diem vao tu /printing/labs), nhung diem vao tu 1 don cu the can tu chon thu cong + tick san + amount = remainingAmount that (tra tu unpaidOrders da fetch, khong suy tu order.totalAmount). KHONG bien Badge thanh nut bam (pha quy uoc SSOT) - them nut text Thanh toan rieng canh Sua. Rut khoi pham vi: fetchLabUnpaidOrders thieu filter payment_status - da xac nhan KHONG phai bug (result.filter remainingAmount>0 da tuong duong). Da verify render that + merge main + deploy production (xem spec muc 6)."
   - id: T-20260824-stale-action-toast-recovery
     title: "Deploy skew: lỗi Server Action not found bị toast nuốt → gắn recovery tại ToastManager.error() (+ placeholder gallery)"
-    status: implementing
+    status: merged
+    merged_commit: (commit trên main 24/08, đã push cùng các lần deploy sau — recoverFromStaleServerAction có trong lib/toast-manager.ts; đóng sổ 27/08)
     owner: claude (fallback)
     branch: main
     locks:
@@ -280,9 +286,9 @@ active:
     notes: "ĐO ĐƯỢC: ID action 78f6308c… không có trong manifest build hiện tại → skew sau 2 lần push main 2026-08-24. StaleServerActionRecovery toàn cục chỉ nghe unhandledrejection; 66 chỗ catch→toast nuốt lỗi (React Query onError, runOptimisticMutation, try/catch). Fix additive 2 dòng ở lib/toast-manager.ts error(): recoverFromStaleServerAction(message) (helper sẵn, reload 1 lần/build). Lock không giao 2 task gallery active. Ngoài phạm vi: Vercel Skew Protection (plan Pro), ignoreCommand cho commit chỉ đụng agent/**."
   - id: T-20260723-gallery-dead-code-cleanup
     title: "Gỡ 5 file gallery chết — chuỗi Pinterest 3 file ĐANG nằm trong bundle gửi khách"
-    status: spec
+    status: review
     owner: claude
-    branch: codex/gallery-dead-code-cleanup
+    branch: main (user "tiếp tục bản đang dở" 27/08 → Claude làm trực tiếp, commit 86990fc; chờ build sạch đo marker bundle + smoke render rồi push — spec §8)
     locks:
       - scripts/test-url-helper.mjs
       - components/gallery/gallery-virtual-grid.tsx
@@ -298,9 +304,9 @@ active:
     notes: "Gốc rễ: logic dựng URL ảnh có 3 bản sao ở 3 nơi → vá bẫy ?size ở 01a2ca8+1477090 vẫn còn 2 bản ngoài tầm vá; task này rút còn 1. ĐO ĐƯỢC (không suy đoán): chuỗi class riêng của Pinterest nằm trong .next/static/chunks/7260-0e8f77e05f9ea258.js (20 KB) dù USE_PINTEREST=false nên chưa từng chạy. Chuỗi chết: pinterest → use-masonry-pinterest → app/actions/gallery-masonry-layout, mỗi mắt xích chỉ có 1 nơi gọi là mắt xích trước. resolveThumbnailSize là bản CỤC BỘ trong chính 2 file bị xoá → không mồ côi ai. @tanstack/react-virtual còn 2 consumer khác → KHÔNG đụng lockfile. Rủi ro thật: mất đường lùi bật lại Pinterest (lấy lại từ git history nếu cần)."
   - id: T-20260723-worktree-salvage-prune
     title: "Cứu 2 thay đổi chưa commit trong worktree cũ, rồi mới gỡ (thu hồi 5.2 GB)"
-    status: spec
+    status: review
     owner: claude
-    branch: codex/worktree-salvage
+    branch: main (27/08: Task 1 commit 876ff7b, Task 2 commit 6a92174 (ráp tay vì patch lệch import) — Task 3 GỠ WORKTREE CHỜ USER XÁC NHẬN RIÊNG "gỡ đi"; spec §8)
     locks:
       - components/contracts/gallery/use-gallery-data.ts
       - components/gallery/public-gallery-client.tsx

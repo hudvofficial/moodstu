@@ -3,7 +3,14 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `436ff01` (+ commit docs sau merge) · **lệnh "tiến hành triển khai" 26/08 đã xong toàn bộ** (ADR-017 · M3b · M4 · M5). Không còn task chờ gật; việc user: quyết xoá `salary_info.base_salary` 100tr (Admin), 8,55tr ekip đã trả ngoài sổ hay chưa.
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `ce7f405` (+ commit docs) · lệnh "tiến hành triển khai" 26/08 xong toàn bộ; việc dở trước 26/08 đã dọn — chỉ còn Task 3 gỡ worktree chờ user.
+
+## 2026-08-27 — DỌN VIỆC DỞ TRƯỚC 26/08 (user "tiếp tục bản đang dở"): **6 task đóng sổ · 2 diff worktree cứu (`d96f00f`, `8001648`) · 5 file gallery chết gỡ (`ce7f405`) · 13 nhánh xoá — push, prod smoke**
+- Build sạch: 2 marker cũ của spec không còn riêng Pinterest (giờ ở `gallery-image-tile.tsx`) → dò 8 chuỗi chỉ có trong chuỗi Pinterest = 0 chunk, đối chứng lưới sống còn → dead code đã rời bundle. Smoke local: album công khai 30 ảnh/0 lỗi, admin gallery 19 ảnh/0 lỗi. Sự cố tự gây: `git rm` stage sớm làm 5 file lọt vào commit A → viết lại 3 commit; lúc reset nhầm mốc `7df067d` (trước M5 đã push) và `cherry-pick -q` sai cú pháp → khôi phục bằng `reset --hard origin/main` + cherry-pick 3 hash + áp patch docs; kiểm `git diff origin/main` chỉ còn gallery + docs.
+- Đo: **15 nhánh local đều đã merge main, 0 commit chưa vào** → 5 task `ci` (`finance-nav-guard` 652caf6, `expenses-guard-fixes`, `finance-closes-real-numbers`, `receipts-trace-fixes`, `lab-payment-entry-points`) + `stale-action-toast-recovery` (`implementing`) thực ra đã lên prod → TASKS đổi `merged`. Xoá 13 nhánh đã merge (giữ 2 nhánh của worktree).
+- `T-20260723-worktree-salvage-prune`: Task 1 `876ff7b` (patch A áp sạch), Task 2 `6a92174` (patch B lệch import → ráp tay, giữ `mutateNotedImages`). **Task 3 gỡ 2 worktree (5,2 GB) CHỜ USER nói "gỡ đi"** — chưa gỡ.
+- `T-20260723-gallery-dead-code-cleanup`: `86990fc` xoá 5 file + wrapper re-export; eslint/tsc 0, 4 grep chết rỗng, `getResponsiveThumbnailUrl` còn 1 bản; đang build sạch đo marker bundle + smoke render album công khai rồi push (3 commit).
+- Sửa Engram: `mood saas/.engram/config.json` → project `mood-studio`; session summary + mem_save chạy được.
 
 ## 2026-08-27 — M5 LƯƠNG CỨNG: **MERGED `436ff01` + VERIFIED PRODUCTION 6/6** (`T-20260827-luong-cung-m5`)
 - User "merge + push" → ff `7df067d → 436ff01`, Vercel lên sau 3,5 phút, `cashflow-m5` 3/3 + `cashflow-m3` 3/3 trên prod, seed sạch. `salary_info.base_salary` 100tr của Admin: user chưa quyết → giữ nguyên (lần "Lập bảng lương" đầu tiên sẽ tạo dòng 100tr cho Admin nếu không xoá).

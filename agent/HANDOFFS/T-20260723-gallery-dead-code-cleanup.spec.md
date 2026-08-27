@@ -196,3 +196,10 @@ Verify ngay: `npm run build` → exit 0.
   Spec hiện tại đang viết theo **(ii)**.
 
 - **Ngoài phạm vi task này:** 2 worktree cũ ở `.claude/worktrees/` chiếm **5.2 GB** đĩa và **đều có thay đổi chưa commit chưa hề có trên main**. Đã tách thành task riêng `T-20260723-worktree-salvage-prune` vì bản chất khác hẳn (cứu việc dở + dọn môi trường, không phải xoá dead code).
+
+## 8. Kết quả (27/08/2026 — user "tiếp tục bản đang dở", Claude làm trực tiếp, commit `86990fc`)
+- Đo lại trước khi xoá: 5 file vẫn tồn tại; importer của chuỗi Pinterest/masonry chỉ là chính chuỗi đó; `package.json` không trỏ `test-url-helper`.
+- Làm theo (ii): xoá 5 file, wrapper `gallery-image-grid-index.tsx` còn re-export 1 dòng (không đụng lockfile). Task 1–4 gộp một commit (cùng agent, tsc là cổng — 0 lỗi).
+- Verify §5: eslint 0 · tsc 0 · 4 grep tham chiếu chết = rỗng · `function getResponsiveThumbnailUrl` = **1** · build sạch (`.next/dev` không có) — **2 marker của spec không còn hợp lệ**: cả `max-w-full truncate px-3 text-micro font-medium` lẫn `text-micro opacity-60` giờ nằm trong `gallery-image-tile.tsx` (file sống, tách ra sau 23/07) nên vẫn 1/1 chunk; dò lại bằng 8 chuỗi **chỉ có** trong 3 file Pinterest (`./use-masonry-pinterest`, `@/app/actions/gallery-masonry-layout`, `${position.width}px`, `Item ${item.id} missing dimensions…`, …) → **0 chunk** cho tất cả, chữ "Pinterest" 0 chunk; 2 marker đối chứng của lưới đang chạy vẫn 2/1 → Pinterest đã rời bundle. Smoke render (next start, Playwright): album công khai `amtgzexYOnXG` @iPhone 12: **30 ảnh tải xong, 0 "Lỗi nguồn Drive"**; admin `/contracts/<id>/gallery`: **19 ảnh, 0 lỗi**.
+- Commit `ce7f405` (lịch sử viết lại một lần vì `git rm` stage sớm làm 5 file lọt vào commit A; đã tách đúng 3 commit).
+- Ghi nhận: worktree-salvage đã làm trước trong cùng phiên (locks không còn giao nhau) → có thể dọn wrapper 1 dòng ở task nhỏ sau nếu muốn (public-gallery-client import thẳng `./gallery-image-grid`).
