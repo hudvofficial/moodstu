@@ -3,9 +3,10 @@
 > **File sống — Claude cập nhật mỗi phiên.** Đây là "sự thật hiện tại", thay cho các
 > PLAN cũ đã lỗi thời (`plans/260603-native-feel-performance/` KHÔNG còn phản ánh
 > thực trạng — user xác nhận đã tối ưu nhiều mà không cập nhật file đó).
-> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `7df067d` · đang review: `claude/luong-cung-m5` (M5 — mốc cuối của lệnh "tiến hành triển khai" 26/08).
+> Cập nhật gần nhất: **2026-08-27** · nhánh: `main` @ `436ff01` (+ commit docs sau merge) · **lệnh "tiến hành triển khai" 26/08 đã xong toàn bộ** (ADR-017 · M3b · M4 · M5). Không còn task chờ gật; việc user: quyết xoá `salary_info.base_salary` 100tr (Admin), 8,55tr ekip đã trả ngoài sổ hay chưa.
 
-## 2026-08-27 — M5 LƯƠNG CỨNG: **CODE + DB XONG, CHỜ USER "merge + push"** (`T-20260827-luong-cung-m5`, nhánh `claude/luong-cung-m5`)
+## 2026-08-27 — M5 LƯƠNG CỨNG: **MERGED `436ff01` + VERIFIED PRODUCTION 6/6** (`T-20260827-luong-cung-m5`)
+- User "merge + push" → ff `7df067d → 436ff01`, Vercel lên sau 3,5 phút, `cashflow-m5` 3/3 + `cashflow-m3` 3/3 trên prod, seed sạch. `salary_info.base_salary` 100tr của Admin: user chưa quyết → giữ nguyên (lần "Lập bảng lương" đầu tiên sẽ tạo dòng 100tr cho Admin nếu không xoá).
 - Khảo sát (agent Explore) tìm ra: sổ kỳ cộng `employee_salaries.monthly_salary` — **cột không code nào ghi** (lương thật ở `base_salary`/`total_salary`) → `cost_salary_base` luôn 0; trả lương 2 bước không atomic, không phân bổ → lương không hiện ở Phải trả › Ekip; 5 công thức phụ cộng sheet chồng lên phiếu chi lương.
 - Làm: migration **đã áp prod** (sổ kỳ cộng `total_salary`; `sync_employee_salary_paid`; `payable_items('employee')` + dòng lương; RPC trả/huỷ phân bổ `employee_salary`; 3 RPC intelligence/forecast vá từ thân DB — không cộng sheet lên tiền, dự báo dùng lương chưa trả); app: `payEmployeeSalaryAction` → RPC atomic, sheet chỉ người có lương cơ bản, thưởng/phạt kéo `remaining`, chốt sổ/fallback không đếm trùng. Gate: eslint/tsc/build 0 · verify reports/contracts · Playwright local `cashflow-m5` 3/3 + `cashflow-m3` 3/3. Không màn hình mới. ADR-016 phụ lục M5; vault luong-tien/nhan-su; design §9 M5 ✅. **User quyết:** xoá `salary_info.base_salary` 100tr (test) của Admin.
 

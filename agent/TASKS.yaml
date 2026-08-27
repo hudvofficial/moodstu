@@ -32,9 +32,9 @@ updated: 2026-08-26
 active:
   - id: T-20260827-luong-cung-m5
     title: "M5 Lương cứng: sổ kỳ cộng employee_salaries.total_salary (cột monthly_salary không ai ghi); trả lương qua record_payee_payment_atomic + phân bổ employee_salary (paid/remaining dẫn xuất, huỷ → nợ quay lại); payable_items employee gồm lương; sheet chỉ người có lương cơ bản; 3 RPC intelligence/forecast + close snapshot không cộng sheet lên tiền"
-    status: review
+    status: done
     owner: claude
-    branch: claude/luong-cung-m5 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration ĐÃ ÁP prod; verify local xong → chờ user "merge + push" + quyết salary_info Admin — spec §6)
+    branch: claude/luong-cung-m5 (user "tiến hành triển khai" 26/08 → spec + code trực tiếp 27/08; migration áp prod; user "merge + push" → ff main 436ff01, Vercel lên, cashflow-m5 + m3 prod 6/6 — spec §6; salary_info Admin 100tr: user CHƯA quyết, giữ nguyên)
     locks:
       - supabase/migrations/20260827130000_luong_cung_m5.sql (mới)
       - app/actions/salary-actions.ts, app/actions/finance-close-actions.ts, app/actions/finance-reports-queries.ts
